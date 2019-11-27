@@ -50,10 +50,10 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, c
     // We have something
     if ((uint32_t)now.tv_sec < ni->d_ttd) {
       *ne = &(*ni);
-      moveCacheItemToBack(d_negcache, ni);
+      moveCacheItemToBack<SequenceTag>(d_negcache, ni);
       return true;
     }
-    moveCacheItemToFront(d_negcache, ni);
+    moveCacheItemToFront<SequenceTag>(d_negcache, ni);
     ++ni;
   }
   return false;
@@ -83,11 +83,11 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
       if ((uint32_t)now.tv_sec < ni->d_ttd) {
         // Not expired
         *ne = &(*ni);
-        moveCacheItemToBack(d_negcache, firstIndexIterator);
+        moveCacheItemToBack<SequenceTag>(d_negcache, firstIndexIterator);
         return true;
       }
       // expired
-      moveCacheItemToFront(d_negcache, firstIndexIterator);
+      moveCacheItemToFront<SequenceTag>(d_negcache, firstIndexIterator);
     }
     ++ni;
   }
@@ -101,7 +101,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
  */
 void NegCache::add(const NegCacheEntry& ne)
 {
-  lruReplacingInsert(d_negcache, ne);
+  lruReplacingInsert<SequenceTag>(d_negcache, ne);
 }
 
 /*!
@@ -185,7 +185,7 @@ void NegCache::clear()
  */
 void NegCache::prune(unsigned int maxEntries)
 {
-  pruneCollection(*this, d_negcache, maxEntries, 200);
+  pruneCollection<SequenceTag>(*this, d_negcache, maxEntries, 200);
 }
 
 /*!
@@ -199,7 +199,7 @@ uint64_t NegCache::dumpToFile(FILE* fp)
   struct timeval now;
   Utility::gettimeofday(&now, nullptr);
 
-  negcache_sequence_t& sidx = d_negcache.get<1>();
+  negcache_sequence_t& sidx = d_negcache.get<SequenceTag>();
   for (const NegCacheEntry& ne : sidx) {
     ret++;
     fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStates[ne.d_validationState]);

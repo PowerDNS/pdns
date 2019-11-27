@@ -26,7 +26,7 @@
 // this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // on a miss, move it to the beginning
-template <typename C, typename T> void pruneCollection(C& container, T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
+template <typename S, typename C, typename T> void pruneCollection(C& container, T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
 {
   time_t now=time(0);
   unsigned int toTrim=0;
@@ -39,8 +39,8 @@ template <typename C, typename T> void pruneCollection(C& container, T& collecti
 
 //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
 
-  typedef typename T::template nth_index<1>::type sequence_t;
-  sequence_t& sidx=collection.template get<1>();
+  typedef typename T::template index<S>::type sequence_t;
+  sequence_t& sidx=collection.template get<S>();
 
   unsigned int tried=0, lookAt, erased=0;
 
@@ -89,29 +89,29 @@ template <typename C, typename T> void pruneCollection(C& container, T& collecti
   }
 }
 
-// note: this expects iterator from first index, and sequence MUST be second index!
-template <typename T> void moveCacheItemToFrontOrBack(T& collection, typename T::iterator& iter, bool front)
+// note: this expects iterator from first index
+template <typename S, typename T> void moveCacheItemToFrontOrBack(T& collection, typename T::iterator& iter, bool front)
 {
-  typedef typename T::template nth_index<1>::type sequence_t;
-  sequence_t& sidx=collection.template get<1>();
-  typename sequence_t::iterator si=collection.template project<1>(iter);
+  typedef typename T::template index<S>::type sequence_t;
+  sequence_t& sidx=collection.template get<S>();
+  typename sequence_t::iterator si=collection.template project<S>(iter);
   if(front)
     sidx.relocate(sidx.begin(), si); // at the beginning of the delete queue
   else
     sidx.relocate(sidx.end(), si);  // back
 }
 
-template <typename T> void moveCacheItemToFront(T& collection, typename T::iterator& iter)
+template <typename S, typename T> void moveCacheItemToFront(T& collection, typename T::iterator& iter)
 {
-  moveCacheItemToFrontOrBack(collection, iter, true);
+  moveCacheItemToFrontOrBack<S>(collection, iter, true);
 }
 
-template <typename T> void moveCacheItemToBack(T& collection, typename T::iterator& iter)
+template <typename S, typename T> void moveCacheItemToBack(T& collection, typename T::iterator& iter)
 {
-  moveCacheItemToFrontOrBack(collection, iter, false);
+  moveCacheItemToFrontOrBack<S>(collection, iter, false);
 }
 
-template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
 {
   time_t now = time(nullptr);
   uint64_t totErased = 0;
@@ -129,7 +129,7 @@ template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uin
 
   for(auto& mc : maps) {
     WriteLock wl(&mc.d_mut);
-    auto& sidx = boost::multi_index::get<2>(mc.d_map);
+    auto& sidx = boost::multi_index::get<S>(mc.d_map);
     uint64_t erased = 0, lookedAt = 0;
     for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
       if(i->ttd < now) {
@@ -164,7 +164,7 @@ template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps)
   return delcount;
 }
 
-template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, const std::string& match)
+template <typename N, typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, const std::string& match)
 {
   uint64_t delcount=0;
   string prefix(match);
@@ -172,7 +172,7 @@ template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, con
   DNSName dprefix(prefix);
   for(auto& mc : maps) {
     WriteLock wl(&mc.d_mut);
-    auto& idx = boost::multi_index::get<1>(mc.d_map);
+    auto& idx = boost::multi_index::get<N>(mc.d_map);
     auto iter = idx.lower_bound(dprefix);
     auto start = iter;
 
@@ -188,11 +188,11 @@ template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, con
   return delcount;
 }
 
-template <typename T> uint64_t purgeExactLockedCollection(T& mc, const DNSName& qname)
+template <typename N, typename T> uint64_t purgeExactLockedCollection(T& mc, const DNSName& qname)
 {
   uint64_t delcount=0;
   WriteLock wl(&mc.d_mut);
-  auto& idx = boost::multi_index::get<1>(mc.d_map);
+  auto& idx = boost::multi_index::get<N>(mc.d_map);
   auto range = idx.equal_range(qname);
   if(range.first != range.second) {
     delcount += distance(range.first, range.second);
@@ -202,13 +202,13 @@ template <typename T> uint64_t purgeExactLockedCollection(T& mc, const DNSName& 
   return delcount;
 }
 
-template<typename Index>
+template<typename S, typename Index>
 std::pair<typename Index::iterator,bool>
 lruReplacingInsert(Index& i,const typename Index::value_type& x)
 {
   std::pair<typename Index::iterator,bool> res = i.insert(x);
   if (!res.second) {
-    moveCacheItemToBack(i, res.first);
+    moveCacheItemToBack<S>(i, res.first);
     res.second = i.replace(res.first, x);
   }
   return res;

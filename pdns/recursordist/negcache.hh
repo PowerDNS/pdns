@@ -83,18 +83,24 @@ public:
   }
 
 private:
+  struct CompositeKey
+  {
+  };
+  struct SequenceTag
+  {
+  };
   typedef boost::multi_index_container<
     NegCacheEntry,
     indexed_by<
-      ordered_unique<
+      ordered_unique<tag<CompositeKey>,
         composite_key<
           NegCacheEntry,
           member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
           member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>>,
         composite_key_compare<
           CanonDNSNameCompare, std::less<QType>>>,
-      sequenced<>,
-      hashed_non_unique<
+      sequenced<tag<SequenceTag>>,
+      hashed_non_unique<tag<NegCacheEntry>,
         member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
     negcache_t;
 
