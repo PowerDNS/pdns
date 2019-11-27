@@ -11,8 +11,8 @@ Creating a ``DNSName`` is done with the :func:`newDNSNameSet`::
 
 The set can be filled by func:`DNSNameSet:add`::
 
-  myset.add(newDNSName("domain1.tld"))
-  myset.add(newDNSName("domain2.tld"))
+  myset:add(newDNSName("domain1.tld"))
+  myset:add(newDNSName("domain2.tld"))
 
 Functions and methods of a ``DNSNameSet``
 -----------------------------------------
