@@ -1535,8 +1535,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("You cannot give rrsets AND zone data as text");
 
     auto nameservers = document["nameservers"];
-    if (!nameservers.is_array() && zonekind != DomainInfo::Slave)
-      throw ApiException("Nameservers list must be given (but can be empty if NS records are supplied)");
+    if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave)
+      throw ApiException("Nameservers is not a list");
 
     string soa_edit_api_kind;
     if (document["soa_edit_api"].is_string()) {
