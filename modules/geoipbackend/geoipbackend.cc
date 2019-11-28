@@ -193,9 +193,9 @@ void GeoIPBackend::initialize() {
           } else {
             Netmask nm{net->first.as<string>()};
             nmt.insert(nm).second.swap(value);
-            if (nm.isIpv6() == true && netmask6 < nm.getBits())
+            if (nm.isIPv6() == true && netmask6 < nm.getBits())
               netmask6 = nm.getBits();
-            if (nm.isIpv6() == false && netmask4 < nm.getBits())
+            if (nm.isIPv6() == false && netmask4 < nm.getBits())
               netmask4 = nm.getBits();
           }
         }
@@ -321,7 +321,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
       if (qtype != QType::ANY && rr.qtype != qtype) continue;
 
       if (rr.has_weight) {
-        gl.netmask = (addr.isIpv6()?128:32);
+        gl.netmask = (addr.isIPv6()?128:32);
         int comp = cumul_probabilities[rr.qtype.getCode()];
         cumul_probabilities[rr.qtype.getCode()] += rr.weight;
         if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
@@ -389,13 +389,13 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, int zoneId
     tmp_gl.netmask = 0;
     // get netmask from geoip backend
     if (queryGeoIP(addr, GeoIPInterface::Name, tmp_gl) == "unknown") {
-      if (addr.isIpv6())
+      if (addr.isIPv6())
         gl.netmask = target->second.netmask6;
       else
         gl.netmask = target->second.netmask4;
     }
   } else {
-    if (addr.isIpv6())
+    if (addr.isIPv6())
       gl.netmask = target->second.netmask6;
     else
       gl.netmask = target->second.netmask4;
@@ -452,37 +452,37 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
 
     switch(attribute) {
     case GeoIPInterface::ASn:
-      if (addr.isIpv6()) found = gi->queryASnumV6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryASnumV6(val, gl, ip);
       else found =gi->queryASnum(val, gl, ip);
       break;
     case GeoIPInterface::Name:
-      if (addr.isIpv6()) found = gi->queryNameV6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryNameV6(val, gl, ip);
       else found = gi->queryName(val, gl, ip);
       break;
     case GeoIPInterface::Continent:
-      if (addr.isIpv6()) found = gi->queryContinentV6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryContinentV6(val, gl, ip);
       else found = gi->queryContinent(val, gl, ip);
       break;
     case GeoIPInterface::Region:
-      if (addr.isIpv6()) found = gi->queryRegionV6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryRegionV6(val, gl, ip);
       else found = gi->queryRegion(val, gl, ip);
       break;
     case GeoIPInterface::Country:
-      if (addr.isIpv6()) found = gi->queryCountryV6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryCountryV6(val, gl, ip);
       else found = gi->queryCountry(val, gl, ip);
       break;
     case GeoIPInterface::Country2:
-      if (addr.isIpv6()) found = gi->queryCountry2V6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryCountry2V6(val, gl, ip);
       else found = gi->queryCountry2(val, gl, ip);
       break;
     case GeoIPInterface::City:
-      if (addr.isIpv6()) found = gi->queryCityV6(val, gl, ip);
+      if (addr.isIPv6()) found = gi->queryCityV6(val, gl, ip);
       else found = gi->queryCity(val, gl, ip);
       break;
     case GeoIPInterface::Location:
       double lat=0, lon=0;
       boost::optional<int> alt, prec;
-      if (addr.isIpv6()) found = gi->queryLocationV6(gl, ip, lat, lon, alt, prec);
+      if (addr.isIPv6()) found = gi->queryLocationV6(gl, ip, lat, lon, alt, prec);
       else found = gi->queryLocation(gl, ip, lat, lon, alt, prec);
       val = std::to_string(lat)+" "+std::to_string(lon);
       break;
@@ -494,7 +494,7 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
     break;
   }
 
-  if (ret == "unknown") gl.netmask = (addr.isIpv6()?128:32); // prevent caching
+  if (ret == "unknown") gl.netmask = (addr.isIPv6()?128:32); // prevent caching
   return ret;
 }
 
@@ -524,7 +524,7 @@ bool queryGeoLocation(const Netmask& addr, GeoIPNetmask& gl, double& lat, double
 {
   for(auto const& gi: s_geoip_files) {
     string val;
-    if (addr.isIpv6()) {
+    if (addr.isIPv6()) {
       if (gi->queryLocationV6(gl, addr.toStringNoMask(), lat, lon, alt, prec))
         return true;
      } else if (gi->queryLocation(gl, addr.toStringNoMask(), lat, lon, alt, prec))
@@ -554,7 +554,7 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
     } else if (!sformat.compare(cur,3,"%cc")) {
       rep = queryGeoIP(addr, GeoIPInterface::Country2, tmp_gl);
     } else if (!sformat.compare(cur,3,"%af")) {
-      rep = (addr.isIpv6()?"v6":"v4");
+      rep = (addr.isIPv6()?"v6":"v4");
     } else if (!sformat.compare(cur,3,"%as")) {
       rep = queryGeoIP(addr, GeoIPInterface::ASn, tmp_gl);
     } else if (!sformat.compare(cur,3,"%re")) {
@@ -607,44 +607,44 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
       nrep = 4;
     } else if (!sformat.compare(cur,3,"%hh")) {
       rep = boost::str(boost::format("%02d") % gtm.tm_hour);
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,3,"%yy")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_year + 1900));
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,3,"%dd")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_yday + 1));
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,4,"%wds")) {
       nrep=4;
       rep = GeoIP_WEEKDAYS[gtm.tm_wday];
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,4,"%mos")) {
       nrep=4;
       rep = GeoIP_MONTHS[gtm.tm_mon];
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,3,"%wd")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_wday + 1));
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,3,"%mo")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_mon + 1));
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,4,"%ip6")) {
       nrep = 4;
-      if (addr.isIpv6())
+      if (addr.isIPv6())
         rep = addr.toStringNoMask();
       else
         rep = "";
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,4,"%ip4")) {
       nrep = 4;
-      if (!addr.isIpv6())
+      if (!addr.isIPv6())
         rep = addr.toStringNoMask();
       else
         rep = "";
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,3,"%ip")) {
       rep = addr.toStringNoMask();
-      tmp_gl.netmask = (addr.isIpv6()?128:32);
+      tmp_gl.netmask = (addr.isIPv6()?128:32);
     } else if (!sformat.compare(cur,2,"%%")) {
       last = cur + 2; continue;
     } else {
