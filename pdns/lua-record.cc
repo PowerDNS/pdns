@@ -863,6 +863,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         for(const auto& nmpair : netmasks) {
           Netmask nm(nmpair.second);
           if(nm.match(bestwho)) {
+            if (destinations.empty()) {
+              throw std::invalid_argument("The IP list cannot be empty (for netmask " + nm.toString() + ")");
+            }
             return destinations[dns_random(destinations.size())].second;
           }
         }
