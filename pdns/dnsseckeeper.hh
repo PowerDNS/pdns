@@ -222,7 +222,8 @@ public:
     (*d_keymetadb->backends.begin())->commitTransaction();
   }
   
-  void getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
+  void getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
+  bool getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value);
   bool unSecureZone(const DNSName& zone, std::string& error, std::string& info);
   bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
@@ -252,6 +253,7 @@ private:
   
     DNSName d_domain;
     mutable std::string d_key, d_value;
+    mutable bool d_isset;
     unsigned int d_ttd;
   
   };
