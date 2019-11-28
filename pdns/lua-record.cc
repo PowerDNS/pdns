@@ -827,6 +827,9 @@ void setupLuaRecords()
         for(const auto& nmpair : netmasks) {
           Netmask nm(nmpair.second);
           if(nm.match(s_lua_record_ctx->bestwho)) {
+            if (destinations.empty()) {
+              throw std::invalid_argument("The IP list cannot be empty (for netmask " + nm.toString() + ")");
+            }
             return destinations[dns_random(destinations.size())].second;
           }
         }
