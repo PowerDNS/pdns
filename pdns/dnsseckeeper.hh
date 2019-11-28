@@ -205,8 +205,10 @@ public:
   bool setPresigned(const DNSName& zname);
   bool unsetPresigned(const DNSName& zname);
   bool setPublishCDNSKEY(const DNSName& zname);
+  void getPublishCDNSKEY(const DNSName& zname, std::string& value);
   bool unsetPublishCDNSKEY(const DNSName& zname);
   bool setPublishCDS(const DNSName& zname, const string& digestAlgos);
+  void getPublishCDS(const DNSName& zname, std::string& value);
   bool unsetPublishCDS(const DNSName& zname);
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);

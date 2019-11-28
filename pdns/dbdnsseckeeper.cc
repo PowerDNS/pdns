@@ -388,6 +388,11 @@ bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", meta);
 }
 
+void DNSSECKeeper::getPublishCDS(const DNSName& zname, std::string& value)
+{
+  getFromMetaOrDefault(zname, "PUBLISH-CDS", value, ::arg()["default-publish-cds"]);
+}
+
 /**
  * Remove domainmetadata to stop publishing CDS records for zone zname
  *
@@ -412,6 +417,11 @@ bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
   vector<string> meta;
   meta.push_back("1");
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta);
+}
+
+void DNSSECKeeper::getPublishCDNSKEY(const DNSName& zname, std::string& value)
+{
+  getFromMetaOrDefault(zname, "PUBLISH-CDNSKEY", value, ::arg()["default-publish-cdnskey"]);
 }
 
 /**
