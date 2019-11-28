@@ -1152,7 +1152,7 @@ static void startDoResolve(void *p)
         /* rfc6891 6.2.3:
            "Values lower than 512 MUST be treated as equal to 512."
         */
-        maxanswersize = min(static_cast<uint16_t>(edo.d_packetsize >= 512 ? edo.d_packetsize : 512), g_udpTruncationThreshold);
+        maxanswersize = static_cast<uint16_t>(edo.d_packetsize >= 512 ? edo.d_packetsize : 512);
       }
       ednsOpts = edo.d_options;
       maxanswersize -= 11; // EDNS header size
