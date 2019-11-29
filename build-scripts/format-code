@@ -21,7 +21,7 @@ if [ ! -e .clang-format ]; then
 fi
 
 verbose=0
-if tty > /dev/null; then
+if [ -t 1 ]; then
     verbose=1
 fi
 if [ x$CIRCLECI = xtrue ]; then
