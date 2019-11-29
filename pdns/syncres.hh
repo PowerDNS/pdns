@@ -135,7 +135,7 @@ public:
   }
 
   void prune() {
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     auto &ind = d_cont.template get<time_t>();
     ind.erase(ind.begin(), ind.upper_bound(now));
   }
