@@ -113,7 +113,9 @@ public:
     if (i == d_cont.end()) {
       entry_t e = { t, ttd, count };
       d_cont.insert(e);
-    } else if (i->ttd > ttd || i->count < count) { // ????
+    } else if (ttd > i->ttd || count > i->count) {
+      ttd = std::max(i->ttd, ttd);
+      count = std::max(i->count, count);
       auto &ind = d_cont.template get<Thing>();
       ind.modify(i, [ttd,count](entry_t &e) { e.ttd = ttd; e.count = count; });
     }
