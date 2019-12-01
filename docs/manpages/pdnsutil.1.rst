@@ -183,6 +183,8 @@ hash-zone-record *ZONE* *RNAME*
     This convenience command hashes the name *RNAME* according to the
     NSEC3 settings of *ZONE*. Refuses to hash for zones with no NSEC3
     settings.
+increase-serial *ZONE*
+    Increases the SOA-serial by 1. Uses SOA-EDIT.
 list-keys [*ZONE*]
     List DNSSEC information for all keys or for *ZONE*.
 list-all-zones:
