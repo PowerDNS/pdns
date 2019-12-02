@@ -24,10 +24,10 @@ For Debian and its derivatives (like Ubuntu) installing the ``dnsdist`` package 
 
   apt-get install -y dnsdist
 
-RedHat
+Red Hat
 ~~~~~~
 
-For RedHat, CentOS and its derivatives, dnsdist is available in `EPEL <https://fedoraproject.org/wiki/EPEL>`_:
+For Red Hat, CentOS and its derivatives, dnsdist is available in `EPEL <https://fedoraproject.org/wiki/EPEL>`_:
 
 .. code-block:: sh
 
