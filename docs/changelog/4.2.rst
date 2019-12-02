@@ -2,6 +2,107 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.1
+  :released: 2nd of December 2019
+
+  This release fixes several bugs and makes a few features more robust or intuitive. It also contains a few performance improvements for API users.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8589
+    :tickets: 8572
+
+    LUA view: do not crash on empty IP list
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8576
+
+    API: Accept headers without spaces
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8570
+    :tickets: 8299
+
+    Avoid database state-related SERVFAILs after a LUA error
+
+  .. change::
+    :tags: Bug Fixes, Improvements, LMDB
+    :pullreq: 8568
+    :tickets: 8134
+
+    Just before 4.2.0, some SQL-related fixes broke edit-zone and other features with the LMDB backend. This has been fixed now. (backport by Kees Monshouwer)
+
+  .. change::
+    :tags: Performance, Improvements
+    :pullreq: 8457
+
+    API: reduce number of database connections (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8546
+
+    Register a few known RR types and remove an unknown one
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 8549
+
+    Add SLAVE-RENOTIFY zone metadata support (Matti Hiljanen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8507
+    :tickets: 8217
+
+    rfc2136, pdnsutil: somewhat improve duplicate record handling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8548
+
+    bindbackend: use metadata for also-notifies as well (Matti Hiljanen)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8508
+    :tickets: 8218
+
+    pdnsutil increase-serial: under SOA-EDIT=INCEPTION-EPOCH, bump as if it is EPOCH
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 8547
+
+    Add configurable timeout for inbound AXFR (Matti Hiljanen)
+
+  .. change::
+    :tags: Performance, Improvements
+    :pullreq: 8541
+
+    API: optionally do not return dnssec info in domain list (Christian Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8454
+
+    Basic validation of $GENERATE parameters
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 8428
+
+    Add CentOS 8 as builder target
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 8341
+
+    gmysql backend, add an option to send the SSL capability flag
+
+.. changelog::
   :version: 4.2.0
   :released: 30th of August 2019
 

@@ -7,7 +7,7 @@ else
     perl -pe 's! from ([^/]+).+XXX (.+) \(AUTHOR\)!: \2 (\1)!g' |\
     perl -pe 's!Merge pull request #([[:digit:]]+)![#\1](https://github.com/PowerDNS/pdns/pull/\1)!g' |\
     perl -pe 's![#[[:digit:]]+]\(.+\): Backport #([[:digit:]]+)![#\1](https://github.com/PowerDNS/pdns/pull/\1)!g' |\
-    perl -pe 's!\((rgacogne|habbie|ahupowerdns|pieterlexis)\)!!gi' |\
+    perl -pe 's!\((rgacogne|habbie|ahupowerdns|pieterlexis|omoerbeek|aerique|chbruyand)\)!!gi' |\
     perl -pe 's!\(mind04\)!(Kees Monshouwer)!g' |\
     grep -v dnsdist
 fi
