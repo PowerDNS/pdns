@@ -91,12 +91,11 @@ elif [ "$RELEASE" = "auth-41" ]; then
 elif [ "$RELEASE" = "auth-42" ]; then
     write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
-    write_debian jessie pdns-server pdns_server
+    write_centos 8 pdns pdns_server
     write_debian stretch pdns-server pdns_server
-    write_ubuntu trusty pdns-server pdns_server
+    write_debian buster pdns-server pdns_server
     write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
-    write_ubuntu cosmic pdns-server pdns_server
 elif [ "$RELEASE" = "rec-40" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
