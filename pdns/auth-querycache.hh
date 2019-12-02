@@ -93,6 +93,9 @@ private:
     ~MapCombo() {
       pthread_rwlock_destroy(&d_mut);
     }
+    MapCombo(const MapCombo &) = delete; 
+    MapCombo & operator=(const MapCombo &) = delete;
+
     pthread_rwlock_t d_mut;
     cmap_t d_map;
   };
