@@ -127,7 +127,9 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 #endif /* HAVE_FSTRM */
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
-thread_local std::unique_ptr<MemRecursorCache> t_RC;
+std::unique_ptr<MemRecursorCache> s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+
+
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
@@ -1821,10 +1823,10 @@ static void startDoResolve(void *p)
     }
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
-      t_RC->cacheMisses++;
+      s_RC->cacheMisses++;
     }
     else {
-      t_RC->cacheHits++;
+      s_RC->cacheHits++;
     }
 
     if(spent < 0.001)
@@ -2913,7 +2915,6 @@ static void houseKeeping(void *)
     past = now;
     past.tv_sec -= 5;
     if (last_prune < past) {
-      t_RC->doPrune(g_maxCacheEntries / g_numThreads); // this function is local to a thread, so fine anyhow
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
 
       SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));

@@ -965,7 +965,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     return a.domain < b.domain;
   }
 };
-extern thread_local std::unique_ptr<MemRecursorCache> t_RC;
+extern std::unique_ptr<MemRecursorCache> s_RC;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 MT_t* getMT();

@@ -937,7 +937,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   vector<DNSRecord> cached;
   bool wasAuth = false;
 
-  auto ttl = t_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth);
+  auto ttl = s_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth);
   BOOST_REQUIRE_GE(ttl, 1);
   BOOST_REQUIRE_LE(ttl, 42);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
@@ -946,7 +946,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   cached.clear();
 
   /* Also check that the the part in additional is still not auth */
-  BOOST_REQUIRE_GE(t_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
+  BOOST_REQUIRE_GE(s_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
   BOOST_CHECK_EQUAL(wasAuth, false);
 }
@@ -987,14 +987,14 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_general)
 
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_CHECK_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
   cached.clear();
-  BOOST_CHECK_LT(t_RC->get(now, target, QType(QType::AAAA), true, &cached, who), 0);
-  BOOST_CHECK_EQUAL(t_RC->get(now, DNSName("not-sanitization.powerdns.com."), QType(QType::DNAME), true, &cached, who), -1);
-  BOOST_CHECK_LT(t_RC->get(now, target, QType(QType::MX), true, &cached, who), 0);
-  BOOST_CHECK_EQUAL(t_RC->get(now, DNSName("not-sanitization.powerdns.com."), QType(QType::SOA), true, &cached, who), -1);
-  BOOST_CHECK_LT(t_RC->get(now, target, QType(QType::TXT), false, &cached, who), 0);
-  BOOST_CHECK_EQUAL(t_RC->get(now, DNSName("powerdns.com."), QType(QType::AAAA), false, &cached, who), -1);
+  BOOST_CHECK_LT(s_RC->get(now, target, QType(QType::AAAA), true, &cached, who), 0);
+  BOOST_CHECK_EQUAL(s_RC->get(now, DNSName("not-sanitization.powerdns.com."), QType(QType::DNAME), true, &cached, who), -1);
+  BOOST_CHECK_LT(s_RC->get(now, target, QType(QType::MX), true, &cached, who), 0);
+  BOOST_CHECK_EQUAL(s_RC->get(now, DNSName("not-sanitization.powerdns.com."), QType(QType::SOA), true, &cached, who), -1);
+  BOOST_CHECK_LT(s_RC->get(now, target, QType(QType::TXT), false, &cached, who), 0);
+  BOOST_CHECK_EQUAL(s_RC->get(now, DNSName("powerdns.com."), QType(QType::AAAA), false, &cached, who), -1);
 }
 
 BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_relevant_additional_aaaa)
@@ -1022,11 +1022,11 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_relevant_additional_aaaa)
 
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_CHECK_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
   cached.clear();
   /* not auth since it was in the additional section */
-  BOOST_CHECK_LT(t_RC->get(now, target, QType(QType::AAAA), true, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, target, QType(QType::AAAA), false, &cached, who), 0);
+  BOOST_CHECK_LT(s_RC->get(now, target, QType(QType::AAAA), true, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, target, QType(QType::AAAA), false, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_glue)
@@ -1080,17 +1080,17 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_glue)
 
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_CHECK_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
   cached.clear();
 
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("com."), QType(QType::NS), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::AAAA), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns1.powerdns.com."), QType(QType::A), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns1.powerdns.com."), QType(QType::AAAA), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns2.powerdns.com."), QType(QType::A), false, &cached, who), 0);
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns2.powerdns.com."), QType(QType::AAAA), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("com."), QType(QType::NS), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::AAAA), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("pdns-public-ns1.powerdns.com."), QType(QType::A), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("pdns-public-ns1.powerdns.com."), QType(QType::AAAA), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("pdns-public-ns2.powerdns.com."), QType(QType::A), false, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("pdns-public-ns2.powerdns.com."), QType(QType::AAAA), false, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_records_sanitization_scrubs_ns_nxd)
@@ -1120,12 +1120,12 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_scrubs_ns_nxd)
 
   const ComboAddress who;
   vector<DNSRecord> cached;
-  BOOST_CHECK_GT(t_RC->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who), 0);
   cached.clear();
 
-  BOOST_CHECK_LT(t_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who), 0);
-  BOOST_CHECK_LT(t_RC->get(now, DNSName("spoofed.ns."), QType(QType::A), false, &cached, who), 0);
-  BOOST_CHECK_LT(t_RC->get(now, DNSName("spoofed.ns."), QType(QType::AAAA), false, &cached, who), 0);
+  BOOST_CHECK_LT(s_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who), 0);
+  BOOST_CHECK_LT(s_RC->get(now, DNSName("spoofed.ns."), QType(QType::A), false, &cached, who), 0);
+  BOOST_CHECK_LT(s_RC->get(now, DNSName("spoofed.ns."), QType(QType::AAAA), false, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

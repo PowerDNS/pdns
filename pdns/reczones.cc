@@ -48,8 +48,6 @@ void primeHints(void)
   const vState validationState = Insecure;
   vector<DNSRecord> nsset;
   t_rootNSZones.clear();
-  if(!t_RC)
-    t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
   if(::arg()["hint-file"].empty()) {
     DNSRecord arr, aaaarr, nsrr;
@@ -70,13 +68,13 @@ void primeHints(void)
       arr.d_content=std::make_shared<ARecordContent>(ComboAddress(rootIps4[c-'a']));
       vector<DNSRecord> aset;
       aset.push_back(arr);
-      t_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState); // auth, nuke it all
+      s_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState); // auth, nuke it all
       if (rootIps6[c-'a'] != NULL) {
         aaaarr.d_content=std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c-'a']));
 
         vector<DNSRecord> aaaaset;
         aaaaset.push_back(aaaarr);
-        t_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState);
+        s_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState);
       }
       
       nsset.push_back(nsrr);
@@ -92,11 +90,11 @@ void primeHints(void)
       if(rr.qtype.getCode()==QType::A) {
         vector<DNSRecord> aset;
         aset.push_back(DNSRecord(rr));
-        t_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState); // auth, etc see above
+        s_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState); // auth, etc see above
       } else if(rr.qtype.getCode()==QType::AAAA) {
         vector<DNSRecord> aaaaset;
         aaaaset.push_back(DNSRecord(rr));
-        t_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState);
+        s_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, validationState);
       } else if(rr.qtype.getCode()==QType::NS) {
         rr.content=toLower(rr.content);
         nsset.push_back(DNSRecord(rr));
@@ -104,8 +102,8 @@ void primeHints(void)
       insertIntoRootNSZones(rr.qname.getLastLabel());
     }
   }
-  t_RC->doWipeCache(g_rootdnsname, false, QType::NS);
-  t_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, boost::none, validationState); // and stuff in the cache
+  s_RC->doWipeCache(g_rootdnsname, false, QType::NS);
+  s_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, boost::none, validationState); // and stuff in the cache
 }
 
 
@@ -132,7 +130,7 @@ void primeRootNSZones(bool dnssecmode)
   // so make a local copy
   set<DNSName> copy(t_rootNSZones);  
   for (const auto & qname: copy) {
-    t_RC->doWipeCache(qname, false, QType::NS);
+    s_RC->doWipeCache(qname, false, QType::NS);
     vector<DNSRecord> ret;
     sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret);
   }
