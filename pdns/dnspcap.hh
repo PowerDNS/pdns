@@ -85,7 +85,7 @@ public:
   class EofException : public runtime_error
   {
   public:
-    EofException(const string& str="") : runtime_error(str)
+    EofException(const string& str="PcapPacketReader::EofException") : runtime_error(str)
     {
     }
   };
