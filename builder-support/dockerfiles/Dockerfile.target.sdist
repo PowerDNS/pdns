@@ -1,20 +1,20 @@
-@IF [ ! -z "$M_authoritative$M_all" ]
+@IF [ ! -z "$M_authoritative" ]
 @INCLUDE Dockerfile.authoritative
 @ENDIF
 
-@IF [ ! -z "$M_recursor$M_all" ]
+@IF [ ! -z "$M_recursor" ]
 @INCLUDE Dockerfile.recursor
 @ENDIF
 
-@IF [ ! -z "$M_dnsdist$M_all" ]
+@IF [ ! -z "$M_dnsdist" ]
 @INCLUDE Dockerfile.dnsdist
 @ENDIF
 
 FROM alpine:3.10 as sdist
 ARG BUILDER_CACHE_BUSTER=
 
-@IF [ -z "$M_all$M_authoritative$M_recursor$M_dnsdist"]
-RUN echo "no valid modules specified!" ; exit 1
+@IF [ -z "$M_authoritative$M_recursor$M_dnsdist"]
+RUN echo "no valid module specified! - please pick just one using -m {authoritative|recursor|dnsdist}" ; exit 1
 @ENDIF
 
 @IF [ ! -z "$M_authoritative$M_all" ]
