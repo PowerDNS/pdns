@@ -2,6 +2,40 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.15
+  :released: 6th of December 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8554
+
+    Backport 8525 to rec 4.1.x: Purge map of failed auths periodically by keeping a last changed timestamp
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8544
+
+    Backport 8470 to rec 4.1.x: prime NS records of root-servers.net parent (.net) 
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8543
+
+    Backport 8340 to rec 4.1.x: issue with "zz" abbreviation for IPv6 RPZ triggers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8542
+
+    Backport 7068 to 4.1.x: Do the edns data dump for all threads
+
+  .. change::
+    :tags: Internals
+    :pullreq: 8123
+
+    Backport #7951 to 4.1.x: update boost.m4
+
+.. changelog::
   :version: 4.1.14
   :released: 13th of June 2019
 
