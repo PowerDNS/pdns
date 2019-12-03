@@ -6,6 +6,7 @@
 
 #include "pdns/dnsbackend.hh"
 #include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 
 #include "cassandrabackend.h"
 
@@ -31,8 +32,32 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
     auto keyspace       = getArg("keyspace");
     auto table          = getArg("table");
     auto createTable    = mustDo("create-table");
-    auto localDC        = getArg("local-dc");
     auto consistency    = getArg("consistency");
+
+    auto localAddress   = getArg("local-address");
+
+    auto roundRobin     = mustDo("round-robin");
+
+    // dc-aware
+    auto localDC        = getArg("local-dc");
+    auto remoteDCAllow  = mustDo("remote-dc-allow");
+    auto remoteDCHosts  = getArgAsNum("remote-dc-num-hosts");
+
+    auto tokenAware         = mustDo("token-aware");
+    auto tokenAwareShuffle  = mustDo("token-aware-shuffle");
+
+    auto latencyAware                       = mustDo("latency-aware");
+    auto latencyAwareExclusionThreshold     = getArgAsDouble("latency-aware-exclusion-threshold");
+    auto latencyAwareScale                  = getArgAsNum("latency-aware-scale");
+    auto latencyAwareRetryPeriod            = getArgAsNum("latency-aware-retry");
+    auto latencyAwareUpdateRate             = getArgAsNum("latency-aware-update-rate");
+    auto latencyAwareMinMeasured            = getArgAsNum("latency-aware-min-measured");
+
+    auto hostsWL        = getArg("hosts-whitelist");
+    auto hostsBL        = getArg("hosts-blacklist");
+
+    auto dcWL           = getArg("dc-whitelist");
+    auto dcBL           = getArg("dc-blacklist");
 
     m_logMetricsInterval= getArgAsNum("log-metrics-interval");
 
@@ -43,11 +68,68 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
         throw PDNSException("[cassandrabackend] cassandra-keyspace must be specified");
     }
 
+    if (roundRobin && !localDC.empty())
+    {
+        throw PDNSException("[cassandrabackend] local-dc and round-robin settings are mutually exclusive");
+    }
+
     m_cluster = cass_cluster_new();
+
+    if (!localAddress.empty())
+    {
+        checkError(cass_cluster_set_local_address_n(m_cluster, localAddress.data(), localAddress.size()), "cannot set local bind address");
+    }
 
     if (!localDC.empty())
     {
-        checkError(cass_cluster_set_load_balance_dc_aware_n(m_cluster, localDC.data(), localDC.size(), 0, cass_false), "cannot set local DC name");
+        checkError(cass_cluster_set_load_balance_dc_aware_n(m_cluster,
+                                                            localDC.data(), localDC.size(),
+                                                            remoteDCHosts,
+                                                            remoteDCAllow ? cass_true : cass_false
+                                                           ), "cannot set DC-aware settings");
+    }
+
+    if (roundRobin)
+    {
+        cass_cluster_set_load_balance_round_robin(m_cluster);
+    }
+
+    if (tokenAware)
+    {
+        cass_cluster_set_token_aware_routing(m_cluster, cass_true);
+        cass_cluster_set_token_aware_routing_shuffle_replicas(m_cluster, tokenAwareShuffle ? cass_true : cass_false);
+    }
+
+    if (latencyAware)
+    {
+        cass_cluster_set_latency_aware_routing(m_cluster, cass_true);
+        cass_cluster_set_latency_aware_routing_settings(m_cluster,
+                                                        latencyAwareExclusionThreshold,
+                                                        latencyAwareScale,
+                                                        latencyAwareRetryPeriod,
+                                                        latencyAwareUpdateRate,
+                                                        latencyAwareMinMeasured
+                                                       );
+    }
+
+    if (!hostsWL.empty())
+    {
+        cass_cluster_set_whitelist_filtering_n(m_cluster, hostsWL.data(), hostsWL.size());
+    }
+
+    if (!hostsBL.empty())
+    {
+        cass_cluster_set_blacklist_filtering_n(m_cluster, hostsBL.data(), hostsBL.size());
+    }
+
+    if (!dcWL.empty())
+    {
+        cass_cluster_set_whitelist_dc_filtering_n(m_cluster, dcWL.data(), dcWL.size());
+    }
+
+    if (!dcBL.empty())
+    {
+        cass_cluster_set_blacklist_dc_filtering_n(m_cluster, dcBL.data(), dcBL.size());
     }
 
     if (!consistency.empty())
@@ -105,6 +187,11 @@ CassandraBackend::~CassandraBackend()
 
     CassFuturePtr f  = cass_session_close(m_session);
     cass_future_wait_timed(f, 10'000);
+}
+
+double CassandraBackend::getArgAsDouble(const std::string& argName)
+{
+    return arg().asDouble(getPrefix() + "-" + argName);
 }
 
 bool CassandraBackend::checkCassFutureError(const CassFuturePtr& future, const std::string& msg, bool throwException)
@@ -252,7 +339,6 @@ void CassandraBackend::lookup(const QType& type, const DNSName &qdomain, DNSPack
         m_requestedType = type;
 
     } while (type == QType::ANY && domain.chopOff());
-
 }
 
 bool CassandraBackend::get(DNSResourceRecord &rr)

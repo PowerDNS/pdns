@@ -45,6 +45,8 @@ protected:
     std::string         m_table;
 
 private:
+    double getArgAsDouble(const std::string& name);
+
     void logMetrics();
 
     CassClusterPtr  m_cluster;
