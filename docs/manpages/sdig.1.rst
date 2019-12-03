@@ -9,11 +9,9 @@ Synopsis
 Description
 -----------
 
-:program:`sdig` sends a DNS query to *IP-ADDRESS-OR-DOH-URL* on port *PORT* and displays
-the answer in a formatted way.
+:program:`sdig` sends a DNS query to *IP-ADDRESS-OR-DOH-URL* on port *PORT* and displays the answer in a formatted way.
 If the address starts with an ``h``, it is assumed to be a DoH endpoint, and *PORT* is ignored.
-If qname and qtype are both `-` and tcp is used, multiple lines are read
-from stdin, where each line contains a qname and a type.
+If qname and qtype are both `-` and tcp is used, multiple lines are read from stdin, where each line contains a qname and a type.
 
 Options
 -------
@@ -25,8 +23,7 @@ class *CLASSNUM*
 dnssec
     Set the DO bit to request DNSSEC information.
 ednssubnet *SUBNET*
-    Send *SUBNET* in the edns-client-subnet option. If this option is
-    not set, no edns-client-subnet option is set in the query.
+    Send *SUBNET* in the edns-client-subnet option. If this option is not set, no edns-client-subnet option is set in the query.
 hidesoadetails
     Don't show the SOA serial in the response.
 hidettl
