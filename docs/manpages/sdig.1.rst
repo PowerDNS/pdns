@@ -13,7 +13,7 @@ Description
 the answer in a formatted way.
 If the address starts with an ``h``, it is assumed to be a DoH endpoint, and *PORT* is ignored.
 If qname and qtype are both `-` and tcp is used, multiple lines are read
-form stdin, where each line contains a qname and a type.
+from stdin, where each line contains a qname and a type.
 
 Options
 -------
