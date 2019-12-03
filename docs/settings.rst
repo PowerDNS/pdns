@@ -745,10 +745,13 @@ available in non-static distributions.
 ``local-address``
 -----------------
 
--  IPv4 Addresses, separated by commas or whitespace
--  Default: 0.0.0.0
+.. versionchanged:: 4.3.0
+  Before 4.3.0, this setting only supported IPv4.
 
-Local IP address to which we bind. It is highly advised to bind to
+-  IPv4 Addresses, separated by commas or whitespace
+-  Default: 0.0.0.0, ``::``
+
+Local IP addresses to which we bind. It is highly advised to bind to
 specific interfaces and not use the default 'bind to any'. This causes
 big problems if you have multiple IP addresses. Unix does not provide a
 way of figuring out what IP address a packet was sent to when binding to
@@ -770,6 +773,9 @@ Fail to start if one or more of the
 ``local-ipv6``
 --------------
 
+.. deprecated:: 4.3.0
+  This setting has been removed, use :ref:`setting-localaddress`
+
 -  IPv6 Addresses, separated by commas or whitespace
 -  Default: '::'
 
@@ -781,6 +787,9 @@ big problems if you have multiple IP addresses.
 
 ``local-ipv6-nonexist-fail``
 ----------------------------
+
+.. deprecated:: 4.3.0
+  This setting has been removed, use :ref:`setting-localaddress-nonexist-fail`
 
 -  Boolean
 -  Default: no

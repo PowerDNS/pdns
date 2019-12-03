@@ -97,8 +97,7 @@ private:
   bool d_can_reuseport;
 #endif
   vector<int> d_sockets;
-  void bindIPv4();
-  void bindIPv6();
+  void bindAddresses();
   vector<pollfd> d_rfds;
 };
 

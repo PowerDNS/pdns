@@ -9,7 +9,7 @@ port=5600
 
 rm -f pdns*.pid
 
-$PDNS --daemon=no --local-ipv6=::1 --local-address=127.0.0.1 \
+$PDNS --daemon=no --local-address=127.0.0.1,::1 \
   --local-port=$port --socket-dir=./ --no-shuffle --launch=pipe --no-config \
   --module-dir=../regression-tests/modules --pipe-command=$(pwd)/distributor/slow.pl \
   --pipe-abi-version=5 \

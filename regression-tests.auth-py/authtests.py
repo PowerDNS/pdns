@@ -29,7 +29,6 @@ class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _config_template_default = """
 module-dir=../regression-tests/modules
 daemon=no
-local-ipv6=
 bind-config={confdir}/named.conf
 bind-dnssec-db={bind_dnssec_db}
 socket-dir={confdir}

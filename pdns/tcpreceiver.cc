@@ -1196,125 +1196,67 @@ TCPNameserver::TCPNameserver()
   d_connectionroom_sem = make_unique<Semaphore>( ::arg().asNum( "max-tcp-connections" ));
   d_maxTCPConnections = ::arg().asNum( "max-tcp-connections" );
   d_tid=0;
+
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
-
-  vector<string>locals6;
-  stringtok(locals6,::arg()["local-ipv6"]," ,");
-
-  if(locals.empty() && locals6.empty())
-    throw PDNSException("No local address specified");
+  if(locals.empty())
+    throw PDNSException("No local addresses specified");
 
   d_ng.toMasks(::arg()["allow-axfr-ips"] );
 
   signal(SIGPIPE,SIG_IGN);
 
-  for(vector<string>::const_iterator laddr=locals.begin();laddr!=locals.end();++laddr) {
-    int s=socket(AF_INET,SOCK_STREAM,0); 
-    
-    if(s<0) 
-      throw PDNSException("Unable to acquire TCP socket: "+stringerror());
+  for(auto const &laddr : locals) {
+    ComboAddress local(laddr, ::arg().asNum("local-port"));
 
+    int s=socket(local.sin4.sin_family, SOCK_STREAM, 0);
+    if(s<0)
+      throw PDNSException("Unable to acquire TCP socket: "+stringerror());
     setCloseOnExec(s);
 
-    ComboAddress local(*laddr, ::arg().asNum("local-port"));
-      
     int tmp=1;
-    if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
+    if(setsockopt(s, SOL_SOCKET,SO_REUSEADDR, (char*)&tmp, sizeof tmp) < 0) {
       g_log<<Logger::Error<<"Setsockopt failed"<<endl;
-      _exit(1);  
+      _exit(1);
     }
 
     if (::arg().asNum("tcp-fast-open") > 0) {
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(s, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<stringerror()<<endl;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket "<<local.toStringWithPort()<<": "<<stringerror()<<endl;
       }
 #else
       g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
 #endif
     }
 
-    if( ::arg().mustDo("non-local-bind") )
-	Utility::setBindAny(AF_INET, s);
+    if(::arg().mustDo("non-local-bind"))
+      Utility::setBindAny(local.sin4.sin_family, s);
+
+    if(local.isIPv6() && setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
+      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<stringerror()<<endl;
+    }
 
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       int err = errno;
       close(s);
       if( err == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
-        g_log<<Logger::Error<<"IPv4 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
+        g_log<<Logger::Error<<"Address " << local.toString() << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        g_log<<Logger::Error<<"Unable to bind to TCP socket " << *laddr << ": "<<stringerror(err)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to TCP socket " << local.toStringWithPort() << ": "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to TCP socket");
       }
     }
-    
-    listen(s,128);
+
+    listen(s, 128);
     g_log<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
     pfd.fd = s;
     pfd.events = POLLIN;
-
-    d_prfds.push_back(pfd);
-  }
-
-  for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
-    int s=socket(AF_INET6,SOCK_STREAM,0); 
-
-    if(s<0) 
-      throw PDNSException("Unable to acquire TCPv6 socket: "+stringerror());
-
-    setCloseOnExec(s);
-
-    ComboAddress local(*laddr, ::arg().asNum("local-port"));
-
-    int tmp=1;
-    if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
-      g_log<<Logger::Error<<"Setsockopt failed"<<endl;
-      _exit(1);  
-    }
-
-    if (::arg().asNum("tcp-fast-open") > 0) {
-#ifdef TCP_FASTOPEN
-      int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
-      if (setsockopt(s, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<stringerror()<<endl;
-      }
-#else
-      g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
-#endif
-    }
-
-    if( ::arg().mustDo("non-local-bind") )
-	Utility::setBindAny(AF_INET6, s);
-    if(setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
-      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<stringerror()<<endl;
-    }
-    if(bind(s, (const sockaddr*)&local, local.getSocklen())<0) {
-      int err = errno;
-      close(s);
-      if( err == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
-        g_log<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
-        continue;
-      } else {
-        g_log<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<stringerror(err)<<endl;
-        throw PDNSException("Unable to bind to TCPv6 socket");
-      }
-    }
-    
-    listen(s,128);
-    g_log<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl; // this gets %eth0 right
-    d_sockets.push_back(s);
-
-    struct pollfd pfd;
-    memset(&pfd, 0, sizeof(pfd));
-    pfd.fd = s;
-    pfd.events = POLLIN;
-
     d_prfds.push_back(pfd);
   }
 }
