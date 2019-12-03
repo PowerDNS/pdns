@@ -55,6 +55,16 @@ void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq,
   dnsdist_ffi_comboaddress_to_raw(*dq->dq->remote, addr, addrSize);
 }
 
+uint16_t dnsdist_ffi_dnsquestion_get_local_port(const dnsdist_ffi_dnsquestion_t* dq)
+{
+  return dq->dq->local->getPort();
+}
+
+uint16_t dnsdist_ffi_dnsquestion_get_remote_port(const dnsdist_ffi_dnsquestion_t* dq)
+{
+  return dq->dq->remote->getPort();
+}
+
 void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, const char** qname, size_t* qnameSize)
 {
   const auto& storage = dq->dq->qname->getStorage();
@@ -286,6 +296,31 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, c
 #endif
 }
 
+size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_tag_t** out)
+{
+  if (dq->dq->qTag == nullptr || dq->dq->qTag->size() == 0) {
+    return 0;
+  }
+
+  dq->tagsVect.clear();
+  dq->tagsVect.resize(dq->dq->qTag->size());
+  size_t pos = 0;
+
+  for (const auto& tag : *dq->dq->qTag) {
+    auto& entry = dq->tagsVect.at(pos);
+    entry.name = tag.first.c_str();
+    entry.value = tag.second.c_str();
+    ++pos;
+  }
+
+
+  if (!dq->tagsVect.empty()) {
+    *out = dq->tagsVect.data();
+  }
+
+  return dq->tagsVect.size();
+}
+
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize)
 {
   dq->result = std::string(str, strSize);
@@ -339,6 +374,11 @@ void dnsdist_ffi_dnsquestion_set_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* dq,
   dq->dq->tempFailureTTL = tempFailureTTL;
 }
 
+void dnsdist_ffi_dnsquestion_unset_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* dq)
+{
+  dq->dq->tempFailureTTL = boost::none;
+}
+
 void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* label, const char* value)
 {
   if (!dq->dq->qTag) {
@@ -346,4 +386,43 @@ void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* 
   }
 
   dq->dq->qTag->insert({label, value});
+}
+
+size_t dnsdist_ffi_dnsquestion_get_trailing_data(dnsdist_ffi_dnsquestion_t* dq, const char** out)
+{
+  dq->trailingData = dq->dq->getTrailingData();
+  if (!dq->trailingData.empty()) {
+    *out = dq->trailingData.data();
+  }
+
+  return dq->trailingData.size();
+}
+
+bool dnsdist_ffi_dnsquestion_set_trailing_data(dnsdist_ffi_dnsquestion_t* dq, const char* data, size_t dataLen)
+{
+  return dq->dq->setTrailingData(std::string(data, dataLen));
+}
+
+void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char* reason, size_t reasonLen)
+{
+  if (g_snmpAgent && g_snmpTrapsEnabled) {
+    g_snmpAgent->sendDNSTrap(*dq->dq, std::string(reason, reasonLen));
+  }
+}
+
+const std::string& getLuaFFIWrappers()
+{
+  static const std::string interface =
+#include "dnsdist-lua-ffi-interface.inc"
+    ;
+  static const std::string code = R"FFICodeContent(
+  local ffi = require("ffi")
+  local C = ffi.C
+
+  ffi.cdef[[
+)FFICodeContent" + interface + R"FFICodeContent(
+  ]]
+
+)FFICodeContent";
+  return code;
 }

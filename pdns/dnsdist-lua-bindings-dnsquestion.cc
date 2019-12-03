@@ -64,25 +64,10 @@ void setupLuaBindingsDNSQuestion()
       return *dq.ednsOptions;
     });
   g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getTrailingData", [](const DNSQuestion& dq) {
-      const char* message = reinterpret_cast<const char*>(dq.dh);
-      const uint16_t messageLen = getDNSPacketLength(message, dq.len);
-      const std::string tail = std::string(message + messageLen, dq.len - messageLen);
-      return tail;
+      return dq.getTrailingData();
     });
   g_lua.registerFunction<bool(DNSQuestion::*)(std::string)>("setTrailingData", [](DNSQuestion& dq, const std::string& tail) {
-      char* message = reinterpret_cast<char*>(dq.dh);
-      const uint16_t messageLen = getDNSPacketLength(message, dq.len);
-      const uint16_t tailLen = tail.size();
-      if(tailLen > (dq.size - messageLen)) {
-        return false;
-      }
-
-      /* Update length and copy data from the Lua string. */
-      dq.len = messageLen + tailLen;
-      if(tailLen > 0) {
-        tail.copy(message + messageLen, tailLen);
-      }
-      return true;
+      return dq.setTrailingData(tail);
     });
 
   g_lua.registerFunction<std::string(DNSQuestion::*)()>("getServerNameIndication", [](const DNSQuestion& dq) {
@@ -150,25 +135,10 @@ void setupLuaBindingsDNSQuestion()
         editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
       });
   g_lua.registerFunction<std::string(DNSResponse::*)(void)>("getTrailingData", [](const DNSResponse& dq) {
-      const char* message = reinterpret_cast<const char*>(dq.dh);
-      const uint16_t messageLen = getDNSPacketLength(message, dq.len);
-      const std::string tail = std::string(message + messageLen, dq.len - messageLen);
-      return tail;
+      return dq.getTrailingData();
     });
   g_lua.registerFunction<bool(DNSResponse::*)(std::string)>("setTrailingData", [](DNSResponse& dq, const std::string& tail) {
-      char* message = reinterpret_cast<char*>(dq.dh);
-      const uint16_t messageLen = getDNSPacketLength(message, dq.len);
-      const uint16_t tailLen = tail.size();
-      if(tailLen > (dq.size - messageLen)) {
-        return false;
-      }
-
-      /* Update length and copy data from the Lua string. */
-      dq.len = messageLen + tailLen;
-      if(tailLen > 0) {
-        tail.copy(message + messageLen, tailLen);
-      }
-      return true;
+      return dq.setTrailingData(tail);
     });
 
   g_lua.registerFunction<void(DNSResponse::*)(std::string, std::string)>("setTag", [](DNSResponse& dr, const std::string& strLabel, const std::string& strValue) {

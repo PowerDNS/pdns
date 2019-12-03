@@ -10,6 +10,7 @@ CLEANFILES = \
 	dnsmessage.pb.h \
 	htmlfiles.h.tmp \
 	htmlfiles.h \
+	dnsdist-lua-ffi-interface.inc \
 	dnstap.pb.cc \
 	dnstap.pb.h
 
@@ -17,11 +18,17 @@ dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h \
+	dnsdist-lua-ffi-interface.inc \
 	dnslabeltext.cc
 
 htmlfiles.h: $(srcdir)/html/*
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
 	@mv $@.tmp $@
+
+dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h
+	echo 'R"FFIContent(' > $@
+	cat $< >> $@
+	echo ')FFIContent"' >> $@
 
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
@@ -136,6 +143,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings-packetcache.cc \
 	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
+	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \

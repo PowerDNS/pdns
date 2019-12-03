@@ -193,6 +193,30 @@ struct DelayedPacket
 
 DelayPipe<DelayedPacket>* g_delay = nullptr;
 
+std::string DNSQuestion::getTrailingData() const
+{
+  const char* message = reinterpret_cast<const char*>(this->dh);
+  const uint16_t messageLen = getDNSPacketLength(message, this->len);
+  return std::string(message + messageLen, this->len - messageLen);
+}
+
+bool DNSQuestion::setTrailingData(const std::string& tail)
+{
+  char* message = reinterpret_cast<char*>(this->dh);
+  const uint16_t messageLen = getDNSPacketLength(message, this->len);
+  const uint16_t tailLen = tail.size();
+  if (tailLen > (this->size - messageLen)) {
+    return false;
+  }
+
+  /* Update length and copy data from the Lua string. */
+  this->len = messageLen + tailLen;
+  if(tailLen > 0) {
+    tail.copy(message + messageLen, tailLen);
+  }
+  return true;
+}
+
 void doLatencyStats(double udiff)
 {
   if(udiff < 1000) ++g_stats.latency0_1;

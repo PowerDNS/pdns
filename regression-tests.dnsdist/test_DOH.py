@@ -900,26 +900,6 @@ class TestDOHFFI(DNSDistDOHTest):
 
     local ffi = require("ffi")
 
-    ffi.cdef[[
-  typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
-
-  typedef struct dnsdist_http_header {
-    const char* name;
-    const char* value;
-  } dnsdist_http_header_t;
-
-  void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const char** sni, size_t* sniSize) __attribute__ ((visibility ("default")));
-
-  const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-
-  size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_http_header_t** out) __attribute__ ((visibility ("default")));
-
-  void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType) __attribute__ ((visibility ("default")));
-  ]]
-
     function dohHandler(dq)
       local scheme = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_scheme(dq))
       local host = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_host(dq))

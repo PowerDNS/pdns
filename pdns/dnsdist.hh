@@ -70,6 +70,9 @@ struct DNSQuestion
   DNSQuestion& operator=(const DNSQuestion&) = delete;
   DNSQuestion(DNSQuestion&&) = default;
 
+  std::string getTrailingData() const;
+  bool setTrailingData(const std::string&);
+
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif

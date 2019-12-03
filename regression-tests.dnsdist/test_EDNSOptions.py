@@ -390,20 +390,6 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
     _config_template = """
     local ffi = require("ffi")
 
-    ffi.cdef[[
-  typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
-
-  typedef struct dnsdist_ednsoption {
-    uint16_t    optionCode;
-    uint16_t    len;
-    const void* data;
-  } dnsdist_ednsoption_t;
-
-  void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
-  // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
-  size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_ednsoption_t** out) __attribute__ ((visibility ("default")));
-  ]]
-
     function testEDNSOptions(dq)
       local options_ptr = ffi.new("const dnsdist_ednsoption_t *[1]")
       local ret_ptr_param = ffi.cast("const dnsdist_ednsoption_t **", options_ptr)
