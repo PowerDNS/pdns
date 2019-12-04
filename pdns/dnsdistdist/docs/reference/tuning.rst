@@ -32,6 +32,7 @@ Tuning related functions
   :param int num:
 
 .. function:: setMaxUDPOutstanding(num)
+
   .. versionchanged:: 1.4.0
     Before 1.4.0 the default value was 10240
 
