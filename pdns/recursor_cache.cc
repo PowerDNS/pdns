@@ -36,8 +36,7 @@ size_t MemRecursorCache::size()
   // XXX!
   size_t count = 0;
   for (auto& map : d_maps) {
-    const std::lock_guard<std::mutex> lock(map.mutex);
-    count += map.d_map.size();
+    count += map.d_entriesCount;
   }
   return count;
 }
@@ -286,6 +285,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   cache_t::iterator stored = map.d_map.find(key);
   if (stored == map.d_map.end()) {
     stored = map.d_map.insert(CacheEntry(key, auth)).first;
+    map.d_entriesCount++;
     isNew = true;
   }
 
@@ -362,21 +362,22 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
   size_t count = 0;
 
   if (!sub) {
-    for (auto& map : d_maps) {
-      const std::lock_guard<std::mutex> lock(map.mutex);
-      map.d_cachecachevalid = false;
-      auto& idx = map.d_map.get<NameOnlyHashedTag>();
-      count += idx.erase(name);
-      if (qtype == 0xffff) {
-        auto& ecsIdx = map.d_ecsIndex.get<OrderedTag>();
-        auto ecsIndexRange = ecsIdx.equal_range(name);
-        ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
-      }
-      else {
-        auto& ecsIdx = map.d_ecsIndex.get<HashedTag>();
-        auto ecsIndexRange = ecsIdx.equal_range(tie(name, qtype));
-        ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
-      }
+    auto& map = getMap(name);
+    const std::lock_guard<std::mutex> lock(map.mutex);
+    map.d_cachecachevalid = false;
+    auto& idx = map.d_map.get<NameOnlyHashedTag>();
+    size_t n = idx.erase(name);
+    count += n;
+    map.d_entriesCount -= n;
+    if (qtype == 0xffff) {
+      auto& ecsIdx = map.d_ecsIndex.get<OrderedTag>();
+      auto ecsIndexRange = ecsIdx.equal_range(name);
+      ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
+    }
+    else {
+      auto& ecsIdx = map.d_ecsIndex.get<HashedTag>();
+      auto ecsIndexRange = ecsIdx.equal_range(tie(name, qtype));
+      ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
     }
   }
   else {
@@ -390,6 +391,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
         if (i->d_qtype == qtype || qtype == 0xffff) {
           count++;
           i = idx.erase(i);
+          map.d_entriesCount--;
         } else {
           ++i;
         }

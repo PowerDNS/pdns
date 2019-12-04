@@ -202,8 +202,9 @@ private:
     ecsIndex_t d_ecsIndex;
     DNSName d_cachedqname;
     std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> d_cachecache;
-    bool d_cachecachevalid{false};
     std::mutex mutex;
+    bool d_cachecachevalid{false};
+    std::atomic<uint64_t> d_entriesCount{0};
   };
   
   vector<MapCombo> d_maps;

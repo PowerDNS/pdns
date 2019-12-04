@@ -68,11 +68,6 @@ private:
     mutable time_t ttd{0};
     uint16_t qtype{0};
     int zoneID{-1};
-    
-    time_t getTTD() const
-    {
-      return ttd;
-    }
   };
 
   struct HashTag{};
@@ -131,9 +126,4 @@ private:
   bool d_cleanskipped{false};
 
   static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
-  
-public:
-  void preRemoval(const CacheEntry&)
-  {
-  }
 };

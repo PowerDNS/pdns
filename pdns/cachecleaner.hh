@@ -133,7 +133,7 @@ template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T
     auto& sidx = boost::multi_index::get<S>(mc.d_map);
     uint64_t erased = 0, lookedAt = 0;
     for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
-      if (i->getTTD() < now) {
+      if (i->ttd < now) {
         i = sidx.erase(i);
         erased++;
       } else {
@@ -177,6 +177,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
         container.preRemoval(*i);
         i = sidx.erase(i);
         erased++;
+        mc.d_entriesCount--;
       } else {
         ++i;
       }
@@ -206,6 +207,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
       auto i = sidx.begin();
       container.preRemoval(*i);
       i = sidx.erase(i);
+      mc.d_entriesCount--;
       totErased++;
       toTrim--;
       if (toTrim == 0)
