@@ -167,7 +167,11 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
   } else {
     lookAt = cacheSize / 10;
   }
-  
+
+  uint64_t maps_size = maps.size();
+  if (maps_size == 0)
+      return 0;
+
   for (auto& mc : maps) {
     const std::lock_guard<std::mutex> lock(mc.mutex);
     auto& sidx = boost::multi_index::get<S>(mc.d_map);
@@ -182,10 +186,10 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
         ++i;
       }
 
-      if (toTrim && erased >= toTrim / maps.size())
+      if (toTrim && erased >= toTrim / maps_size)
         break;
 
-      if (lookedAt > lookAt / maps.size())
+      if (lookedAt > lookAt / maps_size)
         break;
     }
     totErased += erased;
