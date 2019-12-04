@@ -198,7 +198,7 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
     }
   }
   catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname);
+    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
   }
   return false;
 }
@@ -222,7 +222,7 @@ bool CDBKVStore::keyExists(const std::string& key)
     }
   }
   catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname);
+    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
   }
   return false;
 }
