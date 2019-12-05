@@ -373,6 +373,31 @@ to enable DNSSEC. Must be one of:
 The default keysize for the KSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
 Only relevant for algorithms with non-fixed keysizes (like RSA).
 
+.. _setting-default-publish-cdnskey:
+
+``default-publish-cdnskey``
+---------------------------
+- Integer
+- Default: empty
+
+.. versionadded:: 4.3.0
+
+The default PUBLISH-CDNSKEY value for zones that do not have one individually specified.
+See the :ref:`metadata-publish-cdnskey-publish-cds` docs for more information.
+
+.. _setting-default-publish-cds:
+
+``default-publish-cds``
+-----------------------
+
+- Comma-separated integers
+- Default: empty
+
+.. versionadded:: 4.3.0
+
+The default PUBLISH-CDS value for zones that do not have one individually specified.
+See the :ref:`metadata-publish-cdnskey-publish-cds` docs for more information.
+
 .. _setting-default-soa-edit:
 
 ``default-soa-edit``
