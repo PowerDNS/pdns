@@ -191,9 +191,6 @@ for a in $modules $dynmodules; do
       PDNS_CHECK_LDAP
       needldap=yes
       ;;
-    opendbx)
-      PDNS_CHECK_OPENDBX
-      ;;
     remote)
       AS_IF([test "x$enable_unit_tests" = "xyes"],
         [PDNS_CHECK_CURL_PROGRAM]
@@ -342,7 +339,6 @@ AC_CONFIG_FILES([
   modules/ldapbackend/Makefile
   modules/lmdbbackend/Makefile
   modules/lua2backend/Makefile
-  modules/opendbxbackend/Makefile
   modules/pipebackend/Makefile
   modules/randombackend/Makefile
   modules/remotebackend/Makefile

@@ -35,10 +35,6 @@ start_master ()
 				source ./backends/lmdb-master
 				;;
 
-			opendbx*)
-				source ./backends/opendbx-master
-				;;
-
 			remote*)
 				source ./backends/remote-master
 				;;

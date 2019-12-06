@@ -24,8 +24,6 @@ The following table describes the supported backends and some of their capabilit
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Lua2 <lua2>`                             | Yes    | Yes    | No    | No           | Yes                             | ``lua2``     |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
-| :doc:`OpenDBX <opendbx>`                       | Yes    | Yes    | Yes   | Yes          | No                              | ``opendbx``  |
-+------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Pipe <pipe>`                             | Yes    | No     | No    | No           | Partial                         | ``pipe``     |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Random <random>`                         | Yes    | No     | No    | No           | Partial                         | ``random``   |
@@ -52,7 +50,6 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
   ldap
   lmdb
   lua2
-  opendbx
   pipe
   random
   remote
