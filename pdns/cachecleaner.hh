@@ -174,6 +174,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
   for (auto& mc : maps) {
     const std::lock_guard<std::mutex> lock(mc.mutex);
+    mc.d_cachecachevalid = false;
     auto& sidx = boost::multi_index::get<S>(mc.d_map);
     uint64_t erased = 0, lookedAt = 0;
     for (auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
@@ -207,6 +208,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
   while (toTrim > 0) {
     for (auto& mc : maps) {
       const std::lock_guard<std::mutex> lock(mc.mutex);
+      mc.d_cachecachevalid = false;
       auto& sidx = boost::multi_index::get<S>(mc.d_map);
       auto i = sidx.begin();
       container.preRemoval(*i);
