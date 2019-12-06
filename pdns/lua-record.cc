@@ -244,9 +244,6 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
   if (cd.opts.count("source")) {
     ComboAddress src(cd.opts.at("source"));
   }
-  if (cd.opts.count("timeout")) {
-    int timeout = std::atoi(cd.opts.at("timeout").c_str());
-  }
   {
     WriteLock lock{&d_lock};
     // Make sure we don't insert new entry twice now we have the lock
