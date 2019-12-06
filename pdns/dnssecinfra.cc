@@ -351,12 +351,6 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecor
   return 0;
 }
 
-
-static bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b)
-{
-  return a->serialize(g_rootdnsname, true, true) < b->serialize(g_rootdnsname, true, true);
-}
-
 /**
  * Returns the string that should be hashed to create/verify the RRSIG content
  *
@@ -370,10 +364,8 @@ static bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const sha
  *                            purposes, as the authoritative server correctly
  *                            sets qname to the wildcard.
  */
-string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords, bool processRRSIGLabels)
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, const sortedRecords_t& signRecords, bool processRRSIGLabels)
 {
-  sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
-
   string toHash;
   toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(g_rootdnsname, true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
@@ -396,7 +388,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
     }
   }
 
-  for(shared_ptr<DNSRecordContent>& add :  signRecords) {
+  for(const shared_ptr<DNSRecordContent>& add : signRecords) {
     toHash.append(nameToHash);
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);

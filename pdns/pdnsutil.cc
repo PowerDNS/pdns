@@ -1428,26 +1428,26 @@ void verifyCrypto(const string& zone)
   DNSKEYRecordContent drc;
   RRSIGRecordContent rrc;
   DSRecordContent dsrc;
-  vector<shared_ptr<DNSRecordContent> > toSign;
+  sortedRecords_t toSign;
   DNSName qname, apex;
   dsrc.d_digesttype=0;
   while(zpt.get(rr)) {
     if(rr.qtype.getCode() == QType::DNSKEY) {
       cerr<<"got DNSKEY!"<<endl;
       apex=rr.qname;
-      drc = *std::dynamic_pointer_cast<DNSKEYRecordContent>(DNSRecordContent::mastermake(QType::DNSKEY, 1, rr.content));
+      drc = *std::dynamic_pointer_cast<DNSKEYRecordContent>(DNSRecordContent::mastermake(QType::DNSKEY, QClass::IN, rr.content));
     }
     else if(rr.qtype.getCode() == QType::RRSIG) {
       cerr<<"got RRSIG"<<endl;
-      rrc = *std::dynamic_pointer_cast<RRSIGRecordContent>(DNSRecordContent::mastermake(QType::RRSIG, 1, rr.content));
+      rrc = *std::dynamic_pointer_cast<RRSIGRecordContent>(DNSRecordContent::mastermake(QType::RRSIG, QClass::IN, rr.content));
     }
     else if(rr.qtype.getCode() == QType::DS) {
       cerr<<"got DS"<<endl;
-      dsrc = *std::dynamic_pointer_cast<DSRecordContent>(DNSRecordContent::mastermake(QType::DS, 1, rr.content));
+      dsrc = *std::dynamic_pointer_cast<DSRecordContent>(DNSRecordContent::mastermake(QType::DS, QClass::IN, rr.content));
     }
     else {
       qname = rr.qname;
-      toSign.push_back(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+      toSign.insert(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
     }
   }
 

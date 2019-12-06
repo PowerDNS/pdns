@@ -444,8 +444,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
   dpk.d_flags = 256;
   dpk.setKey(dcke);
 
-  std::vector<std::shared_ptr<DNSRecordContent>> recordcontents;
-  recordcontents.push_back(getRecordContent(QType::A, "192.0.2.1"));
+  sortedRecords_t recordcontents;
+  recordcontents.insert(getRecordContent(QType::A, "192.0.2.1"));
 
   DNSName qname("powerdns.com.");
 

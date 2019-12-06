@@ -51,7 +51,7 @@ static std::string getLookupKey(const std::string& msg)
   }
 }
 
-static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign)
+static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
 {
   if(!g_signatureCount)
     g_signatureCount = S.getPointer("signatures");
@@ -96,7 +96,7 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
 static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL,
-                             vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent>& rrcs)
+                             const sortedRecords_t& toSign, vector<RRSIGRecordContent>& rrcs)
 {
   if(toSign.empty())
     return -1;
@@ -134,7 +134,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSN
 // this is the entrypoint from DNSPacket
 static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName& signQName, const DNSName& wildcardname, uint16_t signQType,
                          uint32_t signTTL, DNSResourceRecord::Place signPlace,
-                         vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL)
+                         sortedRecords_t& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL)
 {
   //cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
   if(toSign.empty())
@@ -203,7 +203,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   uint32_t origTTL=0;
   
   DNSResourceRecord::Place signPlace=DNSResourceRecord::ANSWER;
-  vector<shared_ptr<DNSRecordContent> > toSign;
+  sortedRecords_t toSign;
 
   vector<DNSZoneRecord> signedRecords;
   signedRecords.reserve(rrs.size()*1.5);
@@ -228,7 +228,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     origTTL = pos->dr.d_ttl;
     signPlace = pos->dr.d_place;
     if(pos->auth || pos->dr.d_type == QType::DS) {
-      toSign.push_back(pos->dr.d_content); // so ponder.. should this be a deep copy perhaps?
+      toSign.insert(pos->dr.d_content); // so ponder.. should this be a deep copy perhaps?
     }
   }
   if(getBestAuthFromSet(authSet, signQName, signer))

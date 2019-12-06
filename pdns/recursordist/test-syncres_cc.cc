@@ -243,7 +243,7 @@ bool isRootServer(const ComboAddress& ip)
   return false;
 }
 
-void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent>>& toSign, boost::optional<uint8_t> algo, boost::optional<uint32_t> inception, boost::optional<time_t> now)
+void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, const sortedRecords_t& toSign, boost::optional<uint8_t> algo, boost::optional<uint32_t> inception, boost::optional<time_t> now)
 {
   if (!now) {
     now = time(nullptr);
@@ -283,10 +283,10 @@ bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const 
   const DNSName& name = records[recordsCount - 1].d_name;
   const uint16_t type = records[recordsCount - 1].d_type;
 
-  std::vector<std::shared_ptr<DNSRecordContent>> recordcontents;
+  sortedRecords_t recordcontents;
   for (const auto record : records) {
     if (record.d_name == name && record.d_type == type) {
-      recordcontents.push_back(record.d_content);
+      recordcontents.insert(record.d_content);
     }
   }
 

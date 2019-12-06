@@ -49,7 +49,7 @@ void addRecordToLW(LWResult* res, const std::string& name, uint16_t type, const 
 
 bool isRootServer(const ComboAddress& ip);
 
-void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent>>& toSign, boost::optional<uint8_t> algo = boost::none, boost::optional<uint32_t> inception = boost::none, boost::optional<time_t> now = boost::none);
+void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL, uint32_t sigValidity, RRSIGRecordContent& rrc, const sortedRecords_t& toSign, boost::optional<uint8_t> algo = boost::none, boost::optional<uint32_t> inception = boost::none, boost::optional<time_t> now = boost::none);
 
 typedef std::unordered_map<DNSName, std::pair<DNSSECPrivateKey, DSRecordContent>> testkeysset_t;
 
