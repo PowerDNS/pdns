@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap)
     No wrap test case:
     a.example.org. -> d.example.org. denies the existence of b.example.org.
    */
-  addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap)
   /* add wildcard denial */
   recordContents.clear();
   signatureContents.clear();
-  addNSECRecordToLW(DNSName("example.org."), DNSName("+.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("example.org."), DNSName("+.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1)
     Wrap case 1 test case:
     z.example.org. -> b.example.org. denies the existence of a.example.org.
    */
-  addNSECRecordToLW(DNSName("z.example.org."), DNSName("b.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("z.example.org."), DNSName("b.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2)
     Wrap case 2 test case:
     y.example.org. -> a.example.org. denies the existence of z.example.org.
    */
-  addNSECRecordToLW(DNSName("y.example.org."), DNSName("a.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("y.example.org."), DNSName("a.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec)
     Only one NSEC in the whole zone test case:
     a.example.org. -> a.example.org. denies the existence of b.example.org.
    */
-  addNSECRecordToLW(DNSName("a.example.org."), DNSName("a.example.org"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("a.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial)
     The RRSIG from "." denies the existence of anything between a. and c.,
     including b.
   */
-  addNSECRecordToLW(DNSName("a."), DNSName("c."), { QType::NS }, 600, records);
+  addNSECRecordToLW(DNSName("a."), DNSName("c."), {QType::NS}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial)
   /* add wildcard denial */
   recordContents.clear();
   signatureContents.clear();
-  addNSECRecordToLW(DNSName("."), DNSName("+"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("."), DNSName("+"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
     signer field that is shorter than the owner name of the NSEC RR) it can't
     be used to deny anything except the whole name or a DS.
   */
-  addNSECRecordToLW(DNSName("a."), DNSName("b."), { QType::NS }, 600, records);
+  addNSECRecordToLW(DNSName("a."), DNSName("b."), {QType::NS}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -281,7 +281,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
     NS should be set if it was proving an insecure delegation, let's check that
     we correctly detect that it's not.
   */
-  addNSECRecordToLW(DNSName("a."), DNSName("b."), { }, 600, records);
+  addNSECRecordToLW(DNSName("a."), DNSName("b."), {}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxqtype_cname)
   sortedRecords_t recordContents;
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
-  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("a.c.powerdns.com."), { QType::CNAME }, 600, records);
+  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("a.c.powerdns.com."), {QType::CNAME}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_cname)
   sortedRecords_t recordContents;
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
-  addNSEC3UnhashedRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), "whatever", { QType::CNAME }, 600, records);
+  addNSEC3UnhashedRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::CNAME}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxdomain_denial_missing_wildcard)
   sortedRecords_t recordContents;
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
-  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("d.powerdns.com"), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("d.powerdns.com"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   sortedRecords_t recordContents;
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
-  addNSEC3NarrowRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSEC3NarrowRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -412,7 +412,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   recordContents.clear();
   signatureContents.clear();
   records.clear();
-  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", { QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -437,7 +437,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
   sortedRecords_t recordContents;
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
-  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("a.c.powerdns.com."), { QType::A }, 600, records);
+  addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("a.c.powerdns.com."), {QType::A}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -466,7 +466,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
   /* if we add the wildcard denial proof, we should get a NXDOMAIN proof for b.powerdns.com */
   recordContents.clear();
   signatureContents.clear();
-  addNSECRecordToLW(DNSName(").powerdns.com."), DNSName("+.powerdns.com."), { }, 600, records);
+  addNSECRecordToLW(DNSName(").powerdns.com."), DNSName("+.powerdns.com."), {}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
     signer field that is shorter than the owner name of the NSEC RR) it can't
     be used to deny anything except the whole name or a DS.
   */
-  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", { QType::NS }, 600, records);
+  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", {QType::NS}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -529,7 +529,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   recordContents.clear();
   signatureContents.clear();
   records.clear();
-  addNSEC3NarrowRecordToLW(DNSName("sub.a."), DNSName("."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC3 }, 600, records);
+  addNSEC3NarrowRecordToLW(DNSName("sub.a."), DNSName("."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -542,7 +542,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   recordContents.clear();
   signatureContents.clear();
   records.clear();
-  addNSEC3NarrowRecordToLW(DNSName("*.a."), DNSName("."), { QType::A, QType::TXT, QType::RRSIG, QType::NSEC3 }, 600, records);
+  addNSEC3NarrowRecordToLW(DNSName("*.a."), DNSName("."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -568,7 +568,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_denial_too_many_iterations)
   vector<shared_ptr<RRSIGRecordContent>> signatureContents;
 
   /* adding a NSEC3 with more iterations that we support */
-  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", { QType::AAAA }, 600, records, g_maxNSEC3Iterations + 100);
+  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", {QType::AAAA}, 600, records, g_maxNSEC3Iterations + 100);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -609,7 +609,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
     NS should be set if it was proving an insecure delegation, let's check that
     we correctly detect that it's not.
   */
-  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", { }, 600, records);
+  addNSEC3UnhashedRecordToLW(DNSName("a."), DNSName("."), "whatever", {}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
