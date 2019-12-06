@@ -2,6 +2,73 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.1
+  :released: 9th of December 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8552
+
+    Purge map of failed auths periodically by keeping a last changed timestamp.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8528
+
+    Prime NS records of root-servers.net parent (.net) 
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8427
+
+    Add CentOS 8 as builder target
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8493
+
+    Issue with "zz" abbreviation for IPv6 RPZ triggers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8452
+
+    Basic validation of $GENERATE parameters
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8124
+
+    Update boost.m4
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8230
+
+    Fix inverse handler registration logic for SNMP.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8187
+    :tickets: 8101
+
+    Add deviceName field to protobuf messages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8121
+    :tickets: 8008, 8047
+
+    Test improvements (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8086
+
+    Builder: add raspbian-buster target
+
+
+.. changelog::
   :version: 4.2.0
   :released: 16th of July 2019
 
