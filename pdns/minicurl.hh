@@ -38,14 +38,14 @@ public:
   MiniCurl(const string& useragent="MiniCurl/0.0");
   ~MiniCurl();
   MiniCurl& operator=(const MiniCurl&) = delete;
-  std::string getURL(const std::string& str, const ComboAddress* rem=0, const ComboAddress* src=0);
-  std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers);
+  std::string getURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2);
+  std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers, int timeout = 2);
 private:
   CURL *d_curl;
   static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
   std::string d_data;
   struct curl_slist* d_header_list = nullptr;
-  void setupURL(const std::string& str, const ComboAddress* rem=0, const ComboAddress* src=0);
+  void setupURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2);
   void setHeaders(const MiniCurlHeaders& headers);
   void clearHeaders();
 };

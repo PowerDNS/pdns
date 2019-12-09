@@ -877,6 +877,32 @@ e.g. error = 3, warning = 4, notice = 5, info = 6
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
+.. _setting-lua-health-checks-expire-delay:
+
+``lua-health-checks-expire-delay``
+----------------------------------
+
+-  Integer
+-  Default: 3600
+
+.. versionadded:: 4.3.0
+
+Amount of time (in seconds) to expire (remove) a LUA monitoring check when the record
+isn't used any more (either deleted or modified).
+
+.. _setting-lua-health-checks-interval:
+
+``lua-health-checks-interval``
+------------------------------
+
+-  Integer
+-  Default: 5
+
+.. versionadded:: 4.3.0
+
+Amount of time (in seconds) between subsequent monitoring health checks. Does nothing
+if the checks take more than that time to execute.
+
 .. _setting-lua-prequery-script:
 
 ``lua-prequery-script``
