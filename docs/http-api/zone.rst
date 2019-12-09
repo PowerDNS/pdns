@@ -7,7 +7,7 @@ Zone Endpoints
 --------------
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
-  :paths: /servers/{server_id}/zones /servers/{server_id}/zones/{zone_id} /servers/{server_id}/zones/{zone_id}/axfr-retrieve /servers/{server_id}/zones/{zone_id}/notify /servers/{server_id}/zones/{zone_id}/export /servers/{server_id}/zones/{zone_id}/check /servers/{server_id}/zones/{zone_id}/rectify
+  :paths: /servers/{server_id}/zones /servers/{server_id}/zones/{zone_id} /servers/{server_id}/zones/{zone_id}/axfr-retrieve /servers/{server_id}/zones/{zone_id}/notify /servers/{server_id}/zones/{zone_id}/export /servers/{server_id}/zones/{zone_id}/rectify
 
 Objects
 -------
