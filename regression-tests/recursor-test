@@ -1,8 +1,12 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 port=$1
 [ -z "$port" ] && port=5300
 limit=$2
 [ -z "$limit" ] && limit=100000
+threads=$3
+[ -z "$threads" ] && threads=2
+mthreads=$4
+[ -z "$mthreads" ] && mthreads=100
 
 : ${RECURSOR:="../pdns/recursordist/pdns_recursor"}
 : ${CSV:="top-1m.csv"}
@@ -24,12 +28,22 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>system CPU seconds</name><value>%S</value></measurement>
 <measurement><name>wallclock seconds</name><value>%e</value></measurement>
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
-'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=100 --query-local-address6="${QLA6}" > recursor.log 2>&1 &
+'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address6="${QLA6}" --threads=$threads --disable-packetcache > recursor.log 2>&1 &
 sleep 3
+
+# warm up the cache
+echo
+echo === First run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
-echo "==== RECURSOR LOG ==="
+# rerun wit hot cache
+echo
+echo === Second run with limit=$limit threads=$threads mthreads=$mthreads ===
+${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+
+echo
+echo "=== RECURSOR LOG ==="
 cat recursor.log
-echo "==== END RECURSOR LOG ==="
+echo "=== END RECURSOR LOG ==="
 kill $(cat pdns_recursor.pid)
 sleep 5
 
