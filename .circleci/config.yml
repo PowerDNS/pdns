@@ -937,7 +937,7 @@ jobs:
             ./build-scripts/test-recursor
 
   test-recursor-bulk:
-    resource_class: small
+    resource_class: medium
 
     docker:
       - image: debian:buster
@@ -954,14 +954,76 @@ jobs:
             curl -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip && \
             unzip top-1m.csv.zip -d .
       - run:
-          name: Run bulktests
+          name: Run bulktest A
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
             THRESHOLD=95 \
             TRACE=no \
-            ./timestamp ./recursor-test 5300 50000 || \
-            (cat recursor.log; false)
+            ./timestamp ./recursor-test 5300 50000 2
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest B
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 4
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest C
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 8
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest D
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 16
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest E
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 2 4096
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest F
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 4 4096
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest G
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 8 4096
+          workdir: ~/project/regression-tests
+      - run:
+          name: Run bulktest H
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 16 4096
           workdir: ~/project/regression-tests
 
   test-recursor-api:
