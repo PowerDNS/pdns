@@ -1938,6 +1938,8 @@ static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptr
 }
 
 static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
+  bool zone_disabled;
+  SOAData sd;
   DomainInfo di;
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
   if (!B.getDomainInfo(zonename, di)) {
@@ -2067,12 +2069,10 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
         throw ApiException("Changetype not understood");
     }
 
-    // edit SOA (if needed)
-    if (!soa_edit_api_kind.empty() && !soa_edit_done) {
-      SOAData sd;
-      if (!B.getSOAUncached(zonename, sd))
-        throw ApiException("No SOA found for domain '"+zonename.toString()+"'");
+    zone_disabled = (!B.getSOAUncached(zonename, sd));
 
+    // edit SOA (if needed)
+    if (!zone_disabled && !soa_edit_api_kind.empty() && !soa_edit_done) {
       DNSResourceRecord rr;
       if (makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, rr)) {
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
@@ -2091,19 +2091,25 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
     throw;
   }
 
+  // Rectify
   DNSSECKeeper dk(&B);
-  string api_rectify;
-  di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-  if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
-    string error_msg = "";
-    string info;
-    if (!dk.rectifyZone(zonename, error_msg, info, false))
-      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+  if (!zone_disabled && !dk.isPresigned(zonename)) {
+    string api_rectify;
+    if (!di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify) && ::arg().mustDo("default-api-rectify")) {
+      api_rectify = "1";
+    }
+    if (api_rectify == "1") {
+      string info;
+      string error_msg;
+      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+      }
+    }
   }
 
   di.backend->commitTransaction();
 
-  purgeAuthCachesExact(zonename);
+  purgeAuthCaches(zonename.toString() + "$");
 
   // now the PTRs
   storeChangedPTRs(B, new_ptrs);
