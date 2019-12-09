@@ -415,7 +415,7 @@ int main(int argc, char **argv)
     string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
 
-    if(!::arg().mustDo("no-config")) // "config" == print a configuration file
+    if(::arg()["config"] != "default" && !::arg().mustDo("no-config")) // "config" == print a configuration file
       ::arg().laxFile(configname.c_str());
     
     ::arg().laxParse(argc,argv); // reparse so the commandline still wins
@@ -517,6 +517,17 @@ int main(int argc, char **argv)
         cout<<::arg().configstring(false, true);
       } else if (config == "diff") {
           cout<<::arg().configstring(true, false);
+      } else if (config == "check") {
+        try {
+          if(!::arg().mustDo("no-config"))
+            ::arg().file(configname.c_str());
+          ::arg().parse(argc,argv);
+          exit(0);
+        }
+        catch(const ArgException &A) {
+          cerr<<"Fatal error: "<<A.reason<<endl;
+          exit(1);
+        }
       } else {
         cout<<::arg().configstring(true, true);
       }
