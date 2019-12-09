@@ -21,7 +21,14 @@ write_centos()
     cat <<EOF > Dockerfile.$RELEASE.$OS-$VERSION
 FROM $OS:$VERSION
 
-RUN yum install -y epel-release yum-plugin-priorities
+RUN yum install -y epel-release bind-utils
+EOF
+    if [ "$VERSION" = "6" -o "$VERSION" = "7" ]; then
+        cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
+RUN yum install -y yum-plugin-priorities
+EOF
+    fi
+    cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 RUN curl -o /etc/yum.repos.d/powerdns-$RELEASE.repo https://repo.powerdns.com/repo-files/$OS-$RELEASE.repo
 RUN yum install -y $PKG
 
@@ -48,7 +55,7 @@ EOF
 FROM $OS:$VERSION
 
 RUN apt-get update
-RUN apt-get install -y curl gnupg
+RUN apt-get install -y curl gnupg dnsutils
 
 COPY pdns.debian-and-ubuntu /etc/apt/preferences.d/pdns
 COPY pdns.list.$RELEASE.$OS-$VERSION /etc/apt/sources.list.d/pdns.list
