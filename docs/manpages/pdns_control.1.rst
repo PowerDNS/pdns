@@ -55,13 +55,10 @@ ccounts
 
 Show the content of the cache.
 
-current-config
-^^^^^^^^^^^^^^
+current-config [diff]
+^^^^^^^^^^^^^^^^^^^^^
 
-Show the currently running configuration. The output has the same
-format as ``pdns_server --config``. You'll notice that all the
-configuration values are uncommented. This is because PowerDNS
-simply has values, and the default isn't known at runtime.
+Show the currently running configuration. The output has the same format as ``pdns_server --config``. With the diff option only modified options are included in the output.
 
 cycle
 ^^^^^
