@@ -114,13 +114,11 @@ elif [ "$RELEASE" = "rec-41" ]; then
 elif [ "$RELEASE" = "rec-42" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
-    write_debian jessie pdns-recursor pdns_recursor
+    write_centos 8 pdns-recursor pdns_recursor
     write_debian stretch pdns-recursor pdns_recursor
     write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu trusty pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
-    write_ubuntu cosmic pdns-recursor pdns_recursor
 else
     echo "Invalid release: $RELEASE"
     exit 1
