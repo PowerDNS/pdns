@@ -9,5 +9,6 @@ else
     perl -pe 's![#[[:digit:]]+]\(.+\): Backport #([[:digit:]]+)![#\1](https://github.com/PowerDNS/pdns/pull/\1)!g' |\
     perl -pe 's!\((rgacogne|habbie|ahupowerdns|pieterlexis|omoerbeek|aerique|chbruyand)\)!!gi' |\
     perl -pe 's!\(mind04\)!(Kees Monshouwer)!g' |\
+    perl -pe 's! $!!' |\
     grep -v dnsdist
 fi

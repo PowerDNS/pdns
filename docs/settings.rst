@@ -744,6 +744,8 @@ available in non-static distributions.
 
 ``local-address``
 -----------------
+.. versionchanged:: 4.3.0
+  now also takes your IPv6 addresses
 
 .. versionchanged:: 4.3.0
   Before 4.3.0, this setting only supported IPv4.
@@ -772,6 +774,8 @@ Fail to start if one or more of the
 
 ``local-ipv6``
 --------------
+.. versionchanged:: 4.3.0
+  removed, use :ref:`setting-local-address`
 
 .. deprecated:: 4.3.0
   This setting has been removed, use :ref:`setting-localaddress`

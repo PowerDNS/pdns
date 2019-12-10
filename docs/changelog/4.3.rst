@@ -1,0 +1,143 @@
+Changelogs for 4.3.x
+====================
+
+.. changelog::
+  :version: 4.3.0-alpha1
+  :released: 10th of December 2019
+
+  This is the first alpha for version 4.3.0 of the Authoritative Server.
+  Please see :doc:`the upgrade notes <../upgrading>` for some minor breaking changes.
+
+  Some minor fixes have been left out from the list below; some other bugs may have been fixed accidentally as a result of the tremendous amount of work that goes into each of our major releases.
+
+  As announced in `Backend removals in the upcoming Authoritative Server release <https://blog.powerdns.com/2019/10/17/backend-removals-in-the-upcoming-authoritative-server-release/>`_, we have removed five backends.
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 8435, 8313, 7455, 8436, 8434, 8432
+
+    remove goracle, lua, mydns, opendbx, oracle backends (Kees Monshouwer, Robin Geuze)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8601, 8580, 8351, 8350, 8208, 8006
+
+    various memory/thread correctness fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8575
+    :tickets: 8572
+
+    LUA view: do not crash on empty IP list
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8562
+
+    REST API: accept headers without spaces
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8301
+    :tickets: 8299
+
+    on luaSynth exception, drain db output
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8225
+    :tickets: 7439
+
+    tinydnsbackend: limit timestamp-based TTLs (smellyspice)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 4628
+
+    API: optionally, do not return dnssec info in domain list (zeha)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8492, 8451
+
+    zone file parser: Add a parameter to limit the number of '$GENERATE' steps
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8457
+
+    api: avoid a large number of new database connections (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8352
+
+    Ensure that pdns can read pdns.conf when upgrading from an older package (mnordhoff)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8424
+
+    Ixfrdist: handle reading of empty files gracefully
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8159
+
+    Emulate a buffered read in the pipe backend, ~3x faster
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8328
+
+    gmysql backend, add an option to send the SSL capability flag (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6496
+
+    pdnsutil: offer to increase serial after edit-zone
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8307
+
+    LUA performance: register lua functions only once (chbruyand)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8296
+
+    webserver: handle exceptions instead of SIGABRTing the world
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 7918
+
+    deprecate SOA autocomplete in pdnsutil check-zone (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7550
+
+    API: make max request/response body size configurable
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7962
+
+    API: add edited_serial to Zone object
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7943
+
+    Improve error when notification comes in for non-slave zone
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 8249
+
+    LUA record: rewrote the health checking system
+
