@@ -39,6 +39,10 @@ ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.result
 echo
 echo === Second run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+# rerun 2 wit hot cache
+echo
+echo === Third run with limit=$limit threads=$threads mthreads=$mthreads ===
+${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 
 echo
 echo "=== RECURSOR LOG ==="
