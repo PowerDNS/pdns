@@ -35,9 +35,13 @@ sleep 3
 echo
 echo === First run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
-# rerun wit hot cache
+# rerun 1 with hot cache
 echo
 echo === Second run with limit=$limit threads=$threads mthreads=$mthreads ===
+${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+# rerun 2 with hot cache
+echo
+echo === Third run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 
 echo
