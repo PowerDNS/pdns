@@ -2882,7 +2882,8 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static thread_local time_t last_rootupdate, last_prune, last_secpoll, last_trustAnchorUpdate{0};
+  static thread_local time_t last_rootupdate, last_secpoll, last_trustAnchorUpdate{0};
+  static thread_local timeval last_prune;
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -2898,24 +2899,27 @@ static void houseKeeping(void *)
     }
     s_running=true;
 
-    struct timeval now;
-    Utility::gettimeofday(&now, 0);
-
-    if(now.tv_sec - last_prune > (time_t)(5 + t_id)) {
+    struct timeval now, past;
+    Utility::gettimeofday(&now, nullptr);
+    past = now;
+    past.tv_sec -= 5;
+    if (last_prune < past) {
       t_RC->doPrune(g_maxCacheEntries / g_numThreads); // this function is local to a thread, so fine anyhow
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
 
       SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));
 
+      time_t limit;
       if(!((cleanCounter++)%40)) {  // this is a full scan!
-	time_t limit=now.tv_sec-300;
+	limit=now.tv_sec-300;
         SyncRes::pruneNSSpeeds(limit);
-        limit = now.tv_sec - SyncRes::s_serverdownthrottletime * 10;
-        SyncRes::pruneFailedServers(limit);
-        limit = now.tv_sec - 2*3600;
-        SyncRes::pruneEDNSStatuses(limit);
       }
-      last_prune=time(0);
+      limit = now.tv_sec - SyncRes::s_serverdownthrottletime * 10;
+      SyncRes::pruneFailedServers(limit);
+      limit = now.tv_sec - 2*3600;
+      SyncRes::pruneEDNSStatuses(limit);
+      SyncRes::pruneThrottledServers();
+      Utility::gettimeofday(&last_prune, nullptr);
     }
 
     if(now.tv_sec - last_rootupdate > 7200) {

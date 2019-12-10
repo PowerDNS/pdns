@@ -428,7 +428,7 @@ uint64_t SyncRes::doEDNSDump(int fd)
   for(const auto& eds : t_sstorage.ednsstatus) {
     count++;
     char tmp[26];
-    fprintf(fp.get(), "%s\t%d\t%s", eds.first.toString().c_str(), (int)eds.second.mode, ctime_r(&eds.second.modeSetAt, tmp));
+    fprintf(fp.get(), "%s\t%d\t%s", eds.address.toString().c_str(), (int)eds.mode, ctime_r(&eds.modeSetAt, tmp));
   }
   return count;
 }
@@ -479,12 +479,12 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   uint64_t count=0;
 
   const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
-  for(const auto& i : throttleMap)
+  for(const auto i : throttleMap)
   {
     count++;
     char tmp[26];
     // remote IP, dns name, qtype, count, ttd
-    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime_r(&i.second.ttd, tmp));
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.thing.get<0>().toString().c_str(), i.thing.get<1>().toLogString().c_str(), i.thing.get<2>(), i.count, ctime_r(&i.ttd, tmp));
   }
 
   return count;
@@ -509,9 +509,9 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
   {
     count++;
     char tmp[26];
-    ctime_r(&i.second.last, tmp);
-    fprintf(fp.get(), "%s\t%lld\t%s", i.first.toString().c_str(),
-            static_cast<long long>(i.second.value), tmp);
+    ctime_r(&i.last, tmp);
+    fprintf(fp.get(), "%s\t%lld\t%s", i.address.toString().c_str(),
+            static_cast<long long>(i.value), tmp);
   }
 
   return count;
@@ -560,15 +560,15 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      If '3', send bare queries
   */
 
-  SyncRes::EDNSStatus* ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
-
+  auto ednsstatus = t_sstorage.ednsstatus.insert(ip).first; // does this include port? YES
+  auto &ind = t_sstorage.ednsstatus.get<ComboAddress>();
   if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
-    *ednsstatus = SyncRes::EDNSStatus();
+    t_sstorage.ednsstatus.reset(ind, ednsstatus);
     //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
   }
 
-  SyncRes::EDNSStatus::EDNSMode *mode = &ednsstatus->mode;
-  SyncRes::EDNSStatus::EDNSMode oldmode = *mode;
+  const SyncRes::EDNSStatus::EDNSMode *mode = &ednsstatus->mode;
+  const SyncRes::EDNSStatus::EDNSMode oldmode = *mode;
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
@@ -601,7 +601,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
     // ednsstatus might be cleared, so do a new lookup
-    ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
+    ednsstatus = t_sstorage.ednsstatus.insert(ip).first;
     mode = &ednsstatus->mode;
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
@@ -613,23 +613,23 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     else if (*mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT ) {
       if(res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr)  {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
-        *mode = EDNSStatus::NOEDNS;
+        t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::NOEDNS);
         continue;
       }
       else if(!res->d_haveEDNS) {
         if (*mode != EDNSStatus::EDNSIGNORANT) {
-          *mode = EDNSStatus::EDNSIGNORANT;
+          t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT);
 	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 2"<<endl;
 	}
       }
       else {
-	*mode = EDNSStatus::EDNSOK;
+        t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::EDNSOK);
 	//	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
       }
       
     }
     if (oldmode != *mode || !ednsstatus->modeSetAt)
-      ednsstatus->modeSetAt=d_now.tv_sec;
+      t_sstorage.ednsstatus.setTS(ind, ednsstatus, d_now.tv_sec);
     //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return ret;
   }
@@ -901,12 +901,12 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 
 struct speedOrderCA
 {
-  speedOrderCA(std::map<ComboAddress,double>& speeds): d_speeds(speeds) {}
+  speedOrderCA(std::map<ComboAddress,float>& speeds): d_speeds(speeds) {}
   bool operator()(const ComboAddress& a, const ComboAddress& b) const
   {
     return d_speeds[a] < d_speeds[b];
   }
-  std::map<ComboAddress, double>& d_speeds;
+  std::map<ComboAddress, float>& d_speeds;
 };
 
 /** This function explicitly goes out for A or AAAA addresses
@@ -972,10 +972,11 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
      for this nameserver that are no longer in the set, even if there
      is only one or none at all in the current set.
   */
-  map<ComboAddress, double> speeds;
-  auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
+  map<ComboAddress, float> speeds;
+  auto& collection = t_sstorage.nsSpeeds[qname];
+  float factor = collection.getFactor(d_now);
   for(const auto& val: ret) {
-    speeds[val] = collection[val].get(&d_now);
+    speeds[val] = collection.d_collection[val].get(factor);
   }
 
   t_sstorage.nsSpeeds[qname].purge(speeds);
@@ -1629,18 +1630,18 @@ bool SyncRes::moreSpecificThan(const DNSName& a, const DNSName &b) const
 
 struct speedOrder
 {
-  bool operator()(const std::pair<DNSName, double> &a, const std::pair<DNSName, double> &b) const
+  bool operator()(const std::pair<DNSName, float> &a, const std::pair<DNSName, float> &b) const
   {
     return a.second < b.second;
   }
 };
 
-inline std::vector<std::pair<DNSName, double>> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const string &prefix)
+inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const string &prefix)
 {
-  std::vector<std::pair<DNSName, double>> rnameservers;
+  std::vector<std::pair<DNSName, float>> rnameservers;
   rnameservers.reserve(tnameservers.size());
   for(const auto& tns: tnameservers) {
-    double speed = t_sstorage.nsSpeeds[tns.first].get(&d_now);
+    float speed = t_sstorage.nsSpeeds[tns.first].get(d_now);
     rnameservers.push_back({tns.first, speed});
     if(tns.first.empty()) // this was an authoritative OOB zone, don't pollute the nsSpeeds with that
       return rnameservers;
@@ -1669,12 +1670,12 @@ inline std::vector<std::pair<DNSName, double>> SyncRes::shuffleInSpeedOrder(NsSe
 inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd)
 {
   vector<ComboAddress> nameservers = rnameservers;
-  map<ComboAddress, double> speeds;
+  map<ComboAddress, float> speeds;
 
   for(const auto& val: nameservers) {
-    double speed;
+    float speed;
     DNSName nsName = DNSName(val.toStringWithPort());
-    speed=t_sstorage.nsSpeeds[nsName].get(&d_now);
+    speed=t_sstorage.nsSpeeds[nsName].get(d_now);
     speeds[val]=speed;
   }
   random_shuffle(nameservers.begin(),nameservers.end());
@@ -1822,7 +1823,7 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, double>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, double>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly)
 {
   vector<ComboAddress> result;
 
@@ -3199,7 +3200,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if(resolveret != -2 && !chained && !dontThrottle) {
       // don't account for resource limits, they are our own fault
       // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
-      t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
+      t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
       if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP, d_now) >= s_serverdownmaxfails) {
@@ -3519,7 +3520,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           */
           //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-          t_sstorage.nsSpeeds[tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first].submit(*remoteIP, lwr.d_usec, &d_now);
+          t_sstorage.nsSpeeds[tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first].submit(*remoteIP, lwr.d_usec, d_now);
 
           /* we have received an answer, are we done ? */
           bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state);
