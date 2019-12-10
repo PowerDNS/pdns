@@ -29,11 +29,7 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 6' /etc/redhat-release); then 
 @ENDIF
 
 @IF [ -n "$M_recursor$M_all" ]
-RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 6' /etc/redhat-release); then \
-      scl enable devtoolset-7 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
-    else \
-      builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
-    fi
+RUN builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
