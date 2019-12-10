@@ -1,8 +1,3 @@
-%if 0%{?rhel} < 6
-exit 1
-%endif
-
-# Only works on EL7
 %global _hardened_build 1
 %global backends %{nil}
 
@@ -14,11 +9,7 @@ Group: System Environment/Daemons
 License: GPLv2
 URL: https://powerdns.com
 Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
-%if 0%{?rhel} < 7
-Source1: pdns.init
-%endif
 
-%if 0%{?rhel} >= 7
 Requires(post): systemd-sysv
 Requires(post): systemd-units
 Requires(preun): systemd-units
@@ -30,12 +21,12 @@ BuildRequires: systemd-devel
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
 BuildRequires: boost-devel
-%else
-BuildRequires: boost148-devel
-BuildRequires: boost148-program-options
-%endif
+BuildRequires: libsodium-devel
+BuildRequires: bison
+BuildRequires: openssl-devel
 
 Requires(pre): shadow-utils
+
 %ifarch aarch64
 BuildRequires: lua-devel
 %define lua_implementation lua
@@ -43,9 +34,6 @@ BuildRequires: lua-devel
 BuildRequires: luajit-devel
 %define lua_implementation luajit
 %endif
-BuildRequires: libsodium-devel
-BuildRequires: bison
-BuildRequires: openssl-devel
 
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
@@ -134,7 +122,6 @@ BuildRequires: sqlite-devel
 %description backend-sqlite
 This package contains the SQLite backend for %{name}
 
-%if 0%{?rhel} >= 7
 %package backend-odbc
 Summary: UnixODBC backend for %{name}
 Group: System Environment/Daemons
@@ -150,9 +137,7 @@ Summary: Geo backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
 BuildRequires: yaml-cpp-devel
-%if 0%{?rhel} <= 7
 BuildRequires: geoip-devel
-%endif
 BuildRequires: libmaxminddb-devel
 %global backends %{backends} geoip
 
@@ -188,14 +173,9 @@ Group: System Environment/Daemons
 
 %description ixfrdist
 This package contains the ixfrdist program.
-%endif
 
 %prep
-%if 0%{?rhel} == 6
-%setup -n %{name}-%{getenv:BUILDER_VERSION}
-%else
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
-%endif
 
 %build
 export CPPFLAGS="-DLDAP_DEPRECATED"
@@ -212,17 +192,10 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --enable-tools \
   --with-libsodium \
   --enable-unit-tests \
-%if 0%{?rhel} >= 7
   --enable-lua-records \
   --enable-experimental-pkcs11 \
   --enable-systemd \
   --enable-ixfrdist
-%else
-  --disable-lua-records \
-  --with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
-  CXXFLAGS=-std=gnu++11 \
-  CPPFLAGS="${CPPFLAGS} -D__STDC_FORMAT_MACROS"
-%endif
 
 make %{?_smp_mflags}
 
@@ -231,10 +204,6 @@ make install DESTDIR=%{buildroot}
 
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__rm} -rf %{buildroot}%{_docdir}
-
-%if 0%{?rhel} == 6
-%{__install} -D -p %{SOURCE1} %{buildroot}%{_initrddir}/pdns
-%endif
 
 %{buildroot}/usr/sbin/pdns_server --config=default | sed \
   -e 's!# daemon=.*!daemon=no!' \
@@ -248,11 +217,9 @@ make install DESTDIR=%{buildroot}
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 
-%if 0%{?rhel} >= 7
 # rename zone2ldap to pdns-zone2ldap (#1193116)
 %{__mv} %{buildroot}/%{_bindir}/zone2ldap %{buildroot}/%{_bindir}/pdns-zone2ldap
 %{__mv} %{buildroot}/%{_mandir}/man1/zone2ldap.1 %{buildroot}/%{_mandir}/man1/pdns-zone2ldap.1
-%endif
 
 %check
 PDNS_TEST_NO_IPV6=1 make %{?_smp_mflags} -C pdns check || (cat pdns/test-suite.log && false)
@@ -274,98 +241,71 @@ chown -R pdns:pdns /var/lib/powerdns || :
 %endif
 
 %post
-%if 0%{?rhel} >= 7
 systemctl daemon-reload ||:
 %systemd_post pdns.service
-%else
-/sbin/chkconfig --add pdns
-%endif
 
 %preun
-%if 0%{?rhel} >= 7
 %systemd_preun pdns.service
-%else
-if [ $1 -eq 0 ]; then
-  /sbin/service pdns stop >/dev/null 2>&1 || :
-  /sbin/chkconfig --del pdns
-fi
-%endif
 
 %postun
-%if 0%{?rhel} >= 7
 %systemd_postun_with_restart pdns.service
-%else
-if [ $1 -ge 1 ]; then
-  /sbin/service pdns condrestart >/dev/null 2>&1 || :
-fi
-%endif
 
 %files
-%doc COPYING
-%doc README
-%doc pdns/bind-dnssec.4.2.0_to_4.3.0_schema.sqlite3.sql
-%doc pdns/bind-dnssec.schema.sqlite3.sql
+%doc COPYING README
+%config(noreplace) %{_sysconfdir}/%{name}/pdns.conf
+%dir %{_libdir}/%{name}/
+%{_bindir}/pdns-zone2ldap
 %{_bindir}/pdns_control
 %{_bindir}/pdnsutil
-%{_bindir}/zone2sql
 %{_bindir}/zone2json
-%{_sbindir}/pdns_server
+%{_bindir}/zone2sql
 %{_libdir}/%{name}/libbindbackend.so
+%{_libdir}/%{name}/librandombackend.so
+%{_mandir}/man1/pdns-zone2ldap.1.gz
 %{_mandir}/man1/pdns_control.1.gz
 %{_mandir}/man1/pdns_server.1.gz
-%{_mandir}/man1/zone2sql.1.gz
-%{_mandir}/man1/zone2json.1.gz
 %{_mandir}/man1/pdnsutil.1.gz
-%dir %{_libdir}/%{name}/
-%{_libdir}/%{name}/librandombackend.so
-%config(noreplace) %{_sysconfdir}/%{name}/pdns.conf
-
-%if 0%{?rhel} >= 7
-%{_bindir}/pdns-zone2ldap
-%{_mandir}/man1/pdns-zone2ldap.1.gz
+%{_mandir}/man1/zone2json.1.gz
+%{_mandir}/man1/zone2sql.1.gz
+%{_sbindir}/pdns_server
 %{_unitdir}/pdns.service
 %{_unitdir}/pdns@.service
-%else
-%{_bindir}/zone2ldap
-%{_mandir}/man1/zone2ldap.1.gz
-%{_initrddir}/pdns
-%endif
 
 %files tools
 %{_bindir}/calidns
+%{_bindir}/dnsbulktest
 %{_bindir}/dnsgram
+%{_bindir}/dnspcap2calidns
+%{_bindir}/dnspcap2protobuf
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
+%{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
 %{_bindir}/ixplore
-%{_bindir}/pdns_notify
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
+%{_bindir}/pdns_notify
 %{_bindir}/saxfr
 %{_bindir}/sdig
 %{_mandir}/man1/calidns.1.gz
+%{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
+%{_mandir}/man1/dnspcap2calidns.1.gz
+%{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
 %{_mandir}/man1/dnsscope.1.gz
+%{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
-%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
+%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
-%{_bindir}/dnsbulktest
-%{_bindir}/dnspcap2calidns
-%{_bindir}/dnspcap2protobuf
-%{_bindir}/dnstcpbench
-%{_mandir}/man1/dnsbulktest.1.gz
-%{_mandir}/man1/dnspcap2calidns.1.gz
-%{_mandir}/man1/dnspcap2protobuf.1.gz
-%{_mandir}/man1/dnstcpbench.1.gz
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql
@@ -411,7 +351,6 @@ fi
 %doc modules/gsqlite3backend/4.3.0_to_4.3.1_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
 
-%if 0%{?rhel} >= 7
 %files backend-odbc
 %doc modules/godbcbackend/schema.mssql.sql
 %doc modules/godbcbackend/4.0.0_to_4.2.0_schema.mssql.sql
@@ -434,4 +373,3 @@ fi
 %{_sysconfdir}/%{name}/ixfrdist.example.yml
 %{_unitdir}/ixfrdist.service
 %{_unitdir}/ixfrdist@.service
-%endif
