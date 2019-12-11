@@ -34,7 +34,7 @@ Changelogs for 4.3.x
     :tags: Improvements
     :pullreq: 8561, 8477
 
-    QName Minimization is no longer experimental and enabled by default.
+    QName Minimization is no longer experimental and is now enabled by default.
 
   .. change::
     :tags: Bug Fixes
@@ -484,5 +484,4 @@ Changelogs for 4.3.x
     :pullreq: 7841
 
     Recursor: log udp tc bits during trace
-
 
