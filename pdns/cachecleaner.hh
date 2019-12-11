@@ -204,20 +204,23 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
   toTrim -= totErased;
 
-  // XXXX kinda desperate method
   while (toTrim > 0) {
+    size_t pershard = toTrim / maps_size + 1;
     for (auto& mc : maps) {
       const std::lock_guard<std::mutex> lock(mc.mutex);
       mc.d_cachecachevalid = false;
       auto& sidx = boost::multi_index::get<S>(mc.d_map);
-      auto i = sidx.begin();
-      container.preRemoval(*i);
-      i = sidx.erase(i);
-      mc.d_entriesCount--;
-      totErased++;
-      toTrim--;
-      if (toTrim == 0)
-        break;
+      size_t removed = 0;
+      for (auto i = sidx.begin(); i != sidx.end() && removed < pershard; removed++) {
+        container.preRemoval(*i);
+        i = sidx.erase(i);
+        mc.d_entriesCount--;
+        totErased++;
+        toTrim--;
+        if (toTrim == 0) {
+          break;
+        }
+      }
     }
   }
   return totErased;

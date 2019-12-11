@@ -33,7 +33,6 @@ MemRecursorCache::~MemRecursorCache()
 
 size_t MemRecursorCache::size()
 {
-  // XXX!
   size_t count = 0;
   for (auto& map : d_maps) {
     count += map.d_entriesCount;
