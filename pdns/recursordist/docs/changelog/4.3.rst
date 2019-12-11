@@ -28,13 +28,13 @@ Changelogs for 4.3.x
     :pullreq: 8559
     :tickets: 8558
 
-    Avoid startup race by setting the state of a tread before starting it.
+    Avoid startup race by setting the state of a thread before starting it.
 
   .. change::
     :tags: Improvements
-    :pullreq: 8561
+    :pullreq: 8561, 8477
 
-    QName Minimization is no longer experimental
+    QName Minimization is no longer experimental and enabled by default.
 
   .. change::
     :tags: Bug Fixes
@@ -55,12 +55,6 @@ Changelogs for 4.3.x
     :pullreq: 8440
 
     Fix -WShadow warnings (Aki Tuomi)
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 8477
-
-    Enable qname minimization
 
   .. change::
     :tags: Improvements
