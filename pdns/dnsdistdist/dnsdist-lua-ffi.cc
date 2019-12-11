@@ -410,6 +410,46 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char
   }
 }
 
+size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list)
+{
+  return list->ffiServers.size();
+}
+
+void dnsdist_ffi_servers_list_get_server(const dnsdist_ffi_servers_list_t* list, size_t idx, const dnsdist_ffi_server_t** out)
+{
+  *out = &list->ffiServers.at(idx);
+}
+
+uint64_t dnsdist_ffi_server_get_outstanding(const dnsdist_ffi_server_t* server)
+{
+  return server->server->outstanding;
+}
+
+int dnsdist_ffi_server_get_weight(const dnsdist_ffi_server_t* server)
+{
+  return server->server->weight;
+}
+
+int dnsdist_ffi_server_get_order(const dnsdist_ffi_server_t* server)
+{
+  return server->server->order;
+}
+
+bool dnsdist_ffi_server_is_up(const dnsdist_ffi_server_t* server)
+{
+  return server->server->isUp();
+}
+
+const char* dnsdist_ffi_server_get_name(const dnsdist_ffi_server_t* server)
+{
+  return server->server->getName().c_str();
+}
+
+const char* dnsdist_ffi_server_get_name_with_addr(const dnsdist_ffi_server_t* server)
+{
+  return server->server->getNameWithAddr().c_str();
+}
+
 const std::string& getLuaFFIWrappers()
 {
   static const std::string interface =

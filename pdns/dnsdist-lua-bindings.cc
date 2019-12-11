@@ -57,7 +57,7 @@ void setupLuaBindings(bool client)
       return string("No exception");
     });
   /* ServerPolicy */
-  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy, true};});
+  g_lua.writeFunction("newServerPolicy", [](string name, ServerPolicy::policyfunc_t policy) { return std::make_shared<ServerPolicy>(name, policy, true);});
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
   g_lua.registerMember("isLua", &ServerPolicy::isLua);
@@ -117,7 +117,7 @@ void setupLuaBindings(bool client)
     [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
   );
   g_lua.registerMember("order", &DownstreamState::order);
-  g_lua.registerMember("name", &DownstreamState::name);
+  g_lua.registerMember<const std::string(DownstreamState::*)>("name", [](const DownstreamState& backend) -> const std::string { return backend.getName(); }, [](DownstreamState& backend, const std::string& newName) { backend.setName(newName); });
   g_lua.registerFunction<std::string(DownstreamState::*)()>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(s.id); });
 
   /* dnsheader */

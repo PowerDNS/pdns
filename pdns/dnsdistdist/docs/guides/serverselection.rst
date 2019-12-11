@@ -146,6 +146,15 @@ Functions
   :param string name: name for this policy
   :param string function: name of the function
 
+.. function:: setServerPolicyLuaFFI(name, function)
+
+  .. versionadded:: 1.5.0
+
+  Set server selection policy to one named `name`` and provided by the FFI function ``function``.
+
+  :param string name: name for this policy
+  :param string function: name of the FFI function
+
 .. function:: setServFailWhenNoServer(value)
 
   If set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query.

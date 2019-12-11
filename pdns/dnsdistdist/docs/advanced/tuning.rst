@@ -31,7 +31,7 @@ Large installations are advised to increase the default value at the cost of a s
 Most of the query processing is done in C++ for maximum performance, but some operations are executed in Lua for maximum flexibility:
 
  * Rules added by :func:`addLuaAction`
- * Server selection policies defined via :func:`setServerPolicyLua` or :func:`newServerPolicy`
+ * Server selection policies defined via :func:`setServerPolicyLua`, :func:`setServerPolicyLuaFFI` or :func:`newServerPolicy`
 
 While Lua is fast, its use should be restricted to the strict necessary in order to achieve maximum performance, it might be worth considering using LuaJIT instead of Lua.
 When Lua inspection is needed, the best course of action is to restrict the queries sent to Lua inspection by using :func:`addLuaAction` with a selector.

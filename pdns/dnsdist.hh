@@ -807,7 +807,6 @@ struct DownstreamState
   std::atomic<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   std::atomic<double> tcpAvgConnectionDuration{0.0};
-  string name;
   size_t socketsOffset{0};
   double queryLoad{0.0};
   double dropRate{0.0};
@@ -852,17 +851,19 @@ struct DownstreamState
   void setDown() { availability = Availability::Down; }
   void setAuto() { availability = Availability::Auto; }
   string getName() const {
-    if (name.empty()) {
-      return remote.toStringWithPort();
-    }
     return name;
   }
   string getNameWithAddr() const {
-    if (name.empty()) {
-      return remote.toStringWithPort();
-    }
-    return name + " (" + remote.toStringWithPort()+ ")";
+    return nameWithAddr;
   }
+  void setName(const std::string& newName)
+  {
+    name = newName;
+    if (newName.empty()) {
+      nameWithAddr = newName.empty() ? remote.toStringWithPort() : (name + " (" + remote.toStringWithPort()+ ")");
+    }
+  }
+
   string getStatus() const
   {
     string status;
@@ -884,10 +885,11 @@ struct DownstreamState
     tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (nbQueries / 100.0);
     tcpAvgConnectionDuration = (99.0 * tcpAvgConnectionDuration / 100.0) + (durationMs / 100.0);
   }
+private:
+  std::string name;
+  std::string nameWithAddr;
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
-
-template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
 void responderThread(std::shared_ptr<DownstreamState> state);
 extern std::mutex g_luamutex;
@@ -905,14 +907,33 @@ public:
   mutable std::atomic<uint64_t> d_matches{0};
 };
 
-using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
-typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
+struct dnsdist_ffi_servers_list_t;
+struct dnsdist_ffi_server_t;
+struct dnsdist_ffi_dnsquestion_t;
 
 struct ServerPolicy
 {
+  template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
+  using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
+  typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
+  typedef std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)> ffipolicyfunc_t;
+
+  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_): name(name_), policy(policy_), isLua(isLua_)
+  {
+  }
+  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_): name(name_), ffipolicy(policy_), isLua(true), isFFI(true)
+  {
+  }
+  ServerPolicy()
+  {
+  }
+
   string name;
   policyfunc_t policy;
-  bool isLua;
+  ffipolicyfunc_t ffipolicy;
+  bool isLua{false};
+  bool isFFI{false};
+
   std::string toString() const {
     return string("ServerPolicy") + (isLua ? " (Lua)" : "") + " \"" + name + "\"";
   }
@@ -956,9 +977,9 @@ struct ServerPool
     return count;
   }
 
-  NumberedVector<shared_ptr<DownstreamState>> getServers()
+  ServerPolicy::NumberedServerVector getServers()
   {
-    NumberedVector<shared_ptr<DownstreamState>> result;
+    ServerPolicy::NumberedServerVector result;
     {
       ReadLock rl(&d_lock);
       result = d_servers;
@@ -1005,7 +1026,7 @@ struct ServerPool
   }
 
 private:
-  NumberedVector<shared_ptr<DownstreamState>> d_servers;
+  ServerPolicy::NumberedServerVector d_servers;
   pthread_rwlock_t d_lock;
   bool d_useECS{false};
 };
@@ -1117,15 +1138,15 @@ struct dnsheader;
 void controlThread(int fd, ComboAddress local);
 std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
-NumberedServerVector getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
+ServerPolicy::NumberedServerVector getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
 
-std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 
-std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 
 struct WebserverConfig
 {

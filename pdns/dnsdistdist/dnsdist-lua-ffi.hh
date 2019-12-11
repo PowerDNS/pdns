@@ -58,4 +58,50 @@ struct dnsdist_ffi_dnsquestion_t
   boost::optional<std::string> httpScheme{boost::none};
 };
 
+// dnsdist_ffi_server_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<dnsdist_ffi_server_t*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, dnsdist_ffi_server_t* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
+
+struct dnsdist_ffi_server_t
+{
+  dnsdist_ffi_server_t(const std::shared_ptr<DownstreamState>& server_): server(server_)
+  {
+  }
+
+  const std::shared_ptr<DownstreamState>& server;
+};
+
+// dnsdist_ffi_servers_list_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<dnsdist_ffi_servers_list_t*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, dnsdist_ffi_servers_list_t* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
+
+struct dnsdist_ffi_servers_list_t
+{
+  dnsdist_ffi_servers_list_t(const ServerPolicy::NumberedServerVector& servers)
+  {
+    ffiServers.reserve(servers.size());
+    for (const auto& server: servers) {
+      ffiServers.push_back(dnsdist_ffi_server_t(server.second));
+    }
+  }
+
+  std::vector<dnsdist_ffi_server_t> ffiServers;
+};
+
 const std::string& getLuaFFIWrappers();
