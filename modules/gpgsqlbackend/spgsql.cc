@@ -81,7 +81,7 @@ public:
       g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": " << d_query << endl;
       d_dtime.set();
     }
-    d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
+    d_res_set = PQexecParams(d_db(), d_query.c_str(), d_nparams, NULL, paramValues, paramLengths, NULL, 0);
     ExecStatusType status = PQresultStatus(d_res_set);
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
       string errmsg(PQresultErrorMessage(d_res_set));
@@ -208,26 +208,10 @@ private:
   void releaseStatement() {
     d_prepared = false;
     reset();
-    if (!d_stmt.empty()) {
-      string cmd = string("DEALLOCATE " + d_stmt);
-      PGresult *res = PQexec(d_db(), cmd.c_str());
-      PQclear(res);
-      d_stmt.clear();
-    }
   }
 
   void prepareStatement() {
     if (d_prepared) return;
-    // prepare a statement; name must be unique per session (using d_nstatement to ensure this).
-    this->d_stmt = string("stmt") + std::to_string(d_nstatement);
-    PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
-    ExecStatusType status = PQresultStatus(res);
-    string errmsg(PQresultErrorMessage(res));
-    PQclear(res);
-    if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
-      releaseStatement();
-      throw SSqlException("Fatal error during prepare: " + d_query + string(": ") + errmsg);
-    }
     paramValues=NULL;
     d_cur_set=d_paridx=d_residx=d_resnum=d_fnum=0;
     paramLengths=NULL;
@@ -245,7 +229,6 @@ private:
   }
 
   string d_query;
-  string d_stmt;
   SPgSQL *d_parent;
   PGresult *d_res_set;
   PGresult *d_res;
