@@ -2,6 +2,79 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0-beta1
+  :released: 12th of December 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8571
+
+    Better time based data structures
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8512
+
+    Remove duplicate RRs inside a RRSet when computing the signature
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8560
+
+    Check return value of dup() and avoid fd leak if if fdopen() fails
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8559
+    :tickets: 8558
+
+    Avoid startup race by setting the state of a thread before starting it.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8561, 8477
+
+    QName Minimization is no longer experimental and is now enabled by default.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8525
+    :tickets: 7771
+
+    Purge map of failed auths periodically by keeping a last changed timestamp.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8521
+    :tickets: 8518
+
+    Make threads run until asked to stop.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8440
+
+    Fix -WShadow warnings (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8511
+
+    Do RFC 8020 only if cache entry is dnssec validated
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8510
+
+    Avoid mthread race when using the set of rootNSZones.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8492
+
+    Add a parameter to limit the number of '$GENERATE' steps
+
+.. changelog::
   :version: 4.3.0-alpha3
   :released: 29th of October 2019
 
@@ -411,5 +484,4 @@ Changelogs for 4.3.x
     :pullreq: 7841
 
     Recursor: log udp tc bits during trace
-
 
