@@ -633,6 +633,9 @@ bool UeberBackend::get(DNSZoneRecord &rr)
     d_answers.clear();
     return false;
   }
+
+  rr.dr.d_place=DNSResourceRecord::ANSWER;
+
   d_ancount++;
   d_answers.push_back(rr);
   return true;
