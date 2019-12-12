@@ -8,7 +8,8 @@
 if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
     echo
-    echo "  • RELEASE: [ auth-40 | auth-41 | auth-42 | rec-40 | rec-41 | rec-42 ]"
+    echo "  • RELEASE: [ auth-40 | auth-41 | auth-42 | auth-43 |"
+    echo "               rec-40 | rec-41 | rec-42 | rec-43 ]"
     exit 1
 fi
 
@@ -103,6 +104,14 @@ elif [ "$RELEASE" = "auth-42" ]; then
     write_debian buster pdns-server pdns_server
     write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
+elif [ "$RELEASE" = "auth-43" ]; then
+    write_centos 6 pdns pdns_server
+    write_centos 7 pdns pdns_server
+    write_centos 8 pdns pdns_server
+    write_debian stretch pdns-server pdns_server
+    write_debian buster pdns-server pdns_server
+    write_ubuntu xenial pdns-server pdns_server
+    write_ubuntu bionic pdns-server pdns_server
 elif [ "$RELEASE" = "rec-40" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
@@ -119,6 +128,14 @@ elif [ "$RELEASE" = "rec-41" ]; then
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-42" ]; then
+    write_centos 6 pdns-recursor pdns_recursor
+    write_centos 7 pdns-recursor pdns_recursor
+    write_centos 8 pdns-recursor pdns_recursor
+    write_debian stretch pdns-recursor pdns_recursor
+    write_debian buster pdns-recursor pdns_recursor
+    write_ubuntu xenial pdns-recursor pdns_recursor
+    write_ubuntu bionic pdns-recursor pdns_recursor
+elif [ "$RELEASE" = "rec-43" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
