@@ -1184,6 +1184,35 @@ $ORIGIN %NAME%
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertIsNone(get_rrset(data, name, 'NS'))
 
+    def test_zone_rr_update_rrset_combine_replace_and_delete(self):
+        name, payload, zone = self.create_zone()
+        rrset1 = {
+            'changetype': 'delete',
+            'name': 'sub.' + name,
+            'type': 'CNAME',
+        }
+        rrset2 = {
+            'changetype': 'replace',
+            'name': 'sub.' + name,
+            'type': 'CNAME',
+            'ttl': 500,
+            'records': [
+                {
+                    "content": "www.example.org.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset1, rrset2]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        # verify that (only) the new record is there
+        data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
+        self.assertEquals(get_rrset(data, 'sub.' + name, 'CNAME')['records'], rrset2['records'])
+
     def test_zone_disable_reenable(self):
         # This also tests that SOA-EDIT-API works.
         name, payload, zone = self.create_zone(soa_edit_api='EPOCH')

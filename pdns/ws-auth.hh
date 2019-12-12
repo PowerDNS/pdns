@@ -22,6 +22,7 @@
 #ifndef WS_HH
 #define WS_HH
 #include <string>
+#include <tuple>
 #include <map>
 #include <time.h>
 #include <pthread.h>
