@@ -561,40 +561,41 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       }
     }
   }
-
-  bool ok, ds_ns, done;
-  for( const auto &rr : records ) {
-    ok = ( rr.auth == 1 );
-    ds_ns = false;
-    done = (suppliedrecords || !sd.db->doesDNSSEC());
-    for( const auto &qname : checkOcclusion ) {
-      if( qname.second == QType::NS ) {
-        if( qname.first == rr.qname ) {
-          ds_ns = true;
-        }
-        if ( done ) {
-          continue;
-        }
-        if( rr.auth == 0 ) {
-          if( rr.qname.isPartOf( qname.first ) && ( qname.first != rr.qname || rr.qtype != QType::DS ) ) {
-            ok = done = true;
+  if (sd.db->doesDNSSEC()) { // Ignore NS without DS if we do not do DNSSEC
+    bool ok, ds_ns, done;
+    for( const auto &rr : records ) {
+      ok = ( rr.auth == 1 );
+      ds_ns = false;
+      done = suppliedrecords;
+      for( const auto &qname : checkOcclusion ) {
+        if( qname.second == QType::NS ) {
+          if( qname.first == rr.qname ) {
+            ds_ns = true;
           }
-          if( rr.qtype == QType::ENT && qname.first.isPartOf( rr.qname ) ) {
-            ok = done = true;
+          if ( done ) {
+            continue;
           }
-        } else if( rr.qname.isPartOf( qname.first ) && ( ( qname.first != rr.qname || rr.qtype != QType::DS ) || rr.qtype == QType::NS ) ) {
-          ok = false;
-          done = true;
+          if( rr.auth == 0 ) {
+            if( rr.qname.isPartOf( qname.first ) && ( qname.first != rr.qname || rr.qtype != QType::DS ) ) {
+              ok = done = true;
+            }
+            if( rr.qtype == QType::ENT && qname.first.isPartOf( rr.qname ) ) {
+              ok = done = true;
+            }
+          } else if( rr.qname.isPartOf( qname.first ) && ( ( qname.first != rr.qname || rr.qtype != QType::DS ) || rr.qtype == QType::NS ) ) {
+            ok = false;
+            done = true;
+          }
         }
       }
-    }
-    if( ! ds_ns && rr.qtype.getCode() == QType::DS && rr.qname != zone ) {
-      cout << "[Warning] DS record without a delegation '" << rr.qname<<"'." << endl;
-      numwarnings++;
-    }
-    if( ! ok && ! suppliedrecords ) {
-      cout << "[Error] Following record is auth=" << rr.auth << ", run pdnsutil rectify-zone?: " << rr.qname << " IN " << rr.qtype.getName() << " " << rr.content << endl;
-      numerrors++;
+      if( ! ds_ns && rr.qtype.getCode() == QType::DS && rr.qname != zone ) {
+        cout << "[Warning] DS record without a delegation '" << rr.qname<<"'." << endl;
+        numwarnings++;
+      }
+      if( ! ok && ! suppliedrecords ) {
+        cout << "[Error] Following record is auth=" << rr.auth << ", run pdnsutil rectify-zone?: " << rr.qname << " IN " << rr.qtype.getName() << " " << rr.content << endl;
+        numerrors++;
+      }
     }
   }
 
