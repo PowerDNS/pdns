@@ -30,7 +30,7 @@ extern StatBag S;
 
 const unsigned int AuthPacketCache::s_mincleaninterval, AuthPacketCache::s_maxcleaninterval;
 
-AuthPacketCache::AuthPacketCache(size_t mapsCount): d_lastclean(time(nullptr)), d_maps(mapsCount)
+AuthPacketCache::AuthPacketCache(size_t mapsCount): d_maps(mapsCount), d_lastclean(time(nullptr))
 {
   S.declare("packetcache-hit", "Number of hits on the packet cache");
   S.declare("packetcache-miss", "Number of misses on the packet cache");
