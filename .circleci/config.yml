@@ -543,7 +543,7 @@ jobs:
           product: auth
       - run:
           name: Run unit tests
-          command: make check || (cat test-suite.log; false)
+          command: make check || (cat pdns/test-suite.log; false)
       - run:
           name: Install the binaries
           command: make install
