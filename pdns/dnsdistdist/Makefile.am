@@ -124,6 +124,7 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
+	dnsdist-backend.cc \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc \
@@ -134,6 +135,7 @@ dnsdist_SOURCES = \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.cc \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
+	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
@@ -206,6 +208,7 @@ testrunner_SOURCES = \
 	test-dnsdist_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
+	test-dnsdistlbpolicies_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \
@@ -215,10 +218,12 @@ testrunner_SOURCES = \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	dnsdist.hh \
+	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
+	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-rings.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnscrypt.cc dnscrypt.hh \
@@ -243,6 +248,7 @@ testrunner_SOURCES = \
 	statnode.cc statnode.hh \
 	threadname.hh threadname.cc \
 	testrunner.cc \
+	uuid-utils.hh uuid-utils.cc \
 	xpf.cc xpf.hh
 
 dnsdist_LDFLAGS = \
