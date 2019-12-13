@@ -9,6 +9,7 @@ mthreads=$4
 [ -z "$mthreads" ] && mthreads=100
 
 : ${RECURSOR:="../pdns/recursordist/pdns_recursor"}
+: ${RECCONTROL:="../pdns/recursordist/rec_control"}
 : ${CSV:="top-1m.csv"}
 : ${IPv6:="0"}
 : ${TRACE:="fail"}
@@ -35,20 +36,27 @@ sleep 3
 echo
 echo === First run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+kill -USR1 $(cat pdns_recursor.pid)
+${RECCONTROL} --socket-dir=. --config-dir=. get-all
 # rerun 1 with hot cache
 echo
 echo === Second run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+kill -USR1 $(cat pdns_recursor.pid)
+${RECCONTROL} --socket-dir=. --config-dir=. get-all
 # rerun 2 with hot cache
 echo
 echo === Third run with limit=$limit threads=$threads mthreads=$mthreads ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+kill -USR1 $(cat pdns_recursor.pid)
+${RECCONTROL} --socket-dir=. --config-dir=. get-all
 
+sleep 1
 echo
 echo "=== RECURSOR LOG ==="
 cat recursor.log
 echo "=== END RECURSOR LOG ==="
-kill $(cat pdns_recursor.pid)
+kill $(cat pdns_recursor.pid) 
 sleep 5
 
 . ./bulktest.results
