@@ -531,6 +531,7 @@ jobs:
               --enable-tools \
               --enable-unit-tests \
               --enable-backend-unit-tests \
+              --enable-fuzz-targets \
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
@@ -1070,7 +1071,6 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
-              --disable-lua-records \
               --disable-systemd \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
               --enable-tools \
