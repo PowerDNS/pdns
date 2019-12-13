@@ -21,10 +21,10 @@ MemRecursorCache::MemRecursorCache(size_t mapsCount) : d_maps(mapsCount)
 MemRecursorCache::~MemRecursorCache()
 {
   try {
-    typedef std::unique_ptr<std::lock_guard<std::mutex>> lock_t;
+    typedef std::unique_ptr<lock> lock_t;
     vector<lock_t> locks;
     for (auto& map : d_maps) {
-      locks.push_back(lock_t(new std::lock_guard<std::mutex>(map.mutex)));
+      locks.push_back(lock_t(new lock(map)));
     }
   }
   catch(...) {
@@ -40,12 +40,23 @@ size_t MemRecursorCache::size()
   return count;
 }
 
+pair<uint64_t,uint64_t> MemRecursorCache::stats()
+{
+  uint64_t c = 0, a = 0;
+  for (auto& map : d_maps) {
+    const lock l(map);
+    c += map.d_contended_count;
+    a += map.d_acuired_count;
+  }  
+  return pair<uint64_t,uint64_t>(c, a);
+}
+
 size_t MemRecursorCache::ecsIndexSize()
 {
   // XXX!
   size_t count = 0;
   for (auto& map : d_maps) {
-    const std::lock_guard<std::mutex> lock(map.mutex);
+    const lock l(map);
     count += map.d_ecsIndex.size();
   }
   return count;
@@ -56,7 +67,7 @@ size_t MemRecursorCache::bytes()
 {
   size_t ret = 0;
   for (auto& map : d_maps) {
-    const std::lock_guard<std::mutex> lock(map.mutex);
+    const lock l(map);
     for (const auto& i : map.d_map) {
       ret += sizeof(struct CacheEntry);
       ret += i.d_qname.toString().length();
@@ -210,7 +221,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   const uint16_t qtype = qt.getCode();
 
   auto& map = getMap(qname);
-  const std::lock_guard<std::mutex> lock(map.mutex);
+  const lock l(map);
   
   /* If we don't have any netmask-specific entries at all, let's just skip this
      to be able to use the nice d_cachecache hack. */
@@ -272,7 +283,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
   auto& map = getMap(qname);
-  const std::lock_guard<std::mutex> lock(map.mutex);
+  const lock l(map);
   
   map.d_cachecachevalid = false;
   //  cerr<<"Replacing "<<qname<<" for "<< (ednsmask ? ednsmask->toString() : "everyone") << endl;
@@ -362,7 +373,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
 
   if (!sub) {
     auto& map = getMap(name);
-    const std::lock_guard<std::mutex> lock(map.mutex);
+    const lock l(map);
     map.d_cachecachevalid = false;
     auto& idx = map.d_map.get<NameOnlyHashedTag>();
     size_t n = idx.erase(name);
@@ -381,7 +392,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
   }
   else {
     for (auto& map : d_maps) {
-      const std::lock_guard<std::mutex> lock(map.mutex);
+      const lock l(map);
       map.d_cachecachevalid = false;
       auto& idx = map.d_map.get<OrderedTag>();
       for (auto i = idx.lower_bound(name); i != idx.end(); ) {
@@ -414,7 +425,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
 bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL)
 {
   auto& map = getMap(name);
-  const std::lock_guard<std::mutex> lock(map.mutex);
+  const lock l(map);
   cache_t::iterator iter = map.d_map.find(tie(name, qtype));
   if (iter == map.d_map.end()) {
     return false;
@@ -442,7 +453,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
 bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
 {
   auto& map = getMap(qname);
-  const std::lock_guard<std::mutex> lock(map.mutex);
+  const lock l(map);
 
   bool updated = false;
   uint16_t qtype = qt.getCode();
@@ -496,7 +507,7 @@ uint64_t MemRecursorCache::doDump(int fd)
   uint64_t count = 0;
 
   for (auto& map : d_maps) {
-    const std::lock_guard<std::mutex> lock(map.mutex);
+    const lock l(map);
     const auto& sidx = map.d_map.get<SequencedTag>();
 
     time_t now = time(0);

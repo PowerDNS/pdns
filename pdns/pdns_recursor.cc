@@ -127,7 +127,7 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 #endif /* HAVE_FSTRM */
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
-std::unique_ptr<MemRecursorCache> s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+std::unique_ptr<MemRecursorCache> s_RC;
 
 
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
@@ -2847,12 +2847,15 @@ static void doStats(void)
   uint64_t cacheHits = s_RC->cacheHits;
   uint64_t cacheMisses = s_RC->cacheMisses;
   uint64_t cacheSize = s_RC->size();
-
+  auto rc_stats = s_RC->stats();
+  double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
+  
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
       cacheSize << " cache entries, "<<
       broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
       (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl;
+    g_log << Logger::Notice<< "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
     g_log<<Logger::Notice<<"stats: throttle map: "
       << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) <<", ns speeds: "
@@ -4789,6 +4792,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="yes";
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
+    ::arg().set("record-cache-shards", "Number of shards in the record cache")="1024";
 
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
@@ -4887,6 +4891,8 @@ int main(int argc, char **argv)
       exit(0);
     }
 
+    s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
+    
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
 
     if (logUrgency < Logger::Error)

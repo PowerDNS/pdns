@@ -52,6 +52,7 @@ public:
   
   size_t size();
   size_t bytes();
+  pair<uint64_t,uint64_t> stats();
   size_t ecsIndexSize();
 
   int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
@@ -190,12 +191,7 @@ private:
 
   struct MapCombo
   {
-    MapCombo()
-    {
-    }
-    ~MapCombo()
-    {
-    }
+    MapCombo() {}
     MapCombo(const MapCombo &) = delete; 
     MapCombo & operator=(const MapCombo &) = delete;
     cache_t d_map;
@@ -205,8 +201,10 @@ private:
     std::mutex mutex;
     bool d_cachecachevalid{false};
     std::atomic<uint64_t> d_entriesCount{0};
+    uint64_t d_contended_count{0};
+    uint64_t d_acuired_count{0};
   };
-  
+
   vector<MapCombo> d_maps;
   MapCombo& getMap(const DNSName &qname)
   {
@@ -219,6 +217,22 @@ private:
   int32_t handleHit(MapCombo& map, OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
 
 public:
+  struct lock {
+    lock(MapCombo& map) : m(map.mutex)
+    {
+      if (!m.try_lock()) {
+        m.lock();
+        map.d_contended_count++;
+      }
+      map.d_acuired_count++;
+    }
+    ~lock() {
+      m.unlock();
+    }
+  private:
+    std::mutex &m;
+  };
+  
   void preRemoval(const CacheEntry& entry)
   {
     if (entry.d_netmask.empty()) {
