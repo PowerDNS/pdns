@@ -529,6 +529,8 @@ jobs:
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns lua2' \
               --enable-systemd \
               --enable-tools \
+              --enable-unit-tests \
+              --enable-backend-unit-tests \
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
@@ -538,6 +540,9 @@ jobs:
           command: make -j3 -k
       - save-ccache-cache:
           product: auth
+      - run:
+          name: Run unit tests
+          command: make check || (cat test-suite.log; false)
       - run:
           name: Install the binaries
           command: make install
