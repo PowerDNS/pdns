@@ -958,6 +958,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 2
@@ -967,6 +968,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 4
@@ -976,6 +978,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 8
@@ -985,6 +988,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 16
@@ -994,6 +998,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 2 4096
@@ -1003,6 +1008,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 4 4096
@@ -1012,6 +1018,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 8 4096
@@ -1021,6 +1028,7 @@ jobs:
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
             THRESHOLD=95 \
             TRACE=no \
             ./timestamp ./recursor-test 5300 50000 16 4096
