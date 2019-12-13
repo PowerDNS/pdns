@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DYNLISTENER
-#define PDNS_DYNLISTENER
-
+#pragma once
 #include <string>
 #include <vector>
 #include <pthread.h>
@@ -79,4 +77,3 @@ private:
   static g_funk_t* s_restfunc;
   bool testLive(const string& fname);
 };
-#endif /* PDNS_DYNLISTENER */

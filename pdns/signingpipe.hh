@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_SIGNINGPIPE
-#define PDNS_SIGNINGPIPE
+#pragma once
 #include <stdio.h>
 #include <thread>
 #include <vector>
@@ -80,5 +79,3 @@ private:
   bool d_mustSign;
   bool d_final;
 };
-
-#endif

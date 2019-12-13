@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_EDNSSUBNET_HH
-#define PDNS_EDNSSUBNET_HH
-
+#pragma once
 #include "namespaces.hh"
 #include "iputils.hh"
 #include "dnsname.hh"
@@ -35,4 +33,3 @@ struct EDNSSubnetOpts
 bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso);
 bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso);
 string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
-#endif

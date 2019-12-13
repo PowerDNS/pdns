@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_COMMUNICATOR_HH
-#define PDNS_COMMUNICATOR_HH
-
+#pragma once
 #include <pthread.h>
 #include <string>
 #include <semaphore.h>
@@ -290,6 +288,3 @@ private:
     }
   }
 };
-
-
-#endif

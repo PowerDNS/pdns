@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef STATBAG_HH
-#define STATBAG_HH
+#pragma once
 #include <pthread.h>
 #include <map>
 #include <mutex>
@@ -31,7 +30,6 @@
 #include "namespaces.hh"
 #include "iputils.hh"
 #include "circular_buffer.hh"
-
 
 
 template<typename T, typename Comp=std::less<T> >
@@ -156,6 +154,3 @@ inline void StatBag::inc(const string &key)
 {
   deposit(key,1);
 }
-
-
-#endif /* STATBAG_HH */

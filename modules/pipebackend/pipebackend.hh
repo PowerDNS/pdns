@@ -19,13 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PIPEBACKEND_HH
-#define PIPEBACKEND_HH
-
+#pragma once
 #include <string>
 #include <map>
 #include <sys/types.h>
-
 
 #include "pdns/namespaces.hh"
 #include "pdns/misc.hh"
@@ -70,7 +67,3 @@ private:
   bool d_disavow;
   int d_abiVersion;
 };
-
-
-#endif
-

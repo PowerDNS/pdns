@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef AUTH_PACKETCACHE_HH
-#define AUTH_PACKETCACHE_HH
-
+#pragma once
 #include <string>
 #include <map>
 #include "dns.hh"
@@ -148,5 +146,3 @@ private:
 
   static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
 };
-
-#endif /* AUTH_PACKETCACHE_HH */

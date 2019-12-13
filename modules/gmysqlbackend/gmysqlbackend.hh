@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_GMYSQLBACKEND_HH
-#define PDNS_GMYSQLBACKEND_HH
-
+#pragma once
 #include <string>
 #include <map>
 #include "pdns/backends/gsql/gsqlbackend.hh"
@@ -37,5 +35,3 @@ public:
 protected:
   void reconnect() override;
 };
-
-#endif /* PDNS_GMYSQLBACKEND_HH */

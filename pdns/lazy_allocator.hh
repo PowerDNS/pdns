@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef LAZY_ALLOCATOR_HH
-#define LAZY_ALLOCATOR_HH
-
+#pragma once
 #include <cstddef>
 #include <utility>
 #include <type_traits>
@@ -86,5 +84,3 @@ template <typename T> inline
 bool operator!= (lazy_allocator<T> const&, lazy_allocator<T> const&) noexcept {
     return false;
 }
-
-#endif // LAZY_ALLOCATOR_HH

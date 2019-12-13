@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef WEBSERVER_HH
-#define WEBSERVER_HH
+#pragma once
 #include <map>
 #include <string>
 #include <list>
@@ -242,5 +241,3 @@ protected:
   // Describes the amount of logging the webserver does
   WebServer::LogLevel d_loglevel{WebServer::LogLevel::Detailed};
 };
-
-#endif /* WEBSERVER_HH */

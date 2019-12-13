@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_PKCS11SIGNERS_HH
-#define PDNS_PKCS11SIGNERS_HH
+#pragma once
 
 class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
@@ -67,5 +66,3 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 };
 
 bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
-
-#endif /* PDNS_PKCS11SIGNERS_HH */

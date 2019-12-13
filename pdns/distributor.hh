@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef DISTRIBUTOR_HH
-#define DISTRIBUTOR_HH
-
+#pragma once
 #include <string>
 #include <deque>
 #include <queue>
@@ -328,6 +326,3 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
 
   return ret;
 }
-
-#endif // DISTRIBUTOR_HH
-

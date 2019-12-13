@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DNSWRITER_HH
-#define PDNS_DNSWRITER_HH
-
+#pragma once
 #include <string>
 #include <vector>
 #include <map>
@@ -173,4 +171,4 @@ private:
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
 // bool labeltokUnescape(labelparts_t& parts, const DNSName& label);
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
-#endif
+std::deque<string> segmentDNSName(const string& input); // from dnslabeltext.rl

@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_RESOLVER_HH
-#define PDNS_RESOLVER_HH
-
+#pragma once
 #include <string>
 #include <vector>
 #include <sys/types.h>
@@ -106,6 +104,3 @@ class AXFRRetriever : public boost::noncopyable
     size_t d_maxReceivedBytes;
     TSIGRecordContent d_trc;
 };
-
-
-#endif /* PDNS_RESOLVER_HH */

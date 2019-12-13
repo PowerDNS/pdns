@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DYNHANDLER_HH
-#define PDNS_DYNHANDLER_HH
-
+#pragma once
 #include <vector>
 #include <string>
 #include <stdlib.h>
@@ -57,4 +55,3 @@ string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid);
 string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid);
 uint64_t udpErrorStats(const std::string& str);
-#endif /* PDNS_DYNHANDLER_HH */

@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef MTASKER_HH
-#define MTASKER_HH
+#pragma once
 #include <stdint.h>
 #include <queue>
 #include <vector>
@@ -136,6 +135,3 @@ private:
   EventKey d_eventkey;   // for waitEvent, contains exact key it was awoken for
 };
 #include "mtasker.cc"
-
-#endif // MTASKER_HH
-

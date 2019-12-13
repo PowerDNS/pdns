@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef CDB_HH
-#define CDB_HH
-
+#pragma once
 #include <cdb.h>
 
 #include "misc.hh"
@@ -70,5 +68,3 @@ private:
   struct cdb_make d_cdbm;
   int d_fd{-1};
 };
-
-#endif // CDB_HH

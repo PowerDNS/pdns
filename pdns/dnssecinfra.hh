@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DNSSECINFRA_HH
-#define PDNS_DNSSECINFRA_HH
-
+#pragma once
 #include "dnsrecords.hh"
 
 #include <string>
@@ -175,4 +173,3 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkey
 bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);
 
 uint64_t signatureCacheSize(const std::string& str);
-#endif

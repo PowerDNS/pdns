@@ -19,10 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNSEXCEPTION_HH
-#define PDNSEXCEPTION_HH
-/* (C) 2002 POWERDNS.COM BV */
-
+#pragma once
 #include<string>
 
 #include "namespaces.hh"
@@ -43,5 +40,3 @@ public:
   TimeoutException() : PDNSException() {}
   TimeoutException(string r) : PDNSException(r) {}
 };
-
-#endif

@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_GEOIPINTERFACE_HH
-#define PDNS_GEOIPINTERFACE_HH
-
+#pragma once
 #include "boost/optional.hpp"
 
 #include "geoipbackend.hh"
@@ -67,5 +65,3 @@ private:
   static unique_ptr<GeoIPInterface> makeMMDBInterface(const string &fname, const map<string, string>& opts);
   static unique_ptr<GeoIPInterface> makeDATInterface(const string& fname, const map<string, string>& opts);
 };
-
-#endif

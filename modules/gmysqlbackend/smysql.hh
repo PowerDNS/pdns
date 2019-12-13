@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef SMYSQL_HH
-#define SMYSQL_HH
-
+#pragma once
 #include <mysql.h>
 #include "pdns/backends/gsql/ssql.hh"
 #include "pdns/utility.hh"
@@ -65,5 +63,3 @@ private:
   bool d_threadCleanup;
   bool d_clientSSL;
 };
-
-#endif /* SSMYSQL_HH */

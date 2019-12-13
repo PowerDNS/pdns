@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef AUTH_CACHES_HH
-#define AUTH_CACHES_HH
-
+#pragma once
 #include <string>
 #include <cstdint>
 
@@ -30,5 +28,3 @@
 uint64_t purgeAuthCaches(); /* empty all caches */
 uint64_t purgeAuthCaches(const std::string& match); /* remove specific entries from all caches, can be $ terminated */
 uint64_t purgeAuthCachesExact(const DNSName& qname); /* remove specific entries from all caches, no wildcard matching */
-
-#endif /* AUTH_CACHES_HH */

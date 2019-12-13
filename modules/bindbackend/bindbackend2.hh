@@ -19,10 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-#ifndef PDNS_BINDBACKEND_HH
-#define PDNS_BINDBACKEND_HH
-
+#pragma once
 #include <string>
 #include <map>
 #include <set>
@@ -317,5 +314,3 @@ private:
   static void doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
   void loadConfig(string *status=nullptr);
 };
-
-#endif /* PDNS_BINDBACKEND_HH */

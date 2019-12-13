@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_SECPOLL_RECURSOR_HH
-#define PDNS_SECPOLL_RECURSOR_HH
+#pragma once
 #include <time.h>
 #include "namespaces.hh"
 #include <stdint.h>
@@ -28,5 +27,3 @@
 void doSecPoll(time_t* );
 extern uint32_t g_security_status;
 extern std::string g_security_message;
-
-#endif

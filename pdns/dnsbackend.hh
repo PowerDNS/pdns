@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef DNSBACKEND_HH
-#define DNSBACKEND_HH
+#pragma once
 
 class DNSPacket;
 
@@ -440,5 +439,3 @@ void fillSOAData(const string &content, SOAData &data);
 void fillSOAData(const DNSZoneRecord& in, SOAData& data);
 // the reverse
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);
-
-#endif

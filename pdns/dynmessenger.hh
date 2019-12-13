@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef DYNMESSENGER_HH
-#define DYNMESSENGER_HH
-
+#pragma once
 #include <string>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -62,5 +60,3 @@ public:
   int send(const string &message) const; //!< Send a message to a DynListener
   string receive() const; //!< receive an answer from a DynListener
 };
- 
-#endif

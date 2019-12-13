@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_ANADNS_HH
-#define PDNS_ANADNS_HH
+#pragma once
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <string>
@@ -83,6 +82,3 @@ inline ostream& operator<<(ostream &s, const QuestionIdentifier& qi)
   s<<" to " << qi.d_dest.toStringWithPort();
   return s;
 }
-
-
-#endif

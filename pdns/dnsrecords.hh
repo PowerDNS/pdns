@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DNSRECORDS_HH
-#define PDNS_DNSRECORDS_HH
-
+#pragma once
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -903,4 +901,3 @@ void reportOtherTypes();
 void reportAllTypes();
 ComboAddress getAddr(const DNSRecord& dr, uint16_t defport=0);
 void checkHostnameCorrectness(const DNSResourceRecord& rr);
-#endif 

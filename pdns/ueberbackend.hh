@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef UEBERBACKEND_HH
-#define UEBERBACKEND_HH
-
+#pragma once
 #include <vector>
 #include <map>
 #include <string>
@@ -165,5 +163,3 @@ private:
   void addCache(const Question &q, const vector<DNSZoneRecord> &rrs);
   
 };
-
-#endif

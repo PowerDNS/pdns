@@ -20,9 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 // Utility class specification.
-
-#ifndef UTILITY_HH
-#define UTILITY_HH
+#pragma once
 
 #ifdef NEED_POSIX_TYPEDEF
 typedef unsigned char uint8_t;
@@ -144,6 +142,3 @@ public:
   static time_t timegm(struct tm *tm);
   
 };
-
-
-#endif // UTILITY_HH

@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_NAMESPACES_HH
-#define PDNS_NAMESPACES_HH
+#pragma once
 #include <boost/tuple/tuple.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/scoped_array.hpp>
@@ -77,5 +76,3 @@ using boost::trim_right_copy_if;
 using boost::equals;
 using boost::ends_with;
 using boost::iends_with;
-
-#endif

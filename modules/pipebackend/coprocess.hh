@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_COPROCESS_HH
-#define PDNS_COPROCESS_HH
-
+#pragma once
 #include <iostream>
 #include <stdio.h>
 #include <string>
@@ -72,4 +70,3 @@ private:
   FILE *d_fp;
 };
 bool isUnixSocket(const string& fname);
-#endif

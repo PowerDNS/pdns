@@ -20,9 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#ifndef LUA2API_2_HH
-#define LUA2API_2_HH 1
-
 #include "boost/lexical_cast.hpp"
 #include "boost/algorithm/string/join.hpp"
 #include "pdns/arguments.hh"
@@ -418,5 +415,3 @@ private:
 
   deinit_call_t f_deinit;
 };
-
-#endif

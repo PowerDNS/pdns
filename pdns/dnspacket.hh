@@ -19,10 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef DNSPACKET_HH
-
-#define DNSPACKET_HH
-
+#pragma once
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -193,5 +190,3 @@ private:
   bool d_haveednssection{false};
   bool d_isQuery;
 };
-
-#endif

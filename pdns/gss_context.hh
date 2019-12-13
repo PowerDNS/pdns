@@ -19,8 +19,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef GSS_CONTEXT_HH
-#define GSS_CONTEXT_HH
 #pragma once
 
 #ifdef ENABLE_GSS_TSIG
@@ -180,5 +178,3 @@ public:
 
 bool gss_add_signature(const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
 bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac); //<! Validate signature
-
-#endif

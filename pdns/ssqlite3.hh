@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef SSQLITE3_HH
-#define SSQLITE3_HH
-
+#pragma once
 #include <sqlite3.h>
 #include "pdns/backends/gsql/ssql.hh"
 
@@ -57,6 +55,3 @@ public:
   //! Used to create an backend specific exception message.
   SSqlException sPerrorException( const std::string & reason ) override;
 };
-
-#endif // SSQLITE3_HH
-

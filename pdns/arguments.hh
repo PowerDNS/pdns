@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef ARGUMENTS_HH
-#define ARGUMENTS_HH
-
+#pragma once
 #include <map>
 #include <set>
 #include <string>
@@ -129,5 +127,3 @@ private:
 };
 
 extern ArgvMap &arg();
-
-#endif /* ARGUMENTS_HH */

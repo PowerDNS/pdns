@@ -19,11 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_BASE32_HH
-#define PDNS_BASE32_HH
+#pragma once
 #include <string>
 
 std::string toBase32Hex(const std::string& input);
 std::string fromBase32Hex(const std::string& input);
-
-#endif
