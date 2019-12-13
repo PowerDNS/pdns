@@ -70,6 +70,7 @@ commands:
             apt-get -y -qq install \
               bc \
               bind9utils \
+              curl \
               default-jre-headless \
               dnsutils \
               ldnsutils \
@@ -805,7 +806,7 @@ jobs:
       - image: debian:buster
     steps:
       - auth-regress-setup
-      - run: apt-get install -y -qq jq curl
+      - run: apt-get install -y -qq jq
       - auth-regress:
           context: lmdb-nodnssec-both
       - auth-regress:
