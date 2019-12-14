@@ -784,6 +784,28 @@ private:
  uint8_t d_eui64[8];
 };
 
+#define APL_FAMILY_IPV4 1
+#define APL_FAMILY_IPV6 2
+class APLRecordContent : public DNSRecordContent
+{
+public:
+  APLRecordContent() {};
+  static void report(void);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
+  string getZoneRepresentation(bool noDot=false) const override;
+  void toPacket(DNSPacketWriter& pw) override;
+  uint16_t getType() const override { return QType::APL; }
+private:
+  uint16_t d_family;
+  uint8_t d_prefix;
+  unsigned int d_n : 1;
+  unsigned int d_afdlength : 7;
+  uint8_t d_ip4[4];
+  unsigned char d_ip6[16];
+};
+
+
 class TKEYRecordContent : public DNSRecordContent
 {
 public:

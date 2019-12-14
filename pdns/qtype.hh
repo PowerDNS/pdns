@@ -95,6 +95,7 @@ public:
     A6=38,
     DNAME=39,
     OPT=41,
+    APL=42,
     DS=43,
     SSHFP=44,
     IPSECKEY=45,
@@ -194,6 +195,7 @@ private:
       qtype_insert("A6", 38);
       qtype_insert("DNAME", 39);
       qtype_insert("OPT", 41);
+      qtype_insert("APL", 42);
       qtype_insert("DS", 43);
       qtype_insert("SSHFP", 44);
       qtype_insert("IPSECKEY", 45);
