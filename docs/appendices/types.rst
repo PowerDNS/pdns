@@ -55,7 +55,7 @@ CNAME-like mechanisms on a zone's apex. See the :doc:`howto <../guides/alias>` f
 on how to configure PowerDNS to serve records synthesized from ALIAS
 records.
 
-.. _types-caa:
+.. _types-apl:
 
 APL
 -----
@@ -66,7 +66,7 @@ The APL record,
 specified in :rfc:`3123`, is used
 to specify a DNS RR type "APL" for address prefix lists.
 
-.. _types-apl:
+.. _types-caa:
 
 CAA
 ---
