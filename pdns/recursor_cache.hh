@@ -49,7 +49,7 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 public:
   MemRecursorCache(size_t mapsCount = 1024);
   ~MemRecursorCache();
-  
+
   size_t size();
   size_t bytes();
   pair<uint64_t,uint64_t> stats();
@@ -192,7 +192,7 @@ private:
   struct MapCombo
   {
     MapCombo() {}
-    MapCombo(const MapCombo &) = delete; 
+    MapCombo(const MapCombo &) = delete;
     MapCombo & operator=(const MapCombo &) = delete;
     cache_t d_map;
     ecsIndex_t d_ecsIndex;
@@ -202,7 +202,7 @@ private:
     bool d_cachecachevalid{false};
     std::atomic<uint64_t> d_entriesCount{0};
     uint64_t d_contended_count{0};
-    uint64_t d_acuired_count{0};
+    uint64_t d_acquired_count{0};
   };
 
   vector<MapCombo> d_maps;
@@ -224,7 +224,7 @@ public:
         m.lock();
         map.d_contended_count++;
       }
-      map.d_acuired_count++;
+      map.d_acquired_count++;
     }
     ~lock() {
       m.unlock();
@@ -232,7 +232,7 @@ public:
   private:
     std::mutex &m;
   };
-  
+
   void preRemoval(const CacheEntry& entry)
   {
     if (entry.d_netmask.empty()) {

@@ -46,8 +46,8 @@ pair<uint64_t,uint64_t> MemRecursorCache::stats()
   for (auto& map : d_maps) {
     const lock l(map);
     c += map.d_contended_count;
-    a += map.d_acuired_count;
-  }  
+    a += map.d_acquired_count;
+  }
   return pair<uint64_t,uint64_t>(c, a);
 }
 
