@@ -14,7 +14,7 @@ Lua Netmask class methods changed
 ``socket-dir`` changed
 ^^^^^^^^^^^^^^^^^^^^^^
 The default :ref:`setting-socket-dir` has changed to include ``pdns-recursor`` in the path.
-For non-chrooted setups, it is now whatever is passed to ``--with-socketdir`` during configure (``/var/run`` by default) plus ``pdns_recursor``.
+For non-chrooted setups, it is now whatever is passed to ``--with-socketdir`` during configure (``/var/run`` by default) plus ``pdns-recursor``.
 The systemd unit-file is updated to reflect this change and systemd will automatically create the directory with the proper permissions.
 The packaged sysV init-script also creates this directory.
 For other operating systems, update your init-scripts accordingly.
