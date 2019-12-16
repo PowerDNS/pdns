@@ -22,6 +22,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-lbpolicies.hh"
+#include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
 
 GlobalStateHolder<ServerPolicy> g_policy;
@@ -240,4 +241,31 @@ std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poo
   }
 
   return it->second;
+}
+
+std::shared_ptr<DownstreamState> getSelectedBackendFromPolicy(const ServerPolicy& policy, const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq)
+{
+  std::shared_ptr<DownstreamState> selectedBackend{nullptr};
+
+  if (policy.isLua) {
+    if (!policy.isFFI) {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      selectedBackend = policy.policy(servers, &dq);
+    }
+    else {
+      dnsdist_ffi_dnsquestion_t dnsq(&dq);
+      dnsdist_ffi_servers_list_t serversList(servers);
+      unsigned int selected = 0;
+      {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        selected = policy.ffipolicy(&serversList, &dnsq);
+      }
+      selectedBackend = servers.at(selected).second;
+    }
+  }
+  else {
+    selectedBackend = policy.policy(servers, &dq);
+  }
+
+  return selectedBackend;
 }

@@ -52,6 +52,10 @@ static const oid specialMemoryUsageOID[] = { DNSDIST_STATS_OID, 39 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
+bool g_snmpEnabled{false};
+bool g_snmpTrapsEnabled{false};
+DNSDistSNMPAgent* g_snmpAgent{nullptr};
+
 /* We are never called for a GETNEXT if it's registered as a
    "instance", as it's "magically" handled for us.  */
 /* a instance handler also only hands us one request at a time, so

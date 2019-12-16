@@ -48,7 +48,6 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
-#include "dnsdist-lua-ffi.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-xpf.hh"
@@ -102,10 +101,6 @@ std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 std::vector<std::unique_ptr<ClientState>> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 size_t g_udpVectorSize{1};
-
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
-DNSDistSNMPAgent* g_snmpAgent{nullptr};
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -1181,25 +1176,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       policy = *(serverPool->policy);
     }
     auto servers = serverPool->getServers();
-    if (policy.isLua) {
-      if (!policy.isFFI) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
-        selectedBackend = policy.policy(servers, &dq);
-      }
-      else {
-        dnsdist_ffi_dnsquestion_t dnsq(&dq);
-        dnsdist_ffi_servers_list_t serversList(servers);
-        unsigned int selected = 0;
-        {
-          std::lock_guard<std::mutex> lock(g_luamutex);
-          selected = policy.ffipolicy(&serversList, &dnsq);
-        }
-        selectedBackend = servers.at(selected).second;
-      }
-    }
-    else {
-      selectedBackend = policy.policy(servers, &dq);
-    }
+    selectedBackend = getSelectedBackendFromPolicy(policy, servers, dq);
 
     uint16_t cachedResponseSize = dq.size;
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;

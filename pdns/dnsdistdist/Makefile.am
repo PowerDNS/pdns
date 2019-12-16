@@ -224,6 +224,8 @@ testrunner_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
+	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
+	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-rings.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnscrypt.cc dnscrypt.hh \
@@ -249,7 +251,8 @@ testrunner_SOURCES = \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	uuid-utils.hh uuid-utils.cc \
-	xpf.cc xpf.hh
+	xpf.cc xpf.hh \
+	ext/luawrapper/include/LuaContext.hpp
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -277,8 +280,9 @@ testrunner_LDFLAGS = \
 
 testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
-	$(LIBSODIUM_LIBS) \
 	$(FSTRM_LIBS) \
+	$(LIBSODIUM_LIBS) \
+	$(LUA_LIBS) \
 	$(RT_LIBS) \
 	$(SANITIZER_FLAGS) \
 	$(LIBCAP_LIBS)
