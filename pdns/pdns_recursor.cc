@@ -4792,7 +4792,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="yes";
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
-    ::arg().set("record-cache-shards", "Number of shards in the record cache")="1024";
+    ::arg().set("cache-shards", "Number of shards in the record cache")="1024";
 
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
@@ -4891,8 +4891,8 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
-    
+    s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("cache-shards")));
+
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
 
     if (logUrgency < Logger::Error)

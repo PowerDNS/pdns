@@ -7,6 +7,8 @@ threads=$3
 [ -z "$threads" ] && threads=2
 mthreads=$4
 [ -z "$mthreads" ] && mthreads=100
+shards=$5
+[ -z "$shards" ] && shards=1024
 
 : ${RECURSOR:="../pdns/recursordist/pdns_recursor"}
 : ${RECCONTROL:="../pdns/recursordist/rec_control"}
@@ -29,24 +31,24 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>system CPU seconds</name><value>%S</value></measurement>
 <measurement><name>wallclock seconds</name><value>%e</value></measurement>
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
-'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address6="${QLA6}" --threads=$threads --disable-packetcache > recursor.log 2>&1 &
+'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address6="${QLA6}" --threads=$threads --cache-shards=$shards --disable-packetcache > recursor.log 2>&1 &
 sleep 3
 
 # warm up the cache
 echo
-echo === First run with limit=$limit threads=$threads mthreads=$mthreads ===
+echo === First run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid)
 ${RECCONTROL} --socket-dir=. --config-dir=. get-all
 # rerun 1 with hot cache
 echo
-echo === Second run with limit=$limit threads=$threads mthreads=$mthreads ===
+echo === Second run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid)
 ${RECCONTROL} --socket-dir=. --config-dir=. get-all
 # rerun 2 with hot cache
 echo
-echo === Third run with limit=$limit threads=$threads mthreads=$mthreads ===
+echo === Third run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid)
 ${RECCONTROL} --socket-dir=. --config-dir=. get-all
