@@ -24,7 +24,7 @@ Systemd service and permissions
 The systemd service-file that is installed no longer uses the ``root`` user to start.
 It uses the user and group set with the ``--with-service-user`` and ``--with-service-group`` switches during
 configuration, "pdns" by default.
-This could mean that PowerDNS Recursor cannot read its configuration or zone-file data.
+This could mean that PowerDNS Recursor cannot read its configuration, lua scripts, auth-zones or other data.
 It is recommended to recursively ``chown`` directories used by PowerDNS Recursor::
 
   # For Debian-based systems
