@@ -3,8 +3,12 @@ set -e
 
 case "$1" in
   configure)
-    addgroup --system pdns
-    adduser --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+    if [ -z "`getent group pdns`" ]; then
+      addgroup --system pdns
+    fi
+    if [ -z "`getent passwd pdns`" ]; then
+      adduser --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+    fi
   ;;
 
   *)
