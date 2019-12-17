@@ -790,12 +790,7 @@ class APLRecordContent : public DNSRecordContent
 {
 public:
   APLRecordContent() {};
-  static void report(void);
-  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
-  static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
-  string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
-  uint16_t getType() const override { return QType::APL; }
+  includeboilerplate(APL)
 private:
   uint16_t d_family;
   uint8_t d_prefix;

@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/lexical_cast.hpp>
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
@@ -536,6 +537,9 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
 // Parse backend record
 std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
   string record;
+  Netmask nm;
+  int bytes;
+  bool done_trimming;
 
   auto ret=std::make_shared<APLRecordContent>();
 
@@ -548,109 +552,70 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
     record = zone;
   }
 
+  if (record.find("/") == string::npos) { // Required by RFC section 5
+    throw MOADNSException("Asked to decode '"+zone+"' as an APL record, but missing subnet mask");
+  }
+
+
   if (record.find("1:", 0) == 0) { // IPv4
-    unsigned int prefix;
     uint32_t v4ip;
-    string ipstr, subnetstr;
-    int subnet_pos;
-    ComboAddress ca;
-    int bytes;
 
     ret->d_family = APL_FAMILY_IPV4;
 
-    // Find netmask
-     subnet_pos = record.rfind("/");
+    // Ensure that a mask is provided
 
-    if (subnet_pos < 0) {
-      throw MOADNSException("Asked to decode '"+zone+"' as an APL record, but missing subnet mask");
-    }
+    // Read IPv4 string into a Netmask object
+    nm = Netmask(record.substr(2, record.length() - 2));
+    ret->d_prefix = nm.getBits();
 
-    // Read IPv4 string into a ComboAddress
-    ipstr = record.substr(2, subnet_pos - 2);
-    subnetstr = record.substr(subnet_pos + 1, record.length() - subnet_pos - 1);
-    ca = makeComboAddress(ipstr);
-    v4ip = ntohl(ca.sin4.sin_addr.s_addr);
-    if (ca.sin4.sin_family != AF_INET) { // ComboAddress will match v6 IPs, which is not valid here
-      throw MOADNSException("Asked to decode '"+zone+"' as an APL record, but found invalid v4 IP address");
-    }
+    if (nm.getNetwork().isIPv4() == 0)
+      throw MOADNSException("Asked to decode '"+zone+"' as an APL v4 record");
+
     // Section 4.1 of RFC 3123 (don't send trailing "0" bytes)
     // Copy data; using array of bytes since we might end up truncating them in the packet
+    v4ip = ntohl(nm.getNetwork().sin4.sin_addr.s_addr);
     bzero(ret->d_ip4, sizeof(ret->d_ip4));
+    bytes  = 4; // Start by assuming we'll send 4 bytes
+    done_trimming = false;
     for (int i=0; i<4; i++) {
       ret->d_ip4[3-i] = (v4ip & 255);
-      v4ip = v4ip >> 8;
-    }
-    // Remove trailing "0" bytes from packet and calculate length
-    bytes  = 4; // Start by assuming we'll send 4 bytes
-    v4ip = ntohl(ca.sin4.sin_addr.s_addr);
-    for (int i=0; i<4; i++) {
-      if ((v4ip & 255) == 0) {
-        // trailing 0 byte, reduce length
+      // Remove trailing "0" bytes from packet and update length
+      if ((v4ip & 255) == 0 and !done_trimming) {
         bytes--;
-      } else
-      {
-        // Found non-0 byte, stop trimming
-        break;
+      } else {
+        done_trimming = true;
       }
       v4ip = v4ip >> 8;
     }
-
-    // Prefix length
-    if (sscanf(subnetstr.c_str(), "%u", &prefix) == 1) {
-      ret->d_prefix=prefix;
-    } else
-          throw MOADNSException("Asked to decode '"+zone+"' as an IPv4 APL record, but found invalid prefix string "+subnetstr);
-    if (prefix > 32)
-      throw MOADNSException("Asked to decode '"+zone+"' as an IPv4 APL record, but found invalid prefix value "+std::to_string(prefix));
     ret->d_afdlength = bytes;
 
   } else if (record.find("2:", 0) == 0) { // IPv6
-    unsigned int prefix;
-    int subnet_pos;
-    string ipstr, subnetstr;
-    ComboAddress ca;
-    int bytes;
-
     ret->d_family = APL_FAMILY_IPV6;
 
-    // Find Netmask
-    subnet_pos = record.rfind("/");
-    if (subnet_pos < 0) {
-      throw MOADNSException("Asked to decode '"+zone+"' as an APL record, but missing subnet mask");
-    }
+    // Parse IPv6 string into a Netmask object
+    nm = Netmask(record.substr(2, record.length() - 2));
+    ret->d_prefix = nm.getBits();
 
-    // Parse IPv6 string into ComboAddress
-    ipstr = record.substr(2, subnet_pos - 2);
-    subnetstr = record.substr(subnet_pos + 1, record.length() - subnet_pos - 1);
-    ca = makeComboAddress(ipstr);
+    if (nm.getNetwork().isIPv6() == 0)
+      throw MOADNSException("Asked to decode '"+zone+"' as an APL v6 record");
 
     // Section 4.2 of RFC 3123 (don't send trailing "0" bytes)
     // Remove trailing "0" bytes from packet and reduce length
+    bzero(ret->d_ip6, sizeof(ret->d_ip6));
     bytes = 16; // Start by assuming we'll send 16 bytes
+    done_trimming = false;
     for (int i=15; i>=0; i--) {
-      if (ca.sin6.sin6_addr.s6_addr[i] == 0) {
-        // trailing 0 byte, calculate length
+      ret->d_ip6[i] = nm.getNetwork().sin6.sin6_addr.s6_addr[i];
+      if (nm.getNetwork().sin6.sin6_addr.s6_addr[i] == 0 and !done_trimming) {
+        // trailing 0 byte, update length
         bytes--;
       } else {
-        // Found non-0 byte, stop trimming
-        break;
+        done_trimming = true;
       }
-    }
-    bzero(ret->d_ip6, sizeof(ret->d_ip6));
-    for (int i=0; i<bytes; i++) {
-      ret->d_ip6[i] = ca.sin6.sin6_addr.s6_addr[i];
     }
     ret->d_afdlength = bytes;
 
-    // Prefix length
-    prefix = 0;
-    if (sscanf(subnetstr.c_str(), "%u", &prefix) == 1) {
-      ret->d_prefix=prefix;
-    } else
-          throw MOADNSException("Asked to decode '"+zone+"' as an IPv6 APL record, but found invalid prefix string "+subnetstr);
-    if (prefix > 32)
-      throw MOADNSException("Asked to decode '"+zone+"' as an IPv6 APL record, but found invalid prefix value "+subnetstr);
-   } else {
+  } else {
       throw MOADNSException("Asked to encode '"+zone+"' as an IPv6 APL record but got unknown Address Family");
   }
 
@@ -676,7 +641,9 @@ void APLRecordContent::toPacket(DNSPacketWriter& pw) {
 
 // Decode record into string
 string APLRecordContent::getZoneRepresentation(bool noDot) const {
-  string s_n, s_family, s_ip;
+  string s_n, s_family;
+  ComboAddress ca;
+  Netmask nm;
 
   // Negation flag
   if (d_n == 1) {
@@ -686,41 +653,28 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
   }
 
   if (d_family == APL_FAMILY_IPV4) { // IPv4
-    sockaddr_in sa;
-
     s_family = std::to_string(APL_FAMILY_IPV4);
-    s_ip = "";
-    sa.sin_family = AF_INET;
-    sa.sin_port = 0;
-    sa.sin_addr.s_addr = 0;
+    ca = ComboAddress();
     for (int i=0; i < 4; i++) {
-        sa.sin_addr.s_addr |= d_ip4[i] << (i*8);
+        ca.sin4.sin_addr.s_addr |= d_ip4[i] << (i*8);
     }
-    ComboAddress ca = ComboAddress(&sa);
-    s_ip = ca.toString();
-
   } else if (d_family == APL_FAMILY_IPV6) { // IPv6
-    sockaddr_in6 sa;
     s_family = std::to_string(APL_FAMILY_IPV6);
-    s_ip = "";
-    sa.sin6_family = AF_INET6;
-    sa.sin6_port = 0;
-    sa.sin6_flowinfo = 0;
-    sa.sin6_scope_id = 0;
+    ca = ComboAddress();
+    ca.sin4.sin_family = AF_INET6;
     for (int i=0; i < 16; i++) {
       if (i < d_afdlength) {
-        sa.sin6_addr.s6_addr[i] = d_ip6[i];
+        ca.sin6.sin6_addr.s6_addr[i] = d_ip6[i];
       } else {
-        sa.sin6_addr.s6_addr[i] = 0;
+        ca.sin6.sin6_addr.s6_addr[i] = 0;
       }
     }
-    ComboAddress ca = ComboAddress(&sa);
-    s_ip = ca.toString();
   } else {
     throw MOADNSException("Asked to decode APL record but got unknown Address Family "+d_family);
   }
 
-  return s_n + s_family + ":" + s_ip + "/" + std::to_string(d_prefix);
+  nm = Netmask(ca, d_prefix);
+  return s_n + s_family + ":" + nm.toString();
 }
 
 /* APL end */
