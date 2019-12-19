@@ -786,7 +786,7 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& 
 {
   ComboAddress remote = p.getRemote().setPort(53);
   if(p.hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
-    remote = p.getRealRemote().getNetwork();
+    remote = p.getRealRemote().getNetwork().setPort(53);
   }
 
   Resolver::res_t nsset;
