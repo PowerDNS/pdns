@@ -629,6 +629,64 @@ private:
   bool d_includeTimestamp{false};
 };
 
+class LogResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  LogResponseAction(): d_fp(nullptr, fclose)
+  {
+  }
+
+  LogResponseAction(const std::string& str, bool append=false, bool buffered=true, bool verboseOnly=true, bool includeTimestamp=false): d_fname(str), d_verboseOnly(verboseOnly), d_includeTimestamp(includeTimestamp)
+  {
+    if(str.empty())
+      return;
+    if(append)
+      d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(str.c_str(), "a+"), fclose);
+    else
+      d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(str.c_str(), "w"), fclose);
+    if(!d_fp)
+      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+stringerror());
+    if(!buffered)
+      setbuf(d_fp.get(), 0);
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    if (!d_fp) {
+      if (!d_verboseOnly || g_verbose) {
+        if (d_includeTimestamp) {
+          infolog("[%u.%u] Answer to %s for %s %s (%s) with id %d", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort(), dr->qname->toString(), QType(dr->qtype).getName(), RCode::to_s(dr->dh->rcode), dr->dh->id);
+        }
+        else {
+          infolog("Answer to %s for %s %s (%s) with id %d", dr->remote->toStringWithPort(), dr->qname->toString(), QType(dr->qtype).getName(), RCode::to_s(dr->dh->rcode), dr->dh->id);
+        }
+      }
+    }
+    else {
+      if (d_includeTimestamp) {
+        fprintf(d_fp.get(), "[%llu.%lu] Answer to %s for %s %s (%s) with id %d\n", static_cast<unsigned long long>(dr->queryTime->tv_sec), static_cast<unsigned long>(dr->queryTime->tv_nsec), dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).getName().c_str(), RCode::to_s(dr->dh->rcode).c_str(), dr->dh->id);
+      }
+      else {
+        fprintf(d_fp.get(), "Answer to %s for %s %s (%s) with id %d\n", dr->remote->toStringWithPort().c_str(), dr->qname->toString().c_str(), QType(dr->qtype).getName().c_str(), RCode::to_s(dr->dh->rcode).c_str(), dr->dh->id);
+      }
+    }
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    if (!d_fname.empty()) {
+      return "log to " + d_fname;
+    }
+    return "log";
+  }
+private:
+  std::string d_fname;
+  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
+  bool d_verboseOnly{true};
+  bool d_includeTimestamp{false};
+};
+
 
 class DisableValidationAction : public DNSAction
 {
@@ -1322,6 +1380,10 @@ void setupLuaActions()
 
   g_lua.writeFunction("LogAction", [](boost::optional<std::string> fname, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
       return std::shared_ptr<DNSAction>(new LogAction(fname ? *fname : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
+    });
+
+  g_lua.writeFunction("LogResponseAction", [](boost::optional<std::string> fname, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
+      return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fname ? *fname : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
 
   g_lua.writeFunction("RCodeAction", [](uint8_t rcode) {
