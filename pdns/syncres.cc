@@ -2134,12 +2134,15 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     return;
   }
 
+  const bool oldCacheOnly = setCacheOnly(false);
+
   dsmap_t ds;
   vState cutState = getDSRecords(end, ds, false, depth);
   LOG(d_prefix<<": setting cut state for "<<end<<" to "<<vStates[cutState]<<endl);
   d_cutStates[end] = cutState;
 
   if (!shouldValidate()) {
+    setCacheOnly(oldCacheOnly);
     return;
   }
 
@@ -2212,6 +2215,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
       LOG(" - "<<cut.first<<": "<<vStates[cut.second]<<endl);
     }
   }
+  setCacheOnly(oldCacheOnly);
 }
 
 vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth)
