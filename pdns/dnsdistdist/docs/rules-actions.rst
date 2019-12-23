@@ -1001,7 +1001,7 @@ The following actions exist.
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
 
-  If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verboseOnly`` to true.
+  If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verboseOnly`` to false.
 
   When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form. Before 1.4.0 the binary log format only included the qname and qtype. Since 1.4.0 it includes an optional timestamp, the query ID, qname, qtype, remote address and port.
 
