@@ -122,7 +122,6 @@ string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  DNSSECKeeper dk;
   ostringstream os;
   int ret=0;
 
@@ -130,14 +129,14 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
       ret+=purgeAuthCaches(*i);
       if(!boost::ends_with(*i, "$"))
-	dk.clearCaches(DNSName(*i));
+        DNSSECKeeper::clearCaches(DNSName(*i));
       else
-	dk.clearAllCaches(); // at least we do what we promise.. and a bit more!
+        DNSSECKeeper::clearAllCaches(); // at least we do what we promise.. and a bit more!
     }
   }
   else {
     ret = purgeAuthCaches();
-    dk.clearAllCaches();
+    DNSSECKeeper::clearAllCaches();
   }
 
   os<<ret;

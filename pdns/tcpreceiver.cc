@@ -593,7 +593,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   }
 
   DNSSECKeeper dk(&db);
-  dk.clearCaches(target);
+  DNSSECKeeper::clearCaches(target);
   bool securedZone = dk.isSecuredZone(target);
   bool presignedZone = dk.isPresigned(target);
 
@@ -1110,7 +1110,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
 
-  dk.clearCaches(q->qdomain);
+  DNSSECKeeper::clearCaches(q->qdomain);
   bool securedZone = dk.isSecuredZone(q->qdomain);
   if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
     if(narrow) {

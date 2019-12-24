@@ -1747,8 +1747,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
     // clear caches
-    DNSSECKeeper dk(&B);
-    dk.clearCaches(zonename);
+    DNSSECKeeper::clearCaches(zonename);
     purgeAuthCaches(zonename.toString() + "$");
 
     // empty body on success
