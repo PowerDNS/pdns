@@ -29,7 +29,7 @@ Functions and methods of a ``DNSNameSet``
 
     Adds the name to the set.
 
-    :param DNSName name The name to add.
+    :param DNSName name: The name to add.
 
   .. method:: DNSNameSet:empty() -> bool
 
@@ -41,7 +41,7 @@ Functions and methods of a ``DNSNameSet``
 
   .. method:: DNSNameSet:toString() -> string
 
-    Returns a human-readable form of the DNSName.
+    Returns a human-readable form of the DNSNameSet.
 
   .. method:: DNSNameSet:size() -> int
 
@@ -51,10 +51,10 @@ Functions and methods of a ``DNSNameSet``
 
     Removes the name from the set. Returns the number of deleted elements.
 
-   :param DNSName name The name to remove.
+    :param DNSName name: The name to remove.
 
   .. method:: DNSNameSet:check(name) -> bool
 
     Returns true if the set contains the name.
 
-   :param DNSname name The name.
+    :param DNSName name: The name to check.
