@@ -72,6 +72,11 @@ void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, 
   *qnameSize = storage.size();
 }
 
+size_t dnsdist_ffi_dnsquestion_get_qname_hash(const dnsdist_ffi_dnsquestion_t* dq, size_t init)
+{
+  return dq->dq->qname->hash(init);
+}
+
 int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->dh->rcode;
