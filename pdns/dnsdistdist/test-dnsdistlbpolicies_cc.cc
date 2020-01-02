@@ -112,18 +112,32 @@ static void benchPolicy(const ServerPolicy& pol)
   for (size_t idx = 1; idx <= 10; idx++) {
     servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
     servers.at(idx - 1).second->setUp();
+    /* we need to have a weight of at least 1000 to get an optimal repartition with the consistent hashing algo */
+    servers.at(idx - 1).second->setWeight(1000);
+    /* make sure that the hashes have been computed */
+    servers.at(idx - 1).second->hash();
   }
 
   StopWatch sw;
   sw.start();
+  for (size_t idx = 0; idx < 1000; idx++) {
   for (const auto& name : names) {
     auto dq = getDQ(&name);
     auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+  }
   }
   cerr<<pol.name<<" took "<<std::to_string(sw.udiff())<<" us for "<<names.size()<<endl;
 
   g_verbose = existingVerboseValue;
 #endif /* BENCH_POLICIES */
+}
+
+static void resetLuaContext()
+{
+  /* we need to reset this before cleaning the Lua state because the server policy might holds
+     a reference to a Lua function (Lua policies) */
+  g_policy.setState(ServerPolicy("leastOutstanding", leastOutstanding, false));
+  g_lua = LuaContext();
 }
 
 BOOST_AUTO_TEST_SUITE(dnsdistlbpolicies)
@@ -352,7 +366,6 @@ BOOST_AUTO_TEST_CASE(test_whashed) {
   BOOST_CHECK_LT(got, expected * 2);
 }
 
-
 BOOST_AUTO_TEST_CASE(test_chashed) {
   bool existingVerboseValue = g_verbose;
   g_verbose = false;
@@ -456,6 +469,7 @@ BOOST_AUTO_TEST_CASE(test_lua) {
 
     setServerPolicyLua("luaroundrobin", luaroundrobin)
   )foo";
+  resetLuaContext();
   g_lua.writeFunction("setServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy) {
       g_policy.setState(ServerPolicy{name, policy, true});
     });
@@ -491,7 +505,7 @@ BOOST_AUTO_TEST_CASE(test_lua) {
 }
 
 #ifdef LUAJIT_VERSION
-BOOST_AUTO_TEST_CASE(test_lua_ffi) {
+BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
   std::vector<DNSName> names;
   names.reserve(1000);
   for (size_t idx = 0; idx < 1000; idx++) {
@@ -505,16 +519,15 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi) {
     function ffilb(servers_list, dq)
       local serversCount = tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list))
       counter = counter + 1
-      local hash = tonumber(C.dnsdist_ffi_dnsquestion_get_qname_hash(dq, 0))
-      return hash % serversCount
+      return counter % serversCount
     end
 
-    setServerPolicyLuaFFI("FFI", ffilb)
+    setServerPolicyLuaFFI("FFI round-robin", ffilb)
   )foo";
+  resetLuaContext();
   g_lua.executeCode(getLuaFFIWrappers());
   g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
-      auto pol = ServerPolicy(name, policy);
-      g_policy.setState(std::move(pol));
+      g_policy.setState(ServerPolicy(name, policy));
     });
   g_lua.executeCode(policySetupStr);
 
@@ -545,6 +558,173 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi) {
   BOOST_CHECK_EQUAL(total, names.size());
 
   benchPolicy(pol);
+}
+
+BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
+  std::vector<DNSName> names;
+  names.reserve(1000);
+  for (size_t idx = 0; idx < 1000; idx++) {
+    names.push_back(DNSName("powerdns-" + std::to_string(idx) + ".com."));
+  }
+
+  static const std::string policySetupStr = R"foo(
+    local ffi = require("ffi")
+    local C = ffi.C
+    function ffilb(servers_list, dq)
+      local serversCount = tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list))
+      local hash = tonumber(C.dnsdist_ffi_dnsquestion_get_qname_hash(dq, 0))
+      return hash % serversCount
+    end
+
+    setServerPolicyLuaFFI("FFI hashed", ffilb)
+  )foo";
+  resetLuaContext();
+  g_lua.executeCode(getLuaFFIWrappers());
+  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+      g_policy.setState(ServerPolicy(name, policy));
+    });
+  g_lua.executeCode(policySetupStr);
+
+  ServerPolicy pol = g_policy.getCopy();
+  ServerPolicy::NumberedServerVector servers;
+  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+  for (size_t idx = 1; idx <= 10; idx++) {
+    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+    serversMap[servers.at(idx - 1).second] = 0;
+    servers.at(idx - 1).second->setUp();
+  }
+  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+
+  for (const auto& name : names) {
+    auto dq = getDQ(&name);
+    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+    BOOST_REQUIRE(serversMap.count(server) == 1);
+    ++serversMap[server];
+  }
+
+  uint64_t total = 0;
+  for (const auto& entry : serversMap) {
+    BOOST_CHECK_GT(entry.second, 0);
+    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+    total += entry.second;
+  }
+  BOOST_CHECK_EQUAL(total, names.size());
+
+  benchPolicy(pol);
+}
+
+BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed) {
+  std::vector<DNSName> names;
+  names.reserve(1000);
+  for (size_t idx = 0; idx < 1000; idx++) {
+    names.push_back(DNSName("powerdns-" + std::to_string(idx) + ".com."));
+  }
+
+  static const std::string policySetupStr = R"foo(
+    local ffi = require("ffi")
+    local C = ffi.C
+    function ffilb(servers_list, dq)
+      return tonumber(C.dnsdist_ffi_servers_list_whashed(servers_list, dq, C.dnsdist_ffi_dnsquestion_get_qname_hash(dq, 0)))
+    end
+
+    setServerPolicyLuaFFI("FFI whashed", ffilb)
+  )foo";
+  resetLuaContext();
+  g_lua.executeCode(getLuaFFIWrappers());
+  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+      g_policy.setState(ServerPolicy(name, policy));
+    });
+  g_lua.executeCode(policySetupStr);
+
+  ServerPolicy pol = g_policy.getCopy();
+  ServerPolicy::NumberedServerVector servers;
+  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+  for (size_t idx = 1; idx <= 10; idx++) {
+    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+    serversMap[servers.at(idx - 1).second] = 0;
+    servers.at(idx - 1).second->setUp();
+  }
+  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+
+  for (const auto& name : names) {
+    auto dq = getDQ(&name);
+    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+    BOOST_REQUIRE(serversMap.count(server) == 1);
+    ++serversMap[server];
+  }
+
+  uint64_t total = 0;
+  for (const auto& entry : serversMap) {
+    BOOST_CHECK_GT(entry.second, 0);
+    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+    total += entry.second;
+  }
+  BOOST_CHECK_EQUAL(total, names.size());
+
+  benchPolicy(pol);
+}
+
+BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
+  bool existingVerboseValue = g_verbose;
+  g_verbose = false;
+
+  std::vector<DNSName> names;
+  names.reserve(1000);
+  for (size_t idx = 0; idx < 1000; idx++) {
+    names.push_back(DNSName("powerdns-" + std::to_string(idx) + ".com."));
+  }
+
+  static const std::string policySetupStr = R"foo(
+    local ffi = require("ffi")
+    local C = ffi.C
+    function ffilb(servers_list, dq)
+      return tonumber(C.dnsdist_ffi_servers_list_chashed(servers_list, dq, C.dnsdist_ffi_dnsquestion_get_qname_hash(dq, 0)))
+    end
+
+    setServerPolicyLuaFFI("FFI chashed", ffilb)
+  )foo";
+  resetLuaContext();
+  g_lua.executeCode(getLuaFFIWrappers());
+  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+      g_policy.setState(ServerPolicy(name, policy));
+    });
+  g_lua.executeCode(policySetupStr);
+
+  ServerPolicy pol = g_policy.getCopy();
+  ServerPolicy::NumberedServerVector servers;
+  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+  for (size_t idx = 1; idx <= 10; idx++) {
+    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+    serversMap[servers.at(idx - 1).second] = 0;
+    servers.at(idx - 1).second->setUp();
+    /* we need to have a weight of at least 1000 to get an optimal repartition with the consistent hashing algo */
+    servers.at(idx - 1).second->setWeight(1000);
+    /* make sure that the hashes have been computed */
+    servers.at(idx - 1).second->hash();
+  }
+  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+
+  for (const auto& name : names) {
+    auto dq = getDQ(&name);
+    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+    BOOST_REQUIRE(serversMap.count(server) == 1);
+    ++serversMap[server];
+  }
+
+  uint64_t total = 0;
+  for (const auto& entry : serversMap) {
+    BOOST_CHECK_GT(entry.second, 0);
+    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+    total += entry.second;
+  }
+  BOOST_CHECK_EQUAL(total, names.size());
+
+  benchPolicy(pol);
+
+  g_verbose = existingVerboseValue;
 }
 #endif /* LUAJIT_VERSION */
 

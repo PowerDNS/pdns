@@ -93,7 +93,7 @@ struct LuaContext::Pusher<dnsdist_ffi_servers_list_t*> {
 
 struct dnsdist_ffi_servers_list_t
 {
-  dnsdist_ffi_servers_list_t(const ServerPolicy::NumberedServerVector& servers)
+  dnsdist_ffi_servers_list_t(const ServerPolicy::NumberedServerVector& servers_): servers(servers_)
   {
     ffiServers.reserve(servers.size());
     for (const auto& server: servers) {
@@ -102,6 +102,7 @@ struct dnsdist_ffi_servers_list_t
   }
 
   std::vector<dnsdist_ffi_server_t> ffiServers;
+  const ServerPolicy::NumberedServerVector& servers;
 };
 
 const std::string& getLuaFFIWrappers();

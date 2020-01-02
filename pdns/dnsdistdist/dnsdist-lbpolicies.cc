@@ -59,9 +59,10 @@ shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVec
   return leastOutstanding(servers, dq);
 }
 
-static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolicy::NumberedServerVector& servers)
 {
-  vector<pair<int, shared_ptr<DownstreamState>>> poss;
+  vector<pair<int, size_t>> poss;
+  poss.reserve(servers.size());
   int sum = 0;
   int max = std::numeric_limits<int>::max();
 
@@ -74,36 +75,44 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
         sum += d.second->weight;
       }
 
-      poss.push_back({sum, d.second});
+      poss.emplace_back(sum, d.first);
     }
   }
 
   // Catch poss & sum are empty to avoid SIGFPE
-  if(poss.empty())
+  if (poss.empty()) {
     return shared_ptr<DownstreamState>();
+  }
 
   int r = val % sum;
   auto p = upper_bound(poss.begin(), poss.end(),r, [](int r_, const decltype(poss)::value_type& a) { return  r_ < a.first;});
-  if(p==poss.end())
+  if (p == poss.end()) {
     return shared_ptr<DownstreamState>();
-  return p->second;
+  }
+
+  return servers.at(p->second - 1).second;
 }
 
 shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return valrandom(random(), servers, dq);
+  return valrandom(random(), servers);
 }
 
 uint32_t g_hashperturb;
 double g_consistentHashBalancingFactor = 0;
-shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+
+shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash)
 {
-  return valrandom(dq->qname->hash(g_hashperturb), servers, dq);
+  return valrandom(hash, servers);
 }
 
-shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  unsigned int qhash = dq->qname->hash(g_hashperturb);
+  return whashedFromHash(servers, dq->qname->hash(g_hashperturb));
+}
+
+shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t qhash)
+{
   unsigned int sel = std::numeric_limits<unsigned int>::max();
   unsigned int min = std::numeric_limits<unsigned int>::max();
   shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
@@ -150,6 +159,11 @@ shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& se
     return first;
   }
   return shared_ptr<DownstreamState>();
+}
+
+shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+{
+  return chashedFromHash(servers, dq->qname->hash(g_hashperturb));
 }
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
