@@ -514,19 +514,17 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
       throw MOADNSException("Invalid IP length for IPv4 APL");
     }
     bzero(ret->d_ip4, sizeof(ret->d_ip4));
-    for (int i=0; i < 4; i++) {
-      if (i < ret->d_afdlength)
-        pr.xfr8BitInt(ret->d_ip4[i]);
-    }
+    // Call min because we can't trust d_afdlength in an inbound packet
+    for (u_int i=0; i < min(ret->d_afdlength, (u_int)4); i++)
+      pr.xfr8BitInt(ret->d_ip4[i]);
   } else if (ret->d_family == APL_FAMILY_IPV6) {
     if (ret->d_afdlength > 16) {
       throw MOADNSException("Invalid IP length for IPv6 APL");
     }
     bzero(ret->d_ip6, sizeof(ret->d_ip6));
-    for (int i=0; i< 16; i++) {
-      if (i < ret->d_afdlength)
-        pr.xfr8BitInt(ret->d_ip6[i]);
-    }
+    // Call min because we can't trust d_afdlength in an inbound packet
+    for (u_int i=0; i < min(ret->d_afdlength, (u_int)16); i++)
+      pr.xfr8BitInt(ret->d_ip6[i]);
   } else
     throw MOADNSException("Unknown family for APL record");
 
