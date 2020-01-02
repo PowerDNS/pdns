@@ -601,9 +601,9 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
     bzero(ret->d_ip6, sizeof(ret->d_ip6));
     bytes = 16; // Start by assuming we'll send 16 bytes
     done_trimming = false;
-    for (int i=15; i>=0; i--) {
-      ret->d_ip6[i] = nm.getNetwork().sin6.sin6_addr.s6_addr[i];
-      if (nm.getNetwork().sin6.sin6_addr.s6_addr[i] == 0 and !done_trimming) {
+    for (int i=0; i<16; i++) {
+      ret->d_ip6[15-i] = nm.getNetwork().sin6.sin6_addr.s6_addr[15-i];
+      if (nm.getNetwork().sin6.sin6_addr.s6_addr[15-i] == 0 and !done_trimming) {
         // trailing 0 byte, update length
         bytes--;
       } else {
@@ -643,7 +643,7 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
   Netmask nm;
 
   // Negation flag
-  if (d_n == true) {
+  if (d_n) {
     s_n = "!";
   } else {
     s_n = "";
