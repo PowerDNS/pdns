@@ -1214,7 +1214,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
     vState neValidationState = ne->d_validationState;
     dState expectedState = res == RCode::NXDomain ? NXDOMAIN : NXQTYPE;
     dState denialState = getDenialValidationState(*ne, state, expectedState, false);
-    updateDenialValidationState(neValidationState, ne->d_name, state, denialState, expectedState, qtype == QType::DS);
+    updateDenialValidationState(neValidationState, ne->d_name, state, denialState, expectedState, qtype == QType::DS || expectedState == NXDOMAIN);
   }
   if (state != Indeterminate) {
     /* validation succeeded, let's update the cache entry so we don't have to validate again */
@@ -2604,8 +2604,21 @@ void SyncRes::updateDenialValidationState(vState& neValidationState, const DNSNa
   else {
     if (denialState == OPTOUT && allowOptOut) {
       LOG(d_prefix<<"OPT-out denial found for "<<neName<<endl);
-      neValidationState = Secure;
-      return;
+      /* rfc5155 states:
+         "The AD bit, as defined by [RFC4035], MUST NOT be set when returning a
+         response containing a closest (provable) encloser proof in which the
+         NSEC3 RR that covers the "next closer" name has the Opt-Out bit set.
+
+         This rule is based on what this closest encloser proof actually
+         proves: names that would be covered by the Opt-Out NSEC3 RR may or
+         may not exist as insecure delegations.  As such, not all the data in
+         responses containing such closest encloser proofs will have been
+         cryptographically verified, so the AD bit cannot be set."
+
+         At best the Opt-Out NSEC3 RR proves that there is no signed DS (so no
+         secure delegation).
+      */
+      neValidationState = Insecure;
     }
     else if (denialState == INSECURE) {
       LOG(d_prefix<<"Insecure denial found for "<<neName<<", returning Insecure"<<endl);
@@ -2663,7 +2676,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       if (state == Secure) {
         dState denialState = getDenialValidationState(ne, state, NXDOMAIN, false);
-        updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, NXDOMAIN, false);
+        updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, NXDOMAIN, true);
       }
       else {
         ne.d_validationState = state;
@@ -2820,6 +2833,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (denialState == NXQTYPE || denialState == OPTOUT || denialState == INSECURE) {
           ne.d_ttd = lowestTTL + d_now.tv_sec;
           ne.d_validationState = Secure;
+          if (denialState == OPTOUT) {
+            ne.d_validationState = Insecure;
+          }
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
           if(!wasVariable()) {
