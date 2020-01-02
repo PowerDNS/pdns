@@ -1963,6 +1963,7 @@ void setupLuaConfig(bool client)
 
           if (vars->count("provider")) {
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
+            boost::algorithm::to_lower(frontend->d_provider);
           }
 
           parseTLSConfig(frontend->d_tlsConfig, "addTLSLocal", vars);
@@ -1974,7 +1975,11 @@ void setupLuaConfig(bool client)
             vinfolog("Loading TLS provider '%s'", frontend->d_provider);
           }
           else {
+#ifdef HAVE_LIBSSL
             vinfolog("Loading default TLS provider 'openssl'");
+#else
+            vinfolog("Loading default TLS provider 'gnutls'");
+#endif
           }
           // only works pre-startup, so no sync necessary
           auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
