@@ -540,12 +540,12 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
 
   auto ret=std::make_shared<APLRecordContent>();
 
-  // Strip the optional leading ! (negate)
+  // Parse the optional leading ! (negate)
   if (zone[0] == '!') {
-    ret->d_n = 1;
+    ret->d_n = true;
     record = zone.substr(1, zone.length()-1);
   } else {
-    ret->d_n = 0;
+    ret->d_n = false;
     record = zone;
   }
 
@@ -643,7 +643,7 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
   Netmask nm;
 
   // Negation flag
-  if (d_n == 1) {
+  if (d_n == true) {
     s_n = "!";
   } else {
     s_n = "";
