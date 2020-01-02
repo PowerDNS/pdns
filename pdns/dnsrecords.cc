@@ -22,7 +22,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <boost/lexical_cast.hpp>
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
