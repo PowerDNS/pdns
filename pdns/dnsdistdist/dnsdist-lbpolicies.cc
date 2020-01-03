@@ -35,19 +35,24 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
     return servers[0].second;
   }
 
-  vector<pair<tuple<int,int,double>, shared_ptr<DownstreamState>>> poss;
+  vector<pair<tuple<int,int,double>, size_t>> poss;
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
      which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
   poss.reserve(servers.size());
-  for(auto& d : servers) {
+  size_t position = 0;
+  for(const auto& d : servers) {
     if(d.second->isUp()) {
-      poss.push_back({make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), d.second});
+      poss.emplace_back(make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), position);
     }
+    ++position;
   }
-  if(poss.empty())
+
+  if (poss.empty()) {
     return shared_ptr<DownstreamState>();
+  }
+
   nth_element(poss.begin(), poss.begin(), poss.end(), [](const decltype(poss)::value_type& a, const decltype(poss)::value_type& b) { return a.first < b.first; });
-  return poss.begin()->second;
+  return servers.at(poss.begin()->second).second;
 }
 
 shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
@@ -66,7 +71,7 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
   int sum = 0;
   int max = std::numeric_limits<int>::max();
 
-  for(auto& d : servers) {      // w=1, w=10 -> 1, 11
+  for(const auto& d : servers) {      // w=1, w=10 -> 1, 11
     if(d.second->isUp()) {
       // Don't overflow sum when adding high weights
       if(d.second->weight > max - sum) {
@@ -184,7 +189,6 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
     return shared_ptr<DownstreamState>();
 
   static unsigned int counter;
- 
   return (*res)[(counter++) % res->size()].second;
 }
 
