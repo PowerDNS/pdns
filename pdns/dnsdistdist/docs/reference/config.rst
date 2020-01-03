@@ -18,6 +18,7 @@ Within dnsdist several core object types exist:
 * :class:`Server`: generated with :func:`newServer`, represents a downstream server
 * :class:`ComboAddress`: represents an IP address and port
 * :class:`DNSName`: represents a domain name
+* :class:`Netmask`: represents a Netmask
 * :class:`NetmaskGroup`: represents a group of netmasks
 * :class:`QPSLimiter`: implements a QPS-based filter
 * :class:`SuffixMatchNode`: represents a group of domain suffixes for rapid testing of membership

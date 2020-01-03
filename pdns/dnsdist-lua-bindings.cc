@@ -258,6 +258,34 @@ void setupLuaBindings(bool client)
   });
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
+  /* Netmask */
+  g_lua.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> s, boost::optional<uint8_t> bits) {
+    if (s.type() == typeid(ComboAddress)) {
+      auto ca = boost::get<ComboAddress>(s);
+      if (bits) {
+        return Netmask(ca, *bits);
+      }
+      return Netmask(ca);
+    }
+    else if (s.type() == typeid(std::string)) {
+      auto str = boost::get<std::string>(s);
+      return Netmask(str);
+    }
+    throw std::runtime_error("Invalid parameter passed to 'newNetmask()'");
+  });
+  g_lua.registerFunction("empty", &Netmask::empty);
+  g_lua.registerFunction("getBits", &Netmask::getBits);
+  g_lua.registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
+  g_lua.registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
+  g_lua.registerFunction("isIpv4", &Netmask::isIPv4);
+  g_lua.registerFunction("isIPv4", &Netmask::isIPv4);
+  g_lua.registerFunction("isIpv6", &Netmask::isIPv6);
+  g_lua.registerFunction("isIPv6", &Netmask::isIPv6);
+  g_lua.registerFunction("match", (bool (Netmask::*)(const string&) const)&Netmask::match);
+  g_lua.registerFunction("toString", &Netmask::toString);
+  g_lua.registerEqFunction(&Netmask::operator==);
+  g_lua.registerToStringFunction(&Netmask::toString);
+
   /* NetmaskGroup */
   g_lua.writeFunction("newNMG", []() { return NetmaskGroup(); });
   g_lua.registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
