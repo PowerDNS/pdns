@@ -463,7 +463,7 @@ $(MANPAGES): %: docs/manpages/%.rst .venv
 endif # if !HAVE_MANPAGES
 
 .venv: docs/requirements.txt
-	virtualenv --python=python3 .venv
+	python3 -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r docs/requirements.txt
 

@@ -73,7 +73,7 @@ mans/.complete: .venv
 	rm -rf "$(@D).tmp"
 
 .venv: requirements.txt
-	virtualenv .venv
+	python3 -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r requirements.txt
 

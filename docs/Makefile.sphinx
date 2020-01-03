@@ -20,7 +20,7 @@ help: .venv
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 .venv:
-	virtualenv .venv
+	python3 -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r requirements.txt
 
