@@ -2,7 +2,6 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 
-#include <thread>
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist.hh"
@@ -505,6 +504,7 @@ BOOST_AUTO_TEST_CASE(test_lua) {
 }
 
 #ifdef LUAJIT_VERSION
+
 BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
   std::vector<DNSName> names;
   names.reserve(1000);
@@ -726,6 +726,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
 
   g_verbose = existingVerboseValue;
 }
+
 #endif /* LUAJIT_VERSION */
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -55,6 +55,12 @@ void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq,
   dnsdist_ffi_comboaddress_to_raw(*dq->dq->remote, addr, addrSize);
 }
 
+void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits)
+{
+  dq->maskedRemote = Netmask(*dq->dq->remote, bits).getMaskedNetwork();
+  dnsdist_ffi_comboaddress_to_raw(dq->maskedRemote, addr, addrSize);
+}
+
 uint16_t dnsdist_ffi_dnsquestion_get_local_port(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->local->getPort();

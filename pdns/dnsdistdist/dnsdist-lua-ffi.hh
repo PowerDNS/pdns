@@ -51,6 +51,7 @@ struct dnsdist_ffi_dnsquestion_t
   std::vector<dnsdist_tag_t> tagsVect;
   std::unordered_map<std::string, std::string> httpHeaders;
   std::string trailingData;
+  ComboAddress maskedRemote;
   boost::optional<std::string> result{boost::none};
   boost::optional<std::string> httpPath{boost::none};
   boost::optional<std::string> httpQueryString{boost::none};
