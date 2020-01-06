@@ -1298,7 +1298,6 @@ $ORIGIN %NAME%
 
     @parameterized.expand([
         ('CNAME', ),
-        ('DNAME', ),
     ])
     def test_rrset_exclusive_and_other(self, qtype):
         name, payload, zone = self.create_zone()
@@ -1322,7 +1321,6 @@ $ORIGIN %NAME%
 
     @parameterized.expand([
         ('CNAME', ),
-        ('DNAME', ),
     ])
     def test_rrset_other_and_exclusive(self, qtype):
         name, payload, zone = self.create_zone()
@@ -1363,7 +1361,6 @@ $ORIGIN %NAME%
     @parameterized.expand([
         ('SOA', ['ns1.example.org. test@example.org. 10 10800 3600 604800 3600', 'ns2.example.org. test@example.org. 10 10800 3600 604800 3600']),
         ('CNAME', ['01.example.org.', '02.example.org.']),
-        ('DNAME', ['01.example.org.', '02.example.org.']),
     ])
     def test_rrset_single_qtypes(self, qtype, contents):
         name, payload, zone = self.create_zone()
@@ -1388,6 +1385,74 @@ $ORIGIN %NAME%
                                headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
         self.assertIn('IN ' + qtype + ' has more than one record', r.json()['error'])
+
+    def test_rrset_zone_apex(self):
+        name, payload, zone = self.create_zone()
+        rrset1 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'SOA',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": 'ns1.example.org. test@example.org. 10 10800 3600 604800 3600',
+                    "disabled": False
+                },
+            ]
+        }
+        rrset2 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'DNAME',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": 'example.com.',
+                    "disabled": False
+                },
+            ]
+        }
+
+        payload = {'rrsets': [rrset1, rrset2]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assert_success(r)  # user should be able to create DNAME at APEX as per RFC 6672 section 2.3
+
+    def test_rrset_ns_dname_exclude(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': 'delegation.'+name,
+            'type': 'NS',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "ns.example.org.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assert_success(r)
+        rrset = {
+            'changetype': 'replace',
+            'name': 'delegation.'+name,
+            'type': 'DNAME',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "example.org.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Cannot have both NS and DNAME except in zone apex', r.json()['error'])
 
     def test_create_zone_with_leading_space(self):
         # Actual regression.
