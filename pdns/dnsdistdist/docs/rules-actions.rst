@@ -1017,6 +1017,25 @@ The following actions exist.
   :param bool verboseOnly: Whether to log only in verbose mode when logging to stdout. Default is true
   :param bool includeTimestamp: Whether to include a timestamp for every entry. Default is false
 
+.. function:: LogResponseAction([filename[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
+
+  .. versionadded:: 1.5.0
+
+  Log a line for each response, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
+
+  If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verboseOnly`` to false.
+
+  The ``append`` optional parameter specifies whether we open the file for appending or truncate each time (default).
+  The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
+
+  Subsequent rules are processed after this action.
+
+  :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
+  :param bool append: Append to the log. Default false
+  :param bool buffered: Use buffered I/O. Default true
+  :param bool verboseOnly: Whether to log only in verbose mode when logging to stdout. Default is true
+  :param bool includeTimestamp: Whether to include a timestamp for every entry. Default is false
+
 .. function:: LuaAction(function)
 
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
