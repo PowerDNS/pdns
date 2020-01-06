@@ -46,9 +46,9 @@ struct dnsdist_ffi_dnsquestion_t
   }
 
   DNSQuestion* dq{nullptr};
-  std::vector<dnsdist_ednsoption_t> ednsOptionsVect;
-  std::vector<dnsdist_http_header_t> httpHeadersVect;
-  std::vector<dnsdist_tag_t> tagsVect;
+  std::vector<dnsdist_ffi_ednsoption_t> ednsOptionsVect;
+  std::vector<dnsdist_ffi_http_header_t> httpHeadersVect;
+  std::vector<dnsdist_ffi_tag_t> tagsVect;
   std::unordered_map<std::string, std::string> httpHeaders;
   std::string trailingData;
   ComboAddress maskedRemote;

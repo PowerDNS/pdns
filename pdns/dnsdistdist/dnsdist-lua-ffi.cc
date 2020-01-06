@@ -240,7 +240,7 @@ const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* d
   return nullptr;
 }
 
-static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ednsoption_t& option)
+static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ffi_ednsoption_t& option)
 {
   option.len = value.size;
   option.data = nullptr;
@@ -251,7 +251,7 @@ static void fill_edns_option(const EDNSOptionViewValue& value, dnsdist_ednsoptio
 }
 
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
-size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ednsoption_t** out)
+size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_ednsoption_t** out)
 {
   if (dq->dq->ednsOptions == nullptr) {
     parseEDNSOptions(*(dq->dq));
@@ -280,7 +280,7 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
   return totalCount;
 }
 
-size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_http_header_t** out)
+size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_http_header_t** out)
 {
   if (dq->dq->du == nullptr) {
     return 0;
@@ -307,7 +307,7 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, c
 #endif
 }
 
-size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_tag_t** out)
+size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_tag_t** out)
 {
   if (dq->dq->qTag == nullptr || dq->dq->qTag->size() == 0) {
     return 0;

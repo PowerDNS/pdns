@@ -391,8 +391,8 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
     local ffi = require("ffi")
 
     function testEDNSOptions(dq)
-      local options_ptr = ffi.new("const dnsdist_ednsoption_t *[1]")
-      local ret_ptr_param = ffi.cast("const dnsdist_ednsoption_t **", options_ptr)
+      local options_ptr = ffi.new("const dnsdist_ffi_ednsoption_t *[1]")
+      local ret_ptr_param = ffi.cast("const dnsdist_ffi_ednsoption_t **", options_ptr)
 
       local options_count = tonumber(ffi.C.dnsdist_ffi_dnsquestion_get_edns_options(dq, ret_ptr_param))
 

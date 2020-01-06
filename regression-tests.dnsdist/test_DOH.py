@@ -907,8 +907,8 @@ class TestDOHFFI(DNSDistDOHTest):
       local query_string = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_query_string(dq))
       if scheme == 'https' and host == '%s:%d' and path == '/' and query_string == '' then
         local foundct = false
-        local headers_ptr = ffi.new("const dnsdist_http_header_t *[1]")
-        local headers_ptr_param = ffi.cast("const dnsdist_http_header_t **", headers_ptr)
+        local headers_ptr = ffi.new("const dnsdist_ffi_http_header_t *[1]")
+        local headers_ptr_param = ffi.cast("const dnsdist_ffi_http_header_t **", headers_ptr)
 
         local headers_count = tonumber(ffi.C.dnsdist_ffi_dnsquestion_get_http_headers(dq, headers_ptr_param))
         if headers_count > 0 then
