@@ -1170,6 +1170,7 @@ extern size_t g_udpVectorSize;
 extern bool g_preserveTrailingData;
 extern bool g_allowEmptyResponse;
 extern bool g_roundrobinFailOnNoServer;
+extern double g_consistentHashBalancingFactor;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
