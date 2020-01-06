@@ -9,7 +9,7 @@ A lookup into a key value store can be done via the :func:`KeyValueStoreLookupRu
 the :func:`KeyValueStoreLookupAction` action, using the usual selectors to match the incoming
 queries for which the lookup should be done.
 
-The first step is to get a :ref:`KeyValueStore` object via one of the following functions:
+The first step is to get a :class:`KeyValueStore` object via one of the following functions:
 
  * :func:`newCDBKVStore` for a CDB database ;
  * :func:`newLMDBKVStore` for a LMDB one.

@@ -3,10 +3,10 @@
 ComboAddress
 ============
 
-IP addresses are moved around in a native format, called a ComboAddress.
+IP addresses are moved around in a native format, called a :class:`ComboAddress`.
 ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need to.
 
-.. function:: newCA(address) -> :class:`ComboAddress`
+.. function:: newCA(address) -> ComboAddress
 
   Returns a :class:`ComboAddress` based on ``address``
 
@@ -49,7 +49,7 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
   .. method:: ComboAddress:mapToIPv4() -> ComboAddress
 
     Convert an IPv4 address mapped in a v6 one into an IPv4.
-    Returns a new ComboAddress
+    Returns a new :class:`ComboAddress`
 
   .. method:: ComboAddress:tostring() -> string
                    ComboAddress:toString() -> string
@@ -63,7 +63,7 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
 
   .. method:: ComboAddress:truncate(bits)
 
-    Truncate the ComboAddress to the specified number of bits.
+    Truncate the :class:`ComboAddress` to the specified number of bits.
     This essentially zeroes all bits after ``bits``.
 
     :param int bits: Amount of bits to truncate to
