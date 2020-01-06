@@ -1443,7 +1443,7 @@ $ORIGIN %NAME%
             'ttl': 3600,
             'records': [
                 {
-                    "content": "example.org.",
+                    "content": "example.com.",
                     "disabled": False
                 }
             ]
@@ -1453,6 +1453,43 @@ $ORIGIN %NAME%
                                headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
         self.assertIn('Cannot have both NS and DNAME except in zone apex', r.json()['error'])
+
+## FIXME: Enable this when it's time for it
+#    def test_rrset_dname_nothing_under(self):
+#        name, payload, zone = self.create_zone()
+#        rrset = {
+#            'changetype': 'replace',
+#            'name': 'delegation.'+name,
+#            'type': 'DNAME',
+#            'ttl': 3600,
+#            'records': [
+#                {
+#                    "content": "example.com.",
+#                    "disabled": False
+#                }
+#            ]
+#        }
+#        payload = {'rrsets': [rrset]}
+#        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+#                               headers={'content-type': 'application/json'})
+#        self.assert_success(r)
+#        rrset = {
+#            'changetype': 'replace',
+#            'name': 'sub.delegation.'+name,
+#            'type': 'A',
+#            'ttl': 3600,
+#            'records': [
+#                {
+#                    "content": "1.2.3.4",
+#                    "disabled": False
+#                }
+#            ]
+#        }
+#        payload = {'rrsets': [rrset]}
+#        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+#                               headers={'content-type': 'application/json'})
+#        self.assertEquals(r.status_code, 422)
+#        self.assertIn('You cannot have record(s) under CNAME/DNAME', r.json()['error'])
 
     def test_create_zone_with_leading_space(self):
         # Actual regression.
