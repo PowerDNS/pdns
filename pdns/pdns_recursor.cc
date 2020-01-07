@@ -3970,7 +3970,7 @@ static int serviceMain(int argc, char*argv[])
   if (SyncRes::s_qnameminimization) {
     // With an empty cache, a rev ipv6 query with dnssec enabled takes
     // almost 100 queries. Default maxqperq is 60.
-    SyncRes::s_maxqperq = SyncRes::s_maxqperq * 5 / 3;
+    SyncRes::s_maxqperq = std::max(SyncRes::s_maxqperq, 100);
   }
 
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
