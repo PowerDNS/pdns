@@ -914,10 +914,12 @@ Maximum number of Packet Cache entries.
 ``max-qperq``
 -------------
 -  Integer
--  Default: 100
+-  Default: 60
 
 The maximum number of outgoing queries that will be sent out during the resolution of a single client query.
 This is used to limit endlessly chasing CNAME redirections.
+If qname-minimization is enabled, the number will be increased to
+allow for the extra queries qname-minimization generates when the cache is empty.
 
 .. _setting-max-negative-ttl:
 
