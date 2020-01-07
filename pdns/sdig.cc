@@ -190,7 +190,7 @@ try {
   bool showflags = false;
   bool hidesoadetails = false;
   bool doh = false;
-  bool stdin = false;
+  bool fromstdin = false;
   boost::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
@@ -262,7 +262,7 @@ try {
   if (*argv[1] == 'h') {
     doh = true;
   } else if(strcmp(argv[1], "stdin") == 0) {
-    stdin = true;
+    fromstdin = true;
   } else {
     dest = ComboAddress(argv[1] + (*argv[1] == '@'), atoi(argv[2]));
   }
@@ -300,7 +300,7 @@ try {
 #else
     throw PDNSException("please link sdig against libcurl for DoH support");
 #endif
-  } else if (stdin) {
+  } else if (fromstdin) {
     std::istreambuf_iterator<char> begin(std::cin), end;
     reply = string(begin, end);
     printReply(reply, showflags, hidesoadetails);
