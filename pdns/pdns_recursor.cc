@@ -3967,6 +3967,12 @@ static int serviceMain(int argc, char*argv[])
 
   SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
 
+  if (SyncRes::s_qnameminimization) {
+    // With an empty cache, a rev ipv6 query with dnssec enabled takes
+    // almost 100 queries. Default maxqperq is 60.
+    SyncRes::s_maxqperq = std::max(SyncRes::s_maxqperq, static_cast<unsigned int>(100));
+  }
+
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
   string value = ::arg()["nothing-below-nxdomain"];
   if (value == "yes") {
@@ -4695,7 +4701,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1232";
     ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1232";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
-    ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
+    ::arg().set("max-qperq", "Maximum outgoing queries per query")="60";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
     ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited")="40";
     ::arg().set("max-udp-queries-per-round", "Maximum number of UDP queries processed per recvmsg() round, before returning back to normal processing")="10000";
