@@ -915,8 +915,8 @@ Maximum number of Packet Cache entries.
 
 The maximum number of outgoing queries that will be sent out during the resolution of a single client query.
 This is used to limit endlessly chasing CNAME redirections.
-If qname-minimization is enabled, the number will be increased to
-allow for the extra queries qname-minimization generates when the cache is empty.
+If qname-minimization is enabled, the number will be forced to be 100
+at a minimum to allow for the extra queries qname-minimization generates when the cache is empty.
 
 .. _setting-max-negative-ttl:
 
