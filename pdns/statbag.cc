@@ -184,10 +184,17 @@ void StatRing<T,Comp>::account(const T& t)
 }
 
 template<typename T, typename Comp>
-unsigned int StatRing<T,Comp>::getSize()
+uint64_t StatRing<T,Comp>::getSize() const
 {
   std::lock_guard<std::mutex> l(d_lock);
   return d_items.capacity();
+}
+
+template<typename T, typename Comp>
+uint64_t StatRing<T,Comp>::getEntriesCount() const
+{
+  std::lock_guard<std::mutex> l(d_lock);
+  return d_items.size();
 }
 
 template<typename T, typename Comp>
@@ -196,7 +203,6 @@ void StatRing<T,Comp>::resize(unsigned int newsize)
   std::lock_guard<std::mutex> l(d_lock);
   d_items.set_capacity(newsize);
 }
-
 
 template<typename T, typename Comp>
 void StatRing<T,Comp>::setHelp(const string &str)
@@ -229,24 +235,32 @@ vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
   return tmp;
 }
 
+void StatBag::registerRingStats(const string& name)
+{
+  declare("ring-" + name + "-size", "Number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingEntriesCount(name)); });
+  declare("ring-" + name + "-capacity", "Maximum number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingSize(name)); });
+}
+
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)
 {
   d_rings.emplace(name, size);
   d_rings[name].setHelp(help);
+  registerRingStats(name);
 }
 
 void StatBag::declareComboRing(const string &name, const string &help, unsigned int size)
 {
   d_comborings.emplace(name, size);
   d_comborings[name].setHelp(help);
+  registerRingStats(name);
 }
 
 void StatBag::declareDNSNameQTypeRing(const string &name, const string &help, unsigned int size)
 {
   d_dnsnameqtyperings.emplace(name, size);
   d_dnsnameqtyperings[name].setHelp(help);
+  registerRingStats(name);
 }
-
 
 vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 {
@@ -298,7 +312,7 @@ void StatBag::resizeRing(const string &name, unsigned int newsize)
 }
 
 
-unsigned int StatBag::getRingSize(const string &name)
+uint64_t StatBag::getRingSize(const string &name)
 {
   if(d_rings.count(name))
     return d_rings[name].getSize();
@@ -306,6 +320,17 @@ unsigned int StatBag::getRingSize(const string &name)
     return d_comborings[name].getSize();
   if(d_dnsnameqtyperings.count(name))
     return d_dnsnameqtyperings[name].getSize();
+  return 0;
+}
+
+uint64_t StatBag::getRingEntriesCount(const string &name)
+{
+  if(d_rings.count(name))
+    return d_rings[name].getEntriesCount();
+  if(d_comborings.count(name))
+    return d_comborings[name].getEntriesCount();
+  if(d_dnsnameqtyperings.count(name))
+    return d_dnsnameqtyperings[name].getEntriesCount();
   return 0;
 }
 
