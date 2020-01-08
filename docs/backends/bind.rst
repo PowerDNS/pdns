@@ -144,7 +144,16 @@ will be loaded at first request.
 .. note::
   This does not add the zone to the :ref:`setting-bind-config` file.
 
-``bind-domain-status <domain> [domain]``
+``bind-domain-extended-status [domain ...]``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 4.3.0
+
+Output an extended status of a domain or domains, containing much more information than
+the simple domain status, like the number of records currently loaded, whether pdns
+is master or slave for the domain, the list of masters, various timers, etc
+
+``bind-domain-status [domain ...]``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Output status of domain or domains. Can be one of:
