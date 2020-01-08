@@ -480,7 +480,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
   } else
     nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
 
-  bbd->d_records = shared_ptr<recordstorage_t>(new recordstorage_t());
+  auto records = std::make_shared<recordstorage_t>();
   ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   DNSResourceRecord rr;
@@ -489,30 +489,30 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
     if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3 || rr.qtype.getCode() == QType::NSEC3PARAM)
       continue; // we synthesise NSECs on demand
 
-    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, "");
+    insertRecord(records, bbd->d_name, rr.qname, rr.qtype, rr.content, rr.ttl, "");
   }
-  fixupOrderAndAuth(*bbd, nsec3zone, ns3pr);
-  doEmptyNonTerminals(*bbd, nsec3zone, ns3pr);
+  fixupOrderAndAuth(records, bbd->d_name, nsec3zone, ns3pr);
+  doEmptyNonTerminals(records, bbd->d_name, nsec3zone, ns3pr);
   bbd->setCtime();
   bbd->d_loaded=true; 
   bbd->d_checknow=false;
   bbd->d_status="parsed into memory at "+nowTime();
+  bbd->d_records = LookButDontTouch<recordstorage_t>(records);
 }
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed, bool *auth)
+void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed, bool *auth)
 {
   Bind2DNSRecord bdr;
-  shared_ptr<recordstorage_t> records = bb2.d_records.getWRITABLE();
   bdr.qname=qname;
 
-  if(bb2.d_name.empty())
+  if(zoneName.empty())
     ;
-  else if(bdr.qname.isPartOf(bb2.d_name))
-    bdr.qname = bdr.qname.makeRelative(bb2.d_name);
+  else if(bdr.qname.isPartOf(zoneName))
+    bdr.qname = bdr.qname.makeRelative(zoneName);
   else {
-    string msg = "Trying to insert non-zone data, name='"+bdr.qname.toLogString()+"', qtype="+qtype.getName()+", zone='"+bb2.d_name.toLogString()+"'";
+    string msg = "Trying to insert non-zone data, name='"+bdr.qname.toLogString()+"', qtype="+qtype.getName()+", zone='"+zoneName.toLogString()+"'";
     if(s_ignore_broken_records) {
         g_log<<Logger::Warning<<msg<< " ignored" << endl;
         return;
@@ -696,10 +696,8 @@ void Bind2Backend::reload()
   }
 }
 
-void Bind2Backend::fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
+void Bind2Backend::fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
-  shared_ptr<recordstorage_t> records = bbd.d_records.getWRITABLE();
-
   bool skip;
   DNSName shorter;
   set<DNSName> nssets, dssets;
@@ -728,7 +726,7 @@ void Bind2Backend::fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PA
 
     if(!skip && nsec3zone && iter->qtype != QType::RRSIG && (iter->auth || (iter->qtype == QType::NS && !ns3pr.d_flags) || dssets.count(iter->qname))) {
       Bind2DNSRecord bdr = *iter;
-      bdr.nsec3hash = toBase32Hex(hashQNameWithSalt(ns3pr, bdr.qname+bbd.d_name));
+      bdr.nsec3hash = toBase32Hex(hashQNameWithSalt(ns3pr, bdr.qname+zoneName));
       records->replace(iter, bdr);
     }
 
@@ -736,10 +734,8 @@ void Bind2Backend::fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PA
   }
 }
 
-void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
+void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
-  shared_ptr<const recordstorage_t> records = bbd.d_records.get();
-
   bool auth;
   DNSName shorter;
   set<DNSName> qnames;
@@ -764,7 +760,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
       {
         if(!(maxent))
         {
-          g_log<<Logger::Error<<"Zone '"<<bbd.d_name<<"' has too many empty non terminals."<<endl;
+          g_log<<Logger::Error<<"Zone '"<<zoneName<<"' has too many empty non terminals."<<endl;
           return;
         }
 
@@ -784,10 +780,10 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   for(auto& nt : nonterm)
   {
     string hashed;
-    rr.qname = nt.first + bbd.d_name;
+    rr.qname = nt.first + zoneName;
     if(nsec3zone && nt.second)
       hashed = toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
-    insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
+    insertRecord(records, zoneName, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
 
     // cerr<<rr.qname<<"\t"<<rr.qtype.getName()<<"\t"<<hashed<<"\t"<<nt.second<<endl;
   }
@@ -954,6 +950,9 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
     if(!safeGetBBDomainInfo(id, &bbold))
       return;
     BB2DomainInfo bbnew(bbold);
+    /* make sure that nothing will be able to alter the existing records,
+       we will load them from the zone file instead */
+    bbnew.d_records = LookButDontTouch<recordstorage_t>();
     parseZoneFile(&bbnew);
     bbnew.d_checknow=false;
     bbnew.d_wasRejectedLastReload=false;
@@ -978,10 +977,8 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   }
 }
 
-bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+bool Bind2Backend::findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
-  shared_ptr<const recordstorage_t> records = bbd.d_records.get();
-
   // for(const auto& record: *records)
   //   cerr<<record.qname<<"\t"<<makeHexDump(record.qname.toDNSString())<<endl;
 
@@ -1026,11 +1023,12 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   } else
     nsec3zone=getNSEC3PARAM(bbd.d_name, &ns3pr);
 
+  shared_ptr<const recordstorage_t> records = bbd.d_records.get();
   if(!nsec3zone) {
-    return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
+    return findBeforeAndAfterUnhashed(records, qname, unhashed, before, after);
   }
   else {
-    auto& hashindex=boost::multi_index::get<NSEC3Tag>(*bbd.d_records.getWRITABLE());
+    auto& hashindex=boost::multi_index::get<NSEC3Tag>(*records);
 
     // for(auto iter = first; iter != hashindex.end(); iter++)
     //  cerr<<iter->nsec3hash<<endl;
@@ -1290,7 +1288,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   BB2DomainInfo bbd;
   bbd.d_kind = DomainInfo::Native;
   bbd.d_id = newid;
-  bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
+  bbd.d_records = std::make_shared<recordstorage_t >();
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
   bbd.d_filename = filename;
