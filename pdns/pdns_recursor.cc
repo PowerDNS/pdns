@@ -3812,6 +3812,27 @@ static void setupNODGlobal()
 }
 #endif /* NOD_ENABLED */
 
+static void checkDir(void)
+{
+  struct stat st;
+  string dir(::arg()["socket-dir"]);
+  string msg;
+  
+  if (stat(dir.c_str(), &st) == -1) {
+    msg = "it does not exist or cannot access";
+  }
+  else if (!S_ISDIR(st.st_mode)) {
+    msg = "it is not a directory";
+  }
+  else if (access(dir.c_str(),  R_OK | W_OK | X_OK) != 0) {
+    msg = "cannot read, write or search";
+  } else {
+    return;
+  }
+  g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0-or-master" << endl;
+  _exit(1);
+}
+
 static int serviceMain(int argc, char*argv[])
 {
   g_log.setName(s_programname);
@@ -4214,6 +4235,8 @@ static int serviceMain(int argc, char*argv[])
       g_log<<Logger::Info<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
 
+  checkDir();
+  
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file
