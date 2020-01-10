@@ -1631,4 +1631,131 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_like_expanded_from_wildcard
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
 }
 
+// Tests PR 8648
+BOOST_AUTO_TEST_CASE(test_dnssec_incomplete_cache_zonecut_qm)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true, false);
+  sr->setQNameMinimization();
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("net."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("herokuapp.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("nsone.net."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    DNSName auth(domain);
+    DNSName com("com.");
+    DNSName net("net.");
+
+    //cerr <<  ip.toString() << ": " << domain << '|' << QType(type).getName() << endl;
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
+    }
+
+    if (isRootServer(ip)) {
+      if (domain == com) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, com, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(com, 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, g_rootdnsname, 300);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      }
+      else if (domain == net) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, net, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(net, 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, g_rootdnsname, 300);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      }
+      else {
+        BOOST_ASSERT(0);
+      }
+      return 1;
+    }
+
+    else if (ip == ComboAddress("192.0.2.1:53")) {
+      DNSName hero("herokuapp.com.");
+      DNSName nsone("nsone.net.");
+      if (domain == hero && type == QType::NS) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, hero, QType::NS, "dns1.p03.nsone.net.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName(hero), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName(hero), 300);
+      }
+      else if (domain == nsone && type == QType::A) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, nsone, QType::NS, "dns1.p01.nsone.net.", DNSResourceRecord::AUTHORITY, 3600);
+        addNSECRecordToLW(nsone, DNSName("zzz.nsone.net."), {QType::NS, QType::SOA, QType::RRSIG, QType::DNSKEY}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, nsone, 300);
+        addRecordToLW(res, "dns1.p01.nsone.net", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+      }
+      else {
+        BOOST_ASSERT(0);
+      }
+      return 1;
+    }
+    else if (ip == ComboAddress("192.0.2.2:53")) {
+      DNSName hero("herokuapp.com.");
+      DNSName p01("p01.nsone.net.");
+      DNSName p03("p03.nsone.net.");
+      DNSName p01nsone("dns1.p01.nsone.net.");
+      DNSName p03nsone("dns1.p03.nsone.net.");
+      if (domain == hero && type == QType::NS) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, hero, QType::NS, "dns1.p03.nsone.net.", DNSResourceRecord::ANSWER, 3600);
+        addRRSIG(keys, res->d_records, hero, 300);
+      }
+      else if (domain == p01nsone && type == QType::A) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, p01nsone, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 3600);
+      }
+      else if (domain == p03nsone && type == QType::A) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, p03nsone, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 3600);
+      }
+      else if (domain == p01 && type == QType::A) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, p01, QType::SOA, "dns1.p01.nsone.net. hostmaster.nsone.net. 123 43200 7200 1209600 10800", DNSResourceRecord::AUTHORITY, 3600);
+      }
+      else if (domain == p03 && type == QType::A) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, p03, QType::SOA, "dns1.p03.nsone.net. hostmaster.nsone.net. 123 43200 7200 1209600 10800", DNSResourceRecord::AUTHORITY, 3600);
+      }
+      else {
+        BOOST_ASSERT(0);
+      }
+      return 1;
+    }
+    BOOST_ASSERT(0);
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(DNSName("herokuapp.com."), QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 12U);
+
+  ret.clear();
+  res = sr->beginResolve(DNSName("dns1.p03.nsone.net."), QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 16U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
