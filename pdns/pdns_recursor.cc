@@ -4059,14 +4059,14 @@ static int serviceMain(int argc, char*argv[])
   {
     SuffixMatchNode dontThrottleNames;
     vector<string> parts;
-    stringtok(parts, ::arg()["dont-throttle-names"]);
+    stringtok(parts, ::arg()["dont-throttle-names"], " ,");
     for (const auto &p : parts) {
       dontThrottleNames.add(DNSName(p));
     }
     g_dontThrottleNames.setState(std::move(dontThrottleNames));
 
     NetmaskGroup dontThrottleNetmasks;
-    stringtok(parts, ::arg()["dont-throttle-netmasks"]);
+    stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
     for (const auto &p : parts) {
       dontThrottleNetmasks.addMask(Netmask(p));
     }
