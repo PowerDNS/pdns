@@ -56,6 +56,7 @@ This is a side-effect of the internal implementation of the consistent hashing a
 You can also set the hash perturbation value, see :func:`setWHashedPertubation`. To achieve consistent distribution over :program:`dnsdist` restarts, you will also need to explicitly set the backend's UUIDs with the ``id`` option of :func:`newServer`. You can get the current UUIDs of your backends by calling :func:`showServers` with the ``showUUIDs=true`` option.
 
 Since 1.5.0, a bounded-load version is also supported, preventing one server from receiving much more queries than the others, even if the distribution of queries is not perfect. This "consistent hashing with bounded loads" algorithm is enabled by setting :func:`setConsistentHashingBalancingFactor` to a value other than 0, which is the default. This value is the maximum number of outstanding queries that a given server can have at a given time, as a ratio of the average number of outstanding queries for all the active servers in the pool.
+
 For example, setting :func:`setConsistentHashingBalancingFactor` to 1.5 means that no server will be allowed to have more outstanding queries than 1.5 times the average of all outstanding queries in the pool. The algorithm will try to select a server based on the hash of the qname, as is done when no bounded-load is set, but will disqualify all servers that have more outstanding queries than the average times the factor, until a suitable server is found.
 The higher the factor, the more imbalance between the servers is allowed.
 
