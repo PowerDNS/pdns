@@ -217,15 +217,16 @@ public:
     return i->value;
   }
 
-  counter_t incr(const ComboAddress& t, const struct timeval & now)
+  counter_t incr(const ComboAddress& address, const struct timeval& now)
   {
-    auto i = d_cont.insert(t).first;
+    auto i = d_cont.insert(address).first;
 
     if (i->value < std::numeric_limits<counter_t>::max()) {
       i->value++;
     }
     auto &ind = d_cont.get<ComboAddress>();
-    ind.modify(i, [t = now.tv_sec](value_t &val) { val.last = t;});
+    time_t tm = now.tv_sec;
+    ind.modify(i, [tm](value_t &val) { val.last = tm; });
     return i->value;
   }
 
