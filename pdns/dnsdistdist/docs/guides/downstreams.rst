@@ -55,7 +55,7 @@ The following example sets the CD flag to true and change the QName to "powerdns
       return newDNSName("powerdns.com."), dnsdist.AAAA, qclass
     end
 
-    newServer("2620:0:0ccd::2")
+    newServer({address="2620:0:0ccd::2", checkFunction=myHealthCheck})
 
 Source address selection
 ------------------------
