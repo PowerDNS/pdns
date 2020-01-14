@@ -86,7 +86,7 @@ bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<D
   }
 }
 
-void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vector<DNSZoneRecord>& value, uint32_t ttl, int zoneID)
+void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& value, uint32_t ttl, int zoneID)
 {
   cleanupIfNeeded();
 
@@ -99,7 +99,7 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vect
   val.ttd = now + ttl;
   val.qname = qname;
   val.qtype = qtype.getCode();
-  val.drs = value;
+  val.drs = std::move(value);
   val.zoneID = zoneID;
 
   auto& mc = getMap(val.qname);
@@ -116,7 +116,7 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vect
     tie(place, inserted) = mc.d_map.insert(val);
 
     if (!inserted) {
-      mc.d_map.replace(place, val);
+      mc.d_map.replace(place, std::move(val));
       moveCacheItemToBack<SequencedTag>(mc.d_map, place);
     }
     else {

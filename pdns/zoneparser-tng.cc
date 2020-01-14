@@ -294,36 +294,37 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     comment->clear();
   if(comment && d_line.find(';') != string::npos)
     *comment = d_line.substr(d_line.find(';'));
-  parts_t parts;
-  vstringtok(parts, d_line);
 
-  if(parts.empty())
+  d_parts.clear();
+  vstringtok(d_parts, d_line);
+
+  if(d_parts.empty())
     goto retry;
 
-  if(parts[0].first != parts[0].second && d_line[parts[0].first]==';') // line consisting of nothing but comments
+  if(d_parts[0].first != d_parts[0].second && d_line[d_parts[0].first]==';') // line consisting of nothing but comments
     goto retry;
 
   if(d_line[0]=='$') { 
-    string command=makeString(d_line, parts[0]);
-    if(pdns_iequals(command,"$TTL") && parts.size() > 1) {
-      d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, parts[1]), is_any_of(";")));
+    string command=makeString(d_line, d_parts[0]);
+    if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
+      d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), is_any_of(";")));
       d_havedollarttl=true;
     }
-    else if(pdns_iequals(command,"$INCLUDE") && parts.size() > 1 && d_fromfile) {
-      string fname=unquotify(makeString(d_line, parts[1]));
+    else if(pdns_iequals(command,"$INCLUDE") && d_parts.size() > 1 && d_fromfile) {
+      string fname=unquotify(makeString(d_line, d_parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
         fname=d_reldir+"/"+fname;
       stackFile(fname);
     }
-    else if(pdns_iequals(command, "$ORIGIN") && parts.size() > 1) {
-      d_zonename = DNSName(makeString(d_line, parts[1]));
+    else if(pdns_iequals(command, "$ORIGIN") && d_parts.size() > 1) {
+      d_zonename = DNSName(makeString(d_line, d_parts[1]));
     }
-    else if(pdns_iequals(command, "$GENERATE") && parts.size() > 2) {
+    else if(pdns_iequals(command, "$GENERATE") && d_parts.size() > 2) {
       if (!d_generateEnabled) {
         throw exception("$GENERATE is not allowed in this zone");
       }
       // $GENERATE 1-127 $ CNAME $.0
-      string range=makeString(d_line, parts[1]);
+      string range=makeString(d_line, d_parts[1]);
       d_templatestep=1;
       d_templatestop=0;
       sscanf(range.c_str(),"%u-%u/%u", &d_templatecounter, &d_templatestop, &d_templatestep);
@@ -338,10 +339,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         }
       }
       d_templateline=d_line;
-      parts.pop_front();
-      parts.pop_front();
+      d_parts.pop_front();
+      d_parts.pop_front();
 
-      d_templateparts=parts;
+      d_templateparts=d_parts;
       goto retry;
     }
     else
@@ -350,13 +351,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   }
 
   bool prevqname=false;
-  string qname = makeString(d_line, parts[0]); // Don't use DNSName here!
+  string qname = makeString(d_line, d_parts[0]); // Don't use DNSName here!
   if(dns_isspace(d_line[0])) {
     rr.qname=d_prevqname;
     prevqname=true;
   }else {
     rr.qname=DNSName(qname); 
-    parts.pop_front();
+    d_parts.pop_front();
     if(qname.empty() || qname[0]==';')
       goto retry;
   }
@@ -366,7 +367,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     rr.qname += d_zonename;
   d_prevqname=rr.qname;
 
-  if(parts.empty()) 
+  if(d_parts.empty())
     throw exception("Line with too little parts "+getLineOfFile());
 
   string nextpart;
@@ -375,9 +376,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   bool haveTTL=0, haveQTYPE=0;
   pair<string::size_type, string::size_type> range;
 
-  while(!parts.empty()) {
-    range=parts.front();
-    parts.pop_front();
+  while(!d_parts.empty()) {
+    range=d_parts.front();
+    d_parts.pop_front();
     nextpart=makeString(d_line, range);
     if(nextpart.empty())
       break;

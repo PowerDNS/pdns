@@ -347,6 +347,7 @@ void fillSOAData(const string &content, SOAData &data)
   // fill out data with some plausible defaults:
   // 10800 3600 604800 3600
   vector<string>parts;
+  parts.reserve(7);
   stringtok(parts,content);
   int pleft=parts.size();
 

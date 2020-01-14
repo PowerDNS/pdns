@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
   vector<DNSZoneRecord> records;
 
   BOOST_CHECK_EQUAL(QC.size(), 0U);
-  QC.insert(DNSName("hello"), QType(QType::A), records, 3600, 1);
+  QC.insert(DNSName("hello"), QType(QType::A), vector<DNSZoneRecord>(records), 3600, 1);
   BOOST_CHECK_EQUAL(QC.size(), 1U);
   BOOST_CHECK_EQUAL(QC.purge(), 1U);
   BOOST_CHECK_EQUAL(QC.size(), 0U);
@@ -34,10 +34,10 @@ BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      QC.insert(a, QType(QType::A), records, 3600, 1);
+      QC.insert(a, QType(QType::A), vector<DNSZoneRecord>(records), 3600, 1);
       if(!QC.purge(a.toString()))
 	BOOST_FAIL("Could not remove entry we just added to the query cache!");
-      QC.insert(a, QType(QType::A), records, 3600, 1);
+      QC.insert(a, QType(QType::A), vector<DNSZoneRecord>(records), 3600, 1);
     }
 
     BOOST_CHECK_EQUAL(QC.size(), counter);
@@ -77,7 +77,7 @@ try
   vector<DNSZoneRecord> records;
   unsigned int offset=(unsigned int)(unsigned long)a;
   for(unsigned int counter=0; counter < 100000; ++counter)
-    g_QC->insert(DNSName("hello ")+DNSName(std::to_string(counter+offset)), QType(QType::A), records, 3600, 1);
+    g_QC->insert(DNSName("hello ")+DNSName(std::to_string(counter+offset)), QType(QType::A), vector<DNSZoneRecord>(records), 3600, 1);
   return 0;
 }
  catch(PDNSException& e) {
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_QueryCacheClean) {
     vector<DNSZoneRecord> records;
 
     for(unsigned int counter = 0; counter < 1000000; ++counter) {
-      QC.insert(DNSName("hello ")+DNSName(std::to_string(counter)), QType(QType::A), records, 1, 1);
+      QC.insert(DNSName("hello ")+DNSName(std::to_string(counter)), QType(QType::A), vector<DNSZoneRecord>(records), 1, 1);
     }
 
     sleep(1);

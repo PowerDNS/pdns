@@ -528,7 +528,7 @@ void UeberBackend::addNegCache(const Question &q)
   QC.insert(q.qname, q.qtype, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
 }
 
-void UeberBackend::addCache(const Question &q, const vector<DNSZoneRecord> &rrs)
+void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
 {
   extern AuthQueryCache QC;
 
@@ -543,7 +543,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSZoneRecord> &rrs)
      return;
   }
 
-  QC.insert(q.qname, q.qtype, rrs, store_ttl, q.zoneId);
+  QC.insert(q.qname, q.qtype, std::move(rrs), store_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
@@ -647,7 +647,7 @@ bool UeberBackend::get(DNSZoneRecord &rr)
     }
     else {
       // cout<<"adding query cache"<<endl;
-      addCache(d_question, d_answers);
+      addCache(d_question, std::move(d_answers));
     }
     d_answers.clear();
     return false;

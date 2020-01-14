@@ -61,6 +61,7 @@ private:
     int d_lineno;
   };
 
+  parts_t d_parts;
   string d_reldir;
   string d_line;
   DNSName d_prevqname;

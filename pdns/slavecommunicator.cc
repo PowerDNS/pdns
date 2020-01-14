@@ -768,6 +768,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   {
     Lock l(&d_lock);
     set<DomainInfo> requeue;
+    rdomains.reserve(d_tocheck.size());
     for(const auto& di: d_tocheck) {
       if(d_inprogress.count(di.zone)) {
         g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<" while AXFR in progress, requeueing SOA check"<<endl;
@@ -802,6 +803,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   if(rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
   }
+  sdomains.reserve(rdomains.size());
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
     Lock l(&d_lock);
@@ -859,7 +861,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         dni.localaddr.sin4.sin_family = 0;
       }
 
-      sdomains.push_back(dni);
+      sdomains.push_back(std::move(dni));
     }
   }
   if(sdomains.empty())
