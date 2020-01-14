@@ -239,6 +239,13 @@ void DNSProtoBufMessage::setRequestor(const ComboAddress& requestor)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setRequestorPort(uint16_t port)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_fromport(port);
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::setRequestorId(const std::string& requestorId)
 {
 #ifdef HAVE_PROTOBUF
@@ -283,6 +290,13 @@ void DNSProtoBufMessage::setResponder(const ComboAddress& responder)
   else if (responder.sin4.sin_family == AF_INET6) {
     d_message.set_to(&responder.sin6.sin6_addr.s6_addr, sizeof(responder.sin6.sin6_addr.s6_addr));
   }
+#endif /* HAVE_PROTOBUF */
+}
+
+void DNSProtoBufMessage::setResponderPort(uint16_t port)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_toport(port);
 #endif /* HAVE_PROTOBUF */
 }
 
@@ -342,9 +356,11 @@ void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddre
 
   if (responder) {
     setResponder(*responder);
+    setResponderPort(responder->getPort());
   }
   if (requestor) {
     setRequestor(*requestor);
+    setRequestorPort(requestor->getPort());
   }
 }
 
