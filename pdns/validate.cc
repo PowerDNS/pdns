@@ -627,7 +627,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
               nextCloserFound = true;
 
-              if (qtype == QType::DS && nsec3->d_flags & 1) {
+              if ((qtype == QType::DS || qtype == 0) && nsec3->d_flags & 1) {
                 LOG(" but is opt-out!");
                 isOptOut = true;
               }

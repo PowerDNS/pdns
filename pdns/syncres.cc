@@ -1214,7 +1214,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
     vState neValidationState = ne->d_validationState;
     dState expectedState = res == RCode::NXDomain ? NXDOMAIN : NXQTYPE;
     dState denialState = getDenialValidationState(*ne, state, expectedState, false);
-    updateDenialValidationState(neValidationState, ne->d_name, state, denialState, expectedState, qtype == QType::DS);
+    updateDenialValidationState(neValidationState, ne->d_name, state, denialState, expectedState, qtype == QType::DS || expectedState == NXDOMAIN);
   }
   if (state != Indeterminate) {
     /* validation succeeded, let's update the cache entry so we don't have to validate again */
@@ -1783,58 +1783,71 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   d_skipCNAMECheck = oldSkipCNAME;
 
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
-
     uint8_t bestDigestType = 0;
 
-    if (state == Secure) {
-      bool gotCNAME = false;
-      for (const auto& record : dsrecords) {
-        if (record.d_type == QType::DS) {
-          const auto dscontent = getRR<DSRecordContent>(record);
-          if (dscontent && isSupportedDS(*dscontent)) {
-            // Make GOST a lower prio than SHA256
-            if (dscontent->d_digesttype == DNSSECKeeper::GOST && bestDigestType == DNSSECKeeper::SHA256) {
-              continue;
-            }
-            if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::GOST && dscontent->d_digesttype == DNSSECKeeper::SHA256)) {
-              bestDigestType = dscontent->d_digesttype;
-            }
-            ds.insert(*dscontent);
+    bool gotCNAME = false;
+    for (const auto& record : dsrecords) {
+      if (record.d_type == QType::DS) {
+        const auto dscontent = getRR<DSRecordContent>(record);
+        if (dscontent && isSupportedDS(*dscontent)) {
+          // Make GOST a lower prio than SHA256
+          if (dscontent->d_digesttype == DNSSECKeeper::GOST && bestDigestType == DNSSECKeeper::SHA256) {
+            continue;
           }
-        }
-        else if (record.d_type == QType::CNAME && record.d_name == zone) {
-          gotCNAME = true;
-        }
-      }
-
-      /* RFC 4509 section 3: "Validator implementations SHOULD ignore DS RRs containing SHA-1
-       * digests if DS RRs with SHA-256 digests are present in the DS RRset."
-       * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
-       */
-      for (auto dsrec = ds.begin(); dsrec != ds.end(); ) {
-        if (dsrec->d_digesttype != bestDigestType) {
-          dsrec = ds.erase(dsrec);
-        }
-        else {
-          ++dsrec;
+          if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::GOST && dscontent->d_digesttype == DNSSECKeeper::SHA256)) {
+            bestDigestType = dscontent->d_digesttype;
+          }
+          ds.insert(*dscontent);
         }
       }
+      else if (record.d_type == QType::CNAME && record.d_name == zone) {
+        gotCNAME = true;
+      }
+    }
 
-      if (rcode == RCode::NoError && ds.empty()) {
-        if (foundCut) {
-          if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
-            /* we are still inside the same Secure zone */
+    /* RFC 4509 section 3: "Validator implementations SHOULD ignore DS RRs containing SHA-1
+     * digests if DS RRs with SHA-256 digests are present in the DS RRset."
+     * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
+     */
+    for (auto dsrec = ds.begin(); dsrec != ds.end(); ) {
+      if (dsrec->d_digesttype != bestDigestType) {
+        dsrec = ds.erase(dsrec);
+      }
+      else {
+        ++dsrec;
+      }
+    }
 
+    if (rcode == RCode::NoError) {
+      if (ds.empty()) {
+        /* we have no DS, it's either:
+           - a delegation to a non-DNSSEC signed zone
+           - no delegation, we stay in the same zone
+        */
+        if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
+          /* we are still inside the same zone */
+
+          if (foundCut) {
             *foundCut = false;
-            return Secure;
           }
+          return state;
+        }
 
+        /* delegation with no DS, might be Secure -> Insecure */
+        if (foundCut) {
           *foundCut = true;
         }
 
-        return Insecure;
-      } else if (foundCut && rcode == RCode::NoError && !ds.empty()) {
-        *foundCut = true;
+        /* a delegation with no DS is either:
+           - a signed zone (Secure) to an unsigned one (Insecure)
+           - an unsigned zone to another unsigned one (Insecure stays Insecure, Bogus stays Bogus)
+        */
+        return state == Secure ? Insecure : state;
+      } else {
+        /* we have a DS */
+        if (foundCut) {
+          *foundCut = true;
+        }
       }
     }
 
@@ -2069,6 +2082,11 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     if (!signer.empty() && name.isPartOf(signer)) {
       if ((qtype == QType::DNSKEY || qtype == QType::DS) && signer == qname) {
         /* we are already retrieving those keys, sorry */
+        if (qtype == QType::DS) {
+          /* something is very wrong */
+          LOG(d_prefix<<"The DS for "<<qname<<" is signed by itself, going Bogus"<<endl);
+          return Bogus;
+        }
         return Indeterminate;
       }
       vState state = getDNSKeys(signer, keys, depth);
@@ -2586,8 +2604,21 @@ void SyncRes::updateDenialValidationState(vState& neValidationState, const DNSNa
   else {
     if (denialState == OPTOUT && allowOptOut) {
       LOG(d_prefix<<"OPT-out denial found for "<<neName<<endl);
-      neValidationState = Secure;
-      return;
+      /* rfc5155 states:
+         "The AD bit, as defined by [RFC4035], MUST NOT be set when returning a
+         response containing a closest (provable) encloser proof in which the
+         NSEC3 RR that covers the "next closer" name has the Opt-Out bit set.
+
+         This rule is based on what this closest encloser proof actually
+         proves: names that would be covered by the Opt-Out NSEC3 RR may or
+         may not exist as insecure delegations.  As such, not all the data in
+         responses containing such closest encloser proofs will have been
+         cryptographically verified, so the AD bit cannot be set."
+
+         At best the Opt-Out NSEC3 RR proves that there is no signed DS (so no
+         secure delegation).
+      */
+      neValidationState = Insecure;
     }
     else if (denialState == INSECURE) {
       LOG(d_prefix<<"Insecure denial found for "<<neName<<", returning Insecure"<<endl);
@@ -2645,7 +2676,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       if (state == Secure) {
         dState denialState = getDenialValidationState(ne, state, NXDOMAIN, false);
-        updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, NXDOMAIN, false);
+        updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, NXDOMAIN, true);
       }
       else {
         ne.d_validationState = state;
@@ -2802,6 +2833,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (denialState == NXQTYPE || denialState == OPTOUT || denialState == INSECURE) {
           ne.d_ttd = lowestTTL + d_now.tv_sec;
           ne.d_validationState = Secure;
+          if (denialState == OPTOUT) {
+            ne.d_validationState = Insecure;
+          }
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
           if(!wasVariable()) {
