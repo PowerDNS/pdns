@@ -79,7 +79,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_class = QClass::ANY;
   zrr.dr.d_content = tkey_out;
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
-  r->addRecord(zrr);
+  r->addRecord(std::move(zrr));
 
   if (sign)
   {

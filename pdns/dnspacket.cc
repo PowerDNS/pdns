@@ -123,7 +123,7 @@ void DNSPacket::clearRecords()
   d_dedup.clear();
 }
 
-void DNSPacket::addRecord(const DNSZoneRecord &rr)
+void DNSPacket::addRecord(DNSZoneRecord&& rr)
 {
   // this removes duplicates from the packet.
   // in case we are not compressing for AXFR, no such checking is performed!
@@ -140,7 +140,7 @@ void DNSPacket::addRecord(const DNSZoneRecord &rr)
     d_dedup.insert(hash);
   }
 
-  d_rrs.push_back(rr);
+  d_rrs.push_back(std::move(rr));
 }
 
 vector<DNSZoneRecord*> DNSPacket::getAPRecords()

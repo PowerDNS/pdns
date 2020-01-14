@@ -648,7 +648,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   // SOA *must* go out first, our signing pipe might reorder
   DLOG(g_log<<"Sending out SOA"<<endl);
   DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
-  outpacket->addRecord(soa);
+  outpacket->addRecord(DNSZoneRecord(soa));
   if(securedZone && !presignedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
@@ -1043,7 +1043,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   DLOG(g_log<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
-  outpacket->addRecord(soa);
+  outpacket->addRecord(std::move(soa));
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
   
@@ -1167,7 +1167,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     // SOA *must* go out first, our signing pipe might reorder
     DLOG(g_log<<"Sending out SOA"<<endl);
     DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
-    outpacket->addRecord(soa);
+    outpacket->addRecord(std::move(soa));
     if(securedZone && outpacket->d_dnssecOk) {
       set<DNSName> authSet;
       authSet.insert(target);

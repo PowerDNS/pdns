@@ -176,7 +176,7 @@ DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DN
   dzr.domain_id = sd.domain_id;
   dzr.signttl = sd.ttl;
   dzr.auth = true;
-  dzr.dr = soa;
+  dzr.dr = std::move(soa);
 
   return dzr;
 }

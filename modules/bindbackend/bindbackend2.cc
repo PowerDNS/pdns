@@ -34,6 +34,8 @@
 #include <sstream>
 #include <boost/algorithm/string.hpp>
 #include <system_error>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "pdns/dnsseckeeper.hh"
 #include "pdns/dnssecinfra.hh"
@@ -325,7 +327,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
       di.notified_serial=i->d_lastnotified;
       di.backend=this;
       di.kind=DomainInfo::Master;
-      consider.push_back(di);
+      consider.push_back(std::move(di));
     }
   }
 
@@ -346,7 +348,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
       }
       if(di.notified_serial)  { // don't do notification storm on startup
         di.serial=soadata.serial;
-        changedDomains->push_back(di);
+        changedDomains->push_back(std::move(di));
       }
     }
   }
@@ -359,6 +361,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
   // prevent deadlock by using getSOA() later on
   {
     ReadLock rl(&s_state_lock);
+    domains->reserve(s_state.size());
 
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
       DomainInfo di;
@@ -368,7 +371,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
       di.kind=i->d_kind;
       di.masters=i->d_masters;
       di.backend=this;
-      domains->push_back(di);
+      domains->push_back(std::move(di));
     };
   }
 
@@ -390,6 +393,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   vector<DomainInfo> domains;
   {
     ReadLock rl(&s_state_lock);
+    domains.reserve(s_state.size());
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
       if(i->d_kind != DomainInfo::Slave)
         continue;
@@ -400,9 +404,10 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       sd.last_check=i->d_lastcheck;
       sd.backend=this;
       sd.kind=DomainInfo::Slave;
-      domains.push_back(sd);
+      domains.push_back(std::move(sd));
     }
   }
+  unfreshDomains->reserve(domains.size());
 
   for(DomainInfo &sd :  domains) {
     SOAData soadata;
@@ -414,7 +419,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     catch(...){}
     sd.serial=soadata.serial;
     if(sd.last_check+soadata.refresh < (unsigned int)time(0))
-      unfreshDomains->push_back(sd);    
+      unfreshDomains->push_back(std::move(sd));
   }
 }
 
@@ -510,7 +515,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
   if(zoneName.empty())
     ;
   else if(bdr.qname.isPartOf(zoneName))
-    bdr.qname = bdr.qname.makeRelative(zoneName);
+    bdr.qname.makeUsRelative(zoneName);
   else {
     string msg = "Trying to insert non-zone data, name='"+bdr.qname.toLogString()+"', qtype="+qtype.getName()+", zone='"+zoneName.toLogString()+"'";
     if(s_ignore_broken_records) {
@@ -537,7 +542,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
     bdr.auth=true;
 
   bdr.ttl=ttl;
-  records->insert(bdr);
+  records->insert(std::move(bdr));
 }
 
 string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid)
@@ -803,8 +808,8 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
 {
   bool auth;
   DNSName shorter;
-  set<DNSName> qnames;
-  map<DNSName, bool> nonterm;
+  std::unordered_set<DNSName> qnames;
+  std::unordered_map<DNSName, bool> nonterm;
 
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
@@ -830,7 +835,7 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
         }
 
         if (!nonterm.count(shorter)) {
-          nonterm.insert(pair<DNSName, bool>(shorter, auth));
+          nonterm.emplace(shorter, auth);
           --maxent;
         } else if (auth)
           nonterm[shorter] = true;
@@ -899,7 +904,7 @@ void Bind2Backend::loadConfig(string* status)
     sort(domains.begin(), domains.end()); // put stuff in inode order
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
         i!=domains.end();
-        ++i) 
+        ++i)
       {
         if (!(i->hadFileDirective)) {
           g_log<<Logger::Warning<<d_logprefix<<" Zone '"<<i->name<<"' has no 'file' directive set in "<<getArg("config")<<endl;
@@ -1134,7 +1139,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, int zoneId, 
 
   if (zoneId >= 0) {
     if ((found = (safeGetBBDomainInfo(zoneId, &bbd) && qname.isPartOf(bbd.d_name)))) {
-      domain = bbd.d_name;
+      domain = std::move(bbd.d_name);
     }
   } else {
     domain = qname;
@@ -1156,17 +1161,17 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, int zoneId, 
   d_handle.id=bbd.d_id;
   d_handle.qname=qname.makeRelative(domain); // strip domain name
   d_handle.qtype=qtype;
-  d_handle.domain=domain;
+  d_handle.domain=std::move(domain);
 
   if(!bbd.d_loaded) {
     d_handle.reset();
-    throw DBException("Zone for '"+bbd.d_name.toLogString()+"' in '"+bbd.d_filename+"' temporarily not available (file missing, or master dead)"); // fsck
+    throw DBException("Zone for '"+d_handle.domain.toLogString()+"' in '"+bbd.d_filename+"' temporarily not available (file missing, or master dead)"); // fsck
   }
     
   if(!bbd.current()) {
-    g_log<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
+    g_log<<Logger::Warning<<"Zone '"<<d_handle.domain<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
     queueReloadAndStore(bbd.d_id);
-    if (!safeGetBBDomainInfo(domain, &bbd))
+    if (!safeGetBBDomainInfo(d_handle.domain, &bbd))
       throw DBException("Zone '"+bbd.d_name.toLogString()+"' ("+bbd.d_filename+") gone after reload"); // if we don't throw here, we crash for some reason
   }
 
@@ -1424,7 +1429,7 @@ bool Bind2Backend::searchRecords(const string &pattern, int maxResults, vector<D
           r.qtype=ri->qtype;
           r.ttl=ri->ttl;
           r.auth = ri->auth;
-          result.push_back(r);
+          result.push_back(std::move(r));
         }
       }
     }

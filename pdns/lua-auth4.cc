@@ -54,8 +54,8 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, void(unsigned int)>("setOpCode", [](DNSPacket &p, unsigned int opcode) { return p.setOpcode(static_cast<uint16_t>(opcode)); });
   d_lw->registerFunction<DNSPacket, void(int)>("setRcode", [](DNSPacket &p, int rcode) { return p.setRcode(rcode); });
   d_lw->registerFunction<DNSPacket, void()>("clearRecords",[](DNSPacket &p){p.clearRecords();});
-  d_lw->registerFunction<DNSPacket, void(DNSRecord&, bool)>("addRecord", [](DNSPacket &p, DNSRecord &dr, bool auth) { DNSZoneRecord dzr; dzr.dr = dr; dzr.auth = auth; p.addRecord(dzr); });
-  d_lw->registerFunction<DNSPacket, void(const vector<pair<unsigned int, DNSRecord> >&)>("addRecords", [](DNSPacket &p, const vector<pair<unsigned int, DNSRecord> >& records){ for(const auto &dr: records){ DNSZoneRecord dzr; dzr.dr = std::get<1>(dr); dzr.auth = true; p.addRecord(dzr); }});
+  d_lw->registerFunction<DNSPacket, void(DNSRecord&, bool)>("addRecord", [](DNSPacket &p, DNSRecord &dr, bool auth) { DNSZoneRecord dzr; dzr.dr = dr; dzr.auth = auth; p.addRecord(std::move(dzr)); });
+  d_lw->registerFunction<DNSPacket, void(const vector<pair<unsigned int, DNSRecord> >&)>("addRecords", [](DNSPacket &p, const vector<pair<unsigned int, DNSRecord> >& records){ for(const auto &dr: records){ DNSZoneRecord dzr; dzr.dr = std::get<1>(dr); dzr.auth = true; p.addRecord(std::move(dzr)); }});
   d_lw->registerFunction<DNSPacket, void(unsigned int, const DNSName&, const std::string&)>("setQuestion", [](DNSPacket &p, unsigned int opcode, const DNSName &name, const string &type){ QType qtype; qtype = type; p.setQuestion(static_cast<int>(opcode), name, static_cast<int>(qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, bool()>("isEmpty", [](DNSPacket &p){return p.isEmpty();});
   d_lw->registerFunction<DNSPacket, std::shared_ptr<DNSPacket>()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
