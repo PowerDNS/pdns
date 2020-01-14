@@ -814,7 +814,8 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   }
 
   Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
-  const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+  const ComboAddress requestor = requestorNM.getMaskedNetwork();
+  requestor.setPort(remote.getPort());
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
   message.setServerIdentity(SyncRes::s_serverID);
   message.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? maskV4 : maskV6);
@@ -1184,7 +1185,8 @@ static void startDoResolve(void *p)
 #ifdef HAVE_PROTOBUF
     if (checkProtobufExport(luaconfsLocal)) {
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-      const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+      ComboAddress requestor = requestorNM.getMaskedNetwork();
+      requestor.setPort(dc->d_source.getPort());
       pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
       pbMessage->setServerIdentity(SyncRes::s_serverID);
       pbMessage->setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
@@ -2381,7 +2383,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
       if(t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbMessage->getAppliedPolicy().empty() && pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-        const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+        ComboAddress requestor = requestorNM.getMaskedNetwork();
+        requestor.setPort(source.getPort());
         pbMessage->update(uniqueId, &requestor, &destination, false, dh->id);
         pbMessage->setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         if (g_useKernelTimestamp && tv.tv_sec) {
