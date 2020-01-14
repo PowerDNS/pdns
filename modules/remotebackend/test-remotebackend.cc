@@ -89,6 +89,17 @@ BOOST_AUTO_TEST_CASE(test_method_setDomainMetadata) {
    BOOST_CHECK(be->setDomainMetadata(DNSName("unit.test."),"TEST", meta));
 }
 
+BOOST_AUTO_TEST_CASE(test_method_alsoNotifies) {
+   BOOST_CHECK(be->setDomainMetadata(DNSName("unit.test."),"ALSO-NOTIFY", {"192.0.2.1"}));
+   std::set<std::string> alsoNotifies;
+   BOOST_TEST_MESSAGE("Testing alsoNotifies method");
+   be->alsoNotifies(DNSName("unit.test."), &alsoNotifies);
+   BOOST_CHECK_EQUAL(alsoNotifies.size(), 1);
+   if (alsoNotifies.size() > 0)
+      BOOST_CHECK_EQUAL(alsoNotifies.count("192.0.2.1"), 1);
+   BOOST_CHECK(be->setDomainMetadata(DNSName("unit.test."),"ALSO-NOTIFY", std::vector<std::string>()));
+}
+
 BOOST_AUTO_TEST_CASE(test_method_getDomainMetadata) {
    std::vector<std::string> meta;
    BOOST_TEST_MESSAGE("Testing getDomainMetadata method");
