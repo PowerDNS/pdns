@@ -62,29 +62,45 @@ Protobuf Logging Reference
     :param int sec: Optional query time in seconds.
     :param int usec: Optional query time in additional micro-seconds.
 
-  .. method:: DNSDistProtoBufMessage:setRequestor(address)
+  .. method:: DNSDistProtoBufMessage:setRequestor(address [, port])
+
+    .. versionchanged:: 1.5.0
+      ``port`` optional parameter added.
 
     Set the requestor's address.
 
     :param ComboAddress address: The address to set to
+    :param int port: The requestor source port
 
-  .. method:: DNSDistProtoBufMessage:setRequestorFromString(address)
+  .. method:: DNSDistProtoBufMessage:setRequestorFromString(address [, port])
+
+    .. versionchanged:: 1.5.0
+      ``port`` optional parameter added.
 
     Set the requestor's address from a string.
 
     :param string address: The address to set to
+    :param int port: The requestor source port
 
-  .. method:: DNSDistProtoBufMessage:setResponder(address)
+  .. method:: DNSDistProtoBufMessage:setResponder(address [, port])
+
+    .. versionchanged:: 1.5.0
+      ``port`` optional parameter added.
 
     Set the responder's address.
 
     :param ComboAddress address: The address to set to
+    :param int port: The responder port
 
-  .. method:: DNSDistProtoBufMessage:setResponderFromString(address)
+  .. method:: DNSDistProtoBufMessage:setResponderFromString(address [, port])
+
+    .. versionchanged:: 1.5.0
+      ``port`` optional parameter added.
 
     Set the responder's address.
 
     :param string address: The address to set to
+    :param int port: The responder port
 
   .. method:: DNSDistProtoBufMessage:setResponseCode(rcode)
 

@@ -88,4 +88,6 @@ message PBDNSMessage {
   optional bytes deviceId = 17;     		// Device ID of the requestor (could be mac address IP address or e.g. IMEI)
   optional bool  newlyObservedDomain = 18;      // True if the domain has not been seen before
   optional string deviceName = 19;              // Device name of the requestor
+  optional uint32 fromPort = 20;                // Source port of the DNS query (client)
+  optional uint32 toPort = 21;                  // Destination port of the DNS query (server)
 }
