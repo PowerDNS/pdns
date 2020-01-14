@@ -138,6 +138,8 @@ class PDNSPBConnHandler(object):
             datestr = datestr + '.' + str(msg.timeUsec)
         ipfromstr = 'N/A'
         iptostr = 'N/A'
+        toportstr = ''
+        fromportstr = ''
         fromvalue = getattr(msg, 'from')
         if msg.socketFamily == dnsmessage_pb2.PBDNSMessage.INET:
             if msg.HasField('from'):
@@ -146,14 +148,20 @@ class PDNSPBConnHandler(object):
                 iptostr = socket.inet_ntop(socket.AF_INET, msg.to)
         else:
             if msg.HasField('from'):
-                ipfromstr = socket.inet_ntop(socket.AF_INET6, fromvalue)
+                ipfromstr = '[' + socket.inet_ntop(socket.AF_INET6, fromvalue) + ']'
             if msg.HasField('to'):
-                iptostr = socket.inet_ntop(socket.AF_INET6, msg.to)
+                iptostr = '[' + socket.inet_ntop(socket.AF_INET6, msg.to) + ']'
 
         if msg.socketProtocol == dnsmessage_pb2.PBDNSMessage.UDP:
             protostr = 'UDP'
         else:
             protostr = 'TCP'
+
+        if msg.HasField('fromPort'):
+            fromportstr = ':' + str(msg.fromPort) + ' '
+
+        if msg.HasField('toPort'):
+            toportstr = ':' + str(msg.toPort) + ' '
 
         messageidstr = binascii.hexlify(bytearray(msg.messageId))
 
@@ -176,13 +184,15 @@ class PDNSPBConnHandler(object):
         if (msg.HasField('newlyObservedDomain')):
             nod = msg.newlyObservedDomain
 
-        print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s '
+        print('[%s] %s of size %d: %s%s%s -> %s%s (%s), id: %d, uuid: %s%s '
                   'requestorid: %s deviceid: %s serverid: %s nod: %d' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,
+                                                    fromportstr,
                                                     requestorstr,
                                                     iptostr,
+                                                    toportstr,
                                                     protostr,
                                                     msg.id,
                                                     messageidstr,
