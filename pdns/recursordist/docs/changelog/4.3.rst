@@ -2,6 +2,44 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0-beta2
+  :released: 16th of January 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8673
+
+    Debian postinst / do not fail on user creation if it already exists.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8685
+    :tickets:  8676
+
+    Parsing `dont-throttle-names` and `dont-throttle-netmasks` as comma separated lists. (costypetrisor)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8692
+    :tickets: 8664
+
+    An Opt-Out NSEC3 RR only proves that there is no secure delegation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8670
+    :tickets: 8642
+
+    Fix wrong zoneCuts caused by cache only lookup.
+
+  .. change::
+    :tags: Enhancement
+    :pullreq: 8675
+    :tickets: 8646
+
+    Increase default maxqperq.
+
+.. changelog::
   :version: 4.3.0-beta1
   :released: 12th of December 2019
 
