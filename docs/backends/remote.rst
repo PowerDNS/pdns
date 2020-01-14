@@ -144,6 +144,11 @@ in this array will be logged in PowerDNS at loglevel ``info`` (6).
 Methods
 ^^^^^^^
 
+Methods required for different features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:Always required: ``initialize``, ``lookup``
+:Master operation: ``list``, ``getUpdatedMasters``, ``setNotified``
+
 ``initialize``
 ~~~~~~~~~~~~~~
 
@@ -958,12 +963,13 @@ Alternative response
 
 ``createSlaveDomain``
 ~~~~~~~~~~~~~~~~~~~~~
-
 Creates new domain. This method is called when NOTIFY is received and
 you are superslaving.
 
-Mandatory: No Parameters: ip, domain Optional parameters: nameserver,
-account Reply: true for success, false for failure
+ - Mandatory: No
+ - Parameters: ip, domain
+ - Optional parameters: nameserver, account
+ - Reply: true for success, false for failure
 
 Example JSON/RPC
 ''''''''''''''''
@@ -1516,7 +1522,7 @@ Used to find out any updates to master domains. This is used to trigger notifica
 
 -  Mandatory: no
 -  Parameters: none
--  Reply: array of DomainInfo
+-  Reply: array of DomainInfo or at least the ``id``, ``zone``, ``serial`` and ``notified_serial`` fields
 
 Example JSON/RPC
 ''''''''''''''''

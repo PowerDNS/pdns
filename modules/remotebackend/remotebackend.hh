@@ -189,6 +189,7 @@ class RemoteBackend : public DNSBackend
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
   void getUpdatedMasters(vector<DomainInfo>* domains) override;
+  void alsoNotifies(const DNSName &domain, set<string> *ips) override;
 
   static DNSBackend *maker();
 
