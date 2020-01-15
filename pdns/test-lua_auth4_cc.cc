@@ -4,6 +4,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "ext/luawrapper/include/LuaContext.hpp"
 #include <boost/test/unit_test.hpp>
 #include "arguments.hh"
 #include <utility>
