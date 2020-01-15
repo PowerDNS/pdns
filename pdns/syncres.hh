@@ -1054,6 +1054,10 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
+class PolicyHitException
+{
+};
+
 typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
 extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeanswerremotes, t_remotes, t_bogusremotes, t_timeouts;
 

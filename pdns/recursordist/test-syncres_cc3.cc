@@ -521,9 +521,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv4_rpz)
   g_luaconfs.setState(luaconfsCopy);
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, -2);
-  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::A), QClass::IN, ret), PolicyHitException);
 }
 
 BOOST_AUTO_TEST_CASE(test_nameserver_ipv6_rpz)
@@ -564,9 +562,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv6_rpz)
   g_luaconfs.setState(luaconfsCopy);
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, -2);
-  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::A), QClass::IN, ret), PolicyHitException);
 }
 
 BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz)
@@ -608,9 +604,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz)
   g_luaconfs.setState(luaconfsCopy);
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, -2);
-  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::A), QClass::IN, ret), PolicyHitException);
 }
 
 BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz_disabled)
