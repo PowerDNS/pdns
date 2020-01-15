@@ -6,6 +6,12 @@ Changelogs for 4.3.x
   :released: 16th of January 2020
 
   .. change::
+    :tags: Improvements
+    :pullreq: 8704
+
+    Add the source and destination ports to the protobuf msg.
+
+  .. change::
     :tags: Bug Fixes
     :pullreq: 8673
 
@@ -33,11 +39,11 @@ Changelogs for 4.3.x
     Fix wrong zoneCuts caused by cache only lookup.
 
   .. change::
-    :tags: Enhancement
+    :tags: Improvements
     :pullreq: 8675
     :tickets: 8646
 
-    Increase default maxqperq.
+    Increase default max-qperq.
 
 .. changelog::
   :version: 4.3.0-beta1
