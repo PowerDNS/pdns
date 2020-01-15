@@ -1860,7 +1860,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   DomainInfo di;
   UeberBackend B("default");
-  if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
+  if(!B.getDomainInfo(zone, di, false) || !di.backend) { // di.backend and B are mostly identical
     cerr<<"Can't find a zone called '"<<zone<<"'"<<endl;
     return false;
   }
