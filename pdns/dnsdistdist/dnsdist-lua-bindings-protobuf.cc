@@ -72,17 +72,29 @@ void setupLuaBindingsProtoBuf(bool client)
   g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
   g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
   g_lua.registerFunction<std::string(DNSDistProtoBufMessage::*)()>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr) {
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
       message.setRequestor(addr);
+      if (port) {
+        message.setRequestorPort(*port);
+      }
     });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
       message.setRequestor(str);
+      if (port) {
+        message.setRequestorPort(*port);
+      }
     });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr) {
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
       message.setResponder(addr);
+      if (port) {
+        message.setResponderPort(*port);
+      }
     });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
       message.setResponder(str);
+      if (port) {
+        message.setResponderPort(*port);
+      }
     });
   g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setServerIdentity", [](DNSDistProtoBufMessage& message, const std::string& str) {
       message.setServerIdentity(str);
