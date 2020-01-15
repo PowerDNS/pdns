@@ -67,8 +67,10 @@ public:
   void serialize(std::string& data) const;
   void setRequestor(const std::string& requestor);
   void setRequestor(const ComboAddress& requestor);
+  void setRequestorPort(uint16_t port);
   void setResponder(const std::string& responder);
   void setResponder(const ComboAddress& responder);
+  void setResponderPort(uint16_t port);
   void setRequestorId(const std::string& requestorId);
   void setDeviceId(const std::string& deviceId);
   void setDeviceName(const std::string& deviceName);
