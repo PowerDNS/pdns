@@ -617,6 +617,7 @@ These ``DNSRule``\ s be one of the following items:
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
+
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
 
