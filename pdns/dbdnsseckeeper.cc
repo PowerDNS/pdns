@@ -221,8 +221,8 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
   }
 
   if (ttl > 0) {
-    ReadLock l(&s_metacachelock); 
-    
+    ReadLock l(&s_metacachelock);
+
     metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
     if(iter != s_metacache.end() && iter->d_ttd > now) {
       value = iter->d_value;
@@ -232,7 +232,7 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
   vector<string> meta;
   d_keymetadb->getDomainMetadata(zname, key, meta);
   if(!meta.empty()) {
-    value=*meta.begin();
+    value=std::move(*meta.begin());
     isset = true;
   }
 
@@ -479,6 +479,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 
     if(iter != s_keycache.end() && iter->d_ttd > now) {
       keyset_t ret;
+      ret.reserve(iter->d_keys.size());
       for(const keyset_t::value_type& value :  iter->d_keys)
         ret.push_back(value);
       return ret;
@@ -507,6 +508,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     }
   }
   set_intersection(algoSEP.begin(), algoSEP.end(), algoNoSEP.begin(), algoNoSEP.end(), std::back_inserter(algoHasSeparateKSK));
+  retkeyset.reserve(dbkeyset.size());
 
   for(DNSBackend::KeyData& kd : dbkeyset)
   {
