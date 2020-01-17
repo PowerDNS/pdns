@@ -325,8 +325,10 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
 static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
   string zoneId = apiZoneNameToId(di.zone);
   vector<string> masters;
-  for(const auto& m : di.masters)
+  masters.reserve(di.masters.size());
+  for(const auto& m : di.masters) {
     masters.push_back(m.toStringWithPortExcept(53));
+  }
 
   auto obj = Json::object {
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
@@ -335,7 +337,7 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
     { "name", di.zone.toString() },
     { "kind", di.getKindString() },
     { "account", di.account },
-    { "masters", masters },
+    { "masters", std::move(masters) },
     { "serial", (double)di.serial },
     { "notified_serial", (double)di.notified_serial },
     { "last_check", (double)di.last_check }
@@ -1727,6 +1729,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   }
 
   Json::array doc;
+  doc.reserve(domains.size());
   for(const DomainInfo& di : domains) {
     doc.push_back(getZoneInfo(di, with_dnssec ? &dk : nullptr));
   }
