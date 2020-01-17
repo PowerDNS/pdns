@@ -764,7 +764,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
  * \param beenthere
  * \param fromCache tells the caller the result came from the cache, may be nullptr
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
- * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
+ * \return DNS RCODE or -1 (Error)
  */
 int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation)
 {
@@ -885,9 +885,6 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
     return 0;
 
   LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
-
-  if (res == -2)
-    return res;
 
   return res<0 ? RCode::ServFail : res;
 }
@@ -3425,7 +3422,6 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
 /** returns:
  *  -1 in case of no results
- *  -2 when a FilterEngine Policy was hit
  *  rcode otherwise
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
