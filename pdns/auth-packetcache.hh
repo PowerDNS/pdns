@@ -98,6 +98,8 @@ private:
     indexed_by <
       hashed_non_unique<tag<HashTag>, member<CacheEntry,uint32_t,&CacheEntry::hash> >,
       ordered_non_unique<tag<NameTag>, member<CacheEntry,DNSName,&CacheEntry::qname>, CanonDNSNameCompare >,
+      /* Note that this sequence holds 'least recently inserted or replaced', not least recently used.
+         Making it a LRU would require taking a write-lock when fetching from the cache, making the RW-lock inefficient compared to a mutex */
       sequenced<tag<SequencedTag>>
       >
     > cmap_t;
