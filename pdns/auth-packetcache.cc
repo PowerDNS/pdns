@@ -159,6 +159,7 @@ void AuthPacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxTTL)
         continue;
       }
 
+      moveCacheItemToBack<SequencedTag>(mc.d_map, iter);
       iter->value = entry.value;
       iter->ttd = now + ourttl;
       iter->created = now;
@@ -167,7 +168,15 @@ void AuthPacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxTTL)
 
     /* no existing entry found to refresh */
     mc.d_map.insert(entry);
-    (*d_statnumentries)++;
+
+    if (*d_statnumentries >= d_maxEntries) {
+      /* remove the least recently inserted or replaced entry */
+      auto& sidx = mc.d_map.get<SequencedTag>();
+      sidx.pop_front();
+    }
+    else {
+      (*d_statnumentries)++;
+    }
   }
 }
 
