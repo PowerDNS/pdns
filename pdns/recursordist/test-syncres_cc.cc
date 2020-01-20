@@ -361,11 +361,11 @@ void addNSECRecordToLW(const DNSName& domain, const DNSName& next, const std::se
   records.push_back(rec);
 }
 
-void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext, const std::string& salt, unsigned int iterations, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records)
+void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext, const std::string& salt, unsigned int iterations, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, bool optOut)
 {
   NSEC3RecordContent nrc;
   nrc.d_algorithm = 1;
-  nrc.d_flags = 0;
+  nrc.d_flags = optOut ? 1 : 0;
   nrc.d_iterations = iterations;
   nrc.d_salt = salt;
   nrc.d_nexthash = hashedNext;
@@ -383,15 +383,15 @@ void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext
   records.push_back(rec);
 }
 
-void addNSEC3UnhashedRecordToLW(const DNSName& domain, const DNSName& zone, const std::string& next, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations)
+void addNSEC3UnhashedRecordToLW(const DNSName& domain, const DNSName& zone, const std::string& next, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations, bool optOut)
 {
   static const std::string salt = "deadbeef";
   std::string hashed = hashQNameWithSalt(salt, iterations, domain);
 
-  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)) + zone, next, salt, iterations, types, ttl, records);
+  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)) + zone, next, salt, iterations, types, ttl, records, optOut);
 }
 
-void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations)
+void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations, bool optOut)
 {
   static const std::string salt = "deadbeef";
   std::string hashed = hashQNameWithSalt(salt, iterations, domain);
@@ -399,7 +399,7 @@ void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const 
   incrementHash(hashedNext);
   decrementHash(hashed);
 
-  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)) + zone, hashedNext, salt, iterations, types, ttl, records);
+  addNSEC3RecordToLW(DNSName(toBase32Hex(hashed)) + zone, hashedNext, salt, iterations, types, ttl, records, optOut);
 }
 
 void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys)
@@ -419,7 +419,7 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
   dsAnchors[name].insert(keys[name].second);
 }
 
-int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut, boost::optional<time_t> now)
+int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut, boost::optional<time_t> now, bool nsec3, bool optOut)
 {
   if (type == QType::DS) {
     auth.chopOff();
@@ -438,12 +438,18 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
         /* sign the SOA */
         addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
         /* add a NSEC denying the DS */
-        std::set<uint16_t> types = {QType::NSEC};
+        std::set<uint16_t> types = { nsec3 ? QType::NSEC : QType::NSEC3 };
         if (proveCut) {
           types.insert(QType::NS);
         }
 
-        addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
+        if (!nsec3) {
+          addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
+        }
+        else {
+          addNSEC3UnhashedRecordToLW(domain, auth, (DNSName("z") + domain).toString(), types, 600, res->d_records, 10, optOut);
+        }
+
         addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
       }
     }
