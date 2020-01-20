@@ -643,3 +643,59 @@ tc.example.zone.rpz. 60 IN CNAME rpz-tcp-only.
         # check non-local policies, they should be overridden by the default policy
         self.checkNXD('tc.example.', 'A')
         self.checkNotBlocked('drop.example.')
+
+class RPZOrderingPrecedenceRecursorTesT(RPZRecursorTest):
+    """
+    This test makes sure that the recursor respects the RPZ ordering precedence rules
+    """
+
+    _confdir = 'RPZOrderingPrecedence'
+    _wsPort = 8042
+    _wsTimeout = 2
+    _wsPassword = 'secretpassword'
+    _apiKey = 'secretapikey'
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz."})
+    rpzFile('configs/%s/zone2.rpz', { policyName="zone2.rpz."})
+    """ % (_confdir, _confdir)
+    _config_template = """
+auth-zones=example=configs/%s/example.zone
+webserver=yes
+webserver-port=%d
+webserver-address=127.0.0.1
+webserver-password=%s
+api-key=%s
+""" % (_confdir, _wsPort, _wsPassword, _apiKey)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        authzonepath = os.path.join(confdir, 'example.zone')
+        with open(authzonepath, 'w') as authzone:
+            authzone.write("""$ORIGIN example.
+@ 3600 IN SOA {soa}
+sub.test 3600 IN A 192.0.2.42
+""".format(soa=cls._SOA))
+
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+*.test.example.zone.rpz. 60 IN CNAME rpz-passthru.
+""".format(soa=cls._SOA))
+
+        rpzFilePath = os.path.join(confdir, 'zone2.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone2.rpz.
+@ 3600 IN SOA {soa}
+sub.test.example.com.zone2.rpz. 60 IN CNAME .
+32.42.2.0.192.rpz-ip 60 IN CNAME .
+""".format(soa=cls._SOA))
+
+        super(RPZOrderingPrecedenceRecursorTesT, cls).generateRecursorConfig(confdir)
+
+    def testRPZ(self):
+        # we should first match on the qname (the wildcard, not on the exact name since
+        # we respect the order of the RPZ zones), see the pass-thru rule
+        # and stop RPZ processing. The subsequent rule on the content of the A
+        # should therefore not trigger a NXDOMAIN.
+        self.checkNotBlocked('sub.test.example.')

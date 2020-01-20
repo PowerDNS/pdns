@@ -733,6 +733,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         QLOG("Delegation seen, continue at step 1");
         break;
       }
+
       if (res != RCode::NoError) {
         // Case 5: unexpected answer
         QLOG("Step5: other rcode, last effort final resolve");
@@ -763,7 +764,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
  * \param beenthere
  * \param fromCache tells the caller the result came from the cache, may be nullptr
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
- * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
+ * \return DNS RCODE or -1 (Error)
  */
 int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation)
 {
@@ -885,9 +886,6 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
   LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
 
-  if (res == -2)
-    return res;
-
   return res<0 ? RCode::ServFail : res;
 }
 
@@ -923,45 +921,51 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
 
-  vState newState = Indeterminate;
-  res_t resv4;
-  // If IPv4 ever becomes second class, we should revisit this
-  if (doResolve(qname, QType::A, resv4, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-    for (auto const &i : resv4) {
-      if (i.d_type == QType::A) {
-        if (auto rec = getRR<ARecordContent>(i)) {
-          ret.push_back(rec->getCA(53));
-        }
-      }
-    }
-  }
-  if (s_doIPv6) {
-    if (ret.empty()) {
-      // We did not find IPv4 addresses, try to get IPv6 ones
-      newState = Indeterminate;
-      res_t resv6;
-      if (doResolve(qname, QType::AAAA, resv6, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-        for (const auto &i : resv6) {
-          if (i.d_type == QType::AAAA) {
-            if (auto rec = getRR<AAAARecordContent>(i))
-              ret.push_back(rec->getCA(53));
+  try {
+    vState newState = Indeterminate;
+    res_t resv4;
+    // If IPv4 ever becomes second class, we should revisit this
+    if (doResolve(qname, QType::A, resv4, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+      for (auto const &i : resv4) {
+        if (i.d_type == QType::A) {
+          if (auto rec = getRR<ARecordContent>(i)) {
+            ret.push_back(rec->getCA(53));
           }
         }
       }
-    } else {
-      // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
-      // Once IPv6 adoption matters, this needs to be revisited
-      res_t cset;
-      if (t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
-        for (const auto &i : cset) {
-          if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
-            if (auto rec = getRR<AAAARecordContent>(i)) {
-              ret.push_back(rec->getCA(53));
+    }
+    if (s_doIPv6) {
+      if (ret.empty()) {
+        // We did not find IPv4 addresses, try to get IPv6 ones
+        newState = Indeterminate;
+        res_t resv6;
+        if (doResolve(qname, QType::AAAA, resv6, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+          for (const auto &i : resv6) {
+            if (i.d_type == QType::AAAA) {
+              if (auto rec = getRR<AAAARecordContent>(i))
+                ret.push_back(rec->getCA(53));
+            }
+          }
+        }
+      } else {
+        // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
+        // Once IPv6 adoption matters, this needs to be revisited
+        res_t cset;
+        if (t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
+          for (const auto &i : cset) {
+            if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
+              if (auto rec = getRR<AAAARecordContent>(i)) {
+                ret.push_back(rec->getCA(53));
+              }
             }
           }
         }
       }
     }
+  }
+  catch (const PolicyHitException& e) {
+    /* we ignore a policy hit while trying to retrieve the addresses
+       of a NS and keep processing the current query */
   }
 
   d_requireAuthData = oldRequireAuthData;
@@ -1790,7 +1794,13 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
 
 bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers)
 {
-  if(d_wantsRPZ) {
+  /* we skip RPZ processing if:
+     - it was disabled (d_wantsRPZ is false) ;
+     - we already got a RPZ hit (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) since
+     the only way we can get back here is that it was a 'pass-thru' (NoAction) meaning that we should not
+     process any further RPZ rules.
+  */
+  if (d_wantsRPZ && d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
     for (auto const &ns : nameservers) {
       d_appliedPolicy = dfe.getProcessingPolicy(ns.first, d_discardedPolicies);
       if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
@@ -1813,7 +1823,13 @@ bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& n
 
 bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAddress& remoteIP)
 {
-  if (d_wantsRPZ) {
+  /* we skip RPZ processing if:
+     - it was disabled (d_wantsRPZ is false) ;
+     - we already got a RPZ hit (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) since
+     the only way we can get back here is that it was a 'pass-thru' (NoAction) meaning that we should not
+     process any further RPZ rules.
+  */
+  if (d_wantsRPZ && d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
     d_appliedPolicy = dfe.getProcessingPolicy(remoteIP, d_discardedPolicies);
     if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
       LOG(" (blocked by RPZ policy '"+(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")+"')");
@@ -3385,12 +3401,11 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
     nameservers.clear();
     for (auto const &nameserver : nsset) {
-      if (d_wantsRPZ) {
+      if (d_wantsRPZ && d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
         d_appliedPolicy = dfe.getProcessingPolicy(nameserver, d_discardedPolicies);
         if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
           LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<(d_appliedPolicy.d_name ? *d_appliedPolicy.d_name : "")<<"'"<<endl);
-          *rcode = -2;
-          return true;
+          throw PolicyHitException();
         }
       }
       nameservers.insert({nameserver, {{}, false}});
@@ -3407,7 +3422,6 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
 /** returns:
  *  -1 in case of no results
- *  -2 when a FilterEngine Policy was hit
  *  rcode otherwise
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
@@ -3424,7 +3438,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
   LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact");
 
   if (nameserversBlockedByRPZ(luaconfsLocal->dfe, nameservers)) {
-    return -2;
+    /* RPZ hit */
+    throw PolicyHitException();
   }
 
   LOG(endl);
@@ -3508,8 +3523,10 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             }
           }
           LOG(endl);
-          if (hitPolicy) //implies d_wantsRPZ
-            return -2;
+          if (hitPolicy) { //implies d_wantsRPZ
+            /* RPZ hit */
+            throw PolicyHitException();
+          }
         }
 
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
@@ -3663,6 +3680,10 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
     g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got ImmediateServFailException: "<<e.reason<<endl;
     ret.clear();
   }
+  catch(const PolicyHitException& e) {
+    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got a policy hit"<<endl;
+    ret.clear();
+  }
   catch(const std::exception& e) {
     g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got STL error: "<<e.what()<<endl;
     ret.clear();
@@ -3699,6 +3720,10 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
   }
   catch(const ImmediateServFailException& e) {
     g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+  }
+  catch(const PolicyHitException& e) {
+    g_log<<Logger::Error<<"Failed to update . records, got a policy hit"<<endl;
+    ret.clear();
   }
   catch(const std::exception& e) {
     g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;

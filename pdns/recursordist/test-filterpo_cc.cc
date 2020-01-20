@@ -428,9 +428,13 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
   zone2->setName("Unit test policy 1");
 
   const DNSName bad("bad.example.com.");
+  const DNSName badWildcard("*.bad-wildcard.example.com.");
+  const DNSName badUnderWildcard("sub.bad-wildcard.example.com.");
 
-  zone1->addQNameTrigger(bad, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden1.example.net.")}));
-  zone2->addQNameTrigger(bad, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden2.example.net.")}));
+  zone1->addQNameTrigger(bad, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden1a.example.net.")}));
+  zone2->addQNameTrigger(bad, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden2a.example.net.")}));
+  zone1->addQNameTrigger(badWildcard, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden1b.example.net.")}));
+  zone2->addQNameTrigger(badUnderWildcard, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden2b.example.net.")}));
 
   dfe.addZone(zone1);
   dfe.addZone(zone2);
@@ -447,7 +451,22 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
     BOOST_CHECK(record.d_class == QClass::IN);
     auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
     BOOST_CHECK(content != nullptr);
-    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1.example.net.");
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1a.example.net.");
+  }
+
+  {
+    /* zone 2 has an exact match for badUnderWildcard, but the wildcard from the first zone should match first */
+    const auto matchingPolicy = dfe.getQueryPolicy(badUnderWildcard, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(badUnderWildcard, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1b.example.net.");
   }
 
   {
@@ -462,7 +481,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
     BOOST_CHECK(record.d_class == QClass::IN);
     auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
     BOOST_CHECK(content != nullptr);
-    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1.example.net.");
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1a.example.net.");
   }
 
   {
@@ -477,7 +496,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
     BOOST_CHECK(record.d_class == QClass::IN);
     auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
     BOOST_CHECK(content != nullptr);
-    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden2.example.net.");
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden2a.example.net.");
   }
 
   {

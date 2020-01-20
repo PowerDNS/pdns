@@ -141,27 +141,37 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
   }
 
   Policy pol;
-  if (!allEmpty) {
-    count = 0;
-    for(const auto& z : d_zones) {
-      if (zoneEnabled[count] && z->findExactNSPolicy(qname, pol)) {
+  if (allEmpty) {
+    return pol;
+  }
+
+  /* prepare the wildcard-based names */
+  std::vector<DNSName> wcNames;
+  wcNames.reserve(qname.countLabels());
+  DNSName s(qname);
+  while (s.chopOff()){
+    wcNames.emplace_back(g_wildcarddnsname+s);
+  }
+
+  count = 0;
+  for(const auto& z : d_zones) {
+    if (!zoneEnabled[count]) {
+      ++count;
+      continue;
+    }
+
+    if (z->findExactNSPolicy(qname, pol)) {
+      // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
+      return pol;
+    }
+
+    for (const auto& wc : wcNames) {
+      if (z->findExactNSPolicy(wc, pol)) {
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
         return pol;
       }
-      ++count;
     }
-
-    DNSName s(qname);
-    while(s.chopOff()){
-      count = 0;
-      for(const auto& z : d_zones) {
-        if (zoneEnabled[count] && z->findExactNSPolicy(g_wildcarddnsname+s, pol)) {
-          // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
-          return pol;
-        }
-        ++count;
-      }
-    }
+    ++count;
   }
 
   return pol;
@@ -187,7 +197,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress&
 
 DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies) const
 {
-  //  cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
+  // cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
   std::vector<bool> zoneEnabled(d_zones.size());
   size_t count = 0;
   bool allEmpty = true;
@@ -198,7 +208,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
       enabled = false;
     }
     else {
-      if (z->hasQNamePolicies()) {
+      if (z->hasQNamePolicies() || z->hasClientPolicies()) {
         allEmpty = false;
       }
       else {
@@ -211,35 +221,42 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
   }
 
   Policy pol;
-  if (!allEmpty) {
-    count = 0;
-    for(const auto& z : d_zones) {
-      if (zoneEnabled[count] && z->findExactQNamePolicy(qname, pol)) {
-        //      cerr<<"Had a hit on the name of the query"<<endl;
-        return pol;
-      }
-      ++count;
-    }
+  if (allEmpty) {
+    return pol;
+  }
 
-    DNSName s(qname);
-    while(s.chopOff()){
-      count = 0;
-      for(const auto& z : d_zones) {
-        if (zoneEnabled[count] && z->findExactQNamePolicy(g_wildcarddnsname+s, pol)) {
-          //      cerr<<"Had a hit on the name of the query"<<endl;
-          return pol;
-        }
-        ++count;
-      }
-    }
+  /* prepare the wildcard-based names */
+  std::vector<DNSName> wcNames;
+  wcNames.reserve(qname.countLabels());
+  DNSName s(qname);
+  while (s.chopOff()){
+    wcNames.emplace_back(g_wildcarddnsname+s);
   }
 
   count = 0;
-  for(const auto& z : d_zones) {
-    if (zoneEnabled[count] && z->findClientPolicy(ca, pol)) {
-      //	cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+  for (const auto& z : d_zones) {
+    if (!zoneEnabled[count]) {
+      ++count;
+      continue;
+    }
+
+    if (z->findExactQNamePolicy(qname, pol)) {
+      // cerr<<"Had a hit on the name of the query"<<endl;
       return pol;
     }
+
+    for (const auto& wc : wcNames) {
+      if (z->findExactQNamePolicy(wc, pol)) {
+        // cerr<<"Had a hit on the name of the query"<<endl;
+        return pol;
+      }
+    }
+
+    if (z->findClientPolicy(ca, pol)) {
+      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+      return pol;
+    }
+
     ++count;
   }
 
@@ -250,10 +267,10 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
 {
   Policy pol;
   ComboAddress ca;
-  for(const auto& r : records) {
-    if(r.d_place != DNSResourceRecord::ANSWER)
+  for (const auto& r : records) {
+    if (r.d_place != DNSResourceRecord::ANSWER)
       continue;
-    if(r.d_type == QType::A) {
+    if (r.d_type == QType::A) {
       if (auto rec = getRR<ARecordContent>(r)) {
         ca = rec->getCA();
       }
@@ -266,13 +283,13 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
     else
       continue;
 
-    for(const auto& z : d_zones) {
+    for (const auto& z : d_zones) {
       const auto zoneName = z->getName();
-      if(zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
+      if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
         continue;
       }
 
-      if(z->findResponsePolicy(ca, pol)) {
+      if (z->findResponsePolicy(ca, pol)) {
 	return pol;
       }
     }
