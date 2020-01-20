@@ -336,9 +336,8 @@ void TCPClientCollection::addTCPClientThread()
     }
 
     d_tcpclientthreads.push_back(pipefds[1]);
+    ++d_numthreads;
   }
-
-  ++d_numthreads;
 }
 
 static void cleanupClosedTCPConnections()
@@ -1339,7 +1338,9 @@ void tcpAcceptorThread(void* p)
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
 
-  g_tcpclientthreads->addTCPClientThread();
+  if(!g_tcpclientthreads->hasReachedMaxThreads()) {
+    g_tcpclientthreads->addTCPClientThread();
+  }
 
   auto acl = g_ACL.getLocal();
   for(;;) {

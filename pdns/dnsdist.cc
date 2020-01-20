@@ -45,6 +45,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
@@ -55,7 +56,6 @@
 #include "dolog.hh"
 #include "dnsname.hh"
 #include "dnsparser.hh"
-#include "dnswriter.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
 #include "lock.hh"
@@ -84,7 +84,6 @@ struct DNSDistStats g_stats;
 MetricDefinitionStorage g_metricDefinitions;
 
 uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
-bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
 bool g_allowEmptyResponse{false};
@@ -1834,145 +1833,10 @@ catch(...)
 uint16_t getRandomDNSID()
 {
 #ifdef HAVE_LIBSODIUM
-  return (randombytes_random() % 65536);
+  return randombytes_uniform(65536);
 #else
   return (random() % 65536);
 #endif
-}
-
-static bool upCheck(const shared_ptr<DownstreamState>& ds)
-try
-{
-  DNSName checkName = ds->checkName;
-  uint16_t checkType = ds->checkType.getCode();
-  uint16_t checkClass = ds->checkClass;
-  dnsheader checkHeader;
-  memset(&checkHeader, 0, sizeof(checkHeader));
-
-  checkHeader.qdcount = htons(1);
-  checkHeader.id = getRandomDNSID();
-
-  checkHeader.rd = true;
-  if (ds->setCD) {
-    checkHeader.cd = true;
-  }
-
-  if (ds->checkFunction) {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = ds->checkFunction(checkName, checkType, checkClass, &checkHeader);
-    checkName = std::get<0>(ret);
-    checkType = std::get<1>(ret);
-    checkClass = std::get<2>(ret);
-  }
-
-  vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, checkName, checkType, checkClass);
-  dnsheader * requestHeader = dpw.getHeader();
-  *requestHeader = checkHeader;
-
-  Socket sock(ds->remote.sin4.sin_family, SOCK_DGRAM);
-  sock.setNonBlocking();
-  if (!IsAnyAddress(ds->sourceAddr)) {
-    sock.setReuseAddr();
-    if (!ds->sourceItfName.empty()) {
-#ifdef SO_BINDTODEVICE
-      int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
-      if (res != 0 && g_verboseHealthChecks) {
-        infolog("Error setting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
-      }
-#endif
-    }
-    sock.bind(ds->sourceAddr);
-  }
-  sock.connect(ds->remote);
-  ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), reinterpret_cast<char*>(&packet[0]), packet.size(), true);
-  if (sent < 0) {
-    int ret = errno;
-    if (g_verboseHealthChecks)
-      infolog("Error while sending a health check query to backend %s: %d", ds->getNameWithAddr(), ret);
-    return false;
-  }
-
-  int ret = waitForRWData(sock.getHandle(), true, /* ms to seconds */ ds->checkTimeout / 1000, /* remaining ms to us */ (ds->checkTimeout % 1000) * 1000);
-  if(ret < 0 || !ret) { // error, timeout, both are down!
-    if (ret < 0) {
-      ret = errno;
-      if (g_verboseHealthChecks)
-        infolog("Error while waiting for the health check response from backend %s: %d", ds->getNameWithAddr(), ret);
-    }
-    else {
-      if (g_verboseHealthChecks)
-        infolog("Timeout while waiting for the health check response from backend %s", ds->getNameWithAddr());
-    }
-    return false;
-  }
-
-  string reply;
-  ComboAddress from;
-  sock.recvFrom(reply, from);
-
-  /* we are using a connected socket but hey.. */
-  if (from != ds->remote) {
-    if (g_verboseHealthChecks)
-      infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), ds->remote.toStringWithPort());
-    return false;
-  }
-
-  const dnsheader * responseHeader = reinterpret_cast<const dnsheader *>(reply.c_str());
-
-  if (reply.size() < sizeof(*responseHeader)) {
-    if (g_verboseHealthChecks)
-      infolog("Invalid health check response of size %d from backend %s, expecting at least %d", reply.size(), ds->getNameWithAddr(), sizeof(*responseHeader));
-    return false;
-  }
-
-  if (responseHeader->id != requestHeader->id) {
-    if (g_verboseHealthChecks)
-      infolog("Invalid health check response id %d from backend %s, expecting %d", responseHeader->id, ds->getNameWithAddr(), requestHeader->id);
-    return false;
-  }
-
-  if (!responseHeader->qr) {
-    if (g_verboseHealthChecks)
-      infolog("Invalid health check response from backend %s, expecting QR to be set", ds->getNameWithAddr());
-    return false;
-  }
-
-  if (responseHeader->rcode == RCode::ServFail) {
-    if (g_verboseHealthChecks)
-      infolog("Backend %s responded to health check with ServFail", ds->getNameWithAddr());
-    return false;
-  }
-
-  if (ds->mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
-    if (g_verboseHealthChecks)
-      infolog("Backend %s responded to health check with %s while mustResolve is set", ds->getNameWithAddr(), responseHeader->rcode == RCode::NXDomain ? "NXDomain" : "Refused");
-    return false;
-  }
-
-  uint16_t receivedType;
-  uint16_t receivedClass;
-  DNSName receivedName(reply.c_str(), reply.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
-
-  if (receivedName != checkName || receivedType != checkType || receivedClass != checkClass) {
-    if (g_verboseHealthChecks)
-      infolog("Backend %s responded to health check with an invalid qname (%s vs %s), qtype (%s vs %s) or qclass (%d vs %d)", ds->getNameWithAddr(), receivedName.toLogString(), checkName.toLogString(), QType(receivedType).getName(), QType(checkType).getName(), receivedClass, checkClass);
-    return false;
-  }
-
-  return true;
-}
-catch(const std::exception& e)
-{
-  if (g_verboseHealthChecks)
-    infolog("Error checking the health of backend %s: %s", ds->getNameWithAddr(), e.what());
-  return false;
-}
-catch(...)
-{
-  if (g_verboseHealthChecks)
-    infolog("Unknown exception while checking the health of backend %s", ds->getNameWithAddr());
-  return false;
 }
 
 uint64_t g_maxTCPClientThreads{10};
@@ -2071,68 +1935,27 @@ static void healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
-  int interval = 1;
+  static const int interval = 1;
 
   for(;;) {
     sleep(interval);
 
-    if(g_tcpclientthreads->getQueuedCount() > 1 && !g_tcpclientthreads->hasReachedMaxThreads())
+    if(g_tcpclientthreads->getQueuedCount() > 1 && !g_tcpclientthreads->hasReachedMaxThreads()) {
       g_tcpclientthreads->addTCPClientThread();
+    }
 
+    auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
-      if(++dss->lastCheck < dss->checkInterval)
+      if(++dss->lastCheck < dss->checkInterval) {
         continue;
+      }
+
       dss->lastCheck = 0;
-      if(dss->availability==DownstreamState::Availability::Auto) {
-        bool newState=upCheck(dss);
-        if (newState) {
-          /* check succeeded */
-          dss->currentCheckFailures = 0;
 
-          if (!dss->upStatus) {
-            /* we were marked as down */
-            dss->consecutiveSuccessfulChecks++;
-            if (dss->consecutiveSuccessfulChecks < dss->minRiseSuccesses) {
-              /* if we need more than one successful check to rise
-                 and we didn't reach the threshold yet,
-                 let's stay down */
-              newState = false;
-            }
-          }
-        }
-        else {
-          /* check failed */
-          dss->consecutiveSuccessfulChecks = 0;
-
-          if (dss->upStatus) {
-            /* we are currently up */
-            dss->currentCheckFailures++;
-            if (dss->currentCheckFailures < dss->maxCheckFailures) {
-              /* we need more than one failure to be marked as down,
-                 and we did not reach the threshold yet, let's stay down */
-              newState = true;
-            }
-          }
-        }
-
-        if(newState != dss->upStatus) {
-          warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
-
-          if (newState && !dss->connected) {
-            newState = dss->reconnect();
-
-            if (dss->connected && !dss->threadStarted.test_and_set()) {
-              dss->tid = thread(responderThread, dss);
-            }
-          }
-
-          dss->upStatus = newState;
-          dss->currentCheckFailures = 0;
-          dss->consecutiveSuccessfulChecks = 0;
-          if (g_snmpAgent && g_snmpTrapsEnabled) {
-            g_snmpAgent->sendBackendStatusChangeTrap(dss);
-          }
+      if (dss->availability == DownstreamState::Availability::Auto) {
+        if (!queueHealthCheck(mplexer, dss)) {
+          updateHealthCheckResult(dss, false);
         }
       }
 
@@ -2142,7 +1965,7 @@ static void healthChecksThread()
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
       
-      for(IDState& ids  : dss->idStates) { // timeouts
+      for (IDState& ids  : dss->idStates) { // timeouts
         int64_t usageIndicator = ids.usageIndicator;
         if(IDState::isInUse(usageIndicator) && ids.age++ > g_udpTimeout) {
           /* We mark the state as unused as soon as possible
@@ -2177,6 +2000,8 @@ static void healthChecksThread()
         }          
       }
     }
+
+    handleQueuedHealthChecks(mplexer);
   }
 }
 
@@ -2803,13 +2628,16 @@ try
 
   checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
+  auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
-    if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(dss);
-      warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
-      dss->upStatus = newState;
+    if (dss->availability == DownstreamState::Availability::Auto) {
+      if (!queueHealthCheck(mplexer, dss, true)) {
+        dss->upStatus = false;
+        warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
+      }
     }
   }
+  handleQueuedHealthChecks(mplexer, true);
 
   for(auto& cs : g_frontends) {
     if (cs->dohFrontend != nullptr) {

@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dnsdist-healthchecks.hh"
+
 #include "sstuff.hh"
 #include "ext/json11/json11.hpp"
 #include "ext/incbin/incbin.h"
