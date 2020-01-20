@@ -499,18 +499,28 @@ void setupLuaConfig(bool client, bool configCheck)
       } );
 
   g_lua.writeFunction("rmServer",
-                      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
+                      [](boost::variant<std::shared_ptr<DownstreamState>, int, std::string> var)
                       {
                         setLuaSideEffect();
-                        shared_ptr<DownstreamState> server;
-                        auto* rem = boost::get<shared_ptr<DownstreamState>>(&var);
+                        shared_ptr<DownstreamState> server = nullptr;
                         auto states = g_dstates.getCopy();
-                        if(rem) {
+                        if (auto* rem = boost::get<shared_ptr<DownstreamState>>(&var)) {
                           server = *rem;
+                        }
+                        else if (auto str = boost::get<std::string>(&var)) {
+                          const auto uuid = getUniqueID(*str);
+                          for (auto& state : states) {
+                            if (state->id == uuid) {
+                              server = state;
+                            }
+                          }
                         }
                         else {
                           int idx = boost::get<int>(var);
                           server = states.at(idx);
+                        }
+                        if (!server) {
+                          throw std::runtime_error("unable to locate the requested server");
                         }
                         auto localPools = g_pools.getCopy();
                         for (const string& poolName : server->pools) {
@@ -727,10 +737,25 @@ void setupLuaConfig(bool client, bool configCheck)
       return getDownstreamCandidates(g_pools.getCopy(), pool);
     });
 
-  g_lua.writeFunction("getServer", [client](int i) {
-      if (client)
+  g_lua.writeFunction("getServer", [client](boost::variant<unsigned int, std::string> i) {
+      if (client) {
         return std::make_shared<DownstreamState>(ComboAddress());
-      return g_dstates.getCopy().at(i);
+      }
+      auto states = g_dstates.getCopy();
+      if (auto str = boost::get<std::string>(&i)) {
+        const auto uuid = getUniqueID(*str);
+        for (auto& state : states) {
+          if (state->id == uuid) {
+            return state;
+          }
+        }
+      }
+      else if (auto pos = boost::get<unsigned int>(&i)) {
+        return states.at(*pos);
+      }
+
+      g_outputBuffer = "Error: no rule matched\n";
+      return std::shared_ptr<DownstreamState>(nullptr);
     });
 
   g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,

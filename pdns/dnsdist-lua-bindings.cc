@@ -118,6 +118,7 @@ void setupLuaBindings(bool client)
   );
   g_lua.registerMember("order", &DownstreamState::order);
   g_lua.registerMember("name", &DownstreamState::name);
+  g_lua.registerFunction<std::string(DownstreamState::*)()>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(s.id); });
 
   /* dnsheader */
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setRD", [](dnsheader& dh, bool v) {

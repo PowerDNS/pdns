@@ -434,9 +434,12 @@ Servers
 
 .. function:: getServer(index) -> Server
 
+  .. versionchanged:: 1.5.0
+    ``index`` might be an UUID.
+
   Get a :class:`Server`
 
-  :param int index: The number of the server (as seen in :func:`showServers`).
+  :param int or str index: The number of the server (as seen in :func:`showServers`) or its UUID as a string.
   :returns:  The :class:`Server` object or nil
 
 .. function:: getServers()
@@ -444,11 +447,15 @@ Servers
   Returns a table with all defined servers.
 
 .. function:: rmServer(index)
+              rmServer(uuid)
               rmServer(server)
+
+  .. versionchanged:: 1.5.0
+    ``uuid`` selection added.
 
   Remove a backend server.
 
-  :param int index: The number of the server (as seen in :func:`showServers`).
+  :param int or str index: The number of the server (as seen in :func:`showServers`), its UUID as a string, or a server object.
   :param Server server: A :class:`Server` object as returned by e.g. :func:`getServer`.
 
 Server Functions
