@@ -122,7 +122,7 @@ dnsdist_SOURCES = \
 	dnsdist-carbon.cc \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-dnscrypt.cc \
-	dnsdist-dynblocks.hh \
+	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.cc \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
@@ -204,6 +204,7 @@ testrunner_SOURCES = \
 	circular_buffer.hh \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-rings.hh \
