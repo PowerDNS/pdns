@@ -306,11 +306,9 @@ union ComboAddress {
     return ntohs(sin4.sin_port);
   }
 
-  ComboAddress setPort(uint16_t port) const
+  void setPort(uint16_t port)
   {
-    ComboAddress ret(*this);
-    ret.sin4.sin_port=htons(port);
-    return ret;
+    sin4.sin_port = htons(port);
   }
 
   void reset()
