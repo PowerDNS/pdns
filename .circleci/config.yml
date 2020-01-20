@@ -359,6 +359,7 @@ commands:
             libssl-dev \
             make \
             pkg-config \
+            python3-venv \
             ragel \
             rsync \
             virtualenv
@@ -867,6 +868,7 @@ jobs:
             libtool \
             make \
             pkg-config \
+            python3-venv \
             protobuf-compiler \
             ragel \
             systemd \
@@ -1123,6 +1125,7 @@ jobs:
             make \
             pkg-config \
             protobuf-compiler \
+            python3-venv \
             ragel \
             virtualenv
       - install-coverity-tools
@@ -1197,6 +1200,7 @@ jobs:
             make \
             pkg-config \
             protobuf-compiler \
+            python3-venv \
             ragel \
             virtualenv
       - install-coverity-tools
@@ -1273,6 +1277,7 @@ jobs:
             make \
             pkg-config \
             protobuf-compiler \
+            python3-venv \
             ragel \
             systemd \
             virtualenv

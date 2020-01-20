@@ -200,7 +200,7 @@ void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
 }
 
 
-static constexpr bool l_verbose=true;
+static constexpr bool l_verbose=false;
 static constexpr uint16_t maxCompressionOffset=16384;
 uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
 {
