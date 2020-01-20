@@ -254,6 +254,7 @@ commands:
               libyaml-cpp-dev \
               make \
               pkg-config \
+              python3-venv \
               ragel \
               sqlite3 \
               systemd \
