@@ -20,6 +20,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
         """
         name = 'refuseemptyar.recordscount.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -62,6 +63,7 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
         """
         name = 'refusetwoar.recordscount.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query.flags &= ~dns.flags.RD
         query.additional.append(dns.rrset.from_text(name,
                                                     3600,
                                                     dns.rdataclass.IN,
@@ -92,6 +94,7 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
         """
         name = 'refusenoan.recordscount.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -136,6 +139,7 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
         """
         name = 'refusefouran.recordscount.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query.flags &= ~dns.flags.RD
         rrset = dns.rrset.from_text_list(name,
                                          3600,
                                          dns.rdataclass.IN,
@@ -175,6 +179,7 @@ class TestRecordsCountNothingInNS(DNSDistTest):
                                     dns.rdatatype.NS,
                                     'ns.tests.powerdns.com.')
         query.authority.append(rrset)
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
         expectedResponse.authority.append(rrset)
@@ -226,6 +231,7 @@ class TestRecordsCountNoOPTInAR(DNSDistTest):
         """
         name = 'refuseoptinar.recordscount.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 

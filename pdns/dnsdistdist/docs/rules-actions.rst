@@ -960,24 +960,44 @@ The following actions exist.
   :param int v6: The IPv6 netmask length
 
 
-.. function:: ERCodeAction(rcode)
+.. function:: ERCodeAction(rcode [, options])
 
   .. versionadded:: 1.4.0
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Reply immediately by turning the query into a response with the specified EDNS extended ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The extended RCODE to respond with.
+  :param table options: A table with key: value pairs with options.
 
-.. function:: HTTPStatusAction(status, body, contentType="")
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+
+.. function:: HTTPStatusAction(status, body, contentType="" [, options])
 
   .. versionadded:: 1.4.0
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Return an HTTP response with a status code of ''status''. For HTTP redirects, ''body'' should be the redirect URL.
 
   :param int status: The HTTP status code to return.
   :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
   :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
 
@@ -1092,12 +1112,22 @@ The following actions exist.
   :param int maxqps: The QPS limit for that pool
   :param string poolname: The name of the pool
 
-.. function:: RCodeAction(rcode)
+.. function:: RCodeAction(rcode [, options])
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Reply immediately by turning the query into a response with the specified ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
 
@@ -1175,20 +1205,40 @@ The following actions exist.
 
   :param string message: The message to include
 
-.. function:: SpoofAction(ip[, ip[...]])
-              SpoofAction(ips)
+.. function:: SpoofAction(ip [, options])
+              SpoofAction(ips [, options])
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
 
   :param string ip: An IPv4 and/or IPv6 address to spoof
   :param {string} ips: A table of IPv4 and/or IPv6 addresses to spoof
+  :param table options: A table with key: value pairs with options.
 
-.. function:: SpoofCNAMEAction(cname)
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+
+.. function:: SpoofCNAMEAction(cname [, options])
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Forge a response with the specified CNAME value.
 
   :param string cname: The name to respond with
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: TagAction(name, value)
 

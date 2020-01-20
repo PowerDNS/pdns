@@ -321,6 +321,7 @@ class TestDOH(DNSDistDOHTest):
         name = 'refused.doh.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         query.id = 0
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 

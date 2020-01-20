@@ -732,6 +732,8 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         """
         name = 'qrateactiontruncated.dynblocks.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
                                     60,

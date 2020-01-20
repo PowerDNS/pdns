@@ -90,6 +90,8 @@ class TestBasics(DNSDistTest):
         """
         name = 'any.tests.powerdns.com.'
         query = dns.message.make_query(name, 'ANY', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.flags |= dns.flags.TC
 
@@ -201,6 +203,7 @@ class TestBasics(DNSDistTest):
         """
         name = 'evil4242.regex.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -243,6 +246,7 @@ class TestBasics(DNSDistTest):
         """
         name = 'nameAndQtype.tests.powerdns.com.'
         query = dns.message.make_query(name, 'TXT', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
 
@@ -396,6 +400,7 @@ class TestBasics(DNSDistTest):
         """
         name = 'dnsname.addaction.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -410,6 +415,7 @@ class TestBasics(DNSDistTest):
         """
         for name in ['dnsname-table{}.addaction.powerdns.com.'.format(i) for i in range(1,2)]:
             query = dns.message.make_query(name, 'A', 'IN')
+            query.flags &= ~dns.flags.RD
             expectedResponse = dns.message.make_response(query)
             expectedResponse.set_rcode(dns.rcode.REFUSED)
 

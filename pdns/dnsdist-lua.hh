@@ -21,6 +21,14 @@
  */
 #pragma once
 
+struct ResponseConfig
+{
+  boost::optional<bool> setAA{boost::none};
+  boost::optional<bool> setAD{boost::none};
+  boost::optional<bool> setRA{boost::none};
+};
+void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config);
+
 class LuaAction : public DNSAction
 {
 public:
@@ -72,6 +80,9 @@ public:
     }
     return ret;
   }
+
+
+  ResponseConfig d_responseConfig;
 private:
   std::vector<ComboAddress> d_addrs;
   DNSName d_cname;
