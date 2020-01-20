@@ -3809,12 +3809,12 @@ static void setupNODGlobal()
 }
 #endif /* NOD_ENABLED */
 
-static void checkDir(void)
+static void checkSocketDir(void)
 {
   struct stat st;
   string dir(::arg()["socket-dir"]);
   string msg;
-  
+
   if (stat(dir.c_str(), &st) == -1) {
     msg = "it does not exist or cannot access";
   }
@@ -4232,8 +4232,8 @@ static int serviceMain(int argc, char*argv[])
       g_log<<Logger::Info<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
 
-  checkDir();
-  
+  checkSocketDir();
+
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file
