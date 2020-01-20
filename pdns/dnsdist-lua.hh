@@ -84,13 +84,14 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
 
 typedef NetmaskTree<DynBlock> nmts_t;
 
+vector<std::function<void(void)>> setupLua(bool client, bool configCheck, const std::string& config);
 void setupLuaActions();
 void setupLuaBindings(bool client);
 void setupLuaBindingsDNSCrypt();
 void setupLuaBindingsDNSQuestion();
 void setupLuaBindingsKVS(bool client);
 void setupLuaBindingsPacketCache();
-void setupLuaBindingsProtoBuf(bool client);
+void setupLuaBindingsProtoBuf(bool client, bool configCheck);
 void setupLuaRules();
 void setupLuaInspection();
 void setupLuaVars();
