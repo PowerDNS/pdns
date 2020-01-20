@@ -107,6 +107,8 @@ PacketHandler::~PacketHandler()
 **/
 bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd)
 {
+  if (d_dk.isPresigned(p.qdomain)) return false;
+
   string publishCDNSKEY;
   d_dk.getFromMeta(p.qdomain, "PUBLISH-CDNSKEY", publishCDNSKEY);
   if (publishCDNSKEY != "1")
@@ -148,6 +150,8 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
 **/
 bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd)
 {
+  if (d_dk.isPresigned(p.qdomain)) return false;
+
   DNSZoneRecord rr;
   bool haveOne=false;
 
@@ -186,6 +190,8 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
 **/
 bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd)
 {
+  if (d_dk.isPresigned(p.qdomain)) return false;
+
   string publishCDS;
   d_dk.getFromMeta(p.qdomain, "PUBLISH-CDS", publishCDS);
   if (publishCDS.empty())
