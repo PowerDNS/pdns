@@ -148,6 +148,7 @@ Methods required for different features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 :Always required: ``initialize``, ``lookup``
 :Master operation: ``list``, ``getUpdatedMasters``, ``setNotified``
+:Slave operation: ``getUnfreshSlaveInfos``, ``startTransaction``, ``commitTransaction``, ``abortTransaction``, ``feedRecord``, ``setFresh``
 
 ``initialize``
 ~~~~~~~~~~~~~~
@@ -1557,6 +1558,92 @@ Response:
     Content-Length: 135
     {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"master"}]}
 
+``getUnfreshSlaveInfos``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Used to find out if slave zones need checking of the master's SOA Serial.
+
+-  Mandatory: no
+-  Parameters: none
+-  Reply: array of DomainInfo or at least the ``id``, ``zone``, ``serial`` and ``last_check`` fields
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method": "getUnfreshSlaveInfos", "parameters": {}}
+
+Response:
+
+.. code-block:: json
+
+    {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"serial":2,"last_check":1464693331,"kind":"slave"}]}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    GET /dnsapi/getUnfreshSlaveInfos HTTP/1.1
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; charset=utf-8
+    Content-Length: 135
+    {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"serial":2,"last_check":1464693331,"kind":"slave"}]}
+
+``setFresh``
+~~~~~~~~~~~~
+
+Called when a slave freshness check succeeded. This does not indicate the
+zone was updated on the master.
+
+-  Mandatory: No
+-  Parameters: id
+-  Reply: true for success, false for failure
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method":"setFresh","parameters":{"id":1}}
+
+Response:
+
+.. code-block:: json
+
+    {"result":true}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    PATCH /dnsapi/setFresh/1 HTTP/1.1
+    Content-Type: application/x-www-form-urlencoded
+    Content-Length: 0
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; charset=utf-8
+
+    {"result":true}
 
 
 Examples
