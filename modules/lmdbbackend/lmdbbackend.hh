@@ -55,7 +55,6 @@ public:
   bool get(DNSResourceRecord &rr) override;
   bool get(DNSZoneRecord& dzr) override;
 
-  bool getSOA(const DNSName &domain, SOAData &sd) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
   
   bool setMaster(const DNSName &domain, const string &ip) override;
@@ -259,11 +258,7 @@ private:
   
   bool get_list(DNSZoneRecord &rr);
   bool get_lookup(DNSZoneRecord &rr);
-  bool d_inlist{false};
-  QType d_lookuptype;                   // for get after lookup
   std::string d_matchkey;
-  int32_t d_lookupdomainid;            // for get after lookup
-  DNSName d_lookupqname;
   DNSName d_lookupdomain;
   
   DNSName d_transactiondomain;

@@ -518,11 +518,9 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
 
 bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
 {
-  d_inlist=true;
   DomainInfo di;
   {
     auto dtxn = d_tdomains->getROTransaction();
-    
     if((di.id = dtxn.get<0>(target, di))) 
       ; //      cout<<"Found domain "<<target<<" on domain_id "<<di.id <<", list requested "<<id<<endl;
     else {
@@ -530,22 +528,20 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
       return false;
     }
   }
-  
+
   d_rotxn = getRecordsROTransaction(di.id, d_rwtxn);
+  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+
   compoundOrdername co;
   d_matchkey = co(di.id);
-  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+
   MDBOutVal key, val;
-  d_inlist = true;
-  
   if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
     // cout<<"Found nothing for list"<<endl;
     d_getcursor.reset();
-    return true;
   }
-  
-  d_lookupqname = target;
-  
+
+  d_lookupdomain = target;
   return true;
 }
 
@@ -555,6 +551,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, 
     g_log << Logger::Warning << "Got lookup for "<<qdomain<<"|"<<type.getName()<<" in zone "<< zoneId<<endl;
     d_dtime.set();
   }
+
   DNSName hunt(qdomain);
   DomainInfo di;
   if(zoneId < 0) {
@@ -586,12 +583,11 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, 
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
   MDBOutVal key, val;
   if(type.getCode() == QType::ANY) {
-    d_matchkey = co(zoneId,relqname);
+    d_matchkey = co(zoneId, relqname);
   }
   else {
-    d_matchkey= co(zoneId,relqname, type.getCode());
+    d_matchkey= co(zoneId, relqname, type.getCode());
   }
-  d_inlist=false;
   
   if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
@@ -604,146 +600,68 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, 
   if(d_dolog) {
     g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" usec to execute"<<endl;
   }
-    
-  d_lookuptype=type;
-  d_lookupqname = qdomain;
+
   d_lookupdomain = hunt;
-  d_lookupdomainid = zoneId;
 }
+
 
 bool LMDBBackend::get(DNSZoneRecord& rr)
-{
-  if(d_inlist)
-    return get_list(rr);
-  else
-    return get_lookup(rr);
-}
-
-bool LMDBBackend::get(DNSResourceRecord& rr)
-{
-  //  cout <<"Old-school get called"<<endl;
-  DNSZoneRecord dzr;
-  if(d_inlist) {
-    if(!get_list(dzr))
-      return false;
-  }
-  else {
-    if(!get_lookup(dzr))
-      return false;
-  }
-  rr.qname = dzr.dr.d_name;
-  rr.ttl = dzr.dr.d_ttl;
-  rr.qtype =dzr.dr.d_type;
-  rr.content = dzr.dr.d_content->getZoneRepresentation(true);
-  rr.domain_id = dzr.domain_id;
-  rr.auth = dzr.auth;
-  //  cout<<"old school called for "<<rr.qname<<", "<<rr.qtype.getName()<<endl;
-  return true;
-}
-
-bool LMDBBackend::getSOA(const DNSName &domain, SOAData &sd)
-{
-  //  cout <<"Native getSOA called"<<endl;
-  lookup(QType(QType::SOA), domain, -1);
-  DNSZoneRecord dzr;
-  bool found=false;
-  while(get(dzr)) {
-    auto src = getRR<SOARecordContent>(dzr.dr);
-    sd.domain_id = dzr.domain_id;
-    sd.ttl = dzr.dr.d_ttl;
-    sd.qname = dzr.dr.d_name;
-    
-    sd.nameserver = src->d_mname;
-    sd.hostmaster = src->d_rname;
-    sd.serial = src->d_st.serial;
-    sd.refresh = src->d_st.refresh;
-    sd.retry = src->d_st.retry;
-    sd.expire = src->d_st.expire;
-    sd.default_ttl = src->d_st.minimum;
-    
-    sd.db = this;
-    found=true;
-  }
-  return found;
-}
-bool LMDBBackend::get_list(DNSZoneRecord& rr)
-{
-  for(;;) {
-    if(!d_getcursor)  {
-      d_rotxn.reset();
-      return false;
-    }
-    
-    MDBOutVal keyv, val;
-
-    d_getcursor->current(keyv, val);
-    DNSResourceRecord drr;
-    serFromString(val.get<string>(), drr);
-  
-    auto key = keyv.get<string_view>();
-    rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupqname;
-    rr.domain_id = compoundOrdername::getDomainID(key);
-    rr.dr.d_type = compoundOrdername::getQType(key).getCode();
-    rr.dr.d_ttl = drr.ttl;
-    rr.auth = drr.auth;
-  
-    if(rr.dr.d_type == QType::NSEC3) {
-      //      cout << "Had a magic NSEC3, skipping it" << endl;
-      if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
-        d_getcursor.reset();
-      }
-      continue;
-    }
-    rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
-    
-    if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
-      d_getcursor.reset();
-    }
-    break;
-  }
-  return true;
-}
-
-
-bool LMDBBackend::get_lookup(DNSZoneRecord& rr)
 {
   for(;;) {
     if(!d_getcursor) {
       d_rotxn.reset();
       return false;
     }
+
     MDBOutVal keyv, val;
     d_getcursor->current(keyv, val);
+
     DNSResourceRecord drr;
     serFromString(val.get<string>(), drr);
-    
+
     auto key = keyv.get<string_view>();
-    
-    rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
-    
-    rr.domain_id = compoundOrdername::getDomainID(key);
-    //  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
     rr.dr.d_type = compoundOrdername::getQType(key).getCode();
-    rr.dr.d_ttl = drr.ttl;
+
     if(rr.dr.d_type == QType::NSEC3) {
-      //      cout << "Hit a magic NSEC3 skipping" << endl;
+      // Hit a magic NSEC3 skipping
       if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
         d_getcursor.reset();
-        d_rotxn.reset();
       }
+
       continue;
     }
-    
+
+    rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
+    rr.domain_id = compoundOrdername::getDomainID(key);
+    rr.dr.d_ttl = drr.ttl;
     rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
     rr.auth = drr.auth;
+
     if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
       d_getcursor.reset();
-      d_rotxn.reset();
     }
+
     break;
   }
 
-  
+  return true;
+}
+
+
+bool LMDBBackend::get(DNSResourceRecord& rr)
+{
+  DNSZoneRecord dzr;
+  if(!get(dzr)) {
+    return false;
+  }
+
+  rr.qname = dzr.dr.d_name;
+  rr.ttl = dzr.dr.d_ttl;
+  rr.qtype = dzr.dr.d_type;
+  rr.content = dzr.dr.d_content->getZoneRepresentation(true);
+  rr.domain_id = dzr.domain_id;
+  rr.auth = dzr.auth;
+
   return true;
 }
 
