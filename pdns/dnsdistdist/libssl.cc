@@ -72,7 +72,11 @@ static int s_keyLogIndex{-1};
 void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && !defined LIBRESSL_VERSION_NUMBER)
+    /* load the default configuration file (or one specified via OPENSSL_CONF),
+       which can then be used to load engines */
+    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, nullptr);
+#else /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER) */
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
     openssl_thread_setup();
