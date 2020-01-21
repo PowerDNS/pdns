@@ -61,16 +61,16 @@ bool addDS(const DNSName& domain, uint32_t ttl, std::vector<DNSRecord>& records,
 
 void addNSECRecordToLW(const DNSName& domain, const DNSName& next, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records);
 
-void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext, const std::string& salt, unsigned int iterations, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records);
+void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& hashedNext, const std::string& salt, unsigned int iterations, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, bool optOut = false);
 
-void addNSEC3UnhashedRecordToLW(const DNSName& domain, const DNSName& zone, const std::string& next, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10);
+void addNSEC3UnhashedRecordToLW(const DNSName& domain, const DNSName& zone, const std::string& next, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10, bool optOut = false);
 
-void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10);
+void addNSEC3NarrowRecordToLW(const DNSName& domain, const DNSName& zone, const std::set<uint16_t>& types, uint32_t ttl, std::vector<DNSRecord>& records, unsigned int iterations = 10, bool OptOut = false);
 
 void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys);
 
 void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys, map<DNSName, dsmap_t>& dsAnchors);
 
-int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut = true, boost::optional<time_t> now = boost::none);
+int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut = true, boost::optional<time_t> now = boost::none, bool nsec3 = false, bool optOut = false);
 
 int basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type);

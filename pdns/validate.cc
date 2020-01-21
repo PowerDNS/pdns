@@ -535,7 +535,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   if (needWildcardProof) {
     /* We now need to look for a NSEC3 covering the closest (provable) encloser
        RFC 5155 section-7.2.1
-       FRC 7129 section-5.5
+       RFC 7129 section-5.5
     */
     LOG("Now looking for the closest encloser for "<<qname<<endl);
 
@@ -599,7 +599,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
   if (found == true) {
     /* now that we have found the closest (provable) encloser,
-       we can construct the next closer (FRC7129 section-5.5) name
+       we can construct the next closer (RFC7129 section-5.5) name
        and look for a NSEC3 RR covering it */
     unsigned int labelIdx = qname.countLabels() - closestEncloser.countLabels();
     if (labelIdx >= 1) {
