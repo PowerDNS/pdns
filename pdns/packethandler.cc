@@ -784,10 +784,11 @@ int PacketHandler::trySuperMaster(const DNSPacket& p, const DNSName& tsigkeyname
 
 int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname)
 {
-  ComboAddress remote = p.getRemote().setPort(53);
+  ComboAddress remote = p.getRemote();
   if(p.hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
-    remote = p.getRealRemote().getNetwork().setPort(53);
+    remote = p.getRealRemote().getNetwork();
   }
+  remote.setPort(53);
 
   Resolver::res_t nsset;
   try {
