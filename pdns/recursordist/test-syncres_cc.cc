@@ -438,7 +438,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
         /* sign the SOA */
         addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
         /* add a NSEC denying the DS */
-        std::set<uint16_t> types = { nsec3 ? QType::NSEC : QType::NSEC3 };
+        std::set<uint16_t> types = {nsec3 ? QType::NSEC : QType::NSEC3};
         if (proveCut) {
           types.insert(QType::NS);
         }
