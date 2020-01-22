@@ -227,3 +227,14 @@ memory used for the signature caches. In addition, on startup or
 AXFR-serving, a lot of signing needs to happen.
 
 Most best practices are documented in :rfc:`6781`.
+
+Some notes on TTL usage
+-----------------------
+
+In zones signed by PowerDNS (so non-presigned zones), some TTL values need to be filled in by PowerDNS.
+The TTL of RRSIG record sets is the TTL of the covered RRset.
+For CDS, CDNSKEY, DNSKEY, NSEC, NSEC3 and NSEC3PARAM, we use the SOA default TTL (the last number in the SOA record).
+Except for CDS/CDNSKEY/DNSKEY, these TTLs are chosen because `RFC 4034 <https://tools.ietf.org/html/rfc4034>`__ demands it so.
+
+If you want a 'normal' TTL (3600, 86400, etc.) for your DNSKEY but a low TTL on negative answers, set your SOA default TTL to the high number, and set the TTL on the SOA record itself to the low TTL you want for negative answers.
+Note that the NSEC/NSEC3 records proving those negatives will get the high TTL in that case, and this may affect subsequent resolution in resolvers that do aggressive NSEC caching (`RFC 8198 <https://tools.ietf.org/html/rfc8198>`__).
