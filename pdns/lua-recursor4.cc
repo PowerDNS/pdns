@@ -263,6 +263,7 @@ void RecursorLua4::postPrepareContext()
       pol.d_name = std::make_shared<std::string>(name);
     });
   d_lw->registerMember("policyKind", &DNSFilterEngine::Policy::d_kind);
+  d_lw->registerMember("policyType", &DNSFilterEngine::Policy::d_type);
   d_lw->registerMember("policyTTL", &DNSFilterEngine::Policy::d_ttl);
   d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyCustom",
     [](const DNSFilterEngine::Policy& pol) -> std::string {

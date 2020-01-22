@@ -1326,7 +1326,7 @@ static void startDoResolve(void *p)
     }
 
     // Check if the query has a policy attached to it
-    if (wantsRPZ) {
+    if (wantsRPZ && appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
       appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies);
     }
 
@@ -1372,15 +1372,19 @@ static void startDoResolve(void *p)
 
       // Query got not handled for QNAME Policy reasons, now actually go out to find an answer
       try {
+        sr.d_appliedPolicy = appliedPolicy;
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
       }
-      catch(ImmediateServFailException &e) {
-        if(g_logCommonErrors)
+      catch(const ImmediateServFailException &e) {
+        if(g_logCommonErrors) {
           g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+        }
         res = RCode::ServFail;
       }
-
+      catch(const PolicyHitException& e) {
+        res = -2;
+      }
       dq.validationState = sr.getValidationState();
 
       // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
@@ -1424,7 +1428,7 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (wantsRPZ) {
+      if (wantsRPZ && appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
         appliedPolicy = luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies);
       }
 
@@ -1559,7 +1563,7 @@ static void startDoResolve(void *p)
             }
           }
         }
-        catch(ImmediateServFailException &e) {
+        catch(const ImmediateServFailException &e) {
           if(g_logCommonErrors)
             g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<"' because: "<<e.reason<<endl;
           pw.getHeader()->rcode=RCode::ServFail;
@@ -2939,17 +2943,20 @@ static void houseKeeping(void *)
 	try {
 	  doSecPoll(&last_secpoll);
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
         {
           g_log<<Logger::Error<<"Exception while performing security poll: "<<e.what()<<endl;
         }
-        catch(PDNSException& e)
+        catch(const PDNSException& e)
         {
           g_log<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
         }
-        catch(ImmediateServFailException &e)
+        catch(const ImmediateServFailException &e)
         {
           g_log<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
+        }
+        catch(const PolicyHitException& e) {
+          g_log<<Logger::Error<<"Policy hit while performing security poll"<<endl;
         }
         catch(...)
         {
