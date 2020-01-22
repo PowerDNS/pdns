@@ -814,7 +814,7 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   }
 
   Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
-  const ComboAddress requestor = requestorNM.getMaskedNetwork();
+  ComboAddress requestor = requestorNM.getMaskedNetwork();
   requestor.setPort(remote.getPort());
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
   message.setServerIdentity(SyncRes::s_serverID);
