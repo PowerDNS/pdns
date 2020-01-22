@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 30
+# serial 31
 ], [#
 ], [])])
 
@@ -664,6 +664,8 @@ LDFLAGS=$boost_filesystem_save_LDFLAGS
 # * The signatures of make_fcontext() and jump_fcontext were changed in 1.56.0
 # * A dependency on boost_thread appears in 1.57.0
 # * The implementation details were moved to boost::context::detail in 1.61.0
+# * 1.61 also introduces execution_context_v2, which is the "lowest common
+#   denominator" for boost::context presence since then.
 BOOST_DEFUN([Context],
 [boost_context_save_LIBS=$LIBS
  boost_context_save_LDFLAGS=$LDFLAGS
@@ -676,25 +678,29 @@ fi
 
 if test $boost_major_version -ge 161; then
 BOOST_FIND_LIB([context], [$1],
-                [boost/context/continuation.hpp], [[
+                [boost/context/execution_context_v2.hpp], [[
 namespace ctx=boost::context;
-int a;
-ctx::continuation source=ctx::callcc(
-    [&a](ctx::continuation && sink){
-        a=0;
+int res=0;
+int n=35;
+ctx::execution_context<int> source(
+    [n, &res](ctx::execution_context<int> sink, int) mutable {
+        int a=0;
         int b=1;
-        for(;;){
-            sink=sink.resume();
-            int next=a+b;
+        while(n-->0){
+            auto result=sink(a);
+            sink=std::move(std::get<0>(result));
+            auto next=a+b;
             a=b;
             b=next;
         }
-        return std::move(sink);
+        return sink;
     });
-for (int j=0;j<10;++j) {
-    source=source.resume();
+for(int i=0;i<10;++i){
+    auto result=source(i);
+    source=std::move(std::get<0>(result));
+    res = std::get<1>(result);
 }
-return a == 34;
+return res == 34;
 ]], [], [], [$2])
 
 else
