@@ -772,7 +772,7 @@ struct DownstreamState
     pthread_rwlock_destroy(&d_lock);
   }
   boost::uuids::uuid id;
-  std::set<unsigned int> hashes;
+  std::vector<unsigned int> hashes;
   mutable pthread_rwlock_t d_lock;
   std::vector<int> sockets;
   const std::string sourceItfName;

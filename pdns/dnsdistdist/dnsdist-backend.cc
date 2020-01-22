@@ -98,12 +98,14 @@ void DownstreamState::hash()
   auto w = weight;
   WriteLock wl(&d_lock);
   hashes.clear();
+  hashes.reserve(w);
   while (w > 0) {
     std::string uuid = boost::str(boost::format("%s-%d") % id % w);
-    unsigned int wshash = burtleCI((const unsigned char*)uuid.c_str(), uuid.size(), g_hashperturb);
-    hashes.insert(wshash);
+    unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), g_hashperturb);
+    hashes.push_back(wshash);
     --w;
   }
+  std::sort(hashes.begin(), hashes.end());
 }
 
 void DownstreamState::setId(const boost::uuids::uuid& newId)

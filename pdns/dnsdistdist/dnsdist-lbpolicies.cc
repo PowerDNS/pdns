@@ -147,7 +147,7 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
           first = server;
         }
 
-        auto hash_it = server->hashes.lower_bound(qhash);
+        auto hash_it = std::lower_bound(server->hashes.begin(), server->hashes.end(), qhash);
         if (hash_it != server->hashes.end()) {
           if (*hash_it < sel) {
             sel = *hash_it;
