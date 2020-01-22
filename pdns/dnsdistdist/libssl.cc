@@ -19,7 +19,7 @@
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
 static pthread_mutex_t *openssllocks{nullptr};
 
@@ -62,7 +62,7 @@ static void openssl_thread_cleanup()
   OPENSSL_free(openssllocks);
 }
 
-#endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER) */
+#endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL) */
 
 static std::atomic<uint64_t> s_users;
 static int s_ticketsKeyIndex{-1};
@@ -72,11 +72,13 @@ static int s_keyLogIndex{-1};
 void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && !defined LIBRESSL_VERSION_NUMBER)
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && (!defined LIBRESSL_VERSION_NUMBER || LIBRESSL_VERSION_NUMBER >= 0x2070000fL))
     /* load the default configuration file (or one specified via OPENSSL_CONF),
        which can then be used to load engines */
     OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, nullptr);
-#else /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER) */
+#endif
+
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
     openssl_thread_setup();
@@ -104,7 +106,7 @@ void registerOpenSSLUser()
 void unregisterOpenSSLUser()
 {
   if (s_users.fetch_sub(1) == 1) {
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     ERR_free_strings();
 
     EVP_cleanup();
