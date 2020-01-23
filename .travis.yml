@@ -24,6 +24,8 @@ before_script:
   - export CXXFLAGS=-O0
   - export OPTFLAGS=-O0
   - sudo apt-get -qq update
+  - pyenv global 3.6
+  - pip install virtualenv
 
 script:
   - ./build-scripts/travis.sh
