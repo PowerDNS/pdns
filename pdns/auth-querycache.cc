@@ -109,9 +109,17 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vect
 
     if (!inserted) {
       mc.d_map.replace(place, val);
+      moveCacheItemToBack<SequencedTag>(mc.d_map, place);
     }
     else {
-      (*d_statnumentries)++;
+      if (*d_statnumentries >= d_maxEntries) {
+        /* remove the least recently inserted or replaced entry */
+        auto& sidx = mc.d_map.get<SequencedTag>();
+        sidx.pop_front();
+      }
+      else {
+        (*d_statnumentries)++;
+      }
     }
   }
 }
