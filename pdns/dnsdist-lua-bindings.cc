@@ -60,7 +60,9 @@ void setupLuaBindings(bool client)
   g_lua.writeFunction("newServerPolicy", [](string name, ServerPolicy::policyfunc_t policy) { return std::make_shared<ServerPolicy>(name, policy, true);});
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
+  g_lua.registerMember("ffipolicy", &ServerPolicy::ffipolicy);
   g_lua.registerMember("isLua", &ServerPolicy::isLua);
+  g_lua.registerMember("isFFI", &ServerPolicy::isFFI);
   g_lua.registerFunction("toString", &ServerPolicy::toString);
 
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, false});
