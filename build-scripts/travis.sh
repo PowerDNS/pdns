@@ -644,7 +644,7 @@ run "sudo apt-get -qq --no-install-recommends install \
   libedit-dev \
   libprotobuf-dev \
   python3 \
-  python3.4-venv \
+  python3.6-venv \
   protobuf-compiler"
 
 run "cd .."
