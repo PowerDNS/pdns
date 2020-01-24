@@ -667,7 +667,7 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
       }
     }
   } else {
-    throw MOADNSException("Asked to decode APL record but got unknown Address Family "+d_family);
+    throw MOADNSException("Asked to decode APL record but got unknown Address Family");
   }
 
   nm = Netmask(ca, d_prefix);
