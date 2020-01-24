@@ -181,9 +181,13 @@ public:
     if(d_ourDB)
       delete d_keymetadb;
   }
+
+  static uint64_t dbdnssecCacheSizes(const std::string& str);
+  static void clearAllCaches();
+  static void clearCaches(const DNSName& name);
+
   bool doesDNSSEC();
   bool isSecuredZone(const DNSName& zone);
-  static uint64_t dbdnssecCacheSizes(const std::string& str);
   keyset_t getEntryPoints(const DNSName& zname);
   keyset_t getKeys(const DNSName& zone, bool useCache = true);
   DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
@@ -198,8 +202,6 @@ public:
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   bool unsetNSEC3PARAM(const DNSName& zname);
-  void clearAllCaches();
-  void clearCaches(const DNSName& name);
   bool getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname, const DNSName& wildcardname, const QType& qtype, DNSResourceRecord::Place, vector<DNSZoneRecord>& rrsigs, uint32_t signTTL);
   bool isPresigned(const DNSName& zname);
   bool setPresigned(const DNSName& zname);
