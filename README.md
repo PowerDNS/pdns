@@ -48,7 +48,7 @@ compiler with C++-2011 support.
 On Debian 9, the following is useful:
 
 ```sh
-apt install g++ libboost-all-dev libtool make pkg-config default-libmysqlclient-dev libssl-dev virtualenv
+apt install g++ libboost-all-dev libtool make pkg-config default-libmysqlclient-dev libssl-dev virtualenv libluajit-5.1-dev
 ```
 
 When building from git, the following packages are also required:
@@ -82,7 +82,7 @@ autoreconf -vi
 To compile a very clean version, use:
 
 ```sh
-./configure --with-modules="" --without-lua --disable-lua-records
+./configure --with-modules="" --disable-lua-records
 make
 # make install
 ```
@@ -219,7 +219,7 @@ Homebrew. You need to tell configure where to find OpenSSL, too.
 
 ```sh
 brew install boost lua pkg-config ragel openssl
-./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+./configure --with-modules="" PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
 make -j4
 ```
 
