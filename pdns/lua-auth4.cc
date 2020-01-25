@@ -1,7 +1,5 @@
 #include "config.h"
-#if defined(HAVE_LUA)
 #include "ext/luawrapper/include/LuaContext.hpp"
-#endif
 #include "lua-auth4.hh"
 #include "stubresolver.hh"
 #include <fstream>
@@ -17,25 +15,6 @@
 #include "ueberbackend.hh"
 
 AuthLua4::AuthLua4() { prepareContext(); }
-
-#if !defined(HAVE_LUA)
-
-bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, const DNSPacket& packet) { return false; }
-bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) { return false; }
-LuaContext* AuthLua4::getLua() { return nullptr; }
-std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) { return nullptr; }
-
-AuthLua4::~AuthLua4() { }
-
-void AuthLua4::postPrepareContext()
-{
-}
-
-void AuthLua4::postLoad()
-{
-}
-
-#else
 
 LuaContext* AuthLua4::getLua()
 {
@@ -187,6 +166,3 @@ std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
 }
 
 AuthLua4::~AuthLua4() { }
-
-
-#endif
