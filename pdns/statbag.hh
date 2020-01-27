@@ -45,7 +45,8 @@ public:
   
   void account(const T &item);
 
-  unsigned int getSize();
+  uint64_t getSize() const;
+  uint64_t getEntriesCount() const;
   void resize(unsigned int newsize);  
   void reset();
   void setHelp(const string &str);
@@ -77,6 +78,8 @@ class StatBag
   funcstats_t d_funcstats;
   bool d_doRings;
   std::set<string> d_blacklist;
+
+  void registerRingStats(const string& name);
 
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
@@ -124,7 +127,8 @@ public:
   bool ringExists(const string &name);
   void resetRing(const string &name);
   void resizeRing(const string &name, unsigned int newsize);
-  unsigned int getRingSize(const string &name);
+  uint64_t getRingSize(const string &name);
+  uint64_t getRingEntriesCount(const string &name);
 
   string directory(); //!< Returns a list of all data stored
   vector<string> getEntries(); //!< returns a vector with datums (items)
