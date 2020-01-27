@@ -121,16 +121,6 @@ public:
     return ret;
   }
 
-  shared_ptr<T> getWRITABLE()
-  {
-    shared_ptr<T> ret;
-    {
-      std::lock_guard<std::mutex> lock(s_lock);
-      ret = d_records;
-    }
-    return ret;
-  }
-
 private:
   static std::mutex s_lock;
   shared_ptr<T> d_records;
@@ -225,8 +215,7 @@ public:
   static pthread_rwlock_t s_state_lock;
 
   void parseZoneFile(BB2DomainInfo *bbd);
-  void insertRecord(BB2DomainInfo& bbd, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
-  void rediscover(string *status=0) override;
+  void rediscover(string *status=nullptr) override;
 
 
   // for supermaster support
@@ -242,7 +231,6 @@ private:
   static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
   static bool safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd);
   static bool safeRemoveBBDomainInfo(const DNSName& name);
-  bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
@@ -303,17 +291,16 @@ private:
   BB2DomainInfo createDomainEntry(const DNSName& domain, const string &filename); //!< does not insert in s_state
 
   void queueReloadAndStore(unsigned int id);
-  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+  static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+  static void insertRecord(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=nullptr);
   void reload() override;
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static void fixupOrderAndAuth(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
-  void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
-  void loadConfig(string *status=0);
-  static void nukeZoneRecords(BB2DomainInfo *bbd);
-
+  static void fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
+  static void doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
+  void loadConfig(string *status=nullptr);
 };
 
 #endif /* PDNS_BINDBACKEND_HH */
