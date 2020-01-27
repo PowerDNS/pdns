@@ -178,9 +178,11 @@ commands:
           apt-get install -qq -y --no-install-recommends \
             libboost-all-dev \
             libcdb1 \
+            libcurl4 \
             libkrb5-3 \
             libldap-2.4-2 \
             liblmdb0 \
+            libluajit-5.1-2 \
             libpq5 \
             libssl1.1 \
             libsodium23 \
@@ -242,9 +244,11 @@ commands:
               git \
               libboost-all-dev \
               libcdb-dev \
+              libcurl4-openssl-dev \
               libkrb5-dev \
               libldap2-dev \
               liblmdb-dev \
+              libluajit-5.1-dev \
               libpq-dev \
               libsodium-dev \
               libsqlite3-dev \
@@ -522,8 +526,7 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
-              --disable-lua-records \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns lua2' \
               --enable-systemd \
               --enable-tools \
               --with-lmdb=/usr \

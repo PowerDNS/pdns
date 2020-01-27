@@ -4,19 +4,12 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-class LuaContext;
-
-#if defined(HAVE_LUA)
 #include "ext/luawrapper/include/LuaContext.hpp"
-#endif
 
 class BaseLua4 : public boost::noncopyable
 {
 protected:
-#ifdef HAVE_LUA
   std::unique_ptr<LuaContext> d_lw; // this is way on top because it must get destroyed _last_
-#endif
 
 public:
   BaseLua4();

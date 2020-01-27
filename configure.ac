@@ -45,7 +45,7 @@ m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-con
 PDNS_CHECK_OS
 PTHREAD_SET_NAME
 
-PDNS_WITH_LUA
+PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
 
 AX_CXX_COMPILE_STDCXX_11
@@ -205,12 +205,7 @@ for a in $modules $dynmodules; do
       PDNS_CHECK_GEOIP
       ;;
     lua*)
-      AS_IF([test "x$with_lua" = "xno"],
-        [AC_MSG_ERROR([${a} backend needs lua, run ./configure --with-lua])]
-      )
-      AS_IF([test "x$LUAPC" = "x"],
-        [AC_MSG_ERROR([${a} backend needs lua but we cannot find it])]
-      )
+      dnl Lua has been checked above
       ;;
     lmdb)
       needlmdb=yes
