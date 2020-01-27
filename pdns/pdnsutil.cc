@@ -1457,15 +1457,6 @@ void verifyCrypto(const string& zone)
     cerr<<"Calculated DS: "<<apex.toString()<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex.toString()<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
-#if 0
-  std::shared_ptr<DNSCryptoKeyEngine> key=DNSCryptoKeyEngine::makeFromISCString(drc, "Private-key-format: v1.2\n"
-      "Algorithm: 12 (ECC-GOST)\n"
-      "GostAsn1: MEUCAQAwHAYGKoUDAgITMBIGByqFAwICIwEGByqFAwICHgEEIgQg/9MiXtXKg9FDXDN/R9CmVhJDyuzRAIgh4tPwCu4NHIs=\n");
-  string resign=key->sign(hash);
-  cerr<<Base64Encode(resign)<<endl;
-  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, resign)<<endl;
-#endif
-
 }
 bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
 {
