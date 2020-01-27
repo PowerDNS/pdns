@@ -191,10 +191,18 @@ bool DNSSECKeeper::activateKey(const DNSName& zname, unsigned int id)
   return d_keymetadb->activateDomainKey(zname, id);
 }
 
+void DNSSECKeeper::getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue)
+{
+  if (getFromMeta(zname, key, value))
+    return;
+  else
+    value = defaultvalue;
+}
 
-void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std::string& value)
+bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std::string& value)
 {
   static int ttl = ::arg().asNum("domain-metadata-cache-ttl");
+  bool isset = false;
   value.clear();
   unsigned int now = time(0);
 
@@ -208,13 +216,15 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
     if(iter != s_metacache.end() && iter->d_ttd > now) {
       value = iter->d_value;
-      return;
+      return iter->d_isset;
     }
   }
   vector<string> meta;
   d_keymetadb->getDomainMetadata(zname, key, meta);
-  if(!meta.empty())
+  if(!meta.empty()) {
     value=*meta.begin();
+    isset = true;
+  }
 
   if (ttl > 0) {
     METACacheEntry nce;
@@ -222,11 +232,13 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     nce.d_ttd = now + ttl;
     nce.d_key= key;
     nce.d_value = value;
+    nce.d_isset = isset;
     {
       WriteLock l(&s_metacachelock);
       lruReplacingInsert<SequencedTag>(s_metacache, nce);
     }
   }
+  return isset;
 }
 
 void DNSSECKeeper::getSoaEdit(const DNSName& zname, std::string& value)
@@ -376,6 +388,11 @@ bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", meta);
 }
 
+void DNSSECKeeper::getPublishCDS(const DNSName& zname, std::string& value)
+{
+  getFromMetaOrDefault(zname, "PUBLISH-CDS", value, ::arg()["default-publish-cds"]);
+}
+
 /**
  * Remove domainmetadata to stop publishing CDS records for zone zname
  *
@@ -400,6 +417,11 @@ bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
   vector<string> meta;
   meta.push_back("1");
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta);
+}
+
+void DNSSECKeeper::getPublishCDNSKEY(const DNSName& zname, std::string& value)
+{
+  getFromMetaOrDefault(zname, "PUBLISH-CDNSKEY", value, ::arg()["default-publish-cdnskey"]);
 }
 
 /**

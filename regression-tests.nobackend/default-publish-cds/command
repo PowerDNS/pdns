@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+bindwait ()
+{
+	configname=$1
+	domcount=1
+	loopcount=0
+	while [ $loopcount -lt 20 ]; do
+		sleep 1
+		done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		if [ $done = $domcount ]
+			then
+			return
+		fi
+		let loopcount=loopcount+1
+	done
+	if [ $done != $domcount ]; then
+		echo "Domain parsing failed" >> failed_tests
+	fi
+}
+
+port=5503
+rm -f pdns*.pid
+
+rm -f default-publish-cds/bind-dnssec.db
+
+$PDNSUTIL --config-dir=default-publish-cds create-bind-db default-publish-cds/bind-dnssec.db
+$PDNSUTIL --config-dir default-publish-cds/ import-zone-key minimal.com ../regression-tests/secure-delegated.dnssec-parent.com.private
+
+$PDNS --config-dir=default-publish-cds &
+bindwait
+
+$SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com 2
+$SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com ''
+$SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$PDNSUTIL --config-dir=default-publish-cds unset-publish-cds minimal.com
+$SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

@@ -167,6 +167,8 @@ Also see ``set-presigned`` in :doc:`pdnsutil <dnssec/pdnsutil>`.
 If a zone is presigned, the content of the metadata must be "1" (without
 the quotes). Any other value will not signal presignedness.
 
+.. _metadata-publish-cdnskey-publish-cds:
+
 PUBLISH-CDNSKEY, PUBLISH-CDS
 ----------------------------
 
@@ -183,6 +185,8 @@ This metadata can also be set using the
 :doc:`pdnsutil <dnssec/pdnsutil>` commands ``set-publish-cdnskey``
 and ``set-publish-cds``. For an example for an :rfc:`7344` key rollover,
 see the :doc:`guides/kskrollcdnskey`.
+
+Global defaults for these values can be set via :ref:`setting-default-publish-cdnskey` and :ref:`setting-default-publish-cds`.
 
 .. _metadata-slave-renotify:
 

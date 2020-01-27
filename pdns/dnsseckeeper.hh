@@ -207,8 +207,10 @@ public:
   bool setPresigned(const DNSName& zname);
   bool unsetPresigned(const DNSName& zname);
   bool setPublishCDNSKEY(const DNSName& zname);
+  void getPublishCDNSKEY(const DNSName& zname, std::string& value);
   bool unsetPublishCDNSKEY(const DNSName& zname);
   bool setPublishCDS(const DNSName& zname, const string& digestAlgos);
+  void getPublishCDS(const DNSName& zname, std::string& value);
   bool unsetPublishCDS(const DNSName& zname);
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
@@ -224,7 +226,8 @@ public:
     (*d_keymetadb->backends.begin())->commitTransaction();
   }
   
-  void getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
+  void getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
+  bool getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value);
   bool unSecureZone(const DNSName& zone, std::string& error, std::string& info);
   bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
@@ -254,6 +257,7 @@ private:
   
     DNSName d_domain;
     mutable std::string d_key, d_value;
+    mutable bool d_isset;
     unsigned int d_ttd;
   
   };
