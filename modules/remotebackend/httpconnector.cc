@@ -238,6 +238,9 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
         req.POST()["serial"] = std::to_string(parameters["serial"].number_value());
         req.preparePost();
         verb = "PATCH";
+    } else if (method == "setFresh") {
+        req.preparePost();
+        verb = "PATCH";
     } else if (method == "directBackendCmd") {
         req.POST()["query"] = parameters["query"].string_value();
         req.preparePost();

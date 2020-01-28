@@ -192,6 +192,8 @@ class RemoteBackend : public DNSBackend
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
   void getUpdatedMasters(vector<DomainInfo>* domains) override;
   void alsoNotifies(const DNSName &domain, set<string> *ips) override;
+  void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void setFresh(uint32_t domain_id) override;
 
   static DNSBackend *maker();
 

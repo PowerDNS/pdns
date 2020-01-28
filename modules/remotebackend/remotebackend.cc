@@ -973,6 +973,40 @@ void RemoteBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
+void RemoteBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
+  Json query = Json::object{
+   { "method", "getUnfreshSlaveInfos" },
+   { "parameters", Json::object{ } },
+  };
+
+  Json answer;
+  if (this->send(query) == false || this->recv(answer) == false)
+    return;
+
+  if (answer["result"].is_array() == false)
+    return;
+
+  for(const auto& row: answer["result"].array_items()) {
+    DomainInfo di;
+    this->parseDomainInfo(row, di);
+    domains->push_back(di);
+  }
+}
+
+void RemoteBackend::setFresh(uint32_t domain_id) {
+   Json query = Json::object{
+     { "method", "setFresh" },
+     { "parameters", Json::object {
+       { "id", static_cast<double>(domain_id) }
+     }}
+   };
+
+   Json answer;
+   if (this->send(query) == false || this->recv(answer) == false) {
+      g_log<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setFresh("<<domain_id<<")"<<endl;
+   }
+}
+
 DNSBackend *RemoteBackend::maker()
 {
    try {
