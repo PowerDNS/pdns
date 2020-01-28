@@ -1055,6 +1055,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
         { "type", "Cryptokey" },
         { "id", (int)value.second.id },
         { "active", value.second.active },
+        { "published", value.second.published },
         { "keytype", keyType },
         { "flags", (uint16_t)value.first.d_flags },
         { "dnskey", value.first.getDNSKEY().getZoneRepresentation() },
@@ -1153,6 +1154,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     privatekey_fieldname = "content";
   }
   bool active = boolFromJson(document, "active", false);
+  bool published = boolFromJson(document, "published", true);
   bool keyOrZone;
 
   if (stringFromJson(document, "keytype") == "ksk" || stringFromJson(document, "keytype") == "csk") {
@@ -1188,7 +1190,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     }
 
     try {
-      if (!dk->addKey(zonename, keyOrZone, algorithm, insertedId, bits, active)) {
+      if (!dk->addKey(zonename, keyOrZone, algorithm, insertedId, bits, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
       }
     } catch (std::runtime_error& error) {
@@ -1217,7 +1219,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
     catch (std::runtime_error& error) {
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
     } try {
-      if (!dk->addKey(zonename, dpk,insertedId, active)) {
+      if (!dk->addKey(zonename, dpk,insertedId, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
       }
     } catch (std::runtime_error& error) {
@@ -1248,6 +1250,7 @@ static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest
   auto document = req->json();
   //throws an exception if the key does not exist or is not a bool
   bool active = boolFromJson(document, "active");
+  bool published = boolFromJson(document, "published", true);
   if (active) {
     if (!dk->activateKey(zonename, inquireKeyId)) {
       resp->setErrorResult("Could not activate Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
@@ -1259,6 +1262,19 @@ static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest
       return;
     }
   }
+
+  if (published) {
+    if (!dk->publishKey(zonename, inquireKeyId)) {
+      resp->setErrorResult("Could not publish Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
+      return;
+    }
+  } else {
+    if (!dk->unpublishKey(zonename, inquireKeyId)) {
+      resp->setErrorResult("Could not unpublish Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
+      return;
+    }
+  }
+
   resp->body = "";
   resp->status = 204;
   return;

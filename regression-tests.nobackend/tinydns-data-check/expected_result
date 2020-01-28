@@ -13,4 +13,5 @@ a63dc120391d9df0003f2ec4f461a6af  ../regression-tests/zones/secure-delegated.dns
 b1f775045fa2cf0a3b91aa834af06e49  ../regression-tests/zones/stest.com
 a98864b315f16bcf49ce577426063c42  ../regression-tests/zones/cdnskey-cds-test.com
 9aeed2c26d0c3ba3baf22dfa9568c451  ../regression-tests/zones/2.0.192.in-addr.arpa
+99c73e8b5db5781fec1ac3fa6a2662a9  ../regression-tests/zones/cryptokeys.org
 52a95993ada0b4ed986a2fe6463a27e0  ../modules/tinydnsbackend/data.cdb

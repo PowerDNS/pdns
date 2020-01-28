@@ -2212,6 +2212,7 @@ class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
             u'type': u'Cryptokey',
             u'keytype': u'csk',
             u'flags': 257,
+            u'published': True,
             u'id': 1}
         self.assertEquals(key0, expected)
 

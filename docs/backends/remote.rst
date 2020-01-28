@@ -467,14 +467,14 @@ Response:
 ~~~~~~~~~~~~~~~~~
 
 Retrieves any keys of kind. The id, flags are unsigned integers, and
-active is boolean. Content must be valid key record in format that
-PowerDNS understands. You are encouraged to implement :ref:`the section
-called "addDomainKey" <remote-adddomainkey>`, as you can use
+active and published are boolean. Content must be valid key record in format
+that PowerDNS understands. You are encouraged to implement :ref:`the
+section called "addDomainKey" <remote-adddomainkey>`, as you can use
 :doc:`../manpages/pdnsutil.1` to provision keys.
 
 -  Mandatory: for DNSSEC
 -  Parameters: name, kind
--  Reply: array of ``id, flags, active, content``
+-  Reply: array of ``id, flags, active, published, content``
 
 Example JSON/RPC
 ''''''''''''''''
@@ -489,7 +489,7 @@ Response:
 
 .. code-block:: json
 
-    {"result":[{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
+    {"result":[{"id":1,"flags":256,"active":true,"published":true,"content":"Private-key-format: v1.2
     Algorithm: 8 (RSASHA256)
     Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
     PublicExponent: AQAB
@@ -516,7 +516,7 @@ Response:
     HTTP/1.1 200 OK
     Content-Type: text/javascript; charset=utf-8
 
-    {"result":[{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
+    {"result":[{"id":1,"flags":256,"active":true,"published":true,"content":"Private-key-format: v1.2
     Algorithm: 8 (RSASHA256)
     Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
     PublicExponent: AQAB
@@ -535,7 +535,7 @@ Response:
 Adds key into local storage. See :ref:`remote-getdomainkeys` for more information.
 
 -  Mandatory: No
--  Parameters: name, key=\ ``<flags,active,content>``, id
+-  Parameters: name, key=\ ``<flags,active,published,content>``, id
 -  Reply: true for success, false for failure
 
 Example JSON/RPC
@@ -545,7 +545,7 @@ Query:
 
 .. code-block:: json
 
-    {"method":"adddomainkey", "parameters":{"key":{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
+    {"method":"adddomainkey", "parameters":{"key":{"id":1,"flags":256,"active":true,"published":true,"content":"Private-key-format: v1.2
     Algorithm: 8 (RSASHA256)
     Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
     PublicExponent: AQAB
@@ -573,7 +573,7 @@ Query:
     Content-Type: application/x-www-form-urlencoded
     Content-Length: 965
 
-    flags=256&active=1&content=Private-key-format: v1.2
+    flags=256&active=1&published=1&content=Private-key-format: v1.2
     Algorithm: 8 (RSASHA256)
     Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
     PublicExponent: AQAB
@@ -718,6 +718,92 @@ Response:
     Content-Type: text/javascript; utf-8
 
     {"result": true}
+
+``publishDomainKey``
+~~~~~~~~~~~~~~~~~~~~
+
+Publish key id for domain name.
+
+-  Mandatory: No
+-  Parameters: name, id
+-  Reply: true for success, false for failure
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method":"publishdomainkey","parameters":{"name":"example.com","id":1}}
+
+Response:
+
+.. code-block:: json
+
+    {"result": true}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    POST /dnsapi/publishdomainkey/example.com/1 HTTP/1.1
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; utf-8
+
+    {"result": true}
+
+
+``unpublishDomainKey``
+~~~~~~~~~~~~~~~~~~~~~~
+
+Unpublish key id for domain name.
+
+-  Mandatory: No
+-  Parameters: name, id
+-  Reply: true for success, false for failure
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method":"unpublishdomainkey","parameters":{"name":"example.com","id":1}}
+
+Response:
+
+.. code-block:: json
+
+    {"result": true}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    POST /dnsapi/unpublishdomainkey/example.com/1 HTTP/1.1
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; utf-8
+
+    {"result": true}
+
 
 ``getTSIGKey``
 ~~~~~~~~~~~~~~

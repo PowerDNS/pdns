@@ -12,6 +12,7 @@ create table cryptokeys (
  domain     VARCHAR(255) COLLATE NOCASE,
  flags      INT NOT NULL,
  active     BOOL,
+ published  BOOL,
  content    TEXT
 );
 

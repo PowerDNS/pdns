@@ -128,6 +128,28 @@ class Handler
      [false]
    end
 
+   def do_publishdomainkey(args)
+     args["id"] = args["id"].to_i
+     if $keys.has_key? args["name"]
+      if $keys[args["name"]][args["id"]-1]
+         $keys[args["name"]][args["id"]-1]["published"] = true
+         return [true]
+      end
+     end
+     [false]
+   end
+
+   def do_unpublishdomainkey(args)
+     args["id"] = args["id"].to_i
+     if $keys.has_key? args["name"]
+      if $keys[args["name"]][args["id"]-1]
+         $keys[args["name"]][args["id"]-1]["published"] = false
+         return [true]
+      end
+     end
+     [false]
+   end
+
    def do_removedomainkey(args)
      args["id"] = args["id"].to_i
      if $keys.has_key? args["name"]

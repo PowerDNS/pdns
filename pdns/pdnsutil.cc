@@ -1687,7 +1687,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
       if (!exportDS) {
         cout<<", flags = "<<std::to_string(value.first.d_flags);
         cout<<", tag = "<<value.first.getDNSKEY().getTag();
-        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
+        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
       }
 
       if (!exportDS) {
@@ -1771,7 +1771,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
     int k_real_algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
-    if (!dk.addKey(zone, true, k_real_algo, id, k_size, true)) {
+    if (!dk.addKey(zone, true, k_real_algo, id, k_size, true, true)) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -1785,7 +1785,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
     int z_real_algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if (!dk.addKey(zone, false, z_real_algo, id, z_size, true)) {
+    if (!dk.addKey(zone, false, z_real_algo, id, z_size, true, true)) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -1997,7 +1997,7 @@ try
     cout<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
-    cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
+    cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive] [published|unpublished]"<<endl;
     cout<<"             [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
     cout<<"|ed25519";
@@ -2045,7 +2045,7 @@ try
     cout<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cout<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cout<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
-    cout<<"       [active|inactive] [ksk|zsk] Defaults to KSK and active"<<endl;
+    cout<<"       [active|inactive] [ksk|zsk] [published|unpublished] Defaults to KSK, active and published"<<endl;
     cout<<"ipdecrypt IP passphrase/key [key]  Encrypt IP address using passphrase or base64 key"<<endl;
     cout<<"ipencrypt IP passphrase/key [key]  Encrypt IP address using passphrase or base64 key"<<endl;
     cout<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
@@ -2056,6 +2056,7 @@ try
     cout<<"list-all-zones [master|slave|native]"<<endl;
     cout<<"                                   List all zone names"<<endl;;
     cout<<"list-tsig-keys                     List all TSIG keys"<<endl;
+    cout<<"publish-zone-key ZONE KEY-ID       Publish the zone key with key id KEY-ID in ZONE"<<endl;
     cout<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cout<<"rectify-all-zones [quiet]          Rectify all zones. Optionally quiet output with errors only"<<endl;
     cout<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
@@ -2075,6 +2076,7 @@ try
     cout<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. *No* value clears meta"<<endl;
     cout<<"                                   Note - this will replace all metadata records of KIND!"<<endl;
     cout<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
+    cout<<"unpublish-zone-key ZONE KEY-ID     Unpublish the zone key with key id KEY-ID in ZONE"<<endl;
     cout<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
     cout<<"unset-presigned ZONE               No longer use presigned RRSIGs"<<endl;
     cout<<"unset-publish-cdnskey ZONE         Disable sending CDNSKEY responses for ZONE"<<endl;
@@ -2310,6 +2312,43 @@ try
     }
     return 0;
   }
+  else if(cmds[0] == "publish-zone-key") {
+    if(cmds.size() != 3) {
+      cerr << "Syntax: pdnsutil publish-zone-key ZONE KEY-ID"<<endl;
+      return 0;
+    }
+    DNSName zone(cmds[1]);
+    unsigned int id=atoi(cmds[2].c_str()); // if you make this pdns_stou, the error gets worse
+    if(!id)
+    {
+      cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
+      return 1;
+    }
+    if (!dk.publishKey(zone, id)) {
+      cerr<<"Publishing of key failed"<<endl;
+      return 1;
+    }
+    return 0;
+  }
+  else if(cmds[0] == "unpublish-zone-key") {
+    if(cmds.size() != 3) {
+      cerr << "Syntax: pdnsutil unpublish-zone-key ZONE KEY-ID"<<endl;
+      return 0;
+    }
+    DNSName zone(cmds[1]);
+    unsigned int id=atoi(cmds[2].c_str()); // if you make this pdns_stou, the error gets worse
+    if(!id)
+    {
+      cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
+      return 1;
+    }
+    if (!dk.unpublishKey(zone, id)) {
+      cerr<<"Unpublishing of key failed"<<endl;
+      return 1;
+    }
+    return 0;
+  }
+
   else if(cmds[0] == "add-zone-key") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil add-zone-key ZONE zsk|ksk [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
@@ -2338,6 +2377,7 @@ try
     int bits=0;
     int algorithm=DNSSECKeeper::ECDSA256;
     bool active=false;
+    bool published=true;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
@@ -2349,6 +2389,10 @@ try
         active=true;
       } else if(pdns_iequals(cmds[n], "inactive") || pdns_iequals(cmds[n], "passive")) { // 'passive' eventually needs to be removed
         active=false;
+      } else if(pdns_iequals(cmds[n], "published")) {
+        published = true;
+      } else if(pdns_iequals(cmds[n], "unpublished")) {
+        published = false;
       } else if(pdns_stou(cmds[n])) {
         bits = pdns_stou(cmds[n]);
       } else {
@@ -2357,7 +2401,7 @@ try
       }
     }
     int64_t id;
-    if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active)) {
+    if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     } else {
@@ -2790,6 +2834,7 @@ try
 
     dpk.d_flags = 257;
     bool active=true;
+    bool published=true;
 
     for(unsigned int n = 3; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "ZSK"))
@@ -2800,13 +2845,17 @@ try
         active = 1;
       else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive")) // passive eventually needs to be removed
         active = 0;
+      else if(pdns_iequals(cmds[n], "published"))
+        published = 1;
+      else if(pdns_iequals(cmds[n], "unpublished"))
+        published = 0;
       else {
         cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
         exit(1);
       }
     }
     int64_t id;
-    if (!dk.addKey(DNSName(zone), dpk, id, active)) {
+    if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }

@@ -374,6 +374,7 @@ bool RemoteBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::K
      key.id = intFromJson(jsonKey, "id");
      key.flags = intFromJson(jsonKey, "flags");
      key.active = asBool(jsonKey["active"]);
+     key.published = boolFromJson(jsonKey, "published", true);
      key.content = stringFromJson(jsonKey, "content");
      keys.push_back(key);
    }
@@ -411,6 +412,7 @@ bool RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_
        { "key", Json::object {
          { "flags", static_cast<int>(key.flags) },
          { "active", key.active },
+         { "published", key.published },
          { "content", key.content }
        }}
      }}
@@ -461,6 +463,45 @@ bool RemoteBackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
 
    return true;
 }
+
+bool RemoteBackend::publishDomainKey(const DNSName& name, unsigned int id) {
+   // no point doing dnssec if it's not supported
+   if (d_dnssec == false) return false;
+
+   Json query = Json::object{
+     { "method", "publishDomainKey" },
+     { "parameters", Json::object {
+       { "name", name.toString() },
+       { "id", static_cast<int>(id) }
+     }}
+   };
+
+   Json answer;
+   if (this->send(query) == false || this->recv(answer) == false)
+     return false;
+
+   return true;
+}
+
+bool RemoteBackend::unpublishDomainKey(const DNSName& name, unsigned int id) {
+   // no point doing dnssec if it's not supported
+   if (d_dnssec == false) return false;
+
+   Json query = Json::object{
+     { "method", "unpublishDomainKey" },
+     { "parameters", Json::object {
+       { "name", name.toString() },
+       { "id", static_cast<int>(id) }
+     }}
+   };
+
+   Json answer;
+   if (this->send(query) == false || this->recv(answer) == false)
+     return false;
+
+   return true;
+}
+
 
 bool RemoteBackend::doesDNSSEC() {
    return d_dnssec;

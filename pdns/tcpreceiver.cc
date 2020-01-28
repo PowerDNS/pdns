@@ -688,6 +688,9 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     entryPointIds.insert(value.second.id);
 
   for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
+    if (!value.second.published) {
+      continue;
+    }
     zrr.dr.d_type = QType::DNSKEY;
     zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
     DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;

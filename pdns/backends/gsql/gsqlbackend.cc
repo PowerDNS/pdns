@@ -110,6 +110,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
   d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
   d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
+  d_PublishDomainKeyQuery = getArg("publish-domain-key-query");
+  d_UnpublishDomainKeyQuery = getArg("unpublish-domain-key-query");
   d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
   d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
 
@@ -166,6 +168,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_RemoveDomainKeyQuery_stmt = NULL;
   d_ActivateDomainKeyQuery_stmt = NULL;
   d_DeactivateDomainKeyQuery_stmt = NULL;
+  d_PublishDomainKeyQuery_stmt = NULL;
+  d_UnpublishDomainKeyQuery_stmt = NULL;
   d_ClearDomainAllKeysQuery_stmt = NULL;
   d_getTSIGKeyQuery_stmt = NULL;
   d_setTSIGKeyQuery_stmt = NULL;
@@ -712,6 +716,7 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
     d_AddDomainKeyQuery_stmt->
       bind("flags", key.flags)->
       bind("active", key.active)->
+      bind("published", key.published)->
       bind("content", key.content)->
       bind("domain", name)->
       execute()->
@@ -783,6 +788,48 @@ bool GSQLBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
   }
   return true;
 }
+
+bool GSQLBackend::publishDomainKey(const DNSName& name, unsigned int id)
+{
+  if(!d_dnssecQueries)
+    return false;
+
+  try {
+    reconnectIfNeeded();
+
+    d_PublishDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to publish key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+{
+  if(!d_dnssecQueries)
+    return false;
+
+  try {
+    reconnectIfNeeded();
+
+    d_UnpublishDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to unpublish key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+  }
+  return true;
+}
+
+
 
 bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
 {
@@ -919,14 +966,15 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
     KeyData kd;
     while(d_ListDomainKeysQuery_stmt->hasNextRow()) {
       d_ListDomainKeysQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("list-domain-keys-query", row, 4);
+      ASSERT_ROW_COLUMNS("list-domain-keys-query", row, 5);
       //~ for(const auto& val: row) {
         //~ cerr<<"'"<<val<<"'"<<endl;
       //~ }
       kd.id = pdns_stou(row[0]);
       kd.flags = pdns_stou(row[1]);
       kd.active = row[2] == "1";
-      kd.content = row[3];
+      kd.published = row[3] == "1";
+      kd.content = row[4];
       keys.push_back(kd);
     }
 

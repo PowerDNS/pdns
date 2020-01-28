@@ -302,6 +302,8 @@ Domain and zone manipulation
 -  ``activate-domain-key-query``: Called to set a cryptokey to active.
 -  ``deactivate-domain-key-query``: Called to set a cryptokey to
    inactive.
+-  ``publish-domain-key-query``: Called to set a cryptokey to published.
+-  ``unpublish-domain-key-query``: Called to set a cryptokey to unpublished.
 -  ``clear-domain-all-keys-query``: Called to remove all DNSSEC keys for
    a zone.
 -  ``remove-domain-key-query``: Called to remove a crypto key.

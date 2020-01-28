@@ -117,6 +117,9 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
 
   DNSSECKeeper::keyset_t entryPoints = d_dk.getEntryPoints(p.qdomain);
   for(const auto& value: entryPoints) {
+    if (!value.second.published) {
+      continue;
+    }
     rr.dr.d_type=QType::CDNSKEY;
     rr.dr.d_ttl=sd.default_ttl;
     rr.dr.d_name=p.qdomain;
@@ -153,6 +156,9 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
 
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p.qdomain);
   for(const auto& value: keyset) {
+    if (!value.second.published) {
+      continue;
+    }
     rr.dr.d_type=QType::DNSKEY;
     rr.dr.d_ttl=sd.default_ttl;
     rr.dr.d_name=p.qdomain;
@@ -205,6 +211,9 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SO
   DNSSECKeeper::keyset_t keyset = d_dk.getEntryPoints(p.qdomain);
 
   for(auto const &value : keyset) {
+    if (!value.second.published) {
+      continue;
+    }
     for(auto const &digestAlgo : digestAlgos){
       rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
       r->addRecord(rr);

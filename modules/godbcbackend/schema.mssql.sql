@@ -69,6 +69,7 @@ CREATE TABLE cryptokeys (
   domain_id             INT NOT NULL,
   flags                 INT NOT NULL,
   active                BIT,
+  published             BIT DEFAULT 1,
   content               VARCHAR(MAX),
   PRIMARY KEY(id)
 );

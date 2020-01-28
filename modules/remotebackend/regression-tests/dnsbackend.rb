@@ -101,6 +101,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         args["key"] = {
            "flags" => args.delete("flags").to_i,
            "active" => args.delete("active").to_i,
+           "published" => args.delete("published").to_i,
            "content" => args.delete("content")
         }
      end

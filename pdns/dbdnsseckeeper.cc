@@ -79,7 +79,7 @@ bool DNSSECKeeper::isPresigned(const DNSName& name)
   return meta=="1";
 }
 
-bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active)
+bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active, bool published)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -106,7 +106,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = setSEPBit ? 257 : 256;
-  return addKey(name, dspk, id, active);
+  return addKey(name, dspk, id, active, published);
 }
 
 void DNSSECKeeper::clearAllCaches() {
@@ -131,12 +131,13 @@ void DNSSECKeeper::clearCaches(const DNSName& name)
 }
 
 
-bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active)
+bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)
 {
   clearCaches(name);
   DNSBackend::KeyData kd;
   kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
+  kd.published = published;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
   return d_keymetadb->addDomainKey(name, kd, id);
@@ -189,6 +190,18 @@ bool DNSSECKeeper::activateKey(const DNSName& zname, unsigned int id)
 {
   clearCaches(zname);
   return d_keymetadb->activateDomainKey(zname, id);
+}
+
+bool DNSSECKeeper::unpublishKey(const DNSName& zname, unsigned int id)
+{
+  clearCaches(zname);
+  return d_keymetadb->unpublishDomainKey(zname, id);
+}
+
+bool DNSSECKeeper::publishKey(const DNSName& zname, unsigned int id)
+{
+  clearCaches(zname);
+  return d_keymetadb->publishDomainKey(zname, id);
 }
 
 void DNSSECKeeper::getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue)
@@ -515,6 +528,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     KeyMetaData kmd;
 
     kmd.active = kd.active;
+    kmd.published = kd.published;
     kmd.hasSEPBit = (kd.flags == 257);
     kmd.id = kd.id;
 

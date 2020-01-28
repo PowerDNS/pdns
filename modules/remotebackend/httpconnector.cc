@@ -127,7 +127,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
     addUrlComponent(parameters, "qtype", ss);
 
     // set the correct type of request based on method
-    if (method == "activateDomainKey" || method == "deactivateDomainKey") {
+    if (method == "activateDomainKey" || method == "deactivateDomainKey" || method == "publishDomainKey" || method == "unpublishDomainKey") {
         // create an empty post
         req.preparePost();
         verb = "POST";
@@ -142,6 +142,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
         const Json& param = parameters["key"];
         req.POST()["flags"] = asString(param["flags"]);
         req.POST()["active"] = (param["active"].bool_value() ? "1" : "0");
+        req.POST()["published"] = (param["published"].bool_value() ? "1" : "0");
         req.POST()["content"] = param["content"].string_value();
         req.preparePost();
         verb = "PUT";

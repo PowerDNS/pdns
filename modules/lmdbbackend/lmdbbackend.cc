@@ -46,7 +46,10 @@
 
 #include "lmdbbackend.hh"
 
-#define SCHEMAVERSION 1
+#define SCHEMAVERSION 2
+#define SCHEMAVERSION_TEXT "2"
+// List the class version here. Default is 0
+BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
 
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
@@ -72,16 +75,19 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   
   auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
   auto txn = d_tdomains->getEnv()->getRWTransaction();
+  uint32_t schemaversion = 1;
   MDBOutVal _schemaversion;
   if(!txn->get(pdnsdbi, "schemaversion", _schemaversion)) {
-    auto schemaversion = _schemaversion.get<uint32_t>();
-    if (schemaversion != SCHEMAVERSION) {
+    schemaversion = _schemaversion.get<uint32_t>();
+  }
+
+  if (schemaversion != SCHEMAVERSION) {
+    if (getArgAsNum("schema-version") != SCHEMAVERSION) {
       throw std::runtime_error("Expected LMDB schema version "+std::to_string(SCHEMAVERSION)+" but got "+std::to_string(schemaversion));
     }
-  }
-  else {
     txn->put(pdnsdbi, "schemaversion", SCHEMAVERSION);
   }
+
   MDBOutVal shards;
   if(!txn->get(pdnsdbi, "shards", shards)) {
     
@@ -160,10 +166,22 @@ void serialize(Archive & ar, LMDBBackend::DomainMeta& g, const unsigned int vers
 }
 
 template<class Archive>
-void serialize(Archive & ar, LMDBBackend::KeyDataDB& g, const unsigned int version)
+void save(Archive & ar, const LMDBBackend::KeyDataDB& g, const unsigned int version)
+{
+  ar & g.domain & g.content & g.flags & g.active & g.published;
+}
+
+template<class Archive>
+void load(Archive & ar, LMDBBackend::KeyDataDB& g, const unsigned int version)
 {
   ar & g.domain & g.content & g.flags & g.active;
+  if (version >= 1) {
+    ar & g.published;
+  } else {
+    g.published = true;
+  }
 }
+
 
 template<class Archive>
 void serialize(Archive & ar, TSIGKey& g, const unsigned int version)
@@ -180,6 +198,7 @@ void serialize(Archive & ar, TSIGKey& g, const unsigned int version)
 
 BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(QType);
+BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 template<>
@@ -887,7 +906,7 @@ bool LMDBBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
   auto txn = d_tkdb->getROTransaction();
   auto range = txn.equal_range<0>(name);
   for(auto& iter = range.first; iter != range.second; ++iter) {
-    KeyData kd{iter->content, iter.getID(), iter->flags, iter->active};
+    KeyData kd{iter->content, iter.getID(), iter->flags, iter->active, iter->published};
     keys.push_back(kd);
   }
 
@@ -912,7 +931,7 @@ bool LMDBBackend::removeDomainKey(const DNSName& name, unsigned int id)
 bool LMDBBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
 {
   auto txn = d_tkdb->getRWTransaction();
-  KeyDataDB kdb{name, key.content, key.flags, key.active};
+  KeyDataDB kdb{name, key.content, key.flags, key.active, key.published};
   id = txn.put(kdb);
   txn.commit();
     
@@ -952,9 +971,47 @@ bool LMDBBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
       return true;
     }
   }
-  // cout << "??? wanted to activate domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  // cout << "??? wanted to deactivate domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
   return true;
 }
+
+bool LMDBBackend::publishDomainKey(const DNSName& name, unsigned int id)
+{
+  auto txn = d_tkdb->getRWTransaction();
+  KeyDataDB kdb;
+  if(txn.get(id, kdb)) {
+    if(kdb.domain == name) {
+      txn.modify(id, [](KeyDataDB& kdbarg)
+                 {
+                   kdbarg.published = true;
+                 });
+      txn.commit();
+      return true;
+    }
+  }
+
+  // cout << "??? wanted to hide domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  return true;
+}
+
+bool LMDBBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+{
+  auto txn = d_tkdb->getRWTransaction();
+  KeyDataDB kdb;
+  if(txn.get(id, kdb)) {
+    if(kdb.domain == name) {
+      txn.modify(id, [](KeyDataDB& kdbarg)
+                 {
+                   kdbarg.published = false;
+                 });
+      txn.commit();
+      return true;
+    }
+  }
+  // cout << "??? wanted to unhide domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  return true;
+}
+
 
 bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) 
 {
@@ -1523,7 +1580,8 @@ public:
     declare(suffix,"filename","Filename for lmdb","./pdns.lmdb");
     declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync, sync","mapasync");
     // there just is no room for more on 32 bit
-    declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64"); 
+    declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64");
+    declare(suffix,"schema-version","Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", SCHEMAVERSION_TEXT); 
   }
   DNSBackend *make(const string &suffix="")
   {

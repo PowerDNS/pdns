@@ -88,6 +88,8 @@ public:
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
   bool activateDomainKey(const DNSName& name, unsigned int id) override;
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
+  bool publishDomainKey(const DNSName& name, unsigned int id) override;
+  bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
 
   // TSIG
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
@@ -194,6 +196,7 @@ public:
     std::string content;
     unsigned int flags;
     bool active;
+    bool published;
   };
 
 private:

@@ -337,6 +337,7 @@ public:
 
     for(const auto& row: boost::get<vector<pair<int, keydata_result_t> > >(result)) {
       DNSBackend::KeyData key;
+      key.published = true;
       for(const auto& item: row.second) {
         if (item.first == "content")
           key.content = boost::get<string>(item.second);
@@ -346,10 +347,12 @@ public:
           key.flags = static_cast<unsigned int>(boost::get<int>(item.second));
         else if (item.first == "active")
           key.active = boost::get<bool>(item.second);
+        else if (item.first == "published")
+          key.published = boost::get<bool>(item.second);
         else
           g_log<<Logger::Warning<<"["<<getPrefix()<<"] Unsupported key '"<<item.first<<"' in keydata result"<<endl;
       }
-      logResult("id="<<key.id<<",flags="<<key.flags<<",active="<<(key.active ? "true" : "false"));
+      logResult("id="<<key.id<<",flags="<<key.flags<<",active="<<(key.active ? "true" : "false")<<",published="<<(key.published ? "true" : "false"));
       keys.push_back(key);
     }
 

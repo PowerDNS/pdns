@@ -183,6 +183,7 @@ public:
     unsigned int id;
     unsigned int flags;
     bool active;
+    bool published;
   };
 
   virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) { return false;}
@@ -190,6 +191,8 @@ public:
   virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id){ return false; }
   virtual bool activateDomainKey(const DNSName& name, unsigned int id) { return false; }
   virtual bool deactivateDomainKey(const DNSName& name, unsigned int id) { return false; }
+  virtual bool publishDomainKey(const DNSName& name, unsigned int id) { return false; }
+  virtual bool unpublishDomainKey(const DNSName& name, unsigned int id) { return false; }
 
   virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) { return false; }
   virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) { return false; }

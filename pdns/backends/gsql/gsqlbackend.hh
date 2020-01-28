@@ -91,7 +91,7 @@ public:
       d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthTypeQuery, 4);
       d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_RemoveEmptyNonTerminalsFromZoneQuery, 1);
       d_DeleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_DeleteEmptyNonTerminalQuery, 2);
-      d_AddDomainKeyQuery_stmt = d_db->prepare(d_AddDomainKeyQuery, 4);
+      d_AddDomainKeyQuery_stmt = d_db->prepare(d_AddDomainKeyQuery, 5);
       d_GetLastInsertedKeyIdQuery_stmt = d_db->prepare(d_GetLastInsertedKeyIdQuery, 0);
       d_ListDomainKeysQuery_stmt = d_db->prepare(d_ListDomainKeysQuery, 1);
       d_GetAllDomainMetadataQuery_stmt = d_db->prepare(d_GetAllDomainMetadataQuery, 1);
@@ -102,6 +102,8 @@ public:
       d_RemoveDomainKeyQuery_stmt = d_db->prepare(d_RemoveDomainKeyQuery, 2);
       d_ActivateDomainKeyQuery_stmt = d_db->prepare(d_ActivateDomainKeyQuery, 2);
       d_DeactivateDomainKeyQuery_stmt = d_db->prepare(d_DeactivateDomainKeyQuery, 2);
+      d_PublishDomainKeyQuery_stmt = d_db->prepare(d_PublishDomainKeyQuery, 2);
+      d_UnpublishDomainKeyQuery_stmt = d_db->prepare(d_UnpublishDomainKeyQuery, 2);
       d_ClearDomainAllKeysQuery_stmt = d_db->prepare(d_ClearDomainAllKeysQuery, 1);
       d_getTSIGKeyQuery_stmt = d_db->prepare(d_getTSIGKeyQuery, 1);
       d_setTSIGKeyQuery_stmt = d_db->prepare(d_setTSIGKeyQuery, 3);
@@ -163,6 +165,8 @@ public:
     d_RemoveDomainKeyQuery_stmt.reset();
     d_ActivateDomainKeyQuery_stmt.reset();
     d_DeactivateDomainKeyQuery_stmt.reset();
+    d_PublishDomainKeyQuery_stmt.reset();
+    d_UnpublishDomainKeyQuery_stmt.reset();
     d_ClearDomainAllKeysQuery_stmt.reset();
     d_getTSIGKeyQuery_stmt.reset();
     d_setTSIGKeyQuery_stmt.reset();
@@ -220,6 +224,8 @@ public:
   bool removeDomainKey(const DNSName& name, unsigned int id) override;
   bool activateDomainKey(const DNSName& name, unsigned int id) override;
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
+  bool publishDomainKey(const DNSName& name, unsigned int id) override;
+  bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
   
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
@@ -319,6 +325,8 @@ private:
   string d_RemoveDomainKeyQuery;
   string d_ActivateDomainKeyQuery;
   string d_DeactivateDomainKeyQuery;
+  string d_PublishDomainKeyQuery;
+  string d_UnpublishDomainKeyQuery;
   string d_ClearDomainAllKeysQuery;
 
   string d_getTSIGKeyQuery;
@@ -383,6 +391,8 @@ private:
   unique_ptr<SSqlStatement> d_RemoveDomainKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_ActivateDomainKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_DeactivateDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_PublishDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_UnpublishDomainKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_ClearDomainAllKeysQuery_stmt;
   unique_ptr<SSqlStatement> d_getTSIGKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_setTSIGKeyQuery_stmt;

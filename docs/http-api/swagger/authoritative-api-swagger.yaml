@@ -1250,6 +1250,9 @@ definitions:
       active:
         type: boolean
         description: 'Whether or not the key is in active use'
+      published:
+        type: boolean
+        descriptioon: 'Whether or not the DNSKEY record is published in the zone'
       dnskey:
         type: string
         description: 'The DNSKEY record for this key'
