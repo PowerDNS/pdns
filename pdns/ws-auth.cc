@@ -59,7 +59,7 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr);
 // QTypes that MUST NOT have multiple records of the same type in a given RRset.
 static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::DNAME, QType::SOA };
 // QTypes that MUST NOT be used with any other QType on the same name.
-static const std::set<uint16_t> exclusiveEntryTypes = { QType::CNAME, QType::DNAME };
+static const std::set<uint16_t> exclusiveEntryTypes = { QType::CNAME };
 
 AuthWebServer::AuthWebServer() :
   d_tid(0),
@@ -2028,6 +2028,8 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
         if (replace_records) {
           bool ent_present = false;
+          bool dname_seen = false, ns_seen = false;
+
           di.backend->lookup(QType(QType::ANY), qname, di.id);
           DNSResourceRecord rr;
           while (di.backend->get(rr)) {
@@ -2036,6 +2038,10 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
               /* that's fine, we will override it */
               continue;
             }
+            if (qtype == QType::DNAME || rr.qtype == QType::DNAME)
+              dname_seen = true;
+            if (qtype == QType::NS || rr.qtype == QType::NS)
+              ns_seen = true;
             if (qtype.getCode() != rr.qtype.getCode()
               && (exclusiveEntryTypes.count(qtype.getCode()) != 0
                 || exclusiveEntryTypes.count(rr.qtype.getCode()) != 0)) {
@@ -2048,6 +2054,9 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
             }
           }
 
+          if (dname_seen && ns_seen && qname != zonename) {
+            throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Cannot have both NS and DNAME except in zone apex");
+          }
           if (!new_records.empty() && ent_present) {
             QType qt_ent{0};
             if (!di.backend->replaceRRSet(di.id, qname, qt_ent, new_records)) {
