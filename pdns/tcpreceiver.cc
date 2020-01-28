@@ -1202,6 +1202,7 @@ TCPNameserver::TCPNameserver()
   d_tid=0;
 
   vector<string>locals;
+  stringtok(locals,::arg()["local-ipv6"]," ,");
   stringtok(locals,::arg()["local-address"]," ,");
   if(locals.empty())
     throw PDNSException("No local addresses specified");

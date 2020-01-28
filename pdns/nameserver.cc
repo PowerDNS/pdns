@@ -89,7 +89,12 @@ vector<ComboAddress> g_localaddresses; // not static, our unit tests need to pok
 void UDPNameserver::bindAddresses()
 {
   vector<string>locals;
+  stringtok(locals,::arg()["local-ipv6"]," ,");
+  if (!locals.empty()) {
+    g_log<<Logger::Error<<"NOTE: Deprecated local-ipv6 setting used. Please move those addresses to the local-address setting."<<endl;
+  }
   stringtok(locals,::arg()["local-address"]," ,");
+
   int one = 1;
 
   if(locals.empty())

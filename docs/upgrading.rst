@@ -50,7 +50,7 @@ New settings
 Removed settings
 ^^^^^^^^^^^^^^^^
 
-- :ref:`setting-local-ipv6` has been removed. IPv4 and IPv6 listen addresses can now be set with :ref:`setting-local-address`. The default for the latter has been changed to ``0.0.0.0, ::``.
+- :ref:`setting-local-ipv6` has been deprecated, and will be removed in 4.4.0. IPv4 and IPv6 listen addresses can now be set with :ref:`setting-local-address`. The default for the latter has been changed to ``0.0.0.0, ::``.
 
 
 4.1.X to 4.2.0

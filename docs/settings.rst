@@ -776,7 +776,7 @@ available in non-static distributions.
   Before 4.3.0, this setting only supported IPv4.
 
 -  IPv4 Addresses, separated by commas or whitespace
--  Default: 0.0.0.0, ``::``
+-  Default: ``0.0.0.0, ::``
 
 Local IP addresses to which we bind. It is highly advised to bind to
 specific interfaces and not use the default 'bind to any'. This causes
@@ -799,14 +799,14 @@ Fail to start if one or more of the
 
 ``local-ipv6``
 --------------
-.. versionchanged:: 4.3.0
+.. versionchanged:: 4.4.0
   removed, use :ref:`setting-local-address`
 
 .. deprecated:: 4.3.0
-  This setting has been removed, use :ref:`setting-localaddress`
+  This setting has been deprecated, use :ref:`setting-local-address`
 
 -  IPv6 Addresses, separated by commas or whitespace
--  Default: '::'
+-  Default: ``::``
 
 Local IPv6 address to which we bind. It is highly advised to bind to
 specific interfaces and not use the default 'bind to any'. This causes
@@ -817,7 +817,7 @@ big problems if you have multiple IP addresses.
 ``local-ipv6-nonexist-fail``
 ----------------------------
 
-.. deprecated:: 4.3.0
+.. versionchanged:: 4.3.0
   This setting has been removed, use :ref:`setting-localaddress-nonexist-fail`
 
 -  Boolean
