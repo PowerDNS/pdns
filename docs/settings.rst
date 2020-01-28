@@ -818,7 +818,7 @@ big problems if you have multiple IP addresses.
 ----------------------------
 
 .. versionchanged:: 4.3.0
-  This setting has been removed, use :ref:`setting-localaddress-nonexist-fail`
+  This setting has been removed, use :ref:`setting-local-address-nonexist-fail`
 
 -  Boolean
 -  Default: no

@@ -52,6 +52,14 @@ Removed settings
 
 - :ref:`setting-local-ipv6` has been deprecated, and will be removed in 4.4.0. IPv4 and IPv6 listen addresses can now be set with :ref:`setting-local-address`. The default for the latter has been changed to ``0.0.0.0, ::``.
 
+Schema changes
+^^^^^^^^^^^^^^
+- The new 'unpublished DNSSEC keys' feature comes with a mandatory schema change for all database backends (including BIND with a DNSSEC database). Please find files named "4.2.0_to_4.3.0_schema.X.sql" for your database backend in our Git repo, tarball, or distro-specific documentation path. For the LMDB backend, please review :ref:`setting-lmdb-schema-version`.
+
+Implicit 5->7 algorithm upgrades
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Since version 3.0 (the first version of the PowerDNS Authoritative Server that supported DNSSEC signing), we have automatically, silently, upgraded algorithm 5 (RSASHA1) keys to algorithm 7 (RSASHA1-NSEC3-SHA1) when the user enabled DNSSEC. This has been a source of confusion, and because of that, we introduced warnings for users of this feature in 4.0 and 4.1. To see if you are affected, run ``pdnsutil check-all-zones`` from version 4.0 or up. In this release, the automatic upgrade is gone, and affected zones will break if no action is taken.
 
 4.1.X to 4.2.0
 --------------
