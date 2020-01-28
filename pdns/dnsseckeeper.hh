@@ -25,6 +25,7 @@
 #include <vector>
 #include <boost/logic/tribool.hpp>
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
@@ -269,8 +270,8 @@ private:
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<
-    ordered_unique<tag<KeyCacheTag>,member<KeyCacheEntry, DNSName, &KeyCacheEntry::d_domain> >,
-    sequenced<tag<SequencedTag>>
+      hashed_unique<tag<KeyCacheTag>,member<KeyCacheEntry, DNSName, &KeyCacheEntry::d_domain> >,
+      sequenced<tag<SequencedTag>>
     >
   > keycache_t;
   typedef multi_index_container<
