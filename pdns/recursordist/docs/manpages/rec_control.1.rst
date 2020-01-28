@@ -196,10 +196,13 @@ ping
     Check if server is alive.
 
 quit
-    Request shutdown of the recursor.
+    Request shutdown of the recursor, exiting the process while
+    letting the OS clean up recources.
 
 quit-nicely
-    Request nice shutdown of the recursor.
+    Request nice shutdown of the recursor. This method allows all
+    threads to finish their current work and releases resources before
+    exiting. This is the preferred method to stop the recursor.
 
 reload-acls
     Reloads ACLs.
