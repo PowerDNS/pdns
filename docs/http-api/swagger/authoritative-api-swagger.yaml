@@ -918,7 +918,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/RRSet'
-        description: 'RRSets in this zone'
+        description: 'RRSets in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)'
       serial:
         type: integer
         description: 'The SOA serial number'
