@@ -82,7 +82,6 @@ class DNSResourceRecord
 {
 public:
   DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0) {};
-  ~DNSResourceRecord(){};
   static DNSResourceRecord fromWire(const DNSRecord& d);
 
   enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning within, say, a DNSPacket
