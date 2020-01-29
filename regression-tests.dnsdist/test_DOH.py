@@ -2,6 +2,8 @@
 import base64
 import dns
 import os
+import re
+import time
 import unittest
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
@@ -109,6 +111,21 @@ class DNSDistDOHTest(DNSDistTest):
 
         cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
+
+    def getHeaderValue(self, name):
+        for header in self._response_headers.decode().splitlines(False):
+            values = header.split(':')
+            key = values[0]
+            if key.lower() == name.lower():
+                return values[1].strip()
+        return None
+
+    def checkHasHeader(self, name, value):
+        got = self.getHeaderValue(name)
+        self.assertEquals(got, value)
+
+    def checkNoHeader(self, name):
+        self.checkHasHeader(name, None)
 
     @classmethod
     def setUpClass(cls):
@@ -226,8 +243,10 @@ class TestDOH(DNSDistDOHTest):
         self.assertTrue((self._customResponseHeader2) in self._response_headers.decode())
         self.assertFalse(('UPPERCASE: VaLuE' in self._response_headers.decode()))
         self.assertTrue(('uppercase: VaLuE' in self._response_headers.decode()))
+        self.assertTrue(('cache-control: max-age=3600' in self._response_headers.decode()))
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
+        self.checkHasHeader('cache-control', 'max-age=3600')
 
     def testDOHSimplePOST(self):
         """
@@ -842,7 +861,56 @@ class TestDOHWithCache(DNSDistDOHTest):
         self.assertEquals(expectedQuery, receivedQuery)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
+        self.checkHasHeader('cache-control', 'max-age=3600')
 
         for _ in range(numberOfQueries):
             (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
             self.assertEquals(receivedResponse, response)
+            self.checkHasHeader('cache-control', 'max-age=' + str(receivedResponse.answer[0].ttl))
+
+        time.sleep(1)
+
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+        self.checkHasHeader('cache-control', 'max-age=' + str(receivedResponse.answer[0].ttl))
+
+class TestDOHWithoutCacheControl(DNSDistDOHTest):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {sendCacheControlHeaders=false})
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
+
+    def testDOHSimple(self):
+        """
+        DOH without cache-control
+        """
+        name = 'simple.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.checkNoHeader('cache-control')
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)

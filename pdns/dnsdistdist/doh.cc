@@ -307,6 +307,16 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
       }
     }
 
+    if (df.d_sendCacheControlHeaders && !response.empty()) {
+      uint32_t minTTL = getDNSPacketMinTTL(response.data(), response.size());
+      if (minTTL != std::numeric_limits<uint32_t>::max()) {
+        std::string cacheControlValue = "max-age=" + std::to_string(minTTL);
+        /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
+        h2o_iovec_t ccv = h2o_strdup(&req->pool, cacheControlValue.c_str(), cacheControlValue.size());
+        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CACHE_CONTROL, nullptr, ccv.base, ccv.len);
+      }
+    }
+
     req->res.content_length = response.size();
     h2o_send_inline(req, response.c_str(), response.size());
   }
