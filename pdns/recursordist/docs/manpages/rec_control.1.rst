@@ -197,7 +197,7 @@ ping
 
 quit
     Request shutdown of the recursor, exiting the process while
-    letting the OS clean up recources.
+    letting the OS clean up resources.
 
 quit-nicely
     Request nice shutdown of the recursor. This method allows all
