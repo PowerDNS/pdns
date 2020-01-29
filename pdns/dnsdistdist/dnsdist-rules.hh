@@ -1127,6 +1127,34 @@ private:
   std::shared_ptr<KeyValueLookupKey> d_key;
 };
 
+class LuaRule : public DNSRule
+{
+public:
+  typedef std::function<bool(const DNSQuestion* dq)> func_t;
+  LuaRule(const func_t& func): d_func(func)
+  {}
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      return d_func(dq);
+    } catch (const std::exception &e) {
+      warnlog("LuaRule failed inside Lua: %s", e.what());
+    } catch (...) {
+      warnlog("LuaRule failed inside Lua: [unknown exception]");
+    }
+    return false;
+  }
+
+  string toString() const override
+  {
+    return "Lua script";
+  }
+private:
+  func_t d_func;
+};
+
 class LuaFFIRule : public DNSRule
 {
 public:
@@ -1141,16 +1169,16 @@ public:
       std::lock_guard<std::mutex> lock(g_luamutex);
       return d_func(&dqffi);
     } catch (const std::exception &e) {
-      warnlog("LuaRule failed inside Lua: %s", e.what());
+      warnlog("LuaFFIRule failed inside Lua: %s", e.what());
     } catch (...) {
-      warnlog("LuaRule failed inside Lua: [unknown exception]");
+      warnlog("LuaFFIRule failed inside Lua: [unknown exception]");
     }
     return false;
   }
 
   string toString() const override
   {
-    return "Lua script";
+    return "Lua FFI script";
   }
 private:
   func_t d_func;

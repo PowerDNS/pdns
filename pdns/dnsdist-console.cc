@@ -428,6 +428,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "LuaFFIResponseAction", true, "function", "Invoke a Lua FFI function that accepts a DNSResponse" },
   { "LuaFFIRule", true, "function", "Invoke a Lua FFI function that filters DNS questions" },
   { "LuaResponseAction", true, "function", "Invoke a Lua function that accepts a DNSResponse" },
+  { "LuaRule", true, "function", "Invoke a Lua function that filters DNS questions" },
   { "MacAddrAction", true, "option", "Add the source MAC address to the query as EDNS0 option option. This action is currently only supported on Linux. Subsequent rules are processed after this action" },
   { "makeIPCipherKey", true, "password", "generates a 16-byte key that can be used to pseudonymize IP addresses with IP cipher" },
   { "makeKey", true, "", "generate a new server access key, emit configuration line ready for pasting" },

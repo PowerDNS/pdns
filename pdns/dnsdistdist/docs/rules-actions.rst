@@ -626,6 +626,16 @@ These ``DNSRule``\ s be one of the following items:
 
   :param string function: the name of a Lua function
 
+.. function:: LuaRule(function)
+
+  .. versionadded:: 1.5.0
+
+  Invoke a Lua function that accepts a :class:`DNSQuestion` object.
+
+  The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
+
+  :param string function: the name of a Lua function
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
 
   .. versionchanged:: 1.3.1
