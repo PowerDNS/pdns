@@ -910,7 +910,7 @@ Changelogs for 4.1.x
     :pullreq: 4408
     :tickets: 4290
 
-    Enable the webserver when :ref:`setting-api` is 'yes' (Christian Hofstaedtler).
+    Enable the webserver when :ref:`setting-api` is 'yes' (Chris Hofstaedtler).
 
   .. change::
     :tags: API, New Features
@@ -962,21 +962,21 @@ Changelogs for 4.1.x
     :pullreq: 4560, 4548
     :tickets: 4546
 
-    Fix possible variable shadowing (Kees Monshouwer, Christian Hofstaedtler).
+    Fix possible variable shadowing (Kees Monshouwer, Chris Hofstaedtler).
 
   .. change::
     :tags: API, Bug Fixes
     :pullreq: 4526
     :tickets: 4524
 
-    Make the URL in zone info absolute (Christian Hofstaedtler).
+    Make the URL in zone info absolute (Chris Hofstaedtler).
 
   .. change::
     :tags: BIND, Bug Fixes
     :pullreq: 4650
     :tickets: 4328
 
-    Do not corrupt data supplied by other backends in getAllDomains (Christian Hofstaedtler).
+    Do not corrupt data supplied by other backends in getAllDomains (Chris Hofstaedtler).
 
   .. change::
     :tags: Tools, Improvements
@@ -996,7 +996,7 @@ Changelogs for 4.1.x
     :pullreq: 4751
     :tickets: 4132
 
-    Prevent sending nameservers list and zone-level NS in rrsets in the API (Christian Hofstaedtler).
+    Prevent sending nameservers list and zone-level NS in rrsets in the API (Chris Hofstaedtler).
 
   .. change::
     :tags: Tools, Improvements
@@ -1038,7 +1038,7 @@ Changelogs for 4.1.x
     :tags: Internals, Improvements
     :pullreq: 4908
 
-    Tidy up UeberBackend (Christian Hofstaedtler).
+    Tidy up UeberBackend (Chris Hofstaedtler).
 
   .. change::
     :tags: Tools, Improvements
@@ -1089,7 +1089,7 @@ Changelogs for 4.1.x
     :tags: Internals, Improvements
     :pullreq: 4549
 
-    Remove d_place from DNSResourceRecord (Christian Hofstaedtler).
+    Remove d_place from DNSResourceRecord (Chris Hofstaedtler).
 
   .. change::
     :tags: MyDNS, New Features
@@ -1136,7 +1136,7 @@ Changelogs for 4.1.x
     :pullreq: 4929
     :tickets: 4928
 
-    Make statement actually unique (Christian Hofstaedtler).
+    Make statement actually unique (Chris Hofstaedtler).
 
   .. change::
     :tags: Tools, Improvements
@@ -1339,7 +1339,7 @@ Changelogs for 4.1.x
     :tags: Internals, Bug Fixes
     :pullreq: 5512
 
-    Drop (broken) support for packet-specific SOA replies from backends (Christian Hofstaedtler).
+    Drop (broken) support for packet-specific SOA replies from backends (Chris Hofstaedtler).
 
   .. change::
     :tags: Oracle, Bug Fixes
@@ -1369,13 +1369,13 @@ Changelogs for 4.1.x
     :tags: API, Bug Fixes
     :pullreq: 5516
 
-    Avoid creating fake DNSPacket objects just for calling getAuth() from API code (Christian Hofstaedtler).
+    Avoid creating fake DNSPacket objects just for calling getAuth() from API code (Chris Hofstaedtler).
 
   .. change::
     :tags: LDAP, Improvements
     :pullreq: 5509
 
-    Ship ldapbackend schema files in tarball (Christian Hofstaedtler).
+    Ship ldapbackend schema files in tarball (Chris Hofstaedtler).
 
   .. change::
     :tags: Internals, Improvements
@@ -1471,7 +1471,7 @@ Changelogs for 4.1.x
     :tags: API, Improvements
     :pullreq: 4195
 
-    Prevent duplicate records in single RRset (Christian Hofstaedtler).
+    Prevent duplicate records in single RRset (Chris Hofstaedtler).
 
   .. change::
     :tags: Internals, Improvements

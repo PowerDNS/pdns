@@ -83,7 +83,7 @@ many people. We would like to thank:
 -  Kees Monshouwer
 -  Aki Tuomi
 -  Ruben Kerkhof
--  Christian Hofstaedtler
+-  Chris Hofstaedtler
 -  Ruben d'Arco
 -  Morten Stevens
 -  Pieter Lexis

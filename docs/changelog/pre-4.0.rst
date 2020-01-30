@@ -78,9 +78,9 @@ This is a security release fixing `Security Advisory
 Bug fixes:
 
 -  `commit b0c04ba <https://github.com/PowerDNS/pdns/commit/b0c04ba>`__:
-   Ignore invalid/empty TKEY and TSIG records (Christian Hofstaedtler)
+   Ignore invalid/empty TKEY and TSIG records (Chris Hofstaedtler)
 -  `commit 8044a5d <https://github.com/PowerDNS/pdns/commit/8044a5d>`__:
-   Don't reply to truncated queries (Christian Hofstaedtler)
+   Don't reply to truncated queries (Chris Hofstaedtler)
 -  `commit 6a65ae9 <https://github.com/PowerDNS/pdns/commit/6a65ae9>`__:
    don't log out-of-zone ents during AXFR in (Kees Monshouwer)
 -  `commit 416d252 <https://github.com/PowerDNS/pdns/commit/416d252>`__:
@@ -415,7 +415,7 @@ Improvements:
 -  `commit 0481021 <https://github.com/PowerDNS/pdns/commit/0481021>`__:
    Log error when remote cannot do AXFR (Aki Tuomi)
 -  `commit 1ecc3a5 <https://github.com/PowerDNS/pdns/commit/1ecc3a5>`__:
-   Speed improvements when AXFR is disabled (Christian Hofstaedtler)
+   Speed improvements when AXFR is disabled (Chris Hofstaedtler)
 -  commits `1f7334e <https://github.com/PowerDNS/pdns/commit/1f7334e>`__
    and `b17799a <https://github.com/PowerDNS/pdns/commit/b17799a>`__:
    NSEC3 and related RRSIGS are not part of the dnstree (Kees
@@ -486,7 +486,7 @@ Improvements:
 -  `commit 97bd444 <https://github.com/PowerDNS/pdns/commit/97bd444>`__:
    fix building with GCC 5
 
-Experimental API changes (Christian Hofstaedtler):
+Experimental API changes (Chris Hofstaedtler):
 
 -  `commit ca44706 <https://github.com/PowerDNS/pdns/commit/ca44706>`__:
    API: move shared DomainInfo reader into it's own function
@@ -898,7 +898,7 @@ REST API changes
 ^^^^^^^^^^^^^^^^
 
 -  The REST API was much improved and is nearing stability, thanks to
-   Christian Hofstaedtler and others.
+   Chris Hofstaedtler and others.
 -  Mark Schouten at Tuxis contributed a zone importer.
 
 Other changes
@@ -1384,7 +1384,7 @@ Other changes
 -  `commit bb4a573 <https://github.com/PowerDNS/pdns/commit/bb4a573>`__:
    move random backend to modules, thanks Kees Monshouwer.
 -  `commit 1071abd <https://github.com/PowerDNS/pdns/commit/1071abd>`__:
-   restyle builtin webserver page, thanks Christian Hofstaedtler.
+   restyle builtin webserver page, thanks Chris Hofstaedtler.
 -  `commit cd5e158 <https://github.com/PowerDNS/pdns/commit/cd5e158>`__:
    correct bogus use of poll(2) related constants, improving non-Linux
    portability. Thanks Wouter de Jong.
@@ -1621,7 +1621,7 @@ Changes between 3.2-RC1 and 3.2-RC2
    avoids requiring a whole SELinux capability. Reported by Sander
    Hoentjen, fixed in `commit
    2965 <http://wiki.powerdns.com/projects/trac/changeset/2965>`__.
--  Christian Hofstaedtler fixed a bug in our Debian init.d script. Code
+-  Chris Hofstaedtler fixed a bug in our Debian init.d script. Code
    in `commit
    2963 <http://wiki.powerdns.com/projects/trac/changeset/2963>`__.
 -  Superslave errors ('Unable to find backend willing to host ..') now
@@ -2779,7 +2779,7 @@ Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de
 Geijn (bHosted.nl), Stefan Arentz and Martin van Hensbergen (Fox-IT),
 Christof Meerwald, Detlef Peeters, Jack Lloyd, Frank Altpeter, Fredrik
 Danerklint, Vasiliy G Tolstov, Brielle Bruns, Evan Hunt, Ralf van der
-Enden, Marc Laros, Serge Belyshev, Christian Hofstaedtler, Charlie
+Enden, Marc Laros, Serge Belyshev, Chris Hofstaedtler, Charlie
 Smurthwaite, Nikolaos Milas, ..
 
 Known issues as of RC3
@@ -2813,7 +2813,7 @@ Changes between RC2 and RC3
    based resolving backend. Solved in `commit
    2191 <http://wiki.powerdns.com/projects/trac/changeset/2191>`__.
 -  LDAP backend reconfigured the timezone (TZ) setting of the daemon,
-   leading to confusing logfile entries. Fixed by Christian Hofstaedtler
+   leading to confusing logfile entries. Fixed by Chris Hofstaedtler
    in `commit
    2913 <http://wiki.powerdns.com/projects/trac/changeset/2913>`__,
    closing `ticket 313 <https://github.com/PowerDNS/pdns/issues/313>`__.

@@ -222,7 +222,7 @@ Bugs fixed:
    6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4. Debugging and testing by
    Fusl.
 
-Various other documentation changes by Christian Hofstaedtler and Ruben
+Various other documentation changes by Chris Hofstaedtler and Ruben
 Kerkhof. Lots of improvements all over the place by Kees Monshouwer.
 
 PowerDNS Recursor 3.6.2
@@ -343,7 +343,7 @@ New features
    Implement minimum-ttl-override config setting, plus runtime
    configurability via 'rec\_control set-minimum-ttl'.
 -  Lots of work on the JSON API, which is exposed via Aki Tuomi's
-   'yahttp'. Massive thanks to Christian Hofstaedtler for delivering
+   'yahttp'. Massive thanks to Chris Hofstaedtler for delivering
    this exciting new functionality. Documentation & demo forthcoming,
    but code to use it is available `on
    GitHub <https://github.com/powerdns/pdnscontrol>`__.
@@ -830,7 +830,7 @@ Bug fixes
    `1685 <http://wiki.powerdns.com/projects/trac/changeset/1685>`__,
    `1698 <http://wiki.powerdns.com/projects/trac/changeset/1698>`__.
    Additional information provided by Zwane Mwaikambo, Nicholas Miell
-   and Jeff Roberson. Testing by Christian Hofstaedtler and Michael
+   and Jeff Roberson. Testing by Chris Hofstaedtler and Michael
    Renner.
 -  The PowerDNS Recursor could not read the 'root zone' (this is
    something else than the root hints) because of an unquoted TXT

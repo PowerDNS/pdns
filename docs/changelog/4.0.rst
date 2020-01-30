@@ -64,9 +64,9 @@ This release fixes PowerDNS Security Advisory
 Bug fixes
 ~~~~~~~~~
 
-- `#4650 <https://github.com/PowerDNS/pdns/pull/4650>`__: Bindbackend: do not corrupt data supplied by other backends in getAllDomains (Christian Hofstaedtler)
-- `#4751 <https://github.com/PowerDNS/pdns/pull/4751>`__: API: prevent sending nameservers list and zone-level NS in rrsets (Christian Hofstaedtler)
-- `#4929 <https://github.com/PowerDNS/pdns/pull/4929>`__: gpgsql: make statement names actually unique (Christian Hofstaedtler)
+- `#4650 <https://github.com/PowerDNS/pdns/pull/4650>`__: Bindbackend: do not corrupt data supplied by other backends in getAllDomains (Chris Hofstaedtler)
+- `#4751 <https://github.com/PowerDNS/pdns/pull/4751>`__: API: prevent sending nameservers list and zone-level NS in rrsets (Chris Hofstaedtler)
+- `#4929 <https://github.com/PowerDNS/pdns/pull/4929>`__: gpgsql: make statement names actually unique (Chris Hofstaedtler)
 - `#4997 <https://github.com/PowerDNS/pdns/pull/4997>`__: Fix remotebackend params (Aki Tuomi)
 - `#5051 <https://github.com/PowerDNS/pdns/pull/5051>`__: Fix godbc query logging
 - `#5125 <https://github.com/PowerDNS/pdns/pull/5125>`__: For create-slave-zone, actually add all slaves, and not only first n times
@@ -96,7 +96,7 @@ Improvements
 - `#5320 <https://github.com/PowerDNS/pdns/pull/5320>`__: PowerDNS sdig does not truncate trailing bits of EDNS Client Subnet mask
 - `#5349 <https://github.com/PowerDNS/pdns/pull/5349>`__: LuaJIT 2.1: Lua fallback functionality no longer uses Lua namespace
 - `#5498 <https://github.com/PowerDNS/pdns/pull/5498>`__: Add support for Botan 2.x
-- `#5509 <https://github.com/PowerDNS/pdns/pull/5509>`__: Ship ldapbackend schema files in tarball (Christian Hofstaedtler)
+- `#5509 <https://github.com/PowerDNS/pdns/pull/5509>`__: Ship ldapbackend schema files in tarball (Chris Hofstaedtler)
 - `#5518 <https://github.com/PowerDNS/pdns/pull/5518>`__: Collection of schema changes (Kees Monshouwer)
 - `#5523 <https://github.com/PowerDNS/pdns/pull/5523>`__: Fix typo in two log messages (Ruben Kerkhof)
 - `#5598 <https://github.com/PowerDNS/pdns/pull/5598>`__: Add help text on autodetecting systemd support
@@ -141,7 +141,7 @@ Bug fixes
    NSEC ordernames are always lower case
 -  `#4781 <https://github.com/PowerDNS/pdns/pull/4781>`__: API:
    correctly take TTL from first record even if we are at the last
-   comment (Christian Hofstaedtler)
+   comment (Chris Hofstaedtler)
 -  `#4901 <https://github.com/PowerDNS/pdns/pull/4901>`__: Fix
    AtomicCounter unit tests on 32-bit
 -  `#4911 <https://github.com/PowerDNS/pdns/pull/4911>`__: Fix negative
@@ -259,7 +259,7 @@ Bug fixes
 -  `#4387 <https://github.com/PowerDNS/pdns/pull/4387>`__: ComboAddress:
    don't allow invalid ports
 -  `#4459 <https://github.com/PowerDNS/pdns/pull/4459>`__: Plug memory
-   leak in postgresql backend (Christian Hofstaedtler)
+   leak in postgresql backend (Chris Hofstaedtler)
 -  `#4544 <https://github.com/PowerDNS/pdns/pull/4544>`__: Fix a
    stack-based off-by-one write in the HTTP remote backend
 -  `#4755 <https://github.com/PowerDNS/pdns/pull/4755>`__: calidns:
@@ -297,13 +297,13 @@ Additions and Enhancements
 -  `#4356 <https://github.com/PowerDNS/pdns/pull/4356>`__: Don't look up
    the packet cache for TSIG-enabled queries
 -  `#4403 <https://github.com/PowerDNS/pdns/pull/4403>`__: (auth) Fix
-   build with OpenSSL 1.1.0 final (Christian Hofstaedtler)
+   build with OpenSSL 1.1.0 final (Chris Hofstaedtler)
 -  `#4442 <https://github.com/PowerDNS/pdns/pull/4442>`__: geoipbackend:
    Fix minor naming issue (Aki Tuomi)
 -  `#4454 <https://github.com/PowerDNS/pdns/pull/4454>`__: pdnsutil:
    create-slave-zone accept multiple masters (Hannu Ylitalo)
 -  `#4541 <https://github.com/PowerDNS/pdns/pull/4541>`__: Backport of
-   #4542: API: search should not return ENTs (Christian Hofstaedtler)
+   #4542: API: search should not return ENTs (Chris Hofstaedtler)
 -  `#4754 <https://github.com/PowerDNS/pdns/pull/4754>`__: In
    ``Bind2Backend::lookup()``, use the ``zoneId`` when we have it
 
@@ -336,9 +336,9 @@ Improvements
 -  `#4044 <https://github.com/PowerDNS/pdns/pull/4044>`__ Make DNSPacket
    return a ComboAddress for local and remote (Aki Tuomi)
 -  `#4056 <https://github.com/PowerDNS/pdns/pull/4056>`__ OpenSSL 1.1.0
-   support (Christian Hofstaedtler)
+   support (Chris Hofstaedtler)
 -  `#4169 <https://github.com/PowerDNS/pdns/pull/4169>`__ Fix typos in a
-   logmessage and exception (Christian Hofstaedtler)
+   logmessage and exception (Chris Hofstaedtler)
 -  `#4183 <https://github.com/PowerDNS/pdns/pull/4183>`__ pdnsutil:
    Remove checking of ctime and always diff the changes (Hannu Ylitalo)
 -  `#4192 <https://github.com/PowerDNS/pdns/pull/4192>`__ dnsreplay:
@@ -484,7 +484,7 @@ Other improvements:
    support
 -  `#3972 <https://github.com/PowerDNS/pdns/pull/3972>`__ API: change
    PATCH/PUT on zones to return 204 No Content instead of full zone
-   (Christian Hofstaedtler)
+   (Chris Hofstaedtler)
 -  `#3917 <https://github.com/PowerDNS/pdns/pull/3917>`__ Remotebackend:
    Add getAllDomains call (Aki Tuomi)
 
@@ -506,7 +506,7 @@ Bug fixes and changes:
    build dnsbulktest and dnstcpbench if boost is too old, fixes building
    on CentOS 6
 -  `#3931 <https://github.com/PowerDNS/pdns/pull/3931>`__ Rename
-   ``notify`` to ``pdns_notify`` (Christian Hofstaedtler)
+   ``notify`` to ``pdns_notify`` (Chris Hofstaedtler)
 
 PowerDNS Authoritative Server 4.0.0-beta1
 -----------------------------------------
@@ -524,7 +524,7 @@ Improvements and Additions
 -  `#3857 <https://github.com/PowerDNS/pdns/pull/3857>`__ Add simple
    stubquery tool for testing the stubresolver
 -  `#3859 <https://github.com/PowerDNS/pdns/pull/3859>`__ build scripts:
-   Stop patching config-dir in pdns.conf (Christian Hofstaedtler)
+   Stop patching config-dir in pdns.conf (Chris Hofstaedtler)
 -  `#3872 <https://github.com/PowerDNS/pdns/pull/3872>`__ Add support
    for multiple carbon servers
 -  `#3901 <https://github.com/PowerDNS/pdns/pull/3901>`__ Add support
@@ -562,7 +562,7 @@ Bug fixes
 -  `#3553 <https://github.com/PowerDNS/pdns/pull/3553>`__ pdnsutil:
    properly show key sizes for presigned zones in show-zone
 -  `#3507 <https://github.com/PowerDNS/pdns/pull/3507>`__ webserver:
-   mask out the api-key setting (Christian Hofstaedtler)
+   mask out the api-key setting (Chris Hofstaedtler)
 -  `#3580 <https://github.com/PowerDNS/pdns/pull/3580>`__ bindbackend:
    set domain in list() (Kees Monshouwer)
 -  `#3595 <https://github.com/PowerDNS/pdns/pull/3595>`__ pdnsutil: add
@@ -592,7 +592,7 @@ Improvements
    `#3740 <https://github.com/PowerDNS/pdns/pull/3740>`__ Correct
    root-zone slaving and serving (Kees Monshouwer and others)
 -  `#3495 <https://github.com/PowerDNS/pdns/pull/3495>`__ API: Add
-   discovery endpoint (Christian Hofstaedtler)
+   discovery endpoint (Chris Hofstaedtler)
 -  `#3389 <https://github.com/PowerDNS/pdns/pull/3389>`__ pdnsutil:
    support chroot
 -  `#3596 <https://github.com/PowerDNS/pdns/pull/3596>`__ Remove
@@ -606,11 +606,11 @@ Improvements
 -  `#3651 <https://github.com/PowerDNS/pdns/pull/3651>`__ Rename
    PUBLISH\_\* to PUBLISH-\* domainmetadata
 -  `#3656 <https://github.com/PowerDNS/pdns/pull/3656>`__ API: clean up
-   cryptokeys resource (Christian Hofstaedtler)
+   cryptokeys resource (Chris Hofstaedtler)
 -  `#3632 <https://github.com/PowerDNS/pdns/pull/3632>`__ pdnsutil: Fix
    exit statuses to constants and return 0 when success (saltsa)
 -  `#3655 <https://github.com/PowerDNS/pdns/pull/3655>`__ API: Fix
-   set-ptr to honor SOA-EDIT-API (Christian Hofstaedtler)
+   set-ptr to honor SOA-EDIT-API (Chris Hofstaedtler)
 -  `#3720 <https://github.com/PowerDNS/pdns/pull/3720>`__ Many fixes for
    dnswasher (Robert Edmonds)
 -  `#3707 <https://github.com/PowerDNS/pdns/pull/3707>`__,
@@ -632,7 +632,7 @@ Notable changes since 4.0.0-alpha1
    superfluous gsql queries and stop relying on schema defaults
 -  `#3176 <https://github.com/PowerDNS/pdns/pull/3176>`__,
    `#3139 <https://github.com/PowerDNS/pdns/pull/3139>`__ OpenSSL
-   support (Christian Hofstaedtler and Kees Monshouwer)
+   support (Chris Hofstaedtler and Kees Monshouwer)
 -  `#3128 <https://github.com/PowerDNS/pdns/pull/3128>`__ ECDSA support
    to DNSSEC infra via OpenSSL (Kees Monshouwer)
 -  `#3281 <https://github.com/PowerDNS/pdns/pull/3281>`__,
@@ -645,9 +645,9 @@ Notable changes since 4.0.0-alpha1
 -  `#3407 <https://github.com/PowerDNS/pdns/pull/3407>`__ API: Permit
    wildcard manipulation (Aki Tuomi)
 -  `#3230 <https://github.com/PowerDNS/pdns/pull/3230>`__ API: drop
-   JSONP, add web security headers (Christian Hofstaedtler)
+   JSONP, add web security headers (Chris Hofstaedtler)
 -  `#3428 <https://github.com/PowerDNS/pdns/pull/3428>`__ API: Fix
-   zone/records design mistake (Christian Hofstaedtler)
+   zone/records design mistake (Chris Hofstaedtler)
 
    -  **Note**: this is a breaking change from alpha1, please review the
       `API documentation <../httpapi>`
@@ -659,7 +659,7 @@ Bug fixes
    bugs with introduced with the change to a single signing key (e.g.
    the SEP bit is set on these single keys)
 -  `#3151 <https://github.com/PowerDNS/pdns/pull/3151>`__ Catch DNSName
-   build errors in dynhandler (Christian Hofstaedtler)
+   build errors in dynhandler (Chris Hofstaedtler)
 -  `#3264 <https://github.com/PowerDNS/pdns/pull/3264>`__ GeoIP backend:
    Use correct id numbers for domains (Aki Tuomi)
 -  `#3271 <https://github.com/PowerDNS/pdns/pull/3271>`__ ZoneParser:

@@ -61,7 +61,7 @@ Improvements
 ^^^^^^^^^^^^
 
 - `#4646 <https://github.com/PowerDNS/pdns/pull/4646>`__: Extract nested exception from Luawrapper
-- `#4960 <https://github.com/PowerDNS/pdns/pull/4960>`__: Use explicit yes for default-enabled settings (Christian Hofstaedtler)
+- `#4960 <https://github.com/PowerDNS/pdns/pull/4960>`__: Use explicit yes for default-enabled settings (Chris Hofstaedtler)
 - `#5078 <https://github.com/PowerDNS/pdns/pull/5078>`__: Throw an error when lua-conf-file can't be loaded
 - `#5261 <https://github.com/PowerDNS/pdns/pull/5261>`__: get-remote-ring's "other" report should only have two items. (Patrick Cloke)
 - `#5320 <https://github.com/PowerDNS/pdns/pull/5320>`__: PowerDNS sdig does not truncate trailing bits of EDNS Client Subnet mask
@@ -412,7 +412,7 @@ Improvements
 ^^^^^^^^^^^^
 
 -  `#4056 <https://github.com/PowerDNS/pdns/pull/4056>`__ OpenSSL 1.1.0
-   support (Christian Hofstaedtler)
+   support (Chris Hofstaedtler)
 -  `#4133 <https://github.com/PowerDNS/pdns/pull/4133>`__ Add limits to
    the size of received {A,I}XFR (CVE-2016-6172)
 -  `#4140 <https://github.com/PowerDNS/pdns/pull/4140>`__ Fix warnings
@@ -507,7 +507,7 @@ It has the following improvements:
 -  `#4040 <https://github.com/PowerDNS/pdns/pull/4040>`__ Allow DNSSEC
    validation when chrooted
 -  `#4094 <https://github.com/PowerDNS/pdns/pull/4094>`__ Sort included
-   html files for improved reproducibility (Christian Hofstaedtler)
+   html files for improved reproducibility (Chris Hofstaedtler)
 
 And these additions:
 
@@ -652,7 +652,7 @@ changes since 4.0.0-alpha1 are:
 -  `#3410 <https://github.com/PowerDNS/pdns/pull/3410>`__ Recuweb is now
    built-in to the daemon
 -  `#3230 <https://github.com/PowerDNS/pdns/pull/3230>`__ API: drop
-   JSONP, add web security headers (Christian Hofstaedtler)
+   JSONP, add web security headers (Chris Hofstaedtler)
 -  `#3485 <https://github.com/PowerDNS/pdns/pull/3485>`__ Allow multiple
    carbon-servers
 -  `#3427 <https://github.com/PowerDNS/pdns/pull/3427>`__,
