@@ -41,7 +41,7 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
   return os <<d.toLogString();
 }
 
-DNSName::DNSName(const char* p)
+DNSName::DNSName(const char* p, size_t length)
 {
   if(p[0]==0 || (p[0]=='.' && p[1]==0)) {
     d_storage.assign(1, (char)0);
@@ -49,7 +49,7 @@ DNSName::DNSName(const char* p)
     if(!strchr(p, '\\')) {
       unsigned char lenpos=0;
       unsigned char labellen=0;
-      size_t plen=strlen(p);
+      size_t plen=length;
       const char* const pbegin=p, *pend=p+plen;
       d_storage.reserve(plen+1);
       for(auto iter = pbegin; iter != pend; ) {
@@ -76,7 +76,7 @@ DNSName::DNSName(const char* p)
       d_storage.append(1, (char)0);
     }
     else {
-      d_storage=segmentDNSNameRaw(p); 
+      d_storage=segmentDNSNameRaw(p, length);
       if(d_storage.size() > 255) {
         throw std::range_error("name too long");
       }
