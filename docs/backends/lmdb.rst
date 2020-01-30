@@ -60,11 +60,12 @@ Default: mapasync
 
 .. _setting-lmdb-schema-version:
 
-``lmdb-schame-version``
+``lmdb-schema-version``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version that the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend starts normally.
 
+The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. if you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
 
 LMDB Structure
 --------------
