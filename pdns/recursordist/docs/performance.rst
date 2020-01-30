@@ -20,8 +20,10 @@ Set :ref:`setting-threads` to your number of CPU cores (but values above 8 rarel
 Threading and distribution of queries
 -------------------------------------
 
-When running with several threads, you can either ask PowerDNS to start a special thread to dispatch the incoming queries to the  workers by setting :ref:`setting-pdns-distributes-queries` to true, or let the worker threads handle the incoming queries themselves.
-The dispatch thread enabled by :ref:`setting-pdns-distributes-queries` tries to send the same queries to the same thread to maximize the cache-hit ratio, but it might become a bottleneck if the incoming queries rate is too high to be handled by a single thread.
+When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-pdns-distributes-queries` to true, or let the worker threads handle the incoming queries themselves.
+
+The dispatch thread enabled by :ref:`setting-pdns-distributes-queries` tries to send the same queries to the same thread to maximize the cache-hit ratio.
+If the incoming query rate is so high that the dispatch thread becomes a bottleneck, you can increase :ref:`setting-distributor-threads` to use more than one.
 
 If :ref:`setting-pdns-distributes-queries` is set to false and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-reuseport` directive is set to false, all worker threads share the same listening sockets.
 
@@ -31,6 +33,9 @@ If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to 
 
 .. versionadded:: 4.1.0
    The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
+
+.. versionadded:: 4.2.0
+   The :ref:`setting-distributor-threads` parameter can be used to run more than one distributor thread.
 
 Performance tips
 ----------------
