@@ -58,6 +58,13 @@ Default: mapasync
 * ``nometasync``: flush system buffers to disk only once per transaction, omit the metadata flush. This maintains database integrity, but can potentially lose the last committed transaction if the operating system crashes.
 * ``mapasync``: (default). Use asynchronous flushes to disk. As with nosync, a system crash can then corrupt the database or lose the last transactions.
 
+.. _setting-lmdb-schema-version:
+
+``lmdb-schame-version``
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version that the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend starts normally.
+
 
 LMDB Structure
 --------------
