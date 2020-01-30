@@ -59,7 +59,7 @@ Schema changes
 Implicit 5->7 algorithm upgrades
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Since version 3.0 (the first version of the PowerDNS Authoritative Server that supported DNSSEC signing), we have automatically, silently, upgraded algorithm 5 (RSASHA1) keys to algorithm 7 (RSASHA1-NSEC3-SHA1) when the user enabled DNSSEC. This has been a source of confusion, and because of that, we introduced warnings for users of this feature in 4.0 and 4.1. To see if you are affected, run ``pdnsutil check-all-zones`` from version 4.0 or up. In this release, the automatic upgrade is gone, and affected zones will break if no action is taken.
+Since version 3.0 (the first version of the PowerDNS Authoritative Server that supported DNSSEC signing), we have automatically, silently, upgraded algorithm 5 (RSASHA1) keys to algorithm 7 (RSASHA1-NSEC3-SHA1) when the user enabled NSEC3. This has been a source of confusion, and because of that, we introduced warnings for users of this feature in 4.0 and 4.1. To see if you are affected, run ``pdnsutil check-all-zones`` from version 4.0 or up. In this release, the automatic upgrade is gone, and affected zones will break if no action is taken.
 
 4.1.X to 4.2.0
 --------------
