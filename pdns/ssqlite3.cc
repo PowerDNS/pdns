@@ -113,10 +113,10 @@ public:
     for ( int i=0; i<numCols; i++)
     {
       if (sqlite3_column_type(d_stmt,i) == SQLITE_NULL) {
-        row.push_back("");
+        row.emplace_back("");
       } else {
         const char *pData = (const char*) sqlite3_column_text(d_stmt, i);
-        row.push_back(string(pData, sqlite3_column_bytes(d_stmt, i)));
+        row.emplace_back(pData, sqlite3_column_bytes(d_stmt, i));
       }
     }
     d_rc = sqlite3_step(d_stmt);
@@ -128,7 +128,7 @@ public:
     while(hasNextRow()) {
       row_t row;
       nextRow(row);
-      result.push_back(row);
+      result.push_back(std::move(row));
     }
     return this;
   }
