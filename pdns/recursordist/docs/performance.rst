@@ -121,7 +121,7 @@ Recursor Cache
 ^^^^^^^^^^^^^^
 
 The Recursor Cache contains all DNS knowledge gathered over time.
-This is also knows as a "record cache".
+This is also known as a "record cache".
 
 Packet Cache
 ^^^^^^^^^^^^
