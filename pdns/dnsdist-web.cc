@@ -469,6 +469,8 @@ static void connectionThread(int sock, ComboAddress remote)
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
 
+        output << "# HELP " << statesbase << "status "                 << "Whether this backend is up (1) or down (0)"                        << "\n";
+        output << "# TYPE " << statesbase << "status "                 << "gauge"                                                             << "\n";
         output << "# HELP " << statesbase << "queries "                << "Amount of queries relayed to server"                               << "\n";
         output << "# TYPE " << statesbase << "queries "                << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "responses "              << "Amount of responses received from this server"                     << "\n";
@@ -477,7 +479,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << statesbase << "drops "                  << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "latency "                << "Server's latency when answering questions in milliseconds"         << "\n";
         output << "# TYPE " << statesbase << "latency "                << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "senderrors "             << "Total number of OS send errors while relaying queries"              << "\n";
+        output << "# HELP " << statesbase << "senderrors "             << "Total number of OS send errors while relaying queries"             << "\n";
         output << "# TYPE " << statesbase << "senderrors "             << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "outstanding "            << "Current number of queries that are waiting for a backend response" << "\n";
         output << "# TYPE " << statesbase << "outstanding "            << "gauge"                                                             << "\n";
@@ -515,6 +517,7 @@ static void connectionThread(int sock, ComboAddress remote)
           const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
             % serverName % state->remote.toStringWithPort());
 
+          output << statesbase << "status"                 << label << " " << (state->isUp() ? "1" : "0")       << "\n";
           output << statesbase << "queries"                << label << " " << state->queries.load()             << "\n";
           output << statesbase << "responses"              << label << " " << state->responses.load()           << "\n";
           output << statesbase << "drops"                  << label << " " << state->reuseds.load()             << "\n";
