@@ -47,6 +47,7 @@ EXTRA_DIST = \
 	effective_tld_names.dat \
 	mtasker.cc \
 	inflighter.cc \
+	bind-dnssec.4.2.0_to_4.3.0_schema.sqlite3.sql \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
