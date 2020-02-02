@@ -367,6 +367,9 @@ fi
 %doc modules/gmysqlbackend/schema.mysql.sql
 %doc modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql
 %doc modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql
+%doc modules/gmysqlbackend/3.4.0_to_4.1.0_schema.mysql.sql
+%doc modules/gmysqlbackend/4.1.0_to_4.2.0_schema.mysql.sql
+%doc modules/gmysqlbackend/4.2.0_to_4.3.0_schema.mysql.sql
 %doc modules/gmysqlbackend/enable-foreign-keys.mysql.sql
 %{_libdir}/%{name}/libgmysqlbackend.so
 
@@ -374,6 +377,9 @@ fi
 %doc modules/gpgsqlbackend/schema.pgsql.sql
 %doc modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql
 %doc modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
+%doc modules/gpgsqlbackend/3.4.0_to_4.1.0_schema.pgsql.sql
+%doc modules/gpgsqlbackend/4.1.0_to_4.2.0_schema.pgsql.sql
+%doc modules/gpgsqlbackend/4.2.0_to_4.3.0_schema.pgsql.sql
 %{_libdir}/%{name}/libgpgsqlbackend.so
 
 %files backend-pipe
@@ -395,11 +401,16 @@ fi
 %doc modules/gsqlite3backend/schema.sqlite3.sql
 %doc modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
+%doc modules/gsqlite3backend/3.4.0_to_4.0.0_schema.sqlite3.sql
+%doc modules/gsqlite3backend/4.0.0_to_4.2.0_schema.sqlite3.sql
+%doc modules/gsqlite3backend/4.2.0_to_4.3.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
 
 %if 0%{?rhel} >= 7
 %files backend-odbc
 %doc modules/godbcbackend/schema.mssql.sql
+%doc modules/godbcbackend/4.0.0_to_4.2.0_schema.mssql.sql
+%doc modules/godbcbackend/4.2.0_to_4.3.0_schema.mssql.sql
 %{_libdir}/%{name}/libgodbcbackend.so
 
 %files backend-geoip

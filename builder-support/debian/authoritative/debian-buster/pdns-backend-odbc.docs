@@ -1,1 +1,3 @@
+modules/godbcbackend/4.0.0_to_4.2.0_schema.mssql.sql
+modules/godbcbackend/4.2.0_to_4.3.0_schema.mssql.sql
 modules/godbcbackend/schema.mssql.sql
