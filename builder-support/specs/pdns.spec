@@ -367,6 +367,7 @@ fi
 %doc modules/gmysqlbackend/schema.mysql.sql
 %doc modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql
 %doc modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql
+%doc modules/gmysqlbackend/enable-foreign-keys.mysql.sql
 %{_libdir}/%{name}/libgmysqlbackend.so
 
 %files backend-postgresql
