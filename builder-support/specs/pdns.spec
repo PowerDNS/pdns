@@ -298,7 +298,10 @@ fi
 %endif
 
 %files
-%doc COPYING README
+%doc COPYING
+%doc README
+%doc pdns/bind-dnssec.4.2.0_to_4.3.0_schema.sqlite3.sql
+%doc pdns/bind-dnssec.schema.sqlite3.sql
 %{_bindir}/pdns_control
 %{_bindir}/pdnsutil
 %{_bindir}/zone2sql
