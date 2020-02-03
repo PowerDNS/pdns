@@ -21,6 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-prometheus.hh"
 
 #include "sstuff.hh"
 #include "ext/json11/json11.hpp"
@@ -42,6 +43,56 @@
 bool g_apiReadWrite{false};
 WebserverConfig g_webserverConfig;
 std::string g_apiConfigDirectory;
+static const MetricDefinitionStorage s_metricDefinitions;
+
+const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
+  { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
+  { "servfail-responses",     MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
+  { "queries",                MetricDefinition(PrometheusMetricType::counter, "Number of received queries")},
+  { "frontend-nxdomain",      MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers sent to clients")},
+  { "frontend-servfail",      MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers sent to clients")},
+  { "frontend-noerror",       MetricDefinition(PrometheusMetricType::counter, "Number of NoError answers sent to clients")},
+  { "acl-drops",              MetricDefinition(PrometheusMetricType::counter, "Number of packets dropped because of the ACL")},
+  { "rule-drop",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a rule")},
+  { "rule-nxdomain",          MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers returned because of a rule")},
+  { "rule-refused",           MetricDefinition(PrometheusMetricType::counter, "Number of Refused answers returned because of a rule")},
+  { "rule-servfail",          MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received because of a rule")},
+  { "self-answered",          MetricDefinition(PrometheusMetricType::counter, "Number of self-answered responses")},
+  { "downstream-timeouts",    MetricDefinition(PrometheusMetricType::counter, "Number of queries not answered in time by a backend")},
+  { "downstream-send-errors", MetricDefinition(PrometheusMetricType::counter, "Number of errors when sending a query to a backend")},
+  { "trunc-failures",         MetricDefinition(PrometheusMetricType::counter, "Number of errors encountered while truncating an answer")},
+  { "no-policy",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because no server was available")},
+  { "latency0-1",             MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in less than 1ms")},
+  { "latency1-10",            MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 1-10 ms")},
+  { "latency10-50",           MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 10-50 ms")},
+  { "latency50-100",          MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 50-100 ms")},
+  { "latency100-1000",        MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 100-1000 ms")},
+  { "latency-slow",           MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in more than 1 second")},
+  { "latency-avg100",         MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 100 packets")},
+  { "latency-avg1000",        MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000 packets")},
+  { "latency-avg10000",       MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 10000 packets")},
+  { "latency-avg1000000",     MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000000 packets")},
+  { "uptime",                 MetricDefinition(PrometheusMetricType::gauge,   "Uptime of the dnsdist process in seconds")},
+  { "real-memory-usage",      MetricDefinition(PrometheusMetricType::gauge,   "Current memory usage in bytes")},
+  { "noncompliant-queries",   MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped as non-compliant")},
+  { "noncompliant-responses", MetricDefinition(PrometheusMetricType::counter, "Number of answers from a backend dropped as non-compliant")},
+  { "rdqueries",              MetricDefinition(PrometheusMetricType::counter, "Number of received queries with the recursion desired bit set")},
+  { "empty-queries",          MetricDefinition(PrometheusMetricType::counter, "Number of empty queries received from clients")},
+  { "cache-hits",             MetricDefinition(PrometheusMetricType::counter, "Number of times an answer was retrieved from cache")},
+  { "cache-misses",           MetricDefinition(PrometheusMetricType::counter, "Number of times an answer not found in the cache")},
+  { "cpu-iowait",             MetricDefinition(PrometheusMetricType::counter, "Time waiting for I/O to complete by the whole system")},
+  { "cpu-user-msec",          MetricDefinition(PrometheusMetricType::counter, "Milliseconds spent by dnsdist in the user state")},
+  { "cpu-steal",              MetricDefinition(PrometheusMetricType::counter, "Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment")},
+  { "cpu-sys-msec",           MetricDefinition(PrometheusMetricType::counter, "Milliseconds spent by dnsdist in the system state")},
+  { "fd-usage",               MetricDefinition(PrometheusMetricType::gauge,   "Number of currently used file descriptors")},
+  { "dyn-blocked",            MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a dynamic block")},
+  { "dyn-block-nmg-size",     MetricDefinition(PrometheusMetricType::gauge,   "Number of dynamic blocks entries") },
+  { "security-status",        MetricDefinition(PrometheusMetricType::gauge,   "Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory") },
+  { "udp-in-errors",          MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp InErrors") },
+  { "udp-noport-errors",      MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp NoPorts") },
+  { "udp-recvbuf-errors",     MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp RcvbufErrors") },
+  { "udp-sndbuf-errors",      MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp SndbufErrors") },
+};
 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
@@ -421,12 +472,12 @@ static void connectionThread(int sock, ComboAddress remote)
           }
 
           MetricDefinition metricDetails;
-          if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
+          if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
               vinfolog("Do not have metric details for %s", metricName);
               continue;
           }
 
-          std::string prometheusTypeName = g_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+          std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
 
           if (prometheusTypeName == "") {
               vinfolog("Unknown Prometheus type for %s", metricName);

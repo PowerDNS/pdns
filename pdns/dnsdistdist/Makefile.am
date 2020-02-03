@@ -139,6 +139,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
+	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.hh \
