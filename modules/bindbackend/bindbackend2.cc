@@ -567,16 +567,17 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
 string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream ret;
-      
+
   if(parts.size() > 1) {
     for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
       BB2DomainInfo bbd;
-      if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {	
+      if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {
         ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";
-    }
-      else
+      }
+      else {
         ret<< *i << " no such domain\n";
-    }    
+      }
+    }
   }
   else {
     ReadLock rl(&s_state_lock);
@@ -587,6 +588,69 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
 
   if(ret.str().empty())
     ret<<"no domains passed";
+
+  return ret.str();
+}
+
+static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& info)
+{
+  ret << info.d_name << ": " << std::endl;
+  ret << "\t Status: " << info.d_status << std::endl;
+  ret << "\t Internal ID: " << info.d_id << std::endl;
+  ret << "\t On-disk file: " << info.d_filename << " (" << info.d_ctime << ")" << std::endl;
+  ret << "\t Kind: ";
+  switch (info.d_kind) {
+  case DomainInfo::Master:
+    ret << "Master";
+    break;
+  case DomainInfo::Slave:
+    ret << "Slave";
+    break;
+  default:
+    ret << "Native";
+  }
+  ret << std::endl;
+  ret << "\t Masters: " << std::endl;
+  for (const auto& master : info.d_masters) {
+    ret << "\t\t - " << master.toStringWithPort() << std::endl;
+  }
+  ret << "\t Also Notify: " << std::endl;
+  for (const auto& also : info.d_also_notify) {
+    ret << "\t\t - " << also << std::endl;
+  }
+  ret << "\t Number of records: " << info.d_records.getEntriesCount() << std::endl;
+  ret << "\t Loaded: " << info.d_loaded << std::endl;
+  ret << "\t Check now: " << info.d_checknow << std::endl;
+  ret << "\t Check interval: " << info.getCheckInterval() << std::endl;
+  ret << "\t Last check: " << info.d_lastcheck << std::endl;
+  ret << "\t Last notified: " << info.d_lastnotified << std::endl;
+}
+
+string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  ostringstream ret;
+
+  if (parts.size() > 1) {
+    for (const auto& part : parts) {
+      BB2DomainInfo bbd;
+      if (safeGetBBDomainInfo(DNSName(part), &bbd)) {
+        printDomainExtendedStatus(ret, bbd);
+      }
+      else {
+        ret << part << " no such domain" << std::endl;
+      }
+    }
+  }
+  else {
+    ReadLock rl(&s_state_lock);
+    for (const auto& state : s_state) {
+      printDomainExtendedStatus(ret, state);
+    }
+  }
+
+  if (ret.str().empty()) {
+    ret << "no domains passed" << std::endl;
+  }
 
   return ret.str();
 }
@@ -676,6 +740,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   extern DynListener *dl;
   dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler, "bindbackend: reload domains", "<domains>");
   dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler, "bindbackend: list status of all domains", "[domains]");
+  dl->registerFunc("BIND-DOMAIN-EXTENDED-STATUS", &DLDomExtendedStatusHandler, "bindbackend: list the extended status of all domains", "[domains]");
   dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler, "bindbackend: list rejected domains");
   dl->registerFunc("BIND-ADD-ZONE", &DLAddDomainHandler, "bindbackend: add zone", "<domain> <filename>");
 }

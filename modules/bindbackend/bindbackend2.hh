@@ -121,6 +121,12 @@ public:
     return ret;
   }
 
+  size_t getEntriesCount() const
+  {
+    std::lock_guard<std::mutex> lock(s_lock);
+    return d_records->size();
+  }
+
 private:
   static std::mutex s_lock;
   shared_ptr<T> d_records;
@@ -136,6 +142,10 @@ public:
   bool current();
   //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
+  time_t getCheckInterval() const
+  {
+    return d_checkinterval;
+  }
 
   DNSName d_name;   //!< actual name of the domain
   DomainInfo::DomainKind d_kind; //!< the kind of domain
@@ -299,6 +309,7 @@ private:
   static void insertRecord(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=nullptr);
   void reload() override;
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLDomExtendedStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
