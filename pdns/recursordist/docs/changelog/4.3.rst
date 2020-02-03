@@ -8,7 +8,7 @@ Changelogs for 4.3.x
     :tags: Improvements
     :pullreq: 8751
 
-    Update boost.m4
+    Update boost.m4.
 
   .. change::
     :tags: Improvements
@@ -20,7 +20,7 @@ Changelogs for 4.3.x
     :tags: Bug Fixes
     :pullreq: 8730
 
-    Make ComboAddress::setPort() update the current object.
+    Make ``ComboAddress::setPort()`` update the current object.
 
   .. change::
     :tags: Improvements
@@ -38,7 +38,7 @@ Changelogs for 4.3.x
     :tags: Improvements
     :pullreq: 8726
 
-    Give an explcit messsage if something is wrong with socket-dir.
+    Give an explicit messsage if something is wrong with socket-dir.
 
 .. changelog::
   :version: 4.3.0-beta2
