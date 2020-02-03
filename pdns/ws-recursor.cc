@@ -382,8 +382,8 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
   bool subtree = (req->getvars.count("subtree") > 0 && req->getvars["subtree"].compare("true") == 0);
 
-  int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, subtree));
-  count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, subtree));
+  int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, subtree, 0xffff));
+  count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, subtree, 0xffff));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon, subtree));
   resp->setBody(Json::object {
     { "count", count },

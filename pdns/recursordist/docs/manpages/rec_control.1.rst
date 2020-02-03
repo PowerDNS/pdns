@@ -332,6 +332,9 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
     **Warning**: Don't just wipe "www.somedomain.com", its NS records or CNAME
     target may still be undesired, so wipe "somedomain.com" as well.
 
+wipe-cache-typed qtype *DOMAIN* [*DOMAIN*] [...]
+    Same as wip-cache, but only wipe records of type *qtype*.
+
 See also
 --------
 :manpage:`pdns_recursor(1)`
