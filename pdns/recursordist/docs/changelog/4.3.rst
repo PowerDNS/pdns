@@ -1,5 +1,44 @@
 Changelogs for 4.3.x
 ====================
+.. changelog::
+  :version: 4.3.0-rc1
+  :released: 3rd of February 2020
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8751
+
+    Update boost.m4.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8738
+
+    Explicitly enable dnstap for debian-stretch and buster.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8730
+
+    Make ``ComboAddress::setPort()`` update the current object.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8728
+
+    EPEL 8 now has libfstrm-devel.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8727
+
+    Fix the evaluation order for filtering policies (RPZ).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8726
+
+    Give an explicit messsage if something is wrong with socket-dir.
 
 .. changelog::
   :version: 4.3.0-beta2
