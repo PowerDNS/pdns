@@ -262,6 +262,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
     }
   }
 
+  zone->setRefresh(sr->d_st.refresh);
   return sr;
 }
 
@@ -373,6 +374,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
           refresh = sr->d_st.refresh;
         }
         newZone->setSerial(sr->d_st.serial);
+        newZone->setRefresh(sr->d_st.refresh);
         setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
 
         g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
