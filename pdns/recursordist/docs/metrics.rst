@@ -189,6 +189,18 @@ cpu-msec-thread-n
 ^^^^^^^^^^^^^^^^^
 shows the number of milliseconds spent in thread n. Available since 4.1.12.
 
+cpu-iowait
+^^^^^^^^^^
+.. versionadded:: 4.4
+
+Time spent waiting for I/O to complete by the whole system.
+
+cpu-steal
+^^^^^^^^^
+.. versionadded:: 4.4
+
+Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment.
+
 dlg-only-drops
 ^^^^^^^^^^^^^^
 number of records dropped because of :ref:`setting-delegation-only` setting
