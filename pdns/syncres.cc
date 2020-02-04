@@ -951,16 +951,16 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
             }
           }
         }
-      }
-    } else {
-      // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
-      // Once IPv6 adoption matters, this needs to be revisited
-      res_t cset;
-      if (s_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
-        for (const auto &i : cset) {
-          if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
-            if (auto rec = getRR<AAAARecordContent>(i)) {
-              ret.push_back(rec->getCA(53));
+      } else {
+        // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
+        // Once IPv6 adoption matters, this needs to be revisited
+        res_t cset;
+        if (s_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
+          for (const auto &i : cset) {
+            if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
+              if (auto rec = getRR<AAAARecordContent>(i)) {
+                ret.push_back(rec->getCA(53));
+              }
             }
           }
         }
