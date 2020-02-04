@@ -1275,6 +1275,48 @@ BOOST_AUTO_TEST_CASE(test_completely_flawed_nsset)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
+BOOST_AUTO_TEST_CASE(test_completely_flawed_big_nsset)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&queriesCount, target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (isRootServer(ip) && domain == target) {
+      setLWResult(res, 0, false, false, true);
+      // 20 NS records
+      for (int i = 0; i < 20; i++)  {
+        string n = string("pdns-public-ns") + std::to_string(i) + string(".powerdns.com.");
+        addRecordToLW(res, domain, QType::NS, n, DNSResourceRecord::AUTHORITY, 172800);
+      }
+      return 1;
+    }
+    else if (domain.toString().length() > 14 && domain.toString().substr(0, 14) == "pdns-public-ns") {
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, ".", QType::SOA, "a.root-servers.net. nstld.verisign-grs.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+      return 1;
+    }
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  try {
+    sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK(0);
+  } catch (const ImmediateServFailException& ex) {
+      BOOST_CHECK_EQUAL(ret.size(), 0U);
+      // one query to get NSs, then A and AAAA for each NS, 5th NS hits the limit
+      // limit is reduced to 5, because zone publishes many (20) NS
+    BOOST_CHECK_EQUAL(queriesCount, 11);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_cache_hit)
 {
   std::unique_ptr<SyncRes> sr;
