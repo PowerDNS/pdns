@@ -140,9 +140,9 @@ ssize_t parseProxyHeader(const char* payload, size_t len, ComboAddress& source, 
   pos = pos + addrSize;
   destination = makeComboAddressFromRaw(protocol, &header.at(pos), addrSize);
   pos = pos + addrSize;
-  source.sin4.sin_port = (header.at(pos) << 8) + header.at(pos);
+  source.sin4.sin_port = htons((header.at(pos) << 8) + header.at(pos+1));
   pos = pos + sizeof(uint16_t);
-  destination.sin4.sin_port = (header.at(pos) << 8) + header.at(pos);
+  destination.sin4.sin_port = htons((header.at(pos) << 8) + header.at(pos+1));
   pos = pos + sizeof(uint16_t);
 
   return len;
