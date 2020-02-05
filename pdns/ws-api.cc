@@ -248,25 +248,28 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   }
 
 #ifndef RECURSOR
-  for(const auto& ringName : S.listRings()) {
-    Json::array values;
-    const auto& ring = S.getRing(ringName);
-    for(const auto& item : ring) {
-      if (item.second == 0)
-        continue;
+  if (!req->getvars.count("includerings") ||
+       req->getvars["includerings"] != "false") {
+    for(const auto& ringName : S.listRings()) {
+      Json::array values;
+      const auto& ring = S.getRing(ringName);
+      for(const auto& item : ring) {
+        if (item.second == 0)
+          continue;
 
-      values.push_back(Json::object {
-        { "name", item.first },
-        { "value", std::to_string(item.second) },
+        values.push_back(Json::object {
+          { "name", item.first },
+          { "value", std::to_string(item.second) },
+        });
+      }
+
+      doc.push_back(Json::object {
+        { "type", "RingStatisticItem" },
+        { "name", ringName },
+        { "size", std::to_string(S.getRingSize(ringName)) },
+        { "value", values },
       });
     }
-
-    doc.push_back(Json::object {
-      { "type", "RingStatisticItem" },
-      { "name", ringName },
-      { "size", std::to_string(S.getRingSize(ringName)) },
-      { "value", values },
-    });
   }
 #endif
 
