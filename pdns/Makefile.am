@@ -1292,6 +1292,7 @@ testrunner_SOURCES = \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
 	pollmplexer.cc \
+	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
@@ -1322,6 +1323,7 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-packetcache_hh.cc \
+	test-proxy_protocol_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-signers.cc \
 	test-sha_hh.cc \
