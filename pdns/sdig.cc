@@ -317,6 +317,7 @@ try {
   } else if (fromstdin) {
     std::istreambuf_iterator<char> begin(std::cin), end;
     reply = string(begin, end);
+    if (tcp) reply = reply.substr(2);
     printReply(reply, showflags, hidesoadetails);
   } else if (tcp) {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
