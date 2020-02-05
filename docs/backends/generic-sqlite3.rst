@@ -33,8 +33,8 @@ Setting up the database
 ------------------------
 
 Before you can use this backend you first have to set it up and fill it
-with data. The default setup conforms to the following schema in 4.2.
-If you have not upgraded to 4.2, please use `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gsqlite3backend/schema.sqlite3.sql>`_.
+with data. The default setup conforms to the following schema in 4.3.
+If you have not upgraded to 4.3, please use `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gsqlite3backend/schema.sqlite3.sql>`_ or `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gsqlite3backend/schema.sqlite3.sql>`_ on GitHub.
 
 .. literalinclude:: ../../modules/gsqlite3backend/schema.sqlite3.sql
 

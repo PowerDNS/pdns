@@ -48,7 +48,7 @@ Example: configuring MySQL
 Connect to MySQL as a user with sufficient privileges and issue the
 following commands below if you are running the 4.3 or master version of PowerDNS:
 
-Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
+Please find `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gmysqlbackend/schema.mysql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_ on GitHub.
 
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql
