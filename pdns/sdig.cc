@@ -317,7 +317,19 @@ try {
   } else if (fromstdin) {
     std::istreambuf_iterator<char> begin(std::cin), end;
     reply = string(begin, end);
-    if (tcp) reply = reply.substr(2);
+
+    ComboAddress source, destination;
+    bool wastcp;
+    ssize_t offset = parseProxyHeader(reply.c_str(), reply.size(), source, destination, wastcp);
+    if (offset) {
+      cout<<"proxy "<<(wastcp ? "tcp" : "udp")<<" headersize="<<offset<<" source="<<source.toStringWithPort()<<" destination="<<destination.toStringWithPort()<<endl;
+      reply = reply.substr(offset);
+    }
+
+    if (tcp) {
+      reply = reply.substr(2);
+    }
+
     printReply(reply, showflags, hidesoadetails);
   } else if (tcp) {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
