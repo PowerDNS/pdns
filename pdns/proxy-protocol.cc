@@ -145,5 +145,5 @@ ssize_t parseProxyHeader(const char* payload, size_t len, ComboAddress& source, 
   destination.sin4.sin_port = htons((header.at(pos) << 8) + header.at(pos+1));
   pos = pos + sizeof(uint16_t);
 
-  return len;
+  return pos;
 }
