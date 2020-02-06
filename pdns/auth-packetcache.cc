@@ -58,6 +58,14 @@ AuthPacketCache::~AuthPacketCache()
   }
 }
 
+void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
+{
+#if BOOST_VERSION >= 105600
+  WriteLock wl(&d_mut);
+  d_map.get<HashTag>().reserve(numberOfEntries);
+#endif /* BOOST_VERSION >= 105600 */
+}
+
 bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
 {
   if(!d_ttl) {
