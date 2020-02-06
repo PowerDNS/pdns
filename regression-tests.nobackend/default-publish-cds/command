@@ -35,12 +35,16 @@ $PDNS --config-dir=default-publish-cds &
 bindwait
 
 $SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$SAXFR 127.0.0.1 $port minimal.com dnssec | LC_ALL=C sort
 $PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com 2
 $SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$SAXFR 127.0.0.1 $port minimal.com dnssec | LC_ALL=C sort
 $PDNSUTIL --config-dir=default-publish-cds set-publish-cds minimal.com ''
 $SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$SAXFR 127.0.0.1 $port minimal.com dnssec | LC_ALL=C sort
 $PDNSUTIL --config-dir=default-publish-cds unset-publish-cds minimal.com
 $SDIG 127.0.0.1 $port minimal.com CDS dnssec | LC_ALL=C sort
+$SAXFR 127.0.0.1 $port minimal.com dnssec | LC_ALL=C sort
 
 kill $(cat pdns*.pid)
 rm pdns*.pid
