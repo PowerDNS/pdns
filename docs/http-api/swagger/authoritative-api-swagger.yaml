@@ -412,7 +412,12 @@ paths:
           description: |
             When set to the name of a specific statistic, only this value is returned.
             If no statistic with that name exists, the response has a 422 status and an error message.
-
+        - name: includerings
+          in: query
+          required: false
+          type: boolean
+          default: true
+          description: '“true” (default) or “false”, whether to include the Ring items, which can contain thousands of log messages or queried domains. Setting this to ”false” may make the response a lot smaller.'
       responses:
         '200':
           description: List of Statistic Items
