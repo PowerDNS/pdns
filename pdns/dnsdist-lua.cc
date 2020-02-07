@@ -1858,6 +1858,10 @@ void setupLuaConfig(bool client, bool configCheck)
         }
       }
 
+      if (vars->count("sendCacheControlHeaders")) {
+        frontend->d_sendCacheControlHeaders = boost::get<bool>((*vars)["sendCacheControlHeaders"]);
+      }
+
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);
