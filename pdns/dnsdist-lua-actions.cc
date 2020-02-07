@@ -466,6 +466,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
                                  0, 0 };        // rdata length
   static_assert(sizeof(recordstart) == 12, "sizeof(recordstart) must be equal to 12, otherwise the above check is invalid");
   memcpy(&recordstart[6], &ttl, sizeof(ttl));
+  bool raw = false;
 
   if (qtype == QType::CNAME) {
     const std::string wireData = d_cname.toDNSString(); // Note! This doesn't do compression!
@@ -491,6 +492,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
     memcpy(dest, d_rawResponse.c_str(), d_rawResponse.size());
     dq->len += d_rawResponse.size() + sizeof(recordstart);
     dq->dh->ancount++;
+    raw = true;
   }
   else {
     for(const auto& addr : addrs) {
@@ -513,7 +515,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
 
   dq->dh->ancount = htons(dq->dh->ancount);
 
-  if (hadEDNS) {
+  if (hadEDNS && raw == false) {
     addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
   }
 
