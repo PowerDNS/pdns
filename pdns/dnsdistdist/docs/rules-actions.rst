@@ -1187,6 +1187,30 @@ The following actions exist.
   :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
   :param string v6: The IPv6 netmask, if any
 
+.. function:: SetNegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum [, options])
+
+  .. versionadded:: 1.5.0
+
+  Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
+
+  :param bool nxd: Whether the answer is a NXDOMAIN (true) or a NODATA (false)
+  :param string zone: The owner name for the SOA record
+  :param int ttl: The TTL of the SOA record
+  :param string mname: The mname of the SOA record
+  :param string rname: The rname of the SOA record
+  :param int serial: The value of the serial field in the SOA record
+  :param int refresh: The value of the refresh field in the SOA record
+  :param int retry: The value of the retry field in the SOA record
+  :param int expire: The value of the expire field in the SOA record
+  :param int minimum: The value of the minimum field in the SOA record
+  :param table options: A table with key: value pairs with options
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+
 .. function:: SkipCacheAction()
 
   Don't lookup the cache for this query, don't store the answer.

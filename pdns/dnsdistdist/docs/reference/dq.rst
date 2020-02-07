@@ -187,6 +187,23 @@ This state can be modified from the various hooks.
     :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
     :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
 
+  .. method:: DNSQuestion:setNegativeAndAdditionalSOA(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
+
+    .. versionadded:: 1.5.0
+
+    Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
+
+    :param bool nxd: Whether the answer is a NXDOMAIN (true) or a NODATA (false)
+    :param string zone: The owner name for the SOA record
+    :param int ttl: The TTL of the SOA record
+    :param string mname: The mname of the SOA record
+    :param string rname: The rname of the SOA record
+    :param int serial: The value of the serial field in the SOA record
+    :param int refresh: The value of the refresh field in the SOA record
+    :param int retry: The value of the retry field in the SOA record
+    :param int expire: The value of the expire field in the SOA record
+    :param int minimum: The value of the minimum field in the SOA record
+
   .. method:: DNSQuestion:setTag(key, value)
 
     .. versionadded:: 1.2.0

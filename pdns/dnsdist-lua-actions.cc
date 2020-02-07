@@ -466,6 +466,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
                                  0, 0 };        // rdata length
   static_assert(sizeof(recordstart) == 12, "sizeof(recordstart) must be equal to 12, otherwise the above check is invalid");
   memcpy(&recordstart[6], &ttl, sizeof(ttl));
+  bool raw = false;
 
   if (qtype == QType::CNAME) {
     const std::string wireData = d_cname.toDNSString(); // Note! This doesn't do compression!
@@ -491,6 +492,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
     memcpy(dest, d_rawResponse.c_str(), d_rawResponse.size());
     dq->len += d_rawResponse.size() + sizeof(recordstart);
     dq->dh->ancount++;
+    raw = true;
   }
   else {
     for(const auto& addr : addrs) {
@@ -513,7 +515,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
 
   dq->dh->ancount = htons(dq->dh->ancount);
 
-  if (hadEDNS) {
+  if (hadEDNS && raw == false) {
     addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
   }
 
@@ -1258,6 +1260,44 @@ private:
   std::string d_tag;
 };
 
+class SetNegativeAndSOAAction: public DNSAction
+{
+public:
+  SetNegativeAndSOAAction(bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum): d_zone(zone), d_mname(mname), d_rname(rname), d_ttl(ttl), d_serial(serial), d_refresh(refresh), d_retry(retry), d_expire(expire), d_minimum(minimum), d_nxd(nxd)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (!setNegativeAndAdditionalSOA(*dq, d_nxd, d_zone, d_ttl, d_mname, d_rname, d_serial, d_refresh, d_retry, d_expire, d_minimum)) {
+      return Action::None;
+    }
+
+    setResponseHeadersFromConfig(*dq->dh, d_responseConfig);
+
+    return Action::Allow;
+  }
+
+  std::string toString() const override
+  {
+    return std::string(d_nxd ? "NXD " : "NODATA") + " with SOA";
+  }
+
+  ResponseConfig d_responseConfig;
+
+private:
+  DNSName d_zone;
+  DNSName d_mname;
+  DNSName d_rname;
+  uint32_t d_ttl;
+  uint32_t d_serial;
+  uint32_t d_refresh;
+  uint32_t d_retry;
+  uint32_t d_expire;
+  uint32_t d_minimum;
+  bool d_nxd;
+};
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
@@ -1403,7 +1443,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<responseParams_t> vars ) {
+  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<responseParams_t> vars) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp))
         addrs.push_back(ComboAddress(*s));
@@ -1641,5 +1681,12 @@ void setupLuaActions()
 
   g_lua.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
+    });
+
+  g_lua.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new SetNegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
+      auto action = std::dynamic_pointer_cast<SetNegativeAndSOAAction>(ret);
+      parseResponseConfig(vars, action->d_responseConfig);
+      return ret;
     });
 }
