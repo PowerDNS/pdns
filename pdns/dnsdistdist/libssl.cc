@@ -744,6 +744,7 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
   }
 
   fprintf(fp, "%s\n", line);
+  fflush(fp);
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 

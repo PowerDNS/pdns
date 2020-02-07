@@ -42,6 +42,7 @@ public:
   OpenSSLTLSTicketKeysRing d_ticketKeys;
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx{nullptr, SSL_CTX_free};
+  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
 };
 
 class OpenSSLTLSConnection: public TLSConnection
@@ -302,6 +303,10 @@ public:
     }
 
     libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &fe.d_tlsCounters);
+
+    if (!fe.d_tlsConfig.d_keyLogFile.empty()) {
+      d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx, fe.d_tlsConfig.d_keyLogFile);
+    }
 
     try {
       if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
