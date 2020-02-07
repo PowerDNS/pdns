@@ -47,6 +47,8 @@ typedef std::map<uint16_t, EDNSOptionView> EDNSOptionViewMap;
 
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
 int getEDNSOptions(const char* optRR, size_t len, EDNSOptionViewMap& options);
+/* extract all EDNS0 options from the content (so after rdLen) of the OPT RR */
+bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair<uint16_t, std::string>>& options);
 
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res);
 
