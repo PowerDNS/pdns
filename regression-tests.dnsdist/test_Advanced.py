@@ -1857,6 +1857,7 @@ class TestAdvancedSetNegativeAndSOA(DNSDistTest):
         """
         name = 'nxd.setnegativeandsoa.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
         soa = dns.rrset.from_text("auth",
@@ -1877,6 +1878,7 @@ class TestAdvancedSetNegativeAndSOA(DNSDistTest):
         """
         name = 'nodata.setnegativeandsoa.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOERROR)
         soa = dns.rrset.from_text("another-auth",

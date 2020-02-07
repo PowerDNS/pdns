@@ -1273,6 +1273,8 @@ public:
       return Action::None;
     }
 
+    setResponseHeadersFromConfig(*dq->dh, d_responseConfig);
+
     return Action::Allow;
   }
 
@@ -1280,6 +1282,8 @@ public:
   {
     return std::string(d_nxd ? "NXD " : "NODATA") + " with SOA";
   }
+
+  ResponseConfig d_responseConfig;
 
 private:
   DNSName d_zone;
@@ -1439,7 +1443,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<responseParams_t> vars ) {
+  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<responseParams_t> vars) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp))
         addrs.push_back(ComboAddress(*s));
@@ -1679,7 +1683,10 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
     });
 
-  g_lua.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum) {
-      return std::shared_ptr<DNSAction>(new SetNegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
+  g_lua.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new SetNegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
+      auto action = std::dynamic_pointer_cast<SetNegativeAndSOAAction>(ret);
+      parseResponseConfig(vars, action->d_responseConfig);
+      return ret;
     });
 }

@@ -1187,7 +1187,7 @@ The following actions exist.
   :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
   :param string v6: The IPv6 netmask, if any
 
-.. function:: SetNegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
+.. function:: SetNegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum [, options])
 
   .. versionadded:: 1.5.0
 
@@ -1203,6 +1203,13 @@ The following actions exist.
   :param int retry: The value of the retry field in the SOA record
   :param int expire: The value of the expire field in the SOA record
   :param int minimum: The value of the minimum field in the SOA record
+  :param table options: A table with key: value pairs with options
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: SkipCacheAction()
 
