@@ -47,6 +47,7 @@ PDNS_WITH_LIBCAP
 AX_AVAILABLE_SYSTEMD
 AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
+PDNS_WITH_SERVICE_USER([dnsdist])
 
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.

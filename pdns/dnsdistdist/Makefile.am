@@ -144,6 +144,7 @@ dnsdist_SOURCES = \
 	dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
+	dnsdist-systemd.cc dnsdist-systemd.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
@@ -399,7 +400,7 @@ endif
 
 if HAVE_SYSTEMD
 dnsdist.service: dnsdist.service.in
-	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
+	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' -e 's![@]service_user[@]!$(service_user)!' -e 's![@]service_group[@]!$(service_group)!' < $< > $@
 if !HAVE_SYSTEMD_LOCK_PERSONALITY
 	$(AM_V_GEN)perl -ni -e 'print unless /^LockPersonality/' $@
 endif

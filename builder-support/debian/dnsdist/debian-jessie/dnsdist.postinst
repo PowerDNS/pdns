@@ -18,6 +18,12 @@ case "$1" in
 
     adduser --force-badname --system --home /nonexistent --group \
         --no-create-home --quiet _dnsdist || true
+
+    if [ "`stat -c '%U:%G' /etc/powerdns/dnsdist.conf`" = "root:root" ]; then
+      chown root:_dnsdist /etc/powerdns/dnsdist.conf
+      # Make sure that dnsdist can read it; the default used to be 0600
+      chmod g+r /etc/powerdns/dnsdist.conf
+    fi
   ;;
 
   abort-upgrade|abort-remove|abort-deconfigure)
