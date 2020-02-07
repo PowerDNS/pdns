@@ -96,6 +96,7 @@ void setupLuaBindingsDNSQuestion()
       }
 #endif /* HAVE_NET_SNMP */
     });
+
   g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
       if(dq.qTag == nullptr) {
         dq.qTag = std::make_shared<QTag>();
@@ -169,6 +170,44 @@ void setupLuaBindingsDNSQuestion()
       }
       return true;
     });
+
+  g_lua.registerFunction<void(DNSResponse::*)(std::string, std::string)>("setTag", [](DNSResponse& dr, const std::string& strLabel, const std::string& strValue) {
+      if(dr.qTag == nullptr) {
+        dr.qTag = std::make_shared<QTag>();
+      }
+      dr.qTag->insert({strLabel, strValue});
+    });
+
+  g_lua.registerFunction<void(DNSResponse::*)(vector<pair<string, string>>)>("setTagArray", [](DNSResponse& dr, const vector<pair<string, string>>&tags) {
+      if (!dr.qTag) {
+        dr.qTag = std::make_shared<QTag>();
+      }
+
+      for (const auto& tag : tags) {
+        dr.qTag->insert({tag.first, tag.second});
+      }
+    });
+  g_lua.registerFunction<string(DNSResponse::*)(std::string)>("getTag", [](const DNSResponse& dr, const std::string& strLabel) {
+      if (!dr.qTag) {
+        return string();
+      }
+
+      std::string strValue;
+      const auto it = dr.qTag->find(strLabel);
+      if (it == dr.qTag->cend()) {
+        return string();
+      }
+      return it->second;
+    });
+  g_lua.registerFunction<QTag(DNSResponse::*)(void)>("getTagArray", [](const DNSResponse& dr) {
+      if (!dr.qTag) {
+        QTag empty;
+        return empty;
+      }
+
+      return *dr.qTag;
+    });
+
   g_lua.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
