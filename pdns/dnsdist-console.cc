@@ -571,6 +571,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "SNMPTrapResponseAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the response description"},
   { "SpoofAction", true, "ip|list of ips [, options]", "forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in" },
   { "SpoofCNAMEAction", true, "cname [, options]", "Forge a response with the specified CNAME value" },
+  { "SpoofRawAction", true, "raw [, options]", "Forge a response with the specified record data as raw bytes" },
   { "SuffixMatchNodeRule", true, "smn[, quiet]", "Matches based on a group of domain suffixes for rapid testing of membership. Pass true as second parameter to prevent listing of all domains matched" },
   { "TagAction", true, "name, value", "set the tag named 'name' to the given value" },
   { "TagResponseAction", true, "name, value", "set the tag named 'name' to the given value" },
