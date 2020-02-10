@@ -174,7 +174,7 @@ Rule Generators
   ::
 
     function luarule(dq)
-      if(dq.qtype==dnsdist.NAPTR)
+      if(dq.qtype==DNSQType.NAPTR)
       then
         return DNSAction.Pool, "abuse" -- send to abuse pool
       else
@@ -712,7 +712,7 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the specified ``qtype``
   ``qtype`` may be specified as an integer or as one of the built-in QTypes.
-  For instance ``dnsdist.A``, ``dnsdist.TXT`` and ``dnsdist.ANY``.
+  For instance ``DNSQType.A``, ``DNSQType.TXT`` and ``DNSQType.ANY``.
 
   :param int qtype: The QType to match on
 
