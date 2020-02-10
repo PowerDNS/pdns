@@ -373,11 +373,11 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& master : masters) {
       try {
+        refresh = refreshFromConf ? refreshFromConf : 10U;
         sr = loadRPZFromServer(master, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
         newZone->setSerial(sr->d_st.serial);
         newZone->setRefresh(sr->d_st.refresh);
         setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
-        refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 10U);
 
         g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
             lci.dfe.setZone(zoneIdx, newZone);
@@ -405,7 +405,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     }
   }
 
-  refresh = std::max(refreshFromConf ? refreshFromConf :  oldZone->getRefresh(), 10U);
+  refresh = std::max(refreshFromConf ? refreshFromConf :  oldZone->getRefresh(), 1U);
   bool skipRefreshDelay = isPreloaded;
 
   for(;;) {
@@ -519,6 +519,6 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     if (!dumpZoneFileName.empty()) {
       dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
     }
-    refresh = std::max(refreshFromConf ? refreshFromConf :  newZone->getRefresh(), 10U);
+    refresh = std::max(refreshFromConf ? refreshFromConf :  newZone->getRefresh(), 1U);
   }
 }
