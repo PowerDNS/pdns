@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <cstring>
 #include <string>
 #include <vector>
 #include <set>
@@ -62,7 +63,7 @@ class DNSName
 {
 public:
   DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
-  explicit DNSName(const char* p): DNSName(p, strlen(p)) {} //!< Constructs from a human formatted, escaped presentation
+  explicit DNSName(const char* p): DNSName(p, std::strlen(p)) {} //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const char* p, size_t len);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str(), str.length()) {}; //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=nullptr, uint16_t* qclass=nullptr, unsigned int* consumed=nullptr, uint16_t minOffset=0); //!< Construct from a DNS Packet, taking the first question if offset=12. If supplied, consumed is set to the number of bytes consumed from the packet, which will not be equal to the wire length of the resulting name in case of compression.
