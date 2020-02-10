@@ -312,7 +312,7 @@ Webserver configuration
   Options:
 
   * ``password=newPassword``: string - Changes the API password
-  * ``apikey=newKey``: string - Changes the API Key (set to an empty string do disable it)
+  * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it)
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
                  
 Access Control Lists
