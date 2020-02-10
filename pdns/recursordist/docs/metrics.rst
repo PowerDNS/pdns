@@ -193,13 +193,13 @@ cpu-iowait
 ^^^^^^^^^^
 .. versionadded:: 4.4
 
-Time spent waiting for I/O to complete by the whole system.
+Time spent waiting for I/O to complete by the whole system, in units of USER_HZ.
 
 cpu-steal
 ^^^^^^^^^
 .. versionadded:: 4.4
 
-Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment.
+Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ.
 
 dlg-only-drops
 ^^^^^^^^^^^^^^
