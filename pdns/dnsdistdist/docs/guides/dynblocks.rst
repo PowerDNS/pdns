@@ -42,7 +42,7 @@ For example, instead of having something like:
     addDynBlocks(exceedQRate(30, 10), "Exceeded query rate", 60)
     addDynBlocks(exceedNXDOMAINs(20, 10), "Exceeded NXD rate", 60)
     addDynBlocks(exceedServFails(20, 10), "Exceeded ServFail rate", 60)
-    addDynBlocks(exceedQTypeRate(dnsdist.ANY, 5, 10), "Exceeded ANY rate", 60)
+    addDynBlocks(exceedQTypeRate(DNSQType.ANY, 5, 10), "Exceeded ANY rate", 60)
     addDynBlocks(exceedRespByterate(1000000, 10), "Exceeded resp BW rate", 60)
   end
 
@@ -52,9 +52,9 @@ The new syntax would be:
 
   local dbr = dynBlockRulesGroup()
   dbr:setQueryRate(30, 10, "Exceeded query rate", 60)
-  dbr:setRCodeRate(dnsdist.NXDOMAIN, 20, 10, "Exceeded NXD rate", 60)
-  dbr:setRCodeRate(dnsdist.SERVFAIL, 20, 10, "Exceeded ServFail rate", 60)
-  dbr:setQTypeRate(dnsdist.ANY, 5, 10, "Exceeded ANY rate", 60)
+  dbr:setRCodeRate(DNSRCode.NXDOMAIN, 20, 10, "Exceeded NXD rate", 60)
+  dbr:setRCodeRate(DNSRCode.SERVFAIL, 20, 10, "Exceeded ServFail rate", 60)
+  dbr:setQTypeRate(DNSQType.ANY, 5, 10, "Exceeded ANY rate", 60)
   dbr:setResponseByteRate(10000, 10, "Exceeded resp BW rate", 60)
 
   function maintenance()
