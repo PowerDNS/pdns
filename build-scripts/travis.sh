@@ -511,6 +511,8 @@ test_auth() {
   # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
+  run "sudo perl -i -pe 's/\]/]\nThreading=1/g' /etc/odbcinst.ini"
+  run "cat /etc/odbcinst.ini"
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
   run "./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3"
 
