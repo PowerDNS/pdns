@@ -614,7 +614,7 @@ jobs:
             TDS_Version=7.1
             __EOF__
       - run:
-          command: cat /usr/share/tdsodbc/odbcinst.ini >> /etc/odbcinst.ini
+          command: cat /usr/share/tdsodbc/odbcinst.ini <(echo Threading=1) >> /etc/odbcinst.ini
       - run:
           name: create database
           command: echo 'create database pdns' | isql -v pdns-mssql-docker-nodb sa SAsa12%%
