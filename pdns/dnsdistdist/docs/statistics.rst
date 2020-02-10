@@ -34,6 +34,18 @@ cache-misses
 ------------
 Number of times an answer was not found in the :doc:`packet cache <guides/cache>`. Only counted if a packet cache was setup for the selected pool.
 
+cpu-iowait
+----------
+.. versionadded:: 1.5.0
+
+Time spent waiting for I/O to complete by the whole system, in units of USER_HZ.
+
+cpu-steal
+---------
+.. versionadded:: 1.5.0
+
+Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ.
+
 cpu-sys-msec
 ------------
 Milliseconds spent by :program:`dnsdist` in the "system" state.
@@ -201,7 +213,30 @@ trunc-failures
 --------------
 Number of errors encountered while truncating an answer.
 
+udp-in-errors
+-------------
+.. versionadded:: 1.5.0
+
+From /proc/net/snmp InErrors.
+
+udp-noport-errors
+-----------------
+.. versionadded:: 1.5.0
+
+From /proc/net/snmp NoPorts.
+
+udp-recvbuf-errors
+------------------
+.. versionadded:: 1.5.0
+
+From /proc/net/snmp RcvbufErrors.
+
+udp-sndbuf-errors
+-----------------
+.. versionadded:: 1.5.0
+
+From /proc/net/snmp SndbufErrors.
+
 uptime
 ------
 Uptime of the dnsdist process, in seconds.
-

@@ -551,6 +551,8 @@ uint64_t getSpecialMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);
 uint64_t getCPUTimeUser(const std::string&);
 uint64_t getCPUTimeSystem(const std::string&);
+uint64_t getCPUIOWait(const std::string&);
+uint64_t getCPUSteal(const std::string&);
 std::string getMACAddress(const ComboAddress& ca);
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)

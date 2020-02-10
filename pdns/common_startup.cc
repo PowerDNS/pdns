@@ -346,6 +346,12 @@ void declareStats(void)
 
   S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
   S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
+
+#ifdef __linux__
+  S.declare("cpu-iowait", "Time spent waiting for I/O to complete by the whole system, in units of USER_HZ", getCPUIOWait);
+  S.declare("cpu-steal", "Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ", getCPUSteal);
+#endif
+
   S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes);
   S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes);
   S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize);

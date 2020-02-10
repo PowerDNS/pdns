@@ -234,8 +234,9 @@ class TestAPIBasics(DNSDistTest):
                     'latency-slow', 'latency-sum', 'latency-count', 'latency-avg100', 'latency-avg1000',
                     'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
-                    'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
-                    'dyn-block-nmg-size', 'rule-servfail', 'security-status']
+                    'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
+                    'dyn-block-nmg-size', 'rule-servfail', 'security-status',
+                    'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors']
 
         for key in expected:
             self.assertIn(key, values)

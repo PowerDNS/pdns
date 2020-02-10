@@ -1162,6 +1162,11 @@ void registerAllStats()
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
 
+#ifdef __linux__
+  addGetStat("cpu-iowait", boost::bind(getCPUIOWait, string()));
+  addGetStat("cpu-steal", boost::bind(getCPUSteal, string()));
+#endif
+
   for(unsigned int n=0; n < g_numThreads; ++n)
     addGetStat("cpu-msec-thread-"+std::to_string(n), boost::bind(&doGetThreadCPUMsec, n));
 

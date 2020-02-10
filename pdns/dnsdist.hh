@@ -292,14 +292,20 @@ struct DNSDistStats
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"special-memory-usage", getSpecialMemoryUsage},
+    {"udp-in-errors", boost::bind(udpErrorStats, "udp-in-errors")},
+    {"udp-noport-errors", boost::bind(udpErrorStats, "udp-noport-errors")},
+    {"udp-recvbuf-errors", boost::bind(udpErrorStats, "udp-recvbuf-errors")},
+    {"udp-sndbuf-errors", boost::bind(udpErrorStats, "udp-sndbuf-errors")},
     {"noncompliant-queries", &nonCompliantQueries},
     {"noncompliant-responses", &nonCompliantResponses},
     {"rdqueries", &rdQueries},
     {"empty-queries", &emptyQueries},
     {"cache-hits", &cacheHits},
     {"cache-misses", &cacheMisses},
-    {"cpu-user-msec", getCPUTimeUser},
+    {"cpu-iowait", getCPUIOWait},
+    {"cpu-steal", getCPUSteal},
     {"cpu-sys-msec", getCPUTimeSystem},
+    {"cpu-user-msec", getCPUTimeUser},
     {"fd-usage", getOpenFileDescriptors},
     {"dyn-blocked", &dynBlocked},
     {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }},
@@ -310,98 +316,6 @@ struct DNSDistStats
   };
 };
 
-// Metric types for Prometheus
-enum class PrometheusMetricType: int {
-    counter = 1,
-    gauge = 2
-};
-
-// Keeps additional information about metrics
-struct MetricDefinition {
-  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description): description(_description), prometheusType(_prometheusType) {
-  }
- 
-  MetricDefinition() = default;
-
-  // Metric description
-  std::string description;
-  // Metric type for Prometheus
-  PrometheusMetricType prometheusType;
-};
-
-struct MetricDefinitionStorage {
-  // Return metric definition by name
-  bool getMetricDetails(std::string metricName, MetricDefinition& metric) {
-  auto metricDetailsIter = metrics.find(metricName);
-
-  if (metricDetailsIter == metrics.end()) {
-    return false;
-  }
-
-  metric = metricDetailsIter->second;
-    return true;
-  };
-
-  // Return string representation of Prometheus metric type
-  std::string getPrometheusStringMetricType(PrometheusMetricType metricType) {
-    switch (metricType) { 
-      case PrometheusMetricType::counter:
-        return "counter";
-        break;
-      case PrometheusMetricType::gauge:
-        return "gauge";
-        break;
-      default:
-        return "";
-        break;
-    }
-  };
-
-  std::map<std::string, MetricDefinition> metrics = {
-    { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
-    { "servfail-responses",     MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
-    { "queries",                MetricDefinition(PrometheusMetricType::counter, "Number of received queries")},
-    { "frontend-nxdomain",      MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers sent to clients")},
-    { "frontend-servfail",      MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers sent to clients")},
-    { "frontend-noerror",       MetricDefinition(PrometheusMetricType::counter, "Number of NoError answers sent to clients")},
-    { "acl-drops",              MetricDefinition(PrometheusMetricType::counter, "Number of packets dropped because of the ACL")},
-    { "rule-drop",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a rule")},
-    { "rule-nxdomain",          MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers returned because of a rule")},
-    { "rule-refused",           MetricDefinition(PrometheusMetricType::counter, "Number of Refused answers returned because of a rule")},
-    { "rule-servfail",          MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received because of a rule")},
-    { "self-answered",          MetricDefinition(PrometheusMetricType::counter, "Number of self-answered responses")},
-    { "downstream-timeouts",    MetricDefinition(PrometheusMetricType::counter, "Number of queries not answered in time by a backend")},
-    { "downstream-send-errors", MetricDefinition(PrometheusMetricType::counter, "Number of errors when sending a query to a backend")},
-    { "trunc-failures",         MetricDefinition(PrometheusMetricType::counter, "Number of errors encountered while truncating an answer")},
-    { "no-policy",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because no server was available")},
-    { "latency0-1",             MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in less than 1ms")},
-    { "latency1-10",            MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 1-10 ms")},
-    { "latency10-50",           MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 10-50 ms")},
-    { "latency50-100",          MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 50-100 ms")},
-    { "latency100-1000",        MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 100-1000 ms")},
-    { "latency-slow",           MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in more than 1 second")},
-    { "latency-avg100",         MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 100 packets")},
-    { "latency-avg1000",        MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000 packets")},
-    { "latency-avg10000",       MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 10000 packets")},
-    { "latency-avg1000000",     MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000000 packets")},
-    { "uptime",                 MetricDefinition(PrometheusMetricType::gauge,   "Uptime of the dnsdist process in seconds")},
-    { "real-memory-usage",      MetricDefinition(PrometheusMetricType::gauge,   "Current memory usage in bytes")},
-    { "noncompliant-queries",   MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped as non-compliant")},
-    { "noncompliant-responses", MetricDefinition(PrometheusMetricType::counter, "Number of answers from a backend dropped as non-compliant")},
-    { "rdqueries",              MetricDefinition(PrometheusMetricType::counter, "Number of received queries with the recursion desired bit set")},
-    { "empty-queries",          MetricDefinition(PrometheusMetricType::counter, "Number of empty queries received from clients")},
-    { "cache-hits",             MetricDefinition(PrometheusMetricType::counter, "Number of times an answer was retrieved from cache")},
-    { "cache-misses",           MetricDefinition(PrometheusMetricType::counter, "Number of times an answer not found in the cache")},
-    { "cpu-user-msec",          MetricDefinition(PrometheusMetricType::counter, "Milliseconds spent by dnsdist in the user state")},
-    { "cpu-sys-msec",           MetricDefinition(PrometheusMetricType::counter, "Milliseconds spent by dnsdist in the system state")},
-    { "fd-usage",               MetricDefinition(PrometheusMetricType::gauge,   "Number of currently used file descriptors")},
-    { "dyn-blocked",            MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a dynamic block")},
-    { "dyn-block-nmg-size",     MetricDefinition(PrometheusMetricType::gauge,   "Number of dynamic blocks entries") },
-    { "security-status",        MetricDefinition(PrometheusMetricType::gauge,   "Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory") },
-  };
-};
-
-extern MetricDefinitionStorage g_metricDefinitions;
 extern struct DNSDistStats g_stats;
 void doLatencyStats(double udiff);
 

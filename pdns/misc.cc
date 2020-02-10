@@ -1236,6 +1236,56 @@ uint64_t udpErrorStats(const std::string& str)
   return 0;
 }
 
+uint64_t getCPUIOWait(const std::string& str)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/stat");
+  if (!ifs) {
+    return 0;
+  }
+
+  string line;
+  vector<string> parts;
+  while (getline(ifs, line)) {
+    if (boost::starts_with(line, "cpu ")) {
+      stringtok(parts, line, " \n\t\r");
+
+      if (parts.size() < 6) {
+        break;
+      }
+
+      return std::stoull(parts[5]);
+    }
+  }
+#endif
+  return 0;
+}
+
+uint64_t getCPUSteal(const std::string& str)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/stat");
+  if (!ifs) {
+    return 0;
+  }
+
+  string line;
+  vector<string> parts;
+  while (getline(ifs, line)) {
+    if (boost::starts_with(line, "cpu ")) {
+      stringtok(parts, line, " \n\t\r");
+
+      if (parts.size() < 9) {
+        break;
+      }
+
+      return std::stoull(parts[8]);
+    }
+  }
+#endif
+  return 0;
+}
+
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 {
   if (algoName == DNSName("hmac-md5.sig-alg.reg.int") || algoName == DNSName("hmac-md5"))
