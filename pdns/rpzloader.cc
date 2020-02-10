@@ -262,7 +262,9 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
     }
   }
 
-  zone->setRefresh(sr->d_st.refresh);
+  if (sr != nullptr) {
+    zone->setRefresh(sr->d_st.refresh);
+  }
   return sr;
 }
 
@@ -347,18 +349,20 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   return true;
 }
 
-void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
+void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, const uint32_t refreshFromConf, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
 {
   setThreadName("pdns-r/RPZIXFR");
   bool isPreloaded = sr != nullptr;
   auto luaconfsLocal = g_luaconfs.getLocal();
+
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
   std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
   if (!oldZone) {
     g_log<<Logger::Error<<"Unable to retrieve RPZ zone with index "<<zoneIdx<<" from the configuration, exiting"<<endl;
     return;
   }
-  uint32_t refresh = oldZone->getRefresh();
+
+  time_t refresh;
   DNSName zoneName = oldZone->getDomain();
   std::string polName = oldZone->getName() ? *(oldZone->getName()) : zoneName.toString();
 
@@ -370,12 +374,10 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     for (const auto& master : masters) {
       try {
         sr = loadRPZFromServer(master, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
-        if(refresh == 0) {
-          refresh = sr->d_st.refresh;
-        }
         newZone->setSerial(sr->d_st.serial);
         newZone->setRefresh(sr->d_st.refresh);
         setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
+        refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 10U);
 
         g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
             lci.dfe.setZone(zoneIdx, newZone);
@@ -389,24 +391,21 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
         break;
       }
       catch(const std::exception& e) {
-        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
+        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
         incRPZFailedTransfers(polName);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
+        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
         incRPZFailedTransfers(polName);
       }
     }
 
     if (!sr) {
-      if (refresh == 0) {
-        sleep(10);
-      } else {
-        sleep(refresh);
-      }
+      sleep(refresh);
     }
   }
 
+  refresh = std::max(refreshFromConf ? refreshFromConf :  oldZone->getRefresh(), 10U);
   bool skipRefreshDelay = isPreloaded;
 
   for(;;) {
@@ -506,6 +505,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     }
     g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
     newZone->setSerial(sr->d_st.serial);
+    newZone->setRefresh(sr->d_st.refresh);
     setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), fullUpdate);
 
     /* we need to replace the existing zone with the new one,
@@ -519,5 +519,6 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     if (!dumpZoneFileName.empty()) {
       dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
     }
+    refresh = std::max(refreshFromConf ? refreshFromConf :  newZone->getRefresh(), 10U);
   }
 }

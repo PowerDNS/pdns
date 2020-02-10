@@ -85,7 +85,7 @@ extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
 struct luaConfigDelayedThreads
 {
-  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, std::shared_ptr<SOARecordContent>, std::string> > rpzMasterThreads;
+  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<SOARecordContent>, std::string> > rpzMasterThreads;
 };
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads);
