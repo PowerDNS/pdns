@@ -394,14 +394,14 @@ static string doDumpFailedServers(T begin, T end)
   return "dumped "+std::to_string(total)+" records\n";
 }
 
-uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree)
+uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(t_RC->doWipeCache(canon, subtree));
+  return new uint64_t(t_RC->doWipeCache(canon, subtree, qtype));
 }
 
-uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree)
+uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(t_packetCache->doWipePacketCache(canon,0xffff, subtree));
+  return new uint64_t(t_packetCache->doWipePacketCache(canon, qtype, subtree));
 }
 
 
@@ -413,7 +413,7 @@ uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 
 
 template<typename T>
-static string doWipeCache(T begin, T end)
+static string doWipeCache(T begin, T end, uint16_t qtype)
 {
   vector<pair<DNSName, bool> > toWipe;
   for(T i=begin; i != end; ++i) {
@@ -435,8 +435,8 @@ static string doWipeCache(T begin, T end)
 
   int count=0, pcount=0, countNeg=0;
   for (auto wipe : toWipe) {
-    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, wipe.first, wipe.second));
-    pcount+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, wipe.first, wipe.second));
+    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, wipe.first, wipe.second, qtype));
+    pcount+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, wipe.first, wipe.second, qtype));
     countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, wipe.first, wipe.second));
   }
 
@@ -538,8 +538,8 @@ static string doAddNTA(T begin, T end)
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
-  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true));
-  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true, 0xffff));
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true, 0xffff));
   broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
   return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
 }
@@ -586,8 +586,8 @@ static string doClearNTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.negAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true, 0xffff));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true, 0xffff));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
     if (!first) {
       first = false;
@@ -643,8 +643,8 @@ static string doAddTA(T begin, T end)
       auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[who].insert(*ds);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true, 0xffff));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true, 0xffff));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
     g_log<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
@@ -689,8 +689,8 @@ static string doClearTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.dsAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true, 0xffff));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true, 0xffff));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
     if (!first) {
       first = false;
@@ -1695,7 +1695,8 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "top-bogus-remotes                show top remotes receiving bogus answers\n"
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
-"wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
+"wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
+"wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n";
 
   if(cmd=="get-all")
     return getAllStats();
@@ -1740,7 +1741,13 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
    return doDumpThrottleMap(begin, end);
 
   if(cmd=="wipe-cache" || cmd=="flushname")
-    return doWipeCache(begin, end);
+    return doWipeCache(begin, end, 0xffff);
+
+  if(cmd=="wipe-cache-typed") {
+    uint16_t qtype = QType::chartocode(begin->c_str());
+    ++begin;
+    return doWipeCache(begin, end, qtype);
+  }
 
   if(cmd=="reload-lua-script")
     return doQueueReloadLuaScript(begin, end);

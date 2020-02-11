@@ -341,9 +341,9 @@ string reloadAuthAndForwards()
     }
 
     for(const auto i : oldAndNewDomains) {
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i, true));
+      broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i, true, 0xffff));
+      broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i, true, 0xffff));
+      broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i, true));
     }
 
     broadcastFunction(boost::bind(pleaseUseNewSDomainsMap, newDomainMap));

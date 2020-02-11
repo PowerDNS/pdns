@@ -685,12 +685,16 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
     // Step 1
     vector<DNSRecord> bestns;
+    DNSName nsdomain(qname);
+    if (qtype == QType::DS) {
+      nsdomain.chopOff();
+    }
     // the two retries allow getBestNSFromCache&co to reprime the root
     // hints, in case they ever go missing
     for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
       bool flawedNSSet = false;
       set<GetBestNSAnswer> beenthereIgnored;
-      getBestNSFromCache(qname, qtype, bestns, &flawedNSSet, depth + 1, beenthereIgnored);
+      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth + 1, beenthereIgnored);
     }
 
     if (bestns.size() == 0) {
@@ -723,7 +727,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         return res;
       }
 
-      // Step 6
+      // Step 4
       QLOG("Step4 Resolve A for child");
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
