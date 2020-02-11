@@ -6,8 +6,8 @@
 FROM centos:6 as dist-base
 ARG BUILDER_CACHE_BUSTER=
 RUN which yum
-RUN yum clean all
-RUN yum install -y --verbose epel-release centos-release-scl-rh && \
+RUN touch /var/lib/rpm/* && yum clean all
+RUN touch /var/lib/rpm/* && yum install -y --verbose epel-release centos-release-scl-rh && \
     yum install -y --nogpgcheck devtoolset-7-gcc-c++
 
 # Do the actual rpm build
