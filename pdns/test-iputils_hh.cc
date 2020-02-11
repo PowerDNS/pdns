@@ -225,8 +225,8 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
   Netmask sameMask1("192.0.0.0/16");
   Netmask sameMask2("192.0.0.1/16");
-  BOOST_CHECK(sameMask1 < sameMask2);
-  BOOST_CHECK(sameMask2 > sameMask1);
+  BOOST_CHECK(!(sameMask1 < sameMask2));
+  BOOST_CHECK(!(sameMask2 > sameMask1));
 
   /* An empty Netmask should be larger than
      every others. */

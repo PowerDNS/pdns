@@ -562,7 +562,7 @@ public:
     if (d_bits < rhs.d_bits)
       return false;
 
-    return d_network < rhs.d_network;
+    return getMaskedNetwork() < rhs.getMaskedNetwork();
   }
 
   bool operator>(const Netmask& rhs) const
