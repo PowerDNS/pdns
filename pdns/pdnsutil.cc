@@ -713,6 +713,27 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   }
 
+  std::map<std::string, std::vector<std::string>> metadatas;
+  if (!B.getAllDomainMetadata(zone, metadatas)) {
+    cout << "[Error] Unable to retrieve metadata for zone " << zone << endl;
+    numerrors++;
+  }
+
+  for (const auto &metaData : metadatas) {
+    set<string> seen;
+    set<string> messaged;
+
+    for (const auto &value : metaData.second) {
+      if (seen.count(value) <= 0) {
+        seen.insert(value);
+      } else if (messaged.count(value) <= 0) {
+        cout << "[Error] Found duplicate metadata key value pair for zone " << zone << " with key " << metaData.first << " and value " << value << endl;
+        numerrors++;
+        messaged.insert(value);
+      }
+    }
+  }
+
   cout<<"Checked "<<records.size()<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
   if(!numerrors)
     return EXIT_SUCCESS;
