@@ -300,6 +300,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
           if(have.count("refresh")) {
             refresh = boost::get<uint32_t>(have["refresh"]);
+            if (refresh == 0) {
+              g_log<<Logger::Warning<<"rpzMaster refresh value of 0 ignored"<<endl;
+            }
           }
 
           if(have.count("maxReceivedMBytes")) {
