@@ -1,6 +1,12 @@
 Upgrade Guide
 =============
 
+1.4.0 to 1.5.x
+--------------
+
+DOH endpoints specified in the fourth parameter of :func:`addDOHLocal` are now specified as exact URLs instead of sub-paths.
+For example, ``addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', { "/dns-query" })`` will now only accept queries for ``/dns-query`` and no longer for ``/dns-query/foo/bar``.
+
 1.3.x to 1.4.0
 --------------
 
