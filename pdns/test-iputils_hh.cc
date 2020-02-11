@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
   Netmask nm25("192.0.2.255/25");
   BOOST_CHECK(nm25.getBits() == 25);
-  BOOST_CHECK(nm25.getNetwork() == ComboAddress("192.0.2.255"));
+  BOOST_CHECK(nm25.getNetwork() == ComboAddress("192.0.2.128"));
   BOOST_CHECK(nm25.getMaskedNetwork() == ComboAddress("192.0.2.128"));
 
   /* Make sure that more specific Netmasks are lesser than less specific ones,

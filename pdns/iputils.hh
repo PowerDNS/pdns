@@ -414,43 +414,63 @@ class Netmask
 public:
   Netmask()
   {
-    d_network.sin4.sin_family=0; // disable this doing anything useful
+    d_network.sin4.sin_family = 0; // disable this doing anything useful
     d_network.sin4.sin_port = 0; // this guarantees d_network compares identical
-    d_mask=0;
-    d_bits=0;
+    d_mask = 0;
+    d_bits = 0;
   }
 
   Netmask(const ComboAddress& network, uint8_t bits=0xff): d_network(network)
   {
-    d_network.sin4.sin_port=0;
-    d_bits = (network.isIPv4() ? std::min(bits, (uint8_t)32) : std::min(bits, (uint8_t)128));
+    d_network.sin4.sin_port = 0;
+    setBits(network.isIPv4() ? std::min(bits, static_cast<uint8_t>(32)) : std::min(bits, static_cast<uint8_t>(128)));
+  }
 
-    if(d_bits<32)
-      d_mask=~(0xFFFFFFFF>>d_bits);
-    else
-      d_mask=0xFFFFFFFF; // not actually used for IPv6
+  void setBits(uint8_t value)
+  {
+    d_bits = value;
+
+    if (d_bits < 32) {
+      d_mask = ~(0xFFFFFFFF >> d_bits);
+    }
+    else {
+      // note that d_mask is unused for IPv6
+      d_mask = 0xFFFFFFFF;
+    }
+
+    if (isIPv4()) {
+      d_network.sin4.sin_addr.s_addr = htonl(ntohl(d_network.sin4.sin_addr.s_addr) & d_mask);
+    }
+    else if (isIPv6()) {
+      uint8_t bytes = d_bits/8;
+      uint8_t *us = (uint8_t*) &d_network.sin6.sin6_addr.s6_addr;
+      uint8_t bits = d_bits % 8;
+      uint8_t mask = (uint8_t) ~(0xFF>>bits);
+
+      if (bytes < sizeof(d_network.sin6.sin6_addr.s6_addr)) {
+        us[bytes] &= mask;
+      }
+
+      for(size_t idx = bytes + 1; idx < sizeof(d_network.sin6.sin6_addr.s6_addr); ++idx) {
+        us[idx] = 0;
+      }
+    }
   }
 
   //! Constructor supplies the mask, which cannot be changed
   Netmask(const string &mask)
   {
-    pair<string,string> split=splitField(mask,'/');
-    d_network=makeComboAddress(split.first);
+    pair<string,string> split = splitField(mask,'/');
+    d_network = makeComboAddress(split.first);
 
-    if(!split.second.empty()) {
-      d_bits = (uint8_t)pdns_stou(split.second);
-      if(d_bits<32)
-        d_mask=~(0xFFFFFFFF>>d_bits);
-      else
-        d_mask=0xFFFFFFFF;
+    if (!split.second.empty()) {
+      setBits(static_cast<uint8_t>(pdns_stou(split.second)));
     }
-    else if(d_network.sin4.sin_family==AF_INET) {
-      d_bits = 32;
-      d_mask = 0xFFFFFFFF;
+    else if (d_network.sin4.sin_family == AF_INET) {
+      setBits(32);
     }
     else {
-      d_bits=128;
-      d_mask=0;  // silence silly warning - d_mask is unused for IPv6
+      setBits(128);
     }
   }
 
@@ -482,7 +502,7 @@ public:
       uint8_t bits= d_bits % 8;
       uint8_t mask= (uint8_t) ~(0xFF>>bits);
 
-      return((us[n] & mask) == (them[n] & mask));
+      return((us[n]) == (them[n] & mask));
     }
     return false;
   }
@@ -497,7 +517,7 @@ public:
   //! If this IP address in native format matches
   bool match4(uint32_t ip) const
   {
-    return (ip & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr) & d_mask);
+    return (ip & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr));
   }
 
   string toString() const
@@ -509,41 +529,27 @@ public:
   {
     return d_network.toString();
   }
+
   const ComboAddress& getNetwork() const
   {
     return d_network;
   }
-  const ComboAddress getMaskedNetwork() const
+
+  const ComboAddress& getMaskedNetwork() const
   {
-    ComboAddress result(d_network);
-    if(isIPv4()) {
-      result.sin4.sin_addr.s_addr = htonl(ntohl(result.sin4.sin_addr.s_addr) & d_mask);
-    }
-    else if(isIPv6()) {
-      size_t idx;
-      uint8_t bytes=d_bits/8;
-      uint8_t *us=(uint8_t*) &result.sin6.sin6_addr.s6_addr;
-      uint8_t bits= d_bits % 8;
-      uint8_t mask= (uint8_t) ~(0xFF>>bits);
-
-      if (bytes < sizeof(result.sin6.sin6_addr.s6_addr)) {
-        us[bytes] &= mask;
-      }
-
-      for(idx = bytes + 1; idx < sizeof(result.sin6.sin6_addr.s6_addr); ++idx) {
-        us[idx] = 0;
-      }
-    }
-    return result;
+    return getNetwork();
   }
+
   uint8_t getBits() const
   {
     return d_bits;
   }
+
   bool isIPv6() const
   {
     return d_network.sin6.sin6_family == AF_INET6;
   }
+
   bool isIPv4() const
   {
     return d_network.sin4.sin_family == AF_INET;
@@ -562,7 +568,7 @@ public:
     if (d_bits < rhs.d_bits)
       return false;
 
-    return getMaskedNetwork() < rhs.getMaskedNetwork();
+    return d_network < rhs.d_network;
   }
 
   bool operator>(const Netmask& rhs) const
@@ -1093,7 +1099,7 @@ public:
       node = d_root->left.get();
     else if (value.isIPv6())
       node = d_root->right.get();
-    else 
+    else
       throw NetmaskException("invalid address family");
     if (node == nullptr) return nullptr;
 
@@ -1145,7 +1151,7 @@ public:
       node = d_root->left.get();
     else if (key.isIPv6())
       node = d_root->right.get();
-    else 
+    else
       throw NetmaskException("invalid address family");
     // no tree, no value
     if (node == nullptr) return;
