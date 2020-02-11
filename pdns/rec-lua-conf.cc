@@ -300,6 +300,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
           if(have.count("refresh")) {
             refresh = boost::get<uint32_t>(have["refresh"]);
+            if (refresh == 0) {
+              g_log<<Logger::Warning<<"rpzMaster refresh value of 0 ignored"<<endl;
+            }
           }
 
           if(have.count("maxReceivedMBytes")) {
@@ -335,7 +338,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         DNSName domain(zoneName);
         zone->setDomain(domain);
         zone->setName(polName);
-        zone->setRefresh(refresh);
         zoneIdx = lci.dfe.addZone(zone);
 
         if (!seedFile.empty()) {
@@ -365,7 +367,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         exit(1);  // FIXME proper exit code?
       }
 
-      delayedThreads.rpzMasterThreads.push_back(std::make_tuple(masters, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, sr, dumpFile));
+      delayedThreads.rpzMasterThreads.push_back(std::make_tuple(masters, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile));
     });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
@@ -598,7 +600,7 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
 {
   for (const auto& rpzMaster : delayedThreads.rpzMasterThreads) {
     try {
-      std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster), std::get<6>(rpzMaster) * 1024 * 1024, std::get<7>(rpzMaster), std::get<8>(rpzMaster), std::get<9>(rpzMaster), std::get<10>(rpzMaster), generation);
+      std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster), std::get<6>(rpzMaster) * 1024 * 1024, std::get<7>(rpzMaster), std::get<8>(rpzMaster), std::get<9>(rpzMaster), std::get<10>(rpzMaster), std::get<11>(rpzMaster), generation);
       t.detach();
     }
     catch(const std::exception& e) {
