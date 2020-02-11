@@ -727,7 +727,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         return res;
       }
 
-      // Step 6
+      // Step 4
       QLOG("Step4 Resolve A for child");
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
