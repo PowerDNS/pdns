@@ -489,9 +489,9 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     {
       if(::arg().mustDo("direct-dnskey"))
       {
-        if(rr.ttl != sd.default_ttl)
+        if(rr.ttl != sd.minimum)
         {
-          cout<<"[Warning] DNSKEY TTL of "<<rr.ttl<<" at '"<<rr.qname<<"' differs from SOA minimum of "<<sd.default_ttl<<endl;
+          cout<<"[Warning] DNSKEY TTL of "<<rr.ttl<<" at '"<<rr.qname<<"' differs from SOA minimum of "<<sd.minimum<<endl;
           numwarnings++;
         }
       }

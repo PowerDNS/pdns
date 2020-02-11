@@ -1,7 +1,7 @@
 0	www.a.b.c.d.e.wtest.com.	IN	A	3600	6.7.8.9
 0	www.a.b.c.d.e.wtest.com.	IN	RRSIG	3600	A 13 7 3600 [expiry] [inception] [keytag] wtest.com. ...
-1	*.a.b.c.d.e.wtest.com.	IN	NSEC	86400	ns1.wtest.com. A RRSIG NSEC
-1	*.a.b.c.d.e.wtest.com.	IN	RRSIG	86400	NSEC 13 7 86400 [expiry] [inception] [keytag] wtest.com. ...
+1	*.a.b.c.d.e.wtest.com.	IN	NSEC	3600	ns1.wtest.com. A RRSIG NSEC
+1	*.a.b.c.d.e.wtest.com.	IN	RRSIG	3600	NSEC 13 7 3600 [expiry] [inception] [keytag] wtest.com. ...
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.a.b.c.d.e.wtest.com.', qtype=A

@@ -121,7 +121,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
       continue;
     }
     rr.dr.d_type=QType::CDNSKEY;
-    rr.dr.d_ttl=sd.default_ttl;
+    rr.dr.d_ttl=sd.minimum;
     rr.dr.d_name=p.qdomain;
     rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
     rr.auth=true;
@@ -133,7 +133,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
     B.lookup(QType(QType::CDNSKEY), p.qdomain, sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=sd.default_ttl;
+      rr.dr.d_ttl=sd.minimum;
       r->addRecord(rr);
       haveOne=true;
     }
@@ -160,7 +160,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
       continue;
     }
     rr.dr.d_type=QType::DNSKEY;
-    rr.dr.d_ttl=sd.default_ttl;
+    rr.dr.d_ttl=sd.minimum;
     rr.dr.d_name=p.qdomain;
     rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
     rr.auth=true;
@@ -172,7 +172,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
     B.lookup(QType(QType::DNSKEY), p.qdomain, sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=sd.default_ttl;
+      rr.dr.d_ttl=sd.minimum;
       r->addRecord(rr);
       haveOne=true;
     }
@@ -202,7 +202,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SO
 
   DNSZoneRecord rr;
   rr.dr.d_type=QType::CDS;
-  rr.dr.d_ttl=sd.default_ttl;
+  rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
 
@@ -225,7 +225,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SO
     B.lookup(QType(QType::CDS), p.qdomain, sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=sd.default_ttl;
+      rr.dr.d_ttl=sd.minimum;
       r->addRecord(rr);
       haveOne=true;
     }
@@ -242,7 +242,7 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
   NSEC3PARAMRecordContent ns3prc;
   if(d_dk.getNSEC3PARAM(p.qdomain, &ns3prc)) {
     rr.dr.d_type=QType::NSEC3PARAM;
-    rr.dr.d_ttl=sd.default_ttl;
+    rr.dr.d_ttl=sd.minimum;
     rr.dr.d_name=p.qdomain;
     ns3prc.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
     rr.dr.d_content=std::make_shared<NSEC3PARAMRecordContent>(ns3prc);
@@ -529,7 +529,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const SOAData& sd, c
   }
 
   rr.dr.d_name = name;
-  rr.dr.d_ttl = sd.default_ttl;
+  rr.dr.d_ttl = sd.getNegativeTTL();
   rr.dr.d_type = QType::NSEC;
   rr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
@@ -582,7 +582,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, 
   }
 
   rr.dr.d_name = DNSName(toBase32Hex(namehash))+sd.qname;
-  rr.dr.d_ttl = sd.default_ttl;
+  rr.dr.d_ttl = sd.getNegativeTTL();
   rr.dr.d_type=QType::NSEC3;
   rr.dr.d_content=std::make_shared<NSEC3RecordContent>(std::move(n3rc));
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
@@ -730,7 +730,6 @@ void PacketHandler::addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const D
     DLOG(g_log<<"Could not get SOA for domain"<<endl);
     return;
   }
-
   DNSName before,after;
   sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
   if (mode != 5 || before == target)
@@ -985,7 +984,7 @@ void PacketHandler::makeNXDomain(DNSPacket& p, std::unique_ptr<DNSPacket>& r, co
 {
   DNSZoneRecord rr;
   rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
-  rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
+  rr.dr.d_ttl=sd.getNegativeTTL();
   r->addRecord(rr);
 
   if(d_dnssec) {
@@ -999,7 +998,7 @@ void PacketHandler::makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
 {
   DNSZoneRecord rr;
   rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
-  rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
+  rr.dr.d_ttl=sd.getNegativeTTL();
   r->addRecord(rr);
 
   if(d_dnssec) {

@@ -1,7 +1,7 @@
 0	www.a.b.c.d.e.something.wtest.com.	IN	A	3600	4.3.2.1
 0	www.a.b.c.d.e.something.wtest.com.	IN	RRSIG	3600	A 13 3 3600 [expiry] [inception] [keytag] wtest.com. ...
-1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	NSEC3	86400	1 [flags] 1 abcd SHEGK154N8362AG22AR9VDDRF3127M6I A RRSIG
-1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] wtest.com. ...
+1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	NSEC3	3600	1 [flags] 1 abcd SHEGK154N8362AG22AR9VDDRF3127M6I A RRSIG
+1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	RRSIG	3600	NSEC3 13 3 3600 [expiry] [inception] [keytag] wtest.com. ...
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.a.b.c.d.e.something.wtest.com.', qtype=A

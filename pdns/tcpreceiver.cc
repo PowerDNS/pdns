@@ -675,7 +675,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   DNSZoneRecord zrr;
   
   zrr.dr.d_name = target;
-  zrr.dr.d_ttl = sd.default_ttl;
+  zrr.dr.d_ttl = sd.minimum;
   zrr.auth = 1; // please sign!
 
   string publishCDNSKEY, publishCDS;
@@ -697,7 +697,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.set(zrr.dr.d_type);
-    ne.d_ttl = sd.default_ttl;
+    ne.d_ttl = sd.getNegativeTTL();
     csp.submit(zrr);
 
     // generate CDS and CDNSKEY records
@@ -723,7 +723,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(::arg().mustDo("direct-dnskey")) {
     sd.db->lookup(QType(QType::DNSKEY), target, sd.domain_id);
     while(sd.db->get(zrr)) {
-      zrr.dr.d_ttl = sd.default_ttl;
+      zrr.dr.d_ttl = sd.minimum;
       csp.submit(zrr);
     }
   }
@@ -900,7 +900,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
         }
         NSECXEntry& ne = nsecxrepo[keyname];
-        ne.d_ttl = sd.default_ttl;
+        ne.d_ttl = sd.getNegativeTTL();
         ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags)));
         if (loopZRR.dr.d_type && loopZRR.dr.d_type != QType::RRSIG) {
           ne.d_set.set(loopZRR.dr.d_type);
@@ -962,7 +962,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           n3rc.d_nexthash = fromBase32Hex(inext->first.toStringNoDot());
           zrr.dr.d_name = iter->first+sd.qname;
 
-          zrr.dr.d_ttl = sd.default_ttl;
+          zrr.dr.d_ttl = sd.getNegativeTTL();
           zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(std::move(n3rc));
           zrr.dr.d_type = QType::NSEC3;
           zrr.dr.d_place = DNSResourceRecord::ANSWER;
@@ -996,7 +996,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
         nrc.d_next=nsecxrepo.begin()->first;
       zrr.dr.d_name = iter->first;
 
-      zrr.dr.d_ttl = sd.default_ttl;
+      zrr.dr.d_ttl = sd.getNegativeTTL();
       zrr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
       zrr.dr.d_type = QType::NSEC;
       zrr.dr.d_place = DNSResourceRecord::ANSWER;
