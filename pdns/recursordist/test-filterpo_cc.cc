@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* blocked NS name */
-    auto matchingPolicy = dfe.getProcessingPolicy(nsName, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getProcessingPolicy(nsName, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSDName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
 
@@ -71,19 +71,19 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(zonePolicy == matchingPolicy);
 
     /* but a subdomain should not be blocked (not a wildcard, and this is not suffix domain matching */
-    matchingPolicy = dfe.getProcessingPolicy(DNSName("sub") + nsName, std::unordered_map<std::string, bool>());
+    matchingPolicy = dfe.getProcessingPolicy(DNSName("sub") + nsName, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(zone->findExactNSPolicy(DNSName("sub") + nsName, zonePolicy) == false);
   }
 
   {
     /* blocked NS name via wildcard */
-    const auto matchingPolicy = dfe.getProcessingPolicy(DNSName("sub.sub.wildcard.wolf."), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getProcessingPolicy(DNSName("sub.sub.wildcard.wolf."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSDName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
 
     /* looking for wildcard.wolf. should not match *.wildcard-blocked. */
-    const auto notMatchingPolicy = dfe.getProcessingPolicy(DNSName("wildcard.wolf."), std::unordered_map<std::string, bool>());
+    const auto notMatchingPolicy = dfe.getProcessingPolicy(DNSName("wildcard.wolf."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(notMatchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
 
     /* a direct lookup would not match */
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* allowed NS name */
-    const auto matchingPolicy = dfe.getProcessingPolicy(DNSName("ns.bad.rabbit."), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getProcessingPolicy(DNSName("ns.bad.rabbit."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findExactNSPolicy(DNSName("ns.bad.rabbit."), zonePolicy) == false);
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* blocked NS IP */
-    const auto matchingPolicy = dfe.getProcessingPolicy(nsIP, std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getProcessingPolicy(nsIP, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSIP);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
     DNSFilterEngine::Policy zonePolicy;
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* allowed NS IP */
-    const auto matchingPolicy = dfe.getProcessingPolicy(ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getProcessingPolicy(ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findNSIPPolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* blocked qname */
-    auto matchingPolicy = dfe.getQueryPolicy(blockedName, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(blockedName, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
     DNSFilterEngine::Policy zonePolicy;
@@ -130,19 +130,19 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(zonePolicy == matchingPolicy);
 
     /* but a subdomain should not be blocked (not a wildcard, and this is not suffix domain matching */
-    matchingPolicy = dfe.getQueryPolicy(DNSName("sub") + blockedName, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    matchingPolicy = dfe.getQueryPolicy(DNSName("sub") + blockedName, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(zone->findExactQNamePolicy(DNSName("sub") + blockedName, zonePolicy) == false);
   }
 
   {
     /* blocked NS name via wildcard */
-    const auto matchingPolicy = dfe.getQueryPolicy(DNSName("sub.sub.wildcard-blocked."), ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(DNSName("sub.sub.wildcard-blocked."), ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
 
     /* looking for wildcard-blocked. should not match *.wildcard-blocked. */
-    const auto notMatchingPolicy = dfe.getQueryPolicy(DNSName("wildcard-blocked."), ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto notMatchingPolicy = dfe.getQueryPolicy(DNSName("wildcard-blocked."), ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(notMatchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
 
     /* a direct lookup would not match */
@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* blocked client IP */
-    const auto matchingPolicy = dfe.getQueryPolicy(DNSName("totally.legit."), clientIP, std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(DNSName("totally.legit."), clientIP, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
     DNSFilterEngine::Policy zonePolicy;
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
 
   {
     /* not blocked */
-    const auto matchingPolicy = dfe.getQueryPolicy(DNSName("totally.legit."), ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(DNSName("totally.legit."), ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findClientPolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     DNSRecord dr;
     dr.d_type = QType::A;
     dr.d_content = DNSRecordContent::mastermake(QType::A, QClass::IN, responseIP.toString());
-    const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ResponseIP);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
     DNSFilterEngine::Policy zonePolicy;
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     DNSRecord dr;
     dr.d_type = QType::A;
     dr.d_content = DNSRecordContent::mastermake(QType::A, QClass::IN, "192.0.2.142");
-    const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     DNSFilterEngine::Policy zonePolicy;
     BOOST_CHECK(zone->findResponsePolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
@@ -246,14 +246,14 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_wildcard_with_enc)
 
   {
     const DNSName tstName("bcbsks.com.102.112.2o7.net.");
-    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
 
   {
     const DNSName tstName("2o7.net.");
-    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
   }
@@ -263,28 +263,28 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_wildcard_with_enc)
 
   {
     const DNSName tstName("112.2o7.net.");
-    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_WARN_MESSAGE(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None, m);
     BOOST_WARN_MESSAGE(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction, m);
   }
 
   {
     const DNSName tstName("102.112.2o7.net.");
-    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_WARN_MESSAGE(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None, m);
     BOOST_WARN_MESSAGE(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction, m);
   }
 
   {
     const DNSName tstName("com.112.2o7.net.");
-    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_WARN_MESSAGE(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None, m);
     BOOST_WARN_MESSAGE(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction, m);
   }
 
   {
     const DNSName tstName("wcmatch.2o7.net.");
-    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>());
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
   }
@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data)
 
   {
     /* exact type does not exist, but we have a CNAME */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad1, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(bad1, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad1, QType::A);
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data)
 
   {
     /* exact type exists */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad2, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(bad2, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
 
@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data)
 
   {
     /* exact type exists */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad2, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(bad2, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
 
@@ -441,7 +441,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* zone 1 should match first */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
@@ -456,7 +456,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* zone 2 has an exact match for badUnderWildcard, but the wildcard from the first zone should match first */
-    const auto matchingPolicy = dfe.getQueryPolicy(badUnderWildcard, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>());
+    const auto matchingPolicy = dfe.getQueryPolicy(badUnderWildcard, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(badUnderWildcard, QType::A);
@@ -471,7 +471,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* zone 1 should still match if zone 2 has been disabled */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone2->getName()), true}});
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone2->getName()), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
@@ -486,7 +486,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* if zone 1 is disabled, zone 2 should match */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}});
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
@@ -501,7 +501,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* if both zones are disabled, we should not match */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}, {*(zone2->getName()), true}});
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}, {*(zone2->getName()), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
   }
 }
