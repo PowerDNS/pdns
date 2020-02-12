@@ -674,6 +674,9 @@ api-key=%s
             authzone.write("""$ORIGIN example.
 @ 3600 IN SOA {soa}
 sub.test 3600 IN A 192.0.2.42
+passthru-then-blocked-by-higher 3600 IN A 192.0.2.66
+passthru-then-blocked-by-same 3600 IN A 192.0.2.66
+blocked-then-passhtru-by-higher 3600 IN A 192.0.2.100
 """.format(soa=cls._SOA))
 
         rpzFilePath = os.path.join(confdir, 'zone.rpz')
@@ -681,6 +684,9 @@ sub.test 3600 IN A 192.0.2.42
             rpzZone.write("""$ORIGIN zone.rpz.
 @ 3600 IN SOA {soa}
 *.test.example.zone.rpz. 60 IN CNAME rpz-passthru.
+32.66.2.0.192.rpz-ip.zone.rpz. 60 IN A 192.0.2.1
+32.100.2.0.192.rpz-ip.zone.rpz. 60 IN CNAME rpz-passthru.
+passthru-then-blocked-by-same.example.zone.rpz. 60 IN CNAME rpz-passthru.
 """.format(soa=cls._SOA))
 
         rpzFilePath = os.path.join(confdir, 'zone2.rpz')
@@ -688,14 +694,37 @@ sub.test 3600 IN A 192.0.2.42
             rpzZone.write("""$ORIGIN zone2.rpz.
 @ 3600 IN SOA {soa}
 sub.test.example.com.zone2.rpz. 60 IN CNAME .
+passthru-then-blocked-by-higher.example.zone2.rpz. 60 IN CNAME rpz-passthru.
+blocked-then-passhtru-by-higher.example.zone2.rpz. 60 IN A 192.0.2.1
 32.42.2.0.192.rpz-ip 60 IN CNAME .
 """.format(soa=cls._SOA))
 
         super(RPZOrderingPrecedenceRecursorTesT, cls).generateRecursorConfig(confdir)
 
-    def testRPZ(self):
+    def testRPZOrderingForQNameAndWhitelisting(self):
         # we should first match on the qname (the wildcard, not on the exact name since
         # we respect the order of the RPZ zones), see the pass-thru rule
-        # and stop RPZ processing. The subsequent rule on the content of the A
-        # should therefore not trigger a NXDOMAIN.
+        # and only process RPZ rules of higher precedence.
+        # The subsequent rule on the content of the A should therefore not trigger a NXDOMAIN.
         self.checkNotBlocked('sub.test.example.')
+
+    def testRPZOrderingWhitelistedThenBlockedByHigher(self):
+        # we should first match on the qname from the second RPZ zone,
+        # continue the resolution process, and get blocked by the content of the A record
+        # based on the first RPZ zone, whose priority is higher than the second one.
+        self.checkBlocked('passthru-then-blocked-by-higher.example.')
+
+    def testRPZOrderingWhitelistedThenBlockedBySame(self):
+        # we should first match on the qname from the first RPZ zone,
+        # continue the resolution process, and NOT get blocked by the content of the A record
+        # based on the same RPZ zone, since it's not higher.
+        self.checkCustom('passthru-then-blocked-by-same.example.', 'A', dns.rrset.from_text('passthru-then-blocked-by-same.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.66'))
+
+    def testRPZOrderBlockedThenWhitelisted(self):
+        # The qname is first blocked by the second RPZ zone
+        # Then, should the resolution process go on, the A record would be whitelisted
+        # by the first zone.
+        # This is what the RPZ specification requires, but we currently decided that we
+        # don't want to leak queries to malicious DNS servers and waste time if the qname is blacklisted.
+        # We might change our opinion at some point, though.
+        self.checkBlocked('blocked-then-passhtru-by-higher.example.')
