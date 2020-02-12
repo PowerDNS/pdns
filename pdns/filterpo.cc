@@ -115,13 +115,16 @@ bool DNSFilterEngine::Zone::findExactNamedPolicy(const std::unordered_map<DNSNam
   return false;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies) const
+DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const
 {
   // cout<<"Got question for nameserver name "<<qname<<endl;
   std::vector<bool> zoneEnabled(d_zones.size());
   size_t count = 0;
   bool allEmpty = true;
   for (const auto& z : d_zones) {
+    if (z->getPriority() > currentPriority) {
+      break;
+    }
     bool enabled = true;
     const auto zoneName = z->getName();
     if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
@@ -155,11 +158,13 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
 
   count = 0;
   for(const auto& z : d_zones) {
+    if (z->getPriority() > currentPriority) {
+      break;
+    }
     if (!zoneEnabled[count]) {
       ++count;
       continue;
     }
-
     if (z->findExactNSPolicy(qname, pol)) {
       // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
       return pol;
@@ -177,11 +182,14 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
   return pol;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies) const
+DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const
 {
   Policy pol;
   //  cout<<"Got question for nameserver IP "<<address.toString()<<endl;
   for(const auto& z : d_zones) {
+    if (z->getPriority() > currentPriority) {
+      break;
+    }
     const auto zoneName = z->getName();
     if(zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
       continue;
@@ -195,13 +203,16 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const ComboAddress&
   return pol;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies) const
+DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const
 {
   // cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
   std::vector<bool> zoneEnabled(d_zones.size());
   size_t count = 0;
   bool allEmpty = true;
   for (const auto& z : d_zones) {
+    if (z->getPriority() > currentPriority) {
+      break;
+    }
     bool enabled = true;
     const auto zoneName = z->getName();
     if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
@@ -235,11 +246,13 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
 
   count = 0;
   for (const auto& z : d_zones) {
+    if (z->getPriority() > currentPriority) {
+      break;
+    }
     if (!zoneEnabled[count]) {
       ++count;
       continue;
     }
-
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
       return pol;
@@ -263,7 +276,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
   return pol;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies) const
+DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const
 {
   Policy pol;
   ComboAddress ca;
@@ -284,6 +297,9 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
       continue;
 
     for (const auto& z : d_zones) {
+      if (z->getPriority() > currentPriority) {
+        break;
+      }
       const auto zoneName = z->getName();
       if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
         continue;
