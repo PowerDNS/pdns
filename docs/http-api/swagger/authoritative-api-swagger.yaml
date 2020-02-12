@@ -301,29 +301,6 @@ paths:
           schema:
             type: string
 
-  '/servers/{server_id}/zones/{zone_id}/check':
-    get:
-      summary: 'Verify zone contents/configuration.'
-      operationId: checkZone
-      tags:
-        - zones
-      parameters:
-        - name: server_id
-          in: path
-          required: true
-          description: The id of the server to retrieve
-          type: string
-        - name: zone_id
-          type: string
-          in: path
-          required: true
-          description: The id of the zone to retrieve
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-
   '/servers/{server_id}/zones/{zone_id}/rectify':
     put:
       summary: 'Rectify the zone data.'
