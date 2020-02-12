@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_wildcard_with_enc)
   }
 
   // Once fixed the BOOST_WARN should becomes BOOST_CHECK
-  const string m("Please fix issue #8321");
+  const string m("Please fix issue #8231");
 
   {
     const DNSName tstName("112.2o7.net.");
@@ -504,4 +504,192 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
     const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}, {*(zone2->getName()), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
+{
+  DNSFilterEngine dfe;
+
+  auto zone1 = std::make_shared<DNSFilterEngine::Zone>();
+  zone1->setName("Unit test policy 0");
+
+  auto zone2 = std::make_shared<DNSFilterEngine::Zone>();
+  zone2->setName("Unit test policy 1");
+
+  const ComboAddress clientIP("192.0.2.128");
+  const DNSName bad("bad.example.com.");
+  const ComboAddress nsIP("192.0.2.1");
+  const DNSName nsName("ns.bad.wolf.");
+  const ComboAddress responseIP("192.0.2.254");
+
+  zone1->addClientTrigger(Netmask(clientIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "client1a.example.net.")}));
+  zone1->addQNameTrigger(bad, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden1a.example.net.")}));
+  zone1->addNSIPTrigger(Netmask(nsIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::NSIP, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "nsip1a.example.net.")}));
+  zone1->addNSTrigger(nsName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::NSDName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "nsname1a.example.net.")}));
+  zone1->addResponseTrigger(Netmask(responseIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ResponseIP, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "response1a.example.net.")}));
+
+  zone2->addClientTrigger(Netmask(clientIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "client2a.example.net.")}));
+  zone2->addQNameTrigger(bad, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden2a.example.net.")}));
+  zone2->addNSIPTrigger(Netmask(nsIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::NSIP, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "nsip2a.example.net.")}));
+  zone2->addNSTrigger(nsName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::NSDName, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "nsname2a.example.net.")}));
+  zone2->addResponseTrigger(Netmask(responseIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ResponseIP, 0, nullptr, {DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "response2a.example.net.")}));
+
+  dfe.addZone(zone1);
+  dfe.addZone(zone2);
+  BOOST_CHECK_EQUAL(zone1->getPriority(), 0);
+  BOOST_CHECK_EQUAL(zone2->getPriority(), 1);
+
+  {
+    /* client IP should match before qname */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.128"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "client1a.example.net.");
+  }
+
+  {
+    /* client IP and qname should match, but zone 1 is disabled and zone2's priority is too high */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.128"), {{*(zone1->getName()), true}}, 1);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    /* zone 1 should match first */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1a.example.net.");
+  }
+
+  {
+    /* zone 1 should still match if we require a priority < 1 */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), 1);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden1a.example.net.");
+  }
+
+  {
+    /* nothing should match if we require a priority < 0 */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), 0);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    /* if we disable zone 1, zone 2 should match */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}}, DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "garden2a.example.net.");
+  }
+
+  {
+    /* if we disable zone 1, zone 2 should match, except if we require a priority < 1 */
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}}, 1);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    /* blocked NS name */
+    auto matchingPolicy = dfe.getProcessingPolicy(nsName, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSDName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "nsname1a.example.net.");
+  }
+
+  {
+    /* blocked NS name, except policy 1 is disabled and policy2's priority is too high */
+    auto matchingPolicy = dfe.getProcessingPolicy(nsName, {{*(zone1->getName()), true}}, 1);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    /* blocked NS IP */
+    const auto matchingPolicy = dfe.getProcessingPolicy(nsIP, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "nsip1a.example.net.");
+  }
+
+  {
+    /* blocked NS ip, except policy 1 is disabled and policy2's priority is too high */
+    auto matchingPolicy = dfe.getProcessingPolicy(nsIP, {{*(zone1->getName()), true}}, 1);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    /* blocked A in the response */
+    DNSRecord dr;
+    dr.d_type = QType::A;
+    dr.d_content = DNSRecordContent::mastermake(QType::A, QClass::IN, responseIP.toString());
+    const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ResponseIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(bad, QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record = records.at(0);
+    BOOST_CHECK(record.d_type == QType::CNAME);
+    BOOST_CHECK(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<CNAMERecordContent>(record.d_content);
+    BOOST_CHECK(content != nullptr);
+    BOOST_CHECK_EQUAL(content->getTarget().toString(), "response1a.example.net.");
+  }
+
+  {
+    /* blocked A in the response, except 1 is disabled and 2's priority is too high */
+    DNSRecord dr;
+    dr.d_type = QType::A;
+    dr.d_content = DNSRecordContent::mastermake(QType::A, QClass::IN, responseIP.toString());
+    const auto matchingPolicy = dfe.getPostPolicy({dr}, {{*(zone1->getName()), true}}, 1);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
 }
