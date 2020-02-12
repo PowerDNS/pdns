@@ -1498,6 +1498,11 @@ static void startDoResolve(void *p)
       try {
         sr.d_appliedPolicy = appliedPolicy;
         sr.d_policyTags = std::move(dc->d_policyTags);
+
+        if (!dq.routingTag.empty()) {
+          sr.d_routingTag = dq.routingTag;
+        }
+
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
       }
