@@ -248,6 +248,11 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
       ++count;
       continue;
     }
+    if (z->findClientPolicy(ca, pol)) {
+      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+      return pol;
+    }
+
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
       return pol;
@@ -260,18 +265,13 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
       }
     }
 
-    if (z->findClientPolicy(ca, pol)) {
-      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
-      return pol;
-    }
-
     ++count;
   }
 
   return pol;
 }
 
-DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const
+DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const
 {
   Policy pol;
   ComboAddress ca;
@@ -292,7 +292,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
       continue;
 
     for (const auto& z : d_zones) {
-      if (z->getPriority() > currentPriority) {
+      if (z->getPriority() >= maxPriority) {
         break;
       }
       const auto zoneName = z->getName();
