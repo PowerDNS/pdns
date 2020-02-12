@@ -1375,6 +1375,9 @@ static void startDoResolve(void *p)
       // Query got not handled for QNAME Policy reasons, now actually go out to find an answer
       try {
         sr.d_appliedPolicy = appliedPolicy;
+        if (!dq.routingTag.empty()) {
+          sr.d_routingTag = dq.routingTag;
+        }
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
       }

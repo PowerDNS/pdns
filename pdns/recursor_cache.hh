@@ -55,16 +55,16 @@ public:
   pair<uint64_t,uint64_t> stats();
   size_t ecsIndexSize();
 
-  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
+  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, const boost::optional<const std::string&> routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
 
-  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
+  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, const boost::optional<const std::string&> routingTag = boost::none, vState state=Indeterminate);
 
   void doPrune(size_t keep);
   uint64_t doDump(int fd);
 
   size_t doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);
-  bool updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
+  bool updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, const boost::optional<const string&> routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
 
   std::atomic<uint64_t> cacheHits{0}, cacheMisses{0};
 

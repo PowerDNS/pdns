@@ -780,6 +780,7 @@ public:
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  boost::optional<const string&> d_routingTag;
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;

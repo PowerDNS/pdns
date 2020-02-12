@@ -78,6 +78,7 @@ public:
     std::string requestorId;
     std::string deviceId;
     std::string deviceName;
+    std::string routingTag;
     vState validationState{Indeterminate};
     bool& variable;
     bool& wantsRPZ;

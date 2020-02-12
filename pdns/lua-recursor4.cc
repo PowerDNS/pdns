@@ -244,6 +244,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("requestorId", &DNSQuestion::requestorId);
   d_lw->registerMember("deviceId", &DNSQuestion::deviceId);
   d_lw->registerMember("deviceName", &DNSQuestion::deviceName);
+  d_lw->registerMember("routingTag", &DNSQuestion::routingTag);
   d_lw->registerMember("followupFunction", &DNSQuestion::followupFunction);
   d_lw->registerMember("followupPrefix", &DNSQuestion::followupPrefix);
   d_lw->registerMember("followupName", &DNSQuestion::followupName);
