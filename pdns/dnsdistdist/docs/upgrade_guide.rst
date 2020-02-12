@@ -1,6 +1,20 @@
 Upgrade Guide
 =============
 
+1.4.0 to 1.5.x
+--------------
+
+DOH endpoints specified in the fourth parameter of :func:`addDOHLocal` are now specified as exact URLs instead of path prefixes```
+For example, ``addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', { "/dns-query" })`` will now only accept queries for ``/dns-query`` and no longer for ``/dns-query/foo/bar``.
+
+The systemd service-file that is installed no longer uses the ``root`` user to start. It uses the user and group set with the ``--with-service-user`` and ``--with-service-group`` switches during
+configuration, "dnsdist" by default.
+This could mean that dnsdist can no longer read its own configuration, or other data. It is therefore recommended to recursively ``chown`` directories used  by dnsdist::
+
+  chown -R root:dnsdist /etc/dnsdist
+
+Packages provided on `the PowerDNS Repository <https://repo.powerdns.com>`__ will ``chown`` directories created by them accordingly in the post-installation steps.
+
 1.3.x to 1.4.0
 --------------
 

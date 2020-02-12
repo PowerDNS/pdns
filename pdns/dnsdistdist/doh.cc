@@ -199,6 +199,7 @@ struct DOHServerConfig
   }
 
   LocalHolders holders;
+  std::unordered_set<std::string> paths;
   h2o_globalconf_t h2o_config;
   h2o_context_t h2o_ctx;
   DOHAcceptContext* accept_ctx{nullptr};
@@ -696,6 +697,12 @@ try
   }
 
   string path(req->path.base, req->path.len);
+
+  string pathOnly(req->path_normalized.base, req->path_normalized.len);
+  if (dsc->paths.count(pathOnly) == 0) {
+    h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
+    return 0;
+  }
 
   for (const auto& entry : dsc->df->d_responsesMap) {
     if (entry->matches(path)) {
@@ -1205,6 +1212,7 @@ try
 
   for(const auto& url : df->d_urls) {
     register_handler(hostconf, url.c_str(), doh_handler);
+    dsc->paths.insert(url);
   }
 
   h2o_context_init(&dsc->h2o_ctx, h2o_evloop_create(), &dsc->h2o_config);
