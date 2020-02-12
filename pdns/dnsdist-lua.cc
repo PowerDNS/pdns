@@ -1087,8 +1087,8 @@ void setupLuaConfig(bool client, bool configCheck)
       boost::format fmt("%-24s %8d %8d %-10s %-20s %s\n");
       g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "Reason").str();
       for(const auto& e: slow) {
-	if(now < e->second.until)
-	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % (e->second.warning ? "true" : "false") % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
+	if(now < e.second.until)
+	  g_outputBuffer+= (fmt % e.first.toString() % (e.second.until.tv_sec - now.tv_sec) % e.second.blocks % (e.second.warning ? "true" : "false") % DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) % e.second.reason).str();
       }
       auto slow2 = g_dynblockSMT.getCopy();
       slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {

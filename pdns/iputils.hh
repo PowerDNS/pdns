@@ -111,12 +111,12 @@ union ComboAddress {
   {
     if(sin4.sin_family == 0) {
       return false;
-    } 
+    }
     if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return true;
     if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return false;
-    
+
     if(sin4.sin_family == AF_INET)
       return sin4.sin_addr.s_addr < rhs.sin4.sin_addr.s_addr;
     else
@@ -130,8 +130,8 @@ union ComboAddress {
 
   struct addressOnlyHash
   {
-    uint32_t operator()(const ComboAddress& ca) const 
-    { 
+    uint32_t operator()(const ComboAddress& ca) const
+    {
       const unsigned char* start;
       int len;
       if(ca.sin4.sin_family == AF_INET) {
@@ -182,8 +182,8 @@ union ComboAddress {
     else
       return sizeof(sin6);
   }
-  
-  ComboAddress() 
+
+  ComboAddress()
   {
     sin4.sin_family=AF_INET;
     sin4.sin_addr.s_addr=0;
@@ -218,8 +218,8 @@ union ComboAddress {
     if(makeIPv4sockaddr(str, &sin4)) {
       sin6.sin6_family = AF_INET6;
       if(makeIPv6sockaddr(str, &sin6) < 0)
-        throw PDNSException("Unable to convert presentation address '"+ str +"'"); 
-      
+        throw PDNSException("Unable to convert presentation address '"+ str +"'");
+
     }
     if(!sin4.sin_port) // 'str' overrides port!
       sin4.sin_port=htons(port);
@@ -238,20 +238,20 @@ union ComboAddress {
   {
     if(sin4.sin_family!=AF_INET6)
       return false;
-    
+
     int n=0;
     const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
     for(n=0; n < 10; ++n)
       if(ptr[n])
         return false;
-    
+
     for(; n < 12; ++n)
       if(ptr[n]!=0xff)
         return false;
-    
+
     return true;
   }
-  
+
   ComboAddress mapToIPv4() const
   {
     if(!isMappedIPv4())
@@ -259,7 +259,7 @@ union ComboAddress {
     ComboAddress ret;
     ret.sin4.sin_family=AF_INET;
     ret.sin4.sin_port=sin4.sin_port;
-    
+
     const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
     ptr+=(sizeof(sin6.sin6_addr.s6_addr) - sizeof(ret.sin4.sin_addr.s_addr));
     memcpy(&ret.sin4.sin_addr.s_addr, ptr, sizeof(ret.sin4.sin_addr.s_addr));
@@ -317,10 +317,55 @@ union ComboAddress {
     memset(&sin6, 0, sizeof(sin6));
   }
 
+  //! Get the total number of address bits (either 32 or 128 depending on IP version)
+  uint8_t getBits() const
+  {
+    if (isIPv4())
+      return 32;
+    if (isIPv6())
+      return 128;
+    return 0;
+  }
+  /** Get the value of the bit at the provided bit index. When the index >= 0,
+      the index is relative to the LSB starting at index zero. When the index < 0,
+      the index is relative to the MSB starting at index -1 and counting down.
+   */
+  bool getBit(int index) const
+  {
+    if(isIPv4()) {
+      if (index >= 32)
+        return false;
+      if (index < 0) {
+        if (index < -32)
+          return false;
+        index = 32 + index;
+      }
+
+      uint32_t s_addr = ntohl(sin4.sin_addr.s_addr);
+
+      return ((s_addr & (1<<index)) != 0x00000000);
+    }
+    if(isIPv6()) {
+      if (index >= 128)
+        return false;
+      if (index < 0) {
+        if (index < -128)
+          return false;
+        index = 128 + index;
+      }
+
+      uint8_t *s_addr = (uint8_t*)sin6.sin6_addr.s6_addr;
+      uint8_t byte_idx = index / 8;
+      uint8_t bit_idx = index % 8;
+
+      return ((s_addr[15-byte_idx] & (1 << bit_idx)) != 0x00);
+    }
+    return false;
+  }
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
-class NetmaskException: public PDNSException 
+class NetmaskException: public PDNSException
 {
 public:
   NetmaskException(const string &a) : PDNSException(a) {}
@@ -333,7 +378,7 @@ inline ComboAddress makeComboAddress(const string& str)
   if(inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
     address.sin4.sin_family=AF_INET6;
     if(makeIPv6sockaddr(str, &address.sin6) < 0)
-      throw NetmaskException("Unable to convert '"+str+"' to a netmask");        
+      throw NetmaskException("Unable to convert '"+str+"' to a netmask");
   }
   return address;
 }
@@ -369,31 +414,29 @@ class Netmask
 public:
   Netmask()
   {
-	d_network.sin4.sin_family=0; // disable this doing anything useful
-	d_network.sin4.sin_port = 0; // this guarantees d_network compares identical
-	d_mask=0;
-	d_bits=0;
+    d_network.sin4.sin_family=0; // disable this doing anything useful
+    d_network.sin4.sin_port = 0; // this guarantees d_network compares identical
+    d_mask=0;
+    d_bits=0;
   }
-  
+
   Netmask(const ComboAddress& network, uint8_t bits=0xff): d_network(network)
   {
     d_network.sin4.sin_port=0;
-    if(bits > 128)
-      bits = (network.sin4.sin_family == AF_INET) ? 32 : 128;
-    
-    d_bits = bits;
+    d_bits = (network.isIPv4() ? std::min(bits, (uint8_t)32) : std::min(bits, (uint8_t)128));
+
     if(d_bits<32)
       d_mask=~(0xFFFFFFFF>>d_bits);
     else
       d_mask=0xFFFFFFFF; // not actually used for IPv6
   }
-  
-  //! Constructor supplies the mask, which cannot be changed 
-  Netmask(const string &mask) 
+
+  //! Constructor supplies the mask, which cannot be changed
+  Netmask(const string &mask)
   {
     pair<string,string> split=splitField(mask,'/');
     d_network=makeComboAddress(split.first);
-    
+
     if(!split.second.empty()) {
       d_bits = (uint8_t)pdns_stou(split.second);
       if(d_bits<32)
@@ -429,7 +472,7 @@ public:
       uint8_t bytes=d_bits/8, n;
       const uint8_t *us=(const uint8_t*) &d_network.sin6.sin6_addr.s6_addr;
       const uint8_t *them=(const uint8_t*) &ip->sin6.sin6_addr.s6_addr;
-      
+
       for(n=0; n < bytes; ++n) {
         if(us[n]!=them[n]) {
           return false;
@@ -506,7 +549,7 @@ public:
     return d_network.sin4.sin_family == AF_INET;
   }
 
-  bool operator<(const Netmask& rhs) const 
+  bool operator<(const Netmask& rhs) const
   {
     if (empty() && !rhs.empty())
       return false;
@@ -527,23 +570,59 @@ public:
     return rhs.operator<(*this);
   }
 
-  bool operator==(const Netmask& rhs) const 
+  bool operator==(const Netmask& rhs) const
   {
     return tie(d_network, d_bits) == tie(rhs.d_network, rhs.d_bits);
   }
 
-  bool empty() const 
+  bool empty() const
   {
     return d_network.sin4.sin_family==0;
   }
 
+  //! Get normalized version of the netmask. This means that all address bits below the network bits are zero.
+  Netmask getNormalized() const {
+    return Netmask(getMaskedNetwork(), d_bits);
+  }
+  //! Get Netmask for super network of this one (i.e. with fewer network bits)
+  Netmask getSuper(uint8_t bits) const {
+    return Netmask(d_network, std::min(d_bits, bits));
+  }
+
+  //! Get the total number of address bits for this netmask (either 32 or 128 depending on IP version)
+  uint8_t getAddressBits() const
+  {
+    return d_network.getBits();
+  }
+
+  /** Get the value of the bit at the provided bit index. When the index >= 0,
+      the index is relative to the LSB starting at index zero. When the index < 0,
+      the index is relative to the MSB starting at index -1 and counting down.
+      When the index points outside the network bits, it always yields zero.
+   */
+  bool getBit(int bit) const
+  {
+    if (bit < -d_bits)
+      return false;
+    if (bit >= 0) {
+      if(isIPv4()) {
+        if (bit >= 32 || bit < (32 - d_bits))
+          return false;
+      }
+      if(isIPv6()) {
+        if (bit >= 128 || bit < (128 - d_bits))
+          return false;
+      }
+    }
+    return d_network.getBit(bit);
+  }
 private:
   ComboAddress d_network;
   uint32_t d_mask;
   uint8_t d_bits;
 };
 
-/** Per-bit binary tree map implementation with <Netmask,T> pair.
+/** Binary tree map implementation with <Netmask,T> pair.
  *
  * This is an binary tree implementation for storing attributes for IPv4 and IPv6 prefixes.
  * The most simple use case is simple NetmaskTree<bool> used by NetmaskGroup, which only
@@ -553,8 +632,9 @@ private:
  * to a *LIST* of *PREFIXES*. Not the other way round.
  *
  * You can store IPv4 and IPv6 addresses to same tree, separate payload storage is kept per AFI.
- *
- * To erase something copy values to new tree sans the value you want to erase.
+ * Network prefixes (Netmasks) are always recorded in normalized fashion, meaning that only
+ * the network bits are set. This is what is returned in the insert() and lookup() return
+ * values.
  *
  * Use swap if you need to move the tree to another NetmaskTree instance, it is WAY faster
  * than using copy ctor or assignment operator, since it moves the nodes and tree root to
@@ -566,75 +646,302 @@ private:
 template <typename T>
 class NetmaskTree {
 public:
+  class Iterator;
+
   typedef Netmask key_type;
   typedef T value_type;
-  typedef std::pair<key_type,value_type> node_type;
+  typedef std::pair<const key_type,value_type> node_type;
   typedef size_t size_type;
+  typedef class Iterator iterator;
 
 private:
   /** Single node in tree, internal use only.
     */
   class TreeNode : boost::noncopyable {
   public:
-     explicit TreeNode(int bits) noexcept : parent(NULL),d_bits(bits) {
-     }
+    explicit TreeNode() noexcept :
+      parent(nullptr), node(), assigned(false), d_bits(0) {
+    }
+    explicit TreeNode(const key_type& key) noexcept :
+      parent(nullptr), node({key.getNormalized(), value_type()}),
+      assigned(false), d_bits(key.getAddressBits()) {
+    }
 
-     //<! Makes a left node with one more bit than parent
-     TreeNode* make_left() {
-       if (!left) {
-         left = unique_ptr<TreeNode>(new TreeNode(d_bits+1));
-         left->parent = this;
-       }
-       return left.get();
-     }
+    //<! Makes a left leaf node with specified key.
+    TreeNode* make_left(const key_type& key) {
+      d_bits = node.first.getBits();
+      left = make_unique<TreeNode>(key);
+      left->parent = this;
+      return left.get();
+    }
 
-     //<! Makes a right node with one more bit than parent
-     TreeNode* make_right() {
-       if (!right) {
-         right = unique_ptr<TreeNode>(new TreeNode(d_bits+1));
-         right->parent = this;
-       }
-       return right.get();
-     }
+    //<! Makes a right leaf node with specified key.
+    TreeNode* make_right(const key_type& key) {
+      d_bits = node.first.getBits();
+      right = make_unique<TreeNode>(key);
+      right->parent = this;
+      return right.get();
+    }
 
-     unique_ptr<TreeNode> left;
-     unique_ptr<TreeNode> right;
-     TreeNode* parent;
+    //<! Splits branch at indicated bit position by inserting key
+    TreeNode* split(const key_type& key, int bits) {
+      if (parent == nullptr) {
+        // not to be called on the root node
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::split(): must not be called on root node");
+      }
 
-     unique_ptr<node_type> node4; //<! IPv4 value-pair
-     unique_ptr<node_type> node6; //<! IPv6 value-pair
+      // determine reference from parent
+      unique_ptr<TreeNode>& parent_ref =
+        (parent->left.get() == this ? parent->left : parent->right);
+      if (parent_ref.get() != this) {
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::split(): parent node reference is invalid");
+      }
 
-     int d_bits; //<! How many bits have been used so far
+      // create new tree node for the new key
+      TreeNode* new_node = new TreeNode(key);
+      new_node->d_bits = bits;
+
+      // attach the new node under our former parent
+      unique_ptr<TreeNode> new_child(new_node);
+      std::swap(parent_ref, new_child); // hereafter new_child points to "this"
+      new_node->parent = parent;
+
+      // attach "this" node below the new node
+      // (left or right depending on bit)
+      new_child->parent = new_node;
+      if (new_child->node.first.getBit(-1-bits)) {
+        std::swap(new_node->right, new_child);
+      } else {
+        std::swap(new_node->left, new_child);
+      }
+
+      return new_node;
+    }
+
+    //<! Forks branch for new key at indicated bit position
+    TreeNode* fork(const key_type& key, int bits) {
+      if (parent == nullptr) {
+        // not to be called on the root node
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::fork(): must not be called on root node");
+      }
+
+      // determine reference from parent
+      unique_ptr<TreeNode>& parent_ref =
+        (parent->left.get() == this ? parent->left : parent->right);
+      if (parent_ref.get() != this) {
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::fork(): parent node reference is invalid");
+      }
+
+      // create new tree node for the branch point
+      TreeNode* branch_node = new TreeNode(node.first.getSuper(bits));
+      branch_node->d_bits = bits;
+
+      // attach the branch node under our former parent
+      unique_ptr<TreeNode> new_child1(branch_node);
+      std::swap(parent_ref, new_child1); // hereafter new_child1 points to "this"
+      branch_node->parent = parent;
+
+      // create second new leaf node for the new key
+      TreeNode* new_node = new TreeNode(key);
+      unique_ptr<TreeNode> new_child2(new_node);
+
+      // attach the new child nodes below the branch node
+      // (left or right depending on bit)
+      new_child1->parent = branch_node;
+      new_child2->parent = branch_node;
+      if (new_child1->node.first.getBit(-1-bits)) {
+        std::swap(branch_node->right, new_child1);
+        std::swap(branch_node->left, new_child2);
+      } else {
+        std::swap(branch_node->right, new_child2);
+        std::swap(branch_node->left, new_child1);
+      }
+
+      return new_node;
+    }
+
+    //<! Traverse left branch depth-first
+    TreeNode *traverse_l()
+    {
+      TreeNode *tnode = this;
+
+      while (tnode->left)
+        tnode = tnode->left.get();
+      return tnode;
+    }
+
+    //<! Traverse tree depth-first and in-order (L-N-R)
+    TreeNode *traverse_lnr()
+    {
+      TreeNode *tnode = this;
+
+      // precondition: descended left as deep as possible
+      if (tnode->right) {
+        // descend right
+        tnode = tnode->right.get();
+        // descend left as deep as possible and return next node
+        return tnode->traverse_l();
+      }
+
+      // ascend to parent
+      while (tnode->parent != nullptr) {
+        TreeNode *prev_child = tnode;
+        tnode = tnode->parent;
+
+        // return this node, but only when we come from the left child branch
+        if (tnode->left && tnode->left.get() == prev_child)
+          return tnode;
+      }
+      return nullptr;
+    }
+
+    //<! Traverse only assigned nodes
+    TreeNode *traverse_lnr_assigned()
+    {
+      TreeNode *tnode = traverse_lnr();
+
+      while (tnode != nullptr && !tnode->assigned)
+        tnode = tnode->traverse_lnr();
+      return tnode;
+    }
+
+    unique_ptr<TreeNode> left;
+    unique_ptr<TreeNode> right;
+    TreeNode* parent;
+
+    node_type node;
+    bool assigned; //<! Whether this node is assigned-to by the application
+
+    int d_bits; //<! How many bits have been used so far
+  };
+
+  void cleanup_tree(TreeNode* node)
+  {
+    // only cleanup this node if it has no children and node not assigned
+    if (!(node->left || node->right || node->assigned)) {
+      // get parent node ptr
+      TreeNode* pparent = node->parent;
+      // delete this node
+      if (pparent) {
+        if (pparent->left.get() == node)
+          pparent->left.reset();
+        else
+          pparent->right.reset();
+        // now recurse up to the parent
+        cleanup_tree(pparent);
+      }
+    }
+  }
+
+  void copyTree(const NetmaskTree& rhs)
+  {
+    TreeNode *node;
+
+    node = rhs.d_root.get();
+    if (node != nullptr)
+      node = node->traverse_l();
+    while (node != nullptr) {
+      if (node->assigned)
+        insert(node->node.first).second = node->node.second;
+      node = node->traverse_lnr();
+    }
+  }
+
+public:
+  class Iterator {
+  public:
+    typedef node_type value_type;
+    typedef node_type& reference;
+    typedef node_type* pointer;
+    typedef std::forward_iterator_tag iterator_category;
+    typedef size_type difference_type;
+
+  private:
+    friend class NetmaskTree;
+
+    const NetmaskTree* d_tree;
+    TreeNode* d_node;
+
+    Iterator(const NetmaskTree* tree, TreeNode* node): d_tree(tree), d_node(node) {
+    }
+
+  public:
+    Iterator(): d_tree(nullptr), d_node(nullptr) {}
+
+    Iterator& operator++() // prefix
+    {
+      if (d_node == nullptr) {
+        throw std::logic_error(
+          "NetmaskTree::Iterator::operator++: iterator is invalid");
+      }
+      d_node = d_node->traverse_lnr_assigned();
+      return *this;
+    }
+    Iterator operator++(int) // postfix
+    {
+      Iterator tmp(*this);
+      operator++();
+      return tmp;
+    }
+
+    reference operator*()
+    {
+      if (d_node == nullptr) {
+        throw std::logic_error(
+          "NetmaskTree::Iterator::operator*: iterator is invalid");
+      }
+      return d_node->node;
+    }
+
+    pointer operator->()
+    {
+      if (d_node == nullptr) {
+        throw std::logic_error(
+          "NetmaskTree::Iterator::operator->: iterator is invalid");
+      }
+      return &d_node->node;
+    }
+
+    bool operator==(const Iterator& rhs)
+    {
+      return (d_tree == rhs.d_tree && d_node == rhs.d_node);
+    }
+    bool operator!=(const Iterator& rhs)
+    {
+      return !(*this == rhs);
+    }
   };
 
 public:
-  NetmaskTree() noexcept : NetmaskTree(false) {
+  NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr), d_size(0) {
   }
 
-  NetmaskTree(bool cleanup) noexcept : d_cleanup_tree(cleanup) {
-  }
-
-  NetmaskTree(const NetmaskTree& rhs): d_cleanup_tree(rhs.d_cleanup_tree) {
-    // it is easier to copy the nodes than tree.
-    // also acts as handy compactor
-    for(auto const& node: rhs._nodes)
-      insert(node->first).second = node->second;
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_left(nullptr), d_size(0) {
+    copyTree(rhs);
   }
 
   NetmaskTree& operator=(const NetmaskTree& rhs) {
     clear();
-    // see above.
-    for(auto const& node: rhs._nodes)
-      insert(node->first).second = node->second;
-    d_cleanup_tree = rhs.d_cleanup_tree;
+    copyTree(rhs);
     return *this;
   }
 
-  const typename std::set<node_type*>::const_iterator begin() const { return _nodes.begin(); }
-  const typename std::set<node_type*>::const_iterator end() const { return _nodes.end(); }
-
-  typename std::set<node_type*>::iterator begin() { return _nodes.begin(); }
-  typename std::set<node_type*>::iterator end() { return _nodes.end(); }
+  const iterator begin() const {
+    return Iterator(this, d_left);
+  }
+  const iterator end() const {
+    return Iterator(this, nullptr);
+  }
+  iterator begin() {
+    return Iterator(this, d_left);
+  }
+  iterator end() {
+    return Iterator(this, nullptr);
+  }
 
   node_type& insert(const string &mask) {
     return insert(key_type(mask));
@@ -642,59 +949,116 @@ public:
 
   //<! Creates new value-pair in tree and returns it.
   node_type& insert(const key_type& key) {
-    // lazily initialize tree on first insert.
-    if (!root) root = unique_ptr<TreeNode>(new TreeNode(0));
-    TreeNode* node = root.get();
-    node_type* value = nullptr;
+    TreeNode* node;
+    bool is_left = true;
 
-    if (key.getNetwork().sin4.sin_family == AF_INET) {
-      std::bitset<32> addr(be32toh(key.getNetwork().sin4.sin_addr.s_addr));
-      int bits = 0;
-      // we turn left on 0 and right on 1
-      while(bits < key.getBits()) {
-        uint8_t val = addr[31-bits];
-        if (val)
-          node = node->make_right();
-        else
-          node = node->make_left();
-        bits++;
-      }
-      // only create node if not yet assigned
-      if (!node->node4) {
-        node->node4 = unique_ptr<node_type>(new node_type());
-        _nodes.insert(node->node4.get());
-      }
-      value = node->node4.get();
-    } else {
-      uint64_t addr[2];
-      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
-      std::bitset<64> addr_low(be64toh(addr[1]));
-      std::bitset<64> addr_high(be64toh(addr[0]));
-      int bits = 0;
-      while(bits < key.getBits()) {
-        uint8_t val;
-        // we use high address until we are
-        if (bits < 64) val = addr_high[63-bits];
-        // past 64 bits, and start using low address
-        else val = addr_low[127-bits];
+    // we turn left on IPv4 and right on IPv6
+    if (key.isIPv4()) {
+      node = d_root->left.get();
+      if (node == nullptr) {
+        node = new TreeNode(key);
+        node->assigned = true;
+        node->parent = d_root.get();
 
-        // we turn left on 0 and right on 1
-        if (val)
-          node = node->make_right();
-        else
-          node = node->make_left();
-        bits++;
+        d_root->left = unique_ptr<TreeNode>(node);
+        d_size++;
+        d_left = node;
+        return node->node;
       }
-      // only create node if not yet assigned
-      if (!node->node6) {
-        node->node6 = unique_ptr<node_type>(new node_type());
-        _nodes.insert(node->node6.get());
+    } else if (key.isIPv6()) {
+      node = d_root->right.get();
+      if (node == nullptr) {
+        node = new TreeNode(key);
+        node->assigned = true;
+        node->parent = d_root.get();
+
+        d_root->right = unique_ptr<TreeNode>(node);
+        d_size++;
+        if (!d_root->left)
+          d_left = node;
+        return node->node;
       }
-      value = node->node6.get();
+      if (d_root->left)
+        is_left = false;
+    } else
+      throw NetmaskException("invalid address family");
+
+    // we turn left on 0 and right on 1
+    int bits = 0;
+    for(; node && bits < key.getBits(); bits++) {
+      bool vall = key.getBit(-1-bits);
+
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        if (vall) {
+          if (node->left || node->assigned)
+            is_left = false;
+          if (!node->right) {
+            // the right branch doesn't exist yet; attach our key here
+            node = node->make_right(key);
+            break;
+          }
+          node = node->right.get();
+        } else {
+          if (!node->left) {
+            // the left branch doesn't exist yet; attach our key here
+            node = node->make_left(key);
+            break;
+          }
+          node = node->left.get();
+        }
+        continue;
+      }
+      if (bits >= node->node.first.getBits()) {
+        // the matching branch ends here, yet the key netmask has more bits; add a
+        // child node below the existing branch leaf.
+        if (vall) {
+          if (node->assigned)
+            is_left = false;
+          node = node->make_right(key);
+        } else {
+          node = node->make_left(key);
+        }
+        break;
+      }
+      bool valr = node->node.first.getBit(-1-bits);
+      if (vall != valr) {
+        if (vall)
+          is_left = false;
+        // the branch matches just upto this point, yet continues in a different
+        // direction; fork the branch.
+        node = node->fork(key, bits);
+        break;
+      }
     }
-    // assign key
-    value->first = key;
-    return *value;
+
+    if (node->node.first.getBits() > key.getBits()) {
+      // key is a super-network of the matching node; split the branch and
+      // insert a node for the key above the matching node.
+      node = node->split(key, key.getBits());
+    }
+
+    if (node->left)
+      is_left = false;
+
+    node_type& value = node->node;
+
+    if (!node->assigned) {
+      // only increment size if not assigned before
+      d_size++;
+      // update the pointer to the left-most tree node
+      if (is_left)
+        d_left = node;
+      node->assigned = true;
+    } else {
+      // tree node exists for this value
+      if (is_left && d_left != node) {
+        throw std::logic_error(
+          "NetmaskTree::insert(): lost track of left-most node in tree");
+      }
+    }
+
+    return value;
   }
 
   //<! Creates or updates value
@@ -719,131 +1083,112 @@ public:
 
   //<! Perform best match lookup for value, using at most max_bits
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
-    if (!root) return nullptr;
+    TreeNode *node = nullptr;
 
-    TreeNode *node = root.get();
+    uint8_t addr_bits = value.getBits();
+    if (max_bits < 0 || max_bits > addr_bits)
+      max_bits = addr_bits;
+
+    if (value.isIPv4())
+      node = d_root->left.get();
+    else if (value.isIPv6())
+      node = d_root->right.get();
+    else 
+      throw NetmaskException("invalid address family");
+    if (node == nullptr) return nullptr;
+
     node_type *ret = nullptr;
 
-    // exact same thing as above, except
-    if (value.sin4.sin_family == AF_INET) {
-      max_bits = std::max(0,std::min(max_bits,32));
-      std::bitset<32> addr(be32toh(value.sin4.sin_addr.s_addr));
-      int bits = 0;
-
-      while(bits < max_bits) {
-        // ...we keep track of last non-empty node
-        if (node->node4) ret = node->node4.get();
-        uint8_t val = addr[31-bits];
-        // ...and we don't create left/right hand
-        if (val) {
-          if (node->right) node = node->right.get();
-          // ..and we break when road ends
-          else break;
+    int bits = 0;
+    for(; bits < max_bits; bits++) {
+      bool vall = value.getBit(-1-bits);
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        // (we keep track of last assigned node)
+        if (node->assigned && bits == node->node.first.getBits())
+          ret = &node->node;
+        if (vall) {
+          if (!node->right)
+            break;
+          node = node->right.get();
         } else {
-          if (node->left) node = node->left.get();
-          else break;
+          if (!node->left)
+            break;
+          node = node->left.get();
         }
-        bits++;
+        continue;
       }
-      // needed if we did not find one in loop
-      if (node->node4) ret = node->node4.get();
-    } else {
-      uint64_t addr[2];
-      memcpy(addr, value.sin6.sin6_addr.s6_addr, sizeof(addr));
-      max_bits = std::max(0,std::min(max_bits,128));
-      std::bitset<64> addr_low(be64toh(addr[1]));
-      std::bitset<64> addr_high(be64toh(addr[0]));
-      int bits = 0;
-      while(bits < max_bits) {
-        if (node->node6) ret = node->node6.get();
-        uint8_t val;
-        if (bits < 64) val = addr_high[63-bits];
-        else val = addr_low[127-bits];
-        if (val) {
-          if (node->right) node = node->right.get();
-          else break;
-        } else {
-          if (node->left) node = node->left.get();
-          else break;
-        }
-        bits++;
+      if (bits >= node->node.first.getBits()) {
+        // the matching branch ends here
+        break;
       }
-      if (node->node6) ret = node->node6.get();
+      bool valr = node->node.first.getBit(-1-bits);
+      if (vall != valr) {
+        // the branch matches just upto this point, yet continues in a different
+        // direction
+        break;
+      }
     }
+    // needed if we did not find one in loop
+    if (node->assigned && bits == node->node.first.getBits())
+      ret = &node->node;
 
     // this can be nullptr.
     return ret;
   }
 
-  void cleanup_tree(TreeNode* node)
-  {
-    // only cleanup this node if it has no children and node4 and node6 are both empty
-    if (!(node->left || node->right || node->node6 || node->node4)) {
-      // get parent node ptr
-      TreeNode* pparent = node->parent;
-      // delete this node
-      if (pparent) {
-	if (pparent->left.get() == node)
-	  pparent->left.reset();
-	else
-	  pparent->right.reset();
-	// now recurse up to the parent
-	cleanup_tree(pparent);
+  //<! Removes key from TreeMap.
+  void erase(const key_type& key) {
+    TreeNode *node = nullptr;
+
+    if (key.isIPv4())
+      node = d_root->left.get();
+    else if (key.isIPv6())
+      node = d_root->right.get();
+    else 
+      throw NetmaskException("invalid address family");
+    // no tree, no value
+    if (node == nullptr) return;
+
+    int bits = 0;
+    for(; node && bits < key.getBits(); bits++) {
+      bool vall = key.getBit(-1-bits);
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        if (vall) {
+          node = node->right.get();
+        } else {
+          node = node->left.get();
+        }
+        continue;
+      }
+      if (bits >= node->node.first.getBits()) {
+        // the matching branch ends here
+        if (key.getBits() != node->node.first.getBits())
+          node = nullptr;
+        break;
+      }
+      bool valr = node->node.first.getBit(-1-bits);
+      if (vall != valr) {
+        // the branch matches just upto this point, yet continues in a different
+        // direction
+        node = nullptr;
+        break;
       }
     }
-  }
-
-  //<! Removes key from TreeMap. This does not clean up the tree.
-  void erase(const key_type& key) {
-    TreeNode *node = root.get();
-
-    // no tree, no value
-    if ( node == nullptr ) return;
-
-    // exact same thing as above, except
-    if (key.getNetwork().sin4.sin_family == AF_INET) {
-      std::bitset<32> addr(be32toh(key.getNetwork().sin4.sin_addr.s_addr));
-      int bits = 0;
-      while(node && bits < key.getBits()) {
-        uint8_t val = addr[31-bits];
-        if (val) {
-          node = node->right.get();
-        } else {
-          node = node->left.get();
-        }
-        bits++;
+    if (node) {
+      if (d_size == 0) {
+        throw std::logic_error(
+          "NetmaskTree::erase(): size of tree is zero before erase");
       }
-      if (node) {
-        _nodes.erase(node->node4.get());
-        node->node4.reset();
+      d_size--;
+      node->assigned = false;
+      node->node.second = value_type();
 
-        if (d_cleanup_tree)
-          cleanup_tree(node);
-      }
-    } else {
-      uint64_t addr[2];
-      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
-      std::bitset<64> addr_low(be64toh(addr[1]));
-      std::bitset<64> addr_high(be64toh(addr[0]));
-      int bits = 0;
-      while(node && bits < key.getBits()) {
-        uint8_t val;
-        if (bits < 64) val = addr_high[63-bits];
-        else val = addr_low[127-bits];
-        if (val) {
-          node = node->right.get();
-        } else {
-          node = node->left.get();
-        }
-        bits++;
-      }
-      if (node) {
-        _nodes.erase(node->node6.get());
-        node->node6.reset();
+      if (node == d_left)
+        d_left = d_left->traverse_lnr_assigned();
 
-        if (d_cleanup_tree)
-          cleanup_tree(node);
-      }
+      cleanup_tree(node);
     }
   }
 
@@ -853,12 +1198,12 @@ public:
 
   //<! checks whether the container is empty.
   bool empty() const {
-    return _nodes.empty();
+    return (d_size == 0);
   }
 
   //<! returns the number of elements
   size_type size() const {
-    return _nodes.size();
+    return d_size;
   }
 
   //<! See if given ComboAddress matches any prefix
@@ -872,20 +1217,22 @@ public:
 
   //<! Clean out the tree
   void clear() {
-    _nodes.clear();
-    root.reset(nullptr);
+    d_root.reset(new TreeNode());
+    d_left = nullptr;
+    d_size = 0;
   }
 
-  //<! swaps the contents, rhs is left with nullptr.
+  //<! swaps the contents with another NetmaskTree
   void swap(NetmaskTree& rhs) {
-    root.swap(rhs.root);
-    _nodes.swap(rhs._nodes);
+    std::swap(d_root, rhs.d_root);
+    std::swap(d_left, rhs.d_left);
+    std::swap(d_size, rhs.d_size);
   }
 
 private:
-  unique_ptr<TreeNode> root; //<! Root of our tree
-  std::set<node_type*> _nodes; //<! Container for actual values
-  bool d_cleanup_tree; //<! Whether or not to cleanup the tree on erase
+  unique_ptr<TreeNode> d_root; //<! Root of our tree
+  TreeNode *d_left;
+  size_type d_size;
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matchs
@@ -894,12 +1241,7 @@ private:
 class NetmaskGroup
 {
 public:
-  //! By default, initialise the tree to cleanup
-  NetmaskGroup() noexcept : NetmaskGroup(true) {
-  }
-
-  //! This allows control over whether to cleanup or not
-  NetmaskGroup(bool cleanup) noexcept : tree(cleanup) {
+  NetmaskGroup() noexcept {
   }
 
   //! If this IP address is matched by any of the classes within
@@ -982,9 +1324,9 @@ public:
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
       if(iter != tree.begin())
         str <<", ";
-      if(!((*iter)->second))
+      if(!(iter->second))
         str<<"!";
-      str<<(*iter)->first.toString();
+      str<<iter->first.toString();
     }
     return str.str();
   }
@@ -992,7 +1334,7 @@ public:
   void toStringVector(vector<string>* vec) const
   {
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
-      vec->push_back(((*iter)->second ? "" : "!") + (*iter)->first.toString());
+      vec->push_back((iter->second ? "" : "!") + iter->first.toString());
     }
   }
 
@@ -1008,7 +1350,6 @@ public:
 private:
   NetmaskTree<bool> tree;
 };
-
 
 struct SComboAddress
 {
@@ -1049,7 +1390,7 @@ void setSocketIgnorePMTU(int sockfd);
 #if defined(IP_PKTINFO)
   #define GEN_IP_PKTINFO IP_PKTINFO
 #elif defined(IP_RECVDSTADDR)
-  #define GEN_IP_PKTINFO IP_RECVDSTADDR 
+  #define GEN_IP_PKTINFO IP_RECVDSTADDR
 #endif
 
 bool IsAnyAddress(const ComboAddress& addr);

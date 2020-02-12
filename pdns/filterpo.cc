@@ -619,14 +619,14 @@ void DNSFilterEngine::Zone::dump(FILE* fp) const
   }
 
   for (const auto pair : d_qpolAddr) {
-    dumpAddrPolicy(fp, pair->first, DNSName("rpz-client-ip.") + d_domain, pair->second);
+    dumpAddrPolicy(fp, pair.first, DNSName("rpz-client-ip.") + d_domain, pair.second);
   }
 
   for (const auto pair : d_propolNSAddr) {
-    dumpAddrPolicy(fp, pair->first, DNSName("rpz-nsip.") + d_domain, pair->second);
+    dumpAddrPolicy(fp, pair.first, DNSName("rpz-nsip.") + d_domain, pair.second);
   }
 
   for (const auto pair : d_postpolAddr) {
-    dumpAddrPolicy(fp, pair->first, DNSName("rpz-ip.") + d_domain, pair->second);
+    dumpAddrPolicy(fp, pair.first, DNSName("rpz-ip.") + d_domain, pair.second);
   }
 }

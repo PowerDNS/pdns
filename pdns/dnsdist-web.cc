@@ -395,15 +395,15 @@ static void connectionThread(int sock, ComboAddress remote)
         struct timespec now;
         gettime(&now);
         for(const auto& e: *nmg) {
-          if(now < e->second.until ) {
+          if(now < e.second.until ) {
             Json::object thing{
-              {"reason", e->second.reason},
-              {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
-              {"blocks", (double)e->second.blocks},
-              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) },
-              {"warning", e->second.warning }
+              {"reason", e.second.reason},
+              {"seconds", (double)(e.second.until.tv_sec - now.tv_sec)},
+              {"blocks", (double)e.second.blocks},
+              {"action", DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) },
+              {"warning", e.second.warning }
             };
-            obj.insert({e->first.toString(), thing});
+            obj.insert({e.first.toString(), thing});
           }
         }
 
