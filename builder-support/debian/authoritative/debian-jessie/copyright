@@ -40,7 +40,7 @@ Files: debian/*
 Copyright: 2002 - 2004 Wichert Akkermann <wichert@wiggy.net>
  2004 - 2013 Matthijs Möhlmann <matthijs@cacholong.nl>
  2012 - 2013 Marc Haber <mh+debian-packages@zugschlus.de>
- 2014 - 2015 Christian Hofstaedtler <zeha@debian.org>
+ 2014 - 2015 Chris Hofstaedtler <zeha@debian.org>
 License: GPL-2
 
 Files: modules/gsqlite3backend/*

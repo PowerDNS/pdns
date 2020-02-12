@@ -8,7 +8,7 @@ License: GPL-2 with OpenSSL Exception
 
 Files: debian/*
 Copyright: 2002-2016 PowerDNS.COM BV and contributors
- 2016 Christian Hofstaedtler <zeha@debian.org>
+ 2016 Chris Hofstaedtler <zeha@debian.org>
 License: GPL-2 with OpenSSL Exception
 Comment: Debian packaging is under same license as upstream code
 

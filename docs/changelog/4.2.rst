@@ -82,7 +82,7 @@ Changelogs for 4.2.x
     :tags: Performance, Improvements
     :pullreq: 8541
 
-    API: optionally do not return dnssec info in domain list (Christian Hofstaedtler)
+    API: optionally do not return dnssec info in domain list (Chris Hofstaedtler)
 
   .. change::
     :tags: Improvements

@@ -938,7 +938,7 @@ Changelogs for 4.1.x
     :tags: Internals, Improvements
     :pullreq: 5543
 
-    Wrap the webserver's and Resolver::tryGetSOASerial objects into smart pointers (also thanks to Christian Hofstaedtler for reviewing!)
+    Wrap the webserver's and Resolver::tryGetSOASerial objects into smart pointers (also thanks to Chris Hofstaedtler for reviewing!)
 
   .. change::
     :tags: Internals, Improvements
@@ -1366,7 +1366,7 @@ Changelogs for 4.1.x
     :pullreq: 5466
     :tickets: 5398
 
-    Clean up auth/recursor code mismatches in the API (Christian Hofstaedtler).
+    Clean up auth/recursor code mismatches in the API (Chris Hofstaedtler).
 
   .. change::
     :tags: Bug Fixes

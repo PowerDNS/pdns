@@ -2443,7 +2443,7 @@ Improvements
 -  `#3722 <https://github.com/PowerDNS/pdns/pull/3722>`__ Use LT\_INIT
    and disable static objects (Ruben Kerkhof)
 -  `#3724 <https://github.com/PowerDNS/pdns/pull/3724>`__ Include
-   PDNS\_CHECK\_OS in configure (Christian Hofstaedtler)
+   PDNS\_CHECK\_OS in configure (Chris Hofstaedtler)
 -  `#3728 <https://github.com/PowerDNS/pdns/pull/3728>`__ Document
    libedit Ctrl-R workaround for CentOS 6
 -  `#3730 <https://github.com/PowerDNS/pdns/pull/3730>`__ Make
