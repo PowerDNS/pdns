@@ -203,6 +203,21 @@ public:
     }
     void setPriority(Priority p) {
       d_priority = p;
+      for (auto& pol : d_qpolName) {
+        pol.second.d_priority = p;
+      }
+      for (auto& pol: d_qpolAddr) {
+        pol->second.d_priority = p;
+      }
+      for (auto& pol: d_propolName) {
+        pol.second.d_priority = p;
+      }
+      for (auto& pol: d_propolNSAddr) {
+        pol->second.d_priority = p;
+      }
+      for (auto& pol: d_postpolAddr) {
+        pol->second.d_priority = p;
+      }
     }
   private:
     static DNSName maskToRPZ(const Netmask& nm);
@@ -267,10 +282,10 @@ public:
     }
   }
 
-  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Priority Priority) const;
-  Policy getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const;
-  Policy getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const;
-  Policy getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority currentPriority) const;
+  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
+  Policy getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
+  Policy getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
+  Policy getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
 
   size_t size() const {
     return d_zones.size();
