@@ -3,10 +3,7 @@ pkglib_LTLIBRARIES = libgodbcbackend.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
-	OBJECTLIBS \
-	schema.mssql.sql \
-	4.0.0_to_4.2.0_schema.mssql.sql \
-	4.2.0_to_4.3.0_schema.mssql.sql
+	OBJECTLIBS
 
 dist_doc_DATA = \
 	schema.mssql.sql \
