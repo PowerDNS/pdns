@@ -546,6 +546,7 @@ void mainthread()
    PC.setTTL(::arg().asNum("cache-ttl"));
    PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
    QC.setMaxEntries(::arg().asNum("max-cache-entries"));
+   DNSSECKeeper::setMaxEntries(::arg().asNum("max-cache-entries"));
 
    if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
      g_log<<Logger::Warning<<"Packet cache disabled, logging queries without HIT/MISS"<<endl;

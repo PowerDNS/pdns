@@ -51,6 +51,7 @@ pthread_rwlock_t DNSSECKeeper::s_metacachelock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
+size_t DNSSECKeeper::s_maxEntries = 0;
 
 bool DNSSECKeeper::doesDNSSEC()
 {
@@ -860,12 +861,21 @@ void DNSSECKeeper::cleanup()
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {
         WriteLock l(&s_metacachelock);
-        pruneCollection<SequencedTag>(*this, s_metacache, ::arg().asNum("max-cache-entries"));
+        pruneCollection<SequencedTag>(*this, s_metacache, s_maxEntries);
     }
     {
         WriteLock l(&s_keycachelock);
-        pruneCollection<SequencedTag>(*this, s_keycache, ::arg().asNum("max-cache-entries"));
+        pruneCollection<SequencedTag>(*this, s_keycache, s_maxEntries);
     }
-    s_last_prune=time(0);
+    s_last_prune = time(nullptr);
   }
+}
+
+void DNSSECKeeper::setMaxEntries(size_t maxEntries)
+{
+  s_maxEntries = maxEntries;
+#if BOOST_VERSION >= 105600
+  WriteLock wl(&s_keycachelock);
+  s_keycache.get<KeyCacheTag>().reserve(s_maxEntries);
+#endif /* BOOST_VERSION >= 105600 */
 }

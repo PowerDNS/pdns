@@ -59,6 +59,14 @@ AuthQueryCache::~AuthQueryCache()
   }
 }
 
+void AuthQueryCache::MapCombo::reserve(size_t numberOfEntries)
+{
+#if BOOST_VERSION >= 105600
+  WriteLock wl(&d_mut);
+  d_map.get<HashTag>().reserve(numberOfEntries);
+#endif /* BOOST_VERSION >= 105600 */
+}
+
 // called from ueberbackend
 bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& value, int zoneID)
 {

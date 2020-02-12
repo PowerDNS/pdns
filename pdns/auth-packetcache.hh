@@ -66,6 +66,9 @@ public:
   void setMaxEntries(uint64_t maxEntries) 
   {
     d_maxEntries = maxEntries;
+    for (auto& shard : d_maps) {
+      shard.reserve(maxEntries / d_maps.size());
+    }
   }
   void setTTL(uint32_t ttl)
   {
@@ -114,6 +117,8 @@ private:
     }
     MapCombo(const MapCombo&) = delete; 
     MapCombo& operator=(const MapCombo&) = delete;
+
+    void reserve(size_t numberOfEntries);
 
     pthread_rwlock_t d_mut;
     cmap_t d_map;
