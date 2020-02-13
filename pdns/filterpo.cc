@@ -248,6 +248,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
       ++count;
       continue;
     }
+
     if (z->findClientPolicy(ca, pol)) {
       // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
       return pol;
