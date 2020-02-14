@@ -282,10 +282,39 @@ public:
     }
   }
 
-  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
-  Policy getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
-  Policy getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
-  Policy getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority maxPriority) const;
+  bool getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+  bool getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+  bool getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+  bool getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+
+  // A few convenience methods for the unit test code
+  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
+    Policy policy;
+    policy.d_priority = p;
+    getQueryPolicy(qname, nm, discardedPolicies, policy);
+    return policy;
+  }
+
+  Policy getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
+    Policy policy;
+    policy.d_priority = p;
+    getProcessingPolicy(qname, discardedPolicies, policy);
+    return policy;
+  }
+
+  Policy getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
+    Policy policy;
+    policy.d_priority = p;
+    getProcessingPolicy(address, discardedPolicies, policy);
+    return policy;
+  }
+
+  Policy getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
+    Policy policy;
+    policy.d_priority = p;
+    getPostPolicy(records, discardedPolicies, policy);
+    return policy;
+  }
 
   size_t size() const {
     return d_zones.size();
