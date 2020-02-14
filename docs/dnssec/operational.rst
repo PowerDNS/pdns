@@ -228,6 +228,8 @@ AXFR-serving, a lot of signing needs to happen.
 
 Most best practices are documented in :rfc:`6781`.
 
+.. _dnssec-ttl-notes:
+
 Some notes on TTL usage
 -----------------------
 

@@ -11,6 +11,12 @@ upgrade notes if your version is older than 3.4.2.
 4.2.x to 4.3.0
 --------------
 
+NSEC(3) TTL changed
+^^^^^^^^^^^^^^^^^^^
+
+NSEC(3) records now use the negative TTL, instead of the SOA minimum TTL.
+See :ref:`the DNSSEC TTL notes <dnssec-ttl-notes>`  for more information.
+
 Lua Netmask class methods changed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
