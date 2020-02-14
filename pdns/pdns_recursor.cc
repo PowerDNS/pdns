@@ -1326,8 +1326,8 @@ static void startDoResolve(void *p)
     }
 
     // Check if the query has a policy attached to it
-    if (wantsRPZ && appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
-      appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies);
+    if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+      luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies, appliedPolicy);
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
@@ -1386,6 +1386,7 @@ static void startDoResolve(void *p)
         res = -2;
       }
       dq.validationState = sr.getValidationState();
+      appliedPolicy = sr.d_appliedPolicy;
 
       // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
       if (res == -2) { // XXX This block should be macro'd, it is repeated post-resolve.
@@ -1428,8 +1429,8 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (wantsRPZ && appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
-        appliedPolicy = luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies);
+      if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+        luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies, appliedPolicy);
       }
 
       if(t_pdl) {
