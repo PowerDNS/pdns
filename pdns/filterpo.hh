@@ -203,20 +203,20 @@ public:
     }
     void setPriority(Priority p) {
       d_priority = p;
-      for (auto& pol : d_qpolName) {
-        pol.second.d_priority = p;
+      for (auto& pair : d_qpolName) {
+        pair.second.d_priority = p;
       }
-      for (auto& pol: d_qpolAddr) {
-        pol->second.d_priority = p;
+      for (auto& pair : d_propolName) {
+        pair.second.d_priority = p;
       }
-      for (auto& pol: d_propolName) {
-        pol.second.d_priority = p;
+      for (auto pair : d_qpolAddr) {
+        pair->second.d_priority = p;
       }
-      for (auto& pol: d_propolNSAddr) {
-        pol->second.d_priority = p;
+      for (auto pair : d_propolNSAddr) {
+        pair->second.d_priority = p;
       }
-      for (auto& pol: d_postpolAddr) {
-        pol->second.d_priority = p;
+      for (auto pair : d_postpolAddr) {
+        pair->second.d_priority = p;
       }
     }
   private:
