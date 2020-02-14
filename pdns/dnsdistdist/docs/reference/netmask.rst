@@ -26,7 +26,7 @@ Netmask
 
     Return a :class:`ComboAddress` object representing the base network of this netmask object after masking any additional bits if necessary (for example ``192.0.2.0`` if the netmask was constructed with ``newNetmask('192.0.2.1/24')).
 
-  .. method:: Netmask:isEmpty() -> bool
+  .. method:: Netmask:empty() -> bool
 
     Return true if the netmask is empty, meaning that the netmask has not been set to a proper value.
 

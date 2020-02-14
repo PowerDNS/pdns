@@ -860,9 +860,7 @@ struct DownstreamState
   void setName(const std::string& newName)
   {
     name = newName;
-    if (newName.empty()) {
-      nameWithAddr = newName.empty() ? remote.toStringWithPort() : (name + " (" + remote.toStringWithPort()+ ")");
-    }
+    nameWithAddr = newName.empty() ? remote.toStringWithPort() : (name + " (" + remote.toStringWithPort()+ ")");
   }
 
   string getStatus() const

@@ -170,7 +170,7 @@ Functions
 
 .. function:: setServerPolicyLua(name, function)
 
-  Set server selection policy to one named `name`` and provided by ``function``.
+  Set server selection policy to one named ``name`` and provided by ``function``.
 
   :param string name: name for this policy
   :param string function: name of the function
@@ -179,7 +179,7 @@ Functions
 
   .. versionadded:: 1.5.0
 
-  Set server selection policy to one named `name`` and provided by the FFI function ``function``.
+  Set server selection policy to one named ``name`` and provided by the FFI function ``function``.
 
   :param string name: name for this policy
   :param string function: name of the FFI function
