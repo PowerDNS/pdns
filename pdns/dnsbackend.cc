@@ -66,6 +66,7 @@ void BackendFactory::declare(const string &suffix, const string &param, const st
 {
   string fullname=d_name+suffix+"-"+param;
   arg().set(fullname,help)=value;
+  arg().setDefault(fullname,value);
 }
 
 const string &BackendFactory::getName() const

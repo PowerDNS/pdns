@@ -68,7 +68,13 @@ static void dokill(int)
 
 string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  return ::arg().configstring(true);
+  if(parts.size() > 1) {
+    if(parts.size() == 2 && parts[1] == "diff") {
+      return ::arg().configstring(true, false);
+    }
+    return "Syntax: current-config [diff]";
+  }
+  return ::arg().configstring(true, true);
 }
 
 string DLRQuitHandler(const vector<string>&parts, Utility::pid_t ppid)

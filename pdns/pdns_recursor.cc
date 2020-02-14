@@ -4800,6 +4800,7 @@ int main(int argc, char **argv)
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
+    ::arg().setDefaults();
     g_log.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
@@ -4829,7 +4830,7 @@ int main(int argc, char **argv)
     }
 
     if(::arg().mustDo("config")) {
-      cout<<::arg().configstring()<<endl;
+      cout<<::arg().configstring(false, true);
       exit(0);
     }
 
