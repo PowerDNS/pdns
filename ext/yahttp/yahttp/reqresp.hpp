@@ -249,7 +249,7 @@ public:
     }
     void setup(const std::string& method_, const std::string& url_) {
       this->url.parse(url_);
-      this->headers["host"] = this->url.host;
+      this->headers["host"] = this->url.host.find(":") == std::string::npos ? this->url.host : "[" + this->url.host + "]";
       this->method = method_;
       std::transform(this->method.begin(), this->method.end(), this->method.begin(), ::toupper);
       this->headers["user-agent"] = "YaHTTP v1.0";
