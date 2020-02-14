@@ -48,12 +48,13 @@
 
 #include "ixfr.hh"
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force)
 {
   std::lock_guard<std::mutex> l(d_lock);
   SuckRequest sr;
   sr.domain = domain;
   sr.master = master;
+  sr.force = force;
   pair<UniQueue::iterator, bool>  res;
 
   res=d_suckdomains.push_back(sr);
@@ -293,7 +294,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 }   
 
 
-void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
+void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, bool force)
 {
   {
     std::lock_guard<std::mutex> l(d_lock);
@@ -314,7 +315,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
     bool wrongDomainKind = false;
     // this checks three error conditions & sets wrongDomainKind if we hit the third
-    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
+    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, !force && di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
       if(wrongDomainKind)
         g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
       else
