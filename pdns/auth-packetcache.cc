@@ -159,6 +159,7 @@ void AuthPacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxTTL)
         continue;
       }
 
+      moveCacheItemToBack<SequencedTag>(mc.d_map, iter);
       iter->value = entry.value;
       iter->ttd = now + ourttl;
       iter->created = now;
@@ -167,7 +168,15 @@ void AuthPacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxTTL)
 
     /* no existing entry found to refresh */
     mc.d_map.insert(entry);
-    (*d_statnumentries)++;
+
+    if (*d_statnumentries >= d_maxEntries) {
+      /* remove the least recently inserted or replaced entry */
+      auto& sidx = mc.d_map.get<SequencedTag>();
+      sidx.pop_front();
+    }
+    else {
+      (*d_statnumentries)++;
+    }
   }
 }
 
@@ -207,7 +216,7 @@ uint64_t AuthPacketCache::purge()
 uint64_t AuthPacketCache::purgeExact(const DNSName& qname)
 {
   auto& mc = getMap(qname);
-  uint64_t delcount = purgeExactLockedCollection(mc, qname);
+  uint64_t delcount = purgeExactLockedCollection<NameTag>(mc, qname);
 
   *d_statnumentries -= delcount;
 
@@ -224,7 +233,7 @@ uint64_t AuthPacketCache::purge(const string &match)
   uint64_t delcount = 0;
 
   if(ends_with(match, "$")) {
-    delcount = purgeLockedCollectionsVector(d_maps, match);
+    delcount = purgeLockedCollectionsVector<NameTag>(d_maps, match);
     *d_statnumentries -= delcount;
   }
   else {
@@ -240,7 +249,7 @@ void AuthPacketCache::cleanup()
   uint64_t cacheSize = *d_statnumentries;
   uint64_t totErased = 0;
 
-  totErased = pruneLockedCollectionsVector(d_maps, maxCached, cacheSize);
+  totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps, maxCached, cacheSize);
   *d_statnumentries -= totErased;
 
   DLOG(g_log<<"Done with cache clean, cacheSize: "<<(*d_statnumentries)<<", totErased"<<totErased<<endl);

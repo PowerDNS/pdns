@@ -256,24 +256,27 @@ private:
   
   };
   
+  struct KeyCacheTag{};
+  struct CompositeTag{};
+  struct SequencedTag{};
   
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<
-      ordered_unique<member<KeyCacheEntry, DNSName, &KeyCacheEntry::d_domain> >,
-      sequenced<>
+    ordered_unique<tag<KeyCacheTag>,member<KeyCacheEntry, DNSName, &KeyCacheEntry::d_domain> >,
+    sequenced<tag<SequencedTag>>
     >
   > keycache_t;
   typedef multi_index_container<
     METACacheEntry,
     indexed_by<
-      ordered_unique<
+      ordered_unique<tag<CompositeTag>,
         composite_key< 
           METACacheEntry, 
           member<METACacheEntry, DNSName, &METACacheEntry::d_domain> ,
           member<METACacheEntry, std::string, &METACacheEntry::d_key>
         >, composite_key_compare<std::less<DNSName>, CIStringCompare> >,
-      sequenced<>
+      sequenced<tag<SequencedTag>>
     >
   > metacache_t;
 

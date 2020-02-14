@@ -73,7 +73,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       }
 
       d_hits++;
-      moveCacheItemToBack(d_packetCache, iter);
+      moveCacheItemToBack<SequencedTag>(d_packetCache, iter);
 #ifdef HAVE_PROTOBUF
       if (protobufMessage) {
         if (iter->d_protobufMessage) {
@@ -88,7 +88,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       return true;
     }
     else {
-      moveCacheItemToFront(d_packetCache, iter); 
+      moveCacheItemToFront<SequencedTag>(d_packetCache, iter); 
       d_misses++;
       break;
     }
@@ -161,7 +161,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
       continue;
     }
 
-    moveCacheItemToBack(d_packetCache, iter);
+    moveCacheItemToBack<SequencedTag>(d_packetCache, iter);
     iter->d_packet = std::move(responsePacket);
     iter->d_query = std::move(query);
     iter->d_ecsBegin = ecsBegin;
@@ -214,7 +214,7 @@ uint64_t RecursorPacketCache::bytes()
 
 void RecursorPacketCache::doPruneTo(unsigned int maxCached)
 {
-  pruneCollection(*this, d_packetCache, maxCached);
+  pruneCollection<SequencedTag>(*this, d_packetCache, maxCached);
 }
 
 uint64_t RecursorPacketCache::doDump(int fd)
