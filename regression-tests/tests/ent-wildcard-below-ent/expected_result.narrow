@@ -1,7 +1,7 @@
 0	something.a.b.c.test.com.	IN	A	3600	8.7.6.5
 0	something.a.b.c.test.com.	IN	RRSIG	3600	A 13 5 3600 [expiry] [inception] [keytag] test.com. ...
-1	qjeirdhb04ir4vbs5pbbhbue69dlq9nr.test.com.	IN	NSEC3	86400	1 [flags] 1 abcd QJEIRDHB04IR4VBS5PBBHBUE69DLQ9NT
-1	qjeirdhb04ir4vbs5pbbhbue69dlq9nr.test.com.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.com. ...
+1	qjeirdhb04ir4vbs5pbbhbue69dlq9nr.test.com.	IN	NSEC3	3600	1 [flags] 1 abcd QJEIRDHB04IR4VBS5PBBHBUE69DLQ9NT
+1	qjeirdhb04ir4vbs5pbbhbue69dlq9nr.test.com.	IN	RRSIG	3600	NSEC3 13 3 3600 [expiry] [inception] [keytag] test.com. ...
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='something.a.b.c.test.com.', qtype=A

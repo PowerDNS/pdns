@@ -37,7 +37,7 @@ struct DNSRecord;
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), minimum(0), db(0), domain_id(-1) {};
 
   DNSName qname;
   DNSName nameserver;
@@ -47,9 +47,11 @@ struct SOAData
   uint32_t refresh;
   uint32_t retry;
   uint32_t expire;
-  uint32_t default_ttl;
+  uint32_t minimum;
   DNSBackend *db;
   int domain_id;
+
+  uint32_t getNegativeTTL() const { return min(ttl, minimum); }
 };
 
 class RCode

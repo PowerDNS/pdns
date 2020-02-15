@@ -324,7 +324,7 @@ void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
   sd.refresh = src->d_st.refresh;
   sd.retry = src->d_st.retry;
   sd.expire = src->d_st.expire;
-  sd.default_ttl = src->d_st.minimum;
+  sd.minimum = src->d_st.minimum;
 }
 
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd)
@@ -334,7 +334,7 @@ std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd)
     st.refresh = sd.refresh;
     st.retry = sd.retry;
     st.expire = sd.expire;
-    st.minimum = sd.default_ttl;
+    st.minimum = sd.minimum;
     return std::make_shared<SOARecordContent>(sd.nameserver, sd.hostmaster, st);
 }
 
@@ -370,7 +370,7 @@ void fillSOAData(const string &content, SOAData &data)
     data.expire = pleft > 5 ? pdns_stou(parts[5].c_str())
       : ::arg().asNum("soa-expire-default");
 
-    data.default_ttl = pleft > 6 ? pdns_stou(parts[6].c_str())
+    data.minimum = pleft > 6 ? pdns_stou(parts[6].c_str())
       : ::arg().asNum("soa-minimum-ttl");
   }
   catch(const std::out_of_range& oor) {

@@ -1,25 +1,25 @@
-*.a.b.c.test.com.	86400	IN	NSEC	counter.test.com. A RRSIG NSEC
-*.test.test.com.	86400	IN	NSEC	sub.test.test.com. CNAME RRSIG NSEC
-_double._tcp.dc.test.com.	86400	IN	NSEC	_ldap._tcp.dc.test.com. SRV RRSIG NSEC
-_ldap._tcp.dc.test.com.	86400	IN	NSEC	_root._tcp.dc.test.com. SRV RRSIG NSEC
-_root._tcp.dc.test.com.	86400	IN	NSEC	enum.test.com. SRV RRSIG NSEC
-_underscore.test.com.	86400	IN	NSEC	aland.test.com. TXT RRSIG NSEC
-aland.test.com.	86400	IN	NSEC	blah.test.com. TXT RRSIG NSEC
-b.c.test.com.	86400	IN	NSEC	*.a.b.c.test.com. A RRSIG NSEC
-blah.test.com.	86400	IN	NSEC	b.c.test.com. NS RRSIG NSEC
-counter.test.com.	86400	IN	NSEC	d.test.com. A RRSIG NSEC
-d.test.com.	86400	IN	NSEC	_double._tcp.dc.test.com. DNAME RRSIG NSEC
-enum.test.com.	86400	IN	NSEC	hightxt.test.com. NAPTR RRSIG NSEC
-hightxt.test.com.	86400	IN	NSEC	interrupted-rrset.test.com. TXT RRSIG NSEC SPF
-interrupted-rrset.test.com.	86400	IN	NSEC	ns1.test.com. A TXT RRSIG NSEC
-ns1.test.com.	86400	IN	NSEC	ns2.test.com. A RRSIG NSEC
-ns2.test.com.	86400	IN	NSEC	server1.test.com. A RRSIG NSEC
-server1.test.com.	86400	IN	NSEC	*.test.test.com. A RP RRSIG NSEC
-sub.test.test.com.	86400	IN	NSEC	www.test.test.com. NS RRSIG NSEC
-test.com.	86400	IN	NSEC	_underscore.test.com. NS SOA MX RRSIG NSEC DNSKEY
-toroot.test.com.	86400	IN	NSEC	urc65226.test.com. CNAME RRSIG NSEC
-urc65226.test.com.	86400	IN	NSEC	very-long-txt.test.com. RRSIG NSEC TYPE65226
-very-long-txt.test.com.	86400	IN	NSEC	within-server.test.com. TXT RRSIG NSEC
-within-server.test.com.	86400	IN	NSEC	www.test.com. CNAME RRSIG NSEC
-www.test.com.	86400	IN	NSEC	test.com. CNAME RRSIG NSEC
-www.test.test.com.	86400	IN	NSEC	toroot.test.com. A RRSIG NSEC
+*.a.b.c.test.com.	3600	IN	NSEC	counter.test.com. A RRSIG NSEC
+*.test.test.com.	3600	IN	NSEC	sub.test.test.com. CNAME RRSIG NSEC
+_double._tcp.dc.test.com.	3600	IN	NSEC	_ldap._tcp.dc.test.com. SRV RRSIG NSEC
+_ldap._tcp.dc.test.com.	3600	IN	NSEC	_root._tcp.dc.test.com. SRV RRSIG NSEC
+_root._tcp.dc.test.com.	3600	IN	NSEC	enum.test.com. SRV RRSIG NSEC
+_underscore.test.com.	3600	IN	NSEC	aland.test.com. TXT RRSIG NSEC
+aland.test.com.	3600	IN	NSEC	blah.test.com. TXT RRSIG NSEC
+b.c.test.com.	3600	IN	NSEC	*.a.b.c.test.com. A RRSIG NSEC
+blah.test.com.	3600	IN	NSEC	b.c.test.com. NS RRSIG NSEC
+counter.test.com.	3600	IN	NSEC	d.test.com. A RRSIG NSEC
+d.test.com.	3600	IN	NSEC	_double._tcp.dc.test.com. DNAME RRSIG NSEC
+enum.test.com.	3600	IN	NSEC	hightxt.test.com. NAPTR RRSIG NSEC
+hightxt.test.com.	3600	IN	NSEC	interrupted-rrset.test.com. TXT RRSIG NSEC SPF
+interrupted-rrset.test.com.	3600	IN	NSEC	ns1.test.com. A TXT RRSIG NSEC
+ns1.test.com.	3600	IN	NSEC	ns2.test.com. A RRSIG NSEC
+ns2.test.com.	3600	IN	NSEC	server1.test.com. A RRSIG NSEC
+server1.test.com.	3600	IN	NSEC	*.test.test.com. A RP RRSIG NSEC
+sub.test.test.com.	3600	IN	NSEC	www.test.test.com. NS RRSIG NSEC
+test.com.	3600	IN	NSEC	_underscore.test.com. NS SOA MX RRSIG NSEC DNSKEY
+toroot.test.com.	3600	IN	NSEC	urc65226.test.com. CNAME RRSIG NSEC
+urc65226.test.com.	3600	IN	NSEC	very-long-txt.test.com. RRSIG NSEC TYPE65226
+very-long-txt.test.com.	3600	IN	NSEC	within-server.test.com. TXT RRSIG NSEC
+within-server.test.com.	3600	IN	NSEC	www.test.com. CNAME RRSIG NSEC
+www.test.com.	3600	IN	NSEC	test.com. CNAME RRSIG NSEC
+www.test.test.com.	3600	IN	NSEC	toroot.test.com. A RRSIG NSEC

@@ -1,7 +1,7 @@
 0	www.something.wtest.com.	IN	A	3600	4.3.2.1
 0	www.something.wtest.com.	IN	RRSIG	3600	A 13 3 3600 [expiry] [inception] [keytag] wtest.com. ...
-1	a.something.wtest.com.	IN	NSEC	86400	wtest.com. A RRSIG NSEC
-1	a.something.wtest.com.	IN	RRSIG	86400	NSEC 13 4 86400 [expiry] [inception] [keytag] wtest.com. ...
+1	a.something.wtest.com.	IN	NSEC	3600	wtest.com. A RRSIG NSEC
+1	a.something.wtest.com.	IN	RRSIG	3600	NSEC 13 4 3600 [expiry] [inception] [keytag] wtest.com. ...
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.something.wtest.com.', qtype=ANY

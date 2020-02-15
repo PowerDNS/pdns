@@ -1,6 +1,6 @@
 1	blah.test.com.	IN	NS	3600	blah.test.com.
-1	blah.test.com.	IN	NSEC	86400	b.c.test.com. NS RRSIG NSEC
-1	blah.test.com.	IN	RRSIG	86400	NSEC 13 3 86400 [expiry] [inception] [keytag] test.com. ...
+1	blah.test.com.	IN	NSEC	3600	b.c.test.com. NS RRSIG NSEC
+1	blah.test.com.	IN	RRSIG	3600	NSEC 13 3 3600 [expiry] [inception] [keytag] test.com. ...
 2	.	IN	OPT	32768	
 2	blah.test.com.	IN	A	3600	192.168.6.1
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
