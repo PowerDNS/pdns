@@ -1,3 +1,6 @@
+modules/gsqlite3backend/3.4.0_to_4.0.0_schema.sqlite3.sql
+modules/gsqlite3backend/4.0.0_to_4.2.0_schema.sqlite3.sql
+modules/gsqlite3backend/4.2.0_to_4.3.0_schema.sqlite3.sql
 modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
 modules/gsqlite3backend/schema.sqlite3.sql
