@@ -110,15 +110,19 @@ void NSECBitmap::fromPacket(PacketReader& pr)
   }
   
   for(unsigned int n = 0; n+1 < bitmap.size();) {
-    unsigned int window=static_cast<unsigned char>(bitmap[n++]);
-    unsigned int blen=static_cast<unsigned char>(bitmap[n++]);
+    uint8_t window=static_cast<uint8_t>(bitmap[n++]);
+    uint8_t blen=static_cast<uint8_t>(bitmap[n++]);
 
     // end if zero padding and ensure packet length
-    if(window == 0 && blen == 0) {
+    if (window == 0 && blen == 0) {
       break;
     }
 
-    if(n + blen > bitmap.size()) {
+    if (blen > 32) {
+      throw MOADNSException("NSEC record with invalid bitmap length");
+    }
+
+    if (n + blen > bitmap.size()) {
       throw MOADNSException("NSEC record with bitmap length > packet length");
     }
 
