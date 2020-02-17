@@ -41,9 +41,11 @@ try
   string namespace_name=arg()["carbon-namespace"];
   string hostname=arg()["carbon-ourname"];
   if(hostname.empty()) {
-    char tmp[80];
+    char tmp[HOST_NAME_MAX+1];
     memset(tmp, 0, sizeof(tmp));
-    gethostname(tmp, sizeof(tmp));
+    if (gethostname(tmp, sizeof(tmp)) != 0) {
+      throw std::runtime_error("The carbon-ourname setting has not been set and we are unable to determine the system's hostname: " + stringerror());
+    }
     char *p = strchr(tmp, '.');
     if(p) *p=0;
     hostname=tmp;
