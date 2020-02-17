@@ -942,25 +942,10 @@ int PacketHandler::processNotify(const DNSPacket& p)
   return 0;
 }
 
-static bool validDNSName(const DNSName &name)
+static bool validDNSName(const DNSName& name)
 {
   if (!g_8bitDNS) {
-    const auto& s = name.getStorage();
-    string::size_type pos = 0;
-    uint8_t length = s.at(pos);
-    while (length > 0) {
-      for (size_t idx = 0; idx < length; idx++) {
-        ++pos;
-        char c = s.at(pos);
-        if(!((c >= 'a' && c <= 'z') ||
-             (c >= 'A' && c <= 'Z') ||
-             (c >= '0' && c <= '9') ||
-             c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@' || c==' ' || c=='\\' || c==':'))
-          return false;
-      }
-      ++pos;
-      length = s.at(pos);
-    }
+    return name.has8bitBytes() == false;
   }
   return true;
 }
