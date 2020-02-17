@@ -235,7 +235,7 @@ public:
     std::shared_ptr<std::string> d_name;
     uint32_t d_serial{0};
     uint32_t d_refresh{0};
-    Priority d_priority;
+    Priority d_priority{0};
   };
 
   DNSFilterEngine();
