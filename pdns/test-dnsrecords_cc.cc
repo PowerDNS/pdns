@@ -489,6 +489,27 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec_invalid_bitmap_len) {
+  auto validNSEC = DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC AAAA NSEC3 TYPE1234 TYPE65535");
+  const DNSName powerdnsName("powerdns.com.");
+
+  vector<uint8_t> packet;
+  DNSPacketWriter writer(packet, powerdnsName, QType::NSEC, QClass::IN, 0);
+  writer.getHeader()->qr = 1;
+  writer.startRecord(powerdnsName, QType::NSEC, 100, QClass::IN, DNSResourceRecord::ANSWER, false);
+  validNSEC->toPacket(writer);
+  writer.commit();
+
+  size_t nsecDataPos = sizeof(dnsheader) + powerdnsName.wirelength() + sizeof(uint16_t) + sizeof (uint16_t) + powerdnsName.wirelength() + sizeof(uint16_t) + sizeof (uint16_t) + sizeof(uint32_t) + sizeof(uint16_t);
+  size_t typeBitMapsFieldPos = nsecDataPos + DNSName("host.example.com.").wirelength();
+  auto invalidPacket = packet;
+  /* set the bitmap length value to 33, while the maximum possible value is 32 */
+  invalidPacket.at(typeBitMapsFieldPos + 1) = 33;
+
+  MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+  BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(invalidPacket.data()), invalidPacket.size()), MOADNSException);
+}
+
 BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
 
   {
