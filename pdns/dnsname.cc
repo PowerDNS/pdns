@@ -456,3 +456,25 @@ void DNSName::appendEscapedLabel(std::string& appendTo, const char* orig, size_t
     ++pos;
   }
 }
+
+bool DNSName::has8bitBytes() const
+{
+  const auto& s = d_storage;
+  string::size_type pos = 0;
+  uint8_t length = s.at(pos);
+  while (length > 0) {
+    for (size_t idx = 0; idx < length; idx++) {
+      ++pos;
+      char c = s.at(pos);
+      if(!((c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9') ||
+           c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@' || c==' ' || c=='\\' || c==':'))
+        return true;
+    }
+    ++pos;
+    length = s.at(pos);
+  }
+
+  return false;
+}
