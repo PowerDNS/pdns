@@ -19,6 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+/* we don't use a guard (C++ pragma once or even #ifndef because this file (the .inc version)
+   is passed to the Lua FFI wrapper which doesn't support it */
+
 typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
 typedef struct dnsdist_ffi_servers_list_t dnsdist_ffi_servers_list_t;
 typedef struct dnsdist_ffi_server_t dnsdist_ffi_server_t;
