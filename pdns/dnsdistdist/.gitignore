@@ -18,6 +18,7 @@
 /configure
 /depcomp
 /dnsdist.1
+/dnsdist-lua-ffi-interface.inc
 /dnslabeltext.cc
 /ext/ipcrypt/Makefile
 /ext/ipcrypt/Makefile.in

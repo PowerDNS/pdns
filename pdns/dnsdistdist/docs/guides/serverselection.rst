@@ -114,6 +114,35 @@ ServerPolicy Objects
   :param servers: A list of :class:`Server` objects
   :param DNSQuestion dq: The incoming query
 
+  .. attribute:: ServerPolicy.ffipolicy
+
+    .. versionadded: 1.5.0
+
+    For policies implemented using the Lua FFI interface, the policy function itself.
+
+  .. attribute:: ServerPolicy.isFFI
+
+    .. versionadded: 1.5.0
+
+    Whether a Lua-based policy is implemented using the FFI interface.
+
+  .. attribute:: ServerPolicy.isLua
+
+    Whether this policy is a native (C++) policy or a Lua-based one.
+
+  .. attribute:: ServerPolicy.name
+
+    The name of the policy.
+
+  .. attribute:: ServerPolicy.policy
+
+    The policy function itself, except for FFI policies.
+
+  .. method:: Server:toString()
+
+    Return a textual representation of the policy.
+
+
 Functions
 ---------
 
@@ -141,10 +170,19 @@ Functions
 
 .. function:: setServerPolicyLua(name, function)
 
-  Set server selection policy to one named `name`` and provided by ``function``.
+  Set server selection policy to one named ``name`` and provided by ``function``.
 
   :param string name: name for this policy
   :param string function: name of the function
+
+.. function:: setServerPolicyLuaFFI(name, function)
+
+  .. versionadded:: 1.5.0
+
+  Set server selection policy to one named ``name`` and provided by the FFI function ``function``.
+
+  :param string name: name for this policy
+  :param string function: name of the FFI function
 
 .. function:: setServFailWhenNoServer(value)
 

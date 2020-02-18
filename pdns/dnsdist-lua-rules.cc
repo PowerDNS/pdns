@@ -486,4 +486,12 @@ void setupLuaRules()
   g_lua.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
       return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
     });
+
+  g_lua.writeFunction("LuaRule", [](LuaRule::func_t func) {
+      return std::shared_ptr<DNSRule>(new LuaRule(func));
+    });
+
+  g_lua.writeFunction("LuaFFIRule", [](LuaFFIRule::func_t func) {
+      return std::shared_ptr<DNSRule>(new LuaFFIRule(func));
+    });
 }

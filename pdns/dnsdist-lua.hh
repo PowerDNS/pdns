@@ -30,36 +30,6 @@ struct ResponseConfig
 };
 void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config);
 
-class LuaAction : public DNSAction
-{
-public:
-  typedef std::function<std::tuple<int, boost::optional<string> >(DNSQuestion* dq)> func_t;
-  LuaAction(const LuaAction::func_t& func) : d_func(func)
-  {}
-  Action operator()(DNSQuestion* dq, string* ruleresult) const override;
-  string toString() const override
-  {
-    return "Lua script";
-  }
-private:
-  func_t d_func;
-};
-
-class LuaResponseAction : public DNSResponseAction
-{
-public:
-  typedef std::function<std::tuple<int, boost::optional<string> >(DNSResponse* dr)> func_t;
-  LuaResponseAction(const LuaResponseAction::func_t& func) : d_func(func)
-  {}
-  Action operator()(DNSResponse* dr, string* ruleresult) const override;
-  string toString() const override
-  {
-    return "Lua response script";
-  }
-private:
-  func_t d_func;
-};
-
 class SpoofAction : public DNSAction
 {
 public:

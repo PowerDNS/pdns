@@ -36,6 +36,9 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#ifdef LUAJIT_VERSION
+#include "dnsdist-lua-ffi.hh"
+#endif /* LUAJIT_VERSION */
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 
@@ -207,7 +210,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
-void setupLuaConfig(bool client, bool configCheck)
+static void setupLuaConfig(bool client, bool configCheck)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
   g_lua.writeFunction("inClientStartup", [client]() {
@@ -323,6 +326,9 @@ void setupLuaConfig(bool client, bool configCheck)
 
       // create but don't connect the socket in client or check-config modes
       ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets, !(client || configCheck));
+      if (!(client || configCheck)) {
+        infolog("Added downstream server %s", serverAddr.toStringWithPort());
+      }
 
       if(vars.count("qps")) {
         int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
@@ -383,7 +389,7 @@ void setupLuaConfig(bool client, bool configCheck)
       }
 
       if(vars.count("name")) {
-        ret->name=boost::get<string>(vars["name"]);
+        ret->setName(boost::get<string>(vars["name"]));
       }
 
       if (vars.count("id")) {
@@ -533,20 +539,6 @@ void setupLuaConfig(bool client, bool configCheck)
                         g_dstates.setState(states);
                       } );
 
-  g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
-      setLuaSideEffect();
-      g_policy.setState(policy);
-    });
-  g_lua.writeFunction("setServerPolicyLua", [](string name, policyfunc_t policy)  {
-      setLuaSideEffect();
-      g_policy.setState(ServerPolicy{name, policy, true});
-    });
-
-  g_lua.writeFunction("showServerPolicy", []() {
-      setLuaSideEffect();
-      g_outputBuffer=g_policy.getLocal()->name+"\n";
-    });
-
   g_lua.writeFunction("truncateTC", [](bool tc) { setLuaSideEffect(); g_truncateTC=tc; });
   g_lua.writeFunction("fixupCase", [](bool fu) { setLuaSideEffect(); g_fixupCase=fu; });
 
@@ -693,11 +685,11 @@ void setupLuaConfig(bool client, bool configCheck)
             pools+=p;
           }
           if (showUUIDs) {
-            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+            ret << (fmt % counter % s->getName() % s->remote.toStringWithPort() %
                     status %
                     s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools % s->id) << endl;
           } else {
-            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+            ret << (fmt % counter % s->getName() % s->remote.toStringWithPort() %
                     status %
                     s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
           }
@@ -1399,8 +1391,8 @@ void setupLuaConfig(bool client, bool configCheck)
             if (!servers.empty()) {
               servers += ", ";
             }
-            if (!server.second->name.empty()) {
-              servers += server.second->name;
+            if (!server.second->getName().empty()) {
+              servers += server.second->getName();
               servers += " ";
             }
             servers += server.second->remote.toStringWithPort();
@@ -1698,6 +1690,27 @@ void setupLuaConfig(bool client, bool configCheck)
 #endif /* HAVE_NET_SNMP */
     });
 
+  g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy) {
+      setLuaSideEffect();
+      g_policy.setState(policy);
+    });
+
+  g_lua.writeFunction("setServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy) {
+      setLuaSideEffect();
+      g_policy.setState(ServerPolicy{name, policy, true});
+    });
+
+  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+      setLuaSideEffect();
+      auto pol = ServerPolicy(name, policy);
+      g_policy.setState(std::move(pol));
+    });
+
+  g_lua.writeFunction("showServerPolicy", []() {
+      setLuaSideEffect();
+      g_outputBuffer=g_policy.getLocal()->name+"\n";
+    });
+
   g_lua.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, string pool) {
       setLuaSideEffect();
       auto localPools = g_pools.getCopy();
@@ -1705,7 +1718,7 @@ void setupLuaConfig(bool client, bool configCheck)
       g_pools.setState(localPools);
     });
 
-  g_lua.writeFunction("setPoolServerPolicyLua", [](string name, policyfunc_t policy, string pool) {
+  g_lua.writeFunction("setPoolServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy, string pool) {
       setLuaSideEffect();
       auto localPools = g_pools.getCopy();
       setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy, true}));
@@ -2190,6 +2203,10 @@ vector<std::function<void(void)>> setupLua(bool client, bool configCheck, const 
   setupLuaInspection();
   setupLuaRules();
   setupLuaVars();
+
+#ifdef LUAJIT_VERSION
+  g_lua.executeCode(getLuaFFIWrappers());
+#endif
 
   std::ifstream ifs(config);
   if(!ifs)

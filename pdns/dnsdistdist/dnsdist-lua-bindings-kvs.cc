@@ -64,26 +64,26 @@ void setupLuaBindingsKVS(bool client)
     }
 
     if (keyVar.type() == typeid(ComboAddress)) {
-      const auto ca = *boost::get<ComboAddress>(&keyVar);
+      const auto ca = boost::get<ComboAddress>(&keyVar);
       KeyValueLookupKeySourceIP lookup;
-      for (const auto& key : lookup.getKeys(ca)) {
+      for (const auto& key : lookup.getKeys(*ca)) {
         if (kvs->getValue(key, result)) {
           return result;
         }
       }
     }
     else if (keyVar.type() == typeid(DNSName)) {
-      DNSName dn = *boost::get<DNSName>(&keyVar);
+      const DNSName* dn = boost::get<DNSName>(&keyVar);
       KeyValueLookupKeyQName lookup(wireFormat ? *wireFormat : true);
-      for (const auto& key : lookup.getKeys(dn)) {
+      for (const auto& key : lookup.getKeys(*dn)) {
         if (kvs->getValue(key, result)) {
           return result;
         }
       }
     }
     else if (keyVar.type() == typeid(std::string)) {
-      std::string keyStr = *boost::get<std::string>(&keyVar);
-      kvs->getValue(keyStr, result);
+      const std::string* keyStr = boost::get<std::string>(&keyVar);
+      kvs->getValue(*keyStr, result);
     }
 
     return result;

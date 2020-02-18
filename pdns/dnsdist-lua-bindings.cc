@@ -57,10 +57,12 @@ void setupLuaBindings(bool client)
       return string("No exception");
     });
   /* ServerPolicy */
-  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy, true};});
+  g_lua.writeFunction("newServerPolicy", [](string name, ServerPolicy::policyfunc_t policy) { return std::make_shared<ServerPolicy>(name, policy, true);});
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
+  g_lua.registerMember("ffipolicy", &ServerPolicy::ffipolicy);
   g_lua.registerMember("isLua", &ServerPolicy::isLua);
+  g_lua.registerMember("isFFI", &ServerPolicy::isFFI);
   g_lua.registerFunction("toString", &ServerPolicy::toString);
 
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, false});
@@ -117,7 +119,7 @@ void setupLuaBindings(bool client)
     [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
   );
   g_lua.registerMember("order", &DownstreamState::order);
-  g_lua.registerMember("name", &DownstreamState::name);
+  g_lua.registerMember<const std::string(DownstreamState::*)>("name", [](const DownstreamState& backend) -> const std::string { return backend.getName(); }, [](DownstreamState& backend, const std::string& newName) { backend.setName(newName); });
   g_lua.registerFunction<std::string(DownstreamState::*)()>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(s.id); });
 
   /* dnsheader */
@@ -172,6 +174,29 @@ void setupLuaBindings(bool client)
 
   /* ComboAddress */
   g_lua.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
+  g_lua.writeFunction("newCAFromRaw", [](const std::string& raw, boost::optional<uint16_t> port) {
+                                        if (raw.size() == 4) {
+                                          struct sockaddr_in sin4;
+                                          memset(&sin4, 0, sizeof(sin4));
+                                          sin4.sin_family = AF_INET;
+                                          memcpy(&sin4.sin_addr.s_addr, raw.c_str(), raw.size());
+                                          if (port) {
+                                            sin4.sin_port = htons(*port);
+                                          }
+                                          return ComboAddress(&sin4);
+                                        }
+                                        else if (raw.size() == 16) {
+                                          struct sockaddr_in6 sin6;
+                                          memset(&sin6, 0, sizeof(sin6));
+                                          sin6.sin6_family = AF_INET6;
+                                          memcpy(&sin6.sin6_addr.s6_addr, raw.c_str(), raw.size());
+                                          if (port) {
+                                            sin6.sin6_port = htons(*port);
+                                          }
+                                          return ComboAddress(&sin6);
+                                        }
+                                        return ComboAddress();
+                                      });
   g_lua.registerFunction<string(ComboAddress::*)()>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
   g_lua.registerFunction<string(ComboAddress::*)()>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
   g_lua.registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
@@ -188,10 +213,12 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
   g_lua.registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
+  g_lua.registerFunction<size_t(DNSName::*)()>("hash", [](const DNSName& name) { return name.hash(); });
   g_lua.registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
+  g_lua.writeFunction("newDNSNameFromRaw", [](const std::string& name) { return DNSName(name.c_str(), name.size(), 0, false); });
   g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
   g_lua.writeFunction("newDNSNameSet", []() { return DNSNameSet(); });
 
@@ -232,6 +259,34 @@ void setupLuaBindings(bool client)
       }
   });
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
+
+  /* Netmask */
+  g_lua.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> s, boost::optional<uint8_t> bits) {
+    if (s.type() == typeid(ComboAddress)) {
+      auto ca = boost::get<ComboAddress>(s);
+      if (bits) {
+        return Netmask(ca, *bits);
+      }
+      return Netmask(ca);
+    }
+    else if (s.type() == typeid(std::string)) {
+      auto str = boost::get<std::string>(s);
+      return Netmask(str);
+    }
+    throw std::runtime_error("Invalid parameter passed to 'newNetmask()'");
+  });
+  g_lua.registerFunction("empty", &Netmask::empty);
+  g_lua.registerFunction("getBits", &Netmask::getBits);
+  g_lua.registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
+  g_lua.registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
+  g_lua.registerFunction("isIpv4", &Netmask::isIPv4);
+  g_lua.registerFunction("isIPv4", &Netmask::isIPv4);
+  g_lua.registerFunction("isIpv6", &Netmask::isIPv6);
+  g_lua.registerFunction("isIPv6", &Netmask::isIPv6);
+  g_lua.registerFunction("match", (bool (Netmask::*)(const string&) const)&Netmask::match);
+  g_lua.registerFunction("toString", &Netmask::toString);
+  g_lua.registerEqFunction(&Netmask::operator==);
+  g_lua.registerToStringFunction(&Netmask::toString);
 
   /* NetmaskGroup */
   g_lua.writeFunction("newNMG", []() { return NetmaskGroup(); });
