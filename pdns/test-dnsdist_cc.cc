@@ -1943,11 +1943,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
 
     BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
     BOOST_CHECK_EQUAL(mdp.d_header.rcode, RCode::NXDomain);
-    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
-    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2);
-    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2);
+    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
+    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
@@ -1972,11 +1972,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
 
     BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
     BOOST_CHECK_EQUAL(mdp.d_header.rcode, RCode::NoError);
-    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
-    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2);
-    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2);
+    BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+    BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
+    BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
     BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));

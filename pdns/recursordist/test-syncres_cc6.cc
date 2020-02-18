@@ -849,18 +849,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_optout)
   int res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 6);
+  BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 6);
+  BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nxd_optout)
@@ -884,7 +884,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nxd_optout)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, targetAddr, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     if (type == QType::DS) {
@@ -955,18 +955,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nxd_optout)
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 6);
+  BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 6);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 6);
+  BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 6);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_direct_ds)
