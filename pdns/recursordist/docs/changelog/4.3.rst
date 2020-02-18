@@ -1,5 +1,22 @@
 Changelogs for 4.3.x
 ====================
+
+.. changelog::
+  :version: 4.3.0-rc2
+  :released: 18th of February 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8831
+
+    Refuse NSEC records with a bitmap length > 32.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8827
+
+    Do continue rpz processing if the current policy is passthru.
+
 .. changelog::
   :version: 4.3.0-rc1
   :released: 3rd of February 2020
