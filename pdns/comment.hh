@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_COMMENT_HH
-#define PDNS_COMMENT_HH
-
+#pragma once
 #include "utility.hh"
 #include "qtype.hh"
 #include <sys/types.h>
@@ -41,5 +39,3 @@ public:
   int domain_id;
   QType qtype; //!< qtype of the associated RRset, ie A, CNAME, MX etc
 };
-
-#endif /* PDNS_COMMENT_HH */

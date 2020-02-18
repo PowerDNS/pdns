@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef TINYDNSBACKEND_HH
-#define TINYDNSBACKEND_HH
-
+#pragma once
 #include "pdns/dnsbackend.hh"
 #include "pdns/logger.hh"
 #include "pdns/iputils.hh"
@@ -108,5 +106,3 @@ private:
   static TDI_suffix_t s_domainInfo;
   static uint32_t s_lastId; // used to give a domain an id.
 };
-
-#endif // TINYDNSBACKEND_HH

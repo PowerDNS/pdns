@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_IPUTILSHH
-#define PDNS_IPUTILSHH
-
+#pragma once
 #include <string>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1404,5 +1402,3 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
 bool isTCPSocketUsable(int sock);
 
 extern template class NetmaskTree<bool>;
-
-#endif

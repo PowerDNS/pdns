@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef LOCK_HH
-#define LOCK_HH
-
+#pragma once
 #include <pthread.h>
 #include <errno.h>
 #include "misc.hh"
@@ -86,7 +84,6 @@ public:
   }
   WriteLock(const WriteLock& rhs) = delete;
   WriteLock& operator=(const WriteLock& rhs) = delete;
-
 
 };
 
@@ -217,4 +214,3 @@ public:
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;
 };
-#endif

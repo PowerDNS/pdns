@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef SPGSQL_HH
-#define SPGSQL_HH
+#pragma once
 #include "pdns/namespaces.hh"
 #include "pdns/backends/gsql/ssql.hh"
 
@@ -56,5 +55,3 @@ private:
   static bool s_dolog;
   bool d_in_trx;
 };
-
-#endif /* SPGSQL_HH */

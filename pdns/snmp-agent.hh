@@ -1,6 +1,4 @@
-#ifndef SNMP_AGENT_HH
-#define SNMP_AGENT_HH
-
+#pragma once
 #include "config.h"
 
 #include <string>
@@ -62,5 +60,3 @@ private:
 
   std::thread d_thread;
 };
-
-#endif /* SNMP_AGENT_HH */

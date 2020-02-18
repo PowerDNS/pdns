@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_GSQLBACKEND_HH
-#define PDNS_GSQLBACKEND_HH
-
+#pragma once
 #include <string>
 #include <map>
 #include "ssql.hh"
@@ -411,5 +409,3 @@ protected:
   bool d_dnssecQueries;
   bool d_inTransaction{false};
 };
-
-#endif /* PDNS_GSQLBACKEND_HH */

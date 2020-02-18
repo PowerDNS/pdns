@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_MPLEXER_HH
-#define PDNS_MPLEXER_HH
+#pragma once
 #include <boost/function.hpp>
 #include <boost/any.hpp>
 #include <boost/shared_array.hpp>
@@ -237,7 +236,3 @@ protected:
     }
   }
 };
-
-
-#endif
-

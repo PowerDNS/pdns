@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_RCPGENERATOR_HH
-#define PDNS_RCPGENERATOR_HH
+#pragma once
 #include <inttypes.h>
 #include <string>
 #include <stdexcept>
@@ -106,4 +105,3 @@ private:
   string& d_string;
   bool d_nodot;
 };
-#endif

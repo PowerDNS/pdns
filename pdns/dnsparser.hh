@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef DNSPARSER_HH
-#define DNSPARSER_HH
-
+#pragma once
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -526,5 +524,3 @@ private:
   uint32_t d_notyouroffset;  // only 'moveOffset' can touch this
   const uint32_t&  d_offset; // look.. but don't touch
 };
-
-#endif

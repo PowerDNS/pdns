@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef SODBC_HH
-#define SODBC_HH
-
+#pragma once
 #include <string>
 #include <vector>
 
@@ -75,6 +73,3 @@ public:
   SSqlException sPerrorException( const std::string & reason ) override;
 
 };
-
-
-#endif // SODBC_HH

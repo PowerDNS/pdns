@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_GEOIPBACKEND_HH
-#define PDNS_GEOIPBACKEND_HH
-
+#pragma once
 #include "pdns/namespaces.hh"
 
 #include <vector>
@@ -79,5 +77,3 @@ private:
   vector<DNSResourceRecord> d_result;
   vector<GeoIPInterface> d_files;
 };
-
-#endif /* PDNS_GEOIPBACKEND_HH */

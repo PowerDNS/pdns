@@ -19,10 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-#ifndef PDNS_WSAPI_HH
-#define PDNS_WSAPI_HH
-
+#pragma once
 #include <map>
 #include "webserver.hh"
 
@@ -42,5 +39,3 @@ DNSName apiNameToDNSName(const string& name);
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string,string>& out);
 boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name);
-
-#endif /* PDNS_WSAPI_HH */

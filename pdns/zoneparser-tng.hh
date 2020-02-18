@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_ZONEPARSER_TNG
-#define PDNS_ZONEPARSER_TNG
+#pragma once
 #include <string>
 #include <cstdio>
 #include <stdexcept>
@@ -78,5 +77,3 @@ private:
   bool d_fromfile;
   bool d_generateEnabled{true};
 };
-
-#endif

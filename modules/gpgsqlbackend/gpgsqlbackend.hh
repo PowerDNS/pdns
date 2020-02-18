@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_GPGSQLBACKEND_HH
-#define PDNS_GPGSQLBACKEND_HH
-
+#pragma once
 #include <string>
 #include <map>
 #include "pdns/backends/gsql/gsqlbackend.hh"
@@ -38,5 +36,3 @@ protected:
   void reconnect() override;
   bool inTransaction() override;
 };
-
-#endif /* PDNS_GPGSQLBACKEND_HH */

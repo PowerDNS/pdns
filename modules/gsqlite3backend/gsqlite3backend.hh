@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef GSQLITEBACKEND_HH
-#define GSQLITEBACKEND_HH
-
+#pragma once
 #include <string>
 #include "pdns/backends/gsql/gsqlbackend.hh"
 
@@ -32,5 +30,3 @@ public:
   //! Constructs the backend, throws an exception if it failed..
   gSQLite3Backend( const std::string & mode, const std::string & suffix );
 };
-
-#endif // GSQLITEBACKEND_HH

@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef SSQL_HH
-#define SSQL_HH
-
+#pragma once
 #include <string>
 #include <vector>
 #include <inttypes.h>
@@ -88,5 +86,3 @@ public:
   virtual void reconnect() {};
   virtual ~SSql(){};
 };
-
-#endif /* SSQL_HH */

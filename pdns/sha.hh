@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SHA_HH
-#define _SHA_HH
-
+#pragma once
 #include <string>
 #include <stdint.h>
 #include <openssl/sha.h>
@@ -53,5 +51,3 @@ inline std::string pdns_sha512sum(const std::string& input)
   SHA512(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
   return std::string(result, result + sizeof result);
 }
-
-#endif /* sha.hh */

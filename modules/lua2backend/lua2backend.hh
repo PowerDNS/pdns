@@ -20,11 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#ifndef LUA2BACKEND_HH
-#define LUA2BACKEND_HH 1
-
 #include "pdns/dnsbackend.hh"
 #include "pdns/lua-auth4.hh"
 #include "lua2api2.hh"
-
-#endif

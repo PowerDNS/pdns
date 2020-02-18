@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef MTASKER_CONTEXT_HH
-#define MTASKER_CONTEXT_HH
-
+#pragma once
 #include "lazy_allocator.hh"
 #include <boost/function.hpp>
 #include <vector>
@@ -85,6 +83,3 @@ static inline void notifyStackSwitchDone()
 #endif /* HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR */
 #endif /* HAVE_FIBER_SANITIZER */
 }
-
-
-#endif // MTASKER_CONTEXT_HH

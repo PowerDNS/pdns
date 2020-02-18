@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_EDNSCOOKIES_HH
-#define PDNS_EDNSCOOKIES_HH
-
+#pragma once
 #include "namespaces.hh"
 
 struct EDNSCookiesOpt
@@ -33,4 +31,3 @@ struct EDNSCookiesOpt
 bool getEDNSCookiesOptFromString(const char* option, unsigned int len, EDNSCookiesOpt* eco);
 bool getEDNSCookiesOptFromString(const string& option, EDNSCookiesOpt* eco);
 string makeEDNSCookiesOptString(const EDNSCookiesOpt& eco);
-#endif

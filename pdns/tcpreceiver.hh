@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_TCPRECEIVER_HH
-#define PDNS_TCPRECEIVER_HH
-
+#pragma once
 #include "dns.hh"
 #include "iputils.hh"
 #include "dnsbackend.hh"
@@ -76,5 +74,3 @@ private:
   vector<int>d_sockets;
   vector<struct pollfd> d_prfds;
 };
-
-#endif /* PDNS_TCPRECEIVER_HH */

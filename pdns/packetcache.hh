@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PACKETCACHE_HH
-#define PACKETCACHE_HH
-
+#pragma once
 #include "ednsoptions.hh"
 #include "misc.hh"
 #include "iputils.hh"
@@ -148,5 +146,3 @@ public:
   }
 
 };
-
-#endif /* PACKETCACHE_HH */

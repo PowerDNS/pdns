@@ -19,9 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PACKETHANDLER_HH
-#define PACKETHANDLER_HH
-
+#pragma once
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -118,4 +116,3 @@ private:
 };
 
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);
-#endif /* PACKETHANDLER */

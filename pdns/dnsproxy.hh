@@ -19,8 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DNSPROXY
-#define PDNS_DNSPROXY
+#pragma once
 #include <pthread.h>
 #include <map>
 #include <sys/socket.h>
@@ -91,5 +90,3 @@ private:
   int getID_locked();
   uint16_t d_xor;
 };
-
-#endif
