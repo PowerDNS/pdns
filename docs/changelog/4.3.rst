@@ -2,6 +2,105 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0-beta2
+  :released: 21st of February 2020
+
+  This is the second beta for version 4.3.0 of the Authoritative Server.
+  We expect this to be the final beta.
+  Please see :doc:`the upgrade notes <../upgrading>` for some breaking changes including a mandatory schema upgrade for database backends.
+
+  Some minor fixes have been left out from the list below; some other bugs may have been fixed accidentally as a result of the tremendous amount of work that goes into each of our major releases.
+
+  As announced in `Backend removals in the upcoming Authoritative Server release <https://blog.powerdns.com/2019/10/17/backend-removals-in-the-upcoming-authoritative-server-release/>`_, we have removed five backends.
+
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8811
+
+    adjust NSEC TTLs to negative TTL
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8776
+
+    Add more SQL schema files to packages and tarballs (Matt Nordhoff)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8828
+    :tickets: 7970
+
+    only log "No question section in packet" at Debug logging level
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8096
+
+    do not update identical notified serials (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8826
+
+    Refuse NSEC records with a bitmap length > 32
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8094
+
+    add full option to 'pdns_control show-config' (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8815
+
+    YaHTTP: Support bracketed IPv6 addresses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8779
+
+    IXFR: only sign SOA in empty response for +DO queries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8793
+
+    Prepare the caches' buckets in advance
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8355
+
+    Rework NetmaskTree for better CPU and memory efficiency. (Stephan Bosch)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8783
+
+    Add 'IO wait' and 'steal' metrics on Linux
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8788
+
+    Make sure the default-publish-cds and default-publish-cdnskey options are respected for AXFR (Robin Geuze)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8784
+
+    API: add includerings option to statistics endpoint
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8682
+
+    Add an extended status report in the bind backend
+
+
+.. changelog::
   :version: 4.3.0-beta1
   :released: 31st of January 2020
 
