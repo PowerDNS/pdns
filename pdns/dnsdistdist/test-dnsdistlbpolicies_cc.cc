@@ -474,33 +474,36 @@ BOOST_AUTO_TEST_CASE(test_lua) {
     });
   g_lua.executeCode(policySetupStr);
 
-  ServerPolicy pol = g_policy.getCopy();
-  ServerPolicy::NumberedServerVector servers;
-  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
-  for (size_t idx = 1; idx <= 10; idx++) {
-    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
-    serversMap[servers.at(idx - 1).second] = 0;
-    servers.at(idx - 1).second->setUp();
-  }
-  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+  {
+    ServerPolicy pol = g_policy.getCopy();
+    ServerPolicy::NumberedServerVector servers;
+    std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+    for (size_t idx = 1; idx <= 10; idx++) {
+      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      serversMap[servers.at(idx - 1).second] = 0;
+      servers.at(idx - 1).second->setUp();
+    }
+    BOOST_REQUIRE_EQUAL(servers.size(), 10);
 
-  for (const auto& name : names) {
-    auto dq = getDQ(&name);
-    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
-    BOOST_REQUIRE(serversMap.count(server) == 1);
-    ++serversMap[server];
-  }
+    for (const auto& name : names) {
+      auto dq = getDQ(&name);
+      auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+      BOOST_REQUIRE(serversMap.count(server) == 1);
+      ++serversMap[server];
+    }
 
-  uint64_t total = 0;
-  for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
-    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
-    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
-    total += entry.second;
-  }
-  BOOST_CHECK_EQUAL(total, names.size());
+    uint64_t total = 0;
+    for (const auto& entry : serversMap) {
+      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+      BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+      total += entry.second;
+    }
+    BOOST_CHECK_EQUAL(total, names.size());
 
-  benchPolicy(pol);
+    benchPolicy(pol);
+  }
+  resetLuaContext();
 }
 
 #ifdef LUAJIT_VERSION
@@ -531,33 +534,36 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
     });
   g_lua.executeCode(policySetupStr);
 
-  ServerPolicy pol = g_policy.getCopy();
-  ServerPolicy::NumberedServerVector servers;
-  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
-  for (size_t idx = 1; idx <= 10; idx++) {
-    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
-    serversMap[servers.at(idx - 1).second] = 0;
-    servers.at(idx - 1).second->setUp();
-  }
-  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+  {
+    ServerPolicy pol = g_policy.getCopy();
+    ServerPolicy::NumberedServerVector servers;
+    std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+    for (size_t idx = 1; idx <= 10; idx++) {
+      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      serversMap[servers.at(idx - 1).second] = 0;
+      servers.at(idx - 1).second->setUp();
+    }
+    BOOST_REQUIRE_EQUAL(servers.size(), 10);
 
-  for (const auto& name : names) {
-    auto dq = getDQ(&name);
-    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
-    BOOST_REQUIRE(serversMap.count(server) == 1);
-    ++serversMap[server];
-  }
+    for (const auto& name : names) {
+      auto dq = getDQ(&name);
+      auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+      BOOST_REQUIRE(serversMap.count(server) == 1);
+      ++serversMap[server];
+    }
 
-  uint64_t total = 0;
-  for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
-    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
-    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
-    total += entry.second;
-  }
-  BOOST_CHECK_EQUAL(total, names.size());
+    uint64_t total = 0;
+    for (const auto& entry : serversMap) {
+      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+      BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+      total += entry.second;
+    }
+    BOOST_CHECK_EQUAL(total, names.size());
 
-  benchPolicy(pol);
+    benchPolicy(pol);
+  }
+  resetLuaContext();
 }
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
@@ -585,33 +591,36 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
     });
   g_lua.executeCode(policySetupStr);
 
-  ServerPolicy pol = g_policy.getCopy();
-  ServerPolicy::NumberedServerVector servers;
-  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
-  for (size_t idx = 1; idx <= 10; idx++) {
-    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
-    serversMap[servers.at(idx - 1).second] = 0;
-    servers.at(idx - 1).second->setUp();
-  }
-  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+  {
+    ServerPolicy pol = g_policy.getCopy();
+    ServerPolicy::NumberedServerVector servers;
+    std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+    for (size_t idx = 1; idx <= 10; idx++) {
+      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      serversMap[servers.at(idx - 1).second] = 0;
+      servers.at(idx - 1).second->setUp();
+    }
+    BOOST_REQUIRE_EQUAL(servers.size(), 10);
 
-  for (const auto& name : names) {
-    auto dq = getDQ(&name);
-    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
-    BOOST_REQUIRE(serversMap.count(server) == 1);
-    ++serversMap[server];
-  }
+    for (const auto& name : names) {
+      auto dq = getDQ(&name);
+      auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+      BOOST_REQUIRE(serversMap.count(server) == 1);
+      ++serversMap[server];
+    }
 
-  uint64_t total = 0;
-  for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
-    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
-    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
-    total += entry.second;
-  }
-  BOOST_CHECK_EQUAL(total, names.size());
+    uint64_t total = 0;
+    for (const auto& entry : serversMap) {
+      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+      BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+      total += entry.second;
+    }
+    BOOST_CHECK_EQUAL(total, names.size());
 
-  benchPolicy(pol);
+    benchPolicy(pol);
+  }
+  resetLuaContext();
 }
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed) {
@@ -637,33 +646,36 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed) {
     });
   g_lua.executeCode(policySetupStr);
 
-  ServerPolicy pol = g_policy.getCopy();
-  ServerPolicy::NumberedServerVector servers;
-  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
-  for (size_t idx = 1; idx <= 10; idx++) {
-    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
-    serversMap[servers.at(idx - 1).second] = 0;
-    servers.at(idx - 1).second->setUp();
-  }
-  BOOST_REQUIRE_EQUAL(servers.size(), 10);
+  {
+    ServerPolicy pol = g_policy.getCopy();
+    ServerPolicy::NumberedServerVector servers;
+    std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+    for (size_t idx = 1; idx <= 10; idx++) {
+      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      serversMap[servers.at(idx - 1).second] = 0;
+      servers.at(idx - 1).second->setUp();
+    }
+    BOOST_REQUIRE_EQUAL(servers.size(), 10);
 
-  for (const auto& name : names) {
-    auto dq = getDQ(&name);
-    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
-    BOOST_REQUIRE(serversMap.count(server) == 1);
-    ++serversMap[server];
-  }
+    for (const auto& name : names) {
+      auto dq = getDQ(&name);
+      auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+      BOOST_REQUIRE(serversMap.count(server) == 1);
+      ++serversMap[server];
+    }
 
-  uint64_t total = 0;
-  for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
-    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
-    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
-    total += entry.second;
-  }
-  BOOST_CHECK_EQUAL(total, names.size());
+    uint64_t total = 0;
+    for (const auto& entry : serversMap) {
+      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+      BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+      total += entry.second;
+    }
+    BOOST_CHECK_EQUAL(total, names.size());
 
-  benchPolicy(pol);
+    benchPolicy(pol);
+  }
+  resetLuaContext();
 }
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
@@ -692,39 +704,41 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
     });
   g_lua.executeCode(policySetupStr);
 
-  ServerPolicy pol = g_policy.getCopy();
-  ServerPolicy::NumberedServerVector servers;
-  std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
-  for (size_t idx = 1; idx <= 10; idx++) {
-    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
-    serversMap[servers.at(idx - 1).second] = 0;
-    servers.at(idx - 1).second->setUp();
-    /* we need to have a weight of at least 1000 to get an optimal repartition with the consistent hashing algo */
-    servers.at(idx - 1).second->setWeight(1000);
-    /* make sure that the hashes have been computed */
-    servers.at(idx - 1).second->hash();
+  {
+    ServerPolicy pol = g_policy.getCopy();
+    ServerPolicy::NumberedServerVector servers;
+    std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
+    for (size_t idx = 1; idx <= 10; idx++) {
+      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      serversMap[servers.at(idx - 1).second] = 0;
+      servers.at(idx - 1).second->setUp();
+      /* we need to have a weight of at least 1000 to get an optimal repartition with the consistent hashing algo */
+      servers.at(idx - 1).second->setWeight(1000);
+      /* make sure that the hashes have been computed */
+      servers.at(idx - 1).second->hash();
+    }
+    BOOST_REQUIRE_EQUAL(servers.size(), 10);
+
+    for (const auto& name : names) {
+      auto dq = getDQ(&name);
+      auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+      BOOST_REQUIRE(serversMap.count(server) == 1);
+      ++serversMap[server];
+    }
+
+    uint64_t total = 0;
+    for (const auto& entry : serversMap) {
+      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
+      BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
+      total += entry.second;
+    }
+    BOOST_CHECK_EQUAL(total, names.size());
+
+    benchPolicy(pol);
   }
-  BOOST_REQUIRE_EQUAL(servers.size(), 10);
-
-  for (const auto& name : names) {
-    auto dq = getDQ(&name);
-    auto server = getSelectedBackendFromPolicy(pol, servers, dq);
-    BOOST_REQUIRE(serversMap.count(server) == 1);
-    ++serversMap[server];
-  }
-
-  uint64_t total = 0;
-  for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
-    BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
-    BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
-    total += entry.second;
-  }
-  BOOST_CHECK_EQUAL(total, names.size());
-
-  benchPolicy(pol);
-
   g_verbose = existingVerboseValue;
+  resetLuaContext();
 }
 
 #endif /* LUAJIT_VERSION */
