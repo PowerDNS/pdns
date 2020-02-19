@@ -272,8 +272,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   gettime(&now);
   NetmaskTree<DynBlock> emptyNMG;
 
-  size_t numberOfSeconds = 10;
-  size_t blockDuration = 60;
+  time_t numberOfSeconds = 10;
+  unsigned int blockDuration = 60;
   const auto action = DNSAction::Action::Drop;
   const std::string reason = "Exceeded query ratio";
   const uint16_t rcode = RCode::ServFail;
@@ -288,7 +288,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     /* insert 20 ServFail and 80 NoErrors from a given client in the last 10s
        this should not trigger the rule */
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -299,27 +299,27 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     for (size_t idx = 0; idx < 80; idx++) {
       g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
     }
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
   {
     /* insert just 50 FormErrs and nothing else, from a given client in the last 10s */
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = RCode::FormErr;
     for (size_t idx = 0; idx < 50; idx++) {
       g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
     }
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50U);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     /* insert 21 ServFails and 79 NoErrors from a given client in the last 10s
        this should trigger the rule this time */
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -338,10 +338,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     for (size_t idx = 0; idx < 79; idx++) {
       g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
     }
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
     BOOST_CHECK(block.domain.empty());
     BOOST_CHECK(block.action == action);
-    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     /* insert 11 ServFails and 39 NoErrors from a given client in the last 10s
        this should NOT trigger the rule since we don't have more than 50 queries */
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -368,10 +368,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
     for (size_t idx = 0; idx < 39; idx++) {
       g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
     }
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50U);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 }
