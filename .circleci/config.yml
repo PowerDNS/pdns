@@ -505,7 +505,7 @@ jobs:
           command: |
             ./build-scripts/format-code $(find modules pdns -type f -name '*.[ch][ch]')
 
-            git diff
+            git --no-pager diff
             exit $(git diff | wc -l)
           working_directory: ~/project
 
