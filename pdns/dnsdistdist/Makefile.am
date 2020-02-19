@@ -331,8 +331,9 @@ endif
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
 nodist_dnsdist_SOURCES = lua.hpp
-CLEANFILES += lua.hpp
 endif
+
+CLEANFILES += lua.hpp
 
 if HAVE_PROTOBUF
 if HAVE_PROTOC

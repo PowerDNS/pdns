@@ -190,8 +190,9 @@ pdns_recursor_SOURCES = \
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
 nodist_pdns_recursor_SOURCES = lua.hpp
-CLEANFILES += lua.hpp
 endif
+
+CLEANFILES += lua.hpp
 
 pdns_recursor_LDADD = \
 	$(YAHTTP_LIBS) \
