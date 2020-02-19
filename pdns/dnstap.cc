@@ -20,7 +20,8 @@ DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* re
     message->set_socket_family(requestor->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
     if (requestor->sin4.sin_family == AF_INET) {
       message->set_query_address(&requestor->sin4.sin_addr.s_addr, sizeof(requestor->sin4.sin_addr.s_addr));
-    } else if (requestor->sin4.sin_family == AF_INET6) {
+    }
+    else if (requestor->sin4.sin_family == AF_INET6) {
       message->set_query_address(&requestor->sin6.sin6_addr.s6_addr, sizeof(requestor->sin6.sin6_addr.s6_addr));
     }
     message->set_query_port(ntohs(requestor->sin4.sin_port));
@@ -29,7 +30,8 @@ DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* re
     message->set_socket_family(responder->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
     if (responder->sin4.sin_family == AF_INET) {
       message->set_response_address(&responder->sin4.sin_addr.s_addr, sizeof(responder->sin4.sin_addr.s_addr));
-    } else if (responder->sin4.sin_family == AF_INET6) {
+    }
+    else if (responder->sin4.sin_family == AF_INET6) {
       message->set_response_address(&responder->sin6.sin6_addr.s6_addr, sizeof(responder->sin6.sin6_addr.s6_addr));
     }
     message->set_response_port(ntohs(responder->sin4.sin_port));
@@ -45,7 +47,8 @@ DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* re
 
   if (!dh->qr) {
     message->set_query_message(packet, len);
-  } else {
+  }
+  else {
     message->set_response_message(packet, len);
   }
 #endif /* HAVE_PROTOBUF */

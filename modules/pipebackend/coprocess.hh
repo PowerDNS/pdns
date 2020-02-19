@@ -30,25 +30,25 @@ class CoRemote
 {
 public:
   virtual ~CoRemote() {}
-  virtual void sendReceive(const string &send, string &receive) = 0;
-  virtual void receive(string &rcv) = 0;
-  virtual void send(const string &send) = 0;
-
+  virtual void sendReceive(const string& send, string& receive) = 0;
+  virtual void receive(string& rcv) = 0;
+  virtual void send(const string& send) = 0;
 };
 
 class CoProcess : public CoRemote
 {
 public:
-  CoProcess(const string &command,int timeout=0, int infd=0, int outfd=1);
+  CoProcess(const string& command, int timeout = 0, int infd = 0, int outfd = 1);
   ~CoProcess();
-  void sendReceive(const string &send, string &receive) override;
-  void receive(string &rcv) override;
-  void send(const string &send) override;
+  void sendReceive(const string& send, string& receive) override;
+  void receive(string& rcv) override;
+  void send(const string& send) override;
   void launch();
+
 private:
   void checkStatus();
   std::vector<std::string> d_params;
-  std::vector<const char *> d_argv;
+  std::vector<const char*> d_argv;
   std::string d_remaining;
   int d_fd1[2], d_fd2[2];
   int d_pid;
@@ -60,13 +60,14 @@ private:
 class UnixRemote : public CoRemote
 {
 public:
-  UnixRemote(const string &path, int timeout=0);
+  UnixRemote(const string& path, int timeout = 0);
   ~UnixRemote();
-  void sendReceive(const string &send, string &receive) override;
-  void receive(string &rcv) override;
-  void send(const string &send) override;
+  void sendReceive(const string& send, string& receive) override;
+  void receive(string& rcv) override;
+  void send(const string& send) override;
+
 private:
   int d_fd;
-  FILE *d_fp;
+  FILE* d_fp;
 };
 bool isUnixSocket(const string& fname);

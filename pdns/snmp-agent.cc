@@ -12,37 +12,37 @@
 #ifndef HAVE_SNMP_SELECT_INFO2
 /* that's terrible, because it means we are going to have trouble with large
    FD numbers at some point.. */
-# define netsnmp_large_fd_set fd_set
-# define snmp_read2 snmp_read
-# define snmp_select_info2 snmp_select_info
-# define netsnmp_large_fd_set_init(...)
-# define netsnmp_large_fd_set_cleanup(...)
-# define NETSNMP_LARGE_FD_SET FD_SET
-# define NETSNMP_LARGE_FD_CLR FD_CLR
-# define NETSNMP_LARGE_FD_ZERO FD_ZERO
-# define NETSNMP_LARGE_FD_ISSET FD_ISSET
+#define netsnmp_large_fd_set fd_set
+#define snmp_read2 snmp_read
+#define snmp_select_info2 snmp_select_info
+#define netsnmp_large_fd_set_init(...)
+#define netsnmp_large_fd_set_cleanup(...)
+#define NETSNMP_LARGE_FD_SET FD_SET
+#define NETSNMP_LARGE_FD_CLR FD_CLR
+#define NETSNMP_LARGE_FD_ZERO FD_ZERO
+#define NETSNMP_LARGE_FD_ISSET FD_ISSET
 #else
-# include <net-snmp/library/large_fd_set.h>
+#include <net-snmp/library/large_fd_set.h>
 #endif
 
-const oid SNMPAgent::snmpTrapOID[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
+const oid SNMPAgent::snmpTrapOID[] = {1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0};
 const size_t SNMPAgent::snmpTrapOIDLen = OID_LENGTH(SNMPAgent::snmpTrapOID);
 
 int SNMPAgent::setCounter64Value(netsnmp_request_info* request,
-                                 uint64_t value)
+  uint64_t value)
 {
   struct counter64 val64;
   val64.high = value >> 32;
   val64.low = value & 0xffffffff;
   snmp_set_var_typed_value(request->requestvb,
-                           ASN_COUNTER64,
-                           &val64,
-                           sizeof(val64));
+    ASN_COUNTER64,
+    &val64,
+    sizeof(val64));
   return SNMP_ERR_NOERROR;
 }
 
 bool SNMPAgent::sendTrap(int fd,
-                         netsnmp_variable_list* varList)
+  netsnmp_variable_list* varList)
 {
   ssize_t written = write(fd, &varList, sizeof(varList));
 
@@ -65,8 +65,7 @@ void SNMPAgent::handleTrapsEvent()
       send_v2trap(varList);
       snmp_free_varbind(varList);
     }
-  }
-  while (got > 0);
+  } while (got > 0);
 }
 
 void SNMPAgent::handleSNMPQueryEvent(int fd)
@@ -116,19 +115,19 @@ void SNMPAgent::worker()
   int maxfd = 0;
   int block = 1;
   netsnmp_large_fd_set fdset;
-  struct timeval timeout = { 0, 0 };
+  struct timeval timeout = {0, 0};
   struct timeval now;
 
   /* we want to be notified if a trap is waiting
    to be sent */
   mplexer->addReadFD(d_trapPipe[0], &handleTrapsCB, this);
 
-  while(true) {
+  while (true) {
     netsnmp_large_fd_set_init(&fdset, FD_SETSIZE);
     NETSNMP_LARGE_FD_ZERO(&fdset);
 
     block = 1;
-    timeout = { 0, 0 };
+    timeout = {0, 0};
     snmp_select_info2(&maxfd, &fdset, &timeout, &block);
 
     for (int fd = 0; fd < maxfd; fd++) {
@@ -151,7 +150,7 @@ void SNMPAgent::worker()
         try {
           mplexer->removeReadFD(fd);
         }
-        catch(const FDMultiplexerException& e) {
+        catch (const FDMultiplexerException& e) {
           /* we might get an exception when removing a closed file descriptor,
              just ignore it */
         }
@@ -168,8 +167,8 @@ SNMPAgent::SNMPAgent(const std::string& name, const std::string& masterSocket)
   snmp_disable_log();
   if (!masterSocket.empty()) {
     netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID,
-                          NETSNMP_DS_AGENT_X_SOCKET,
-                          masterSocket.c_str());
+      NETSNMP_DS_AGENT_X_SOCKET,
+      masterSocket.c_str());
   }
   /* no need to load any MIBS,
      and it causes import errors if some modules are not present */
@@ -182,8 +181,8 @@ SNMPAgent::SNMPAgent(const std::string& name, const std::string& masterSocket)
      to the master to work.
   */
   netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID,
-                         NETSNMP_DS_LIB_ALARM_DONT_USE_SIG,
-                         1);
+    NETSNMP_DS_LIB_ALARM_DONT_USE_SIG,
+    1);
 
   init_snmp(name.c_str());
 

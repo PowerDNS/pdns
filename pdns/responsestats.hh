@@ -28,7 +28,7 @@ class ResponseStats
 public:
   ResponseStats();
 
-  void submitResponse(DNSPacket &p, bool udpOrTCP);
+  void submitResponse(DNSPacket& p, bool udpOrTCP);
   void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP);
   void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP);
   map<uint16_t, uint64_t> getQTypeResponseCounts();
@@ -39,7 +39,7 @@ public:
 private:
   boost::scoped_array<std::atomic<unsigned long>> d_qtypecounters;
   boost::scoped_array<std::atomic<unsigned long>> d_rcodecounters;
-  typedef vector<pair<uint16_t, uint64_t> > sizecounters_t;
+  typedef vector<pair<uint16_t, uint64_t>> sizecounters_t;
   sizecounters_t d_sizecounters;
 };
 

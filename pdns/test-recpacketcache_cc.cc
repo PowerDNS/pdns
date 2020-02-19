@@ -13,27 +13,27 @@
 #include "recpacketcache.hh"
 #include <utility>
 
-
 BOOST_AUTO_TEST_SUITE(test_recpacketcache_cc)
 
-BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
+BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple)
+{
   RecursorPacketCache rpc;
   string fpacket;
-  unsigned int tag=0;
-  uint32_t age=0;
-  uint32_t qhash=0;
-  uint32_t ttd=3600;
+  unsigned int tag = 0;
+  uint32_t age = 0;
+  uint32_t qhash = 0;
+  uint32_t ttd = 3600;
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
-  ::arg().set("rng")="auto";
-  ::arg().set("entropy-source")="/dev/urandom";
+  ::arg().set("rng") = "auto";
+  ::arg().set("entropy-source") = "/dev/urandom";
 
   DNSName qname("www.powerdns.com");
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, qname, QType::A);
-  pw.getHeader()->rd=true;
-  pw.getHeader()->qr=false;
-  pw.getHeader()->id=dns_random_uint16();
+  pw.getHeader()->rd = true;
+  pw.getHeader()->qr = false;
+  pw.getHeader()->id = dns_random_uint16();
   string qpacket((const char*)&packet[0], packet.size());
   pw.startRecord(qname, QType::A, ttd);
 
@@ -67,12 +67,12 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   BOOST_CHECK_EQUAL(fpacket, rpacket);
 
   packet.clear();
-  qname+=DNSName("co.uk");
+  qname += DNSName("co.uk");
   DNSPacketWriter pw2(packet, qname, QType::A);
 
-  pw2.getHeader()->rd=true;
-  pw2.getHeader()->qr=false;
-  pw2.getHeader()->id=dns_random_uint16();
+  pw2.getHeader()->rd = true;
+  pw2.getHeader()->qr = false;
+  pw2.getHeader()->id = dns_random_uint16();
   qpacket.assign((const char*)&packet[0], packet.size());
 
   found = rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash);
@@ -84,7 +84,8 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 }
 
-BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
+BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags)
+{
   /* Insert a response with tag1, the exact same query with a different tag
      should lead to a miss. Inserting a different response with the second tag
      should not override the first one, and we should get a hit for the
@@ -92,23 +93,23 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   */
   RecursorPacketCache rpc;
   string fpacket;
-  const unsigned int tag1=0;
-  const unsigned int tag2=42;
-  uint32_t age=0;
-  uint32_t qhash=0;
-  uint32_t temphash=0;
-  uint32_t ttd=3600;
+  const unsigned int tag1 = 0;
+  const unsigned int tag2 = 42;
+  uint32_t age = 0;
+  uint32_t qhash = 0;
+  uint32_t temphash = 0;
+  uint32_t ttd = 3600;
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
-  ::arg().set("rng")="auto";
-  ::arg().set("entropy-source")="/dev/urandom";
+  ::arg().set("rng") = "auto";
+  ::arg().set("entropy-source") = "/dev/urandom";
 
   DNSName qname("www.powerdns.com");
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, qname, QType::A);
-  pw.getHeader()->rd=true;
-  pw.getHeader()->qr=false;
-  pw.getHeader()->id=dns_random_uint16();
+  pw.getHeader()->rd = true;
+  pw.getHeader()->qr = false;
+  pw.getHeader()->id = dns_random_uint16();
   string qpacket(reinterpret_cast<const char*>(&packet[0]), packet.size());
   pw.startRecord(qname, QType::A, ttd);
 

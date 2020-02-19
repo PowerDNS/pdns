@@ -33,7 +33,7 @@ public:
   virtual std::string toString() const = 0;
 };
 
-class KeyValueLookupKeySourceIP: public KeyValueLookupKey
+class KeyValueLookupKeySourceIP : public KeyValueLookupKey
 {
 public:
   std::vector<std::string> getKeys(const ComboAddress& addr);
@@ -49,11 +49,11 @@ public:
   }
 };
 
-class KeyValueLookupKeyQName: public KeyValueLookupKey
+class KeyValueLookupKeyQName : public KeyValueLookupKey
 {
 public:
-
-  KeyValueLookupKeyQName(bool wireFormat): d_wireFormat(wireFormat)
+  KeyValueLookupKeyQName(bool wireFormat) :
+    d_wireFormat(wireFormat)
   {
   }
 
@@ -82,10 +82,12 @@ private:
   bool d_wireFormat;
 };
 
-class KeyValueLookupKeySuffix: public KeyValueLookupKey
+class KeyValueLookupKeySuffix : public KeyValueLookupKey
 {
 public:
-  KeyValueLookupKeySuffix(size_t minLabels, bool wireFormat): d_minLabels(minLabels), d_wireFormat(wireFormat)
+  KeyValueLookupKeySuffix(size_t minLabels, bool wireFormat) :
+    d_minLabels(minLabels),
+    d_wireFormat(wireFormat)
   {
   }
 
@@ -109,10 +111,11 @@ private:
   bool d_wireFormat;
 };
 
-class KeyValueLookupKeyTag: public KeyValueLookupKey
+class KeyValueLookupKeyTag : public KeyValueLookupKey
 {
 public:
-  KeyValueLookupKeyTag(const std::string& tag): d_tag(tag)
+  KeyValueLookupKeyTag(const std::string& tag) :
+    d_tag(tag)
   {
   }
 
@@ -121,7 +124,7 @@ public:
     if (dq.qTag) {
       const auto& it = dq.qTag->find(d_tag);
       if (it != dq.qTag->end()) {
-        return { it->second };
+        return {it->second};
       }
     }
     return {};
@@ -155,10 +158,13 @@ public:
 
 #include "ext/lmdb-safe/lmdb-safe.hh"
 
-class LMDBKVStore: public KeyValueStore
+class LMDBKVStore : public KeyValueStore
 {
 public:
-  LMDBKVStore(const std::string& fname, const std::string& dbName): d_env(fname.c_str(), MDB_NOSUBDIR, 0600), d_fname(fname), d_dbName(dbName)
+  LMDBKVStore(const std::string& fname, const std::string& dbName) :
+    d_env(fname.c_str(), MDB_NOSUBDIR, 0600),
+    d_fname(fname),
+    d_dbName(dbName)
   {
   }
 
@@ -177,7 +183,7 @@ private:
 
 #include "cdb.hh"
 
-class CDBKVStore: public KeyValueStore
+class CDBKVStore : public KeyValueStore
 {
 public:
   CDBKVStore(const std::string& fname, time_t refreshDelay);

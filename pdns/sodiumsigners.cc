@@ -1,4 +1,5 @@
-extern "C" {
+extern "C"
+{
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -9,8 +10,10 @@ extern "C" {
 class SodiumED25519DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit SodiumED25519DNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
-  {}
+  explicit SodiumED25519DNSCryptoKeyEngine(unsigned int algo) :
+    DNSCryptoKeyEngine(algo)
+  {
+  }
   string getName() const override { return "Sodium ED25519"; }
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
@@ -22,7 +25,8 @@ public:
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
-  {}
+  {
+  }
 
   static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -36,8 +40,8 @@ private:
 
 void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
 {
-  if(bits != crypto_sign_ed25519_SEEDBYTES * 8) {
-    throw runtime_error("Unsupported key length of "+std::to_string(bits)+" bits requested, SodiumED25519 class");
+  if (bits != crypto_sign_ed25519_SEEDBYTES * 8) {
+    throw runtime_error("Unsupported key length of " + std::to_string(bits) + " bits requested, SodiumED25519 class");
   }
   crypto_sign_ed25519_keypair(d_pubkey, d_seckey);
 }
@@ -65,7 +69,7 @@ DNSCryptoKeyEngine::storvector_t SodiumED25519DNSCryptoKeyEngine::convertToISCVe
   return storvector;
 }
 
-void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
+void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
   /*
     Private-key-format: v1.2
@@ -129,7 +133,8 @@ bool SodiumED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::
   return crypto_sign_ed25519_open(m.get(), &smlen, sm.get(), smlen, d_pubkey) == 0;
 }
 
-namespace {
+namespace
+{
 struct LoaderSodiumStruct
 {
   LoaderSodiumStruct()

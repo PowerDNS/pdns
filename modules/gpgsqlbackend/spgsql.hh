@@ -27,13 +27,13 @@
 class SPgSQL : public SSql
 {
 public:
-  SPgSQL(const string &database, const string &host="", const string& port="",
-         const string &user="", const string &password="",
-         const string &extra_connection_parameters="");
+  SPgSQL(const string& database, const string& host = "", const string& port = "",
+    const string& user = "", const string& password = "",
+    const string& extra_connection_parameters = "");
 
   ~SPgSQL();
-  
-  SSqlException sPerrorException(const string &reason) override;
+
+  SSqlException sPerrorException(const string& reason) override;
   void setLog(bool state) override;
   unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
   void execute(const string& query) override;

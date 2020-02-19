@@ -28,28 +28,34 @@
 class StatNode
 {
 public:
-
   struct Stat
   {
-    Stat(): queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0), bytes(0)
+    Stat() :
+      queries(0),
+      noerrors(0),
+      nxdomains(0),
+      servfails(0),
+      drops(0),
+      bytes(0)
     {
     }
     uint64_t queries, noerrors, nxdomains, servfails, drops, bytes;
 
-    Stat& operator+=(const Stat& rhs) {
-      queries+=rhs.queries;
-      noerrors+=rhs.noerrors;
-      nxdomains+=rhs.nxdomains;
-      servfails+=rhs.servfails;
-      drops+=rhs.drops;
-      bytes+=rhs.bytes;
+    Stat& operator+=(const Stat& rhs)
+    {
+      queries += rhs.queries;
+      noerrors += rhs.noerrors;
+      nxdomains += rhs.nxdomains;
+      servfails += rhs.servfails;
+      drops += rhs.drops;
+      bytes += rhs.bytes;
 
-      for(const remotes_t::value_type& rem : rhs.remotes) {
-        remotes[rem.first]+=rem.second;
+      for (const remotes_t::value_type& rem : rhs.remotes) {
+        remotes[rem.first] += rem.second;
       }
       return *this;
     }
-    typedef std::map<ComboAddress,int,ComboAddress::addressOnlyLessThan> remotes_t;
+    typedef std::map<ComboAddress, int, ComboAddress::addressOnlyLessThan> remotes_t;
     remotes_t remotes;
   };
 
@@ -60,14 +66,14 @@ public:
 
   void submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote);
 
-  Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
+  Stat print(unsigned int depth = 0, Stat newstat = Stat(), bool silent = false) const;
   typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
-  void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
+  void visit(visitor_t visitor, Stat& newstat, unsigned int depth = 0) const;
   bool empty() const
   {
     return children.empty() && s.remotes.empty();
   }
-  typedef std::map<std::string,StatNode, CIStringCompare> children_t;
+  typedef std::map<std::string, StatNode, CIStringCompare> children_t;
   children_t children;
 
 private:

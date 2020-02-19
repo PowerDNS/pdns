@@ -13,7 +13,8 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnswriter_cc)
 
-BOOST_AUTO_TEST_CASE(test_compressionBool) {
+BOOST_AUTO_TEST_CASE(test_compressionBool)
+{
   auto testCompressionBool = [](bool compress, size_t size1, size_t size2) {
     DNSName name("powerdns.com.");
 
@@ -22,10 +23,7 @@ BOOST_AUTO_TEST_CASE(test_compressionBool) {
     pwR.getHeader()->qr = 1;
 
     pwR.startRecord(DNSName("mediumsizedlabel.example.net"), QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER, compress);
-    pwR.xfrIP('P'<<24 |
-              'Q'<<16 |
-              'R'<<8  |
-              'S');
+    pwR.xfrIP('P' << 24 | 'Q' << 16 | 'R' << 8 | 'S');
     pwR.commit();
     BOOST_CHECK_EQUAL(pwR.size(), size1);
 
@@ -43,7 +41,8 @@ BOOST_AUTO_TEST_CASE(test_compressionBool) {
   testCompressionBool(false, 74, 133);
 }
 
-BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
+BOOST_AUTO_TEST_CASE(test_compressionBoundary)
+{
   DNSName name("powerdns.com.");
 
   vector<uint8_t> packet;
@@ -52,24 +51,18 @@ BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
 
   /* record we want to see altered */
   pwR.startRecord(name, QType::TXT, 3600, QClass::IN, DNSResourceRecord::ANSWER);
-  auto txt = string("\"")+string(16262, 'A')+string("\"");
+  auto txt = string("\"") + string(16262, 'A') + string("\"");
   pwR.xfrText(txt);
   pwR.commit();
   BOOST_CHECK_EQUAL(pwR.size(), 16368U);
 
   pwR.startRecord(DNSName("mediumsizedlabel.example.net"), QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
-  pwR.xfrIP('P'<<24 |
-            'Q'<<16 |
-            'R'<<8  |
-            'S');
+  pwR.xfrIP('P' << 24 | 'Q' << 16 | 'R' << 8 | 'S');
   pwR.commit();
   BOOST_CHECK_EQUAL(pwR.size(), 16412U); // 16412 (0x401c) puts '7example3net' at 0x4001
 
   pwR.startRecord(DNSName("adifferentlabel.example.net"), QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
-  pwR.xfrIP('D'<<24 |
-            'E'<<16 |
-            'F'<<8  |
-            'G');
+  pwR.xfrIP('D' << 24 | 'E' << 16 | 'F' << 8 | 'G');
   pwR.commit();
   BOOST_CHECK_EQUAL(pwR.size(), 16455U);
 

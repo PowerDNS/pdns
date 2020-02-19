@@ -23,7 +23,7 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
     return;
   }
 
-  boost::optional<NetmaskTree<DynBlock> > blocks;
+  boost::optional<NetmaskTree<DynBlock>> blocks;
   bool updated = false;
 
   for (const auto& entry : counts) {
@@ -105,21 +105,21 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
   if (!statNodeRoot.empty()) {
     StatNode::Stat node;
     std::unordered_set<DNSName> namesToBlock;
-    statNodeRoot.visit([this,&namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
-                         bool block = false;
+    statNodeRoot.visit([this, &namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+      bool block = false;
 
-                         if (d_smtVisitorFFI) {
-                           dnsdist_ffi_stat_node_t tmp(*node_, self, children);
-                           block = d_smtVisitorFFI(&tmp);
-                         }
-                         else {
-                           block = d_smtVisitor(*node_, self, children);
-                         }
+      if (d_smtVisitorFFI) {
+        dnsdist_ffi_stat_node_t tmp(*node_, self, children);
+        block = d_smtVisitorFFI(&tmp);
+      }
+      else {
+        block = d_smtVisitor(*node_, self, children);
+      }
 
-                         if (block) {
-                           namesToBlock.insert(DNSName(node_->fullname));
-                         }
-                       },
+      if (block) {
+        namesToBlock.insert(DNSName(node_->fullname));
+      }
+    },
       node);
 
     if (!namesToBlock.empty()) {
@@ -160,7 +160,7 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
   return false;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>>& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
   if (d_excludedSubnets.match(requestor)) {
     /* do not add a block for excluded subnets */
@@ -206,7 +206,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
   db.blocks = count;
   db.warning = warning;
   if (!d_beQuiet && (!got || expired || wasWarning)) {
-    warnlog("Inserting %sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+    warnlog("Inserting %sdynamic block for %s for %d seconds: %s", warning ? "(warning) " : "", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
   }
   blocks->insert(Netmask(requestor)).second = db;
   updated = true;
@@ -267,7 +267,7 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
 
   for (const auto& shard : g_rings.d_shards) {
     std::lock_guard<std::mutex> rl(shard->queryLock);
-    for(const auto& c : shard->queryRing) {
+    for (const auto& c : shard->queryRing) {
       if (now < c.when) {
         continue;
       }
@@ -312,7 +312,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
 
   for (const auto& shard : g_rings.d_shards) {
     std::lock_guard<std::mutex> rl(shard->respLock);
-    for(const auto& c : shard->respRing) {
+    for (const auto& c : shard->respRing) {
       if (now < c.when) {
         continue;
       }

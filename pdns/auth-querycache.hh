@@ -27,7 +27,7 @@
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 
-#include <boost/multi_index/hashed_index.hpp> 
+#include <boost/multi_index/hashed_index.hpp>
 
 #include "dns.hh"
 #include "dnspacket.hh"
@@ -36,12 +36,12 @@ using namespace ::boost::multi_index;
 class AuthQueryCache : public boost::noncopyable
 {
 public:
-  AuthQueryCache(size_t mapsCount=1024);
+  AuthQueryCache(size_t mapsCount = 1024);
   ~AuthQueryCache();
 
-  void insert(const DNSName &qname, const QType& qtype, const vector<DNSZoneRecord>& content, uint32_t ttl, int zoneID);
+  void insert(const DNSName& qname, const QType& qtype, const vector<DNSZoneRecord>& content, uint32_t ttl, int zoneID);
 
-  bool getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& entry, int zoneID);
+  bool getEntry(const DNSName& qname, const QType& qtype, vector<DNSZoneRecord>& entry, int zoneID);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired querys
@@ -49,7 +49,7 @@ public:
   uint64_t purge(const std::string& match); // could be $ terminated. Is not a dnsname!
   uint64_t purgeExact(const DNSName& qname); // no wildcard matching here
 
-  map<char,uint64_t> getCounts();
+  map<char, uint64_t> getCounts();
 
   void setMaxEntries(uint64_t maxEntries)
   {
@@ -58,8 +58,8 @@ public:
       shard.reserve(maxEntries / d_maps.size());
     }
   }
-private:
 
+private:
   struct CacheEntry
   {
     DNSName qname;
@@ -70,34 +70,37 @@ private:
     int zoneID{-1};
   };
 
-  struct HashTag{};
-  struct NameTag{};
-  struct SequencedTag{};
+  struct HashTag
+  {
+  };
+  struct NameTag
+  {
+  };
+  struct SequencedTag
+  {
+  };
   typedef multi_index_container<
     CacheEntry,
-    indexed_by <
-      hashed_unique<tag<HashTag>, composite_key<CacheEntry,
-                                                         member<CacheEntry,DNSName,&CacheEntry::qname>,
-                                                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
-                                                         member<CacheEntry,int, &CacheEntry::zoneID> > > ,
-      ordered_non_unique<tag<NameTag>, member<CacheEntry,DNSName,&CacheEntry::qname>, CanonDNSNameCompare >,
+    indexed_by<
+      hashed_unique<tag<HashTag>, composite_key<CacheEntry, member<CacheEntry, DNSName, &CacheEntry::qname>, member<CacheEntry, uint16_t, &CacheEntry::qtype>, member<CacheEntry, int, &CacheEntry::zoneID>>>,
+      ordered_non_unique<tag<NameTag>, member<CacheEntry, DNSName, &CacheEntry::qname>, CanonDNSNameCompare>,
       /* Note that this sequence holds 'least recently inserted or replaced', not least recently used.
          Making it a LRU would require taking a write-lock when fetching from the cache, making the RW-lock inefficient compared to a mutex */
-      sequenced<tag<SequencedTag>>
-                           >
-  > cmap_t;
-
+      sequenced<tag<SequencedTag>>>>
+    cmap_t;
 
   struct MapCombo
   {
-    MapCombo() {
+    MapCombo()
+    {
       pthread_rwlock_init(&d_mut, nullptr);
     }
-    ~MapCombo() {
+    ~MapCombo()
+    {
       pthread_rwlock_destroy(&d_mut);
     }
-    MapCombo(const MapCombo &) = delete; 
-    MapCombo & operator=(const MapCombo &) = delete;
+    MapCombo(const MapCombo&) = delete;
+    MapCombo& operator=(const MapCombo&) = delete;
 
     void reserve(size_t numberOfEntries);
 
@@ -111,13 +114,13 @@ private:
     return d_maps[qname.hash() % d_maps.size()];
   }
 
-  bool getEntryLocked(cmap_t& map, const DNSName &content, uint16_t qtype, vector<DNSZoneRecord>& entry, int zoneID, time_t now);
+  bool getEntryLocked(cmap_t& map, const DNSName& content, uint16_t qtype, vector<DNSZoneRecord>& entry, int zoneID, time_t now);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};
-  AtomicCounter *d_statnumhit;
-  AtomicCounter *d_statnummiss;
-  AtomicCounter *d_statnumentries;
+  AtomicCounter* d_statnumhit;
+  AtomicCounter* d_statnummiss;
+  AtomicCounter* d_statnumentries;
 
   uint64_t d_maxEntries{0};
   time_t d_lastclean; // doesn't need to be atomic
@@ -125,5 +128,5 @@ private:
   unsigned int d_cleaninterval{4096};
   bool d_cleanskipped{false};
 
-  static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
+  static const unsigned int s_mincleaninterval = 1000, s_maxcleaninterval = 300000;
 };

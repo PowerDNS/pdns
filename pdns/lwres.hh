@@ -43,23 +43,24 @@
 #include "fstrm_logger.hh"
 #include "resolve-context.hh"
 
-
-int asendto(const char *data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
-            const DNSName& domain, uint16_t qtype,  int* fd);
-int arecvfrom(std::string& packet, int flags, const ComboAddress& ip, size_t *d_len, uint16_t id,
-              const DNSName& domain, uint16_t qtype, int fd, struct timeval* now);
+int asendto(const char* data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
+  const DNSName& domain, uint16_t qtype, int* fd);
+int arecvfrom(std::string& packet, int flags, const ComboAddress& ip, size_t* d_len, uint16_t id,
+  const DNSName& domain, uint16_t qtype, int fd, struct timeval* now);
 
 class LWResException : public PDNSException
 {
 public:
-  LWResException(const string &reason_) : PDNSException(reason_){}
+  LWResException(const string& reason_) :
+    PDNSException(reason_) {}
 };
 
-//! LWRes class 
+//! LWRes class
 class LWResult
 {
 public:
-  LWResult() : d_usec(0) {}
+  LWResult() :
+    d_usec(0) {}
 
   vector<DNSRecord> d_records;
   int d_rcode{0};

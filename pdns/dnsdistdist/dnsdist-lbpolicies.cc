@@ -35,13 +35,13 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
     return servers[0].second;
   }
 
-  vector<pair<tuple<int,int,double>, size_t>> poss;
+  vector<pair<tuple<int, int, double>, size_t>> poss;
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
      which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
   poss.reserve(servers.size());
   size_t position = 0;
-  for(const auto& d : servers) {
-    if(d.second->isUp()) {
+  for (const auto& d : servers) {
+    if (d.second->isUp()) {
       poss.emplace_back(make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), position);
     }
     ++position;
@@ -57,8 +57,8 @@ shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerV
 
 shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  for(auto& d : servers) {
-    if(d.second->isUp() && d.second->qps.check())
+  for (auto& d : servers) {
+    if (d.second->isUp() && d.second->qps.check())
       return d.second;
   }
   return leastOutstanding(servers, dq);
@@ -71,12 +71,13 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
   int sum = 0;
   int max = std::numeric_limits<int>::max();
 
-  for(const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if(d.second->isUp()) {
+  for (const auto& d : servers) { // w=1, w=10 -> 1, 11
+    if (d.second->isUp()) {
       // Don't overflow sum when adding high weights
-      if(d.second->weight > max - sum) {
+      if (d.second->weight > max - sum) {
         sum = max;
-      } else {
+      }
+      else {
         sum += d.second->weight;
       }
 
@@ -90,7 +91,7 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
   }
 
   int r = val % sum;
-  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r_, const decltype(poss)::value_type& a) { return  r_ < a.first;});
+  auto p = upper_bound(poss.begin(), poss.end(), r, [](int r_, const decltype(poss)::value_type& a) { return r_ < a.first; });
   if (p == poss.end()) {
     return shared_ptr<DownstreamState>();
   }
@@ -132,7 +133,7 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
     targetLoad = (currentLoad / servers.size()) * g_consistentHashBalancingFactor;
   }
 
-  for (const auto& d: servers) {
+  for (const auto& d : servers) {
     if (d.second->isUp() && d.second->outstanding <= targetLoad) {
       // make sure hashes have been computed
       if (d.second->hashes.empty()) {
@@ -175,17 +176,17 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
 {
   ServerPolicy::NumberedServerVector poss;
 
-  for(auto& d : servers) {
-    if(d.second->isUp()) {
+  for (auto& d : servers) {
+    if (d.second->isUp()) {
       poss.push_back(d);
     }
   }
 
-  const auto *res=&poss;
-  if(poss.empty() && !g_roundrobinFailOnNoServer)
+  const auto* res = &poss;
+  if (poss.empty() && !g_roundrobinFailOnNoServer)
     res = &servers;
 
-  if(res->empty())
+  if (res->empty())
     return shared_ptr<DownstreamState>();
 
   static unsigned int counter;
@@ -209,7 +210,7 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& 
     if (!poolName.empty())
       vinfolog("Creating pool %s", poolName);
     pool = std::make_shared<ServerPool>();
-    pools.insert(std::pair<std::string,std::shared_ptr<ServerPool> >(poolName, pool));
+    pools.insert(std::pair<std::string, std::shared_ptr<ServerPool>>(poolName, pool));
   }
   return pool;
 }
@@ -219,7 +220,8 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
   if (!poolName.empty()) {
     vinfolog("Setting pool %s server selection policy to %s", poolName, policy->name);
-  } else {
+  }
+  else {
     vinfolog("Setting default pool server selection policy to %s", policy->name);
   }
   pool->policy = policy;
@@ -230,7 +232,8 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
   if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
-  } else {
+  }
+  else {
     vinfolog("Adding server to default pool");
   }
   pool->addServer(server);

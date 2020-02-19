@@ -51,23 +51,32 @@ using namespace ::boost::multi_index;
 #include "namespaces.hh"
 #include "dnsname.hh"
 
-typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
+typedef enum
+{
+  TSIG_MD5,
+  TSIG_SHA1,
+  TSIG_SHA224,
+  TSIG_SHA256,
+  TSIG_SHA384,
+  TSIG_SHA512,
+  TSIG_GSS
+} TSIGHashEnum;
 
 string nowTime();
-const string unquotify(const string &item);
+const string unquotify(const string& item);
 string humanDuration(time_t passed);
-bool stripDomainSuffix(string *qname, const string &domain);
-void stripLine(string &line);
+bool stripDomainSuffix(string* qname, const string& domain);
+void stripLine(string& line);
 string getHostname();
-string urlEncode(const string &text);
-int waitForData(int fd, int seconds, int useconds=0);
+string urlEncode(const string& text);
+int waitForData(int fd, int seconds, int useconds = 0);
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
 int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd);
-int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error=nullptr, bool* disconnected=nullptr);
-uint16_t getShort(const unsigned char *p);
-uint16_t getShort(const char *p);
-uint32_t getLong(const unsigned char *p);
-uint32_t getLong(const char *p);
+int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error = nullptr, bool* disconnected = nullptr);
+uint16_t getShort(const unsigned char* p);
+uint16_t getShort(const char* p);
+uint32_t getLong(const unsigned char* p);
+uint32_t getLong(const char* p);
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
@@ -78,38 +87,39 @@ struct ServiceTuple
   string host;
   uint16_t port;
 };
-void parseService(const string &descr, ServiceTuple &st);
+void parseService(const string& descr, ServiceTuple& st);
 
 template <typename Container>
-void
-stringtok (Container &container, string const &in,
-           const char * const delimiters = " \t\n")
+void stringtok(Container& container, string const& in,
+  const char* const delimiters = " \t\n")
 {
   const string::size_type len = in.length();
   string::size_type i = 0;
 
-  while (i<len) {
+  while (i < len) {
     // eat leading whitespace
-    i = in.find_first_not_of (delimiters, i);
+    i = in.find_first_not_of(delimiters, i);
     if (i == string::npos)
-      return;   // nothing left but white space
+      return; // nothing left but white space
 
     // find the end of the token
-    string::size_type j = in.find_first_of (delimiters, i);
+    string::size_type j = in.find_first_of(delimiters, i);
 
     // push token
     if (j == string::npos) {
-      container.push_back (in.substr(i));
+      container.push_back(in.substr(i));
       return;
-    } else
-      container.push_back (in.substr(i, j-i));
+    }
+    else
+      container.push_back(in.substr(i, j - i));
 
     // set up for next loop
     i = j + 1;
   }
 }
 
-template<typename T> bool rfc1982LessThan(T a, T b)
+template <typename T>
+bool rfc1982LessThan(T a, T b)
 {
   static_assert(std::is_unsigned<T>::value, "rfc1982LessThan only works for unsigned types");
   typedef typename std::make_signed<T>::type signed_t;
@@ -118,52 +128,52 @@ template<typename T> bool rfc1982LessThan(T a, T b)
 
 // fills container with ranges, so {posbegin,posend}
 template <typename Container>
-void
-vstringtok (Container &container, string const &in,
-           const char * const delimiters = " \t\n")
+void vstringtok(Container& container, string const& in,
+  const char* const delimiters = " \t\n")
 {
   const string::size_type len = in.length();
   string::size_type i = 0;
 
-  while (i<len) {
+  while (i < len) {
     // eat leading whitespace
-    i = in.find_first_not_of (delimiters, i);
+    i = in.find_first_not_of(delimiters, i);
     if (i == string::npos)
-      return;   // nothing left but white space
+      return; // nothing left but white space
 
     // find the end of the token
-    string::size_type j = in.find_first_of (delimiters, i);
+    string::size_type j = in.find_first_of(delimiters, i);
 
     // push token
     if (j == string::npos) {
-      container.push_back (make_pair(i, len));
+      container.push_back(make_pair(i, len));
       return;
-    } else
-      container.push_back (make_pair(i, j));
+    }
+    else
+      container.push_back(make_pair(i, j));
 
     // set up for next loop
     i = j + 1;
   }
 }
 
-size_t writen2(int fd, const void *buf, size_t count);
-inline size_t writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
+size_t writen2(int fd, const void* buf, size_t count);
+inline size_t writen2(int fd, const std::string& s) { return writen2(fd, s.data(), s.size()); }
 size_t readn2(int fd, void* buffer, size_t len);
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout=0);
-size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout);
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout = 0);
+size_t writen2WithTimeout(int fd, const void* buffer, size_t len, int timeout);
 
-const string toLower(const string &upper);
-const string toLowerCanonic(const string &upper);
-bool IpToU32(const string &str, uint32_t *ip);
+const string toLower(const string& upper);
+const string toLowerCanonic(const string& upper);
+bool IpToU32(const string& str, uint32_t* ip);
 string U32ToIP(uint32_t);
 string stringerror(int);
 string stringerror();
 string itoa(int i);
 string uitoa(unsigned int i);
-string bitFlip(const string &str);
+string bitFlip(const string& str);
 
 void dropPrivs(int uid, int gid);
-void cleanSlashes(string &str);
+void cleanSlashes(string& str);
 
 #if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)
 /** CPUTime measurements */
@@ -178,8 +188,9 @@ public:
   {
     struct timespec now;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &now);
-    return 1000000000ULL*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec);
+    return 1000000000ULL * (now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec);
   }
+
 private:
   struct timespec d_start;
 };
@@ -191,33 +202,34 @@ class DTime
 {
 public:
   DTime(); //!< Does not set the timer for you! Saves lots of gettimeofday() calls
-  DTime(const DTime &dt) = default;
-  DTime & operator=(const DTime &dt) = default;
+  DTime(const DTime& dt) = default;
+  DTime& operator=(const DTime& dt) = default;
   time_t time();
-  inline void set();  //!< Reset the timer
+  inline void set(); //!< Reset the timer
   inline int udiff(); //!< Return the number of microseconds since the timer was last set.
   inline int udiffNoReset(); //!< Return the number of microseconds since the timer was last set.
   void setTimeval(const struct timeval& tv)
   {
-    d_set=tv;
+    d_set = tv;
   }
   struct timeval getTimeval()
   {
     return d_set;
   }
+
 private:
   struct timeval d_set;
 };
 
 inline void DTime::set()
 {
-  gettimeofday(&d_set,0);
+  gettimeofday(&d_set, 0);
 }
 
 inline int DTime::udiff()
 {
-  int res=udiffNoReset();
-  gettimeofday(&d_set,0);
+  int res = udiffNoReset();
+  gettimeofday(&d_set, 0);
   return res;
 }
 
@@ -225,65 +237,63 @@ inline int DTime::udiffNoReset()
 {
   struct timeval now;
 
-  gettimeofday(&now,0);
-  int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
+  gettimeofday(&now, 0);
+  int ret = 1000000 * (now.tv_sec - d_set.tv_sec) + (now.tv_usec - d_set.tv_usec);
   return ret;
 }
 
-inline const string toLower(const string &upper)
+inline const string toLower(const string& upper)
 {
   string reply(upper);
   const size_t length = reply.length();
   char c;
-  for(unsigned int i = 0; i < length; ++i) {
+  for (unsigned int i = 0; i < length; ++i) {
     c = dns_tolower(upper[i]);
-    if( c != upper[i])
+    if (c != upper[i])
       reply[i] = c;
   }
   return reply;
 }
 
-inline const string toLowerCanonic(const string &upper)
+inline const string toLowerCanonic(const string& upper)
 {
   string reply(upper);
-  if(!upper.empty()) {
-    unsigned int i, limit= ( unsigned int ) reply.length();
+  if (!upper.empty()) {
+    unsigned int i, limit = (unsigned int)reply.length();
     unsigned char c;
-    for(i = 0; i < limit ; i++) {
+    for (i = 0; i < limit; i++) {
       c = dns_tolower(upper[i]);
-      if(c != upper[i])
+      if (c != upper[i])
         reply[i] = c;
     }
-    if(upper[i-1]=='.')
-      reply.resize(i-1);
+    if (upper[i - 1] == '.')
+      reply.resize(i - 1);
   }
 
   return reply;
 }
 
-
-
 // Make s uppercase:
-inline string toUpper( const string& s )
+inline string toUpper(const string& s)
 {
-        string r(s);
-        for( unsigned int i = 0; i < s.length(); i++ ) {
-          r[i] = dns_toupper(r[i]);
-        }
-        return r;
+  string r(s);
+  for (unsigned int i = 0; i < s.length(); i++) {
+    r[i] = dns_toupper(r[i]);
+  }
+  return r;
 }
 
 inline double getTime()
 {
   struct timeval now;
-  gettimeofday(&now,0);
+  gettimeofday(&now, 0);
 
-  return now.tv_sec+now.tv_usec/1000000.0;
+  return now.tv_sec + now.tv_usec / 1000000.0;
 }
 
-inline void unixDie(const string &why)
+inline void unixDie(const string& why)
 {
-  throw runtime_error(why+": "+stringerror());
+  throw runtime_error(why + ": " + stringerror());
 }
 
 string makeHexDump(const string& str);
@@ -299,7 +309,7 @@ const struct timeval operator+(const struct timeval& lhs, const struct timeval& 
 const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs);
 inline float makeFloat(const struct timeval& tv)
 {
-  return tv.tv_sec + tv.tv_usec/1000000.0f;
+  return tv.tv_sec + tv.tv_usec / 1000000.0f;
 }
 
 inline bool operator<(const struct timeval& lhs, const struct timeval& rhs)
@@ -312,19 +322,18 @@ inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
   return tie(lhs.tv_sec, lhs.tv_nsec) < tie(rhs.tv_sec, rhs.tv_nsec);
 }
 
-
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b) __attribute__((pure));
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
 {
   const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
   const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
-  while(aPtr != aEptr && bPtr != bEptr) {
+  while (aPtr != aEptr && bPtr != bEptr) {
     if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
       return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
     aPtr++;
     bPtr++;
   }
-  if(aPtr == aEptr && bPtr == bEptr) // strings are equal (in length)
+  if (aPtr == aEptr && bPtr == bEptr) // strings are equal (in length)
     return false;
   return aPtr == aEptr; // true if first string was shorter
 }
@@ -336,9 +345,9 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
     return false;
 
   const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  const char *aEptr = aPtr + a.length();
-  while(aPtr != aEptr) {
-    if((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
+  const char* aEptr = aPtr + a.length();
+  while (aPtr != aEptr) {
+    if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
       return false;
     aPtr++;
     bPtr++;
@@ -355,12 +364,11 @@ inline bool pdns_iequals_ch(const char a, const char b)
   return true;
 }
 
-
 typedef unsigned long AtomicCounterInner;
-typedef std::atomic<AtomicCounterInner> AtomicCounter ;
+typedef std::atomic<AtomicCounterInner> AtomicCounter;
 
-// FIXME400 this should probably go? 
-struct CIStringCompare: public std::binary_function<string, string, bool>
+// FIXME400 this should probably go?
+struct CIStringCompare : public std::binary_function<string, string, bool>
 {
   bool operator()(const string& a, const string& b) const
   {
@@ -370,28 +378,32 @@ struct CIStringCompare: public std::binary_function<string, string, bool>
 
 struct CIStringComparePOSIX
 {
-   bool operator() (const std::string& lhs, const std::string& rhs)
-   {
-      std::string::const_iterator a,b;
-      const std::locale &loc = std::locale("POSIX");
-      a=lhs.begin();b=rhs.begin();
-      while(a!=lhs.end()) {
-          if (b==rhs.end() || std::tolower(*b,loc)<std::tolower(*a,loc)) return false;
-          else if (std::tolower(*a,loc)<std::tolower(*b,loc)) return true;
-          ++a;++b;
-      }
-      return (b!=rhs.end());
-   }
+  bool operator()(const std::string& lhs, const std::string& rhs)
+  {
+    std::string::const_iterator a, b;
+    const std::locale& loc = std::locale("POSIX");
+    a = lhs.begin();
+    b = rhs.begin();
+    while (a != lhs.end()) {
+      if (b == rhs.end() || std::tolower(*b, loc) < std::tolower(*a, loc))
+        return false;
+      else if (std::tolower(*a, loc) < std::tolower(*b, loc))
+        return true;
+      ++a;
+      ++b;
+    }
+    return (b != rhs.end());
+  }
 };
 
-struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, pair<string,uint16_t>, bool>
+struct CIStringPairCompare : public std::binary_function<pair<string, uint16_t>, pair<string, uint16_t>, bool>
 {
   bool operator()(const pair<string, uint16_t>& a, const pair<string, uint16_t>& b) const
   {
-    if(pdns_ilexicographical_compare(a.first, b.first))
-	return true;
-    if(pdns_ilexicographical_compare(b.first, a.first))
-	return false;
+    if (pdns_ilexicographical_compare(a.first, b.first))
+      return true;
+    if (pdns_ilexicographical_compare(b.first, a.first))
+      return false;
     return a.second < b.second;
   }
 };
@@ -403,7 +415,8 @@ inline size_t pdns_ci_find(const string& haystack, const string& needle)
   if (it == haystack.end()) {
     // not found
     return string::npos;
-  } else {
+  }
+  else {
     return it - haystack.begin();
   }
 }
@@ -412,16 +425,16 @@ pair<string, string> splitField(const string& inp, char sepa);
 
 inline bool isCanonical(const string& qname)
 {
-  if(qname.empty())
+  if (qname.empty())
     return false;
-  return qname[qname.size()-1]=='.';
+  return qname[qname.size() - 1] == '.';
 }
 
 inline DNSName toCanonic(const DNSName& zone, const string& qname)
 {
-  if(qname.size()==1 && qname[0]=='@')
+  if (qname.size() == 1 && qname[0] == '@')
     return zone;
-  if(isCanonical(qname))
+  if (isCanonical(qname))
     return DNSName(qname);
   return DNSName(qname) += zone;
 }
@@ -433,12 +446,13 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret);
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);
 bool stringfgets(FILE* fp, std::string& line);
 
-template<typename Index>
-std::pair<typename Index::iterator,bool>
-replacing_insert(Index& i,const typename Index::value_type& x)
+template <typename Index>
+std::pair<typename Index::iterator, bool>
+replacing_insert(Index& i, const typename Index::value_type& x)
 {
-  std::pair<typename Index::iterator,bool> res=i.insert(x);
-  if(!res.second)res.second=i.replace(res.first,x);
+  std::pair<typename Index::iterator, bool> res = i.insert(x);
+  if (!res.second)
+    res.second = i.replace(res.first, x);
   return res;
 }
 
@@ -447,16 +461,16 @@ class Regex
 {
 public:
   /** constructor that accepts the expression to regex */
-  Regex(const string &expr);
+  Regex(const string& expr);
 
   ~Regex()
   {
     regfree(&d_preg);
   }
   /** call this to find out if 'line' matches your expression */
-  bool match(const string &line) const
+  bool match(const string& line) const
   {
-    return regexec(&d_preg,line.c_str(),0,0,0)==0;
+    return regexec(&d_preg, line.c_str(), 0, 0, 0) == 0;
   }
   bool match(const DNSName& name) const
   {
@@ -470,44 +484,58 @@ private:
 class SimpleMatch
 {
 public:
-  SimpleMatch(const string &mask, bool caseFold = false): d_mask(mask), d_fold(caseFold)
+  SimpleMatch(const string& mask, bool caseFold = false) :
+    d_mask(mask),
+    d_fold(caseFold)
   {
   }
- 
+
   bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
   {
-    for(;;++mi) {
+    for (;; ++mi) {
       if (mi == mend) {
         return vi == vend;
-      } else if (*mi == '?') {
-        if (vi == vend) return false;
+      }
+      else if (*mi == '?') {
+        if (vi == vend)
+          return false;
         ++vi;
-      } else if (*mi == '*') {
-        while(*mi == '*') ++mi;
-        if (mi == d_mask.end()) return true;
-        while(vi != vend) {
-          if (match(mi,mend,vi,vend)) return true;
+      }
+      else if (*mi == '*') {
+        while (*mi == '*')
+          ++mi;
+        if (mi == d_mask.end())
+          return true;
+        while (vi != vend) {
+          if (match(mi, mend, vi, vend))
+            return true;
           ++vi;
         }
         return false;
-      } else {
-        if ((mi == mend && vi != vend)||
-            (mi != mend && vi == vend)) return false;
+      }
+      else {
+        if ((mi == mend && vi != vend) || (mi != mend && vi == vend))
+          return false;
         if (d_fold) {
-          if (dns_tolower(*mi) != dns_tolower(*vi)) return false;
-        } else {
-          if (*mi != *vi) return false;
+          if (dns_tolower(*mi) != dns_tolower(*vi))
+            return false;
+        }
+        else {
+          if (*mi != *vi)
+            return false;
         }
         ++vi;
       }
     }
   }
 
-  bool match(const string& value) {
+  bool match(const string& value)
+  {
     return match(d_mask.begin(), d_mask.end(), value.begin(), value.end());
   }
 
-  bool match(const DNSName& name) {
+  bool match(const DNSName& name)
+  {
     return match(name.toStringNoDot());
   }
 
@@ -519,22 +547,26 @@ private:
 union ComboAddress;
 
 // An aligned type to hold cmsgbufs. See https://man.openbsd.org/CMSG_DATA
-typedef union { struct cmsghdr hdr; char buf[256]; } cmsgbuf_aligned;
+typedef union
+{
+  struct cmsghdr hdr;
+  char buf[256];
+} cmsgbuf_aligned;
 
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
 void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cbuf, const ComboAddress* source, int itfIndex);
 
-unsigned int getFilenumLimit(bool hardOrSoft=0);
+unsigned int getFilenumLimit(bool hardOrSoft = 0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t init);
 bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.
-bool setBlocking( int sock );
+bool setBlocking(int sock);
 
 //! Sets the socket into non-blocking mode.
-bool setNonBlocking( int sock );
+bool setNonBlocking(int sock);
 bool setTCPNoDelay(int sock);
 bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
@@ -554,56 +586,57 @@ uint64_t getCPUTimeSystem(const std::string&);
 uint64_t getCPUIOWait(const std::string&);
 uint64_t getCPUSteal(const std::string&);
 std::string getMACAddress(const ComboAddress& ca);
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
-
-template<typename T>
+template <typename T>
 const T& defTer(const T& a, const T& b)
 {
   return a ? a : b;
 }
 
-template<typename P, typename T>
-T valueOrEmpty(const P val) {
-  if (!val) return T{};
+template <typename P, typename T>
+T valueOrEmpty(const P val)
+{
+  if (!val)
+    return T{};
   return T(val);
 }
 
-
 // I'm not very OCD, but I appreciate loglines like "processing 1 delta", "processing 2 deltas" :-)
 template <typename Integer>
-const char* addS(Integer siz, typename std::enable_if<std::is_integral<Integer>::value>::type*P=0)
+const char* addS(Integer siz, typename std::enable_if<std::is_integral<Integer>::value>::type* P = 0)
 {
-  if(!siz || siz > 1)
+  if (!siz || siz > 1)
     return "s";
-  else return "";
+  else
+    return "";
 }
 
-template<typename C>
-const char* addS(const C& c, typename std::enable_if<std::is_class<C>::value>::type*P=0)
+template <typename C>
+const char* addS(const C& c, typename std::enable_if<std::is_class<C>::value>::type* P = 0)
 {
   return addS(c.size());
 }
 
-template<typename C>
+template <typename C>
 const typename C::value_type::second_type* rplookup(const C& c, const typename C::value_type::first_type& key)
 {
   auto fnd = c.find(key);
-  if(fnd == c.end())
+  if (fnd == c.end())
     return 0;
   return &fnd->second;
 }
 
 double DiffTime(const struct timespec& first, const struct timespec& second);
 double DiffTime(const struct timeval& first, const struct timeval& second);
-uid_t strToUID(const string &str);
-gid_t strToGID(const string &str);
+uid_t strToUID(const string& str);
+gid_t strToGID(const string& str);
 
-unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);
+unsigned int pdns_stou(const std::string& str, size_t* idx = 0, int base = 10);
 
 bool isSettingThreadCPUAffinitySupported();
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus);

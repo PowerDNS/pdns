@@ -36,36 +36,35 @@ StatBag S;
 
 static void usage()
 {
-  cerr<<"This program reads DNS queries from a PCAP file and outputs them in the calidns format."<<endl;
-  cerr<<"Usage: dnspcap2calidns PCAPFILE OUTFILE"<<endl;
+  cerr << "This program reads DNS queries from a PCAP file and outputs them in the calidns format." << endl;
+  cerr << "Usage: dnspcap2calidns PCAPFILE OUTFILE" << endl;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   try {
-    for(int n=1 ; n < argc; ++n) {
-      if ((string) argv[n] == "--help") {
+    for (int n = 1; n < argc; ++n) {
+      if ((string)argv[n] == "--help") {
         usage();
         return EXIT_SUCCESS;
       }
 
-      if ((string) argv[n] == "--version") {
-        cerr<<"dnspcap2calidns "<<VERSION<<endl;
+      if ((string)argv[n] == "--version") {
+        cerr << "dnspcap2calidns " << VERSION << endl;
         return EXIT_SUCCESS;
       }
     }
 
-    if(argc < 3) {
+    if (argc < 3) {
       usage();
       exit(EXIT_FAILURE);
     }
-
 
     PcapPacketReader pr(argv[1]);
     ofstream fp(argv[2]);
 
     if (!fp) {
-      cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror()<<endl;
+      cerr << "Error opening output file " << argv[2] << ": " << stringerror() << endl;
       exit(EXIT_FAILURE);
     }
 
@@ -75,7 +74,7 @@ int main(int argc, char **argv)
           continue;
         }
 
-        const dnsheader* dh=reinterpret_cast<const dnsheader*>(pr.d_payload);
+        const dnsheader* dh = reinterpret_cast<const dnsheader*>(pr.d_payload);
         if (!dh->qdcount) {
           continue;
         }
@@ -91,10 +90,10 @@ int main(int argc, char **argv)
         uint16_t qtype, qclass;
         DNSName qname;
         try {
-          qname=DNSName(reinterpret_cast<const char*>(pr.d_payload), pr.d_len, sizeof(dnsheader), false, &qtype, &qclass);
+          qname = DNSName(reinterpret_cast<const char*>(pr.d_payload), pr.d_len, sizeof(dnsheader), false, &qtype, &qclass);
         }
-        catch(const std::exception& e) {
-          cerr<<"Error while parsing qname: "<<e.what()<<endl;
+        catch (const std::exception& e) {
+          cerr << "Error while parsing qname: " << e.what() << endl;
           continue;
         }
 
@@ -104,7 +103,7 @@ int main(int argc, char **argv)
       }
     }
     catch (const std::exception& e) {
-      cerr<<"Error while parsing the PCAP file: "<<e.what()<<endl;
+      cerr << "Error while parsing the PCAP file: " << e.what() << endl;
       fp.close();
       exit(EXIT_FAILURE);
     }
@@ -112,8 +111,8 @@ int main(int argc, char **argv)
     fp.flush();
     fp.close();
   }
-  catch(const std::exception& e) {
-    cerr<<"Error opening PCAP file: "<<e.what()<<endl;
+  catch (const std::exception& e) {
+    cerr << "Error opening PCAP file: " << e.what() << endl;
     exit(EXIT_FAILURE);
   }
 

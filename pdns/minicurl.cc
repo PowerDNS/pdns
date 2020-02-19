@@ -54,33 +54,33 @@ MiniCurl::~MiniCurl()
   curl_easy_cleanup(d_curl);
 }
 
-size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
+size_t MiniCurl::write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
   MiniCurl* us = (MiniCurl*)userdata;
-  us->d_data.append(ptr, size*nmemb);
-  return size*nmemb;
+  us->d_data.append(ptr, size * nmemb);
+  return size * nmemb;
 }
 
 static string extractHostFromURL(const std::string& url)
 {
   auto pos = url.find("://");
-  if(pos == string::npos)
-    throw runtime_error("Can't find host part of '"+url+"'");
+  if (pos == string::npos)
+    throw runtime_error("Can't find host part of '" + url + "'");
   pos += 3;
   auto endpos = url.find('/', pos);
-  if(endpos == string::npos)
+  if (endpos == string::npos)
     return url.substr(pos);
 
-  return url.substr(pos, endpos-pos);
+  return url.substr(pos, endpos - pos);
 }
 
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout)
 {
-  if(rem) {
-    struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
+  if (rem) {
+    struct curl_slist* hostlist = nullptr; // THIS SHOULD BE FREED
 
     // url = http://hostname.enzo/url
-    string host4=extractHostFromURL(str);
+    string host4 = extractHostFromURL(str);
     // doest the host contain port indication
     std::size_t found = host4.find(':');
     vector<uint16_t> ports{80, 443};
@@ -99,7 +99,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 
     curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
   }
-  if(src) {
+  if (src) {
     curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
   }
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
@@ -124,10 +124,10 @@ std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, co
   long http_code = 0;
   curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-  if(res != CURLE_OK || http_code != 200)  {
-    throw std::runtime_error("Unable to retrieve URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
+  if (res != CURLE_OK || http_code != 200) {
+    throw std::runtime_error("Unable to retrieve URL (" + std::to_string(http_code) + "): " + string(curl_easy_strerror(res)));
   }
-  std::string ret=d_data;
+  std::string ret = d_data;
   d_data.clear();
   return ret;
 }
@@ -144,10 +144,10 @@ std::string MiniCurl::postURL(const std::string& str, const std::string& postdat
   long http_code = 0;
   curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-  if(res != CURLE_OK)
-    throw std::runtime_error("Unable to post URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
+  if (res != CURLE_OK)
+    throw std::runtime_error("Unable to post URL (" + std::to_string(http_code) + "): " + string(curl_easy_strerror(res)));
 
-  std::string ret=d_data;
+  std::string ret = d_data;
 
   d_data.clear();
   return ret;

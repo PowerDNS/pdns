@@ -30,30 +30,30 @@
 
 #include "cdb.hh"
 
-CDB::CDB(const string &cdbfile)
+CDB::CDB(const string& cdbfile)
 {
   d_fd = open(cdbfile.c_str(), O_RDONLY);
-  if (d_fd < 0)
-  {
-    throw std::runtime_error("Failed to open cdb database file '"+cdbfile+"': " + stringerror());
+  if (d_fd < 0) {
+    throw std::runtime_error("Failed to open cdb database file '" + cdbfile + "': " + stringerror());
   }
 
-  memset(&d_cdbf,0,sizeof(struct cdb_find));
+  memset(&d_cdbf, 0, sizeof(struct cdb_find));
   int cdbinit = cdb_init(&d_cdb, d_fd);
-  if (cdbinit < 0)
-  {
+  if (cdbinit < 0) {
     close(d_fd);
     d_fd = -1;
     throw std::runtime_error("Failed to initialize cdb structure for database '+cdbfile+': '" + std::to_string(cdbinit) + "'");
   }
 }
 
-CDB::~CDB() {
+CDB::~CDB()
+{
   cdb_free(&d_cdb);
   close(d_fd);
 }
 
-int CDB::searchKey(const string &key) {
+int CDB::searchKey(const string& key)
+{
   d_searchType = SearchKey;
 
   // A 'bug' in tinycdb (the lib used for reading the CDB files) means we have to copy the key because the cdb_find struct
@@ -62,7 +62,8 @@ int CDB::searchKey(const string &key) {
   return cdb_findinit(&d_cdbf, &d_cdb, d_key.c_str(), d_key.size());
 }
 
-bool CDB::searchSuffix(const string &key) {
+bool CDB::searchSuffix(const string& key)
+{
   d_searchType = SearchSuffix;
 
   //See CDB::searchKey()
@@ -77,22 +78,26 @@ bool CDB::searchSuffix(const string &key) {
   return hasDomain;
 }
 
-void CDB::searchAll() {
+void CDB::searchAll()
+{
   d_searchType = SearchAll;
   cdb_seqinit(&d_seqPtr, &d_cdb);
 }
 
-bool CDB::moveToNext() {
+bool CDB::moveToNext()
+{
   int hasNext = 0;
   if (d_searchType == SearchKey) {
     hasNext = cdb_findnext(&d_cdbf);
-  } else {
+  }
+  else {
     hasNext = cdb_seqnext(&d_seqPtr, &d_cdb);
   }
   return (hasNext > 0);
 }
 
-bool CDB::readNext(pair<string, string> &value) {
+bool CDB::readNext(pair<string, string>& value)
+{
   while (moveToNext()) {
     unsigned int pos;
     unsigned int len;
@@ -108,7 +113,7 @@ bool CDB::readNext(pair<string, string> &value) {
     }
 
     if (d_searchType == SearchSuffix) {
-      char *p = strstr(const_cast<char*>(key.c_str()), d_key.c_str());
+      char* p = strstr(const_cast<char*>(key.c_str()), d_key.c_str());
       if (p == nullptr) {
         continue;
       }
@@ -135,7 +140,7 @@ bool CDB::readNext(pair<string, string> &value) {
   return false;
 }
 
-vector<string> CDB::findall(string &key)
+vector<string> CDB::findall(string& key)
 {
   vector<string> ret;
   struct cdb_find cdbf;
@@ -145,8 +150,8 @@ vector<string> CDB::findall(string &key)
     throw std::runtime_error("Error looking up key '" + key + "' from CDB database: " + std::to_string(res));
   }
 
-  int x=0;
-  while(cdb_findnext(&cdbf) > 0) {
+  int x = 0;
+  while (cdb_findnext(&cdbf) > 0) {
     x++;
     unsigned int vpos = cdb_datapos(&d_cdb);
     unsigned int vlen = cdb_datalen(&d_cdb);
@@ -193,7 +198,8 @@ bool CDB::findOne(const string& key, string& value)
   return true;
 }
 
-CDBWriter::CDBWriter(int fd): d_fd(fd)
+CDBWriter::CDBWriter(int fd) :
+  d_fd(fd)
 {
   cdb_make_start(&d_cdbm, d_fd);
 }

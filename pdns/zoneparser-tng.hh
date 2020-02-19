@@ -30,16 +30,16 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, const DNSName& zname=DNSName("."), const string& reldir="");
+  ZoneParserTNG(const string& fname, const DNSName& zname = DNSName("."), const string& reldir = "");
   ZoneParserTNG(const vector<string> zonedata, const DNSName& zname);
 
   ~ZoneParserTNG();
-  bool get(DNSResourceRecord& rr, std::string* comment=0);
+  bool get(DNSResourceRecord& rr, std::string* comment = 0);
   typedef runtime_error exception;
-  typedef deque<pair<string::size_type, string::size_type> > parts_t;
+  typedef deque<pair<string::size_type, string::size_type>> parts_t;
   DNSName getZoneName();
   string getLineOfFile(); // for error reporting purposes
-  pair<string,int> getLineNumAndFile(); // idem
+  pair<string, int> getLineNumAndFile(); // idem
   void disableGenerate()
   {
     d_generateEnabled = false;
@@ -48,15 +48,20 @@ public:
   {
     d_maxGenerateSteps = max;
   }
+
 private:
   bool getLine();
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   unsigned makeTTLFromZone(const std::string& str);
 
-  struct filestate {
-    filestate(FILE* fp, string filename) : d_fp(fp), d_filename(filename), d_lineno(0){}
-    FILE *d_fp;
+  struct filestate
+  {
+    filestate(FILE* fp, string filename) :
+      d_fp(fp),
+      d_filename(filename),
+      d_lineno(0) {}
+    FILE* d_fp;
     string d_filename;
     int d_lineno;
   };

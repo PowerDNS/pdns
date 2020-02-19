@@ -10,7 +10,7 @@ extern "C" __attribute__((weak)) int LLVMFuzzerInitialize(int* argc, char*** arg
 
 int main(int argc, char** argv)
 {
-  std::cerr<<"StandaloneFuzzTargetMain: running "<<(argc-1)<<" inputs"<<std::endl;
+  std::cerr << "StandaloneFuzzTargetMain: running " << (argc - 1) << " inputs" << std::endl;
 
   if (LLVMFuzzerInitialize) {
     LLVMFuzzerInitialize(&argc, &argv);
@@ -20,11 +20,11 @@ int main(int argc, char** argv)
 
     struct stat st;
     if (stat(argv[i], &st) || !S_ISREG(st.st_mode)) {
-      std::cerr<<"Skipping non-regular file: "<<std::string(argv[i])<<std::endl;
+      std::cerr << "Skipping non-regular file: " << std::string(argv[i]) << std::endl;
       continue;
     }
 
-    std::cerr<<"Running: "<<std::string(argv[i])<<std::endl;
+    std::cerr << "Running: " << std::string(argv[i]) << std::endl;
 
     std::ifstream file(argv[i], std::ios::binary);
     file.seekg(0, std::ios::end);
@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 
     LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(buffer.data()), fileSize);
 
-    std::cerr<<"Done: '"<<std::string(argv[i])<<"': ("<<fileSize<<" bytes)"<<std::endl;
+    std::cerr << "Done: '" << std::string(argv[i]) << "': (" << fileSize << " bytes)" << std::endl;
   }
 
   return 0;

@@ -27,5 +27,3 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-
-

@@ -50,11 +50,12 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5);
-  std::string recv(std::string* remote=0, unsigned int timeout=5);
+  void send(const std::string& msg, const std::string* remote = nullptr, unsigned int timeout = 5);
+  std::string recv(std::string* remote = 0, unsigned int timeout = 5);
 
   int d_fd;
   static volatile sig_atomic_t stop;
+
 private:
   struct sockaddr_un d_local;
 };
@@ -65,18 +66,24 @@ public:
   RecursorControlParser()
   {
   }
-  static void nop(void){}
+  static void nop(void) {}
   typedef void func_t(void);
   std::string getAnswer(const std::string& question, func_t** func);
 };
 
-enum class StatComponent { API, Carbon, RecControl, SNMP };
+enum class StatComponent
+{
+  API,
+  Carbon,
+  RecControl,
+  SNMP
+};
 
 std::map<std::string, std::string> getAllStatsMap(StatComponent component);
 extern pthread_mutex_t g_carbon_config_lock;
-std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
-std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
-std::vector<std::pair<DNSName, uint16_t> >* pleaseGetBogusQueryRing();
+std::vector<std::pair<DNSName, uint16_t>>* pleaseGetQueryRing();
+std::vector<std::pair<DNSName, uint16_t>>* pleaseGetServfailQueryRing();
+std::vector<std::pair<DNSName, uint16_t>>* pleaseGetBogusQueryRing();
 std::vector<ComboAddress>* pleaseGetRemotes();
 std::vector<ComboAddress>* pleaseGetServfailRemotes();
 std::vector<ComboAddress>* pleaseGetBogusRemotes();

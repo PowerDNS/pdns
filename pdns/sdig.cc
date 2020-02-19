@@ -173,9 +173,11 @@ void printReply(const string& reply, bool showflags, bool hidesoadetails)
                << ", family = " << reso.scope.getNetwork().sin4.sin_family
                << endl;
         }
-      } else if (iter->first == EDNSOptionCode::PADDING) {
+      }
+      else if (iter->first == EDNSOptionCode::PADDING) {
         cerr << "EDNS Padding size: " << (iter->second.size()) << endl;
-      } else {
+      }
+      else {
         cerr << "Have unknown option " << (int)iter->first << endl;
       }
     }
@@ -248,8 +250,8 @@ try {
         xpfdst = argv[++i];
       }
       if (strcmp(argv[i], "class") == 0) {
-        if (argc < i+2) {
-          cerr << "class needs an argument"<<endl;
+        if (argc < i + 2) {
+          cerr << "class needs an argument" << endl;
           exit(EXIT_FAILURE);
         }
         qclass = atoi(argv[++i]);
@@ -261,9 +263,11 @@ try {
   ComboAddress dest;
   if (*argv[1] == 'h') {
     doh = true;
-  } else if(strcmp(argv[1], "stdin") == 0) {
+  }
+  else if (strcmp(argv[1], "stdin") == 0) {
     fromstdin = true;
-  } else {
+  }
+  else {
     dest = ComboAddress(argv[1] + (*argv[1] == '@'), atoi(argv[2]));
   }
 
@@ -281,7 +285,8 @@ try {
 
       questions.push_back(make_pair(fields.first, fields.second));
     }
-  } else {
+  }
+  else {
     questions.push_back(make_pair(name, type));
   }
 
@@ -300,11 +305,13 @@ try {
 #else
     throw PDNSException("please link sdig against libcurl for DoH support");
 #endif
-  } else if (fromstdin) {
+  }
+  else if (fromstdin) {
     std::istreambuf_iterator<char> begin(std::cin), end;
     reply = string(begin, end);
     printReply(reply, showflags, hidesoadetails);
-  } else if (tcp) {
+  }
+  else if (tcp) {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.connect(dest);
     for (const auto& it : questions) {
@@ -313,14 +320,14 @@ try {
         xpfversion, xpfproto, xpfsrc, xpfdst, qclass);
 
       uint16_t len = htons(packet.size());
-      if (sock.write((const char *)&len, 2) != 2)
+      if (sock.write((const char*)&len, 2) != 2)
         throw PDNSException("tcp write failed");
       string question(packet.begin(), packet.end());
       sock.writen(question);
     }
     for (size_t i = 0; i < questions.size(); i++) {
       uint16_t len;
-      if (sock.read((char *)&len, 2) != 2)
+      if (sock.read((char*)&len, 2) != 2)
         throw PDNSException("tcp read failed");
 
       len = ntohs(len);
@@ -338,7 +345,8 @@ try {
       delete[] creply;
       printReply(reply, showflags, hidesoadetails);
     }
-  } else // udp
+  }
+  else // udp
   {
     vector<uint8_t> packet;
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
@@ -354,9 +362,10 @@ try {
     sock.recvFrom(reply, dest);
     printReply(reply, showflags, hidesoadetails);
   }
-
-} catch (std::exception& e) {
+}
+catch (std::exception& e) {
   cerr << "Fatal: " << e.what() << endl;
-} catch (PDNSException& e) {
+}
+catch (PDNSException& e) {
   cerr << "Fatal: " << e.reason << endl;
 }

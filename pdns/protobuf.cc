@@ -8,7 +8,7 @@
 void DNSProtoBufMessage::setType(DNSProtoBufMessageType type)
 {
 #ifdef HAVE_PROTOBUF
-  switch(type) {
+  switch (type) {
   case DNSProtoBufMessage::DNSProtoBufMessageType::Query:
     d_message.set_type(PBDNSMessage_Type_DNSQueryType);
     break;
@@ -22,7 +22,7 @@ void DNSProtoBufMessage::setType(DNSProtoBufMessageType type)
     d_message.set_type(PBDNSMessage_Type_DNSIncomingResponseType);
     break;
   default:
-    throw std::runtime_error("Unsupported protobuf type: "+std::to_string(type));
+    throw std::runtime_error("Unsupported protobuf type: " + std::to_string(type));
   }
 #endif /* HAVE_PROTOBUF */
 }
@@ -37,7 +37,7 @@ void DNSProtoBufMessage::setQuestion(const DNSName& qname, uint16_t qtype, uint1
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSQuestion* question = d_message.mutable_question();
   if (question) {
-    if(!qname.empty())
+    if (!qname.empty())
       question->set_qname(qname.toString());
     question->set_qtype(qtype);
     question->set_qclass(qclass);
@@ -146,7 +146,7 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, 
   if (len < sizeof(struct dnsheader))
     return;
 
-  const struct dnsheader* dh = (const struct dnsheader*) packet;
+  const struct dnsheader* dh = (const struct dnsheader*)packet;
 
   if (ntohs(dh->ancount) == 0)
     return;
@@ -176,12 +176,12 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, 
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -201,7 +201,8 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, 
         rr->set_ttl(ah.d_ttl);
         rr->set_rdata(blob.c_str(), blob.length());
       }
-    } else if (ah.d_type == QType::CNAME && includeCNAME) {
+    }
+    else if (ah.d_type == QType::CNAME && includeCNAME) {
       PBDNSMessage_DNSResponse_DNSRR* rr = response->add_rrs();
       if (rr) {
         rr->set_name(rrname.toString());
@@ -363,7 +364,6 @@ void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddre
     setRequestorPort(requestor->getPort());
   }
 }
-
 
 DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes)
 {

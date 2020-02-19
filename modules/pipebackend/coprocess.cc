@@ -40,15 +40,18 @@
 #include <boost/algorithm/string.hpp>
 #include <vector>
 
-CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd): d_infd(infd), d_outfd(outfd), d_timeout(timeout)
+CoProcess::CoProcess(const string& command, int timeout, int infd, int outfd) :
+  d_infd(infd),
+  d_outfd(outfd),
+  d_timeout(timeout)
 {
   split(d_params, command, is_any_of(" "));
 
-  d_argv.resize(d_params.size()+1);
-  d_argv[d_params.size()]=nullptr;
+  d_argv.resize(d_params.size() + 1);
+  d_argv[d_params.size()] = nullptr;
 
   for (size_t n = 0; n < d_params.size(); n++) {
-    d_argv[n]=d_params[n].c_str();
+    d_argv[n] = d_params[n].c_str();
   }
   d_pid = 0;
 }
@@ -57,15 +60,15 @@ void CoProcess::launch()
 {
   signal(SIGPIPE, SIG_IGN);
 
-  if(access(d_argv[0],X_OK)) // check before fork so we can throw
-    throw PDNSException("Command '"+string(d_argv[0])+"' cannot be executed: "+stringerror());
+  if (access(d_argv[0], X_OK)) // check before fork so we can throw
+    throw PDNSException("Command '" + string(d_argv[0]) + "' cannot be executed: " + stringerror());
 
-  if(pipe(d_fd1)<0 || pipe(d_fd2)<0)
-    throw PDNSException("Unable to open pipe for coprocess: "+string(strerror(errno)));
+  if (pipe(d_fd1) < 0 || pipe(d_fd2) < 0)
+    throw PDNSException("Unable to open pipe for coprocess: " + string(strerror(errno)));
 
-  if((d_pid=fork())<0)
-    throw PDNSException("Unable to fork for coprocess: "+stringerror());
-  else if(d_pid>0) { // parent speaking
+  if ((d_pid = fork()) < 0)
+    throw PDNSException("Unable to fork for coprocess: " + stringerror());
+  else if (d_pid > 0) { // parent speaking
     // no need to keep this around
     d_argv.clear();
     close(d_fd1[0]);
@@ -77,23 +80,23 @@ void CoProcess::launch()
       setNonBlocking(d_fd2[0]);
     }
   }
-  else if(!d_pid) { // child
+  else if (!d_pid) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
     close(d_fd1[1]);
     close(d_fd2[0]);
 
-    if(d_fd1[0]!= d_infd) {
+    if (d_fd1[0] != d_infd) {
       dup2(d_fd1[0], d_infd);
       close(d_fd1[0]);
     }
 
-    if(d_fd2[1]!= d_outfd) {
+    if (d_fd2[1] != d_outfd) {
       dup2(d_fd2[1], d_outfd);
       close(d_fd2[1]);
     }
 
     // stdin & stdout are now connected, fire up our coprocess!
-    if(execv(d_argv[0], const_cast<char * const *>(d_argv.data()))<0) // now what
+    if (execv(d_argv[0], const_cast<char* const*>(d_argv.data())) < 0) // now what
       exit(123);
 
     /* not a lot we can do here. We shouldn't return because that will leave a forked process around.
@@ -104,13 +107,13 @@ void CoProcess::launch()
 CoProcess::~CoProcess()
 {
   int status;
-  if(d_pid){
-    if(!waitpid(d_pid, &status, WNOHANG)) {
+  if (d_pid) {
+    if (!waitpid(d_pid, &status, WNOHANG)) {
       kill(d_pid, 9);
       waitpid(d_pid, &status, 0);
     }
   }
-  
+
   close(d_fd1[1]);
   close(d_fd2[0]);
 }
@@ -118,47 +121,47 @@ CoProcess::~CoProcess()
 void CoProcess::checkStatus()
 {
   int status;
-  int ret=waitpid(d_pid, &status, WNOHANG);
-  if(ret<0) 
-    throw PDNSException("Unable to ascertain status of coprocess "+itoa(d_pid)+" from "+itoa(getpid())+": "+string(strerror(errno)));
-  else if(ret) {
-    if(WIFEXITED(status)) {
-      int exitStatus=WEXITSTATUS(status);
-      throw PDNSException("Coprocess exited with code "+itoa(exitStatus));
+  int ret = waitpid(d_pid, &status, WNOHANG);
+  if (ret < 0)
+    throw PDNSException("Unable to ascertain status of coprocess " + itoa(d_pid) + " from " + itoa(getpid()) + ": " + string(strerror(errno)));
+  else if (ret) {
+    if (WIFEXITED(status)) {
+      int exitStatus = WEXITSTATUS(status);
+      throw PDNSException("Coprocess exited with code " + itoa(exitStatus));
     }
-    if(WIFSIGNALED(status)) {
-      int sig=WTERMSIG(status);
-      string reason="CoProcess died on receiving signal "+itoa(sig);
+    if (WIFSIGNALED(status)) {
+      int sig = WTERMSIG(status);
+      string reason = "CoProcess died on receiving signal " + itoa(sig);
 #ifdef WCOREDUMP
-      if(WCOREDUMP(status)) 
-        reason+=". Dumped core";
+      if (WCOREDUMP(status))
+        reason += ". Dumped core";
 #endif
-      
+
       throw PDNSException(reason);
     }
   }
 }
 
-void CoProcess::send(const string &snd)
+void CoProcess::send(const string& snd)
 {
   checkStatus();
   string line(snd);
-  line.append(1,'\n');
-  
-  unsigned int sent=0;
+  line.append(1, '\n');
+
+  unsigned int sent = 0;
   int bytes;
 
   // writen routine - socket may not accept al data in one go
-  while(sent<line.size()) {
-    bytes=write(d_fd1[1],line.c_str()+sent,line.length()-sent);
-    if(bytes<0)
-      throw PDNSException("Writing to coprocess failed: "+string(strerror(errno)));
+  while (sent < line.size()) {
+    bytes = write(d_fd1[1], line.c_str() + sent, line.length() - sent);
+    if (bytes < 0)
+      throw PDNSException("Writing to coprocess failed: " + string(strerror(errno)));
 
-    sent+=bytes;
+    sent += bytes;
   }
 }
 
-void CoProcess::receive(string &received)
+void CoProcess::receive(string& received)
 {
   received.clear();
 
@@ -184,18 +187,19 @@ void CoProcess::receive(string &received)
         continue;
       }
       if (saved == EAGAIN) {
-        if(d_timeout) {
+        if (d_timeout) {
           int ret = waitForData(d_fd2[0], 0, d_timeout * 1000);
-          if(ret<0)
-            throw PDNSException("Error waiting on data from coprocess: "+string(strerror(saved)));
-          if(!ret)
+          if (ret < 0)
+            throw PDNSException("Error waiting on data from coprocess: " + string(strerror(saved)));
+          if (!ret)
             throw PDNSException("Timeout waiting for data from coprocess");
         }
       }
       else {
         throw PDNSException("Error reading from child's pipe:" + string(strerror(saved)));
       }
-    } else {
+    }
+    else {
       received.resize(existingSize + static_cast<size_t>(got));
     }
   }
@@ -209,28 +213,27 @@ void CoProcess::receive(string &received)
   trim_right(received);
 }
 
-void CoProcess::sendReceive(const string &snd, string &rcv)
+void CoProcess::sendReceive(const string& snd, string& rcv)
 {
   checkStatus();
   send(snd);
   receive(rcv);
-
 }
 
-UnixRemote::UnixRemote(const string& path, int timeout) 
+UnixRemote::UnixRemote(const string& path, int timeout)
 {
   d_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if(d_fd < 0)
-    throw PDNSException("Unable to create UNIX domain socket: "+string(strerror(errno)));
+  if (d_fd < 0)
+    throw PDNSException("Unable to create UNIX domain socket: " + string(strerror(errno)));
 
   struct sockaddr_un remote;
   if (makeUNsockaddr(path, &remote))
-    throw PDNSException("Unable to create UNIX domain socket: Path '"+path+"' is not a valid UNIX socket path.");
+    throw PDNSException("Unable to create UNIX domain socket: Path '" + path + "' is not a valid UNIX socket path.");
 
   // fcntl(fd, F_SETFL, O_NONBLOCK, &sock);
 
-  if(connect(d_fd, (struct sockaddr*)&remote, sizeof(remote)) < 0)
-    unixDie("Unable to connect to remote '"+path+"' using UNIX domain socket");
+  if (connect(d_fd, (struct sockaddr*)&remote, sizeof(remote)) < 0)
+    unixDie("Unable to connect to remote '" + path + "' using UNIX domain socket");
 
   d_fp = fdopen(d_fd, "r");
 }
@@ -254,7 +257,7 @@ void UnixRemote::receive(string& line)
   trim_right(line);
 }
 
-void UnixRemote::sendReceive(const string &snd, string &rcv)
+void UnixRemote::sendReceive(const string& snd, string& rcv)
 {
   //  checkStatus();
   send(snd);
@@ -264,12 +267,11 @@ void UnixRemote::sendReceive(const string &snd, string &rcv)
 bool isUnixSocket(const string& fname)
 {
   struct stat st;
-  if(stat(fname.c_str(), &st) < 0)
+  if (stat(fname.c_str(), &st) < 0)
     return false; // not a unix socket in any case ;-)
 
   return (st.st_mode & S_IFSOCK) == S_IFSOCK;
 }
-
 
 #ifdef TESTDRIVER
 main()
@@ -278,11 +280,10 @@ main()
     CoProcess cp("./irc.pl");
     string reply;
     cp.sendReceive("www.trilab.com", reply);
-    cout<<"Answered: '"<<reply<<"'"<<endl;
+    cout << "Answered: '" << reply << "'" << endl;
   }
-  catch(PDNSException &ae) {
-    cerr<<ae.reason<<endl;
+  catch (PDNSException& ae) {
+    cerr << ae.reason << endl;
   }
-  
 }
 #endif

@@ -51,7 +51,8 @@ static enum DNS_RNG {
   RNG_ARC4RANDOM,
   RNG_URANDOM,
   RNG_KISS,
-} chosen_rng = RNG_UNINITIALIZED;
+} chosen_rng
+  = RNG_UNINITIALIZED;
 
 static int urandom_fd = -1;
 
@@ -71,17 +72,17 @@ kiss_init(unsigned int seed)
 static unsigned int
 kiss_rand(void)
 {
-  kiss_z = 36969 * (kiss_z&65535) + (kiss_z>>16);
-  kiss_w = 18000 * (kiss_w&65535) + (kiss_w>>16);
+  kiss_z = 36969 * (kiss_z & 65535) + (kiss_z >> 16);
+  kiss_w = 18000 * (kiss_w & 65535) + (kiss_w >> 16);
   kiss_jcong = 69069 * kiss_jcong + 1234567;
-  kiss_jsr^=(kiss_jsr<<13); /* <<17, >>13 gives cycle length 2^28.2 max */
-  kiss_jsr^=(kiss_jsr>>17); /* <<13, >>17 gives maximal cycle length */
-  kiss_jsr^=(kiss_jsr<<5);
-  return (((kiss_z<<16) + kiss_w) ^ kiss_jcong) + kiss_jsr;
+  kiss_jsr ^= (kiss_jsr << 13); /* <<17, >>13 gives cycle length 2^28.2 max */
+  kiss_jsr ^= (kiss_jsr >> 17); /* <<13, >>17 gives maximal cycle length */
+  kiss_jsr ^= (kiss_jsr << 5);
+  return (((kiss_z << 16) + kiss_w) ^ kiss_jcong) + kiss_jsr;
 }
 #endif
 
-static void dns_random_setup(bool force=false)
+static void dns_random_setup(bool force = false)
 {
   string rdev;
   string rng;
@@ -99,66 +100,73 @@ static void dns_random_setup(bool force=false)
   rng = ::arg()["rng"];
   rdev = ::arg()["entropy-source"];
   if (rng == "auto") {
-# if defined(HAVE_GETRANDOM)
+#if defined(HAVE_GETRANDOM)
     chosen_rng = RNG_GETRANDOM;
-# elif defined(HAVE_ARC4RANDOM)
+#elif defined(HAVE_ARC4RANDOM)
     chosen_rng = RNG_ARC4RANDOM;
-# elif defined(HAVE_RANDOMBYTES_STIR)
+#elif defined(HAVE_RANDOMBYTES_STIR)
     chosen_rng = RNG_SODIUM;
-# elif defined(HAVE_RAND_BYTES)
+#elif defined(HAVE_RAND_BYTES)
     chosen_rng = RNG_OPENSSL;
-# else
+#else
     chosen_rng = RNG_URANDOM;
-# endif
-# if defined(HAVE_RANDOMBYTES_STIR)
-  } else if (rng == "sodium") {
+#endif
+#if defined(HAVE_RANDOMBYTES_STIR)
+  }
+  else if (rng == "sodium") {
     chosen_rng = RNG_SODIUM;
-# endif
-# if defined(HAVE_RAND_BYTES)
-  } else if (rng == "openssl") {
+#endif
+#if defined(HAVE_RAND_BYTES)
+  }
+  else if (rng == "openssl") {
     chosen_rng = RNG_OPENSSL;
-# endif
-# if defined(HAVE_GETRANDOM)
-  } else if (rng == "getrandom") {
+#endif
+#if defined(HAVE_GETRANDOM)
+  }
+  else if (rng == "getrandom") {
     chosen_rng = RNG_GETRANDOM;
-# endif
-# if defined(HAVE_ARC4RANDOM)
-  } else if (rng == "arc4random") {
+#endif
+#if defined(HAVE_ARC4RANDOM)
+  }
+  else if (rng == "arc4random") {
     chosen_rng = RNG_ARC4RANDOM;
-# endif
-  } else if (rng == "urandom") {
+#endif
+  }
+  else if (rng == "urandom") {
     chosen_rng = RNG_URANDOM;
 #if defined(HAVE_KISS_RNG)
-  } else if (rng == "kiss") {
+  }
+  else if (rng == "kiss") {
     chosen_rng = RNG_KISS;
-    g_log<<Logger::Warning<<"kiss rng should not be used in production environment"<<std::endl;
+    g_log << Logger::Warning << "kiss rng should not be used in production environment" << std::endl;
 #endif
-  } else {
+  }
+  else {
     throw std::runtime_error("Unsupported rng '" + rng + "'");
   }
 
-# if defined(HAVE_RANDOMBYTES_STIR)
+#if defined(HAVE_RANDOMBYTES_STIR)
   if (chosen_rng == RNG_SODIUM) {
     if (sodium_init() == -1)
       throw std::runtime_error("Unable to initialize sodium crypto library");
     /*  make sure it's set up */
     randombytes_stir();
   }
-# endif
+#endif
 
-# if defined(HAVE_GETRANDOM)
+#if defined(HAVE_GETRANDOM)
   if (chosen_rng == RNG_GETRANDOM) {
     char buf[1];
     // some systems define getrandom but it does not really work, e.g. because it's
     // not present in kernel.
     if (getrandom(buf, sizeof(buf), 0) == -1 && errno != EINTR) {
-       g_log<<Logger::Warning<<"getrandom() failed: "<<stringerror()<<", falling back to " + rdev<<std::endl;
-       chosen_rng = RNG_URANDOM;
+      g_log << Logger::Warning << "getrandom() failed: " << stringerror() << ", falling back to " + rdev << std::endl;
+      chosen_rng = RNG_URANDOM;
     }
   }
-# endif
+#endif
 
-# if defined(HAVE_RAND_BYTES)
+#if defined(HAVE_RAND_BYTES)
   if (chosen_rng == RNG_OPENSSL) {
     int ret;
     unsigned char buf[1];
@@ -167,7 +175,7 @@ static void dns_random_setup(bool force=false)
     if (ret == 0)
       throw std::runtime_error("Openssl RNG was not seeded");
   }
-# endif
+#endif
 #endif /* USE_URANDOM_ONLY */
   if (chosen_rng == RNG_URANDOM) {
     urandom_fd = open(rdev.c_str(), O_RDONLY);
@@ -190,7 +198,8 @@ static void dns_random_setup(bool force=false)
 #endif
 }
 
-void dns_random_init(const string& data __attribute__((unused)), bool force) {
+void dns_random_init(const string& data __attribute__((unused)), bool force)
+{
   dns_random_setup(force);
   (void)dns_random(1);
   // init should occur already in dns_random_setup
@@ -201,23 +210,21 @@ void dns_random_init(const string& data __attribute__((unused)), bool force) {
     return;
   if (data.size() != 16)
     throw std::runtime_error("invalid seed");
-  seed = (data[0] + (data[1]<<8) + (data[2]<<16) + (data[3]<<24)) ^
-         (data[4] + (data[5]<<8) + (data[6]<<16) + (data[7]<<24)) ^
-         (data[8] + (data[9]<<8) + (data[10]<<16) + (data[11]<<24)) ^
-         (data[12] + (data[13]<<8) + (data[14]<<16) + (data[15]<<24));
+  seed = (data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24)) ^ (data[4] + (data[5] << 8) + (data[6] << 16) + (data[7] << 24)) ^ (data[8] + (data[9] << 8) + (data[10] << 16) + (data[11] << 24)) ^ (data[12] + (data[13] << 8) + (data[14] << 16) + (data[15] << 24));
   kiss_init(seed);
 #endif
 }
 
 /* Parts of this code come from arc4random_uniform */
-uint32_t dns_random(uint32_t upper_bound) {
+uint32_t dns_random(uint32_t upper_bound)
+{
   if (chosen_rng == RNG_UNINITIALIZED)
     dns_random_setup();
 
   unsigned int min;
   if (upper_bound < 2)
     return 0;
-  /* To avoid "modulo bias" for some methods, calculate
+    /* To avoid "modulo bias" for some methods, calculate
      minimum acceptable value for random number to improve
      uniformity.
 
@@ -236,7 +243,7 @@ uint32_t dns_random(uint32_t upper_bound) {
   }
 #endif
 
-  switch(chosen_rng) {
+  switch (chosen_rng) {
   case RNG_UNINITIALIZED:
     throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
   case RNG_SODIUM:
@@ -247,37 +254,35 @@ uint32_t dns_random(uint32_t upper_bound) {
 #endif /* RND_SODIUM */
   case RNG_OPENSSL: {
 #if defined(HAVE_RAND_BYTES) && !defined(USE_URANDOM_ONLY)
-      uint32_t num = 0;
-      do {
-        if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1)
-          throw std::runtime_error("Openssl RNG was not seeded");
-      }
-      while(num < min);
+    uint32_t num = 0;
+    do {
+      if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1)
+        throw std::runtime_error("Openssl RNG was not seeded");
+    } while (num < min);
 
-      return num % upper_bound;
+    return num % upper_bound;
 #else
-      throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif /* RNG_OPENSSL */
-     }
+  }
   case RNG_GETRANDOM: {
 #if defined(HAVE_GETRANDOM) && !defined(USE_URANDOM_ONLY)
-      uint32_t num = 0;
-      do {
-        auto got = getrandom(&num, sizeof(num), 0);
-        if (got == -1 && errno == EINTR) {
-          continue;
-        }
-        if (got != sizeof(num)) {
-          throw std::runtime_error("getrandom() failed: " + stringerror());
-        }
+    uint32_t num = 0;
+    do {
+      auto got = getrandom(&num, sizeof(num), 0);
+      if (got == -1 && errno == EINTR) {
+        continue;
       }
-      while(num < min);
+      if (got != sizeof(num)) {
+        throw std::runtime_error("getrandom() failed: " + stringerror());
+      }
+    } while (num < min);
 
-      return num % upper_bound;
+    return num % upper_bound;
 #else
-      throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif
-      }
+  }
   case RNG_ARC4RANDOM:
 #if defined(HAVE_ARC4RANDOM) && !defined(USE_URANDOM_ONLY)
     return arc4random_uniform(upper_bound);
@@ -285,41 +290,39 @@ uint32_t dns_random(uint32_t upper_bound) {
     throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif
   case RNG_URANDOM: {
-      uint32_t num = 0;
-      size_t attempts = 5;
-      do {
-        ssize_t got = read(urandom_fd, &num, sizeof(num));
-        if (got < 0) {
-          if (errno == EINTR) {
-            continue;
-          }
-
-          (void)close(urandom_fd);
-          throw std::runtime_error("Cannot read random device");
-        }
-        else if (static_cast<size_t>(got) != sizeof(num)) {
-          /* short read, let's retry */
-          if (attempts == 0) {
-            throw std::runtime_error("Too many short reads on random device");
-          }
-          attempts--;
+    uint32_t num = 0;
+    size_t attempts = 5;
+    do {
+      ssize_t got = read(urandom_fd, &num, sizeof(num));
+      if (got < 0) {
+        if (errno == EINTR) {
           continue;
         }
-      }
-      while(num < min);
 
-      return num % upper_bound;
-    }
+        (void)close(urandom_fd);
+        throw std::runtime_error("Cannot read random device");
+      }
+      else if (static_cast<size_t>(got) != sizeof(num)) {
+        /* short read, let's retry */
+        if (attempts == 0) {
+          throw std::runtime_error("Too many short reads on random device");
+        }
+        attempts--;
+        continue;
+      }
+    } while (num < min);
+
+    return num % upper_bound;
+  }
 #if defined(HAVE_KISS_RNG)
   case RNG_KISS: {
-      uint32_t num = 0;
-      do {
-        num = kiss_rand();
-      }
-      while(num < min);
+    uint32_t num = 0;
+    do {
+      num = kiss_rand();
+    } while (num < min);
 
-      return num % upper_bound;
-    }
+    return num % upper_bound;
+  }
 #endif
   default:
     throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached

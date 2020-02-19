@@ -22,49 +22,49 @@
 #include "ldapauthenticator.hh"
 
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_DEFAULT_FLAGS
-#define krb5_get_init_creds_opt_set_default_flags( a, b, c, d ) /* This does not exist with MIT Kerberos */
+#define krb5_get_init_creds_opt_set_default_flags(a, b, c, d) /* This does not exist with MIT Kerberos */
 #endif
 
 class LdapSimpleAuthenticator : public LdapAuthenticator
 {
-    std::string d_binddn;
-    std::string d_bindpw;
-    int d_timeout;
-    std::string d_lastError;
-  
-    void fillLastError( LDAP *conn, int code );
-  
-  public:
-    LdapSimpleAuthenticator( const std::string &dn, const std::string &pw, int timeout );
-    virtual bool authenticate( LDAP *conn );
-    virtual std::string getError() const;
+  std::string d_binddn;
+  std::string d_bindpw;
+  int d_timeout;
+  std::string d_lastError;
+
+  void fillLastError(LDAP* conn, int code);
+
+public:
+  LdapSimpleAuthenticator(const std::string& dn, const std::string& pw, int timeout);
+  virtual bool authenticate(LDAP* conn);
+  virtual std::string getError() const;
 };
 
 class LdapGssapiAuthenticator : public LdapAuthenticator
 {
-    std::string d_logPrefix;
-    std::string d_keytabFile;
-    std::string d_cCacheFile;
-    int d_timeout;
-    std::string d_lastError;
+  std::string d_logPrefix;
+  std::string d_keytabFile;
+  std::string d_cCacheFile;
+  int d_timeout;
+  std::string d_lastError;
 
-    krb5_context d_context;
-    krb5_ccache d_ccache;
-    
-    struct SaslDefaults {
-      std::string mech;
-      std::string realm;
-      std::string authcid;
-      std::string authzid;
-    };
-  
-    int attemptAuth( LDAP *conn );
-    int updateTgt();
-  
-  public:
-    LdapGssapiAuthenticator( const std::string &keytab, const std::string &credsCache, int timeout );
-    ~LdapGssapiAuthenticator();
-    virtual bool authenticate( LDAP *conn );
-    virtual std::string getError() const;
+  krb5_context d_context;
+  krb5_ccache d_ccache;
+
+  struct SaslDefaults
+  {
+    std::string mech;
+    std::string realm;
+    std::string authcid;
+    std::string authzid;
+  };
+
+  int attemptAuth(LDAP* conn);
+  int updateTgt();
+
+public:
+  LdapGssapiAuthenticator(const std::string& keytab, const std::string& credsCache, int timeout);
+  ~LdapGssapiAuthenticator();
+  virtual bool authenticate(LDAP* conn);
+  virtual std::string getError() const;
 };
-

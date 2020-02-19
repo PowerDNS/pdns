@@ -199,7 +199,8 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
 
 #ifdef HAVE_LMDB
-BOOST_AUTO_TEST_CASE(test_LMDB) {
+BOOST_AUTO_TEST_CASE(test_LMDB)
+{
 
   DNSName qname("powerdns.com.");
   DNSName plaintextDomain("powerdns.org.");
@@ -251,7 +252,8 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 #endif /* HAVE_LMDB */
 
 #ifdef HAVE_CDB
-BOOST_AUTO_TEST_CASE(test_CDB) {
+BOOST_AUTO_TEST_CASE(test_CDB)
+{
 
   DNSName qname("powerdns.com.");
   DNSName plaintextDomain("powerdns.org.");

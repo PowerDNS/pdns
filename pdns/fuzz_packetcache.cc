@@ -25,7 +25,8 @@
 
 StatBag S;
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
 
   if (size > std::numeric_limits<uint16_t>::max()) {
     return 0;
@@ -37,9 +38,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   try {
     PacketCache::canHashPacket(input);
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
   }
-  catch(const PDNSException& e) {
+  catch (const PDNSException& e) {
   }
 
   /* recursor's version */
@@ -48,9 +49,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     uint16_t ecsEnd = 0;
     PacketCache::canHashPacket(input, &ecsBegin, &ecsEnd);
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
   }
-  catch(const PDNSException& e) {
+  catch (const PDNSException& e) {
   }
 
   return 0;

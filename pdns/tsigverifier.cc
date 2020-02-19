@@ -5,7 +5,7 @@
 
 bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
 {
-  if(d_tt.name.empty()) { // TSIG verify message
+  if (d_tt.name.empty()) { // TSIG verify message
     return true;
   }
 
@@ -21,15 +21,15 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
     d_tsigPos += mdp.getTSIGPos();
   }
 
-  for(const auto& answer :  mdp.d_answers) {
+  for (const auto& answer : mdp.d_answers) {
     if (answer.first.d_type == QType::SOA) {
       // A SOA is either the first or the last record. We need to check TSIG if that's the case.
       checkTSIG = true;
     }
 
-    if(answer.first.d_type == QType::TSIG) {
+    if (answer.first.d_type == QType::TSIG) {
       shared_ptr<TSIGRecordContent> trc = getRR<TSIGRecordContent>(answer.first);
-      if(trc) {
+      if (trc) {
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;
         d_trc.d_fudge = trc->d_fudge;
@@ -40,25 +40,25 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
     }
   }
 
-  if(!checkTSIG && d_nonSignedMessages > 99) { // We're allowed to get 100 digest without a TSIG.
+  if (!checkTSIG && d_nonSignedMessages > 99) { // We're allowed to get 100 digest without a TSIG.
     throw std::runtime_error("No TSIG message received in last 100 messages of AXFR transfer.");
   }
 
   if (checkTSIG) {
     if (theirMac.empty()) {
-      throw std::runtime_error("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tt.name.toLogString()+"'");
+      throw std::runtime_error("No TSIG on AXFR response from " + d_remote.toStringWithPort() + " , should be signed with TSIG key '" + d_tt.name.toLogString() + "'");
     }
 
     try {
       if (!d_prevMac.empty()) {
-        validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_prevMac, theirMac, true, d_signData.size()-data.size());
+        validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_prevMac, theirMac, true, d_signData.size() - data.size());
       }
       else {
         validateTSIG(d_signData, d_tsigPos, d_tt, d_trc, d_trc.d_mac, theirMac, false);
       }
     }
-    catch(const std::runtime_error& err) {
-      throw std::runtime_error("Error while validating TSIG signature on AXFR response from "+d_remote.toStringWithPort()+":"+err.what());
+    catch (const std::runtime_error& err) {
+      throw std::runtime_error("Error while validating TSIG signature on AXFR response from " + d_remote.toStringWithPort() + ":" + err.what());
     }
 
     // Reset and store some values for the next chunks.

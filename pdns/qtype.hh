@@ -38,26 +38,25 @@
 
 */
 
-
-
 class QType
 {
 public:
   QType(); //!< Naked constructor
   explicit QType(uint16_t); //!< convert from an integer to a QType
-  QType(const QType& orig) : code(orig.code)
+  QType(const QType& orig) :
+    code(orig.code)
   {
   }
-  QType &operator=(uint16_t);  //!< Assigns integers to us
-  QType &operator=(const char *); //!< Assigns strings to us
-  QType &operator=(const string &); //!< Assigns strings to us
-  QType &operator=(const QType&rhs)  //!< Assigns strings to us
+  QType& operator=(uint16_t); //!< Assigns integers to us
+  QType& operator=(const char*); //!< Assigns strings to us
+  QType& operator=(const string&); //!< Assigns strings to us
+  QType& operator=(const QType& rhs) //!< Assigns strings to us
   {
-    code=rhs.code;
+    code = rhs.code;
     return *this;
   }
 
-  bool operator<(const QType& rhs) const 
+  bool operator<(const QType& rhs) const
   {
     return code < rhs.code;
   }
@@ -67,102 +66,111 @@ public:
   bool isSupportedType();
   bool isMetadataType();
 
-  static int chartocode(const char *p); //!< convert a character string to a code
-  enum typeenum : uint16_t {
-    ENT=0,
-    A=1,
-    NS=2,
-    CNAME=5,
-    SOA=6,
-    MB=7,
-    MG=8,
-    MR=9,
-    PTR=12,
-    HINFO=13,
-    MINFO=14,
-    MX=15,
-    TXT=16,
-    RP=17,
-    AFSDB=18,
-    SIG=24,
-    KEY=25,
-    AAAA=28,
-    LOC=29,
-    SRV=33,
-    NAPTR=35,
-    KX=36,
-    CERT=37,
-    A6=38,
-    DNAME=39,
-    OPT=41,
-    DS=43,
-    SSHFP=44,
-    IPSECKEY=45,
-    RRSIG=46,
-    NSEC=47,
-    DNSKEY=48,
-    DHCID=49,
-    NSEC3=50,
-    NSEC3PARAM=51,
-    TLSA=52,
-    SMIMEA=53,
-    RKEY=57,
-    CDS=59,
-    CDNSKEY=60,
-    OPENPGPKEY=61,
-    SPF=99,
-    EUI48=108,
-    EUI64=109,
-    TKEY=249,
-    TSIG=250,
-    IXFR=251,
-    AXFR=252,
-    MAILB=253,
-    MAILA=254,
-    ANY=255,
-    URI=256,
-    CAA=257,
-    DLV=32769,
-    ADDR=65400,
-    ALIAS=65401,
-    LUA=65402
+  static int chartocode(const char* p); //!< convert a character string to a code
+  enum typeenum : uint16_t
+  {
+    ENT = 0,
+    A = 1,
+    NS = 2,
+    CNAME = 5,
+    SOA = 6,
+    MB = 7,
+    MG = 8,
+    MR = 9,
+    PTR = 12,
+    HINFO = 13,
+    MINFO = 14,
+    MX = 15,
+    TXT = 16,
+    RP = 17,
+    AFSDB = 18,
+    SIG = 24,
+    KEY = 25,
+    AAAA = 28,
+    LOC = 29,
+    SRV = 33,
+    NAPTR = 35,
+    KX = 36,
+    CERT = 37,
+    A6 = 38,
+    DNAME = 39,
+    OPT = 41,
+    DS = 43,
+    SSHFP = 44,
+    IPSECKEY = 45,
+    RRSIG = 46,
+    NSEC = 47,
+    DNSKEY = 48,
+    DHCID = 49,
+    NSEC3 = 50,
+    NSEC3PARAM = 51,
+    TLSA = 52,
+    SMIMEA = 53,
+    RKEY = 57,
+    CDS = 59,
+    CDNSKEY = 60,
+    OPENPGPKEY = 61,
+    SPF = 99,
+    EUI48 = 108,
+    EUI64 = 109,
+    TKEY = 249,
+    TSIG = 250,
+    IXFR = 251,
+    AXFR = 252,
+    MAILB = 253,
+    MAILA = 254,
+    ANY = 255,
+    URI = 256,
+    CAA = 257,
+    DLV = 32769,
+    ADDR = 65400,
+    ALIAS = 65401,
+    LUA = 65402
   };
 
-  QType(typeenum orig) : code(orig)
+  QType(typeenum orig) :
+    code(orig)
   {
   }
 
-  typedef pair<string,uint16_t> namenum;
+  typedef pair<string, uint16_t> namenum;
   static vector<namenum> names;
 
-  inline bool operator==(const QType &comp) const {
-    return(comp.code==code);
+  inline bool operator==(const QType& comp) const
+  {
+    return (comp.code == code);
   }
 
-  inline bool operator!=(const QType &comp) const {
-    return(comp.code!=code);
+  inline bool operator!=(const QType& comp) const
+  {
+    return (comp.code != code);
   }
 
-  inline bool operator==(QType::typeenum comp) const {
-    return(comp==code);
+  inline bool operator==(QType::typeenum comp) const
+  {
+    return (comp == code);
   }
 
-  inline bool operator!=(QType::typeenum comp) const {
-    return(comp!=code);
+  inline bool operator!=(QType::typeenum comp) const
+  {
+    return (comp != code);
   }
 
-  inline bool operator==(uint16_t comp) const {
-    return(comp==code);
+  inline bool operator==(uint16_t comp) const
+  {
+    return (comp == code);
   }
 
-  inline bool operator!=(uint16_t comp) const {
-    return(comp!=code);
+  inline bool operator!=(uint16_t comp) const
+  {
+    return (comp != code);
   }
 
 private:
-  static class init {
-    public:
-    void qtype_insert(const char* a, uint16_t num) 
+  static class init
+  {
+  public:
+    void qtype_insert(const char* a, uint16_t num)
     {
       names.push_back(make_pair(string(a), num));
     }
@@ -213,7 +221,7 @@ private:
       qtype_insert("EUI48", 108);
       qtype_insert("EUI64", 109);
       qtype_insert("TKEY", 249);
-//      qtype_insert("TSIG", 250);
+      //      qtype_insert("TSIG", 250);
       qtype_insert("IXFR", 251);
       qtype_insert("AXFR", 252);
       qtype_insert("MAILB", 253);
@@ -233,5 +241,11 @@ private:
 
 struct QClass
 {
-  enum QClassEnum {IN=1, CHAOS=3, NONE=254, ANY=255};
+  enum QClassEnum
+  {
+    IN = 1,
+    CHAOS = 3,
+    NONE = 254,
+    ANY = 255
+  };
 };

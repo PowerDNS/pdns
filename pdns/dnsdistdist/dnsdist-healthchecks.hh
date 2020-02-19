@@ -27,7 +27,14 @@
 
 struct HealthCheckData
 {
-  HealthCheckData(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, Socket&& sock, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID): d_mplexer(mplexer), d_ds(ds), d_sock(std::move(sock)), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
+  HealthCheckData(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, Socket&& sock, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID) :
+    d_mplexer(mplexer),
+    d_ds(ds),
+    d_sock(std::move(sock)),
+    d_checkName(std::move(checkName)),
+    d_checkType(checkType),
+    d_checkClass(checkClass),
+    d_queryID(queryID)
   {
   }
 
@@ -43,6 +50,5 @@ struct HealthCheckData
 extern bool g_verboseHealthChecks;
 
 void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool newState);
-bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initial=false);
-void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool initial=false);
-
+bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initial = false);
+void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool initial = false);

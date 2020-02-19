@@ -25,9 +25,9 @@
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 
-vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const ComboAddress& master, const DNSName& zone, 
-                                                                     const DNSRecord& sr, const TSIGTriplet& tt=TSIGTriplet(),
-                                                                     const ComboAddress* laddr=0, size_t maxReceivedBytes=0);
+vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddress& master, const DNSName& zone,
+  const DNSRecord& sr, const TSIGTriplet& tt = TSIGTriplet(),
+  const ComboAddress* laddr = 0, size_t maxReceivedBytes = 0);
 
-vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const ComboAddress& master, const DNSName& zone,
-                                                                        const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent>& masterSOA);
+vector<pair<vector<DNSRecord>, vector<DNSRecord>>> processIXFRRecords(const ComboAddress& master, const DNSName& zone,
+  const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent>& masterSOA);

@@ -31,31 +31,33 @@ extern StatBag S;
 
 const unsigned int AuthQueryCache::s_mincleaninterval, AuthQueryCache::s_maxcleaninterval;
 
-AuthQueryCache::AuthQueryCache(size_t mapsCount): d_maps(mapsCount), d_lastclean(time(nullptr))
+AuthQueryCache::AuthQueryCache(size_t mapsCount) :
+  d_maps(mapsCount),
+  d_lastclean(time(nullptr))
 {
-  S.declare("query-cache-hit","Number of hits on the query cache");
-  S.declare("query-cache-miss","Number of misses on the query cache");
+  S.declare("query-cache-hit", "Number of hits on the query cache");
+  S.declare("query-cache-miss", "Number of misses on the query cache");
   S.declare("query-cache-size", "Number of entries in the query cache");
-  S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
-  S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
+  S.declare("deferred-cache-inserts", "Amount of cache inserts that were deferred because of maintenance");
+  S.declare("deferred-cache-lookup", "Amount of cache lookups that were deferred because of maintenance");
 
-  d_statnumhit=S.getPointer("query-cache-hit");
-  d_statnummiss=S.getPointer("query-cache-miss");
-  d_statnumentries=S.getPointer("query-cache-size");
+  d_statnumhit = S.getPointer("query-cache-hit");
+  d_statnummiss = S.getPointer("query-cache-miss");
+  d_statnumentries = S.getPointer("query-cache-size");
 }
 
 AuthQueryCache::~AuthQueryCache()
 {
   try {
     vector<WriteLock*> locks;
-    for(auto& mc : d_maps) {
+    for (auto& mc : d_maps) {
       locks.push_back(new WriteLock(&mc.d_mut));
     }
-    for(auto wl : locks) {
+    for (auto wl : locks) {
       delete wl;
     }
   }
-  catch(...) {
+  catch (...) {
   }
 }
 
@@ -68,7 +70,7 @@ void AuthQueryCache::MapCombo::reserve(size_t numberOfEntries)
 }
 
 // called from ueberbackend
-bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& value, int zoneID)
+bool AuthQueryCache::getEntry(const DNSName& qname, const QType& qtype, vector<DNSZoneRecord>& value, int zoneID)
 {
   cleanupIfNeeded();
 
@@ -77,7 +79,7 @@ bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<D
   auto& mc = getMap(qname);
   {
     TryReadLock rl(&mc.d_mut);
-    if(!rl.gotIt()) {
+    if (!rl.gotIt()) {
       S.inc("deferred-cache-lookup");
       return false;
     }
@@ -86,13 +88,13 @@ bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<D
   }
 }
 
-void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vector<DNSZoneRecord>& value, uint32_t ttl, int zoneID)
+void AuthQueryCache::insert(const DNSName& qname, const QType& qtype, const vector<DNSZoneRecord>& value, uint32_t ttl, int zoneID)
 {
   cleanupIfNeeded();
 
-  if(!ttl)
+  if (!ttl)
     return;
-  
+
   time_t now = time(nullptr);
   CacheEntry val;
   val.created = now;
@@ -106,8 +108,8 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vect
 
   {
     TryWriteLock l(&mc.d_mut);
-    if(!l.gotIt()) {
-      S.inc("deferred-cache-inserts"); 
+    if (!l.gotIt()) {
+      S.inc("deferred-cache-inserts");
       return;
     }
 
@@ -132,7 +134,7 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, const vect
   }
 }
 
-bool AuthQueryCache::getEntryLocked(cmap_t& map, const DNSName &qname, uint16_t qtype, vector<DNSZoneRecord>& value, int zoneID, time_t now)
+bool AuthQueryCache::getEntryLocked(cmap_t& map, const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& value, int zoneID, time_t now)
 {
   auto& idx = boost::multi_index::get<HashTag>(map);
   auto iter = idx.find(tie(qname, qtype, zoneID));
@@ -152,24 +154,24 @@ bool AuthQueryCache::getEntryLocked(cmap_t& map, const DNSName &qname, uint16_t 
   return true;
 }
 
-map<char,uint64_t> AuthQueryCache::getCounts()
+map<char, uint64_t> AuthQueryCache::getCounts()
 {
-  uint64_t queryCacheEntries=0, negQueryCacheEntries=0;
+  uint64_t queryCacheEntries = 0, negQueryCacheEntries = 0;
 
-  for(auto& mc : d_maps) {
+  for (auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
-    
-    for(cmap_t::const_iterator iter = mc.d_map.begin() ; iter != mc.d_map.end(); ++iter) {
-      if(iter->drs.empty())
+
+    for (cmap_t::const_iterator iter = mc.d_map.begin(); iter != mc.d_map.end(); ++iter) {
+      if (iter->drs.empty())
         negQueryCacheEntries++;
       else
         queryCacheEntries++;
     }
   }
-  map<char,uint64_t> ret;
+  map<char, uint64_t> ret;
 
-  ret['!']=negQueryCacheEntries;
-  ret['Q']=queryCacheEntries;
+  ret['!'] = negQueryCacheEntries;
+  ret['Q'] = queryCacheEntries;
   return ret;
 }
 
@@ -192,11 +194,11 @@ uint64_t AuthQueryCache::purgeExact(const DNSName& qname)
 }
 
 /* purges entries from the querycache. If match ends on a $, it is treated as a suffix */
-uint64_t AuthQueryCache::purge(const string &match)
+uint64_t AuthQueryCache::purge(const string& match)
 {
   uint64_t delcount = 0;
 
-  if(ends_with(match, "$")) {
+  if (ends_with(match, "$")) {
     delcount = purgeLockedCollectionsVector<NameTag>(d_maps, match);
     *d_statnumentries -= delcount;
   }
@@ -216,7 +218,7 @@ void AuthQueryCache::cleanup()
   totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps, maxCached, cacheSize);
 
   *d_statnumentries -= totErased;
-  DLOG(g_log<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
+  DLOG(g_log << "Done with cache clean, cacheSize: " << *d_statnumentries << ", totErased" << totErased << endl);
 }
 
 /* the logic:
@@ -234,29 +236,30 @@ void AuthQueryCache::cleanupIfNeeded()
     time_t now = time(nullptr);
     int timediff = max((int)(now - d_lastclean), 1);
 
-    DLOG(g_log<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+    DLOG(g_log << "cleaninterval: " << d_cleaninterval << ", timediff: " << timediff << endl);
 
     if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
       d_cleanskipped = true;
       d_nextclean += d_cleaninterval;
 
-      DLOG(g_log<<"cleaning skipped, timediff: "<<timediff<<endl);
+      DLOG(g_log << "cleaning skipped, timediff: " << timediff << endl);
 
       return;
     }
 
-    if(!d_cleanskipped) {
-      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
-      d_cleaninterval=std::max(d_cleaninterval, s_mincleaninterval);
-      d_cleaninterval=std::min(d_cleaninterval, s_maxcleaninterval);
+    if (!d_cleanskipped) {
+      d_cleaninterval = (int)(0.6 * d_cleaninterval) + (0.4 * d_cleaninterval * (30.0 / timediff));
+      d_cleaninterval = std::max(d_cleaninterval, s_mincleaninterval);
+      d_cleaninterval = std::min(d_cleaninterval, s_maxcleaninterval);
 
-      DLOG(g_log<<"new cleaninterval: "<<d_cleaninterval<<endl);
-    } else {
+      DLOG(g_log << "new cleaninterval: " << d_cleaninterval << endl);
+    }
+    else {
       d_cleanskipped = false;
     }
 
     d_nextclean += d_cleaninterval;
-    d_lastclean=now;
+    d_lastclean = now;
     cleanup();
   }
 }

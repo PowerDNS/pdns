@@ -10,7 +10,8 @@
 
 BOOST_AUTO_TEST_SUITE(mplexer)
 
-BOOST_AUTO_TEST_CASE(test_MPlexer) {
+BOOST_AUTO_TEST_CASE(test_MPlexer)
+{
   auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
   BOOST_REQUIRE(mplexer != nullptr);
 
@@ -37,20 +38,20 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   bool writeCBCalled = false;
   auto writeCB = [](int fd, FDMultiplexer::funcparam_t param) {
-                        auto calledPtr = boost::any_cast<bool*>(param);
-                        BOOST_REQUIRE(calledPtr != nullptr);
-                        *calledPtr = true;
-                 };
+    auto calledPtr = boost::any_cast<bool*>(param);
+    BOOST_REQUIRE(calledPtr != nullptr);
+    *calledPtr = true;
+  };
   mplexer->addWriteFD(pipes[1],
-                      writeCB,
-                      &writeCBCalled,
-                      &ttd);
+    writeCB,
+    &writeCBCalled,
+    &ttd);
   /* we can't add it twice */
   BOOST_CHECK_THROW(mplexer->addWriteFD(pipes[1],
-                                        writeCB,
-                                        &writeCBCalled,
-                                        &ttd),
-                    FDMultiplexerException);
+                      writeCB,
+                      &writeCBCalled,
+                      &ttd),
+    FDMultiplexerException);
 
   readyFDs.clear();
   mplexer->getAvailableFDs(readyFDs, 0);
@@ -85,14 +86,14 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   bool readCBCalled = false;
   auto readCB = [](int fd, FDMultiplexer::funcparam_t param) {
-                        auto calledPtr = boost::any_cast<bool*>(param);
-                        BOOST_REQUIRE(calledPtr != nullptr);
-                        *calledPtr = true;
-                };
+    auto calledPtr = boost::any_cast<bool*>(param);
+    BOOST_REQUIRE(calledPtr != nullptr);
+    *calledPtr = true;
+  };
   mplexer->addReadFD(pipes[0],
-                     readCB,
-                     &readCBCalled,
-                     &ttd);
+    readCB,
+    &readCBCalled,
+    &ttd);
 
   /* not ready for reading yet */
   readyFDs.clear();
@@ -117,9 +118,9 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   /* add back the write FD */
   mplexer->addWriteFD(pipes[1],
-                      writeCB,
-                      &writeCBCalled,
-                      &ttd);
+    writeCB,
+    &writeCBCalled,
+    &ttd);
 
   /* both should be available */
   readCBCalled = false;
@@ -204,6 +205,5 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
   close(pipes[0]);
   close(pipes[1]);
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -21,23 +21,24 @@
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
-static pthread_mutex_t *openssllocks{nullptr};
+static pthread_mutex_t* openssllocks{nullptr};
 
-extern "C" {
-static void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
+extern "C"
 {
-  if (mode & CRYPTO_LOCK) {
-    pthread_mutex_lock(&(openssllocks[type]));
-
-  } else {
-    pthread_mutex_unlock(&(openssllocks[type]));
+  static void openssl_pthreads_locking_callback(int mode, int type, const char* file, int line)
+  {
+    if (mode & CRYPTO_LOCK) {
+      pthread_mutex_lock(&(openssllocks[type]));
+    }
+    else {
+      pthread_mutex_unlock(&(openssllocks[type]));
+    }
   }
-}
 
-static unsigned long openssl_pthreads_id_callback()
-{
-  return (unsigned long)pthread_self();
-}
+  static unsigned long openssl_pthreads_id_callback()
+  {
+    return (unsigned long)pthread_self();
+  }
 }
 
 static void openssl_thread_setup()
@@ -55,7 +56,7 @@ static void openssl_thread_cleanup()
 {
   CRYPTO_set_locking_callback(NULL);
 
-  for (int i=0; i<CRYPTO_num_locks(); i++) {
+  for (int i = 0; i < CRYPTO_num_locks(); i++) {
     pthread_mutex_destroy(&(openssllocks[i]));
   }
 
@@ -136,7 +137,7 @@ void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
   SSL_CTX_set_ex_data(ctx, s_ticketsKeyIndex, data);
 }
 
-int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
 {
   if (enc) {
     const auto key = keyring.getEncryptionKey();
@@ -167,7 +168,7 @@ int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsign
   return 1;
 }
 
-static void libssl_info_callback(const SSL *ssl, int where, int ret)
+static void libssl_info_callback(const SSL* ssl, int where, int ret)
 {
   SSL_CTX* sslCtx = SSL_get_SSL_CTX(ssl);
   if (sslCtx == nullptr) {
@@ -217,7 +218,7 @@ static void libssl_info_callback(const SSL *ssl, int where, int ret)
   }
 }
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters)
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters)
 {
   SSL_CTX_set_ex_data(ctx.get(), s_countersIndex, counters);
   SSL_CTX_set_info_callback(ctx.get(), libssl_info_callback);
@@ -249,8 +250,8 @@ int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& oc
 
 static bool libssl_validate_ocsp_response(const std::string& response)
 {
-  auto responsePtr = reinterpret_cast<const unsigned char *>(response.data());
-  std::unique_ptr<OCSP_RESPONSE, void(*)(OCSP_RESPONSE*)> resp(d2i_OCSP_RESPONSE(nullptr, &responsePtr, response.size()), OCSP_RESPONSE_free);
+  auto responsePtr = reinterpret_cast<const unsigned char*>(response.data());
+  std::unique_ptr<OCSP_RESPONSE, void (*)(OCSP_RESPONSE*)> resp(d2i_OCSP_RESPONSE(nullptr, &responsePtr, response.size()), OCSP_RESPONSE_free);
   if (resp == nullptr) {
     throw std::runtime_error("Unable to parse OCSP response");
   }
@@ -260,7 +261,7 @@ static bool libssl_validate_ocsp_response(const std::string& response)
     throw std::runtime_error("OCSP response status is not successful: " + std::to_string(status));
   }
 
-  std::unique_ptr<OCSP_BASICRESP, void(*)(OCSP_BASICRESP*)> basic(OCSP_response_get1_basic(resp.get()), OCSP_BASICRESP_free);
+  std::unique_ptr<OCSP_BASICRESP, void (*)(OCSP_BASICRESP*)> basic(OCSP_response_get1_basic(resp.get()), OCSP_BASICRESP_free);
   if (basic == nullptr) {
     throw std::runtime_error("Error getting a basic OCSP response");
   }
@@ -307,7 +308,7 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
   for (const auto& filename : ocspFiles) {
     std::ifstream file(filename, std::ios::binary);
     std::string content;
-    while(file) {
+    while (file) {
       char buffer[4096];
       file.read(buffer, sizeof(buffer));
       if (file.bad()) {
@@ -331,12 +332,12 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
   return ocspResponses;
 }
 
-int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
+int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx)
 {
 #if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined LIBRESSL_VERSION_NUMBER)
   auto pkey = SSL_CTX_get0_privatekey(ctx.get());
 #else
-  auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(ctx.get()), SSL_free);
+  auto temp = std::unique_ptr<SSL, void (*)(SSL*)>(SSL_new(ctx.get()), SSL_free);
   if (!temp) {
     return -1;
   }
@@ -355,37 +356,37 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 {
   const EVP_MD* rmd = EVP_sha256();
 
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(certFile.c_str(), "r"), fclose);
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(certFile.c_str(), "r"), fclose);
   if (!fp) {
     throw std::runtime_error("Unable to open '" + certFile + "' when loading the certificate to generate an OCSP response");
   }
-  auto cert = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
+  auto cert = std::unique_ptr<X509, void (*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
 
-  fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(caCert.c_str(), "r"), fclose);
+  fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(caCert.c_str(), "r"), fclose);
   if (!fp) {
     throw std::runtime_error("Unable to open '" + caCert + "' when loading the issuer certificate to generate an OCSP response");
   }
-  auto issuer = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
-  fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(caKey.c_str(), "r"), fclose);
+  auto issuer = std::unique_ptr<X509, void (*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
+  fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(caKey.c_str(), "r"), fclose);
   if (!fp) {
     throw std::runtime_error("Unable to open '" + caKey + "' when loading the issuer key to generate an OCSP response");
   }
-  auto issuerKey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr), EVP_PKEY_free);
+  auto issuerKey = std::unique_ptr<EVP_PKEY, void (*)(EVP_PKEY*)>(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr), EVP_PKEY_free);
   fp.reset();
 
-  auto bs = std::unique_ptr<OCSP_BASICRESP, void(*)(OCSP_BASICRESP*)>(OCSP_BASICRESP_new(), OCSP_BASICRESP_free);
-  auto thisupd = std::unique_ptr<ASN1_TIME, void(*)(ASN1_TIME*)>(X509_gmtime_adj(nullptr, 0), ASN1_TIME_free);
-  auto nextupd = std::unique_ptr<ASN1_TIME, void(*)(ASN1_TIME*)>(X509_time_adj_ex(nullptr, ndays, nmin * 60, nullptr), ASN1_TIME_free);
+  auto bs = std::unique_ptr<OCSP_BASICRESP, void (*)(OCSP_BASICRESP*)>(OCSP_BASICRESP_new(), OCSP_BASICRESP_free);
+  auto thisupd = std::unique_ptr<ASN1_TIME, void (*)(ASN1_TIME*)>(X509_gmtime_adj(nullptr, 0), ASN1_TIME_free);
+  auto nextupd = std::unique_ptr<ASN1_TIME, void (*)(ASN1_TIME*)>(X509_time_adj_ex(nullptr, ndays, nmin * 60, nullptr), ASN1_TIME_free);
 
-  auto cid = std::unique_ptr<OCSP_CERTID, void(*)(OCSP_CERTID*)>(OCSP_cert_to_id(rmd, cert.get(), issuer.get()), OCSP_CERTID_free);
+  auto cid = std::unique_ptr<OCSP_CERTID, void (*)(OCSP_CERTID*)>(OCSP_cert_to_id(rmd, cert.get(), issuer.get()), OCSP_CERTID_free);
   OCSP_basic_add1_status(bs.get(), cid.get(), V_OCSP_CERTSTATUS_GOOD, 0, nullptr, thisupd.get(), nextupd.get());
 
   if (OCSP_basic_sign(bs.get(), issuer.get(), issuerKey.get(), rmd, nullptr, OCSP_NOCERTS) != 1) {
     throw std::runtime_error("Error while signing the OCSP response");
   }
 
-  auto resp = std::unique_ptr<OCSP_RESPONSE, void(*)(OCSP_RESPONSE*)>(OCSP_response_create(OCSP_RESPONSE_STATUS_SUCCESSFUL, bs.get()), OCSP_RESPONSE_free);
-  auto bio = std::unique_ptr<BIO, void(*)(BIO*)>(BIO_new_file(outFile.c_str(), "wb"), BIO_vfree);
+  auto resp = std::unique_ptr<OCSP_RESPONSE, void (*)(OCSP_RESPONSE*)>(OCSP_response_create(OCSP_RESPONSE_STATUS_SUCCESSFUL, bs.get()), OCSP_RESPONSE_free);
+  auto bio = std::unique_ptr<BIO, void (*)(BIO*)>(BIO_new_file(outFile.c_str(), "wb"), BIO_vfree);
   if (!bio) {
     throw std::runtime_error("Error opening file for writing the OCSP response");
   }
@@ -417,11 +418,10 @@ LibsslTLSVersion libssl_tls_version_from_string(const std::string& str)
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
 {
   static const std::map<LibsslTLSVersion, std::string> versions = {
-    { LibsslTLSVersion::TLS10, "tls1.0" },
-    { LibsslTLSVersion::TLS11, "tls1.1" },
-    { LibsslTLSVersion::TLS12, "tls1.2" },
-    { LibsslTLSVersion::TLS13, "tls1.3" }
-  };
+    {LibsslTLSVersion::TLS10, "tls1.0"},
+    {LibsslTLSVersion::TLS11, "tls1.1"},
+    {LibsslTLSVersion::TLS12, "tls1.2"},
+    {LibsslTLSVersion::TLS13, "tls1.3"}};
 
   const auto& it = versions.find(version);
   if (it == versions.end()) {
@@ -430,12 +430,12 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
   return it->second;
 }
 
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
 {
 #if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && !defined LIBRESSL_VERSION_NUMBER)
   /* these functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated */
   int vers;
-  switch(version) {
+  switch (version) {
   case LibsslTLSVersion::TLS10:
     vers = TLS1_VERSION;
     break;
@@ -462,7 +462,7 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx
   return true;
 #else
   long vers = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
-  switch(version) {
+  switch (version) {
   case LibsslTLSVersion::TLS10:
     break;
   case LibsslTLSVersion::TLS11:
@@ -534,8 +534,7 @@ void OpenSSLTLSTicketKeysRing::loadTicketsKeys(const std::string& keyFile)
       auto newKey = std::make_shared<OpenSSLTLSTicketKey>(file);
       addKey(newKey);
       keyLoaded = true;
-    }
-    while (!file.fail());
+    } while (!file.fail());
   }
   catch (const std::exception& e) {
     /* if we haven't been able to load at least one key, fail */
@@ -607,7 +606,7 @@ bool OpenSSLTLSTicketKey::nameMatches(const unsigned char name[TLS_TICKETS_KEY_N
   return (memcmp(d_name, name, sizeof(d_name)) == 0);
 }
 
-int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const
 {
   memcpy(keyName, d_name, sizeof(d_name));
 
@@ -626,7 +625,7 @@ int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE
   return 1;
 }
 
-bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const
 {
   if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
     return false;
@@ -639,18 +638,12 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx,
   return true;
 }
 
-std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
-                                                                       std::map<int, std::string>& ocspResponses)
+std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
+  std::map<int, std::string>& ocspResponses)
 {
-  auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
+  auto ctx = std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
-  int sslOptions =
-    SSL_OP_NO_SSLv2 |
-    SSL_OP_NO_SSLv3 |
-    SSL_OP_NO_COMPRESSION |
-    SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
-    SSL_OP_SINGLE_DH_USE |
-    SSL_OP_SINGLE_ECDH_USE;
+  int sslOptions = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION | SSL_OP_SINGLE_DH_USE | SSL_OP_SINGLE_ECDH_USE;
 
   if (!config.d_enableTickets || config.d_numberOfTicketsKeys == 0) {
     /* for TLS 1.3 this means no stateless tickets, but stateful tickets might still be issued,
@@ -712,7 +705,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
     try {
       ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes);
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
     }
   }
@@ -748,10 +741,10 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
+std::unique_ptr<FILE, int (*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(logFile.c_str(), "a"), fclose);
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(logFile.c_str(), "a"), fclose);
   if (!fp) {
     throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
   }
@@ -761,7 +754,7 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 
   return fp;
 #else
-  return std::unique_ptr<FILE, int(*)(FILE*)>(nullptr, fclose);
+  return std::unique_ptr<FILE, int (*)(FILE*)>(nullptr, fclose);
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 

@@ -30,13 +30,13 @@
 
 int B64Decode(const std::string& src, std::string& dst)
 {
-  if (src.empty() ) {
+  if (src.empty()) {
     dst.clear();
     return 0;
   }
-  int dlen = ( src.length() * 6 + 7 ) / 8 ;
+  int dlen = (src.length() * 6 + 7) / 8;
   ssize_t olen = 0;
-  boost::scoped_array<unsigned char> d( new unsigned char[dlen] );
+  boost::scoped_array<unsigned char> d(new unsigned char[dlen]);
   BIO *bio, *b64;
   bio = BIO_new(BIO_s_mem());
   BIO_write(bio, src.c_str(), src.length());
@@ -50,7 +50,7 @@ int B64Decode(const std::string& src, std::string& dst)
   }
   BIO_free_all(bio);
   if (olen > 0) {
-    dst = std::string( reinterpret_cast<const char*>(d.get()), olen );
+    dst = std::string(reinterpret_cast<const char*>(d.get()), olen);
     return 0;
   }
   return -1;
@@ -66,7 +66,7 @@ std::string Base64Encode(const std::string& src)
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
     int bioWriteRet = BIO_write(bio, src.c_str(), src.length());
-    if (bioWriteRet < 0 || (size_t) bioWriteRet != src.length()) {
+    if (bioWriteRet < 0 || (size_t)bioWriteRet != src.length()) {
       BIO_free_all(bio);
       throw std::runtime_error("BIO_write failed to write all data to memory buffer");
     }

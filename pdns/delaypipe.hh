@@ -33,10 +33,9 @@
    If meanwhile new work comes in, all objects who's time has come are executed, a new sleep time is calculated.
 */
 
-
 /* ObjectPipe facilitates the type-safe passing of types over a pipe */
 
-template<class T>
+template <class T>
 class ObjectPipe
 {
 public:
@@ -45,12 +44,13 @@ public:
   void write(T& t);
   bool read(T* t); // returns false on EOF
   int readTimeout(T* t, double msec); //!< -1 is timeout, 0 is no data, 1 is data. msec<0 waits infinitely wrong. msec==0 = undefined
-  void close(); 
+  void close();
+
 private:
   int d_fds[2];
 };
 
-template<class T>
+template <class T>
 class DelayPipe
 {
 public:
@@ -68,11 +68,12 @@ private:
 
   double tsdelta(const struct timespec& a, const struct timespec& b) // read as a-b
   {
-    return 1.0*(a.tv_sec-b.tv_sec)+1.0*(a.tv_nsec-b.tv_nsec)/1000000000.0;
+    return 1.0 * (a.tv_sec - b.tv_sec) + 1.0 * (a.tv_nsec - b.tv_nsec) / 1000000000.0;
   }
 
   ObjectPipe<Combo> d_pipe;
-  struct tscomp {
+  struct tscomp
+  {
     bool operator()(const struct timespec& a, const struct timespec& b) const
     {
       return std::tie(a.tv_sec, a.tv_nsec) < std::tie(b.tv_sec, b.tv_nsec);

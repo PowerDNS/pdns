@@ -68,24 +68,24 @@ int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>
   rrclass = pr.get16BitInt();
 
   DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
-  pw.getHeader()->id=dh->id;
-  pw.getHeader()->qr=dh->qr;
-  pw.getHeader()->aa=dh->aa;
-  pw.getHeader()->tc=dh->tc;
-  pw.getHeader()->rd=dh->rd;
-  pw.getHeader()->ra=dh->ra;
-  pw.getHeader()->ad=dh->ad;
-  pw.getHeader()->cd=dh->cd;
-  pw.getHeader()->rcode=dh->rcode;
+  pw.getHeader()->id = dh->id;
+  pw.getHeader()->qr = dh->qr;
+  pw.getHeader()->aa = dh->aa;
+  pw.getHeader()->tc = dh->tc;
+  pw.getHeader()->rd = dh->rd;
+  pw.getHeader()->ra = dh->ra;
+  pw.getHeader()->ad = dh->ad;
+  pw.getHeader()->cd = dh->cd;
+  pw.getHeader()->rcode = dh->rcode;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -116,7 +116,8 @@ int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
-    } else {
+    }
+    else {
 
       pr.skip(ah.d_clen);
     }
@@ -128,7 +129,7 @@ int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>
 
 static bool addOrReplaceECSOption(std::vector<std::pair<uint16_t, std::string>>& options, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
 {
-  for (auto it = options.begin(); it != options.end(); ) {
+  for (auto it = options.begin(); it != options.end();) {
     if (it->first == EDNSOptionCode::ECS) {
       ecsAdded = false;
 
@@ -181,24 +182,24 @@ static bool slowRewriteQueryWithExistingEDNS(const std::string& initialPacket, v
   rrclass = pr.get16BitInt();
 
   DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
-  pw.getHeader()->id=dh->id;
-  pw.getHeader()->qr=dh->qr;
-  pw.getHeader()->aa=dh->aa;
-  pw.getHeader()->tc=dh->tc;
-  pw.getHeader()->rd=dh->rd;
-  pw.getHeader()->ra=dh->ra;
-  pw.getHeader()->ad=dh->ad;
-  pw.getHeader()->cd=dh->cd;
-  pw.getHeader()->rcode=dh->rcode;
+  pw.getHeader()->id = dh->id;
+  pw.getHeader()->qr = dh->qr;
+  pw.getHeader()->aa = dh->aa;
+  pw.getHeader()->tc = dh->tc;
+  pw.getHeader()->rd = dh->rd;
+  pw.getHeader()->ra = dh->ra;
+  pw.getHeader()->ad = dh->ad;
+  pw.getHeader()->cd = dh->cd;
+  pw.getHeader()->rcode = dh->rcode;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -230,7 +231,8 @@ static bool slowRewriteQueryWithExistingEDNS(const std::string& initialPacket, v
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
-    } else {
+    }
+    else {
 
       ednsAdded = false;
       pr.xfrBlob(blob);
@@ -259,12 +261,11 @@ static bool slowRewriteQueryWithExistingEDNS(const std::string& initialPacket, v
   return true;
 }
 
-static bool slowParseEDNSOptions(const char* packet, uint16_t const len, std::shared_ptr<std::map<uint16_t, EDNSOptionView> >& options)
+static bool slowParseEDNSOptions(const char* packet, uint16_t const len, std::shared_ptr<std::map<uint16_t, EDNSOptionView>>& options)
 {
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
 
-  if (len < sizeof(dnsheader) || ntohs(dh->qdcount) == 0)
- {
+  if (len < sizeof(dnsheader) || ntohs(dh->qdcount) == 0) {
     return false;
   }
 
@@ -276,13 +277,13 @@ static bool slowParseEDNSOptions(const char* packet, uint16_t const len, std::sh
     uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     DNSPacketMangler dpm(const_cast<char*>(packet), len);
     uint64_t n;
-    for(n=0; n < ntohs(dh->qdcount) ; ++n) {
+    for (n = 0; n < ntohs(dh->qdcount); ++n) {
       dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
 
-    for(n=0; n < numrecords; ++n) {
+    for (n = 0; n < numrecords; ++n) {
       dpm.skipDomainName();
 
       uint8_t section = n < ntohs(dh->ancount) ? 1 : (n < (ntohs(dh->ancount) + ntohs(dh->nscount)) ? 2 : 3);
@@ -290,7 +291,7 @@ static bool slowParseEDNSOptions(const char* packet, uint16_t const len, std::sh
       dpm.get16BitInt();
       dpm.skipBytes(4); /* TTL */
 
-      if(section == 3 && dnstype == QType::OPT) {
+      if (section == 3 && dnstype == QType::OPT) {
         uint32_t offset = dpm.getOffset();
         if (offset >= len) {
           return false;
@@ -304,15 +305,14 @@ static bool slowParseEDNSOptions(const char* packet, uint16_t const len, std::sh
       }
     }
   }
-  catch(...)
-  {
+  catch (...) {
     return false;
   }
 
   return true;
 }
 
-int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * optLen, bool * last)
+int locateEDNSOptRR(const std::string& packet, uint16_t* optStart, size_t* optLen, bool* last)
 {
   assert(optStart != NULL);
   assert(optLen != NULL);
@@ -334,12 +334,12 @@ int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * opt
   struct dnsrecordheader ah;
 
   /* consume qd */
-  for(idx = 0; idx < qdcount; idx++) {
+  for (idx = 0; idx < qdcount; idx++) {
     rrname = pr.getName();
     rrtype = pr.get16BitInt();
     rrclass = pr.get16BitInt();
-    (void) rrtype;
-    (void) rrclass;
+    (void)rrtype;
+    (void)rrclass;
   }
 
   /* consume AN and NS */
@@ -363,7 +363,7 @@ int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * opt
         throw std::range_error("Opt record overflow");
       }
 
-      if (idx == ((size_t) arcount - 1)) {
+      if (idx == ((size_t)arcount - 1)) {
         *last = true;
       }
       else {
@@ -378,7 +378,7 @@ int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * opt
 }
 
 /* extract the start of the OPT RR in a QUERY packet if any */
-int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t len, uint16_t* optRDPosition, size_t * remaining)
+int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t len, uint16_t* optRDPosition, size_t* remaining)
 {
   assert(packet != nullptr);
   assert(optRDPosition != nullptr);
@@ -408,11 +408,11 @@ int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t le
   }
   pos += 1;
 
-  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos])*256 + reinterpret_cast<const unsigned char*>(packet)[pos+1];
+  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos]) * 256 + reinterpret_cast<const unsigned char*>(packet)[pos + 1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
-  if(qtype != QType::OPT || (len - pos) < (DNS_TTL_SIZE + DNS_RDLENGTH_SIZE))
+  if (qtype != QType::OPT || (len - pos) < (DNS_TTL_SIZE + DNS_RDLENGTH_SIZE))
     return ENOENT;
 
   pos += DNS_TTL_SIZE;
@@ -446,12 +446,12 @@ void generateOptRR(const std::string& optRData, string& res, uint16_t udpPayload
   memcpy(&dh.d_ttl, &edns0, sizeof edns0);
   dh.d_clen = htons(static_cast<uint16_t>(optRData.length()));
   res.reserve(sizeof(name) + sizeof(dh) + optRData.length());
-  res.assign(reinterpret_cast<const char *>(&name), sizeof name);
-  res.append(reinterpret_cast<const char *>(&dh), sizeof(dh));
+  res.assign(reinterpret_cast<const char*>(&name), sizeof name);
+  res.append(reinterpret_cast<const char*>(&dh), sizeof(dh));
   res.append(optRData.c_str(), optRData.length());
 }
 
-static bool replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen, const string& newECSOption)
+static bool replaceEDNSClientSubnetOption(char* const packet, const size_t packetSize, uint16_t* const len, char* const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char* const optRDLen, const string& newECSOption)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -501,7 +501,7 @@ bool parseEDNSOptions(DNSQuestion& dq)
     return true;
   }
 
-  dq.ednsOptions = std::make_shared<std::map<uint16_t, EDNSOptionView> >();
+  dq.ednsOptions = std::make_shared<std::map<uint16_t, EDNSOptionView>>();
 
   if (ntohs(dq.dh->ancount) != 0 || ntohs(dq.dh->nscount) != 0 || (ntohs(dq.dh->arcount) != 0 && ntohs(dq.dh->arcount) != 1)) {
     return slowParseEDNSOptions(reinterpret_cast<const char*>(dq.dh), dq.len, dq.ednsOptions);
@@ -582,7 +582,7 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
 {
   assert(packet != nullptr);
   assert(len != nullptr);
-  assert(consumed <= (size_t) *len);
+  assert(consumed <= (size_t)*len);
 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
 
@@ -617,7 +617,7 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
   }
 
   unsigned char* optRDLen = reinterpret_cast<unsigned char*>(packet) + optRDPosition;
-  char * ecsOptionStart = nullptr;
+  char* ecsOptionStart = nullptr;
   size_t ecsOptionSize = 0;
 
   res = getEDNSOption(reinterpret_cast<char*>(optRDLen), remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
@@ -629,7 +629,8 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
     }
 
     return replaceEDNSClientSubnetOption(packet, packetSize, len, ecsOptionStart, ecsOptionSize, optRDLen, newECSOption);
-  } else {
+  }
+  else {
     /* we have an EDNS OPT RR but no existing ECS option */
     return addECSToExistingOPT(packet, packetSize, len, newECSOption, optRDLen, ecsAdded);
   }
@@ -653,10 +654,10 @@ static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16
   size_t pos = 0;
   while ((pos + 4) <= optionsLen) {
     unsigned char* optionBegin = p;
-    const uint16_t optionCode = 0x100*p[0] + p[1];
+    const uint16_t optionCode = 0x100 * p[0] + p[1];
     p += sizeof(optionCode);
     pos += sizeof(optionCode);
-    const uint16_t optionLen = 0x100*p[0] + p[1];
+    const uint16_t optionLen = 0x100 * p[0] + p[1];
     p += sizeof(optionLen);
     pos += sizeof(optionLen);
     if ((pos + optionLen) > optionsLen) {
@@ -682,10 +683,10 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   if (*optLen < optRecordMinimumSize) {
     return EINVAL;
   }
-  const unsigned char* end = (const unsigned char*) optStart + *optLen;
-  unsigned char* p = (unsigned char*) optStart + 9;
+  const unsigned char* end = (const unsigned char*)optStart + *optLen;
+  unsigned char* p = (unsigned char*)optStart + 9;
   unsigned char* rdLenPtr = p;
-  uint16_t rdLen = (0x100*p[0] + p[1]);
+  uint16_t rdLen = (0x100 * p[0] + p[1]);
   p += sizeof(rdLen);
   if (p + rdLen != end) {
     return EINVAL;
@@ -707,7 +708,7 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
     return false;
   }
   size_t p = optStart + 9;
-  uint16_t rdLen = (0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1)));
+  uint16_t rdLen = (0x100 * static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p + 1)));
   p += sizeof(rdLen);
   if (rdLen > (optLen - optRecordMinimumSize)) {
     return false;
@@ -715,9 +716,9 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
 
   size_t rdEnd = p + rdLen;
   while ((p + 4) <= rdEnd) {
-    const uint16_t optionCode = 0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1));
+    const uint16_t optionCode = 0x100 * static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p + 1));
     p += sizeof(optionCode);
-    const uint16_t optionLen = 0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1));
+    const uint16_t optionLen = 0x100 * static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p + 1));
     p += sizeof(optionLen);
 
     if ((p + optionLen) > rdEnd) {
@@ -769,24 +770,24 @@ int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uin
   rrclass = pr.get16BitInt();
 
   DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
-  pw.getHeader()->id=dh->id;
-  pw.getHeader()->qr=dh->qr;
-  pw.getHeader()->aa=dh->aa;
-  pw.getHeader()->tc=dh->tc;
-  pw.getHeader()->rd=dh->rd;
-  pw.getHeader()->ra=dh->ra;
-  pw.getHeader()->ad=dh->ad;
-  pw.getHeader()->cd=dh->cd;
-  pw.getHeader()->rcode=dh->rcode;
+  pw.getHeader()->id = dh->id;
+  pw.getHeader()->qr = dh->qr;
+  pw.getHeader()->aa = dh->aa;
+  pw.getHeader()->tc = dh->tc;
+  pw.getHeader()->rd = dh->rd;
+  pw.getHeader()->ra = dh->ra;
+  pw.getHeader()->ad = dh->ad;
+  pw.getHeader()->cd = dh->cd;
+  pw.getHeader()->rcode = dh->rcode;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -818,7 +819,8 @@ int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uin
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
-    } else {
+    }
+    else {
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, false);
       pr.xfrBlob(blob);
       uint16_t rdLen = blob.length();
@@ -827,7 +829,8 @@ int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uin
       if (rdLen > 0) {
         blob.resize((size_t)rdLen);
         pw.xfrBlob(blob);
-      } else {
+      }
+      else {
         pw.commit();
       }
     }
@@ -846,7 +849,7 @@ bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uin
     return false;
   }
 
-  char * optPtr = reinterpret_cast<char*>(dh) + len;
+  char* optPtr = reinterpret_cast<char*>(dh) + len;
   memcpy(optPtr, optRecord.data(), optRecord.size());
   len += optRecord.size();
   dh->arcount = htons(ntohs(dh->arcount) + 1);
@@ -968,7 +971,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
   }
 
   char* optRDLen = reinterpret_cast<char*>(dq.dh) + optRDPosition;
-  char * optPtr = (optRDLen - (/* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + /* Z */ 2));
+  char* optPtr = (optRDLen - (/* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + /* Z */ 2));
 
   const uint8_t* zPtr = reinterpret_cast<const uint8_t*>(optPtr) + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
   uint16_t z = 0x100 * (*zPtr) + *(zPtr + 1);
@@ -989,8 +992,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
 
 // goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
 int getEDNSZ(const DNSQuestion& dq)
-try
-{
+try {
   if (ntohs(dq.dh->qdcount) != 1 || dq.dh->ancount != 0 || ntohs(dq.dh->arcount) != 1 || dq.dh->nscount != 0) {
     return 0;
   }
@@ -1014,7 +1016,7 @@ try
 
   pos++;
 
-  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos])*256 + reinterpret_cast<const unsigned char*>(packet)[pos+1];
+  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos]) * 256 + reinterpret_cast<const unsigned char*>(packet)[pos + 1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
@@ -1023,10 +1025,9 @@ try
   }
 
   const uint8_t* z = reinterpret_cast<const uint8_t*>(packet) + pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
-  return 0x100 * (*z) + *(z+1);
+  return 0x100 * (*z) + *(z + 1);
 }
-catch(...)
-{
+catch (...) {
   return 0;
 }
 
@@ -1048,7 +1049,7 @@ bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0)
   uint16_t optStart;
   size_t optLen = 0;
   bool last = false;
-  const char * packet = reinterpret_cast<const char*>(dq.dh);
+  const char* packet = reinterpret_cast<const char*>(dq.dh);
   std::string packetStr(packet, dq.len);
   int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
   if (res != 0) {

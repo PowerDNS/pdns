@@ -63,39 +63,48 @@ struct Bind2DNSRecord
   mutable bool auth;
   bool operator<(const Bind2DNSRecord& rhs) const
   {
-    if(qname.canonCompare(rhs.qname))
+    if (qname.canonCompare(rhs.qname))
       return true;
-    if(rhs.qname.canonCompare(qname))
+    if (rhs.qname.canonCompare(qname))
       return false;
-    if(qtype==QType::SOA && rhs.qtype!=QType::SOA)
+    if (qtype == QType::SOA && rhs.qtype != QType::SOA)
       return true;
-    return tie(qtype,content, ttl) < tie(rhs.qtype, rhs.content, rhs.ttl);
+    return tie(qtype, content, ttl) < tie(rhs.qtype, rhs.content, rhs.ttl);
   }
 };
 
-struct Bind2DNSCompare : std::less<Bind2DNSRecord> 
-{ 
-    using std::less<Bind2DNSRecord>::operator(); 
-    // use operator< 
-    bool operator() (const DNSName& a, const Bind2DNSRecord& b) const
-    {return a.canonCompare(b.qname);}
-    bool operator() (const Bind2DNSRecord& a, const DNSName& b) const
-    {return a.qname.canonCompare(b);}
-    bool operator() (const Bind2DNSRecord& a, const Bind2DNSRecord& b) const
-    {return a.qname.canonCompare(b.qname);}
+struct Bind2DNSCompare : std::less<Bind2DNSRecord>
+{
+  using std::less<Bind2DNSRecord>::operator();
+  // use operator<
+  bool operator()(const DNSName& a, const Bind2DNSRecord& b) const
+  {
+    return a.canonCompare(b.qname);
+  }
+  bool operator()(const Bind2DNSRecord& a, const DNSName& b) const
+  {
+    return a.qname.canonCompare(b);
+  }
+  bool operator()(const Bind2DNSRecord& a, const Bind2DNSRecord& b) const
+  {
+    return a.qname.canonCompare(b.qname);
+  }
 };
 
-struct NSEC3Tag{};
-struct UnorderedNameTag{};
+struct NSEC3Tag
+{
+};
+struct UnorderedNameTag
+{
+};
 
 typedef multi_index_container<
   Bind2DNSRecord,
-  indexed_by  <
-                ordered_non_unique<identity<Bind2DNSRecord>, Bind2DNSCompare >,
-                hashed_non_unique<tag<UnorderedNameTag>, member<Bind2DNSRecord, DNSName, &Bind2DNSRecord::qname> >,
-                ordered_non_unique<tag<NSEC3Tag>, member<Bind2DNSRecord, std::string, &Bind2DNSRecord::nsec3hash> >
-              >
-> recordstorage_t;
+  indexed_by<
+    ordered_non_unique<identity<Bind2DNSRecord>, Bind2DNSCompare>,
+    hashed_non_unique<tag<UnorderedNameTag>, member<Bind2DNSRecord, DNSName, &Bind2DNSRecord::qname>>,
+    ordered_non_unique<tag<NSEC3Tag>, member<Bind2DNSRecord, std::string, &Bind2DNSRecord::nsec3hash>>>>
+  recordstorage_t;
 
 template <typename T>
 class LookButDontTouch //  : public boost::noncopyable
@@ -104,7 +113,8 @@ public:
   LookButDontTouch()
   {
   }
-  LookButDontTouch(shared_ptr<T> records) : d_records(records)
+  LookButDontTouch(shared_ptr<T> records) :
+    d_records(records)
   {
   }
 
@@ -129,7 +139,6 @@ private:
   shared_ptr<T> d_records;
 };
 
-
 /** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
 class BB2DomainInfo
 {
@@ -144,19 +153,19 @@ public:
     return d_checkinterval;
   }
 
-  DNSName d_name;   //!< actual name of the domain
+  DNSName d_name; //!< actual name of the domain
   DomainInfo::DomainKind d_kind; //!< the kind of domain
   string d_filename; //!< full absolute filename of the zone on disk
   string d_status; //!< message describing status of a domain, for human consumption
-  vector<ComboAddress> d_masters;     //!< IP address of the master of this domain
+  vector<ComboAddress> d_masters; //!< IP address of the master of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
-  LookButDontTouch<recordstorage_t> d_records;  //!< the actual records belonging to this domain
-  time_t d_ctime{0};  //!< last known ctime of the file on disk
+  LookButDontTouch<recordstorage_t> d_records; //!< the actual records belonging to this domain
+  time_t d_ctime{0}; //!< last known ctime of the file on disk
   time_t d_lastcheck{0}; //!< last time domain was checked for freshness
   uint32_t d_lastnotified{0}; //!< Last serial number we notified our slaves of
-  unsigned int d_id;  //!< internal id of the domain
+  unsigned int d_id; //!< internal id of the domain
   mutable bool d_checknow; //!< if this domain has been flagged for a check
-  bool d_loaded;  //!< if a domain is loaded
+  bool d_loaded; //!< if a domain is loaded
   bool d_wasRejectedLastReload{false}; //!< if the domain was rejected during Bind2Backend::queueReloadAndStore
 
 private:
@@ -168,38 +177,39 @@ class SSQLite3;
 class NSEC3PARAMRecordContent;
 
 struct NameTag
-{};
+{
+};
 
 class Bind2Backend : public DNSBackend
 {
 public:
-  Bind2Backend(const string &suffix="", bool loadZones=true); 
+  Bind2Backend(const string& suffix = "", bool loadZones = true);
   ~Bind2Backend();
-  void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains) override;
-  void getUpdatedMasters(vector<DomainInfo> *changedDomains) override;
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true ) override;
-  time_t getCtime(const string &fname);
-   // DNSSEC
+  void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains) override;
+  void getUpdatedMasters(vector<DomainInfo>* changedDomains) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
+  time_t getCtime(const string& fname);
+  // DNSSEC
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
-  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
-  bool list(const DNSName &target, int id, bool include_disabled=false) override;
-  bool get(DNSResourceRecord &) override;
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
+  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
+  bool list(const DNSName& target, int id, bool include_disabled = false) override;
+  bool get(DNSResourceRecord&) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override;
 
-  static DNSBackend *maker();
+  static DNSBackend* maker();
   static pthread_mutex_t s_startup_lock;
 
   void setFresh(uint32_t domain_id) override;
   void setNotified(uint32_t id, uint32_t serial) override;
-  bool startTransaction(const DNSName &qname, int id) override;
-  bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
+  bool startTransaction(const DNSName& qname, int id) override;
+  bool feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
-  void alsoNotifies(const DNSName &domain, set<string> *ips) override;
-  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
+  void alsoNotifies(const DNSName& domain, set<string>* ips) override;
+  bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result) override;
 
-// the DNSSEC related (getDomainMetadata has broader uses too)
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) override;
+  // the DNSSEC related (getDomainMetadata has broader uses too)
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
   bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) override;
@@ -212,25 +222,24 @@ public:
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
-  bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
+  bool getTSIGKeys(std::vector<struct TSIGKey>& keys) override;
   bool doesDNSSEC() override;
-  // end of DNSSEC 
+  // end of DNSSEC
 
-  typedef multi_index_container < BB2DomainInfo , 
-				  indexed_by < ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id> >,
-					       ordered_unique<tag<NameTag>, member<BB2DomainInfo, DNSName, &BB2DomainInfo::d_name> >
-					       > > state_t;
+  typedef multi_index_container<BB2DomainInfo,
+    indexed_by<ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id>>,
+      ordered_unique<tag<NameTag>, member<BB2DomainInfo, DNSName, &BB2DomainInfo::d_name>>>>
+    state_t;
   static state_t s_state;
   static pthread_rwlock_t s_state_lock;
 
-  void parseZoneFile(BB2DomainInfo *bbd);
-  void rediscover(string *status=nullptr) override;
-
+  void parseZoneFile(BB2DomainInfo* bbd);
+  void rediscover(string* status = nullptr) override;
 
   // for supermaster support
-  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   static pthread_mutex_t s_supermaster_config_lock;
-  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
+  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
 
 private:
   void setupDNSSEC();
@@ -245,12 +254,12 @@ private:
   class handle
   {
   public:
-    bool get(DNSResourceRecord &);
+    bool get(DNSResourceRecord&);
     void reset();
-    
+
     handle();
 
-    shared_ptr<const recordstorage_t > d_records;
+    shared_ptr<const recordstorage_t> d_records;
     recordstorage_t::index<UnorderedNameTag>::type::const_iterator d_iter, d_end_iter;
 
     recordstorage_t::const_iterator d_qname_iter, d_qname_end;
@@ -264,11 +273,11 @@ private:
     bool mustlog;
 
   private:
-    bool get_normal(DNSResourceRecord &);
-    bool get_list(DNSResourceRecord &);
+    bool get_normal(DNSResourceRecord&);
+    bool get_list(DNSResourceRecord&);
 
-    void operator=(const handle& ); // don't go copying this
-    handle(const handle &);
+    void operator=(const handle&); // don't go copying this
+    handle(const handle&);
   };
 
   unique_ptr<SSqlStatement> d_getAllDomainMetadataQuery_stmt;
@@ -293,24 +302,24 @@ private:
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
   std::unique_ptr<ofstream> d_of;
   handle d_handle;
-  static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
-  static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
+  static string s_binddirectory; //!< this is used to store the 'directory' setting of the bind configuration
+  static int s_first; //!< this is raised on construction to prevent multiple instances of us being generated
   int d_transaction_id;
   static bool s_ignore_broken_records;
   bool d_hybrid;
 
-  BB2DomainInfo createDomainEntry(const DNSName& domain, const string &filename); //!< does not insert in s_state
+  BB2DomainInfo createDomainEntry(const DNSName& domain, const string& filename); //!< does not insert in s_state
 
   void queueReloadAndStore(unsigned int id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
-  static void insertRecord(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=nullptr);
+  static void insertRecord(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), bool* auth = nullptr);
   void reload() override;
-  static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLDomExtendedStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid);
+  static string DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid);
+  static string DLListRejectsHandler(const vector<string>& parts, Utility::pid_t ppid);
+  static string DLReloadNowHandler(const vector<string>& parts, Utility::pid_t ppid);
+  static string DLAddDomainHandler(const vector<string>& parts, Utility::pid_t ppid);
   static void fixupOrderAndAuth(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
   static void doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records, const DNSName& zoneName, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
-  void loadConfig(string *status=nullptr);
+  void loadConfig(string* status = nullptr);
 };

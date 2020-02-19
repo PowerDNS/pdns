@@ -30,7 +30,7 @@
 struct SodiumNonce
 {
   void init(){};
-  void merge(const SodiumNonce& lower, const SodiumNonce& higher) {};
+  void merge(const SodiumNonce& lower, const SodiumNonce& higher){};
   void increment(){};
   unsigned char value[1];
 };
@@ -54,8 +54,8 @@ struct SodiumNonce
   void increment()
   {
     uint32_t* p = (uint32_t*)value;
-    uint32_t count=htonl(*p);
-    *p=ntohl(++count);
+    uint32_t count = htonl(*p);
+    *p = ntohl(++count);
   }
 
   string toString() const

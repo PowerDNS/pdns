@@ -25,13 +25,13 @@
 
 class IXFRDistWebServer
 {
-  public:
-    explicit IXFRDistWebServer(const ComboAddress &listenAddress, const NetmaskGroup &acl, const string &loglevel);
-    void go();
+public:
+  explicit IXFRDistWebServer(const ComboAddress& listenAddress, const NetmaskGroup& acl, const string& loglevel);
+  void go();
 
-  private:
-    std::unique_ptr<WebServer> d_ws;
+private:
+  std::unique_ptr<WebServer> d_ws;
 
-    // All endpoints
-    void getMetrics(HttpRequest* req, HttpResponse* resp);
+  // All endpoints
+  void getMetrics(HttpRequest* req, HttpResponse* resp);
 };

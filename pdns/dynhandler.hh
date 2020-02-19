@@ -29,29 +29,28 @@
 
 #include "namespaces.hh"
 
-
 bool DLQuitPlease();
-void setStatus(const string &str);
-string DLQuitHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLRQuitHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLPingHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLRespSizeHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLRSizesHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLRemotesHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLVersionHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
-string DLListZones(const vector<string>&parts, Utility::pid_t ppid);
-string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid);
+void setStatus(const string& str);
+string DLQuitHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLRQuitHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLPingHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLShowHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLUptimeHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLSettingsHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLRespSizeHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLCCHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLQTypesHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLRSizesHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLRemotesHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLStatusHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLNotifyHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLReloadHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLRediscoverHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLVersionHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLPurgeHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLCurrentConfigHandler(const vector<string>& parts, Utility::pid_t ppid);
+string DLListZones(const vector<string>& parts, Utility::pid_t ppid);
+string DLTokenLogin(const vector<string>& parts, Utility::pid_t ppid);
 uint64_t udpErrorStats(const std::string& str);

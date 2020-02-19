@@ -46,7 +46,7 @@
 StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
-ArgvMap &arg()
+ArgvMap& arg()
 {
   static ArgvMap arg;
   return arg;
@@ -54,34 +54,36 @@ ArgvMap &arg()
 
 class RemoteLoader
 {
-   public:
-      RemoteLoader();
+public:
+  RemoteLoader();
 };
 
-DNSBackend *be;
+DNSBackend* be;
 
-struct RemotebackendSetup {
-    RemotebackendSetup()  {
-	be = 0; 
-	try {
-		// setup minimum arguments
-		::arg().set("module-dir")="./.libs";
-                new RemoteLoader();
-		BackendMakers().launch("remote");
-                // then get us a instance of it 
-                ::arg().set("remote-connection-string")="unix:path=/tmp/remotebackend.sock";
-                ::arg().set("remote-dnssec")="yes";
-                be = BackendMakers().all()[0];
-		// load few record types to help out
-		SOARecordContent::report();
-		NSRecordContent::report();
-                ARecordContent::report();
-	} catch (PDNSException &ex) {
-		BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason );
-	};
+struct RemotebackendSetup
+{
+  RemotebackendSetup()
+  {
+    be = 0;
+    try {
+      // setup minimum arguments
+      ::arg().set("module-dir") = "./.libs";
+      new RemoteLoader();
+      BackendMakers().launch("remote");
+      // then get us a instance of it
+      ::arg().set("remote-connection-string") = "unix:path=/tmp/remotebackend.sock";
+      ::arg().set("remote-dnssec") = "yes";
+      be = BackendMakers().all()[0];
+      // load few record types to help out
+      SOARecordContent::report();
+      NSRecordContent::report();
+      ARecordContent::report();
     }
-    ~RemotebackendSetup()  {  }
+    catch (PDNSException& ex) {
+      BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason);
+    };
+  }
+  ~RemotebackendSetup() {}
 };
 
-BOOST_GLOBAL_FIXTURE( RemotebackendSetup );
-
+BOOST_GLOBAL_FIXTURE(RemotebackendSetup);

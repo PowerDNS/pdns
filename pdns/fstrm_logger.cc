@@ -10,12 +10,14 @@
 #include "dolog.hh"
 #endif
 
-#define DNSTAP_CONTENT_TYPE		"protobuf:dnstap.Dnstap"
+#define DNSTAP_CONTENT_TYPE "protobuf:dnstap.Dnstap"
 
 #ifdef HAVE_FSTRM
 
 FrameStreamLogger::FrameStreamLogger(const int family, const std::string& address, bool connect,
-    const std::unordered_map<string,unsigned>& options): d_family(family), d_address(address)
+  const std::unordered_map<string, unsigned>& options) :
+  d_family(family),
+  d_address(address)
 {
   fstrm_res res;
 
@@ -48,8 +50,9 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
       if (!d_writer) {
         throw std::runtime_error("FrameStreamLogger: fstrm_unix_writer_init() failed.");
       }
-  #ifdef HAVE_FSTRM_TCP_WRITER_INIT
-    } else if (family == AF_INET) {
+#ifdef HAVE_FSTRM_TCP_WRITER_INIT
+    }
+    else if (family == AF_INET) {
       d_twopt = fstrm_tcp_writer_options_init();
       if (!d_twopt) {
         throw std::runtime_error("FrameStreamLogger: fstrm_tcp_writer_options_init failed.");
@@ -61,7 +64,8 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
         // void return, no error checking.
         fstrm_tcp_writer_options_set_socket_address(d_twopt, ca.toString().c_str());
         fstrm_tcp_writer_options_set_socket_port(d_twopt, std::to_string(ca.getPort()).c_str());
-      } catch (PDNSException &e) {
+      }
+      catch (PDNSException& e) {
         throw std::runtime_error("FrameStreamLogger: Unable to use '" + d_address + "': " + e.reason);
       }
 
@@ -69,8 +73,9 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
       if (!d_writer) {
         throw std::runtime_error("FrameStreamLogger: fstrm_tcp_writer_init() failed.");
       }
-  #endif
-    } else {
+#endif
+    }
+    else {
       throw std::runtime_error("FrameStreamLogger: family " + std::to_string(family) + " not supported");
     }
 
@@ -121,7 +126,6 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
       }
     }
 
-
     if (connect) {
       d_iothr = fstrm_iothr_init(d_iothropt, &d_writer);
       if (!d_iothr) {
@@ -133,7 +137,8 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
         throw std::runtime_error("FrameStreamLogger: fstrm_iothr_get_input_queue() failed.");
       }
     }
-  } catch (std::runtime_error &e) {
+  }
+  catch (std::runtime_error& e) {
     this->cleanup();
     throw;
   }
@@ -179,10 +184,10 @@ void FrameStreamLogger::queueData(const std::string& data)
   if (!d_ioqueue || !d_iothr) {
     return;
   }
-  uint8_t *frame = (uint8_t*)malloc(data.length());
+  uint8_t* frame = (uint8_t*)malloc(data.length());
   if (!frame) {
 #ifdef RECURSOR
-    g_log<<Logger::Warning<<"FrameStreamLogger: cannot allocate memory for stream."<<std::endl;
+    g_log << Logger::Warning << "FrameStreamLogger: cannot allocate memory for stream." << std::endl;
 #else
     warnlog("FrameStreamLogger: cannot allocate memory for stream.");
 #endif
@@ -195,18 +200,20 @@ void FrameStreamLogger::queueData(const std::string& data)
 
   if (res == fstrm_res_success) {
     // Frame successfully queued.
-  } else if (res == fstrm_res_again) {
+  }
+  else if (res == fstrm_res_again) {
     free(frame);
 #ifdef RECURSOR
-    g_log<<Logger::Warning<<"FrameStreamLogger: queue full, dropping."<<std::endl;
+    g_log << Logger::Warning << "FrameStreamLogger: queue full, dropping." << std::endl;
 #else
     warnlog("FrameStreamLogger: queue full, dropping.");
 #endif
- } else {
+  }
+  else {
     // Permanent failure.
     free(frame);
 #ifdef RECURSOR
-    g_log<<Logger::Warning<<"FrameStreamLogger: submitting to queue failed."<<std::endl;
+    g_log << Logger::Warning << "FrameStreamLogger: submitting to queue failed." << std::endl;
 #else
     warnlog("FrameStreamLogger: submitting to queue failed.");
 #endif

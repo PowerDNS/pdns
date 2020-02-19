@@ -30,16 +30,17 @@ static ProductType productType;
 string compilerVersion()
 {
 #if defined(__clang__)
-  return string("clang " __clang_version__ );
+  return string("clang " __clang_version__);
 #elif defined(__GNUC__)
-  return string("gcc " __VERSION__ );
-#else  // add other compilers here
+  return string("gcc " __VERSION__);
+#else // add other compilers here
   return string("Unknown compiler");
 #endif
 }
 
 // Human-readable product name
-string productName() {
+string productName()
+{
   switch (productType) {
   case ProductAuthoritative:
     return "PowerDNS Authoritative Server";
@@ -55,7 +56,8 @@ string getPDNSVersion()
 }
 
 // REST API product type
-string productTypeApiType() {
+string productTypeApiType()
+{
   switch (productType) {
   case ProductAuthoritative:
     return "authoritative";
@@ -67,75 +69,97 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2019 "
-    "PowerDNS.COM BV" << endl;
-  g_log<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
-    "Built using " << compilerVersion()
+  g_log << Logger::Warning << productName() << " " << VERSION << " (C) 2001-2019 "
+                                                                 "PowerDNS.COM BV"
+        << endl;
+  g_log << Logger::Warning << "Using " << (sizeof(unsigned long) * 8) << "-bits mode. "
+                                                                         "Built using "
+        << compilerVersion()
 #ifndef REPRODUCIBLE
-    <<" on " __DATE__ " " __TIME__ " by " BUILD_HOST
+        << " on " __DATE__ " " __TIME__ " by " BUILD_HOST
 #endif
-    <<"."<< endl;
-  g_log<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-    "This is free software, and you are welcome to redistribute it "
-    "according to the terms of the GPL version 2." << endl;
+        << "." << endl;
+  g_log << Logger::Warning << "PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+                              "This is free software, and you are welcome to redistribute it "
+                              "according to the terms of the GPL version 2."
+        << endl;
 }
 
 void showBuildConfiguration()
 {
-  g_log<<Logger::Warning<<"Features: "<<
+  g_log << Logger::Warning << "Features: "
+        <<
 #ifdef HAVE_LIBDECAF
-    "decaf " <<
+    "decaf "
+        <<
 #endif
 #ifdef HAVE_BOOST_CONTEXT
-    "fcontext " <<
+    "fcontext "
+        <<
 #endif
 #ifdef HAVE_LIBCRYPTO_ECDSA
-    "libcrypto-ecdsa " <<
+    "libcrypto-ecdsa "
+        <<
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-    "libcrypto-ed25519 " <<
+    "libcrypto-ed25519 "
+        <<
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-    "libcrypto-ed448 " <<
+    "libcrypto-ed448 "
+        <<
 #endif
 #ifdef HAVE_LIBCRYPTO_EDDSA
-    "libcrypto-eddsa " <<
+    "libcrypto-eddsa "
+        <<
 #endif
 #ifdef HAVE_LIBDL
-    "libdl " <<
+    "libdl "
+        <<
 #endif
 #ifdef HAVE_GEOIP
-    "libgeoip " <<
+    "libgeoip "
+        <<
 #endif
 #ifdef HAVE_MMDB
-    "libmaxminddb " <<
+    "libmaxminddb "
+        <<
 #endif
 #ifdef HAVE_LUA
-    "lua " <<
+    "lua "
+        <<
 #endif
 #ifdef HAVE_LUA_RECORDS
-    "lua-records " <<
+    "lua-records "
+        <<
 #endif
 #ifdef NOD_ENABLED
-    "nod " <<
+    "nod "
+        <<
 #endif
 #ifdef HAVE_P11KIT1
-    "PKCS#11 " <<
+    "PKCS#11 "
+        <<
 #endif
 #ifdef HAVE_PROTOBUF
-"protobuf " <<
+    "protobuf "
+        <<
 #endif
 #ifdef HAVE_FSTRM
-"dnstap-framestream " <<
+    "dnstap-framestream "
+        <<
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
-    "remotebackend-zeromq " <<
+    "remotebackend-zeromq "
+        <<
 #endif
 #ifdef HAVE_NET_SNMP
-    "snmp " <<
+    "snmp "
+        <<
 #endif
 #ifdef HAVE_LIBSODIUM
-    "sodium " <<
+    "sodium "
+        <<
 #endif
 #ifdef VERBOSELOG
     "verboselog" <<
@@ -143,12 +167,12 @@ void showBuildConfiguration()
     endl;
 #ifdef PDNS_MODULES
   // Auth only
-  g_log<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
+  g_log << Logger::Warning << "Built-in modules: " << PDNS_MODULES << endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
-  g_log<<Logger::Warning<<"Configured with: "<<escape_quotes(PDNS_CONFIG_ARGS)<<endl;
+  g_log << Logger::Warning << "Configured with: " << escape_quotes(PDNS_CONFIG_ARGS) << endl;
 #undef escape_quotes
 #undef double_escape
 #endif
@@ -157,9 +181,9 @@ void showBuildConfiguration()
 string fullVersionString()
 {
   ostringstream s;
-  s<<productName()<<" " VERSION;
+  s << productName() << " " VERSION;
 #ifndef REPRODUCIBLE
-  s<<" (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
+  s << " (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
 #endif
   return s.str();
 }

@@ -29,7 +29,6 @@
 #include "iputils.hh"
 #include <arpa/inet.h>
 
-
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes
     the packet header and record headers.
 
@@ -61,15 +60,15 @@ class DNSPacketWriter : public boost::noncopyable
 
 public:
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
-  DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
+  DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t qtype, uint16_t qclass = QClass::IN, uint8_t opcode = 0);
 
   /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
       ANSWER, AUTHORITY, ADDITIONAL */
-  void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, bool compress=true);
+  void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl = 3600, uint16_t qclass = QClass::IN, DNSResourceRecord::Place place = DNSResourceRecord::ANSWER, bool compress = true);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
-  typedef vector<pair<uint16_t,std::string> > optvect_t;
-  void addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options=optvect_t(), const uint8_t version=0);
+  typedef vector<pair<uint16_t, std::string>> optvect_t;
+  void addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options = optvect_t(), const uint8_t version = 0);
 
   /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
       The content of the vector<> passed to the constructor is inconsistent until commit is called.
@@ -97,21 +96,23 @@ public:
   }
   void xfrIP6(const std::string& val)
   {
-    xfrBlob(val,16);
+    xfrBlob(val, 16);
   }
 
-  void xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+  void xfrCAWithoutPort(uint8_t version, ComboAddress& val)
   {
-    if (version == 4) xfrIP(val.sin4.sin_addr.s_addr);
+    if (version == 4)
+      xfrIP(val.sin4.sin_addr.s_addr);
     else if (version == 6) {
       string blob;
       blob.assign((const char*)val.sin6.sin6_addr.s6_addr, 16);
       xfrBlob(blob, 16);
     }
-    else throw runtime_error("invalid IP protocol");
+    else
+      throw runtime_error("invalid IP protocol");
   }
 
-  void xfrCAPort(ComboAddress &val)
+  void xfrCAPort(ComboAddress& val)
   {
     uint16_t port;
     port = val.sin4.sin_port;
@@ -125,34 +126,36 @@ public:
 
   void xfr8BitInt(uint8_t val);
 
-  void xfrName(const DNSName& label, bool compress=false, bool noDot=false);
-  void xfrText(const string& text, bool multi=false, bool lenField=true);
+  void xfrName(const DNSName& label, bool compress = false, bool noDot = false);
+  void xfrText(const string& text, bool multi = false, bool lenField = true);
   void xfrUnquotedText(const string& text, bool lenField);
-  void xfrBlob(const string& blob, int len=-1);
-  void xfrBlobNoSpaces(const string& blob, int len=-1);
-  void xfrHexBlob(const string& blob, bool keepReading=false);
+  void xfrBlob(const string& blob, int len = -1);
+  void xfrBlobNoSpaces(const string& blob, int len = -1);
+  void xfrHexBlob(const string& blob, bool keepReading = false);
 
   dnsheader* getHeader();
   void getRecordPayload(string& records); // call __before commit__
 
   void setCanonic(bool val)
   {
-    d_canonic=val;
+    d_canonic = val;
   }
 
   void setLowercase(bool val)
   {
-    d_lowerCase=val;
+    d_lowerCase = val;
   }
-  vector <uint8_t>& getContent()
+  vector<uint8_t>& getContent()
   {
     return d_content;
   }
   bool eof() { return true; } // we don't know how long the record should be
 
-  const string getRemaining() const {
+  const string getRemaining() const
+  {
     return "";
   }
+
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
   vector<uint16_t> d_namepositions;
@@ -160,7 +163,7 @@ private:
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
 
-  vector <uint8_t>& d_content;
+  vector<uint8_t>& d_content;
   DNSName d_qname;
 
   uint16_t d_truncatemarker; // end of header, for truncate
@@ -168,7 +171,7 @@ private:
   bool d_canonic, d_lowerCase, d_compress{false};
 };
 
-typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
+typedef vector<pair<string::size_type, string::size_type>> labelparts_t;
 // bool labeltokUnescape(labelparts_t& parts, const DNSName& label);
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
 std::deque<string> segmentDNSName(const string& input); // from dnslabeltext.rl

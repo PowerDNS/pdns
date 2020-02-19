@@ -25,7 +25,7 @@
 
 class RecursorSNMPAgent;
 
-class RecursorSNMPAgent: public SNMPAgent
+class RecursorSNMPAgent : public SNMPAgent
 {
 public:
   RecursorSNMPAgent(const std::string& name, const std::string& masterSocket);

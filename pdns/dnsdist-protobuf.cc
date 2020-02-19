@@ -28,16 +28,18 @@
 #ifdef HAVE_PROTOBUF
 #include "dnsmessage.pb.h"
 
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq): DNSProtoBufMessage(Query, dq.uniqueId ? *dq.uniqueId : getUniqueID(), dq.remote, dq.local, *dq.qname, dq.qtype, dq.qclass, dq.dh->id, dq.tcp, dq.len)
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq) :
+  DNSProtoBufMessage(Query, dq.uniqueId ? *dq.uniqueId : getUniqueID(), dq.remote, dq.local, *dq.qname, dq.qtype, dq.qclass, dq.dh->id, dq.tcp, dq.len)
 {
   setQueryTime(dq.queryTime->tv_sec, dq.queryTime->tv_nsec / 1000);
 };
 
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME): DNSProtoBufMessage(Response, dr.uniqueId ? *dr.uniqueId : getUniqueID(), dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len)
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME) :
+  DNSProtoBufMessage(Response, dr.uniqueId ? *dr.uniqueId : getUniqueID(), dr.remote, dr.local, *dr.qname, dr.qtype, dr.qclass, dr.dh->id, dr.tcp, dr.len)
 {
   setQueryTime(dr.queryTime->tv_sec, dr.queryTime->tv_nsec / 1000);
   setResponseCode(dr.dh->rcode);
-  addRRsFromPacket((const char*) dr.dh, dr.len, includeCNAME);
+  addRRsFromPacket((const char*)dr.dh, dr.len, includeCNAME);
 };
 
 #endif /* HAVE_PROTOBUF */

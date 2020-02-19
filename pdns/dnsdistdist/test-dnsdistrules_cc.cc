@@ -9,7 +9,8 @@
 
 BOOST_AUTO_TEST_SUITE(dnsdistluarules_cc)
 
-BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
+BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule)
+{
   size_t maxQPS = 10;
   size_t maxBurst = maxQPS;
   unsigned int expiration = 300;
@@ -61,7 +62,6 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   /* and we be back */
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1U);
 
-
   /* Let's insert a lot of different sources now */
   for (size_t idxByte3 = 0; idxByte3 < 256; idxByte3++) {
     for (size_t idxByte4 = 0; idxByte4 < 256; idxByte4++) {
@@ -103,6 +103,5 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   BOOST_CHECK_EQUAL(removed, 0U);
   BOOST_CHECK_EQUAL(scanned, 0U);
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()

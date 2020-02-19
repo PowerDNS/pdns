@@ -44,4 +44,3 @@ boost::uuids::uuid getUniqueID(const std::string& str)
   boost::uuids::string_generator gen;
   return gen(str);
 }
-

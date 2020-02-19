@@ -26,35 +26,36 @@
 // this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // on a miss, move it to the beginning
-template <typename S, typename C, typename T> void pruneCollection(C& container, T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
+template <typename S, typename C, typename T>
+void pruneCollection(C& container, T& collection, unsigned int maxCached, unsigned int scanFraction = 1000)
 {
-  time_t now=time(0);
-  unsigned int toTrim=0;
-  
-  unsigned int cacheSize=collection.size();
+  time_t now = time(0);
+  unsigned int toTrim = 0;
 
-  if(cacheSize > maxCached) {
+  unsigned int cacheSize = collection.size();
+
+  if (cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
   }
 
-//  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
+  //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
 
   typedef typename T::template index<S>::type sequence_t;
-  sequence_t& sidx=collection.template get<S>();
+  sequence_t& sidx = collection.template get<S>();
 
-  unsigned int tried=0, lookAt, erased=0;
+  unsigned int tried = 0, lookAt, erased = 0;
 
-  // two modes - if toTrim is 0, just look through 1/scanFraction of all records 
+  // two modes - if toTrim is 0, just look through 1/scanFraction of all records
   // and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
+  if (toTrim)
+    lookAt = 5 * toTrim;
   else
-    lookAt=cacheSize/scanFraction;
+    lookAt = cacheSize / scanFraction;
 
-  typename sequence_t::iterator iter=sidx.begin(), eiter;
-  for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    if(iter->getTTD() < now) {
+  typename sequence_t::iterator iter = sidx.begin(), eiter;
+  for (; iter != sidx.end() && tried < lookAt; ++tried) {
+    if (iter->getTTD() < now) {
       container.preRemoval(*iter);
       sidx.erase(iter++);
       erased++;
@@ -62,24 +63,24 @@ template <typename S, typename C, typename T> void pruneCollection(C& container,
     else
       ++iter;
 
-    if(toTrim && erased >= toTrim)
+    if (toTrim && erased >= toTrim)
       break;
   }
 
   //cout<<"erased "<<erased<<" records based on ttd\n";
-  
-  if(erased >= toTrim) // done
+
+  if (erased >= toTrim) // done
     return;
 
   toTrim -= erased;
 
   //if(toTrim)
-    // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n"; 
+  // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n";
 
-  eiter=iter=sidx.begin();
+  eiter = iter = sidx.begin();
   std::advance(eiter, toTrim);
   // just lob it off from the beginning
-  for (auto i = iter; ; ) {
+  for (auto i = iter;;) {
     if (i == eiter) {
       break;
     }
@@ -90,28 +91,32 @@ template <typename S, typename C, typename T> void pruneCollection(C& container,
 }
 
 // note: this expects iterator from first index
-template <typename S, typename T> void moveCacheItemToFrontOrBack(T& collection, typename T::iterator& iter, bool front)
+template <typename S, typename T>
+void moveCacheItemToFrontOrBack(T& collection, typename T::iterator& iter, bool front)
 {
   typedef typename T::template index<S>::type sequence_t;
-  sequence_t& sidx=collection.template get<S>();
-  typename sequence_t::iterator si=collection.template project<S>(iter);
-  if(front)
+  sequence_t& sidx = collection.template get<S>();
+  typename sequence_t::iterator si = collection.template project<S>(iter);
+  if (front)
     sidx.relocate(sidx.begin(), si); // at the beginning of the delete queue
   else
-    sidx.relocate(sidx.end(), si);  // back
+    sidx.relocate(sidx.end(), si); // back
 }
 
-template <typename S, typename T> void moveCacheItemToFront(T& collection, typename T::iterator& iter)
+template <typename S, typename T>
+void moveCacheItemToFront(T& collection, typename T::iterator& iter)
 {
   moveCacheItemToFrontOrBack<S>(collection, iter, true);
 }
 
-template <typename S, typename T> void moveCacheItemToBack(T& collection, typename T::iterator& iter)
+template <typename S, typename T>
+void moveCacheItemToBack(T& collection, typename T::iterator& iter)
 {
   moveCacheItemToFrontOrBack<S>(collection, iter, false);
 }
 
-template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+template <typename S, typename T>
+uint64_t pruneLockedCollectionsVector(vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
 {
   time_t now = time(nullptr);
   uint64_t totErased = 0;
@@ -123,26 +128,28 @@ template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T
   if (maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
     lookAt = 5 * toTrim;
-  } else {
+  }
+  else {
     lookAt = cacheSize / 10;
   }
 
-  for(auto& mc : maps) {
+  for (auto& mc : maps) {
     WriteLock wl(&mc.d_mut);
     auto& sidx = boost::multi_index::get<S>(mc.d_map);
     uint64_t erased = 0, lookedAt = 0;
-    for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
-      if(i->ttd < now) {
+    for (auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
+      if (i->ttd < now) {
         i = sidx.erase(i);
         erased++;
-      } else {
+      }
+      else {
         ++i;
       }
 
-      if(toTrim && erased > toTrim / maps.size())
+      if (toTrim && erased > toTrim / maps.size())
         break;
 
-      if(lookedAt > lookAt / maps.size())
+      if (lookedAt > lookAt / maps.size())
         break;
     }
     totErased += erased;
@@ -151,11 +158,12 @@ template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T
   return totErased;
 }
 
-template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps)
+template <typename T>
+uint64_t purgeLockedCollectionsVector(vector<T>& maps)
 {
-  uint64_t delcount=0;
+  uint64_t delcount = 0;
 
-  for(auto& mc : maps) {
+  for (auto& mc : maps) {
     WriteLock wl(&mc.d_mut);
     delcount += mc.d_map.size();
     mc.d_map.clear();
@@ -164,20 +172,21 @@ template <typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps)
   return delcount;
 }
 
-template <typename N, typename T> uint64_t purgeLockedCollectionsVector(vector<T>& maps, const std::string& match)
+template <typename N, typename T>
+uint64_t purgeLockedCollectionsVector(vector<T>& maps, const std::string& match)
 {
-  uint64_t delcount=0;
+  uint64_t delcount = 0;
   string prefix(match);
-  prefix.resize(prefix.size()-1);
+  prefix.resize(prefix.size() - 1);
   DNSName dprefix(prefix);
-  for(auto& mc : maps) {
+  for (auto& mc : maps) {
     WriteLock wl(&mc.d_mut);
     auto& idx = boost::multi_index::get<N>(mc.d_map);
     auto iter = idx.lower_bound(dprefix);
     auto start = iter;
 
-    for(; iter != idx.end(); ++iter) {
-      if(!iter->qname.isPartOf(dprefix)) {
+    for (; iter != idx.end(); ++iter) {
+      if (!iter->qname.isPartOf(dprefix)) {
         break;
       }
       delcount++;
@@ -188,13 +197,14 @@ template <typename N, typename T> uint64_t purgeLockedCollectionsVector(vector<T
   return delcount;
 }
 
-template <typename N, typename T> uint64_t purgeExactLockedCollection(T& mc, const DNSName& qname)
+template <typename N, typename T>
+uint64_t purgeExactLockedCollection(T& mc, const DNSName& qname)
 {
-  uint64_t delcount=0;
+  uint64_t delcount = 0;
   WriteLock wl(&mc.d_mut);
   auto& idx = boost::multi_index::get<N>(mc.d_map);
   auto range = idx.equal_range(qname);
-  if(range.first != range.second) {
+  if (range.first != range.second) {
     delcount += distance(range.first, range.second);
     idx.erase(range.first, range.second);
   }
@@ -202,11 +212,11 @@ template <typename N, typename T> uint64_t purgeExactLockedCollection(T& mc, con
   return delcount;
 }
 
-template<typename S, typename Index>
-std::pair<typename Index::iterator,bool>
-lruReplacingInsert(Index& i,const typename Index::value_type& x)
+template <typename S, typename Index>
+std::pair<typename Index::iterator, bool>
+lruReplacingInsert(Index& i, const typename Index::value_type& x)
 {
-  std::pair<typename Index::iterator,bool> res = i.insert(x);
+  std::pair<typename Index::iterator, bool> res = i.insert(x);
   if (!res.second) {
     moveCacheItemToBack<S>(i, res.first);
     res.second = i.replace(res.first, x);

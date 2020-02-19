@@ -29,24 +29,25 @@
 #define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
 #endif
 
-int gettime(struct timespec *tp, bool needRealTime)
+int gettime(struct timespec* tp, bool needRealTime)
 {
-	return clock_gettime(needRealTime ? CLOCK_REALTIME : CLOCK_MONOTONIC, tp);
+  return clock_gettime(needRealTime ? CLOCK_REALTIME : CLOCK_MONOTONIC, tp);
 }
 
 #else
 #include <sys/time.h>
 
-int gettime(struct timespec *tp, bool needRealTime)
+int gettime(struct timespec* tp, bool needRealTime)
 {
-	struct timeval tv;
+  struct timeval tv;
 
-	int ret = gettimeofday(&tv, NULL);
-	if(ret < 0) return ret;
+  int ret = gettimeofday(&tv, NULL);
+  if (ret < 0)
+    return ret;
 
-	tp->tv_sec = tv.tv_sec;
-	tp->tv_nsec = tv.tv_usec * 1000;
-	return ret;
+  tp->tv_sec = tv.tv_sec;
+  tp->tv_nsec = tv.tv_usec * 1000;
+  return ret;
 }
 
 #endif

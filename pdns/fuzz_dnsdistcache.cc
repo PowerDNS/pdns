@@ -22,7 +22,8 @@
 
 #include "dnsdist-cache.hh"
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
 
   if (size > std::numeric_limits<uint16_t>::max()) {
     return 0;
@@ -38,9 +39,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     boost::optional<Netmask> subnet;
     DNSDistPacketCache::getClientSubnet(reinterpret_cast<const char*>(data), consumed, size, subnet);
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
   }
-  catch(const PDNSException& e) {
+  catch (const PDNSException& e) {
   }
 
   return 0;

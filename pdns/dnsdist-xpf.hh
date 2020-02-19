@@ -24,4 +24,3 @@
 #include "dnsdist.hh"
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode, bool preserveTrailingData);
-

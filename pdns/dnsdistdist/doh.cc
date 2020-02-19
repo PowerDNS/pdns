@@ -145,11 +145,11 @@ public:
 
         d_rotatingTicketsKey.clear();
       }
-      catch(const std::runtime_error& e) {
+      catch (const std::runtime_error& e) {
         d_rotatingTicketsKey.clear();
         throw std::runtime_error(std::string("Error generating a new tickets key for TLS context:") + e.what());
       }
-      catch(...) {
+      catch (...) {
         d_rotatingTicketsKey.clear();
         throw;
       }
@@ -158,7 +158,7 @@ public:
 
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
-  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
+  std::unique_ptr<FILE, int (*)(FILE*)> d_keyLogFile{nullptr, fclose};
   ClientState* d_cs{nullptr};
   time_t d_ticketsKeyRotationDelay{0};
 
@@ -173,9 +173,10 @@ private:
 // through the bowels of h2o
 struct DOHServerConfig
 {
-  DOHServerConfig(uint32_t idleTimeout): accept_ctx(new DOHAcceptContext)
+  DOHServerConfig(uint32_t idleTimeout) :
+    accept_ctx(new DOHAcceptContext)
   {
-    if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, dohquerypair) < 0) {
+    if (socketpair(AF_LOCAL, SOCK_DGRAM, 0, dohquerypair) < 0) {
       unixDie("Creating a socket pair for DNS over HTTPS");
     }
 
@@ -205,8 +206,8 @@ struct DOHServerConfig
   DOHAcceptContext* accept_ctx{nullptr};
   ClientState* cs{nullptr};
   std::shared_ptr<DOHFrontend> df{nullptr};
-  int dohquerypair[2]{-1,-1};
-  int dohresponsepair[2]{-1,-1};
+  int dohquerypair[2]{-1, -1};
+  int dohresponsepair[2]{-1, -1};
 };
 
 void handleDOHTimeout(DOHUnit* oldDU)
@@ -215,7 +216,7 @@ void handleDOHTimeout(DOHUnit* oldDU)
     return;
   }
 
-/* we are about to erase an existing DU */
+  /* we are about to erase an existing DU */
   oldDU->status_code = 502;
 
   /* increase the ref counter before sending the pointer */
@@ -227,7 +228,7 @@ void handleDOHTimeout(DOHUnit* oldDU)
   oldDU = nullptr;
 }
 
-static void on_socketclose(void *data)
+static void on_socketclose(void* data)
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
   ctx->decrementConcurrentConnections();
@@ -238,42 +239,41 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
 {
   /* no need to care too much about this, HTTP/2 has no 'reason' anyway */
   static const std::unordered_map<uint16_t, std::string> reasons = {
-    { 200, "OK" },
-    { 301, "Moved Permanently" },
-    { 302, "Found" },
-    { 303, "See Other" },
-    { 304, "Not Modified" },
-    { 305, "Use Proxy" },
-    { 306, "Switch Proxy" },
-    { 307, "Temporary Redirect" },
-    { 308, "Permanent Redirect" },
-    { 400, "Bad Request" },
-    { 401, "Unauthorized" },
-    { 402, "Payment Required" },
-    { 403, "Forbidden" },
-    { 404, "Not Found" },
-    { 405, "Method Not Allowed" },
-    { 406, "Not Acceptable" },
-    { 407, "Proxy Authentication Required" },
-    { 408, "Request Timeout" },
-    { 409, "Conflict" },
-    { 410, "Gone" },
-    { 411, "Length Required" },
-    { 412, "Precondition Failed" },
-    { 413, "Payload Too Large" },
-    { 414, "URI Too Long" },
-    { 415, "Unsupported Media Type" },
-    { 416, "Range Not Satisfiable" },
-    { 417, "Expectation Failed" },
-    { 418, "I'm a teapot" },
-    { 451, "Unavailable For Legal Reasons" },
-    { 500, "Internal Server Error" },
-    { 501, "Not Implemented" },
-    { 502, "Bad Gateway" },
-    { 503, "Service Unavailable" },
-    { 504, "Gateway Timeout" },
-    { 505, "HTTP Version Not Supported" }
-  };
+    {200, "OK"},
+    {301, "Moved Permanently"},
+    {302, "Found"},
+    {303, "See Other"},
+    {304, "Not Modified"},
+    {305, "Use Proxy"},
+    {306, "Switch Proxy"},
+    {307, "Temporary Redirect"},
+    {308, "Permanent Redirect"},
+    {400, "Bad Request"},
+    {401, "Unauthorized"},
+    {402, "Payment Required"},
+    {403, "Forbidden"},
+    {404, "Not Found"},
+    {405, "Method Not Allowed"},
+    {406, "Not Acceptable"},
+    {407, "Proxy Authentication Required"},
+    {408, "Request Timeout"},
+    {409, "Conflict"},
+    {410, "Gone"},
+    {411, "Length Required"},
+    {412, "Precondition Failed"},
+    {413, "Payload Too Large"},
+    {414, "URI Too Long"},
+    {415, "Unsupported Media Type"},
+    {416, "Range Not Satisfiable"},
+    {417, "Expectation Failed"},
+    {418, "I'm a teapot"},
+    {451, "Unavailable For Legal Reasons"},
+    {500, "Internal Server Error"},
+    {501, "Not Implemented"},
+    {502, "Bad Gateway"},
+    {503, "Service Unavailable"},
+    {504, "Gateway Timeout"},
+    {505, "HTTP Version Not Supported"}};
   static const std::string unknown = "Unknown";
 
   const auto it = reasons.find(statusCode);
@@ -333,9 +333,9 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
       h2o_send_error_generic(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), response.c_str(), H2O_SEND_ERROR_KEEP_HEADERS);
     }
     else {
-      switch(statusCode) {
+      switch (statusCode) {
       case 400:
-        h2o_send_error_400(req, getReasonFromStatusCode(statusCode).c_str(), "invalid DNS query" , 0);
+        h2o_send_error_400(req, getReasonFromStatusCode(statusCode).c_str(), "invalid DNS query", 0);
         break;
       case 403:
         h2o_send_error_403(req, getReasonFromStatusCode(statusCode).c_str(), "dns query not allowed", 0);
@@ -365,7 +365,7 @@ static int processDOHQuery(DOHUnit* du)
   ComboAddress remote;
   bool duRefCountIncremented = false;
   try {
-    if(!du->req) {
+    if (!du->req) {
       // we got closed meanwhile. XXX small race condition here
       return -1;
     }
@@ -410,7 +410,7 @@ static int processDOHQuery(DOHUnit* du)
     queryId = ntohs(dh->id);
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
     h2o_socket_t* sock = du->req->conn->callbacks->get_socket(du->req->conn);
-    const char * sni = h2o_socket_get_ssl_server_name(sock);
+    const char* sni = h2o_socket_get_ssl_server_name(sock);
     if (sni != nullptr) {
       dq.sni = sni;
     }
@@ -507,7 +507,7 @@ static int processDOHQuery(DOHUnit* du)
       /* you can't touch du after this line, because it might already have been freed */
       ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
-      if(ret < 0) {
+      if (ret < 0) {
         /* we are about to handle the error, make sure that
            this pointer is not accessed when the state is cleaned,
            but first check that it still belongs to us */
@@ -532,7 +532,7 @@ static int processDOHQuery(DOHUnit* du)
 
     vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
     du->status_code = 500;
     return -1;
@@ -542,7 +542,7 @@ static int processDOHQuery(DOHUnit* du)
 }
 
 /* called when a HTTP response is about to be sent */
-static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h2o_ostream_t **slot)
+static void on_response_ready_cb(struct st_h2o_filter_t* self, h2o_req_t* req, h2o_ostream_t** slot)
 {
   if (req == nullptr) {
     return;
@@ -584,18 +584,18 @@ static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h
   h2o_setup_next_ostream(req, slot);
 }
 
-static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *path, int (*on_req)(h2o_handler_t *, h2o_req_t *))
+static h2o_pathconf_t* register_handler(h2o_hostconf_t* hostconf, const char* path, int (*on_req)(h2o_handler_t*, h2o_req_t*))
 {
-  h2o_pathconf_t *pathconf = h2o_config_register_path(hostconf, path, 0);
+  h2o_pathconf_t* pathconf = h2o_config_register_path(hostconf, path, 0);
   if (pathconf == nullptr) {
     return pathconf;
   }
-  h2o_filter_t *filter = h2o_create_filter(pathconf, sizeof(*filter));
+  h2o_filter_t* filter = h2o_create_filter(pathconf, sizeof(*filter));
   if (filter) {
     filter->on_setup_ostream = on_response_ready_cb;
   }
 
-  h2o_handler_t *handler = h2o_create_handler(pathconf, sizeof(*handler));
+  h2o_handler_t* handler = h2o_create_handler(pathconf, sizeof(*handler));
   if (handler != nullptr) {
     handler->on_req = on_req;
   }
@@ -605,11 +605,11 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 
 /* this is called by h2o when our request dies.
    We use this to signal to the 'du' that this req is no longer alive */
-static void on_generator_dispose(void *_self)
+static void on_generator_dispose(void* _self)
 {
   DOHUnit** du = (DOHUnit**)_self;
-  if(*du) { // if 0, on_dnsdist cleaned up du already
-//    cout << "du "<<(void*)*du<<" containing req "<<(*du)->req<<" got killed"<<endl;
+  if (*du) { // if 0, on_dnsdist cleaned up du already
+    //    cout << "du "<<(void*)*du<<" containing req "<<(*du)->req<<" got killed"<<endl;
     (*du)->req = nullptr;
   }
 }
@@ -632,18 +632,18 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     du->self = reinterpret_cast<DOHUnit**>(h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose));
     auto ptr = du.release();
     *(ptr->self) = ptr;
-    try  {
-      if(send(dsc->dohquerypair[0], &ptr, sizeof(ptr), 0) != sizeof(ptr)) {
+    try {
+      if (send(dsc->dohquerypair[0], &ptr, sizeof(ptr), 0) != sizeof(ptr)) {
         ptr->release();
         ptr = nullptr;
         h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
       }
     }
-    catch(...) {
+    catch (...) {
       ptr->release();
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     vinfolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what());
     h2o_send_error_400(req, "Bad Request", "The DNS query could not be parsed", 0);
   }
@@ -654,11 +654,10 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
   For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
   For POST, the payload is the payload.
  */
-static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
-try
-{
+static int doh_handler(h2o_handler_t* self, h2o_req_t* req)
+try {
   // g_logstream<<(void*)req<<" doh_handler"<<endl;
-  if(!req->conn->ctx->storage.size) {
+  if (!req->conn->ctx->storage.size) {
     return 0; // although we might was well crash on this
   }
   h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
@@ -683,14 +682,14 @@ try
     ++dsc->cs->tlsResumptions;
   }
 
-  if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
-    if(!strcmp(tlsversion, "TLSv1.0"))
+  if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
+    if (!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->cs->tls10queries;
-    else if(!strcmp(tlsversion, "TLSv1.1"))
+    else if (!strcmp(tlsversion, "TLSv1.1"))
       ++dsc->cs->tls11queries;
-    else if(!strcmp(tlsversion, "TLSv1.2"))
+    else if (!strcmp(tlsversion, "TLSv1.2"))
       ++dsc->cs->tls12queries;
-    else if(!strcmp(tlsversion, "TLSv1.3"))
+    else if (!strcmp(tlsversion, "TLSv1.3"))
       ++dsc->cs->tls13queries;
     else
       ++dsc->cs->tlsUnknownqueries;
@@ -714,7 +713,7 @@ try
 
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     ++dsc->df->d_postqueries;
-    if(req->version >= 0x0200)
+    if (req->version >= 0x0200)
       ++dsc->df->d_http2Stats.d_nbQueries;
     else
       ++dsc->df->d_http1Stats.d_nbQueries;
@@ -726,15 +725,15 @@ try
     query.assign(req->entity.base, req->entity.len);
     doh_dispatch_query(dsc, self, req, std::move(query), local, remote);
   }
-  else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
+  else if (req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
     auto pos = path.find("?dns=");
-    if(pos == string::npos)
+    if (pos == string::npos)
       pos = path.find("&dns=");
-    if(pos != string::npos) {
+    if (pos != string::npos) {
       // need to base64url decode this
-      string sdns(path.substr(pos+5));
-      boost::replace_all(sdns,"-", "+");
-      boost::replace_all(sdns,"_", "/");
+      string sdns(path.substr(pos + 5));
+      boost::replace_all(sdns, "-", "+");
+      boost::replace_all(sdns, "_", "/");
       // re-add padding that may have been missing
       switch (sdns.size() % 4) {
       case 2:
@@ -751,14 +750,14 @@ try
          at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
       const size_t estimate = ((sdns.size() * 3) / 4);
       decoded.reserve(std::max(estimate + 512, s_maxPacketCacheEntrySize));
-      if(B64Decode(sdns, decoded) < 0) {
+      if (B64Decode(sdns, decoded) < 0) {
         h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
         ++dsc->df->d_badrequests;
         return 0;
       }
       else {
         ++dsc->df->d_getqueries;
-        if(req->version >= 0x0200)
+        if (req->version >= 0x0200)
           ++dsc->df->d_http2Stats.d_nbQueries;
         else
           ++dsc->df->d_http1Stats.d_nbQueries;
@@ -766,8 +765,7 @@ try
         doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote);
       }
     }
-    else
-    {
+    else {
       vinfolog("HTTP request without DNS parameter: %s", req->path.base);
       h2o_send_error_400(req, "Bad Request", "Unable to find the DNS parameter", 0);
       ++dsc->df->d_badrequests;
@@ -780,14 +778,15 @@ try
   }
   return 0;
 }
-catch(const exception& e)
-{
+catch (const exception& e) {
   errlog("DOH Handler function failed with error %s", e.what());
   return 0;
 }
 
-HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex)
-  : d_header(toLower(header)), d_regex(regex), d_visual("http[" + header+ "] ~ " + regex)
+HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex) :
+  d_header(toLower(header)),
+  d_regex(regex),
+  d_visual("http[" + header + "] ~ " + regex)
 {
 }
 
@@ -798,8 +797,7 @@ bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
   }
 
   for (size_t i = 0; i < dq->du->req->headers.size; ++i) {
-    if(std::string(dq->du->req->headers.entries[i].name->base, dq->du->req->headers.entries[i].name->len) == d_header &&
-       d_regex.match(std::string(dq->du->req->headers.entries[i].value.base, dq->du->req->headers.entries[i].value.len))) {
+    if (std::string(dq->du->req->headers.entries[i].name->base, dq->du->req->headers.entries[i].name->len) == d_header && d_regex.match(std::string(dq->du->req->headers.entries[i].value.base, dq->du->req->headers.entries[i].value.len))) {
       return true;
     }
   }
@@ -811,19 +809,18 @@ string HTTPHeaderRule::toString() const
   return d_visual;
 }
 
-HTTPPathRule::HTTPPathRule(const std::string& path)
-  :  d_path(path)
+HTTPPathRule::HTTPPathRule(const std::string& path) :
+  d_path(path)
 {
-
 }
 
 bool HTTPPathRule::matches(const DNSQuestion* dq) const
 {
-  if(!dq->du) {
+  if (!dq->du) {
     return false;
   }
 
-  if(dq->du->req->query_at == SIZE_MAX) {
+  if (dq->du->req->query_at == SIZE_MAX) {
     return dq->du->req->path.base == d_path;
   }
   else {
@@ -836,7 +833,9 @@ string HTTPPathRule::toString() const
   return "url path == " + d_path;
 }
 
-HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex): d_regex(regex), d_visual("http path ~ " + regex)
+HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
+  d_regex(regex),
+  d_visual("http path ~ " + regex)
 {
 }
 
@@ -861,7 +860,7 @@ std::unordered_map<std::string, std::string> DOHUnit::getHTTPHeaders() const
 
   for (size_t i = 0; i < req->headers.size; ++i) {
     results.insert({std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
-                    std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)});
+      std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)});
   }
 
   return results;
@@ -915,7 +914,7 @@ static void dnsdistclient(int qsock, int rsock)
 {
   setThreadName("dnsdist/doh-cli");
 
-  for(;;) {
+  for (;;) {
     try {
       DOHUnit* du = nullptr;
       ssize_t got = recv(qsock, &du, sizeof(du), 0);
@@ -931,7 +930,7 @@ static void dnsdistclient(int qsock, int rsock)
       // so we can use UDP to talk to the backend.
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.c_str()));
 
-      if(!dh->arcount) {
+      if (!dh->arcount) {
         std::string res;
         generateOptRR(std::string(), res, 4096, 0, false);
 
@@ -944,20 +943,20 @@ static void dnsdistclient(int qsock, int rsock)
         // we leave existing EDNS in place
       }
 
-      if(processDOHQuery(du) < 0) {
+      if (processDOHQuery(du) < 0) {
         du->status_code = 500;
         /* increase the ref count before sending the pointer */
         du->get();
-        if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
-          du->release();     // XXX but now what - will h2o time this out for us?
+        if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
+          du->release(); // XXX but now what - will h2o time this out for us?
         }
       }
       du->release();
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       errlog("Error while processing query received over DoH: %s", e.what());
     }
-    catch(...) {
+    catch (...) {
       errlog("Unspecified error while processing query received over DoH");
     }
   }
@@ -970,9 +969,9 @@ static void dnsdistclient(int qsock, int rsock)
    - dnsdistclient (error 500 because processDOHQuery() returned a negative value)
    - processDOHQuery (self-answered queries)
    */
-static void on_dnsdist(h2o_socket_t *listener, const char *err)
+static void on_dnsdist(h2o_socket_t* listener, const char* err)
 {
-  DOHUnit *du = nullptr;
+  DOHUnit* du = nullptr;
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
   ssize_t got = recv(dsc->dohresponsepair[1], &du, sizeof(du), 0);
 
@@ -984,8 +983,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if(!du->req) { // it got killed in flight
-//    cout << "du "<<(void*)du<<" came back from dnsdist, but it was killed"<<endl;
+  if (!du->req) { // it got killed in flight
+    //    cout << "du "<<(void*)du<<" came back from dnsdist, but it was killed"<<endl;
     du->release();
     return;
   }
@@ -998,10 +997,10 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 }
 
 /* called when a TCP connection has been accepted, the TLS session has not been established */
-static void on_accept(h2o_socket_t *listener, const char *err)
+static void on_accept(h2o_socket_t* listener, const char* err)
 {
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
-  h2o_socket_t *sock = nullptr;
+  h2o_socket_t* sock = nullptr;
 
   if (err != nullptr) {
     return;
@@ -1042,7 +1041,7 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
   return libssl_ocsp_stapling_callback(ssl, *ocspMap);
 }
 
-static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+static int ticket_key_callback(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(libssl_get_ticket_key_callback_data(s));
   if (ctx == nullptr || !ctx->d_ticketKeys) {
@@ -1065,8 +1064,8 @@ static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAM
 }
 
 static void setupTLSContext(DOHAcceptContext& acceptCtx,
-                            TLSConfig& tlsConfig,
-                            TLSErrorCounters& counters)
+  TLSConfig& tlsConfig,
+  TLSErrorCounters& counters)
 {
   if (tlsConfig.d_ciphers.empty()) {
     tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS;
@@ -1115,8 +1114,8 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   if (setupTLS && !dsc.df->d_tlsConfig.d_certKeyPairs.empty()) {
     try {
       setupTLSContext(ctx,
-                      dsc.df->d_tlsConfig,
-                      dsc.df->d_tlsCounters);
+        dsc.df->d_tlsConfig,
+        dsc.df->d_tlsCounters);
     }
     catch (const std::runtime_error& e) {
       throw std::runtime_error("Error setting up TLS context for DoH listener on '" + dsc.df->d_local.toStringWithPort() + "': " + e.what());
@@ -1179,11 +1178,11 @@ void DOHFrontend::setup()
 
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
-  if  (!d_tlsConfig.d_certKeyPairs.empty()) {
+  if (!d_tlsConfig.d_certKeyPairs.empty()) {
     try {
       setupTLSContext(*d_dsc->accept_ctx,
-                      d_tlsConfig,
-                      d_tlsCounters);
+        d_tlsConfig,
+        d_tlsCounters);
     }
     catch (const std::runtime_error& e) {
       throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_local.toStringWithPort() + "': " + e.what());
@@ -1193,14 +1192,12 @@ void DOHFrontend::setup()
 
 // this is the entrypoint from dnsdist.cc
 void dohThread(ClientState* cs)
-try
-{
+try {
   std::shared_ptr<DOHFrontend>& df = cs->dohFrontend;
   auto& dsc = df->d_dsc;
   dsc->cs = cs;
   dsc->df = cs->dohFrontend;
   dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
-
 
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
   dnsdistThread.detach(); // gets us better error reporting
@@ -1208,9 +1205,9 @@ try
   setThreadName("dnsdist/doh");
   // I wonder if this registers an IP address.. I think it does
   // this may mean we need to actually register a site "name" here and not the IP address
-  h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
+  h2o_hostconf_t* hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
 
-  for(const auto& url : df->d_urls) {
+  for (const auto& url : df->d_urls) {
     register_handler(hostconf, url.c_str(), doh_handler);
     dsc->paths.insert(url);
   }
@@ -1243,14 +1240,12 @@ try
         stop = true;
       }
     }
-  }
-  while (stop == false);
-
+  } while (stop == false);
 }
-catch(const std::exception& e) {
+catch (const std::exception& e) {
   throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
 }
-catch(...) {
+catch (...) {
   throw runtime_error("DOH thread failed to launch");
 }
 

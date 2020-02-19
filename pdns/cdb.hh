@@ -29,16 +29,16 @@
 class CDB
 {
 public:
-  CDB(const string &cdbfile);
+  CDB(const string& cdbfile);
   ~CDB();
 
   /* Return negative value on error or non-negative value on success.
      Values can be retrieved via readNext() */
-  int searchKey(const string &key);
-  bool searchSuffix(const string &key);
+  int searchKey(const string& key);
+  bool searchSuffix(const string& key);
   void searchAll();
-  bool readNext(pair<string, string> &value);
-  vector<string> findall(string &key);
+  bool readNext(pair<string, string>& value);
+  vector<string> findall(string& key);
   bool keyExists(const string& key);
   bool findOne(const string& key, string& value);
 
@@ -50,7 +50,12 @@ private:
   struct cdb_find d_cdbf;
   std::string d_key;
   unsigned d_seqPtr{0};
-  enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType{SearchKey};
+  enum SearchType
+  {
+    SearchSuffix,
+    SearchKey,
+    SearchAll
+  } d_searchType{SearchKey};
 };
 
 class CDBWriter

@@ -37,7 +37,8 @@
 class DNSProtoBufMessage
 {
 public:
-  enum DNSProtoBufMessageType {
+  enum DNSProtoBufMessageType
+  {
     Query,
     Response,
     OutgoingQuery,
@@ -56,14 +57,14 @@ public:
 
   void setType(DNSProtoBufMessage::DNSProtoBufMessageType type);
   void setQuestion(const DNSName& qname, uint16_t qtype, uint16_t qclass);
-  void setEDNSSubnet(const Netmask& subnet, uint8_t mask=128);
+  void setEDNSSubnet(const Netmask& subnet, uint8_t mask = 128);
   void setBytes(size_t bytes);
   void setTime(time_t sec, uint32_t usec);
   void updateTime();
   void setQueryTime(time_t sec, uint32_t usec);
   void setResponseCode(uint8_t rcode);
   void setNetworkErrorResponseCode();
-  void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME=false);
+  void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME = false);
   void serialize(std::string& data) const;
   void setRequestor(const std::string& requestor);
   void setRequestor(const ComboAddress& requestor);

@@ -30,19 +30,24 @@
 class Ewma
 {
 public:
-  Ewma() : d_last(0), d_10(0), d_5(0), d_1(0), d_max(0){dt.set();}
-  void submit(int val) 
+  Ewma() :
+    d_last(0),
+    d_10(0),
+    d_5(0),
+    d_1(0),
+    d_max(0) { dt.set(); }
+  void submit(int val)
   {
-    int rate=val-d_last;
-    double difft=dt.udiff()/1000000.0;
+    int rate = val - d_last;
+    double difft = dt.udiff() / 1000000.0;
     dt.set();
-    
-    d_10=((600.0-difft)*d_10+(difft*rate))/600.0;
-    d_5=((300.0-difft)*d_5+(difft*rate))/300.0;
-    d_1=((60.0-difft)*d_1+(difft*rate))/60.0;
-    d_max=max(d_1,d_max);
-      
-    d_last=val;
+
+    d_10 = ((600.0 - difft) * d_10 + (difft * rate)) / 600.0;
+    d_5 = ((300.0 - difft) * d_5 + (difft * rate)) / 300.0;
+    d_1 = ((60.0 - difft) * d_1 + (difft * rate)) / 60.0;
+    d_max = max(d_1, d_max);
+
+    d_last = val;
   }
   double get10()
   {
@@ -60,6 +65,7 @@ public:
   {
     return d_max;
   }
+
 private:
   DTime dt;
   int d_last;
@@ -78,14 +84,14 @@ public:
   static string makePercentage(const double& val);
 
 private:
-  static void *webThreadHelper(void *);
-  static void *statThreadHelper(void *p);
+  static void* webThreadHelper(void*);
+  static void* statThreadHelper(void* p);
   void indexfunction(HttpRequest* req, HttpResponse* resp);
   void cssfunction(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, boost::function<void(HttpRequest*, HttpResponse*)> handler);
-  void printvars(ostringstream &ret);
-  void printargs(ostringstream &ret);
+  void printvars(ostringstream& ret);
+  void printargs(ostringstream& ret);
   void webThread();
   void statThread();
   pthread_t d_tid;
@@ -94,5 +100,5 @@ private:
   double d_min10, d_min5, d_min1;
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
-  WebServer *d_ws{nullptr};
+  WebServer* d_ws{nullptr};
 };

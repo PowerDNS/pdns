@@ -170,20 +170,22 @@ int main()
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer 
 */
 
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeoutMsec, struct timeval* now)
+template <class EventKey, class EventVal>
+int MTasker<EventKey, EventVal>::waitEvent(EventKey& key, EventVal* val, unsigned int timeoutMsec, struct timeval* now)
 {
-  if(d_waiters.count(key)) { // there was already an exact same waiter
+  if (d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
   }
 
   Waiter w;
-  w.context=std::make_shared<pdns_ucontext_t>();
-  w.ttd.tv_sec = 0; w.ttd.tv_usec = 0;
-  if(timeoutMsec) {
+  w.context = std::make_shared<pdns_ucontext_t>();
+  w.ttd.tv_sec = 0;
+  w.ttd.tv_usec = 0;
+  if (timeoutMsec) {
     struct timeval increment;
     increment.tv_sec = timeoutMsec / 1000;
     increment.tv_usec = 1000 * (timeoutMsec % 1000);
-    if(now) 
+    if (now)
       w.ttd = increment + *now;
     else {
       struct timeval realnow;
@@ -192,38 +194,39 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
     }
   }
 
-  w.tid=d_tid;
-  w.key=key;
+  w.tid = d_tid;
+  w.key = key;
 
   d_waiters.insert(w);
 #ifdef MTASKERTIMING
-  unsigned int diff=d_threads[d_tid].dt.ndiff()/1000;
-  d_threads[d_tid].totTime+=diff;
+  unsigned int diff = d_threads[d_tid].dt.ndiff() / 1000;
+  d_threads[d_tid].totTime += diff;
 #endif
   notifyStackSwitchToKernel();
-  pdns_swapcontext(*d_waiters.find(key)->context,d_kernel); // 'A' will return here when 'key' has arrived, hands over control to kernel first
+  pdns_swapcontext(*d_waiters.find(key)->context, d_kernel); // 'A' will return here when 'key' has arrived, hands over control to kernel first
   notifyStackSwitchDone();
 #ifdef MTASKERTIMING
   d_threads[d_tid].dt.start();
 #endif
-  if(val && d_waitstatus==Answer) 
-    *val=d_waitval;
-  d_tid=w.tid;
-  if((char*)&w < d_threads[d_tid].highestStackSeen) {
+  if (val && d_waitstatus == Answer)
+    *val = d_waitval;
+  d_tid = w.tid;
+  if ((char*)&w < d_threads[d_tid].highestStackSeen) {
     d_threads[d_tid].highestStackSeen = (char*)&w;
   }
-  key=d_eventkey;
+  key = d_eventkey;
   return d_waitstatus;
 }
 
 //! yields control to the kernel or other threads
 /** Hands over control to the kernel, allowing other processes to run, or events to arrive */
 
-template<class Key, class Val>void MTasker<Key,Val>::yield()
+template <class Key, class Val>
+void MTasker<Key, Val>::yield()
 {
   d_runQueue.push(d_tid);
   notifyStackSwitchToKernel();
-  pdns_swapcontext(*d_threads[d_tid].context ,d_kernel); // give control to the kernel
+  pdns_swapcontext(*d_threads[d_tid].context, d_kernel); // give control to the kernel
   notifyStackSwitchDone();
 }
 
@@ -235,25 +238,26 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 
     WARNING: when passing val as zero, d_waitval is undefined, and hence waitEvent will return undefined!
 */
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
+template <class EventKey, class EventVal>
+int MTasker<EventKey, EventVal>::sendEvent(const EventKey& key, const EventVal* val)
 {
-  typename waiters_t::iterator waiter=d_waiters.find(key);
+  typename waiters_t::iterator waiter = d_waiters.find(key);
 
-  if(waiter == d_waiters.end()) {
+  if (waiter == d_waiters.end()) {
     //    cout<<"Event sent nobody was waiting for!"<<endl;
     return 0;
   }
-  
-  d_waitstatus=Answer;
-  if(val)
-    d_waitval=*val;
-  
-  d_tid=waiter->tid;         // set tid 
-  d_eventkey=waiter->key;        // pass waitEvent the exact key it was woken for
-  auto userspace=std::move(waiter->context);
-  d_waiters.erase(waiter);             // removes the waitpoint
+
+  d_waitstatus = Answer;
+  if (val)
+    d_waitval = *val;
+
+  d_tid = waiter->tid; // set tid
+  d_eventkey = waiter->key; // pass waitEvent the exact key it was woken for
+  auto userspace = std::move(waiter->context);
+  d_waiters.erase(waiter); // removes the waitpoint
   notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-  pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
+  pdns_swapcontext(d_kernel, *userspace); // swaps back to the above point 'A'
   notifyStackSwitchDone();
   return 1;
 }
@@ -263,33 +267,33 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
     \param start Pointer to the function which will form the start of the thread
     \param val A void pointer that can be used to pass data to the thread
 */
-template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val)
+template <class Key, class Val>
+void MTasker<Key, Val>::makeThread(tfunc_t* start, void* val)
 {
-  auto uc=std::make_shared<pdns_ucontext_t>();
-  
+  auto uc = std::make_shared<pdns_ucontext_t>();
+
   uc->uc_link = &d_kernel; // come back to kernel after dying
-  uc->uc_stack.resize (d_stacksize+1);
+  uc->uc_stack.resize(d_stacksize + 1);
 #ifdef PDNS_USE_VALGRIND
   uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
-                                            &uc->uc_stack[uc->uc_stack.size()-1]);
+    &uc->uc_stack[uc->uc_stack.size() - 1]);
 #endif /* PDNS_USE_VALGRIND */
 
   ++d_threadsCount;
   auto& thread = d_threads[d_maxtid];
   auto mt = this;
   thread.start = [start, val, mt]() {
-      char dummy;
-      mt->d_threads[mt->d_tid].startOfStack = mt->d_threads[mt->d_tid].highestStackSeen = &dummy;
-      auto const tid = mt->d_tid;
-      start (val);
-      mt->d_zombiesQueue.push(tid);
+    char dummy;
+    mt->d_threads[mt->d_tid].startOfStack = mt->d_threads[mt->d_tid].highestStackSeen = &dummy;
+    auto const tid = mt->d_tid;
+    start(val);
+    mt->d_zombiesQueue.push(tid);
   };
-  pdns_makecontext (*uc, thread.start);
+  pdns_makecontext(*uc, thread.start);
 
   thread.context = std::move(uc);
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }
-
 
 //! needs to be called periodically so threads can run and housekeeping can be performed
 /** The kernel should call this function every once in a while. It makes sense
@@ -301,10 +305,11 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
     \return Returns if there is more work scheduled and recalling schedule now would be useful
       
 */
-template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  now)
+template <class Key, class Val>
+bool MTasker<Key, Val>::schedule(struct timeval* now)
 {
-  if(!d_runQueue.empty()) {
-    d_tid=d_runQueue.front();
+  if (!d_runQueue.empty()) {
+    d_tid = d_runQueue.front();
 #ifdef MTASKERTIMING
     d_threads[d_tid].dt.start();
 #endif
@@ -315,39 +320,39 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
     d_runQueue.pop();
     return true;
   }
-  if(!d_zombiesQueue.empty()) {
+  if (!d_zombiesQueue.empty()) {
     d_threads.erase(d_zombiesQueue.front());
     --d_threadsCount;
     d_zombiesQueue.pop();
     return true;
   }
-  if(!d_waiters.empty()) {
+  if (!d_waiters.empty()) {
     struct timeval rnow;
-    if(!now)
+    if (!now)
       gettimeofday(&rnow, 0);
     else
       rnow = *now;
 
     typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
     //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
-    waiters_by_ttd_index_t& ttdindex=boost::multi_index::get<KeyTag>(d_waiters);
+    waiters_by_ttd_index_t& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
 
-    for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
-      if(i->ttd.tv_sec && i->ttd < rnow) {
-        d_waitstatus=TimeOut;
-        d_eventkey=i->key;        // pass waitEvent the exact key it was woken for
+    for (typename waiters_by_ttd_index_t::iterator i = ttdindex.begin(); i != ttdindex.end();) {
+      if (i->ttd.tv_sec && i->ttd < rnow) {
+        d_waitstatus = TimeOut;
+        d_eventkey = i->key; // pass waitEvent the exact key it was woken for
         auto uc = i->context;
         d_tid = i->tid;
-        ttdindex.erase(i++);                  // removes the waitpoint
+        ttdindex.erase(i++); // removes the waitpoint
 
         notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
         pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
         notifyStackSwitchDone();
       }
-      else if(i->ttd.tv_sec)
+      else if (i->ttd.tv_sec)
         break;
       else
-	++i;
+        ++i;
     }
   }
   return false;
@@ -357,7 +362,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
 /** Call this to check if no processes are running anymore
     \return true if no processes are left
  */
-template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
+template <class Key, class Val>
+bool MTasker<Key, Val>::noProcesses() const
 {
   return d_threadsCount == 0;
 }
@@ -366,7 +372,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
 /** Call this to perhaps limit activities if too many threads are running
     \return number of processes running
  */
-template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses() const
+template <class Key, class Val>
+unsigned int MTasker<Key, Val>::numProcesses() const
 {
   return d_threadsCount;
 }
@@ -378,10 +385,11 @@ template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses() cons
 
     \param events Vector which is to be filled with keys threads are waiting for
 */
-template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>& events)
+template <class Key, class Val>
+void MTasker<Key, Val>::getEvents(std::vector<Key>& events)
 {
   events.clear();
-  for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();++i) {
+  for (typename waiters_t::const_iterator i = d_waiters.begin(); i != d_waiters.end(); ++i) {
     events.push_back(i->first);
   }
 }
@@ -390,23 +398,26 @@ template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>&
 /** Processes can call this to get a numerical representation of their current thread ID.
     This can be useful for logging purposes.
 */
-template<class Key, class Val>int MTasker<Key,Val>::getTid() const
+template <class Key, class Val>
+int MTasker<Key, Val>::getTid() const
 {
   return d_tid;
 }
 
 //! Returns the maximum stack usage so far of this MThread
-template<class Key, class Val>unsigned int MTasker<Key,Val>::getMaxStackUsage()
+template <class Key, class Val>
+unsigned int MTasker<Key, Val>::getMaxStackUsage()
 {
   return d_threads[d_tid].startOfStack - d_threads[d_tid].highestStackSeen;
 }
 
 //! Returns the maximum stack usage so far of this MThread
-template<class Key, class Val>unsigned int MTasker<Key,Val>::getUsec()
+template <class Key, class Val>
+unsigned int MTasker<Key, Val>::getUsec()
 {
 #ifdef MTASKERTIMING
-  return d_threads[d_tid].totTime + d_threads[d_tid].dt.ndiff()/1000;
-#else 
+  return d_threads[d_tid].totTime + d_threads[d_tid].dt.ndiff() / 1000;
+#else
   return 0;
 #endif
 }

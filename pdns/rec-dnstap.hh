@@ -28,8 +28,9 @@
 class RecDnstapMessage : public DnstapMessage
 {
 public:
-  RecDnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, boost::optional<const DNSName&> auth, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime)
-      : DnstapMessage(identity, requestor, responder, isTCP, packet, len, queryTime, responseTime) {
+  RecDnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, boost::optional<const DNSName&> auth, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime) :
+    DnstapMessage(identity, requestor, responder, isTCP, packet, len, queryTime, responseTime)
+  {
     const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
     dnstap::Message* message = proto_message.mutable_message();
     message->set_type(!dh->qr ? dnstap::Message_Type_RESOLVER_QUERY : dnstap::Message_Type_RESOLVER_RESPONSE);

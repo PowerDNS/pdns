@@ -36,10 +36,10 @@ public:
     const char* end = packet.c_str() + packetSize;
     const char* p = packet.c_str() + pos;
 
-    for(; p < end && *p; ++p, ++pos) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
+    for (; p < end && *p; ++p, ++pos) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
       const unsigned char l = dns_tolower(*p); // label lengths can safely be lower cased
-      ret=burtle(&l, 1, ret);
-    }                           // XXX the embedded 0 in the qname will break the subnet stripping
+      ret = burtle(&l, 1, ret);
+    } // XXX the embedded 0 in the qname will break the subnet stripping
 
     const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet.c_str());
     const char* skipBegin = p;
@@ -53,7 +53,7 @@ public:
        + the OPT RR rdlen (2)
        = 16
     */
-    if(ntohs(dh->arcount)==1 && (pos+16) < packetSize) {
+    if (ntohs(dh->arcount) == 1 && (pos + 16) < packetSize) {
       char* optionBegin = nullptr;
       size_t optionLen = 0;
       /* skip the final empty label (1), the qtype (2), qclass (2) */
@@ -69,10 +69,10 @@ public:
       }
     }
     if (skipBegin > p) {
-      ret = burtle(reinterpret_cast<const unsigned char*>(p), skipBegin-p, ret);
+      ret = burtle(reinterpret_cast<const unsigned char*>(p), skipBegin - p, ret);
     }
     if (skipEnd < end) {
-      ret = burtle(reinterpret_cast<const unsigned char*>(skipEnd), end-skipEnd, ret);
+      ret = burtle(reinterpret_cast<const unsigned char*>(skipEnd), end - skipEnd, ret);
     }
 
     return ret;
@@ -87,13 +87,13 @@ public:
     const char* end = packet.c_str() + packetSize;
     const char* p = packet.c_str() + pos;
 
-    for(; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
+    for (; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
       const unsigned char l = dns_tolower(*p); // label lengths can safely be lower cased
-      ret=burtle(&l, 1, ret);
-    }                           // XXX the embedded 0 in the qname will break the subnet stripping
+      ret = burtle(&l, 1, ret);
+    } // XXX the embedded 0 in the qname will break the subnet stripping
 
     if (p < end) {
-      ret = burtle(reinterpret_cast<const unsigned char*>(p), end-p, ret);
+      ret = burtle(reinterpret_cast<const unsigned char*>(p), end - p, ret);
     }
 
     return ret;
@@ -144,5 +144,4 @@ public:
 
     return true;
   }
-
 };

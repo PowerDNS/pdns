@@ -37,7 +37,7 @@ bool resolversDefined()
 {
   ReadLock l(&s_resolversForStubLock);
   if (s_resolversForStub.empty()) {
-    g_log<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
+    g_log << Logger::Warning << "No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible." << endl;
     return false;
   }
   return true;
@@ -70,12 +70,11 @@ static void parseLocalResolvConf()
 {
   const time_t now = time(nullptr);
   if ((s_localResolvConfLastCheck + LOCAL_RESOLV_CONF_MAX_CHECK_INTERVAL) > now)
-    return ;
+    return;
 
   WriteLock wl(&s_resolversForStubLock);
   parseLocalResolvConf_locked(now);
 }
-
 
 /*
  * Fill the s_resolversForStub vector with addresses for the upstream resolvers.
@@ -87,7 +86,7 @@ static void parseLocalResolvConf()
  */
 void stubParseResolveConf()
 {
-  if(::arg().mustDo("resolver")) {
+  if (::arg().mustDo("resolver")) {
     WriteLock wl(&s_resolversForStubLock);
     vector<string> parts;
     stringtok(parts, ::arg()["resolver"], " ,\t");
@@ -112,7 +111,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   }
   // only check if resolvers come from local resolv.conf in the first place
   if (s_localResolvConfMtime != 0) {
-        parseLocalResolvConf();
+    parseLocalResolvConf();
   }
   if (!resolversDefined())
     return RCode::ServFail;
@@ -121,16 +120,16 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   vector<uint8_t> packet;
 
   DNSPacketWriter pw(packet, qname, qtype);
-  pw.getHeader()->id=dns_random_uint16();
-  pw.getHeader()->rd=1;
+  pw.getHeader()->id = dns_random_uint16();
+  pw.getHeader()->rd = 1;
 
-  string msg ="Doing stub resolving, using resolvers: ";
+  string msg = "Doing stub resolving, using resolvers: ";
   for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
   }
-  g_log<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
+  g_log << Logger::Debug << msg.substr(0, msg.length() - 2) << endl;
 
-  for(const ComboAddress& dest :  s_resolversForStub) {
+  for (const ComboAddress& dest : s_resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.connect(dest);
@@ -142,38 +141,39 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     try {
     retry:
       sock.read(reply); // this calls recv
-      if(reply.size() > sizeof(struct dnsheader)) {
+      if (reply.size() > sizeof(struct dnsheader)) {
         struct dnsheader d;
         memcpy(&d, reply.c_str(), sizeof(d));
-        if(d.id != pw.getHeader()->id)
+        if (d.id != pw.getHeader()->id)
           goto retry;
       }
     }
-    catch(...) {
+    catch (...) {
       continue;
     }
     MOADNSParser mdp(false, reply);
-    if(mdp.d_header.rcode == RCode::ServFail)
+    if (mdp.d_header.rcode == RCode::ServFail)
       continue;
 
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-      if(i->first.d_place == 1 && i->first.d_type==qtype) {
+    for (MOADNSParser::answers_t::const_iterator i = mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
+      if (i->first.d_place == 1 && i->first.d_type == qtype) {
         DNSZoneRecord zrr;
         zrr.dr = i->first;
-        zrr.auth=true;
+        zrr.auth = true;
         ret.push_back(zrr);
       }
     }
-    g_log<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
+    g_log << Logger::Debug << "Question got answered by " << dest.toString() << endl;
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;
 }
 
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret) {
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret)
+{
   vector<DNSZoneRecord> ret2;
   int res = stubDoResolve(qname, qtype, ret2);
-  for (const auto &r : ret2) {
+  for (const auto& r : ret2) {
     ret.push_back(r.dr);
   }
   return res;

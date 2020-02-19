@@ -33,21 +33,21 @@
 
 /* based on freebsd:src/contrib/opie/libopie/btoe.c extract: get bit ranges from a char* */
 /* NOTE: length should not exceed 8; all callers inside PowerDNS only pass length=5 though */
-unsigned char extract_bits(const char *s, int start, int length)
+unsigned char extract_bits(const char* s, int start, int length)
 {
   uint16_t x;
   unsigned char cl, cc;
 
-  if(!length)
+  if (!length)
     return 0;
 
   cl = s[start / 8];
-  if(start / 8 < (start + length-1)/8)
+  if (start / 8 < (start + length - 1) / 8)
     cc = s[start / 8 + 1];
   else
     cc = 0;
 
-  x = (uint16_t) (cl << 8 | cc);
+  x = (uint16_t)(cl << 8 | cc);
   x = x >> (16 - (length + (start % 8)));
   x = (x & (0xffff >> (16 - length)));
   return (x);
@@ -61,7 +61,7 @@ static void set_bits(char* s, int x, int start, int length)
   int shift;
 
   shift = ((8 - ((start + length) % 8)) % 8);
-  y = (uint32_t) x << shift;
+  y = (uint32_t)x << shift;
   cl = (y >> 16) & 0xff;
   cc = (y >> 8) & 0xff;
   cr = y & 0xff;
@@ -69,12 +69,13 @@ static void set_bits(char* s, int x, int start, int length)
     s[start / 8] |= cl;
     s[start / 8 + 1] |= cc;
     s[start / 8 + 2] |= cr;
-  } 
+  }
   else {
     if (shift + length > 8) {
       s[start / 8] |= cc;
       s[start / 8 + 1] |= cr;
-    } else {
+    }
+    else {
       s[start / 8] |= cr;
     }
   }
@@ -83,13 +84,13 @@ static void set_bits(char* s, int x, int start, int length)
 /* convert a base32 hex character to its decoded equivalent */
 static int unbase32hex(char c)
 {
-  if(c >= '0' && c<='9')
-    return c-'0';
-  if(c >= 'a' && c<='z') 
-    return 10 + (c-'a');
-  if(c >= 'A' && c<='Z') 
-    return 10 + (c-'A');
-  if(c=='=')
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'z')
+    return 10 + (c - 'a');
+  if (c >= 'A' && c <= 'Z')
+    return 10 + (c - 'A');
+  if (c == '=')
     return '=';
   return -1;
 }
@@ -99,27 +100,32 @@ string toBase32Hex(const std::string& input)
 {
   static const char base32hex[] = "0123456789abcdefghijklmnopqrstuv=";
   string ret;
-  ret.reserve(4+ 8*input.length()/5); // optimization
-  // process input in groups of 5 8-bit chunks, emit 8 5-bit chunks 
-  for(string::size_type offset = 0 ; offset < input.length(); offset+=5) {
+  ret.reserve(4 + 8 * input.length() / 5); // optimization
+  // process input in groups of 5 8-bit chunks, emit 8 5-bit chunks
+  for (string::size_type offset = 0; offset < input.length(); offset += 5) {
     int todo = input.length() - offset;
     int stuffing; // how much '=' to add at the end
-    
-    switch(todo) {
+
+    switch (todo) {
     case 1:
-      stuffing = 6; break;
+      stuffing = 6;
+      break;
     case 2:
-      stuffing = 4; break;
+      stuffing = 4;
+      break;
     case 3:
-      stuffing = 3; break;
+      stuffing = 3;
+      break;
     case 4:
-      stuffing = 1; break;
+      stuffing = 1;
+      break;
     default: // ->  0 or more than 5, no stuffing
-      stuffing = 0; break;
+      stuffing = 0;
+      break;
     }
-   
-    for(int n=0; n < 8 - stuffing; ++n)
-      ret.append(1, base32hex[extract_bits(input.c_str()+offset, n*5, 5)]);
+
+    for (int n = 0; n < 8 - stuffing; ++n)
+      ret.append(1, base32hex[extract_bits(input.c_str() + offset, n * 5, 5)]);
     ret.append(stuffing, '=');
   }
 
@@ -130,20 +136,20 @@ string toBase32Hex(const std::string& input)
 string fromBase32Hex(const std::string& input)
 {
   string ret;
-  char block[5]={0,0,0,0,0};  // we process 5 8-bit chunks at a time
-  string::size_type n, toWrite=0;
-  for(n = 0; n < input.length(); ++n) {
-    int c=unbase32hex(input[n]);
-    if(c == '=' || c < 0) // stop at stuffing or error
+  char block[5] = {0, 0, 0, 0, 0}; // we process 5 8-bit chunks at a time
+  string::size_type n, toWrite = 0;
+  for (n = 0; n < input.length(); ++n) {
+    int c = unbase32hex(input[n]);
+    if (c == '=' || c < 0) // stop at stuffing or error
       break;
-    set_bits(block, c , (n % 8) * 5, 5);
-    if(++toWrite == 8) {
+    set_bits(block, c, (n % 8) * 5, 5);
+    if (++toWrite == 8) {
       ret.append(block, sizeof(block));
       memset(block, 0, sizeof(block));
       toWrite = 0;
     }
   }
-  ret.append(block, (toWrite*5)/8); 
+  ret.append(block, (toWrite * 5) / 8);
 
   return ret;
 }

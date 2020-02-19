@@ -108,8 +108,8 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   }
 }
 
-
-BOOST_AUTO_TEST_CASE(test_Rings_Simple) {
+BOOST_AUTO_TEST_CASE(test_Rings_Simple)
+{
 
   /* 5 entries over 1 shard */
   test_ring(5, 1, 0);
@@ -130,20 +130,20 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
     for (const auto& shard : rings.d_shards) {
       {
         std::lock_guard<std::mutex> rl(shard->queryLock);
-        for(const auto& c : shard->queryRing) {
+        for (const auto& c : shard->queryRing) {
           numberOfQueries++;
           // BOOST_CHECK* is slow as hell..
-          if(c.qtype != qtype) {
-            cerr<<"Invalid query QType!"<<endl;
+          if (c.qtype != qtype) {
+            cerr << "Invalid query QType!" << endl;
             return;
           }
         }
       }
       {
         std::lock_guard<std::mutex> rl(shard->respLock);
-        for(const auto& c : shard->respRing) {
-          if(c.qtype != qtype) {
-            cerr<<"Invalid response QType!"<<endl;
+        for (const auto& c : shard->respRing) {
+          if (c.qtype != qtype) {
+            cerr << "Invalid response QType!" << endl;
             return;
           }
           numberOfResponses++;
@@ -171,7 +171,8 @@ static void ringWriterThread(Rings& rings, size_t numberOfEntries, const Rings::
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
+BOOST_AUTO_TEST_CASE(test_Rings_Threaded)
+{
   size_t numberOfEntries = 1000000;
   size_t numberOfShards = 50;
   size_t lockAttempts = 5;

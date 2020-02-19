@@ -31,8 +31,8 @@
 #include "dnsname.hh"
 #include "iputils.hh"
 
-
-struct Rings {
+struct Rings
+{
   struct Query
   {
     struct timespec when;
@@ -62,14 +62,24 @@ struct Rings {
     std::mutex respLock;
   };
 
-  Rings(size_t capacity=10000, size_t numberOfShards=1, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
+  Rings(size_t capacity = 10000, size_t numberOfShards = 1, size_t nbLockTries = 5, bool keepLockingStats = false) :
+    d_blockingQueryInserts(0),
+    d_blockingResponseInserts(0),
+    d_deferredQueryInserts(0),
+    d_deferredResponseInserts(0),
+    d_nbQueryEntries(0),
+    d_nbResponseEntries(0),
+    d_currentShardId(0),
+    d_numberOfShards(numberOfShards),
+    d_nbLockTries(nbLockTries),
+    d_keepLockingStats(keepLockingStats)
   {
     setCapacity(capacity, numberOfShards);
     if (numberOfShards <= 1) {
       d_nbLockTries = 0;
     }
   }
-  std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
+  std::unordered_map<int, vector<boost::variant<string, double>>> getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
   /* This function should only be called at configuration time before any query or response has been inserted */
   void setCapacity(size_t newCapacity, size_t numberOfShards)
@@ -103,7 +113,8 @@ struct Rings {
   {
     if (d_numberOfShards <= 1) {
       d_nbLockTries = 0;
-    } else {
+    }
+    else {
       d_nbLockTries = retries;
     }
   }
@@ -191,7 +202,7 @@ struct Rings {
     d_deferredResponseInserts.store(0);
   }
 
-  std::vector<std::unique_ptr<Shard> > d_shards;
+  std::vector<std::unique_ptr<Shard>> d_shards;
   std::atomic<uint64_t> d_blockingQueryInserts;
   std::atomic<uint64_t> d_blockingResponseInserts;
   std::atomic<uint64_t> d_deferredQueryInserts;

@@ -31,11 +31,18 @@
    ValidateAll: DNSSEC issue -> servfail
 */
 
-enum class DNSSECMode { Off, Process, ProcessNoValidate, ValidateForLog, ValidateAll };
+enum class DNSSECMode
+{
+  Off,
+  Process,
+  ProcessNoValidate,
+  ValidateForLog,
+  ValidateAll
+};
 extern DNSSECMode g_dnssecmode;
 extern bool g_dnssecLogBogus;
 
 bool checkDNSSECDisabled();
 bool warnIfDNSSECDisabled(const string& msg);
 vState increaseDNSSECStateCounter(const vState& state);
-bool updateTrustAnchorsFromFile(const std::string &fname, map<DNSName, dsmap_t> &dsAnchors);
+bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>& dsAnchors);

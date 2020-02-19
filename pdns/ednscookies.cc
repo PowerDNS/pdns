@@ -28,7 +28,7 @@ bool getEDNSCookiesOptFromString(const string& option, EDNSCookiesOpt* eco)
 
 bool getEDNSCookiesOptFromString(const char* option, unsigned int len, EDNSCookiesOpt* eco)
 {
-  if(len != 8 && len < 16)
+  if (len != 8 && len < 16)
     return false;
   eco->client = string(option, 8);
   if (len > 8) {

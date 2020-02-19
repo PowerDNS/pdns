@@ -36,57 +36,64 @@
 class RandomBackend : public DNSBackend
 {
 public:
-  RandomBackend(const string &suffix="")
+  RandomBackend(const string& suffix = "")
   {
-    setArgPrefix("random"+suffix);
-    d_ourname=DNSName(getArg("hostname"));
+    setArgPrefix("random" + suffix);
+    d_ourname = DNSName(getArg("hostname"));
     d_ourdomain = d_ourname;
     d_ourdomain.chopOff();
   }
 
-  bool list(const DNSName &target, int id, bool include_disabled) override {
+  bool list(const DNSName& target, int id, bool include_disabled) override
+  {
     return false; // we don't support AXFR
   }
 
-  void lookup(const QType &type, const DNSName &qdomain, int zoneId, DNSPacket *p) override
+  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p) override
   {
-    if(qdomain == d_ourdomain){
-      if(type.getCode() == QType::SOA || type.getCode() == QType::ANY) {
-        d_answer="ns1." + d_ourdomain.toString() + " hostmaster." + d_ourdomain.toString() + " 1234567890 86400 7200 604800 300";
-      } else {
-        d_answer.clear();;
+    if (qdomain == d_ourdomain) {
+      if (type.getCode() == QType::SOA || type.getCode() == QType::ANY) {
+        d_answer = "ns1." + d_ourdomain.toString() + " hostmaster." + d_ourdomain.toString() + " 1234567890 86400 7200 604800 300";
       }
-    } else if (qdomain == d_ourname) {
-      if(type.getCode() == QType::A || type.getCode() == QType::ANY) {
+      else {
+        d_answer.clear();
+        ;
+      }
+    }
+    else if (qdomain == d_ourname) {
+      if (type.getCode() == QType::A || type.getCode() == QType::ANY) {
         ostringstream os;
-        os<<dns_random(256)<<"."<<dns_random(256)<<"."<<dns_random(256)<<"."<<dns_random(256);
-        d_answer=os.str(); // our random ip address
-      } else {
-        d_answer="";
+        os << dns_random(256) << "." << dns_random(256) << "." << dns_random(256) << "." << dns_random(256);
+        d_answer = os.str(); // our random ip address
       }
-    } else {
-      d_answer="";
+      else {
+        d_answer = "";
+      }
+    }
+    else {
+      d_answer = "";
     }
   }
 
-  bool get(DNSResourceRecord &rr) override
+  bool get(DNSResourceRecord& rr) override
   {
-    if(d_answer.empty())
+    if (d_answer.empty())
       return false;
 
-    if(d_answer.find("ns1.") == 0){
-      rr.qname=d_ourdomain;
-      rr.qtype=QType::SOA;
-    } else {
-      rr.qname=d_ourname;
-      rr.qtype=QType::A;
+    if (d_answer.find("ns1.") == 0) {
+      rr.qname = d_ourdomain;
+      rr.qtype = QType::SOA;
     }
-    rr.qclass=QClass::IN;   // Internet class randomness.
-    rr.ttl=5;               // 5 seconds
-    rr.auth = 1;            // it may be random.. but it is auth!
+    else {
+      rr.qname = d_ourname;
+      rr.qtype = QType::A;
+    }
+    rr.qclass = QClass::IN; // Internet class randomness.
+    rr.ttl = 5; // 5 seconds
+    rr.auth = 1; // it may be random.. but it is auth!
     rr.content = d_answer;
 
-    d_answer.clear();       // this was the last answer
+    d_answer.clear(); // this was the last answer
     return true;
   }
 
@@ -101,12 +108,13 @@ private:
 class RandomFactory : public BackendFactory
 {
 public:
-  RandomFactory() : BackendFactory("random") {}
-  void declareArguments(const string &suffix="")
+  RandomFactory() :
+    BackendFactory("random") {}
+  void declareArguments(const string& suffix = "")
   {
-    declare(suffix,"hostname","Hostname which is to be random","random.example.com");
+    declare(suffix, "hostname", "Hostname which is to be random", "random.example.com");
   }
-  DNSBackend *make(const string &suffix="")
+  DNSBackend* make(const string& suffix = "")
   {
     return new RandomBackend(suffix);
   }
@@ -122,10 +130,10 @@ public:
     BackendMakers().report(new RandomFactory);
     g_log << Logger::Info << "[randombackend] This is the random backend version " VERSION
 #ifndef REPRODUCIBLE
-      << " (" __DATE__ " " __TIME__ ")"
+          << " (" __DATE__ " " __TIME__ ")"
 #endif
-      << " reporting" << endl;
-  }  
+          << " reporting" << endl;
+  }
 };
 
 static RandomLoader randomLoader;

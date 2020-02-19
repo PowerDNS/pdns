@@ -9,23 +9,25 @@
 #include <utility>
 #include "lua-auth4.hh"
 
-struct SetupArgFixture {
-  SetupArgFixture() {
+struct SetupArgFixture
+{
+  SetupArgFixture()
+  {
     ::arg().set("resolver") = "127.0.0.1";
   };
 };
 
 BOOST_FIXTURE_TEST_SUITE(lua_auth4_cc, SetupArgFixture)
 
-BOOST_AUTO_TEST_CASE(test_prequery) {
-  const std::string script =
-"function prequery(q)\n"
-"  if q.qdomain == newDN(\"mod.unit.test.\")\n"
-"  then\n"
-"    return true\n"
-"  end\n"
-"  return false\n"
-"end";
+BOOST_AUTO_TEST_CASE(test_prequery)
+{
+  const std::string script = "function prequery(q)\n"
+                             "  if q.qdomain == newDN(\"mod.unit.test.\")\n"
+                             "  then\n"
+                             "    return true\n"
+                             "  end\n"
+                             "  return false\n"
+                             "end";
   AuthLua4 lua;
   DNSPacket p(true);
   p.qdomain = DNSName("mod.unit.test.");
@@ -35,25 +37,27 @@ BOOST_AUTO_TEST_CASE(test_prequery) {
     r = lua.prequery(p);
     BOOST_REQUIRE(r != nullptr);
     BOOST_CHECK_EQUAL(r->qdomain.toString(), "mod.unit.test.");
-  } catch (const LuaContext::ExecutionErrorException& e) {
+  }
+  catch (const LuaContext::ExecutionErrorException& e) {
     try {
-     std::rethrow_if_nested(e);
-    } catch(const std::exception& exp) {
-     g_log<<"Extra info: "<<exp.what();
+      std::rethrow_if_nested(e);
+    }
+    catch (const std::exception& exp) {
+      g_log << "Extra info: " << exp.what();
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_updatePolicy) {
-  const std::string script =
-"function updatepolicy(query)\n"
-"  princ = query:getPeerPrincipal()\n"
-"  if princ == \"admin@DOMAIN\" or tostring(query:getRemote()) == \"192.168.1.1\"\n"
-"  then\n"
-"    return true\n"
-"  end\n"
-"  return false\n"
-"end";
+BOOST_AUTO_TEST_CASE(test_updatePolicy)
+{
+  const std::string script = "function updatepolicy(query)\n"
+                             "  princ = query:getPeerPrincipal()\n"
+                             "  if princ == \"admin@DOMAIN\" or tostring(query:getRemote()) == \"192.168.1.1\"\n"
+                             "  then\n"
+                             "    return true\n"
+                             "  end\n"
+                             "  return false\n"
+                             "end";
   AuthLua4 lua;
   DNSPacket p(true);
   ComboAddress ca(std::string("192.168.1.1"));

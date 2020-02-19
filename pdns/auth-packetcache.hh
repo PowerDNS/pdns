@@ -27,7 +27,7 @@
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 
-#include <boost/multi_index/hashed_index.hpp> 
+#include <boost/multi_index/hashed_index.hpp>
 
 #include "dnspacket.hh"
 #include "lock.hh"
@@ -47,10 +47,10 @@ using namespace ::boost::multi_index;
 class AuthPacketCache : public PacketCache
 {
 public:
-  AuthPacketCache(size_t mapsCount=1024);
+  AuthPacketCache(size_t mapsCount = 1024);
   ~AuthPacketCache();
 
-  void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL); //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
   bool get(DNSPacket& p, DNSPacket& q); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
 
@@ -61,7 +61,7 @@ public:
 
   uint64_t size() const { return *d_statnumentries; };
 
-  void setMaxEntries(uint64_t maxEntries) 
+  void setMaxEntries(uint64_t maxEntries)
   {
     d_maxEntries = maxEntries;
     for (auto& shard : d_maps) {
@@ -76,8 +76,8 @@ public:
   {
     return (d_ttl > 0);
   }
-private:
 
+private:
   struct CacheEntry
   {
     mutable string query;
@@ -91,29 +91,36 @@ private:
     bool tcp{false};
   };
 
-  struct HashTag{};
-  struct NameTag{};
-  struct SequencedTag{};
+  struct HashTag
+  {
+  };
+  struct NameTag
+  {
+  };
+  struct SequencedTag
+  {
+  };
   typedef multi_index_container<
     CacheEntry,
-    indexed_by <
-      hashed_non_unique<tag<HashTag>, member<CacheEntry,uint32_t,&CacheEntry::hash> >,
-      ordered_non_unique<tag<NameTag>, member<CacheEntry,DNSName,&CacheEntry::qname>, CanonDNSNameCompare >,
+    indexed_by<
+      hashed_non_unique<tag<HashTag>, member<CacheEntry, uint32_t, &CacheEntry::hash>>,
+      ordered_non_unique<tag<NameTag>, member<CacheEntry, DNSName, &CacheEntry::qname>, CanonDNSNameCompare>,
       /* Note that this sequence holds 'least recently inserted or replaced', not least recently used.
          Making it a LRU would require taking a write-lock when fetching from the cache, making the RW-lock inefficient compared to a mutex */
-      sequenced<tag<SequencedTag>>
-      >
-    > cmap_t;
+      sequenced<tag<SequencedTag>>>>
+    cmap_t;
 
   struct MapCombo
   {
-    MapCombo() {
+    MapCombo()
+    {
       pthread_rwlock_init(&d_mut, nullptr);
     }
-    ~MapCombo() {
+    ~MapCombo()
+    {
       pthread_rwlock_destroy(&d_mut);
     }
-    MapCombo(const MapCombo&) = delete; 
+    MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
 
     void reserve(size_t numberOfEntries);
@@ -129,13 +136,13 @@ private:
   }
 
   static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
-  bool getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& entry);
+  bool getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName& qname, uint16_t qtype, bool tcp, time_t now, string& entry);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};
-  AtomicCounter *d_statnumhit;
-  AtomicCounter *d_statnummiss;
-  AtomicCounter *d_statnumentries;
+  AtomicCounter* d_statnumhit;
+  AtomicCounter* d_statnummiss;
+  AtomicCounter* d_statnumentries;
 
   uint64_t d_maxEntries{0};
   time_t d_lastclean; // doesn't need to be atomic
@@ -144,5 +151,5 @@ private:
   uint32_t d_ttl{0};
   bool d_cleanskipped{false};
 
-  static const unsigned int s_mincleaninterval=1000, s_maxcleaninterval=300000;
+  static const unsigned int s_mincleaninterval = 1000, s_maxcleaninterval = 300000;
 };

@@ -5,15 +5,20 @@
 #include "libssl.hh"
 #include "misc.hh"
 
-enum class IOState { Done, NeedRead, NeedWrite };
+enum class IOState
+{
+  Done,
+  NeedRead,
+  NeedWrite
+};
 
 class TLSConnection
 {
 public:
-  virtual ~TLSConnection() { }
+  virtual ~TLSConnection() {}
   virtual void doHandshake() = 0;
   virtual IOState tryHandshake() = 0;
-  virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
+  virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout = 0) = 0;
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
   virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
@@ -74,11 +79,11 @@ public:
         rotateTicketsKey(now);
         d_rotatingTicketsKey.clear();
       }
-      catch(const std::runtime_error& e) {
+      catch (const std::runtime_error& e) {
         d_rotatingTicketsKey.clear();
         throw std::runtime_error(std::string("Error generating a new tickets key for TLS context:") + e.what());
       }
-      catch(...) {
+      catch (...) {
         d_rotatingTicketsKey.clear();
         throw;
       }
@@ -175,8 +180,8 @@ private:
 class TCPIOHandler
 {
 public:
-
-  TCPIOHandler(int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  TCPIOHandler(int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now) :
+    d_socket(socket)
   {
     if (ctx) {
       d_conn = ctx->getConnection(d_socket, timeout, now);
@@ -201,11 +206,12 @@ public:
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0)
+  size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout = 0)
   {
     if (d_conn) {
       return d_conn->read(buffer, bufferSize, readTimeout, totalTimeout);
-    } else {
+    }
+    else {
       return readn2WithTimeout(d_socket, buffer, bufferSize, readTimeout, totalTimeout);
     }
   }
@@ -241,8 +247,7 @@ public:
       }
 
       pos += static_cast<size_t>(res);
-    }
-    while (pos < toRead);
+    } while (pos < toRead);
 
     return IOState::Done;
   }
@@ -277,8 +282,7 @@ public:
       }
 
       pos += static_cast<size_t>(res);
-    }
-    while (pos < toWrite);
+    } while (pos < toWrite);
 
     return IOState::Done;
   }
@@ -324,7 +328,7 @@ public:
     return d_conn && d_conn->getResumedFromInactiveTicketKey();
   }
 
-    bool getUnknownTicketKey() const
+  bool getUnknownTicketKey() const
   {
     return d_conn && d_conn->getUnknownTicketKey();
   }

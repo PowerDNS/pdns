@@ -27,7 +27,7 @@
 
 string doGetStats();
 
-IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const NetmaskGroup &acl, const string &loglevel) :
+IXFRDistWebServer::IXFRDistWebServer(const ComboAddress& listenAddress, const NetmaskGroup& acl, const string& loglevel) :
   d_ws(std::unique_ptr<WebServer>(new WebServer(listenAddress.toString(), listenAddress.getPort())))
 {
   d_ws->setACL(acl);
@@ -36,13 +36,15 @@ IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const Ne
   d_ws->bind();
 }
 
-void IXFRDistWebServer::go() {
+void IXFRDistWebServer::go()
+{
   setThreadName("ixfrdist/web");
   d_ws->go();
 }
 
-void IXFRDistWebServer::getMetrics(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
+void IXFRDistWebServer::getMetrics(HttpRequest* req, HttpResponse* resp)
+{
+  if (req->method != "GET")
     throw HttpMethodNotAllowedException();
 
   resp->body = doGetStats();

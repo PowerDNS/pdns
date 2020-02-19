@@ -14,45 +14,45 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
 #define DNSDIST_TRAPS_OID DNSDIST_OID, 10, 0
 #define DNSDIST_TRAP_OBJECTS_OID DNSDIST_OID, 11
 
-static const oid queriesOID[] = { DNSDIST_STATS_OID, 1 };
-static const oid responsesOID[] = { DNSDIST_STATS_OID, 2 };
-static const oid servfailResponsesOID[] = { DNSDIST_STATS_OID, 3 };
-static const oid aclDropsOID[] = { DNSDIST_STATS_OID, 4 };
+static const oid queriesOID[] = {DNSDIST_STATS_OID, 1};
+static const oid responsesOID[] = {DNSDIST_STATS_OID, 2};
+static const oid servfailResponsesOID[] = {DNSDIST_STATS_OID, 3};
+static const oid aclDropsOID[] = {DNSDIST_STATS_OID, 4};
 // 5 was BlockFilter, removed in 1.2.0
-static const oid ruleDropOID[] = { DNSDIST_STATS_OID, 6 };
-static const oid ruleNXDomainOID[] = { DNSDIST_STATS_OID, 7 };
-static const oid ruleRefusedOID[] = { DNSDIST_STATS_OID, 8 };
-static const oid selfAnsweredOID[] = { DNSDIST_STATS_OID, 9 };
-static const oid downstreamTimeoutsOID[] = { DNSDIST_STATS_OID, 10 };
-static const oid downstreamSendErrorsOID[] = { DNSDIST_STATS_OID, 11 };
-static const oid truncFailOID[] = { DNSDIST_STATS_OID, 12 };
-static const oid noPolicyOID[] = { DNSDIST_STATS_OID, 13 };
-static const oid latency0_1OID[] = { DNSDIST_STATS_OID, 14 };
-static const oid latency1_10OID[] = { DNSDIST_STATS_OID, 15 };
-static const oid latency10_50OID[] = { DNSDIST_STATS_OID, 16 };
-static const oid latency50_100OID[] = { DNSDIST_STATS_OID, 17 };
-static const oid latency100_1000OID[] = { DNSDIST_STATS_OID, 18 };
-static const oid latencySlowOID[] = { DNSDIST_STATS_OID, 19 };
-static const oid latencyAvg100OID[] = { DNSDIST_STATS_OID, 20 };
-static const oid latencyAvg1000OID[] = { DNSDIST_STATS_OID, 21 };
-static const oid latencyAvg10000OID[] = { DNSDIST_STATS_OID, 22 };
-static const oid latencyAvg1000000OID[] = { DNSDIST_STATS_OID, 23 };
-static const oid uptimeOID[] = { DNSDIST_STATS_OID, 24 };
-static const oid realMemoryUsageOID[] = { DNSDIST_STATS_OID, 25 };
-static const oid nonCompliantQueriesOID[] = { DNSDIST_STATS_OID, 26 };
-static const oid nonCompliantResponsesOID[] = { DNSDIST_STATS_OID, 27 };
-static const oid rdQueriesOID[] = { DNSDIST_STATS_OID, 28 };
-static const oid emptyQueriesOID[] = { DNSDIST_STATS_OID, 29 };
-static const oid cacheHitsOID[] = { DNSDIST_STATS_OID, 30 };
-static const oid cacheMissesOID[] = { DNSDIST_STATS_OID, 31 };
-static const oid cpuUserMSecOID[] = { DNSDIST_STATS_OID, 32 };
-static const oid cpuSysMSecOID[] = { DNSDIST_STATS_OID, 33 };
-static const oid fdUsageOID[] = { DNSDIST_STATS_OID, 34 };
-static const oid dynBlockedOID[] = { DNSDIST_STATS_OID, 35 };
-static const oid dynBlockedNMGSizeOID[] = { DNSDIST_STATS_OID, 36 };
-static const oid ruleServFailOID[] = { DNSDIST_STATS_OID, 37 };
-static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
-static const oid specialMemoryUsageOID[] = { DNSDIST_STATS_OID, 39 };
+static const oid ruleDropOID[] = {DNSDIST_STATS_OID, 6};
+static const oid ruleNXDomainOID[] = {DNSDIST_STATS_OID, 7};
+static const oid ruleRefusedOID[] = {DNSDIST_STATS_OID, 8};
+static const oid selfAnsweredOID[] = {DNSDIST_STATS_OID, 9};
+static const oid downstreamTimeoutsOID[] = {DNSDIST_STATS_OID, 10};
+static const oid downstreamSendErrorsOID[] = {DNSDIST_STATS_OID, 11};
+static const oid truncFailOID[] = {DNSDIST_STATS_OID, 12};
+static const oid noPolicyOID[] = {DNSDIST_STATS_OID, 13};
+static const oid latency0_1OID[] = {DNSDIST_STATS_OID, 14};
+static const oid latency1_10OID[] = {DNSDIST_STATS_OID, 15};
+static const oid latency10_50OID[] = {DNSDIST_STATS_OID, 16};
+static const oid latency50_100OID[] = {DNSDIST_STATS_OID, 17};
+static const oid latency100_1000OID[] = {DNSDIST_STATS_OID, 18};
+static const oid latencySlowOID[] = {DNSDIST_STATS_OID, 19};
+static const oid latencyAvg100OID[] = {DNSDIST_STATS_OID, 20};
+static const oid latencyAvg1000OID[] = {DNSDIST_STATS_OID, 21};
+static const oid latencyAvg10000OID[] = {DNSDIST_STATS_OID, 22};
+static const oid latencyAvg1000000OID[] = {DNSDIST_STATS_OID, 23};
+static const oid uptimeOID[] = {DNSDIST_STATS_OID, 24};
+static const oid realMemoryUsageOID[] = {DNSDIST_STATS_OID, 25};
+static const oid nonCompliantQueriesOID[] = {DNSDIST_STATS_OID, 26};
+static const oid nonCompliantResponsesOID[] = {DNSDIST_STATS_OID, 27};
+static const oid rdQueriesOID[] = {DNSDIST_STATS_OID, 28};
+static const oid emptyQueriesOID[] = {DNSDIST_STATS_OID, 29};
+static const oid cacheHitsOID[] = {DNSDIST_STATS_OID, 30};
+static const oid cacheMissesOID[] = {DNSDIST_STATS_OID, 31};
+static const oid cpuUserMSecOID[] = {DNSDIST_STATS_OID, 32};
+static const oid cpuSysMSecOID[] = {DNSDIST_STATS_OID, 33};
+static const oid fdUsageOID[] = {DNSDIST_STATS_OID, 34};
+static const oid dynBlockedOID[] = {DNSDIST_STATS_OID, 35};
+static const oid dynBlockedNMGSizeOID[] = {DNSDIST_STATS_OID, 36};
+static const oid ruleServFailOID[] = {DNSDIST_STATS_OID, 37};
+static const oid securityStatusOID[] = {DNSDIST_STATS_OID, 38};
+static const oid specialMemoryUsageOID[] = {DNSDIST_STATS_OID, 39};
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
@@ -62,9 +62,9 @@ static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
    we don't need to loop over a list of requests; we'll only get one. */
 
 static int handleCounter64Stats(netsnmp_mib_handler* handler,
-                                netsnmp_handler_registration* reginfo,
-                                netsnmp_agent_request_info* reqinfo,
-                                netsnmp_request_info* requests)
+  netsnmp_handler_registration* reginfo,
+  netsnmp_agent_request_info* reqinfo,
+  netsnmp_request_info* requests)
 {
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
@@ -100,16 +100,16 @@ static void registerCounter64Stat(const char* name, const oid statOID[], size_t 
 
   s_statsMap[statOID[statOIDLength - 1]] = ptr;
   netsnmp_register_scalar(netsnmp_create_handler_registration(name,
-                                                              handleCounter64Stats,
-                                                              statOID,
-                                                              statOIDLength,
-                                                              HANDLER_CAN_RONLY));
+    handleCounter64Stats,
+    statOID,
+    statOIDLength,
+    HANDLER_CAN_RONLY));
 }
 
 static int handleFloatStats(netsnmp_mib_handler* handler,
-                            netsnmp_handler_registration* reginfo,
-                            netsnmp_agent_request_info* reqinfo,
-                            netsnmp_request_info* requests)
+  netsnmp_handler_registration* reginfo,
+  netsnmp_agent_request_info* reqinfo,
+  netsnmp_request_info* requests)
 {
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
@@ -127,9 +127,9 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
   if (const auto& val = boost::get<double*>(&it->second)) {
     std::string str(std::to_string(**val));
     snmp_set_var_typed_value(requests->requestvb,
-                             ASN_OCTET_STR,
-                             str.c_str(),
-                             str.size());
+      ASN_OCTET_STR,
+      str.c_str(),
+      str.size());
     return SNMP_ERR_NOERROR;
   }
 
@@ -150,16 +150,16 @@ static void registerFloatStat(const char* name, const oid statOID[], size_t stat
 
   s_statsMap[statOID[statOIDLength - 1]] = ptr;
   netsnmp_register_scalar(netsnmp_create_handler_registration(name,
-                                                              handleFloatStats,
-                                                              statOID,
-                                                              statOIDLength,
-                                                              HANDLER_CAN_RONLY));
+    handleFloatStats,
+    statOID,
+    statOIDLength,
+    HANDLER_CAN_RONLY));
 }
 
 static int handleGauge64Stats(netsnmp_mib_handler* handler,
-                              netsnmp_handler_registration* reginfo,
-                              netsnmp_agent_request_info* reqinfo,
-                              netsnmp_request_info* requests)
+  netsnmp_handler_registration* reginfo,
+  netsnmp_agent_request_info* reqinfo,
+  netsnmp_request_info* requests)
 {
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
@@ -193,61 +193,61 @@ static void registerGauge64Stat(const char* name, const oid statOID[], size_t st
 
   s_statsMap[statOID[statOIDLength - 1]] = ptr;
   netsnmp_register_scalar(netsnmp_create_handler_registration(name,
-                                                              handleGauge64Stats,
-                                                              statOID,
-                                                              statOIDLength,
-                                                              HANDLER_CAN_RONLY));
+    handleGauge64Stats,
+    statOID,
+    statOIDLength,
+    HANDLER_CAN_RONLY));
 }
 
 /* column number definitions for table backendStatTable */
-#define COLUMN_BACKENDID                1
-#define COLUMN_BACKENDNAME              2
-#define COLUMN_BACKENDLATENCY           3
-#define COLUMN_BACKENDWEIGHT            4
-#define COLUMN_BACKENDOUTSTANDING       5
-#define COLUMN_BACKENDQPSLIMIT          6
-#define COLUMN_BACKENDREUSED            7
-#define COLUMN_BACKENDSTATE             8
-#define COLUMN_BACKENDADDRESS           9
-#define COLUMN_BACKENDPOOLS             10
-#define COLUMN_BACKENDQPS               11
-#define COLUMN_BACKENDQUERIES           12
-#define COLUMN_BACKENDORDER             13
+#define COLUMN_BACKENDID 1
+#define COLUMN_BACKENDNAME 2
+#define COLUMN_BACKENDLATENCY 3
+#define COLUMN_BACKENDWEIGHT 4
+#define COLUMN_BACKENDOUTSTANDING 5
+#define COLUMN_BACKENDQPSLIMIT 6
+#define COLUMN_BACKENDREUSED 7
+#define COLUMN_BACKENDSTATE 8
+#define COLUMN_BACKENDADDRESS 9
+#define COLUMN_BACKENDPOOLS 10
+#define COLUMN_BACKENDQPS 11
+#define COLUMN_BACKENDQUERIES 12
+#define COLUMN_BACKENDORDER 13
 
-static const oid backendStatTableOID[] = { DNSDIST_STATS_TABLE_OID };
-static const oid backendNameOID[] = { DNSDIST_STATS_TABLE_OID, 1, 2 };
-static const oid backendStateOID[] = { DNSDIST_STATS_TABLE_OID, 1, 8};
-static const oid backendAddressOID[] = { DNSDIST_STATS_TABLE_OID, 1, 9};
+static const oid backendStatTableOID[] = {DNSDIST_STATS_TABLE_OID};
+static const oid backendNameOID[] = {DNSDIST_STATS_TABLE_OID, 1, 2};
+static const oid backendStateOID[] = {DNSDIST_STATS_TABLE_OID, 1, 8};
+static const oid backendAddressOID[] = {DNSDIST_STATS_TABLE_OID, 1, 9};
 
-static const oid socketFamilyOID[] = { DNSDIST_TRAP_OBJECTS_OID, 1, 0 };
-static const oid socketProtocolOID[] = { DNSDIST_TRAP_OBJECTS_OID, 2, 0 };
-static const oid fromAddressOID[] = { DNSDIST_TRAP_OBJECTS_OID, 3, 0 };
-static const oid toAddressOID[] = { DNSDIST_TRAP_OBJECTS_OID, 4, 0 };
-static const oid queryTypeOID[] = { DNSDIST_TRAP_OBJECTS_OID, 5, 0 };
-static const oid querySizeOID[] = { DNSDIST_TRAP_OBJECTS_OID, 6, 0 };
-static const oid queryIDOID[] = { DNSDIST_TRAP_OBJECTS_OID, 7, 0 };
-static const oid qNameOID[] = { DNSDIST_TRAP_OBJECTS_OID, 8, 0 };
-static const oid qClassOID[] = { DNSDIST_TRAP_OBJECTS_OID, 9, 0 };
-static const oid qTypeOID[] = { DNSDIST_TRAP_OBJECTS_OID, 10, 0 };
-static const oid trapReasonOID[] = { DNSDIST_TRAP_OBJECTS_OID, 11, 0 };
+static const oid socketFamilyOID[] = {DNSDIST_TRAP_OBJECTS_OID, 1, 0};
+static const oid socketProtocolOID[] = {DNSDIST_TRAP_OBJECTS_OID, 2, 0};
+static const oid fromAddressOID[] = {DNSDIST_TRAP_OBJECTS_OID, 3, 0};
+static const oid toAddressOID[] = {DNSDIST_TRAP_OBJECTS_OID, 4, 0};
+static const oid queryTypeOID[] = {DNSDIST_TRAP_OBJECTS_OID, 5, 0};
+static const oid querySizeOID[] = {DNSDIST_TRAP_OBJECTS_OID, 6, 0};
+static const oid queryIDOID[] = {DNSDIST_TRAP_OBJECTS_OID, 7, 0};
+static const oid qNameOID[] = {DNSDIST_TRAP_OBJECTS_OID, 8, 0};
+static const oid qClassOID[] = {DNSDIST_TRAP_OBJECTS_OID, 9, 0};
+static const oid qTypeOID[] = {DNSDIST_TRAP_OBJECTS_OID, 10, 0};
+static const oid trapReasonOID[] = {DNSDIST_TRAP_OBJECTS_OID, 11, 0};
 
-static const oid backendStatusChangeTrapOID[] = { DNSDIST_TRAPS_OID, 1 };
-static const oid actionTrapOID[] = { DNSDIST_TRAPS_OID, 2 };
-static const oid customTrapOID[] = { DNSDIST_TRAPS_OID, 3 };
+static const oid backendStatusChangeTrapOID[] = {DNSDIST_TRAPS_OID, 1};
+static const oid actionTrapOID[] = {DNSDIST_TRAPS_OID, 2};
+static const oid customTrapOID[] = {DNSDIST_TRAPS_OID, 3};
 
 static servers_t s_servers;
 static size_t s_currentServerIdx = 0;
 
 static netsnmp_variable_list* backendStatTable_get_next_data_point(void** loop_context,
-                                                                   void** my_data_context,
-                                                                   netsnmp_variable_list* put_index_data,
-                                                                   netsnmp_iterator_info* mydata)
+  void** my_data_context,
+  netsnmp_variable_list* put_index_data,
+  netsnmp_iterator_info* mydata)
 {
   if (s_currentServerIdx >= s_servers.size()) {
     return NULL;
   }
 
-  *my_data_context = (void*) (s_servers[s_currentServerIdx]).get();
+  *my_data_context = (void*)(s_servers[s_currentServerIdx]).get();
   snmp_set_var_typed_integer(put_index_data, ASN_UNSIGNED, s_currentServerIdx);
   s_currentServerIdx++;
 
@@ -255,9 +255,9 @@ static netsnmp_variable_list* backendStatTable_get_next_data_point(void** loop_c
 }
 
 static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_context,
-                                                                    void** data_context,
-                                                                    netsnmp_variable_list* put_index_data,
-                                                                    netsnmp_iterator_info* data)
+  void** data_context,
+  netsnmp_variable_list* put_index_data,
+  netsnmp_iterator_info* data)
 {
   s_currentServerIdx = 0;
 
@@ -271,15 +271,15 @@ static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_
   }
 
   return backendStatTable_get_next_data_point(loop_context,
-                                              data_context,
-                                              put_index_data,
-                                              data);
+    data_context,
+    put_index_data,
+    data);
 }
 
 static int backendStatTable_handler(netsnmp_mib_handler* handler,
-                                    netsnmp_handler_registration* reginfo,
-                                    netsnmp_agent_request_info* reqinfo,
-                                    netsnmp_request_info* requests)
+  netsnmp_handler_registration* reginfo,
+  netsnmp_agent_request_info* reqinfo,
+  netsnmp_request_info* requests)
 {
   netsnmp_request_info* request;
 
@@ -287,7 +287,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
   case MODE_GET:
     for (request = requests; request; request = request->next) {
       netsnmp_table_request_info* table_info = netsnmp_extract_table_info(request);
-      const DownstreamState* server = (const DownstreamState*) netsnmp_extract_iterator_context(request);
+      const DownstreamState* server = (const DownstreamState*)netsnmp_extract_iterator_context(request);
 
       if (!server) {
         continue;
@@ -296,59 +296,56 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
       switch (table_info->colnum) {
       case COLUMN_BACKENDNAME:
         snmp_set_var_typed_value(request->requestvb,
-                                 ASN_OCTET_STR,
-                                 server->getName().c_str(),
-                                 server->getName().size());
+          ASN_OCTET_STR,
+          server->getName().c_str(),
+          server->getName().size());
         break;
       case COLUMN_BACKENDLATENCY:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->latencyUsec/1000.0);
+          server->latencyUsec / 1000.0);
         break;
       case COLUMN_BACKENDWEIGHT:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->weight);
+          server->weight);
         break;
       case COLUMN_BACKENDOUTSTANDING:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->outstanding);
+          server->outstanding);
         break;
       case COLUMN_BACKENDQPSLIMIT:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->qps.getRate());
+          server->qps.getRate());
         break;
       case COLUMN_BACKENDREUSED:
         DNSDistSNMPAgent::setCounter64Value(request, server->reuseds);
         break;
-      case COLUMN_BACKENDSTATE:
-      {
+      case COLUMN_BACKENDSTATE: {
         std::string state(server->getStatus());
         snmp_set_var_typed_value(request->requestvb,
-                                 ASN_OCTET_STR,
-                                 state.c_str(),
-                                 state.size());
+          ASN_OCTET_STR,
+          state.c_str(),
+          state.size());
         break;
       }
-      case COLUMN_BACKENDADDRESS:
-      {
+      case COLUMN_BACKENDADDRESS: {
         std::string addr(server->remote.toStringWithPort());
         snmp_set_var_typed_value(request->requestvb,
-                                 ASN_OCTET_STR,
-                                 addr.c_str(),
-                                 addr.size());
+          ASN_OCTET_STR,
+          addr.c_str(),
+          addr.size());
         break;
       }
-      case COLUMN_BACKENDPOOLS:
-      {
+      case COLUMN_BACKENDPOOLS: {
         std::string pools;
-        for(auto& p : server->pools) {
-          if(!pools.empty())
-            pools+=" ";
-          pools+=p;
+        for (auto& p : server->pools) {
+          if (!pools.empty())
+            pools += " ";
+          pools += p;
         }
         snmp_set_var_typed_value(request->requestvb,
-                                 ASN_OCTET_STR,
-                                 pools.c_str(),
-                                 pools.size());
+          ASN_OCTET_STR,
+          pools.c_str(),
+          pools.size());
         break;
       }
       case COLUMN_BACKENDQPS:
@@ -362,8 +359,8 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       default:
         netsnmp_set_request_error(reqinfo,
-                                  request,
-                                  SNMP_NOSUCHOBJECT);
+          request,
+          SNMP_NOSUCHOBJECT);
         break;
       }
     }
@@ -381,33 +378,32 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<Downstr
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
-                            snmpTrapOID,
-                            snmpTrapOIDLen,
-                            ASN_OBJECT_ID,
-                            backendStatusChangeTrapOID,
-                            OID_LENGTH(backendStatusChangeTrapOID)  * sizeof(oid));
-
-
-  snmp_varlist_add_variable(&varList,
-                            backendNameOID,
-                            OID_LENGTH(backendNameOID),
-                            ASN_OCTET_STR,
-                            dss->getName().c_str(),
-                            dss->getName().size());
+    snmpTrapOID,
+    snmpTrapOIDLen,
+    ASN_OBJECT_ID,
+    backendStatusChangeTrapOID,
+    OID_LENGTH(backendStatusChangeTrapOID) * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
-                            backendAddressOID,
-                            OID_LENGTH(backendAddressOID),
-                            ASN_OCTET_STR,
-                            backendAddress.c_str(),
-                            backendAddress.size());
+    backendNameOID,
+    OID_LENGTH(backendNameOID),
+    ASN_OCTET_STR,
+    dss->getName().c_str(),
+    dss->getName().size());
 
   snmp_varlist_add_variable(&varList,
-                            backendStateOID,
-                            OID_LENGTH(backendStateOID),
-                            ASN_OCTET_STR,
-                            backendStatus.c_str(),
-                            backendStatus.size());
+    backendAddressOID,
+    OID_LENGTH(backendAddressOID),
+    ASN_OCTET_STR,
+    backendAddress.c_str(),
+    backendAddress.size());
+
+  snmp_varlist_add_variable(&varList,
+    backendStateOID,
+    OID_LENGTH(backendStateOID),
+    ASN_OCTET_STR,
+    backendStatus.c_str(),
+    backendStatus.size());
 
   return sendTrap(d_trapPipe[1], varList);
 #else
@@ -421,18 +417,18 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
-                            snmpTrapOID,
-                            snmpTrapOIDLen,
-                            ASN_OBJECT_ID,
-                            customTrapOID,
-                            OID_LENGTH(customTrapOID)  * sizeof(oid));
+    snmpTrapOID,
+    snmpTrapOIDLen,
+    ASN_OBJECT_ID,
+    customTrapOID,
+    OID_LENGTH(customTrapOID) * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
-                            trapReasonOID,
-                            OID_LENGTH(trapReasonOID),
-                            ASN_OCTET_STR,
-                            reason.c_str(),
-                            reason.size());
+    trapReasonOID,
+    OID_LENGTH(trapReasonOID),
+    ASN_OCTET_STR,
+    reason.c_str(),
+    reason.size());
 
   return sendTrap(d_trapPipe[1], varList);
 #else
@@ -449,96 +445,96 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
   const uint32_t socketFamily = dq.remote->isIPv4() ? 1 : 2;
   const uint32_t socketProtocol = dq.tcp ? 2 : 1;
   const uint32_t queryType = dq.dh->qr ? 2 : 1;
-  const uint32_t querySize = (uint32_t) dq.len;
-  const uint32_t queryID = (uint32_t) ntohs(dq.dh->id);
-  const uint32_t qType = (uint32_t) dq.qtype;
-  const uint32_t qClass = (uint32_t) dq.qclass;
+  const uint32_t querySize = (uint32_t)dq.len;
+  const uint32_t queryID = (uint32_t)ntohs(dq.dh->id);
+  const uint32_t qType = (uint32_t)dq.qtype;
+  const uint32_t qClass = (uint32_t)dq.qclass;
 
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
-                            snmpTrapOID,
-                            snmpTrapOIDLen,
-                            ASN_OBJECT_ID,
-                            actionTrapOID,
-                            OID_LENGTH(actionTrapOID)  * sizeof(oid));
+    snmpTrapOID,
+    snmpTrapOIDLen,
+    ASN_OBJECT_ID,
+    actionTrapOID,
+    OID_LENGTH(actionTrapOID) * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
-                            socketFamilyOID,
-                            OID_LENGTH(socketFamilyOID),
-                            ASN_INTEGER,
-                            (u_char *) &socketFamily,
-                            sizeof(socketFamily));
+    socketFamilyOID,
+    OID_LENGTH(socketFamilyOID),
+    ASN_INTEGER,
+    (u_char*)&socketFamily,
+    sizeof(socketFamily));
 
   snmp_varlist_add_variable(&varList,
-                            socketProtocolOID,
-                            OID_LENGTH(socketProtocolOID),
-                            ASN_INTEGER,
-                            (u_char *) &socketProtocol,
-                            sizeof(socketProtocol));
+    socketProtocolOID,
+    OID_LENGTH(socketProtocolOID),
+    ASN_INTEGER,
+    (u_char*)&socketProtocol,
+    sizeof(socketProtocol));
 
   snmp_varlist_add_variable(&varList,
-                            fromAddressOID,
-                            OID_LENGTH(fromAddressOID),
-                            ASN_OCTET_STR,
-                            remote.c_str(),
-                            remote.size());
+    fromAddressOID,
+    OID_LENGTH(fromAddressOID),
+    ASN_OCTET_STR,
+    remote.c_str(),
+    remote.size());
 
   snmp_varlist_add_variable(&varList,
-                            toAddressOID,
-                            OID_LENGTH(toAddressOID),
-                            ASN_OCTET_STR,
-                            local.c_str(),
-                            local.size());
+    toAddressOID,
+    OID_LENGTH(toAddressOID),
+    ASN_OCTET_STR,
+    local.c_str(),
+    local.size());
 
   snmp_varlist_add_variable(&varList,
-                            queryTypeOID,
-                            OID_LENGTH(queryTypeOID),
-                            ASN_INTEGER,
-                            (u_char *) &queryType,
-                            sizeof(queryType));
+    queryTypeOID,
+    OID_LENGTH(queryTypeOID),
+    ASN_INTEGER,
+    (u_char*)&queryType,
+    sizeof(queryType));
 
   snmp_varlist_add_variable(&varList,
-                            querySizeOID,
-                            OID_LENGTH(querySizeOID),
-                            ASN_UNSIGNED,
-                            (u_char *) &querySize,
-                            sizeof(querySize));
+    querySizeOID,
+    OID_LENGTH(querySizeOID),
+    ASN_UNSIGNED,
+    (u_char*)&querySize,
+    sizeof(querySize));
 
   snmp_varlist_add_variable(&varList,
-                            queryIDOID,
-                            OID_LENGTH(queryIDOID),
-                            ASN_UNSIGNED,
-                            (u_char *) &queryID,
-                            sizeof(queryID));
+    queryIDOID,
+    OID_LENGTH(queryIDOID),
+    ASN_UNSIGNED,
+    (u_char*)&queryID,
+    sizeof(queryID));
 
   snmp_varlist_add_variable(&varList,
-                            qNameOID,
-                            OID_LENGTH(qNameOID),
-                            ASN_OCTET_STR,
-                            qname.c_str(),
-                            qname.size());
+    qNameOID,
+    OID_LENGTH(qNameOID),
+    ASN_OCTET_STR,
+    qname.c_str(),
+    qname.size());
 
   snmp_varlist_add_variable(&varList,
-                            qClassOID,
-                            OID_LENGTH(qClassOID),
-                            ASN_UNSIGNED,
-                            (u_char *) &qClass,
-                            sizeof(qClass));
+    qClassOID,
+    OID_LENGTH(qClassOID),
+    ASN_UNSIGNED,
+    (u_char*)&qClass,
+    sizeof(qClass));
 
   snmp_varlist_add_variable(&varList,
-                            qTypeOID,
-                            OID_LENGTH(qTypeOID),
-                            ASN_UNSIGNED,
-                            (u_char *) &qType,
-                            sizeof(qType));
+    qTypeOID,
+    OID_LENGTH(qTypeOID),
+    ASN_UNSIGNED,
+    (u_char*)&qType,
+    sizeof(qType));
 
   snmp_varlist_add_variable(&varList,
-                            trapReasonOID,
-                            OID_LENGTH(trapReasonOID),
-                            ASN_OCTET_STR,
-                            reason.c_str(),
-                            reason.size());
+    trapReasonOID,
+    OID_LENGTH(trapReasonOID),
+    ASN_OCTET_STR,
+    reason.c_str(),
+    reason.size());
 
   return sendTrap(d_trapPipe[1], varList);
 #else
@@ -546,7 +542,8 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
 #endif /* HAVE_NET_SNMP */
 }
 
-DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket): SNMPAgent(name, masterSocket)
+DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket) :
+  SNMPAgent(name, masterSocket)
 {
 #ifdef HAVE_NET_SNMP
 
@@ -589,11 +586,10 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return g_stats.securityStatus.load(); });
   registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID), &getRealMemoryUsage);
 
-
   netsnmp_table_registration_info* table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
   netsnmp_table_helper_add_indexes(table_info,
-                                   ASN_GAUGE,  /* index: backendId */
-                                   0);
+    ASN_GAUGE, /* index: backendId */
+    0);
   table_info->min_column = COLUMN_BACKENDNAME;
   table_info->max_column = COLUMN_BACKENDORDER;
   netsnmp_iterator_info* iinfo = SNMP_MALLOC_TYPEDEF(netsnmp_iterator_info);
@@ -602,11 +598,11 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   iinfo->table_reginfo = table_info;
 
   netsnmp_register_table_iterator(netsnmp_create_handler_registration("backendStatTable",
-                                                                      backendStatTable_handler,
-                                                                      backendStatTableOID,
-                                                                      OID_LENGTH(backendStatTableOID),
-                                                                      HANDLER_CAN_RONLY),
-                                  iinfo);
+                                    backendStatTable_handler,
+                                    backendStatTableOID,
+                                    OID_LENGTH(backendStatTableOID),
+                                    HANDLER_CAN_RONLY),
+    iinfo);
 
 #endif /* HAVE_NET_SNMP */
 }

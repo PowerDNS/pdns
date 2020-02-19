@@ -36,7 +36,7 @@
 using namespace nod;
 using namespace boost::filesystem;
 
-// PersistentSBF Implementation 
+// PersistentSBF Implementation
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
@@ -45,7 +45,8 @@ std::mutex PersistentSBF::d_cachedir_mutex;
 // In this way, we can have per-thread SBFs, but still snapshot and restore.
 // The mutex has to be static because we can't have multiple (i.e. per-thread)
 // instances iterating and writing to the cache dir at the same time
-bool PersistentSBF::init(bool ignore_pid) {
+bool PersistentSBF::init(bool ignore_pid)
+{
   if (d_init)
     return false;
 
@@ -55,16 +56,13 @@ bool PersistentSBF::init(bool ignore_pid) {
     try {
       if (exists(p) && is_directory(p)) {
         path newest_file;
-        std::time_t newest_time=time(nullptr);
+        std::time_t newest_time = time(nullptr);
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
-        for (directory_iterator i(p); i!=directory_iterator(); ++i) {
-          if (is_regular_file(i->path()) &&
-              file_regex.match(i->path().filename().string())) {
-            if (ignore_pid ||
-                (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
+        for (directory_iterator i(p); i != directory_iterator(); ++i) {
+          if (is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
+            if (ignore_pid || (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
-              if ((last_write_time(i->path()) < newest_time) ||
-                  newest_file.empty()) {
+              if ((last_write_time(i->path()) < newest_time) || newest_file.empty()) {
                 newest_time = last_write_time(i->path());
                 newest_file = i->path();
               }
@@ -86,13 +84,13 @@ bool PersistentSBF::init(bool ignore_pid) {
             remove(newest_file);
           }
           catch (const std::runtime_error& e) {
-            g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << endl;
+            g_log << Logger::Warning << "NODDB init: Cannot parse file: " << filename << endl;
           }
         }
       }
     }
     catch (const filesystem_error& e) {
-      g_log<<Logger::Warning<<"NODDB init failed:: " << e.what() << endl;
+      g_log << Logger::Warning << "NODDB init failed:: " << e.what() << endl;
       return false;
     }
   }
@@ -142,11 +140,11 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         return true;
       }
       catch (const std::runtime_error& e) {
-        g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << e.what() << endl;
+        g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << e.what() << endl;
       }
     }
     else {
-      g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << f.string() << endl;
+      g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << f.string() << endl;
     }
   }
   return false;

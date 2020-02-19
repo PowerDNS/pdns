@@ -43,28 +43,28 @@
    This will happily print a string to %d! Doesn't do further format processing.
 */
 
-inline void dolog(std::ostream& os, const char*s)
+inline void dolog(std::ostream& os, const char* s)
 {
-  os<<s;
+  os << s;
 }
 
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 void dolog(std::ostream& os, const char* s, T value, Args... args)
 {
   while (*s) {
     if (*s == '%') {
       if (*(s + 1) == '%') {
-	++s;
+        ++s;
       }
       else {
-	os << value;
-	s += 2;
-	dolog(os, s, args...); 
-	return;
+        os << value;
+        s += 2;
+        dolog(os, s, args...);
+        return;
       }
     }
     os << *s++;
-  }    
+  }
 }
 
 extern bool g_verbose;
@@ -74,37 +74,37 @@ inline void setSyslogFacility(int facility)
 {
   /* we always call openlog() right away at startup */
   closelog();
-  openlog("dnsdist", LOG_PID|LOG_NDELAY, facility);
+  openlog("dnsdist", LOG_PID | LOG_NDELAY, facility);
 }
 
-template<typename... Args>
+template <typename... Args>
 void genlog(int level, const char* s, Args... args)
 {
   std::ostringstream str;
   dolog(str, s, args...);
-  if(g_syslog)
+  if (g_syslog)
     syslog(level, "%s", str.str().c_str());
-  std::cout<<str.str()<<std::endl;
+  std::cout << str.str() << std::endl;
 }
 
+#define vinfolog \
+  if (g_verbose) \
+  infolog
 
-#define vinfolog if(g_verbose)infolog
-
-template<typename... Args>
+template <typename... Args>
 void infolog(const char* s, Args... args)
 {
   genlog(LOG_INFO, s, args...);
 }
 
-template<typename... Args>
+template <typename... Args>
 void warnlog(const char* s, Args... args)
 {
   genlog(LOG_WARNING, s, args...);
 }
 
-template<typename... Args>
+template <typename... Args>
 void errlog(const char* s, Args... args)
 {
   genlog(LOG_ERR, s, args...);
 }
-

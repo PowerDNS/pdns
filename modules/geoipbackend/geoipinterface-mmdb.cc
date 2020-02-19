@@ -29,9 +29,11 @@
 
 #include "maxminddb.h"
 
-class GeoIPInterfaceMMDB : public GeoIPInterface {
+class GeoIPInterfaceMMDB : public GeoIPInterface
+{
 public:
-  GeoIPInterfaceMMDB(const string &fname, const string &modeStr, const string& language) {
+  GeoIPInterfaceMMDB(const string& fname, const string& modeStr, const string& language)
+  {
     int ec;
     int flags = 0;
     if (modeStr == "")
@@ -47,12 +49,11 @@ public:
     if ((ec = MMDB_open(fname.c_str(), flags, &d_s)) < 0)
       throw PDNSException(string("Cannot open ") + fname + string(": ") + string(MMDB_strerror(ec)));
     d_lang = language;
-    g_log<<Logger::Debug<<"Opened MMDB database "<<fname<<"(type: "<<d_s.metadata.database_type<<
-                      " version: "<<d_s.metadata.binary_format_major_version << "." <<
-                      d_s.metadata.binary_format_minor_version << ")" << endl;
+    g_log << Logger::Debug << "Opened MMDB database " << fname << "(type: " << d_s.metadata.database_type << " version: " << d_s.metadata.binary_format_major_version << "." << d_s.metadata.binary_format_minor_version << ")" << endl;
   }
 
-  bool queryCountry(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryCountry(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
@@ -63,7 +64,8 @@ public:
     return true;
   };
 
-  bool queryCountryV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryCountryV6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
@@ -74,15 +76,18 @@ public:
     return true;
   };
 
-  bool queryCountry2(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryCountry2(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     return queryCountry(ret, gl, ip);
   }
 
-  bool queryCountry2V6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryCountry2V6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     return queryCountryV6(ret, gl, ip);
   }
 
-  bool queryContinent(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryContinent(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
@@ -90,10 +95,11 @@ public:
     if (MMDB_get_value(&res.entry, &data, "continent", "code", NULL) != MMDB_SUCCESS || !data.has_data)
       return false;
     ret = string(data.utf8_string, data.data_size);
-    return true; 
+    return true;
   }
 
-  bool queryContinentV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryContinentV6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
@@ -104,7 +110,8 @@ public:
     return true;
   }
 
-  bool queryName(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryName(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
@@ -115,7 +122,8 @@ public:
     return true;
   }
 
-  bool queryNameV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryNameV6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
@@ -126,7 +134,8 @@ public:
     return true;
   }
 
-  bool queryASnum(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryASnum(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
@@ -137,7 +146,8 @@ public:
     return true;
   }
 
-  bool queryASnumV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryASnumV6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
@@ -148,7 +158,8 @@ public:
     return true;
   }
 
-  bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryRegion(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
@@ -159,7 +170,8 @@ public:
     return true;
   }
 
-  bool queryRegionV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryRegionV6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
@@ -170,33 +182,34 @@ public:
     return true;
   }
 
-  bool queryCity(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryCity(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if ((MMDB_get_value(&res.entry, &data, "cities", "0", NULL) != MMDB_SUCCESS || !data.has_data) &&
-        (MMDB_get_value(&res.entry, &data, "city", "names", d_lang.c_str(), NULL) != MMDB_SUCCESS || !data.has_data))
+    if ((MMDB_get_value(&res.entry, &data, "cities", "0", NULL) != MMDB_SUCCESS || !data.has_data) && (MMDB_get_value(&res.entry, &data, "city", "names", d_lang.c_str(), NULL) != MMDB_SUCCESS || !data.has_data))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
   }
 
-  bool queryCityV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+  bool queryCityV6(string& ret, GeoIPNetmask& gl, const string& ip) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if ((MMDB_get_value(&res.entry, &data, "cities", "0", NULL) != MMDB_SUCCESS || !data.has_data) &&
-        (MMDB_get_value(&res.entry, &data, "city", "names", d_lang.c_str(), NULL) != MMDB_SUCCESS || !data.has_data))
+    if ((MMDB_get_value(&res.entry, &data, "cities", "0", NULL) != MMDB_SUCCESS || !data.has_data) && (MMDB_get_value(&res.entry, &data, "city", "names", d_lang.c_str(), NULL) != MMDB_SUCCESS || !data.has_data))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
   }
 
-  bool queryLocation(GeoIPNetmask& gl, const string &ip,
-                     double& latitude, double& longitude,
-                     boost::optional<int>& alt, boost::optional<int>& prec) override {
+  bool queryLocation(GeoIPNetmask& gl, const string& ip,
+    double& latitude, double& longitude,
+    boost::optional<int>& alt, boost::optional<int>& prec) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
@@ -204,7 +217,7 @@ public:
     if (MMDB_get_value(&res.entry, &data, "location", "latitude", NULL) != MMDB_SUCCESS || !data.has_data)
       return false;
     latitude = data.double_value;
-     if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
       return false;
     longitude = data.double_value;
     if (MMDB_get_value(&res.entry, &data, "location", "accuracy_radius", NULL) != MMDB_SUCCESS || !data.has_data)
@@ -213,9 +226,10 @@ public:
     return true;
   }
 
-  bool queryLocationV6(GeoIPNetmask& gl, const string &ip,
-                       double& latitude, double& longitude,
-                       boost::optional<int>& alt, boost::optional<int>& prec) override {
+  bool queryLocationV6(GeoIPNetmask& gl, const string& ip,
+    double& latitude, double& longitude,
+    boost::optional<int>& alt, boost::optional<int>& prec) override
+  {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
@@ -223,7 +237,7 @@ public:
     if (MMDB_get_value(&res.entry, &data, "location", "latitude", NULL) != MMDB_SUCCESS || !data.has_data)
       return false;
     latitude = data.double_value;
-     if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
       return false;
     longitude = data.double_value;
     if (MMDB_get_value(&res.entry, &data, "location", "accuracy_radius", NULL) != MMDB_SUCCESS || !data.has_data)
@@ -233,18 +247,20 @@ public:
   }
 
   ~GeoIPInterfaceMMDB() { MMDB_close(&d_s); };
+
 private:
   MMDB_s d_s;
   string d_lang;
 
-  bool mmdbLookup(const string &ip, bool v6, GeoIPNetmask& gl, MMDB_lookup_result_s& res) {
+  bool mmdbLookup(const string& ip, bool v6, GeoIPNetmask& gl, MMDB_lookup_result_s& res)
+  {
     int gai_ec = 0, mmdb_ec = 0;
     res = MMDB_lookup_string(&d_s, ip.c_str(), &gai_ec, &mmdb_ec);
- 
+
     if (gai_ec != 0)
-      g_log<<Logger::Warning<<"MMDB_lookup_string("<<ip<<") failed: "<<gai_strerror(gai_ec)<<endl;
+      g_log << Logger::Warning << "MMDB_lookup_string(" << ip << ") failed: " << gai_strerror(gai_ec) << endl;
     else if (mmdb_ec != MMDB_SUCCESS)
-      g_log<<Logger::Warning<<"MMDB_lookup_string("<<ip<<") failed: "<<MMDB_strerror(mmdb_ec)<<endl;
+      g_log << Logger::Warning << "MMDB_lookup_string(" << ip << ") failed: " << MMDB_strerror(mmdb_ec) << endl;
     else if (res.found_entry) {
       gl.netmask = res.netmask;
       /* If it's a IPv6 database, IPv4 netmasks are reduced from 128, so we need to deduct
@@ -257,13 +273,14 @@ private:
   }
 };
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string &fname, const map<string, string>& opts) {
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string& fname, const map<string, string>& opts)
+{
   string mode = "";
   string language = "en";
-  const auto &opt_mode = opts.find("mode");
+  const auto& opt_mode = opts.find("mode");
   if (opt_mode != opts.end())
     mode = opt_mode->second;
-  const auto &opt_lang = opts.find("language");
+  const auto& opt_lang = opts.find("language");
   if (opt_lang != opts.end())
     language = opt_lang->second;
   return unique_ptr<GeoIPInterface>(new GeoIPInterfaceMMDB(fname, mode, language));
@@ -271,7 +288,8 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string &fname
 
 #else
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string &fname, const map<string, string>& opts) {
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string& fname, const map<string, string>& opts)
+{
   throw PDNSException("libmaxminddb support not compiled in");
 }
 

@@ -70,63 +70,62 @@ typedef PDNSException ArgException;
     \endcode
 */
 
-
-
 class ArgvMap
 {
 public:
   ArgvMap();
-  void parse(int &argc, char **argv, bool lax=false); //!< use this to parse from argc and argv
-  void laxParse(int &argc, char **argv) //!< use this to parse from argc and argv
+  void parse(int& argc, char** argv, bool lax = false); //!< use this to parse from argc and argv
+  void laxParse(int& argc, char** argv) //!< use this to parse from argc and argv
   {
-    parse(argc,argv,true);
+    parse(argc, argv, true);
   }
-  void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
-  bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
+  void preParse(int& argc, char** argv, const string& arg); //!< use this to preparse a single var
+  bool preParseFile(const char* fname, const string& arg, const string& theDefault = ""); //!< use this to preparse a single var in configuration
 
-  bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
-  bool file(const char *fname, bool lax, bool included); 
-  bool laxFile(const char *fname) 
+  bool file(const char* fname, bool lax = false); //!< Parses a file with parameters
+  bool file(const char* fname, bool lax, bool included);
+  bool laxFile(const char* fname)
   {
-    return file(fname,true);
+    return file(fname, true);
   }
-  bool parseFile(const char *fname, const string& arg, bool lax); //<! parse one line
-  typedef map<string,string> param_t; //!< use this if you need to know the content of the map
-  bool parmIsset(const string &var); //!< Checks if a parameter is set to *a* value
-  bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
-  int asNum(const string &var, int def=0); //!< return a variable value as a number or the default if the variable is empty
-  mode_t asMode(const string &var); //!< return value interpreted as octal number
-  uid_t asUid(const string &var); //!< return user id, resolves if necessary
-  gid_t asGid(const string &var); //!< return group id, resolves if necessary
-  double asDouble(const string &var); //!< return a variable value as a number
-  string &set(const string &); //!< Gives a writable reference and allocates space for it
-  string &set(const string &, const string &); //!< Does the same but also allows one to specify a help message
-  void setCmd(const string &, const string &); //!< Add a command flag
-  string &setSwitch(const string &, const string &); //!< Add a switch flag
-  string helpstring(string prefix=""); //!< generates the --help
+  bool parseFile(const char* fname, const string& arg, bool lax); //<! parse one line
+  typedef map<string, string> param_t; //!< use this if you need to know the content of the map
+  bool parmIsset(const string& var); //!< Checks if a parameter is set to *a* value
+  bool mustDo(const string& var); //!< if a switch is given, if we must do something (--help)
+  int asNum(const string& var, int def = 0); //!< return a variable value as a number or the default if the variable is empty
+  mode_t asMode(const string& var); //!< return value interpreted as octal number
+  uid_t asUid(const string& var); //!< return user id, resolves if necessary
+  gid_t asGid(const string& var); //!< return group id, resolves if necessary
+  double asDouble(const string& var); //!< return a variable value as a number
+  string& set(const string&); //!< Gives a writable reference and allocates space for it
+  string& set(const string&, const string&); //!< Does the same but also allows one to specify a help message
+  void setCmd(const string&, const string&); //!< Add a command flag
+  string& setSwitch(const string&, const string&); //!< Add a switch flag
+  string helpstring(string prefix = ""); //!< generates the --help
   string configstring(bool current, bool full); //!< generates the --config
-  bool contains(const string &var, const string &val);
-  bool isEmpty(const string &var); //!< checks if variable has value
-  void setDefault(const string &var, const string &value);
+  bool contains(const string& var, const string& val);
+  bool isEmpty(const string& var); //!< checks if variable has value
+  void setDefault(const string& var, const string& value);
   void setDefaults();
 
-  vector<string>list();
-  string getHelp(const string &item);
+  vector<string> list();
+  string getHelp(const string& item);
 
   const param_t::const_iterator begin(); //!< iterator semantics
   const param_t::const_iterator end(); //!< iterator semantics
-  const string &operator[](const string &); //!< iterator semantics
-  const vector<string>&getCommands();
-  void gatherIncludes(std::vector<std::string> &extraConfigs);
+  const string& operator[](const string&); //!< iterator semantics
+  const vector<string>& getCommands();
+  void gatherIncludes(std::vector<std::string>& extraConfigs);
+
 private:
-  void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
-  typedef map<string,string> params_t;
+  void parseOne(const string& unparsed, const string& parseOnly = "", bool lax = false);
+  typedef map<string, string> params_t;
   params_t params;
-  map<string,string> helpmap;
-  map<string,string> defaultmap;
-  map<string,string> d_typeMap;
+  map<string, string> helpmap;
+  map<string, string> defaultmap;
+  map<string, string> d_typeMap;
   vector<string> d_cmds;
   std::set<string> d_cleared;
 };
 
-extern ArgvMap &arg();
+extern ArgvMap& arg();

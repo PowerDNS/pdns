@@ -27,15 +27,16 @@ class SSQLite3 : public SSql
 {
 private:
   //! Pointer to the SQLite database instance.
-  sqlite3 *m_pDB{nullptr};
+  sqlite3* m_pDB{nullptr};
 
   bool m_dolog;
   bool m_in_transaction;
   static int busyHandler(void*, int);
+
 protected:
 public:
   //! Constructor.
-  SSQLite3( const std::string & database, const std::string & journalmode, bool creat=false);
+  SSQLite3(const std::string& database, const std::string& journalmode, bool creat = false);
 
   //! Destructor.
   ~SSQLite3();
@@ -48,10 +49,10 @@ public:
   void commit() override;
   void rollback() override;
 
-  sqlite3 *db() { return this->m_pDB; };
+  sqlite3* db() { return this->m_pDB; };
 
   bool inTransaction() { return m_in_transaction; };
 
   //! Used to create an backend specific exception message.
-  SSqlException sPerrorException( const std::string & reason ) override;
+  SSqlException sPerrorException(const std::string& reason) override;
 };

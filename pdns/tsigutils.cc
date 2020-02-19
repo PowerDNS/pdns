@@ -32,7 +32,8 @@
  *
  * Will raise a PDNSException() if algorithm is invalid
  */
-std::string makeTSIGKey(const DNSName& algorithm) {
+std::string makeTSIGKey(const DNSName& algorithm)
+{
   TSIGHashEnum tsigHashEnum;
   if (!getTSIGHashEnum(algorithm, tsigHashEnum)) {
     throw PDNSException("Invalid TSIG algorithm: " + algorithm.toStringNoDot());
@@ -40,8 +41,8 @@ std::string makeTSIGKey(const DNSName& algorithm) {
 
   size_t klen = 64;
   if (tsigHashEnum == TSIG_MD5
-      || tsigHashEnum == TSIG_SHA1
-      || tsigHashEnum == TSIG_SHA224) {
+    || tsigHashEnum == TSIG_SHA1
+    || tsigHashEnum == TSIG_SHA224) {
     klen = 32;
   }
 

@@ -503,7 +503,8 @@ jobs:
       - run:
           name: Check formatting
           command: |
-            ./build-scripts/format-code pdns/recursordist/*.[ch][ch]
+            ./build-scripts/format-code $(find modules pdns -type f -name '*.[ch][ch]')
+
             git diff
             exit $(git diff | wc -l)
           working_directory: ~/project

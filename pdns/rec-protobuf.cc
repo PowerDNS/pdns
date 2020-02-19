@@ -7,10 +7,10 @@ void RecProtoBufMessage::setNOD(bool nod)
 {
 #ifdef HAVE_PROTOBUF
   d_message.set_newlyobserveddomain(nod);
-#endif /* HAVE_PROTOBUF */  
+#endif /* HAVE_PROTOBUF */
 }
 
-void RecProtoBufMessage::clearUDR() 
+void RecProtoBufMessage::clearUDR()
 {
 #ifdef HAVE_PROTOBUF
   auto response = d_message.mutable_response();
@@ -56,59 +56,50 @@ void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>
   pbRR->set_udr(udr);
 #endif
 
-  switch(record.d_type) {
-  case QType::A:
-  {
+  switch (record.d_type) {
+  case QType::A: {
     const auto& content = dynamic_cast<const ARecordContent&>(*(record.d_content));
     ComboAddress data = content.getCA();
     pbRR->set_rdata(&data.sin4.sin_addr.s_addr, sizeof(data.sin4.sin_addr.s_addr));
     break;
   }
-  case QType::AAAA:
-  {
+  case QType::AAAA: {
     const auto& content = dynamic_cast<const AAAARecordContent&>(*(record.d_content));
     ComboAddress data = content.getCA();
     pbRR->set_rdata(&data.sin6.sin6_addr.s6_addr, sizeof(data.sin6.sin6_addr.s6_addr));
     break;
   }
-  case QType::CNAME:
-  {
+  case QType::CNAME: {
     const auto& content = dynamic_cast<const CNAMERecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.getTarget().toString());
     break;
   }
-  case QType::TXT:
-  {
+  case QType::TXT: {
     const auto& content = dynamic_cast<const TXTRecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.d_text);
     break;
   }
-  case QType::NS:
-  {
+  case QType::NS: {
     const auto& content = dynamic_cast<const NSRecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.getNS().toString());
     break;
   }
-  case QType::PTR:
-  {
+  case QType::PTR: {
     const auto& content = dynamic_cast<const PTRRecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.getContent().toString());
     break;
   }
-  case QType::MX:
-  {
+  case QType::MX: {
     const auto& content = dynamic_cast<const MXRecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.d_mxname.toString());
     break;
   }
-  case QType::SPF:
-  {
+  case QType::SPF: {
     const auto& content = dynamic_cast<const SPFRecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.getText());
     break;
   }
-  case QType::SRV:
-  {
+  case QType::SRV: {
     const auto& content = dynamic_cast<const SRVRecordContent&>(*(record.d_content));
     pbRR->set_rdata(content.d_target.toString());
     break;
@@ -141,7 +132,7 @@ void RecProtoBufMessage::setAppliedPolicyType(const DNSFilterEngine::PolicyType&
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSResponse* response = d_message.mutable_response();
   if (response) {
-    switch(type) {
+    switch (type) {
     case DNSFilterEngine::PolicyType::None:
       response->set_appliedpolicytype(PBDNSMessage_PolicyType_UNKNOWN);
       break;
@@ -198,7 +189,7 @@ void RecProtoBufMessage::removePolicyTag(const std::string& policyTag)
     int keep = 0;
     for (int idx = 0; idx < count; ++idx) {
       auto tagp = response->mutable_tags(idx);
-      if (tagp->compare(policyTag) == 0) {        
+      if (tagp->compare(policyTag) == 0) {
       }
       else {
         if (keep < idx) {
@@ -208,7 +199,7 @@ void RecProtoBufMessage::removePolicyTag(const std::string& policyTag)
       }
     }
     response->mutable_tags()->DeleteSubrange(keep, count - keep);
-  }  
+  }
 #endif
 }
 

@@ -48,45 +48,51 @@
     example, atomic counters. In such cases, it may be useful to explicitly declare such counters
     as mutable.  */
 
-template<typename T> class GlobalStateHolder;
+template <typename T>
+class GlobalStateHolder;
 
-template<typename T>
+template <typename T>
 class LocalStateHolder
 {
 public:
-  explicit LocalStateHolder(GlobalStateHolder<T>* source) : d_source(source)
-  {}
-
-  const T* operator->()  // fast const-only access, but see "read-only" above
+  explicit LocalStateHolder(GlobalStateHolder<T>* source) :
+    d_source(source)
   {
-    if(d_source->getGeneration() != d_generation) {
-      d_source->getState(&d_state, & d_generation);
+  }
+
+  const T* operator->() // fast const-only access, but see "read-only" above
+  {
+    if (d_source->getGeneration() != d_generation) {
+      d_source->getState(&d_state, &d_generation);
     }
 
     return d_state.get();
   }
-  const T& operator*()  // fast const-only access, but see "read-only" above
+  const T& operator*() // fast const-only access, but see "read-only" above
   {
     return *operator->();
   }
 
   void reset()
   {
-    d_generation=0;
+    d_generation = 0;
     d_state.reset();
   }
+
 private:
   std::shared_ptr<T> d_state;
   unsigned int d_generation{0};
   const GlobalStateHolder<T>* d_source;
 };
 
-template<typename T>
+template <typename T>
 class GlobalStateHolder
 {
 public:
-  GlobalStateHolder() : d_state(std::make_shared<T>())
-  {}
+  GlobalStateHolder() :
+    d_state(std::make_shared<T>())
+  {
+  }
   LocalStateHolder<T> getLocal()
   {
     return LocalStateHolder<T>(this);
@@ -112,24 +118,25 @@ public:
     }
   }
 
-  T getCopy() const  //!< Safely & slowly get a copy of the global state
+  T getCopy() const //!< Safely & slowly get a copy of the global state
   {
     std::lock_guard<std::mutex> l(d_lock);
     return *d_state;
   }
-  
+
   //! Safely & slowly modify the global state
-  template<typename F>
-  void modify(F act) {
+  template <typename F>
+  void modify(F act)
+  {
     std::lock_guard<std::mutex> l(d_lock);
-    auto state=*d_state; // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
+    auto state = *d_state; // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
     act(state);
     d_state = std::make_shared<T>(std::move(state));
     ++d_generation;
   }
 
-
   typedef T value_type;
+
 private:
   unsigned int getGeneration() const
   {
@@ -138,7 +145,7 @@ private:
   void getState(std::shared_ptr<T>* state, unsigned int* generation) const
   {
     std::lock_guard<std::mutex> l(d_lock);
-    *state=d_state;
+    *state = d_state;
     *generation = d_generation;
   }
   friend class LocalStateHolder<T>;

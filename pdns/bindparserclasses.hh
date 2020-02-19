@@ -29,20 +29,24 @@
 
 #include "namespaces.hh"
 
-class BindDomainInfo 
+class BindDomainInfo
 {
 public:
-  BindDomainInfo() : hadFileDirective(false), d_dev(0), d_ino(0)
-  {}
-
-  void clear() 
+  BindDomainInfo() :
+    hadFileDirective(false),
+    d_dev(0),
+    d_ino(0)
   {
-    name=DNSName();
-    filename=type="";
+  }
+
+  void clear()
+  {
+    name = DNSName();
+    filename = type = "";
     masters.clear();
     alsoNotify.clear();
-    d_dev=0;
-    d_ino=0;
+    d_dev = 0;
+    d_ino = 0;
   }
   DNSName name;
   string viewName;
@@ -51,7 +55,7 @@ public:
   set<string> alsoNotify;
   string type;
   bool hadFileDirective;
-    
+
   dev_t d_dev;
   ino_t d_ino;
 
@@ -61,37 +65,40 @@ public:
   }
 };
 
-extern const char *bind_directory;
-extern FILE *yyin;
+extern const char* bind_directory;
+extern FILE* yyin;
 class BindParser
 {
- public:
-  BindParser() : d_dir("."), d_verbose(false)
+public:
+  BindParser() :
+    d_dir("."),
+    d_verbose(false)
   {
-    yyin=0;
+    yyin = 0;
     extern int include_stack_ptr;
-    include_stack_ptr=0;
- 
-    bind_directory=d_dir.c_str(); 
+    include_stack_ptr = 0;
+
+    bind_directory = d_dir.c_str();
   }
   ~BindParser()
   {
-    if(yyin) {
+    if (yyin) {
       fclose(yyin);
-      yyin=0;
+      yyin = 0;
     }
   }
-  void parse(const string &fname);
+  void parse(const string& fname);
   void commit(BindDomainInfo DI);
-  void setDirectory(const string &dir);
-  const string &getDirectory();
+  void setDirectory(const string& dir);
+  const string& getDirectory();
   const vector<BindDomainInfo>& getDomains();
   void setVerbose(bool verbose);
-  void addAlsoNotify(const string &host);
-  set<string> & getAlsoNotify() { return this->alsoNotify; } 
+  void addAlsoNotify(const string& host);
+  set<string>& getAlsoNotify() { return this->alsoNotify; }
+
 private:
   string d_dir;
-  typedef map<DNSName,string> zonedomain_t;
+  typedef map<DNSName, string> zonedomain_t;
   set<string> alsoNotify;
   vector<BindDomainInfo> d_zonedomains;
   bool d_verbose;

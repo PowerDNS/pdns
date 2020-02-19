@@ -29,13 +29,15 @@ int intFromJson(const json11::Json container, const std::string& key);
 int intFromJson(const json11::Json container, const std::string& key, const int default_value);
 double doubleFromJson(const json11::Json container, const std::string& key);
 double doubleFromJson(const json11::Json container, const std::string& key, const double default_value);
-std::string stringFromJson(const json11::Json container, const std::string &key);
+std::string stringFromJson(const json11::Json container, const std::string& key);
 bool boolFromJson(const json11::Json container, const std::string& key);
 bool boolFromJson(const json11::Json container, const std::string& key, const bool default_value);
 
 class JsonException : public std::runtime_error
 {
 public:
-  JsonException(const std::string& what_arg) : std::runtime_error(what_arg) {
+  JsonException(const std::string& what_arg) :
+    std::runtime_error(what_arg)
+  {
   }
 };

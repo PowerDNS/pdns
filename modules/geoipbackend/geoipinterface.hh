@@ -24,9 +24,11 @@
 
 #include "geoipbackend.hh"
 
-class GeoIPInterface {
+class GeoIPInterface
+{
 public:
-  enum GeoIPQueryAttribute {
+  enum GeoIPQueryAttribute
+  {
     ASn,
     City,
     Continent,
@@ -37,31 +39,34 @@ public:
     Location
   };
 
-  virtual bool queryCountry(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryCountryV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryCountry2(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryCountry2V6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryContinent(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryContinentV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryName(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryNameV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryASnum(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryASnumV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryRegionV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryCity(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryCityV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
-  virtual bool queryLocation(GeoIPNetmask& gl, const string &ip,
-                             double& latitude, double& longitude,
-                             boost::optional<int>& alt, boost::optional<int>& prec) = 0;
-  virtual bool queryLocationV6(GeoIPNetmask& gl, const string &ip,
-                               double& latitude, double& longitude,
-                               boost::optional<int>& alt, boost::optional<int>& prec) = 0;
+  virtual bool queryCountry(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryCountryV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryCountry2(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryCountry2V6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryContinent(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryContinentV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryName(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryNameV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryASnum(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryASnumV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryRegion(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryRegionV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryCity(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryCityV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
+  virtual bool queryLocation(GeoIPNetmask& gl, const string& ip,
+    double& latitude, double& longitude,
+    boost::optional<int>& alt, boost::optional<int>& prec)
+    = 0;
+  virtual bool queryLocationV6(GeoIPNetmask& gl, const string& ip,
+    double& latitude, double& longitude,
+    boost::optional<int>& alt, boost::optional<int>& prec)
+    = 0;
 
-  virtual ~GeoIPInterface() { }
+  virtual ~GeoIPInterface() {}
 
   static unique_ptr<GeoIPInterface> makeInterface(const string& dbStr);
+
 private:
-  static unique_ptr<GeoIPInterface> makeMMDBInterface(const string &fname, const map<string, string>& opts);
+  static unique_ptr<GeoIPInterface> makeMMDBInterface(const string& fname, const map<string, string>& opts);
   static unique_ptr<GeoIPInterface> makeDATInterface(const string& fname, const map<string, string>& opts);
 };

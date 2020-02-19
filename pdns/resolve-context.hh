@@ -6,14 +6,15 @@
 #include <boost/uuid/uuid.hpp>
 #endif
 
-struct ResolveContext {
+struct ResolveContext
+{
   ResolveContext()
   {
   }
 
   ResolveContext(const ResolveContext& ctx) = delete;
-  ResolveContext & operator=(const ResolveContext&) = delete;
-  
+  ResolveContext& operator=(const ResolveContext&) = delete;
+
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif

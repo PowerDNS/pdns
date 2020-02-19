@@ -20,7 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <boost/utility.hpp> 
+#include <boost/utility.hpp>
 #include "namespaces.hh"
 #include "mplexer.hh"
 #include "webserver.hh"
@@ -28,13 +28,15 @@
 class HttpRequest;
 class HttpResponse;
 
-class AsyncServer : public Server {
+class AsyncServer : public Server
+{
 public:
-  AsyncServer(const string &localaddress, int port) : Server(localaddress, port) { };
+  AsyncServer(const string& localaddress, int port) :
+    Server(localaddress, port){};
 
-  friend void AsyncServerNewConnectionMT(void *p);
+  friend void AsyncServerNewConnectionMT(void* p);
 
-  typedef boost::function< void(std::shared_ptr<Socket>) > newconnectioncb_t;
+  typedef boost::function<void(std::shared_ptr<Socket>)> newconnectioncb_t;
   void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
 
 private:
@@ -46,8 +48,9 @@ private:
 class AsyncWebServer : public WebServer
 {
 public:
-  AsyncWebServer(FDMultiplexer* fdm, const string &listenaddress, int port) :
-    WebServer(listenaddress, port), d_fdm(fdm) { };
+  AsyncWebServer(FDMultiplexer* fdm, const string& listenaddress, int port) :
+    WebServer(listenaddress, port),
+    d_fdm(fdm){};
   void go();
 
 private:
@@ -55,7 +58,8 @@ private:
   void serveConnection(std::shared_ptr<Socket> socket) const;
 
 protected:
-  virtual std::shared_ptr<Server> createServer() override {
+  virtual std::shared_ptr<Server> createServer() override
+  {
     return std::make_shared<AsyncServer>(d_listenaddress, d_port);
   };
 };
@@ -64,7 +68,7 @@ class RecursorWebServer : public boost::noncopyable
 {
 public:
   explicit RecursorWebServer(FDMultiplexer* fdm);
-  void jsonstat(HttpRequest* req, HttpResponse *resp);
+  void jsonstat(HttpRequest* req, HttpResponse* resp);
 
 private:
   std::unique_ptr<AsyncWebServer> d_ws{nullptr};

@@ -14,7 +14,8 @@
 
 BOOST_AUTO_TEST_SUITE(packetcache_hh)
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision)
+{
 
   /* auth version (ECS is not processed, we just hash the whole query except for the ID, while lowercasing the qname) */
   const DNSName qname("www.powerdns.com.");
@@ -166,7 +167,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple)
+{
 
   const DNSName qname("www.powerdns.com.");
   uint16_t qtype = QType::AAAA;
@@ -198,7 +200,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision)
+{
 
   /* rec version (ECS is processed, we hash the whole query except for the ID and the ECS value, while lowercasing the qname) */
   const DNSName qname("www.powerdns.com.");
@@ -252,7 +255,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     string spacket1((const char*)&packet[0], packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
     /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
+    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + (2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
     BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
 
     packet.clear();
@@ -269,7 +272,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     string spacket2((const char*)&packet[0], packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, &ecsBegin, &ecsEnd);
     /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
+    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + (2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
     BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -301,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     string spacket1((const char*)&packet[0], packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
     /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
+    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + (2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
     BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
 
     packet.clear();
@@ -325,7 +328,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     string spacket2((const char*)&packet[0], packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, &ecsBegin, &ecsEnd);
     /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
+    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + (2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
     BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
 
     BOOST_CHECK_EQUAL(hash1, hash2);

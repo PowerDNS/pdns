@@ -32,55 +32,61 @@
 #endif
 
 template <typename T>
-struct lazy_allocator {
-    using value_type = T;
-    using pointer = T*;
-    using size_type = std::size_t;
-    static_assert (std::is_trivial<T>::value,
-                   "lazy_allocator must only be used with trivial types");
+struct lazy_allocator
+{
+  using value_type = T;
+  using pointer = T*;
+  using size_type = std::size_t;
+  static_assert(std::is_trivial<T>::value,
+    "lazy_allocator must only be used with trivial types");
 
-    pointer
-    allocate (size_type const n) {
+  pointer
+  allocate(size_type const n)
+  {
 #ifdef __OpenBSD__
-        void *p = mmap(nullptr, n * sizeof(value_type),
-          PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
-        if (p == MAP_FAILED)
-          throw std::bad_alloc();
-        return static_cast<pointer>(p);
+    void* p = mmap(nullptr, n * sizeof(value_type),
+      PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
+    if (p == MAP_FAILED)
+      throw std::bad_alloc();
+    return static_cast<pointer>(p);
 #else
-        return static_cast<pointer>(::operator new (n * sizeof(value_type)));
+    return static_cast<pointer>(::operator new(n * sizeof(value_type)));
 #endif
-    }
+  }
 
-    void
-    deallocate (pointer const ptr, size_type const n) noexcept {
+  void
+  deallocate(pointer const ptr, size_type const n) noexcept
+  {
 #ifdef __OpenBSD__
-        munmap(ptr, n * sizeof(value_type));
+    munmap(ptr, n * sizeof(value_type));
 #else
-#if defined(__cpp_sized_deallocation) &&  (__cpp_sized_deallocation >= 201309)
-        ::operator delete (ptr, n * sizeof(value_type));
+#if defined(__cpp_sized_deallocation) && (__cpp_sized_deallocation >= 201309)
+    ::operator delete(ptr, n * sizeof(value_type));
 #else
-        (void) n;
-        ::operator delete (ptr);
+    (void)n;
+    ::operator delete(ptr);
 #endif
 #endif
-    }
+  }
 
-    void construct (T*) const noexcept {}
+  void construct(T*) const noexcept {}
 
-    template <typename X, typename... Args>
-    void
-    construct (X* place, Args&&... args) const noexcept {
-        new (static_cast<void*>(place)) X (std::forward<Args>(args)...);
-    }
+  template <typename X, typename... Args>
+  void
+  construct(X* place, Args&&... args) const noexcept
+  {
+    new (static_cast<void*>(place)) X(std::forward<Args>(args)...);
+  }
 };
 
-template <typename T> inline
-bool operator== (lazy_allocator<T> const&, lazy_allocator<T> const&) noexcept {
-    return true;
+template <typename T>
+inline bool operator==(lazy_allocator<T> const&, lazy_allocator<T> const&) noexcept
+{
+  return true;
 }
 
-template <typename T> inline
-bool operator!= (lazy_allocator<T> const&, lazy_allocator<T> const&) noexcept {
-    return false;
+template <typename T>
+inline bool operator!=(lazy_allocator<T> const&, lazy_allocator<T> const&) noexcept
+{
+  return false;
 }

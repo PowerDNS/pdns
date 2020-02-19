@@ -27,15 +27,15 @@
 class SMySQL : public SSql
 {
 public:
-  SMySQL(const string &database, const string &host="", uint16_t port=0,
-         const string &msocket="",const string &user="",
-         const string &password="", const string &group="",
-         bool setIsolation=false, unsigned int timeout=10,
-         bool threadCleanup=false, bool clientSSL=false);
+  SMySQL(const string& database, const string& host = "", uint16_t port = 0,
+    const string& msocket = "", const string& user = "",
+    const string& password = "", const string& group = "",
+    bool setIsolation = false, unsigned int timeout = 10,
+    bool threadCleanup = false, bool clientSSL = false);
 
   ~SMySQL();
 
-  SSqlException sPerrorException(const string &reason) override;
+  SSqlException sPerrorException(const string& reason) override;
   void setLog(bool state) override;
   std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
   void execute(const string& query) override;
@@ -44,6 +44,7 @@ public:
   void commit() override;
   void rollback() override;
   bool isConnectionUsable() override;
+
 private:
   void connect();
 

@@ -31,8 +31,7 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 {
   struct tm tm;
   localtime_r(&t, &tm);
-  return
-      (uint32_t)(tm.tm_year+1900) * 1000000u
+  return (uint32_t)(tm.tm_year + 1900) * 1000000u
     + (uint32_t)(tm.tm_mon + 1) * 10000u
     + (uint32_t)tm.tm_mday * 100u
     + seq;
@@ -40,37 +39,39 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 
 uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName& zonename)
 {
-  if(pdns_iequals(kind,"INCEPTION-INCREMENT")) {
+  if (pdns_iequals(kind, "INCEPTION-INCREMENT")) {
     time_t inception = getStartOfWeek();
     uint32_t inception_serial = localtime_format_YYYYMMDDSS(inception, 1);
-    uint32_t dont_increment_after = localtime_format_YYYYMMDDSS(inception + 2*86400, 99);
+    uint32_t dont_increment_after = localtime_format_YYYYMMDDSS(inception + 2 * 86400, 99);
 
-    if(old_serial < inception_serial - 1) { /* less than <inceptionday>00 */
+    if (old_serial < inception_serial - 1) { /* less than <inceptionday>00 */
       return inception_serial; /* return <inceptionday>01   (skipping <inceptionday>00 as possible value) */
-    } else if (old_serial < inception_serial+1) {
+    }
+    else if (old_serial < inception_serial + 1) {
       /* "<inceptionday>00" and "<inceptionday>01" are reserved for inception increasing, so jump to "<inceptionday>02" */
-      return inception_serial+1;
-    } else if(old_serial <= dont_increment_after) { /* >= <inceptionday>00 but <= <inceptionday+2>99 */
+      return inception_serial + 1;
+    }
+    else if (old_serial <= dont_increment_after) { /* >= <inceptionday>00 but <= <inceptionday+2>99 */
       return old_serial + 1;
     }
   }
-  else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {
+  else if (pdns_iequals(kind, "INCREMENT-WEEKS")) {
     time_t inception = getStartOfWeek();
-    return (old_serial + (inception / (7*86400)));
+    return (old_serial + (inception / (7 * 86400)));
   }
-  else if(pdns_iequals(kind,"EPOCH")) {
+  else if (pdns_iequals(kind, "EPOCH")) {
     return time(0);
   }
-  else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
+  else if (pdns_iequals(kind, "INCEPTION-EPOCH")) {
     uint32_t inception = getStartOfWeek();
     if (old_serial < inception)
       return inception;
   }
-  else if(pdns_iequals(kind,"NONE")) {
+  else if (pdns_iequals(kind, "NONE")) {
     // do nothing to serial. needed because a metadata of "" will use the default-soa-edit setting instead.
   }
-  else if(!kind.empty()) {
-    g_log<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<zonename<<" is unknown."<<endl;
+  else if (!kind.empty()) {
+    g_log << Logger::Warning << "SOA-EDIT type '" << kind << "' for zone " << zonename << " is unknown." << endl;
   }
   // Seen strictly, this is a broken config: we can only come here if
   // both SOA-EDIT and default-soa-edit are set to "", but the latter
@@ -78,20 +79,23 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
   return old_serial;
 }
 
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename) {
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename)
+{
   string kind;
   dk.getSoaEdit(zonename, kind);
   return calculateEditSOA(old_serial, kind, zonename);
 }
 
 /** Used for SOA-EDIT-DNSUPDATE and SOA-EDIT-API. */
-static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const DNSName& zonename) {
+static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const DNSName& zonename)
+{
   if (pdns_iequals(increaseKind, "SOA-EDIT-INCREASE")) {
     uint32_t new_serial = old_serial;
     if (!editKind.empty()) {
       if (pdns_iequals(editKind, "INCEPTION-EPOCH")) {
         new_serial = calculateEditSOA(old_serial, "EPOCH", zonename);
-      } else {
+      }
+      else {
         new_serial = calculateEditSOA(old_serial, editKind, zonename);
       }
     }
@@ -113,11 +117,12 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
     time_t now = time(0);
     uint32_t new_serial = localtime_format_YYYYMMDDSS(now, 1);
     if (new_serial <= old_serial) {
-        new_serial = old_serial + 1;
+      new_serial = old_serial + 1;
     }
     return new_serial;
-  } else if(!increaseKind.empty()) {
-    g_log<<Logger::Warning<<"SOA-EDIT-API/DNSUPDATE type '"<<increaseKind<<"' for zone "<<zonename<<" is unknown."<<endl;
+  }
+  else if (!increaseKind.empty()) {
+    g_log << Logger::Warning << "SOA-EDIT-API/DNSUPDATE type '" << increaseKind << "' for zone " << zonename << " is unknown." << endl;
   }
   return old_serial;
 }
@@ -128,7 +133,8 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
  *
  * @return true if changes may have been made
  */
-bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind) {
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind)
+{
   if (increaseKind.empty())
     return false;
 
@@ -146,7 +152,8 @@ bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const 
  *
  * @return true if rrout is now valid
  */
-bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout) {
+bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout)
+{
   if (increaseKind.empty())
     return false;
 
@@ -161,7 +168,8 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
   return true;
 }
 
-DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place) {
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place)
+{
   SOAData edited = sd;
   edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
 

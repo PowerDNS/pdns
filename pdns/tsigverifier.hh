@@ -7,10 +7,14 @@
 class TSIGTCPVerifier
 {
 public:
-  TSIGTCPVerifier(const TSIGTriplet& tt, const ComboAddress& remote, TSIGRecordContent& trc): d_tt(tt), d_remote(remote), d_trc(trc)
+  TSIGTCPVerifier(const TSIGTriplet& tt, const ComboAddress& remote, TSIGRecordContent& trc) :
+    d_tt(tt),
+    d_remote(remote),
+    d_trc(trc)
   {
   }
   bool check(const string& data, const MOADNSParser& mdp);
+
 private:
   const TSIGTriplet& d_tt;
   const ComboAddress& d_remote;

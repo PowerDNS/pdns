@@ -28,26 +28,24 @@ using namespace boost::multi_index;
 
 struct CIContentCompareStruct
 {
-  bool operator()(const shared_ptr<DNSRecordContent>&a, const shared_ptr<DNSRecordContent>& b) const
+  bool operator()(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b) const
   {
     return toLower(a->getZoneRepresentation()) < toLower(b->getZoneRepresentation());
   }
 };
 
-
-typedef multi_index_container <
+typedef multi_index_container<
   DNSRecord,
-    indexed_by<
-      ordered_non_unique<
-        composite_key<DNSRecord,
-                      member<DNSRecord, DNSName, &DNSRecord::d_name>,
-                      member<DNSRecord, uint16_t, &DNSRecord::d_type>,
-                      member<DNSRecord, uint16_t, &DNSRecord::d_class>,
-                      member<DNSRecord, shared_ptr<DNSRecordContent>, &DNSRecord::d_content> >,
-        composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, CIContentCompareStruct >
-      > /* ordered_non_uniquw */
+  indexed_by<
+    ordered_non_unique<
+      composite_key<DNSRecord,
+        member<DNSRecord, DNSName, &DNSRecord::d_name>,
+        member<DNSRecord, uint16_t, &DNSRecord::d_type>,
+        member<DNSRecord, uint16_t, &DNSRecord::d_class>,
+        member<DNSRecord, shared_ptr<DNSRecordContent>, &DNSRecord::d_content>>,
+      composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, CIContentCompareStruct>> /* ordered_non_uniquw */
     > /* indexed_by */
-> /* multi_index_container */ records_t;
+  > /* multi_index_container */ records_t;
 
 uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt = TSIGTriplet(), const uint16_t timeout = 2);
 uint32_t getSerialFromDir(const std::string& dir);

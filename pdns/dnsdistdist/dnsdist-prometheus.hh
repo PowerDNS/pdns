@@ -22,14 +22,19 @@
 #pragma once
 
 // Metric types for Prometheus
-enum class PrometheusMetricType: int {
-    counter = 1,
-    gauge = 2
+enum class PrometheusMetricType : int
+{
+  counter = 1,
+  gauge = 2
 };
 
 // Keeps additional information about metrics
-struct MetricDefinition {
-  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description): description(_description), prometheusType(_prometheusType) {
+struct MetricDefinition
+{
+  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description) :
+    description(_description),
+    prometheusType(_prometheusType)
+  {
   }
 
   MetricDefinition() = default;
@@ -40,9 +45,11 @@ struct MetricDefinition {
   PrometheusMetricType prometheusType;
 };
 
-struct MetricDefinitionStorage {
+struct MetricDefinitionStorage
+{
   // Return metric definition by name
-  bool getMetricDetails(const std::string& metricName, MetricDefinition& metric) const {
+  bool getMetricDetails(const std::string& metricName, MetricDefinition& metric) const
+  {
     const auto& metricDetailsIter = metrics.find(metricName);
 
     if (metricDetailsIter == metrics.end()) {
@@ -54,17 +61,18 @@ struct MetricDefinitionStorage {
   };
 
   // Return string representation of Prometheus metric type
-  std::string getPrometheusStringMetricType(PrometheusMetricType metricType) const {
+  std::string getPrometheusStringMetricType(PrometheusMetricType metricType) const
+  {
     switch (metricType) {
-      case PrometheusMetricType::counter:
-        return "counter";
-        break;
-      case PrometheusMetricType::gauge:
-        return "gauge";
-        break;
-      default:
-        return "";
-        break;
+    case PrometheusMetricType::counter:
+      return "counter";
+      break;
+    case PrometheusMetricType::gauge:
+      return "gauge";
+      break;
+    default:
+      return "";
+      break;
     }
   };
 

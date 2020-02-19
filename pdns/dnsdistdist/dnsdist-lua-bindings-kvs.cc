@@ -57,7 +57,7 @@ void setupLuaBindingsKVS(bool client)
   });
 #endif /* HAVE_CDB */
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, boost::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, boost::optional<bool> wireFormat) {
+  g_lua.registerFunction<std::string (std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, boost::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, boost::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -89,7 +89,7 @@ void setupLuaBindingsKVS(bool client)
     return result;
   });
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
+  g_lua.registerFunction<std::string (std::shared_ptr<KeyValueStore>::*)(const DNSName&, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -105,7 +105,7 @@ void setupLuaBindingsKVS(bool client)
     return result;
   });
 
-  g_lua.registerFunction<bool(std::shared_ptr<KeyValueStore>::*)()>("reload", [](std::shared_ptr<KeyValueStore>& kvs) {
+  g_lua.registerFunction<bool (std::shared_ptr<KeyValueStore>::*)()>("reload", [](std::shared_ptr<KeyValueStore>& kvs) {
     if (!kvs) {
       return false;
     }

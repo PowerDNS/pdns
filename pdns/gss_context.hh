@@ -28,7 +28,8 @@
 #endif
 
 //! Generic errors
-enum GssContextError {
+enum GssContextError
+{
   GSS_CONTEXT_NO_ERROR,
   GSS_CONTEXT_UNSUPPORTED,
   GSS_CONTEXT_NOT_FOUND,
@@ -39,7 +40,8 @@ enum GssContextError {
 };
 
 //! GSS context types
-enum GssContextType {
+enum GssContextType
+{
   GSS_CONTEXT_NONE,
   GSS_CONTEXT_INIT,
   GSS_CONTEXT_ACCEPT
@@ -49,20 +51,24 @@ class GssSecContext;
 
 /*! Class for representing GSS names, such as host/host.domain.com@REALM.
 */
-class GssName {
+class GssName
+{
 public:
   //! Initialize to empty name
-  GssName() {
+  GssName()
+  {
     setName("");
   };
 
   //! Initialize using specific name
-  GssName(const std::string& name) {
+  GssName(const std::string& name)
+  {
     setName(name);
   };
 
   //! Parse name into native representation
-  bool setName(const std::string& name) {
+  bool setName(const std::string& name)
+  {
 #ifdef ENABLE_GSS_TSIG
     gss_buffer_desc buffer;
     d_name = GSS_C_NO_NAME;
@@ -79,18 +85,20 @@ public:
     return false;
   };
 
-  ~GssName() {
+  ~GssName()
+  {
 #ifdef ENABLE_GSS_TSIG
-     if (d_name != GSS_C_NO_NAME)
-       gss_release_name(&d_min, &d_name);
+    if (d_name != GSS_C_NO_NAME)
+      gss_release_name(&d_min, &d_name);
 #endif
   };
 
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
   //! This is not necessarily same as string comparison between two non-parsed names
-  bool operator==(const GssName& rhs) {
+  bool operator==(const GssName& rhs)
+  {
 #ifdef ENABLE_GSS_TSIG
-    OM_uint32 maj,min;
+    OM_uint32 maj, min;
     int result;
     maj = gss_compare_name(&min, d_name, rhs.d_name, &result);
     return (maj == GSS_S_COMPLETE && result != 0);
@@ -100,9 +108,10 @@ public:
 
   //! Compare two Gss Names, if no gss support is compiled in, returns false always
   //! This is not necessarily same as string comparison between two non-parsed names
-  bool match(const std::string& name) {
+  bool match(const std::string& name)
+  {
 #ifdef ENABLE_GSS_TSIG
-    OM_uint32 maj,min;
+    OM_uint32 maj, min;
     int result;
     gss_name_t comp;
     gss_buffer_desc buffer;
@@ -116,26 +125,29 @@ public:
     gss_release_name(&min, &comp);
     return (maj == GSS_S_COMPLETE && result != 0);
 #else
-   return false;
+    return false;
 #endif
   };
 
   //! Check if GSS name was parsed successfully.
-  bool valid() {
+  bool valid()
+  {
 #ifdef ENABLE_GSS_TSIG
     return d_maj == GSS_S_COMPLETE;
 #else
     return false;
 #endif
   }
+
 private:
 #ifdef ENABLE_GSS_TSIG
-  OM_uint32 d_maj,d_min;
+  OM_uint32 d_maj, d_min;
   gss_name_t d_name;
 #endif
 };
 
-class GssContext {
+class GssContext
+{
 public:
   static bool supported(); //<! Returns true if GSS is supported in the first place
   GssContext(); //<! Construct new GSS context with random name
@@ -144,24 +156,24 @@ public:
   void setLocalPrincipal(const std::string& name); //<! Set our gss name
   bool getLocalPrincipal(std::string& name); //<! Get our name
   void setPeerPrincipal(const std::string& name); //<! Set remote name (do not use after negotiation)
-  bool getPeerPrincipal(std::string &name); //<! Return remote name, returns actual name after negotiation
+  bool getPeerPrincipal(std::string& name); //<! Return remote name, returns actual name after negotiation
 
   void generateLabel(const std::string& suffix); //<! Generate random context name using suffix (such as mydomain.com)
   void setLabel(const DNSName& label); //<! Set context name to this label
   const DNSName& getLabel() { return d_label; } //<! Return context name
 
-  bool init(const std::string &input, std::string& output); //<! Perform GSS Initiate Security Context handshake
-  bool accept(const std::string &input, std::string& output); //<! Perform GSS Accept Security Context handshake
+  bool init(const std::string& input, std::string& output); //<! Perform GSS Initiate Security Context handshake
+  bool accept(const std::string& input, std::string& output); //<! Perform GSS Accept Security Context handshake
   bool destroy(); //<! Release the cached context
   bool expired(); //<! Check if context is expired
   bool valid(); //<! Check if context is valid
 
-  bool sign(const std::string &input, std::string& output); //<! Sign something using gss
-  bool verify(const std::string &input, const std::string &signature); //<! Validate gss signature with something
+  bool sign(const std::string& input, std::string& output); //<! Sign something using gss
+  bool verify(const std::string& input, const std::string& signature); //<! Validate gss signature with something
 
   GssContextError getError(); //<! Get error
   const std::vector<std::string> getErrorStrings() { return d_gss_errors; } //<! Get native error texts
- private:
+private:
   void release(); //<! Release context
   void initialize(); //<! Initialize context
 #ifdef ENABLE_GSS_TSIG

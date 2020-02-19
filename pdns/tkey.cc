@@ -3,14 +3,15 @@
 #endif
 #include "packethandler.hh"
 
-void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
+void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r)
+{
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   DNSName name;
   bool sign = false;
 
   if (!p.getTKEYRecord(&tkey_in, &name)) {
-    g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
+    g_log << Logger::Error << "TKEY request but no TKEY RR found" << endl;
     r->setRcode(RCode::FormErr);
     return;
   }
@@ -20,7 +21,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_mode = tkey_in.d_mode;
   tkey_out->d_algo = tkey_in.d_algo;
   tkey_out->d_inception = time((time_t*)NULL);
-  tkey_out->d_expiration = tkey_out->d_inception+15;
+  tkey_out->d_expiration = tkey_out->d_inception + 15;
 
   GssContext ctx(name);
 
@@ -29,12 +30,12 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       std::vector<std::string> meta;
       DNSName tmpName(name);
       do {
-        if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
+        if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size() > 0) {
           break;
         }
-      } while(tmpName.chopOff());
+      } while (tmpName.chopOff());
 
-      if (meta.size()>0) {
+      if (meta.size() > 0) {
         ctx.setLocalPrincipal(meta[0]);
       }
       // try to get a context
@@ -42,10 +43,12 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
         tkey_out->d_error = 19;
       else
         sign = true;
-    } else {
+    }
+    else {
       tkey_out->d_error = 21; // BADALGO
     }
-  } else if (tkey_in.d_mode == 5) { // destroy context
+  }
+  else if (tkey_in.d_mode == 5) { // destroy context
     if (p.d_havetsig == false) { // unauthenticated
       if (p.d.opcode == Opcode::Update)
         r->setRcode(RCode::Refused);
@@ -57,7 +60,8 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       ctx.destroy();
     else
       tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
-  } else {
+  }
+  else {
     if (p.d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
       if (p.d.opcode == Opcode::Update)
         r->setRcode(RCode::Refused);
@@ -81,8 +85,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
   r->addRecord(zrr);
 
-  if (sign)
-  {
+  if (sign) {
     TSIGRecordContent trc;
     trc.d_algoName = DNSName("gss-tsig");
     trc.d_time = tkey_out->d_inception;

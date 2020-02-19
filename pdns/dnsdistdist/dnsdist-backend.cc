@@ -66,7 +66,7 @@ bool DownstreamState::reconnect()
         }
         connected = true;
       }
-      catch(const std::runtime_error& error) {
+      catch (const std::runtime_error& error) {
         infolog("Error connecting to new server with address %s: %s", remote.toStringWithPort(), error.what());
         connected = false;
         break;
@@ -121,7 +121,7 @@ void DownstreamState::setWeight(int newWeight)
 {
   if (newWeight < 1) {
     errlog("Error setting server's weight: downstream weight value must be greater than 0.");
-    return ;
+    return;
   }
   weight = newWeight;
   if (!hashes.empty()) {
@@ -129,7 +129,13 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect=true): sourceItfName(sourceItfName_), remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort())
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect = true) :
+  sourceItfName(sourceItfName_),
+  remote(remote_),
+  sourceAddr(sourceAddr_),
+  sourceItf(sourceItf_),
+  name(remote_.toStringWithPort()),
+  nameWithAddr(remote_.toStringWithPort())
 {
   pthread_rwlock_init(&d_lock, nullptr);
   id = getUniqueID();
@@ -147,5 +153,4 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
     idStates.resize(g_maxOutstanding);
     sw.start();
   }
-
 }

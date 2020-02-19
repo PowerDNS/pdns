@@ -14,20 +14,21 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
   struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+  gettime(&queryTime); // does not have to be accurate ("realTime") in tests
 
-  size_t counter=0;
-  size_t skipped=0;
+  size_t counter = 0;
+  size_t skipped = 0;
   ComboAddress remote;
   bool dnssecOK = false;
   try {
-    for(counter = 0; counter < 100000; ++counter) {
-      DNSName a=DNSName(std::to_string(counter))+DNSName(" hello");
+    for (counter = 0; counter < 100000; ++counter) {
+      DNSName a = DNSName(std::to_string(counter)) + DNSName(" hello");
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
       vector<uint8_t> query;
@@ -55,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
 
-      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*)response.data(), responseLen, false, 0, boost::none);
 
       found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
       if (found == true) {
@@ -72,10 +73,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(skipped, PC.getInsertCollisions());
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped);
 
-    size_t deleted=0;
-    size_t delcounter=0;
-    for(delcounter=0; delcounter < counter/1000; ++delcounter) {
-      DNSName a=DNSName(std::to_string(delcounter))+DNSName(" hello");
+    size_t deleted = 0;
+    size_t delcounter = 0;
+    for (delcounter = 0; delcounter < counter / 1000; ++delcounter) {
+      DNSName a = DNSName(std::to_string(delcounter)) + DNSName(" hello");
       vector<uint8_t> query;
       DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -83,7 +84,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*)query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
       if (found == true) {
         auto removed = PC.expungeByName(a);
@@ -93,11 +94,11 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     }
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped - deleted);
 
-    size_t matches=0;
+    size_t matches = 0;
     vector<DNSResourceRecord> entry;
-    size_t expected=counter-skipped-deleted;
-    for(; delcounter < counter; ++delcounter) {
-      DNSName a(DNSName(std::to_string(delcounter))+DNSName(" hello"));
+    size_t expected = counter - skipped - deleted;
+    for (; delcounter < counter; ++delcounter) {
+      DNSName a(DNSName(std::to_string(delcounter)) + DNSName(" hello"));
       vector<uint8_t> query;
       DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -106,8 +107,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       boost::optional<Netmask> subnet;
       char response[4096];
       uint16_t responseSize = sizeof(response);
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false, &queryTime);
-      if(PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key, subnet, dnssecOK)) {
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*)query.data(), len, query.size(), false, &queryTime);
+      if (PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key, subnet, dnssecOK)) {
         matches++;
       }
     }
@@ -121,17 +122,18 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(PC.getSize(), 0U);
     BOOST_CHECK_EQUAL(removed, remaining);
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+  gettime(&queryTime); // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -164,29 +166,30 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     BOOST_CHECK(!subnet);
 
     // Insert with failure-TTL of 0 (-> should not enter cache).
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(0));
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*)response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(0));
     found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
     // Insert with failure-TTL non-zero (-> should enter cache).
-    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*)response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
     found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, subnet, dnssecOK, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
 
   struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+  gettime(&queryTime); // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -232,18 +235,19 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
-  catch(const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
 
   struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+  gettime(&queryTime); // does not have to be accurate ("realTime") in tests
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -289,24 +293,24 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
-  catch(const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
 static DNSDistPacketCache g_PC(500000);
 
-static void *threadMangler(void* off)
+static void* threadMangler(void* off)
 {
   struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+  gettime(&queryTime); // does not have to be accurate ("realTime") in tests
   try {
     ComboAddress remote;
     bool dnssecOK = false;
-    unsigned int offset=(unsigned int)(unsigned long)off;
-    for(unsigned int counter=0; counter < 100000; ++counter) {
-      DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
+    unsigned int offset = (unsigned int)(unsigned long)off;
+    for (unsigned int counter = 0; counter < 100000; ++counter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(counter + offset));
       vector<uint8_t> query;
       DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -330,11 +334,11 @@ static void *threadMangler(void* off)
       DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
       g_PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
 
-      g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*)response.data(), responseLen, false, 0, boost::none);
     }
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
   return 0;
@@ -342,18 +346,17 @@ static void *threadMangler(void* off)
 
 AtomicCounter g_missing;
 
-static void *threadReader(void* off)
+static void* threadReader(void* off)
 {
   bool dnssecOK = false;
   struct timespec queryTime;
-  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
-  try
-  {
-    unsigned int offset=(unsigned int)(unsigned long)off;
+  gettime(&queryTime); // does not have to be accurate ("realTime") in tests
+  try {
+    unsigned int offset = (unsigned int)(unsigned long)off;
     vector<DNSResourceRecord> entry;
     ComboAddress remote;
-    for(unsigned int counter=0; counter < 100000; ++counter) {
-      DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
+    for (unsigned int counter = 0; counter < 100000; ++counter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(counter + offset));
       vector<uint8_t> query;
       DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -362,47 +365,48 @@ static void *threadReader(void* off)
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*)query.data(), query.size(), query.size(), false, &queryTime);
       bool found = g_PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
       if (!found) {
-	g_missing++;
+        g_missing++;
       }
     }
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error in threadReader: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error in threadReader: " << e.reason << endl;
     throw;
   }
   return 0;
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded)
+{
   try {
     pthread_t tid[4];
-    for(int i=0; i < 4; ++i)
-      pthread_create(&tid[i], 0, threadMangler, (void*)(i*1000000UL));
+    for (int i = 0; i < 4; ++i)
+      pthread_create(&tid[i], 0, threadMangler, (void*)(i * 1000000UL));
     void* res;
-    for(int i=0; i < 4 ; ++i)
+    for (int i = 0; i < 4; ++i)
       pthread_join(tid[i], &res);
 
     BOOST_CHECK_EQUAL(g_PC.getSize() + g_PC.getDeferredInserts() + g_PC.getInsertCollisions(), 400000U);
-    BOOST_CHECK_SMALL(1.0*g_PC.getInsertCollisions(), 10000.0);
+    BOOST_CHECK_SMALL(1.0 * g_PC.getInsertCollisions(), 10000.0);
 
-    for(int i=0; i < 4; ++i)
-      pthread_create(&tid[i], 0, threadReader, (void*)(i*1000000UL));
-    for(int i=0; i < 4 ; ++i)
+    for (int i = 0; i < 4; ++i)
+      pthread_create(&tid[i], 0, threadReader, (void*)(i * 1000000UL));
+    for (int i = 0; i < 4; ++i)
       pthread_join(tid[i], &res);
 
     BOOST_CHECK((g_PC.getDeferredInserts() + g_PC.getDeferredLookups() + g_PC.getInsertCollisions()) >= g_missing);
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_PCCollision) {
+BOOST_AUTO_TEST_CASE(test_PCCollision)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, 1, true, true);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
@@ -489,7 +493,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
+BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, 1, true, true);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
@@ -540,7 +545,6 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
     found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut, true);
     BOOST_CHECK_EQUAL(found, true);
   }
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -32,26 +32,24 @@ static_assert(sizeof(QType) == 2, "QType is not 2 bytes in size, something is wr
 
 vector<QType::namenum> QType::names;
 // XXX FIXME we need to do something with initializer order here!
-QType::init QType::initializer; 
+QType::init QType::initializer;
 
 QType::QType()
 {
   code = 0;
 }
 
-bool QType::isSupportedType() {
-  for(vector<namenum>::iterator pos=names.begin();pos<names.end();++pos)
-    if(pos->second==code)
+bool QType::isSupportedType()
+{
+  for (vector<namenum>::iterator pos = names.begin(); pos < names.end(); ++pos)
+    if (pos->second == code)
       return true;
   return false;
 }
 
-bool QType::isMetadataType() {
-  if (code == QType::AXFR ||
-      code == QType::MAILA ||
-      code == QType::MAILB ||
-      code == QType::TSIG ||
-      code == QType::IXFR)
+bool QType::isMetadataType()
+{
+  if (code == QType::AXFR || code == QType::MAILA || code == QType::MAILB || code == QType::TSIG || code == QType::IXFR)
     return true;
 
   return false;
@@ -65,52 +63,52 @@ uint16_t QType::getCode() const
 const string QType::getName() const
 {
   vector<namenum>::iterator pos;
-  for(pos=names.begin();pos<names.end();++pos)
-    if(pos->second==code)
+  for (pos = names.begin(); pos < names.end(); ++pos)
+    if (pos->second == code)
       return pos->first;
 
-  return "TYPE"+itoa(code);
+  return "TYPE" + itoa(code);
 }
 
-QType &QType::operator=(uint16_t n)
+QType& QType::operator=(uint16_t n)
 {
-  code=n;
+  code = n;
   return *this;
 }
 
-int QType::chartocode(const char *p)
+int QType::chartocode(const char* p)
 {
   string P = toUpper(p);
   vector<namenum>::iterator pos;
 
-  for(pos=names.begin(); pos < names.end(); ++pos)
-    if(pos->first == P)
+  for (pos = names.begin(); pos < names.end(); ++pos)
+    if (pos->first == P)
       return pos->second;
 
-  if(*p=='#') {
-    return atoi(p+1);
+  if (*p == '#') {
+    return atoi(p + 1);
   }
 
-  if(boost::starts_with(P, "TYPE"))
-    return atoi(p+4);
+  if (boost::starts_with(P, "TYPE"))
+    return atoi(p + 4);
 
   return 0;
 }
 
-QType &QType::operator=(const char *p)
+QType& QType::operator=(const char* p)
 {
-  code=chartocode(p);
+  code = chartocode(p);
   return *this;
 }
 
-QType &QType::operator=(const string &s)
+QType& QType::operator=(const string& s)
 {
-  code=chartocode(s.c_str());
+  code = chartocode(s.c_str());
   return *this;
 }
 
-
-QType::QType(uint16_t n): QType()
+QType::QType(uint16_t n) :
+  QType()
 {
-  code=n;
+  code = n;
 }

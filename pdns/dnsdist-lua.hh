@@ -33,7 +33,8 @@ void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config);
 class SpoofAction : public DNSAction
 {
 public:
-  SpoofAction(const vector<ComboAddress>& addrs): d_addrs(addrs)
+  SpoofAction(const vector<ComboAddress>& addrs) :
+    d_addrs(addrs)
   {
     for (const auto& addr : d_addrs) {
       if (addr.isIPv4()) {
@@ -49,11 +50,13 @@ public:
     }
   }
 
-  SpoofAction(const DNSName& cname): d_cname(cname)
+  SpoofAction(const DNSName& cname) :
+    d_cname(cname)
   {
   }
 
-  SpoofAction(const std::string& raw): d_rawResponse(raw)
+  SpoofAction(const std::string& raw) :
+    d_rawResponse(raw)
   {
   }
 
@@ -69,14 +72,14 @@ public:
       ret += "raw bytes ";
     }
     else {
-      for(const auto& a : d_addrs)
-        ret += a.toString()+" ";
+      for (const auto& a : d_addrs)
+        ret += a.toString() + " ";
     }
     return ret;
   }
 
-
   ResponseConfig d_responseConfig;
+
 private:
   std::vector<ComboAddress> d_addrs;
   std::set<uint16_t> d_types;
@@ -84,9 +87,9 @@ private:
   DNSName d_cname;
 };
 
-typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;
+typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName>>> luadnsrule_t;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
-typedef std::unordered_map<std::string, boost::variant<std::string> > luaruleparams_t;
+typedef std::unordered_map<std::string, boost::variant<std::string>> luaruleparams_t;
 void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, uint64_t& creationOrder);
 
 typedef NetmaskTree<DynBlock> nmts_t;

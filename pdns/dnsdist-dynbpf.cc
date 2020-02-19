@@ -51,10 +51,10 @@ void DynBPFFilter::purgeExpired(const struct timespec& now)
 {
   std::unique_lock<std::mutex> lock(d_mutex);
 
-  typedef nth_index<container_t,1>::type ordered_until;
+  typedef nth_index<container_t, 1>::type ordered_until;
   ordered_until& ou = get<1>(d_entries);
 
-  for (ordered_until::iterator it=ou.begin(); it != ou.end(); ) {
+  for (ordered_until::iterator it = ou.begin(); it != ou.end();) {
     if (it->d_until < now) {
       ComboAddress addr = it->d_addr;
       it = ou.erase(it);
@@ -66,9 +66,9 @@ void DynBPFFilter::purgeExpired(const struct timespec& now)
   }
 }
 
-std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > DynBPFFilter::getAddrStats()
+std::vector<std::tuple<ComboAddress, uint64_t, struct timespec>> DynBPFFilter::getAddrStats()
 {
-  std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > result;
+  std::vector<std::tuple<ComboAddress, uint64_t, struct timespec>> result;
   if (!d_bpf) {
     return result;
   }

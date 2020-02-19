@@ -12,9 +12,9 @@ using namespace decaf;
 class DecafED25519DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit DecafED25519DNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
+  explicit DecafED25519DNSCryptoKeyEngine(unsigned int algo) :
+    DNSCryptoKeyEngine(algo)
   {
-
   }
   string getName() const override { return "Decaf ED25519"; }
   void create(unsigned int bits) override;
@@ -27,7 +27,8 @@ public:
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
-  {}
+  {
+  }
 
   static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -41,8 +42,8 @@ private:
 
 void DecafED25519DNSCryptoKeyEngine::create(unsigned int bits)
 {
-  if(bits != (unsigned int)getBits()) {
-    throw runtime_error("Unsupported key length of "+std::to_string(bits)+" bits requested, DecafED25519 class");
+  if (bits != (unsigned int)getBits()) {
+    throw runtime_error("Unsupported key length of " + std::to_string(bits) + " bits requested, DecafED25519 class");
   }
 
   SpongeRng rng("/dev/urandom");
@@ -75,7 +76,7 @@ DNSCryptoKeyEngine::storvector_t DecafED25519DNSCryptoKeyEngine::convertToISCVec
   return storvector;
 }
 
-void DecafED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
+void DecafED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
   /*
     Private-key-format: v1.2
@@ -137,20 +138,20 @@ bool DecafED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::s
 
   try {
     pub.verify(sig, message);
-  } catch(CryptoException) {
+  }
+  catch (CryptoException) {
     return false;
   }
 
   return true;
 }
 
-
 class DecafED448DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit DecafED448DNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
+  explicit DecafED448DNSCryptoKeyEngine(unsigned int algo) :
+    DNSCryptoKeyEngine(algo)
   {
-
   }
   string getName() const override { return "Decaf ED448"; }
   void create(unsigned int bits) override;
@@ -163,7 +164,8 @@ public:
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw) override
-  {}
+  {
+  }
 
   static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -177,8 +179,8 @@ private:
 
 void DecafED448DNSCryptoKeyEngine::create(unsigned int bits)
 {
-  if(bits != (unsigned int)getBits()) {
-    throw runtime_error("Unsupported key length of "+std::to_string(bits)+" bits requested, DecafED448 class");
+  if (bits != (unsigned int)getBits()) {
+    throw runtime_error("Unsupported key length of " + std::to_string(bits) + " bits requested, DecafED448 class");
   }
 
   SpongeRng rng("/dev/urandom");
@@ -211,7 +213,7 @@ DNSCryptoKeyEngine::storvector_t DecafED448DNSCryptoKeyEngine::convertToISCVecto
   return storvector;
 }
 
-void DecafED448DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
+void DecafED448DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
   /*
     Private-key-format: v1.2
@@ -273,15 +275,16 @@ bool DecafED448DNSCryptoKeyEngine::verify(const std::string& msg, const std::str
 
   try {
     pub.verify(sig, message);
-  } catch(CryptoException) {
+  }
+  catch (CryptoException) {
     return false;
   }
 
   return true;
 }
 
-
-namespace {
+namespace
+{
 struct LoaderDecafStruct
 {
   LoaderDecafStruct()

@@ -28,7 +28,7 @@ static inline std::shared_ptr<DNSRecordContent> getRecordContent(uint16_t type, 
   return result;
 }
 
-static inline void addRecordToList(std::vector<DNSRecord>& records, const DNSName& name, uint16_t type, const std::string& content, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, uint32_t ttl=3600)
+static inline void addRecordToList(std::vector<DNSRecord>& records, const DNSName& name, uint16_t type, const std::string& content, DNSResourceRecord::Place place = DNSResourceRecord::ANSWER, uint32_t ttl = 3600)
 {
   DNSRecord rec;
   rec.d_place = place;

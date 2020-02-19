@@ -39,7 +39,7 @@ int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuer
     return false;
   }
 
-  if(*decryptedQueryLen < static_cast<uint16_t>(sizeof(struct dnsheader))) {
+  if (*decryptedQueryLen < static_cast<uint16_t>(sizeof(struct dnsheader))) {
     ++g_stats.nonCompliantQueries;
     return false;
   }

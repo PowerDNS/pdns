@@ -57,7 +57,7 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
   std::vector<std::string> result;
   result.reserve(labelsCount);
 
-  while(!lowerQName.isRoot()) {
+  while (!lowerQName.isRoot()) {
     result.emplace_back(d_wireFormat ? lowerQName.toDNSString() : lowerQName.toStringRootDot());
     labelsCount--;
     if (!lowerQName.chopOff() || labelsCount == 0) {
@@ -85,7 +85,7 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
       return false;
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
   }
   return false;
@@ -105,7 +105,7 @@ bool LMDBKVStore::keyExists(const std::string& key)
       return false;
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
   }
   return false;
@@ -115,7 +115,9 @@ bool LMDBKVStore::keyExists(const std::string& key)
 
 #ifdef HAVE_CDB
 
-CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)
+CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay) :
+  d_fname(fname),
+  d_refreshDelay(refreshDelay)
 {
   pthread_rwlock_init(&d_lock, nullptr);
   d_refreshing.clear();
@@ -128,7 +130,8 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
   refreshDBIfNeeded(now);
 }
 
-CDBKVStore::~CDBKVStore() {
+CDBKVStore::~CDBKVStore()
+{
   pthread_rwlock_destroy(&d_lock);
 }
 
@@ -175,7 +178,7 @@ void CDBKVStore::refreshDBIfNeeded(time_t now)
     d_nextCheck = now + d_refreshDelay;
     d_refreshing.clear();
   }
-  catch(...) {
+  catch (...) {
     d_refreshing.clear();
     throw;
   }
@@ -197,7 +200,7 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
       }
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
   }
   return false;
@@ -221,7 +224,7 @@ bool CDBKVStore::keyExists(const std::string& key)
       return d_cdb->keyExists(key);
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
   }
   return false;

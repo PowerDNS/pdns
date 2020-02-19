@@ -23,7 +23,7 @@
 
 #include "protobuf.hh"
 
-class DNSDistProtoBufMessage: public DNSProtoBufMessage
+class DNSDistProtoBufMessage : public DNSProtoBufMessage
 {
 public:
   DNSDistProtoBufMessage(const DNSQuestion& dq);

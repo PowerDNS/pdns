@@ -25,19 +25,22 @@
 #include "filterpo.hh"
 #include "dnsrecords.hh"
 
-class RecProtoBufMessage: public DNSProtoBufMessage
+class RecProtoBufMessage : public DNSProtoBufMessage
 {
 public:
-  RecProtoBufMessage(): DNSProtoBufMessage()
+  RecProtoBufMessage() :
+    DNSProtoBufMessage()
   {
   }
 
-  RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type): DNSProtoBufMessage(type)
+  RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type) :
+    DNSProtoBufMessage(type)
   {
   }
 
 #ifdef HAVE_PROTOBUF
-  RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes): DNSProtoBufMessage(type, uuid, requestor, responder, domain, qtype, qclass, qid, isTCP, bytes)
+  RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType type, const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, const DNSName& domain, int qtype, uint16_t qclass, uint16_t qid, bool isTCP, size_t bytes) :
+    DNSProtoBufMessage(type, uuid, requestor, responder, domain, qtype, qclass, qid, isTCP, bytes)
   {
   }
 #endif /* HAVE_PROTOBUF */
@@ -45,7 +48,7 @@ public:
   void addRRs(const std::vector<DNSRecord>& records, const std::set<uint16_t>& exportTypes);
 #ifdef NOD_ENABLED
   void setNOD(bool nod);
-  void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr=false);
+  void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr = false);
   void clearUDR();
 #else
   void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes);

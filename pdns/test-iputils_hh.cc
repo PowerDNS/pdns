@@ -11,9 +11,10 @@ using namespace boost;
 
 BOOST_AUTO_TEST_SUITE(test_iputils_hh)
 
-BOOST_AUTO_TEST_CASE(test_ComboAddress) {
+BOOST_AUTO_TEST_CASE(test_ComboAddress)
+{
   ComboAddress local("127.0.0.1", 53);
-  BOOST_CHECK(local==local);
+  BOOST_CHECK(local == local);
   BOOST_CHECK_EQUAL(local.sin4.sin_family, AF_INET);
   BOOST_CHECK_EQUAL(local.sin4.sin_port, htons(53));
   BOOST_CHECK_EQUAL(local.sin4.sin_addr.s_addr, htonl(0x7f000001UL));
@@ -21,16 +22,16 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   ComboAddress remote("130.161.33.15", 53);
   BOOST_CHECK(!(local == remote));
   BOOST_CHECK_EQUAL(remote.sin4.sin_port, htons(53));
-  
+
   ComboAddress withport("213.244.168.210:53");
   BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(53));
-  
+
   ComboAddress withportO("213.244.168.210:53", 5300);
   BOOST_CHECK_EQUAL(withportO.sin4.sin_port, htons(53));
- 
+
   withport = ComboAddress("[::]:53");
   BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(53));
-  
+
   withport = ComboAddress("[::]:5300", 53);
   BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(5300));
 
@@ -67,26 +68,26 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   BOOST_CHECK_THROW(ComboAddress("[::1]:-6"), PDNSException); // Port no. too low
 }
 
-BOOST_AUTO_TEST_CASE(test_ComboAddressCompare) {
+BOOST_AUTO_TEST_CASE(test_ComboAddressCompare)
+{
   ComboAddress a, b;
   a.reset();
   b.reset();
-  BOOST_CHECK(!(a<b));
-  BOOST_CHECK(!(a>b));
+  BOOST_CHECK(!(a < b));
+  BOOST_CHECK(!(a > b));
 }
 
-BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
+BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate)
+{
   ComboAddress ca4("130.161.252.29");
   ca4.truncate(24);
   BOOST_CHECK_EQUAL(ca4.toString(), "130.161.252.0");
   ca4.truncate(16);
   BOOST_CHECK_EQUAL(ca4.toString(), "130.161.0.0");
 
-
-
   ca4 = ComboAddress("130.161.252.29");
   ComboAddress orig(ca4);
-  for(int n=32; n; --n) {
+  for (int n = 32; n; --n) {
     ca4.truncate(n);
 
     uint32_t p;
@@ -96,8 +97,8 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
     memcpy(&p, (char*)&orig.sin4.sin_addr.s_addr, 4);
     std::bitset<32> manual(htonl(p));
 
-    auto tokill=32-n;
-    for(int i =0; i< tokill; ++i)
+    auto tokill = 32 - n;
+    for (int i = 0; i < tokill; ++i)
       manual.set(i, 0);
 
     BOOST_CHECK_EQUAL(result, manual);
@@ -112,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
 
   ca4.truncate(29);
   BOOST_CHECK_EQUAL(ca4.toString(), "130.161.252.24");
-  
+
   ca4.truncate(23);
   BOOST_CHECK_EQUAL(ca4.toString(), "130.161.252.0");
 
@@ -127,7 +128,7 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
   BOOST_CHECK_EQUAL(ca6.toString(), "2001:888:2000:1d::");
   ca6.truncate(64);
   BOOST_CHECK_EQUAL(ca6.toString(), "2001:888:2000:1d::");
-  ca6.truncate(72);                  // 0102 304 0506 78
+  ca6.truncate(72); // 0102 304 0506 78
   BOOST_CHECK_EQUAL(ca6.toString(), "2001:888:2000:1d::");
   ca6.truncate(56);
   BOOST_CHECK_EQUAL(ca6.toString(), "2001:888:2000::");
@@ -139,23 +140,22 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
   BOOST_CHECK_EQUAL(ca6.toString(), "2001::");
   ca6.truncate(8);
   BOOST_CHECK_EQUAL(ca6.toString(), "2000::");
-  
 
-  orig=ca6=ComboAddress("2001:888:2000:1d::2");
-  for(int n=128; n; --n) {
+  orig = ca6 = ComboAddress("2001:888:2000:1d::2");
+  for (int n = 128; n; --n) {
     ca6.truncate(n);
 
     std::bitset<128> result, manual;
-    for(int i=0; i < 16; ++i) {
-      result<<=8;
-      result|= std::bitset<128>(*((unsigned char*)&ca6.sin6.sin6_addr.s6_addr + i));
+    for (int i = 0; i < 16; ++i) {
+      result <<= 8;
+      result |= std::bitset<128>(*((unsigned char*)&ca6.sin6.sin6_addr.s6_addr + i));
 
-      manual<<=8;
-      manual|= std::bitset<128>(*((unsigned char*)&orig.sin6.sin6_addr.s6_addr + i));
+      manual <<= 8;
+      manual |= std::bitset<128>(*((unsigned char*)&orig.sin6.sin6_addr.s6_addr + i));
     }
 
-    auto tokill=128-n;
-    for(int i =0; i< tokill; ++i)
+    auto tokill = 128 - n;
+    for (int i = 0; i < tokill; ++i)
       manual.set(i, 0);
 
     BOOST_CHECK_EQUAL(result, manual);
@@ -168,10 +168,11 @@ BOOST_AUTO_TEST_CASE(test_Mapping)
   BOOST_CHECK_EQUAL(lh.toString(), "::1");
 }
 
-BOOST_AUTO_TEST_CASE(test_Netmask) {
+BOOST_AUTO_TEST_CASE(test_Netmask)
+{
   ComboAddress local("127.0.0.1", 53);
   ComboAddress remote("130.161.252.29", 53);
-  
+
   Netmask nm("127.0.0.1/24");
   BOOST_CHECK(nm.getBits() == 24);
   BOOST_CHECK(nm.match(local));
@@ -198,7 +199,6 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
   Netmask all6("::/0");
   BOOST_CHECK(all6.match("::1") && all6.match("fe80::92fb:a6ff:fe4a:51da"));
-
 
   Netmask fromCombo1(ComboAddress("192.0.2.1:53"), 32);
   Netmask fromCombo2(ComboAddress("192.0.2.1:54"), 32);
@@ -254,7 +254,8 @@ static std::string NMGOutputToSorted(const std::string& str)
   return result;
 }
 
-BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
+BOOST_AUTO_TEST_CASE(test_NetmaskGroup)
+{
 
   {
     NetmaskGroup ng;
@@ -363,23 +364,24 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
+BOOST_AUTO_TEST_CASE(test_NetmaskTree)
+{
   NetmaskTree<int> nmt;
   BOOST_CHECK_EQUAL(nmt.empty(), true);
   BOOST_CHECK_EQUAL(nmt.size(), 0U);
-  nmt.insert(Netmask("130.161.252.0/24")).second=0;
+  nmt.insert(Netmask("130.161.252.0/24")).second = 0;
   BOOST_CHECK_EQUAL(nmt.empty(), false);
   BOOST_CHECK_EQUAL(nmt.size(), 1U);
-  nmt.insert(Netmask("130.161.0.0/16")).second=1;
+  nmt.insert(Netmask("130.161.0.0/16")).second = 1;
   BOOST_CHECK_EQUAL(nmt.size(), 2U);
-  nmt.insert(Netmask("130.0.0.0/8")).second=2;
+  nmt.insert(Netmask("130.0.0.0/8")).second = 2;
   BOOST_CHECK_EQUAL(nmt.size(), 3U);
 
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("213.244.168.210")), (void*)0);
-  auto found=nmt.lookup(ComboAddress("130.161.252.29"));
+  auto found = nmt.lookup(ComboAddress("130.161.252.29"));
   BOOST_CHECK(found);
   BOOST_CHECK_EQUAL(found->second, 0);
-  found=nmt.lookup(ComboAddress("130.161.180.1"));
+  found = nmt.lookup(ComboAddress("130.161.180.1"));
   BOOST_CHECK(found);
   BOOST_CHECK_EQUAL(found->second, 1);
 
@@ -387,15 +389,15 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.252.255"))->second, 0);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.253.255"))->second, 1);
 
-  found=nmt.lookup(ComboAddress("130.145.180.1"));
+  found = nmt.lookup(ComboAddress("130.145.180.1"));
   BOOST_CHECK(found);
   BOOST_CHECK_EQUAL(found->second, 2);
 
-  nmt.insert(Netmask("0.0.0.0/0")).second=3;
+  nmt.insert(Netmask("0.0.0.0/0")).second = 3;
   BOOST_CHECK_EQUAL(nmt.size(), 4U);
-  nmt.insert(Netmask("0.0.0.0/7")).second=4;
+  nmt.insert(Netmask("0.0.0.0/7")).second = 4;
   BOOST_CHECK_EQUAL(nmt.size(), 5U);
-  nmt.insert(Netmask("0.0.0.0/15")).second=5;
+  nmt.insert(Netmask("0.0.0.0/15")).second = 5;
   BOOST_CHECK_EQUAL(nmt.size(), 6U);
   BOOST_CHECK_EQUAL(nmt.lookup(Netmask("0.0.0.0/0"))->second, 3);
   BOOST_CHECK_EQUAL(nmt.lookup(Netmask("0.0.0.0/7"))->second, 4);
@@ -406,12 +408,12 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   BOOST_CHECK_EQUAL(nmt.size(), 0U);
   BOOST_CHECK(!nmt.lookup(ComboAddress("130.161.180.1")));
 
-  nmt.insert(Netmask("::1")).second=1;
+  nmt.insert(Netmask("::1")).second = 1;
   BOOST_CHECK_EQUAL(nmt.empty(), false);
   BOOST_CHECK_EQUAL(nmt.size(), 1U);
-  nmt.insert(Netmask("::/0")).second=0;
+  nmt.insert(Netmask("::/0")).second = 0;
   BOOST_CHECK_EQUAL(nmt.size(), 2U);
-  nmt.insert(Netmask("fe80::/16")).second=2;
+  nmt.insert(Netmask("fe80::/16")).second = 2;
   BOOST_CHECK_EQUAL(nmt.size(), 3U);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.253.255")), (void*)0);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::2"))->second, 0);
@@ -420,78 +422,81 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("fe80::1"))->second, 2);
 }
 
-BOOST_AUTO_TEST_CASE(test_single) {
+BOOST_AUTO_TEST_CASE(test_single)
+{
   NetmaskTree<bool> nmt;
   BOOST_CHECK_EQUAL(nmt.empty(), true);
   BOOST_CHECK_EQUAL(nmt.size(), 0U);
-  nmt.insert(Netmask("127.0.0.0/8")).second=1;
+  nmt.insert(Netmask("127.0.0.0/8")).second = 1;
   BOOST_CHECK_EQUAL(nmt.empty(), false);
   BOOST_CHECK_EQUAL(nmt.size(), 1U);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("127.0.0.1"))->second, 1);
 }
 
-BOOST_AUTO_TEST_CASE(test_scale) {
-  string start="192.168.";
+BOOST_AUTO_TEST_CASE(test_scale)
+{
+  string start = "192.168.";
   NetmaskTree<int> works;
   BOOST_CHECK_EQUAL(works.size(), 0U);
-  for(size_t i=0; i < 256; ++i) {
-    for(size_t j=0; j < 256; ++j) {
-      works.insert(Netmask(start+std::to_string(i)+"."+std::to_string(j))).second=i*j;
-      BOOST_CHECK_EQUAL(works.size(), i*256 + j + 1);
+  for (size_t i = 0; i < 256; ++i) {
+    for (size_t j = 0; j < 256; ++j) {
+      works.insert(Netmask(start + std::to_string(i) + "." + std::to_string(j))).second = i * j;
+      BOOST_CHECK_EQUAL(works.size(), i * 256 + j + 1);
     }
   }
 
-  for(int i=0; i < 256; ++i) {
-    for(int j=0; j < 256; ++j) {
-      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start+std::to_string(i)+"."+std::to_string(j)))->second, i*j);
+  for (int i = 0; i < 256; ++i) {
+    for (int j = 0; j < 256; ++j) {
+      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start + std::to_string(i) + "." + std::to_string(j)))->second, i * j);
     }
   }
 
-  start="130.161.";
-  for(int i=0; i < 256; ++i) {
-    for(int j=0; j < 256; ++j) {
-      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start+std::to_string(i)+"."+std::to_string(j))), (void*)0);
+  start = "130.161.";
+  for (int i = 0; i < 256; ++i) {
+    for (int j = 0; j < 256; ++j) {
+      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start + std::to_string(i) + "." + std::to_string(j))), (void*)0);
     }
   }
 
-  start="2000:123:";
-  for(size_t i=0; i < 256; ++i) {
-    for(size_t j=0; j < 256; ++j) {
-      works.insert(Netmask(start+std::to_string(i)+":"+std::to_string(j)+"::/64")).second=i*j;
-      BOOST_CHECK_EQUAL(works.size(), (256*256) + i*256 + j + 1);
+  start = "2000:123:";
+  for (size_t i = 0; i < 256; ++i) {
+    for (size_t j = 0; j < 256; ++j) {
+      works.insert(Netmask(start + std::to_string(i) + ":" + std::to_string(j) + "::/64")).second = i * j;
+      BOOST_CHECK_EQUAL(works.size(), (256 * 256) + i * 256 + j + 1);
     }
   }
 
-  for(int i=0; i < 256; ++i) {
-    for(int j=0; j < 256; ++j) {
-      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start+std::to_string(i)+":"+std::to_string(j)+"::"+std::to_string(i)+":"+std::to_string(j)))->second, i*j);
+  for (int i = 0; i < 256; ++i) {
+    for (int j = 0; j < 256; ++j) {
+      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start + std::to_string(i) + ":" + std::to_string(j) + "::" + std::to_string(i) + ":" + std::to_string(j)))->second, i * j);
     }
   }
 
-  start="2001:123:";
-  for(int i=0; i < 256; ++i) {
-    for(int j=0; j < 256; ++j) {
-      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start+std::to_string(i)+":"+std::to_string(j)+"::"+std::to_string(i)+":"+std::to_string(j))), (void*)0);
+  start = "2001:123:";
+  for (int i = 0; i < 256; ++i) {
+    for (int j = 0; j < 256; ++j) {
+      BOOST_CHECK_EQUAL(works.lookup(ComboAddress(start + std::to_string(i) + ":" + std::to_string(j) + "::" + std::to_string(i) + ":" + std::to_string(j))), (void*)0);
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_removal) {
+BOOST_AUTO_TEST_CASE(test_removal)
+{
   std::string prefix = "192.";
   NetmaskTree<int> nmt;
   BOOST_CHECK(nmt.empty());
   BOOST_CHECK_EQUAL(nmt.size(), 0U);
 
   size_t count = 0;
-  for(unsigned int i = 0; i < 256; ++i) {
-    for(unsigned int j = 16; j <= 32; ++j) {
-      nmt.insert(Netmask(prefix + std::to_string(i) +".127.255/"+std::to_string(j))).second = j;
+  for (unsigned int i = 0; i < 256; ++i) {
+    for (unsigned int j = 16; j <= 32; ++j) {
+      nmt.insert(Netmask(prefix + std::to_string(i) + ".127.255/" + std::to_string(j))).second = j;
       count++;
       BOOST_CHECK_EQUAL(nmt.size(), count);
     }
   }
 
-  for(unsigned int i = 0; i < 256; ++i) {
+  for (unsigned int i = 0; i < 256; ++i) {
     ComboAddress key(prefix + std::to_string(i) + ".127.255");
     const auto result = nmt.lookup(key);
     BOOST_CHECK_EQUAL(result->first.getBits(), 32);
@@ -499,8 +504,8 @@ BOOST_AUTO_TEST_CASE(test_removal) {
     BOOST_CHECK_EQUAL(result->second, 32);
   }
 
-  for(int i = 0; i < 256; ++i) {
-    for(int j = 32; j >= 16; --j) {
+  for (int i = 0; i < 256; ++i) {
+    for (int j = 32; j >= 16; --j) {
       ComboAddress key(prefix + std::to_string(i) + ".127.255");
       nmt.erase(Netmask(key, j));
       count--;
@@ -509,8 +514,8 @@ BOOST_AUTO_TEST_CASE(test_removal) {
 
       if (j > 16) {
         BOOST_REQUIRE(result != nullptr);
-        BOOST_CHECK_EQUAL(result->first.getBits(), j-1);
-        BOOST_CHECK_EQUAL(result->first.getMaskedNetwork().toString(), Netmask(key, j-1).getMaskedNetwork().toString());
+        BOOST_CHECK_EQUAL(result->first.getBits(), j - 1);
+        BOOST_CHECK_EQUAL(result->first.getMaskedNetwork().toString(), Netmask(key, j - 1).getMaskedNetwork().toString());
         BOOST_CHECK_EQUAL(result->second, j - 1);
       }
       else {
@@ -523,111 +528,111 @@ BOOST_AUTO_TEST_CASE(test_removal) {
   BOOST_CHECK(nmt.empty());
 }
 
-BOOST_AUTO_TEST_CASE(test_iterator) {
+BOOST_AUTO_TEST_CASE(test_iterator)
+{
   NetmaskTree<int> masks_set1;
   std::set<Netmask> masks_set2;
 
   // create sets. the std::set entries are normalized to match internal behavior
   // of NetmaskTree
-  for(int i=0; i < 256; ++i) {
+  for (int i = 0; i < 256; ++i) {
     std::stringstream ss;
     Netmask mask;
 
     ss << i << "." << i << "." << i << "." << i;
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << (255-i) << "." << (i/2) << "." << (i/3) << "." << (i/5);
+    ss << (255 - i) << "." << (i / 2) << "." << (i / 3) << "." << (i / 5);
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << (i/5) << "." << (i/3) << "." << (i/2) << "." << (255-i);
+    ss << (i / 5) << "." << (i / 3) << "." << (i / 2) << "." << (255 - i);
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << (i/2) << "." << (i/4) << "." << (255-i) << ".0/" << (i%24);
+    ss << (i / 2) << "." << (i / 4) << "." << (255 - i) << ".0/" << (i % 24);
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
     ss << std::hex << "2001:" << i << i << ":" << i << i << "::/64";
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << std::hex << "2001:" << (i/5) << (i/3) << ":" << (i/2) << (255-i) << "::/64";
+    ss << std::hex << "2001:" << (i / 5) << (i / 3) << ":" << (i / 2) << (255 - i) << "::/64";
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << std::hex << "2001:" << (255-i) << (i/2) << ":" << (i/3) << (i/5) << "::/64";
+    ss << std::hex << "2001:" << (255 - i) << (i / 2) << ":" << (i / 3) << (i / 5) << "::/64";
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << std::hex << "20" << i/2 << ":" << i/3 << i/7 << "::" << i << (i > 0 ? i-1 : i + 1);
+    ss << std::hex << "20" << i / 2 << ":" << i / 3 << i / 7 << "::" << i << (i > 0 ? i - 1 : i + 1);
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
-    ss << std::hex << "20" << i << ":" << i << i << "::/" << std::dec << (i%48);
+    ss << std::hex << "20" << i << ":" << i << i << "::/" << std::dec << (i % 48);
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
   }
-  for(int i=0; i <= 32; ++i) {
+  for (int i = 0; i <= 32; ++i) {
     std::stringstream ss;
     Netmask mask;
 
     ss << "85.85.85.85/" << i;
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
     ss << "170.170.170.170/" << i;
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
   }
-  for(int i=0; i <= 128; ++i) {
+  for (int i = 0; i <= 128; ++i) {
     std::stringstream ss;
     Netmask mask;
 
     ss << "5555:5555:5555:5555:5555:5555:5555:5555/" << i;
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
 
     ss.str("");
     ss << "aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa/" << i;
     mask = Netmask(ss.str());
-    masks_set1.insert(mask).second=i;
+    masks_set1.insert(mask).second = i;
     masks_set2.insert(mask.getNormalized());
   }
-
 
   // check set equality using iterators
   BOOST_CHECK_EQUAL(masks_set1.size(), masks_set2.size());
   BOOST_CHECK_EQUAL((size_t)std::distance(masks_set1.begin(), masks_set1.end()),
-                    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
-  for (auto entry: masks_set1) {
+    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry : masks_set1) {
     Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
-  for (const Netmask& mask: masks_set2) {
+  for (const Netmask& mask : masks_set2) {
     BOOST_CHECK(masks_set1.lookup(mask) != nullptr);
   }
 
@@ -641,13 +646,13 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   // check set equality using iterators
   BOOST_CHECK_EQUAL(masks_set1_cp1.size(), masks_set2.size());
   BOOST_CHECK_EQUAL((size_t)std::distance(masks_set1_cp1.begin(), masks_set1_cp1.end()),
-                    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
-  for (auto entry: masks_set1_cp1) {
+    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry : masks_set1_cp1) {
     Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
-  for (const Netmask& mask: masks_set2) {
+  for (const Netmask& mask : masks_set2) {
     BOOST_CHECK(masks_set1_cp1.lookup(mask) != nullptr);
   }
 
@@ -661,13 +666,13 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   // check set equality using iterators
   BOOST_CHECK_EQUAL(masks_set1_cp2.size(), masks_set2.size());
   BOOST_CHECK_EQUAL((size_t)std::distance(masks_set1_cp2.begin(), masks_set1_cp2.end()),
-                    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
-  for (auto entry: masks_set1_cp2) {
+    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry : masks_set1_cp2) {
     Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
-  for (const Netmask& mask: masks_set2) {
+  for (const Netmask& mask : masks_set2) {
     BOOST_CHECK(masks_set1_cp2.lookup(mask) != nullptr);
   }
 
@@ -682,13 +687,13 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   // check set equality using iterators
   BOOST_CHECK_EQUAL(masks_set1_cp3.size(), masks_set2.size());
   BOOST_CHECK_EQUAL((size_t)std::distance(masks_set1_cp3.begin(), masks_set1_cp3.end()),
-                    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
-  for (auto entry: masks_set1_cp3) {
+    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry : masks_set1_cp3) {
     Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
-  for (const Netmask& mask: masks_set2) {
+  for (const Netmask& mask : masks_set2) {
     BOOST_CHECK(masks_set1_cp3.lookup(mask) != nullptr);
   }
 
@@ -697,15 +702,15 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
 
   // check set equality
   BOOST_CHECK_EQUAL(masks_set1_cp4.size(), masks_set2.size());
-  for (auto entry: masks_set1_cp4) {
+  for (auto entry : masks_set1_cp4) {
     Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
-  for (const Netmask& mask: masks_set2) {
+  for (const Netmask& mask : masks_set2) {
     Netmask maskl = mask.getNormalized();
     bool found = false;
-    for (auto entry: masks_set1_cp4) {
+    for (auto entry : masks_set1_cp4) {
       Netmask maskr = entry.first.getNormalized();
 
       if (maskl == maskr)
@@ -777,13 +782,13 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   // check set equality using iterators
   BOOST_CHECK_EQUAL(masks_set1_cp5.size(), masks_set2.size());
   BOOST_CHECK_EQUAL((size_t)std::distance(masks_set1_cp5.begin(), masks_set1_cp5.end()),
-                    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
-  for (auto entry: masks_set1_cp5) {
+    (size_t)std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry : masks_set1_cp5) {
     Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
-  for (const Netmask& mask: masks_set2) {
+  for (const Netmask& mask : masks_set2) {
     BOOST_CHECK(masks_set1_cp5.lookup(mask) != nullptr);
   }
 }

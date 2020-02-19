@@ -29,25 +29,27 @@
 class Lua2Factory : public BackendFactory
 {
 public:
-  Lua2Factory() : BackendFactory("lua2") {}
+  Lua2Factory() :
+    BackendFactory("lua2") {}
 
-  void declareArguments(const string &suffix="")
+  void declareArguments(const string& suffix = "")
   {
-    declare(suffix,"filename","Filename of the script for lua backend","powerdns-luabackend.lua");
-    declare(suffix,"query-logging","Logging of the Lua2 Backend","no");
-    declare(suffix,"api","Lua backend API version","2");
+    declare(suffix, "filename", "Filename of the script for lua backend", "powerdns-luabackend.lua");
+    declare(suffix, "query-logging", "Logging of the Lua2 Backend", "no");
+    declare(suffix, "api", "Lua backend API version", "2");
   }
 
-  DNSBackend *make(const string &suffix="")
+  DNSBackend* make(const string& suffix = "")
   {
     const std::string apiSet = "lua2" + suffix + "-api";
     const int api = ::arg().asNum(apiSet);
-    DNSBackend *be;
-    switch(api) {
+    DNSBackend* be;
+    switch (api) {
     case 1:
       throw PDNSException("Use luabackend for api version 1");
     case 2:
-      be = new Lua2BackendAPIv2(suffix); break;
+      be = new Lua2BackendAPIv2(suffix);
+      break;
     default:
       throw PDNSException("Unsupported ABI version " + ::arg()[apiSet]);
     }
@@ -64,9 +66,9 @@ public:
 
     g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
 #ifndef REPRODUCIBLE
-      << " (" __DATE__ " " __TIME__ ")"
+          << " (" __DATE__ " " __TIME__ ")"
 #endif
-      << " reporting" << endl;
+          << " reporting" << endl;
   }
 };
 

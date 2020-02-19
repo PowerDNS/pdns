@@ -31,7 +31,7 @@
 class gPgSQLBackend : public GSQLBackend
 {
 public:
-  gPgSQLBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
+  gPgSQLBackend(const string& mode, const string& suffix); //!< Makes our connection to the database. Throws an exception if it fails.
 protected:
   void reconnect() override;
   bool inTransaction() override;

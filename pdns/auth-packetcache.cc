@@ -30,31 +30,33 @@ extern StatBag S;
 
 const unsigned int AuthPacketCache::s_mincleaninterval, AuthPacketCache::s_maxcleaninterval;
 
-AuthPacketCache::AuthPacketCache(size_t mapsCount): d_maps(mapsCount), d_lastclean(time(nullptr))
+AuthPacketCache::AuthPacketCache(size_t mapsCount) :
+  d_maps(mapsCount),
+  d_lastclean(time(nullptr))
 {
   S.declare("packetcache-hit", "Number of hits on the packet cache");
   S.declare("packetcache-miss", "Number of misses on the packet cache");
   S.declare("packetcache-size", "Number of entries in the packet cache");
-  S.declare("deferred-packetcache-inserts","Amount of packet cache inserts that were deferred because of maintenance");
-  S.declare("deferred-packetcache-lookup","Amount of packet cache lookups that were deferred because of maintenance");
+  S.declare("deferred-packetcache-inserts", "Amount of packet cache inserts that were deferred because of maintenance");
+  S.declare("deferred-packetcache-lookup", "Amount of packet cache lookups that were deferred because of maintenance");
 
-  d_statnumhit=S.getPointer("packetcache-hit");
-  d_statnummiss=S.getPointer("packetcache-miss");
-  d_statnumentries=S.getPointer("packetcache-size");
+  d_statnumhit = S.getPointer("packetcache-hit");
+  d_statnummiss = S.getPointer("packetcache-miss");
+  d_statnumentries = S.getPointer("packetcache-size");
 }
 
 AuthPacketCache::~AuthPacketCache()
 {
   try {
     vector<WriteLock*> locks;
-    for(auto& mc : d_maps) {
+    for (auto& mc : d_maps) {
       locks.push_back(new WriteLock(&mc.d_mut));
     }
-    for(auto wl : locks) {
+    for (auto wl : locks) {
       delete wl;
     }
   }
-  catch(...) {
+  catch (...) {
   }
 }
 
@@ -68,7 +70,7 @@ void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
 
 bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
 {
-  if(!d_ttl) {
+  if (!d_ttl) {
     return false;
   }
 
@@ -83,7 +85,7 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
   auto& mc = getMap(p.qdomain);
   {
     TryReadLock rl(&mc.d_mut);
-    if(!rl.gotIt()) {
+    if (!rl.gotIt()) {
       S.inc("deferred-packetcache-lookup");
       return false;
     }
@@ -96,7 +98,7 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
     return false;
   }
 
-  if(cached.noparse(value.c_str(), value.size()) < 0) {
+  if (cached.noparse(value.c_str(), value.size()) < 0) {
     return false;
   }
 
@@ -115,7 +117,7 @@ bool AuthPacketCache::entryMatches(cmap_t::index<HashTag>::type::iterator& iter,
 
 void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
 {
-  if(!d_ttl) {
+  if (!d_ttl) {
     return;
   }
 
@@ -131,7 +133,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   uint32_t ourttl = std::min(d_ttl, maxTTL);
   if (ourttl == 0) {
     return;
-  }  
+  }
 
   uint32_t hash = q.getHash();
   time_t now = time(nullptr);
@@ -144,7 +146,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   entry.value = r.getString();
   entry.tcp = r.d_tcp;
   entry.query = q.getString();
-  
+
   auto& mc = getMap(entry.qname);
   {
     TryWriteLock l(&mc.d_mut);
@@ -157,7 +159,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
     auto range = idx.equal_range(hash);
     auto iter = range.first;
 
-    for( ; iter != range.second ; ++iter)  {
+    for (; iter != range.second; ++iter) {
       if (!entryMatches(iter, entry.query, entry.qname, entry.qtype, entry.tcp)) {
         continue;
       }
@@ -183,12 +185,12 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   }
 }
 
-bool AuthPacketCache::getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& value)
+bool AuthPacketCache::getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName& qname, uint16_t qtype, bool tcp, time_t now, string& value)
 {
   auto& idx = map.get<HashTag>();
   auto range = idx.equal_range(hash);
 
-  for(auto iter = range.first; iter != range.second ; ++iter)  {
+  for (auto iter = range.first; iter != range.second; ++iter) {
     if (iter->ttd < now) {
       continue;
     }
@@ -207,7 +209,7 @@ bool AuthPacketCache::getEntryLocked(cmap_t& map, const std::string& query, uint
 /* clears the entire cache. */
 uint64_t AuthPacketCache::purge()
 {
-  if(!d_ttl) {
+  if (!d_ttl) {
     return 0;
   }
 
@@ -227,15 +229,15 @@ uint64_t AuthPacketCache::purgeExact(const DNSName& qname)
 }
 
 /* purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
-uint64_t AuthPacketCache::purge(const string &match)
+uint64_t AuthPacketCache::purge(const string& match)
 {
-  if(!d_ttl) {
+  if (!d_ttl) {
     return 0;
   }
 
   uint64_t delcount = 0;
 
-  if(ends_with(match, "$")) {
+  if (ends_with(match, "$")) {
     delcount = purgeLockedCollectionsVector<NameTag>(d_maps, match);
     *d_statnumentries -= delcount;
   }
@@ -245,7 +247,7 @@ uint64_t AuthPacketCache::purge(const string &match)
 
   return delcount;
 }
-			   
+
 void AuthPacketCache::cleanup()
 {
   uint64_t maxCached = d_maxEntries;
@@ -255,7 +257,7 @@ void AuthPacketCache::cleanup()
   totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps, maxCached, cacheSize);
   *d_statnumentries -= totErased;
 
-  DLOG(g_log<<"Done with cache clean, cacheSize: "<<(*d_statnumentries)<<", totErased"<<totErased<<endl);
+  DLOG(g_log << "Done with cache clean, cacheSize: " << (*d_statnumentries) << ", totErased" << totErased << endl);
 }
 
 /* the logic:
@@ -273,29 +275,30 @@ void AuthPacketCache::cleanupIfNeeded()
     time_t now = time(nullptr);
     int timediff = max((int)(now - d_lastclean), 1);
 
-    DLOG(g_log<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
+    DLOG(g_log << "cleaninterval: " << d_cleaninterval << ", timediff: " << timediff << endl);
 
     if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
       d_cleanskipped = true;
       d_nextclean += d_cleaninterval;
 
-      DLOG(g_log<<"cleaning skipped, timediff: "<<timediff<<endl);
+      DLOG(g_log << "cleaning skipped, timediff: " << timediff << endl);
 
       return;
     }
 
-    if(!d_cleanskipped) {
-      d_cleaninterval=(int)(0.6*d_cleaninterval)+(0.4*d_cleaninterval*(30.0/timediff));
-      d_cleaninterval=std::max(d_cleaninterval, s_mincleaninterval);
-      d_cleaninterval=std::min(d_cleaninterval, s_maxcleaninterval);
+    if (!d_cleanskipped) {
+      d_cleaninterval = (int)(0.6 * d_cleaninterval) + (0.4 * d_cleaninterval * (30.0 / timediff));
+      d_cleaninterval = std::max(d_cleaninterval, s_mincleaninterval);
+      d_cleaninterval = std::min(d_cleaninterval, s_maxcleaninterval);
 
-      DLOG(g_log<<"new cleaninterval: "<<d_cleaninterval<<endl);
-    } else {
+      DLOG(g_log << "new cleaninterval: " << d_cleaninterval << endl);
+    }
+    else {
       d_cleanskipped = false;
     }
 
     d_nextclean += d_cleaninterval;
-    d_lastclean=now;
+    d_lastclean = now;
     cleanup();
   }
 }

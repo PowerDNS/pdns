@@ -45,12 +45,15 @@
 class CircularWriteBuffer
 {
 public:
-  explicit CircularWriteBuffer(int fd, size_t size) : d_fd(fd), d_buffer(size)
+  explicit CircularWriteBuffer(int fd, size_t size) :
+    d_fd(fd),
+    d_buffer(size)
   {
   }
 
   void write(const std::string& str);
   void flush();
+
 private:
   int d_fd;
   boost::circular_buffer<char> d_buffer;
@@ -59,7 +62,7 @@ private:
 class RemoteLoggerInterface
 {
 public:
-  virtual ~RemoteLoggerInterface() {};
+  virtual ~RemoteLoggerInterface(){};
   virtual void queueData(const std::string& data) = 0;
   virtual std::string toString() const = 0;
 
@@ -81,10 +84,10 @@ private:
 class RemoteLogger : public RemoteLoggerInterface
 {
 public:
-  RemoteLogger(const ComboAddress& remote, uint16_t timeout=2,
-               uint64_t maxQueuedBytes=100000,
-               uint8_t reconnectWaitTime=1,
-               bool asyncConnect=false);
+  RemoteLogger(const ComboAddress& remote, uint16_t timeout = 2,
+    uint64_t maxQueuedBytes = 100000,
+    uint8_t reconnectWaitTime = 1,
+    bool asyncConnect = false);
   ~RemoteLogger();
   void queueData(const std::string& data) override;
   std::string toString() const override

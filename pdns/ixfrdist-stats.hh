@@ -27,72 +27,87 @@
 #include "dnsname.hh"
 #include "pdnsexception.hh"
 
-class ixfrdistStats {
+class ixfrdistStats
+{
+public:
+  ixfrdistStats()
+  {
+    progStats.startTime = time(nullptr);
+  }
+
+  std::string getStats();
+
+  void setSOASerial(const DNSName& d, const uint32_t serial)
+  {
+    auto stat = getRegisteredDomain(d);
+    stat->second.currentSOA = serial;
+    stat->second.haveZone = true;
+  }
+  void incrementSOAChecks(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numSOAChecks += amount;
+  }
+  void incrementSOAChecksFailed(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numSOAChecksFailed += amount;
+  }
+  void incrementSOAinQueries(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numSOAinQueries += amount;
+  }
+  void incrementAXFRinQueries(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numAXFRinQueries += amount;
+  }
+  void incrementIXFRinQueries(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numIXFRinQueries += amount;
+  }
+  void incrementAXFRFailures(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numAXFRFailures += amount;
+  }
+  void incrementIXFRFailures(const DNSName& d, const uint64_t amount = 1)
+  {
+    getRegisteredDomain(d)->second.numIXFRFailures += amount;
+  }
+  void registerDomain(const DNSName& d)
+  {
+    domainStats[d].haveZone = false;
+  }
+
+private:
+  class perDomainStat
+  {
   public:
-    ixfrdistStats() {
-      progStats.startTime = time(nullptr);
-    }
+    bool haveZone;
+    std::atomic<uint32_t> currentSOA; // NOTE: this will wrongly be zero for unavailable zones
 
-    std::string getStats();
+    std::atomic<uint32_t> numSOAChecks;
+    std::atomic<uint32_t> numSOAChecksFailed;
 
-    void setSOASerial(const DNSName& d, const uint32_t serial) {
-      auto stat = getRegisteredDomain(d);
-      stat->second.currentSOA = serial;
-      stat->second.haveZone = true;
-    }
-    void incrementSOAChecks(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numSOAChecks += amount;
-    }
-    void incrementSOAChecksFailed(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numSOAChecksFailed += amount;
-    }
-    void incrementSOAinQueries(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numSOAinQueries += amount;
-    }
-    void incrementAXFRinQueries(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numAXFRinQueries += amount;
-    }
-    void incrementIXFRinQueries(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numIXFRinQueries += amount;
-    }
-    void incrementAXFRFailures(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numAXFRFailures += amount;
-    }
-    void incrementIXFRFailures(const DNSName& d, const uint64_t amount = 1) {
-      getRegisteredDomain(d)->second.numIXFRFailures += amount;
-    }
-    void registerDomain(const DNSName& d) {
-      domainStats[d].haveZone = false;
-    }
-  private:
-    class perDomainStat {
-      public:
-        bool                  haveZone;
-        std::atomic<uint32_t> currentSOA; // NOTE: this will wrongly be zero for unavailable zones
+    std::atomic<uint64_t> numSOAinQueries;
+    std::atomic<uint64_t> numAXFRinQueries;
+    std::atomic<uint64_t> numIXFRinQueries;
 
-        std::atomic<uint32_t> numSOAChecks;
-        std::atomic<uint32_t> numSOAChecksFailed;
+    std::atomic<uint64_t> numAXFRFailures;
+    std::atomic<uint64_t> numIXFRFailures;
+  };
+  class programStats
+  {
+  public:
+    time_t startTime;
+  };
 
-        std::atomic<uint64_t> numSOAinQueries;
-        std::atomic<uint64_t> numAXFRinQueries;
-        std::atomic<uint64_t> numIXFRinQueries;
+  std::map<DNSName, perDomainStat> domainStats;
+  programStats progStats;
 
-        std::atomic<uint64_t> numAXFRFailures;
-        std::atomic<uint64_t> numIXFRFailures;
-    };
-    class programStats {
-      public:
-        time_t startTime;
-    };
-
-    std::map<DNSName, perDomainStat> domainStats;
-    programStats progStats;
-
-    std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {
-      auto ret = domainStats.find(d);
-      if (ret == domainStats.end()) {
-        throw PDNSException("Domain '" + d.toLogString() + "' not defined in the statistics map");
-      }
-      return ret;
-    };
+  std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d)
+  {
+    auto ret = domainStats.find(d);
+    if (ret == domainStats.end()) {
+      throw PDNSException("Domain '" + d.toLogString() + "' not defined in the statistics map");
+    }
+    return ret;
+  };
 };

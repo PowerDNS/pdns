@@ -26,4 +26,3 @@
 #include <string>
 
 std::string makeTSIGKey(const DNSName& algorithm);
-

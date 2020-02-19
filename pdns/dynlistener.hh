@@ -40,28 +40,34 @@
 class DynListener : public boost::noncopyable
 {
 public:
-  explicit DynListener(const string &pname="");
+  explicit DynListener(const string& pname = "");
   explicit DynListener(const ComboAddress& addr);
   ~DynListener();
   void go();
   void theListener();
-  static void *theListenerHelper(void *p);
+  static void* theListenerHelper(void* p);
 
-  typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid); // guido!
-  typedef struct { g_funk_t *func; string args; string usage; } g_funkwithusage_t;
-  typedef map<string,g_funkwithusage_t> g_funkdb_t;
-  
-  static void registerFunc(const string &name, g_funk_t *gf, const string &usage="", const string &args="");
-  static void registerRestFunc(g_funk_t *gf);
-  static g_funk_t* getFunc(const string& fname) { return s_funcdb[fname].func; } 
+  typedef string g_funk_t(const vector<string>& parts, Utility::pid_t ppid); // guido!
+  typedef struct
+  {
+    g_funk_t* func;
+    string args;
+    string usage;
+  } g_funkwithusage_t;
+  typedef map<string, g_funkwithusage_t> g_funkdb_t;
+
+  static void registerFunc(const string& name, g_funk_t* gf, const string& usage = "", const string& args = "");
+  static void registerRestFunc(g_funk_t* gf);
+  static g_funk_t* getFunc(const string& fname) { return s_funcdb[fname].func; }
+
 private:
-  void sendlines(const string &lines);
+  void sendlines(const string& lines);
   string getHelp();
   string getLine();
 
   void listenOnUnixDomain(const std::string& fname);
   void listenOnTCP(const ComboAddress&);
-  void createSocketAndBind(int family, struct sockaddr*local, size_t len);
+  void createSocketAndBind(int family, struct sockaddr* local, size_t len);
 
   NetmaskGroup d_tcprange;
   int d_s{-1};
@@ -70,7 +76,7 @@ private:
   bool d_nonlocal;
   bool d_tcp{false};
   pid_t d_ppid{0};
-  
+
   string d_socketname;
   ComboAddress d_socketaddress;
   static g_funkdb_t s_funcdb;

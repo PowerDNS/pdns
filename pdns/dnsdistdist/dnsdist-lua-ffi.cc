@@ -164,7 +164,7 @@ void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const 
 
 const char* dnsdist_ffi_dnsquestion_get_tag(const dnsdist_ffi_dnsquestion_t* dq, const char* label)
 {
-  const char * result = nullptr;
+  const char* result = nullptr;
 
   if (dq->dq->qTag != nullptr) {
     const auto it = dq->dq->qTag->find(label);
@@ -323,7 +323,6 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, cons
     entry.value = tag.second.c_str();
     ++pos;
   }
-
 
   if (!dq->tagsVect.empty()) {
     *out = dq->tagsVect.data();
@@ -493,7 +492,8 @@ const std::string& getLuaFFIWrappers()
   local C = ffi.C
 
   ffi.cdef[[
-)FFICodeContent" + interface + R"FFICodeContent(
+)FFICodeContent"
+    + interface + R"FFICodeContent(
   ]]
 
 )FFICodeContent";

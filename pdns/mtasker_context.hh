@@ -25,28 +25,25 @@
 #include <vector>
 #include <exception>
 
-struct pdns_ucontext_t {
-    pdns_ucontext_t ();
-    pdns_ucontext_t (pdns_ucontext_t const&) = delete;
-    pdns_ucontext_t& operator= (pdns_ucontext_t const&) = delete;
-    ~pdns_ucontext_t ();
+struct pdns_ucontext_t
+{
+  pdns_ucontext_t();
+  pdns_ucontext_t(pdns_ucontext_t const&) = delete;
+  pdns_ucontext_t& operator=(pdns_ucontext_t const&) = delete;
+  ~pdns_ucontext_t();
 
-    void* uc_mcontext;
-    pdns_ucontext_t* uc_link;
-    std::vector<char, lazy_allocator<char>> uc_stack;
-    std::exception_ptr exception;
+  void* uc_mcontext;
+  pdns_ucontext_t* uc_link;
+  std::vector<char, lazy_allocator<char>> uc_stack;
+  std::exception_ptr exception;
 #ifdef PDNS_USE_VALGRIND
-    int valgrind_id;
+  int valgrind_id;
 #endif /* PDNS_USE_VALGRIND */
 };
 
-void
-pdns_swapcontext
-(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& __restrict ctx);
+void pdns_swapcontext(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& __restrict ctx);
 
-void
-pdns_makecontext
-(pdns_ucontext_t& ctx, boost::function<void(void)>& start);
+void pdns_makecontext(pdns_ucontext_t& ctx, boost::function<void(void)>& start);
 
 #ifdef HAVE_FIBER_SANITIZER
 #include <sanitizer/common_interface_defs.h>

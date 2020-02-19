@@ -35,42 +35,67 @@
 class Logger
 {
 public:
-  Logger(const string &, int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
+  Logger(const string&, int facility = LOG_DAEMON); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
-  enum Urgency {All=32767,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
-                Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
+  enum Urgency
+  {
+    All = 32767,
+    Alert = LOG_ALERT,
+    Critical = LOG_CRIT,
+    Error = LOG_ERR,
+    Warning = LOG_WARNING,
+    Notice = LOG_NOTICE,
+    Info = LOG_INFO,
+    Debug = LOG_DEBUG,
+    None = -1
+  };
 
   /** Log a message.
       \param msg Message you wish to log
       \param u Urgency of the message you wish to log
   */
-  void log(const string &msg, Urgency u=Notice);
+  void log(const string& msg, Urgency u = Notice);
 
-  void setFacility(int f){d_facility=f;open();} //!< Choose logging facility
-  void setFlag(int f){flags|=f;open();} //!< set a syslog flag
-  void setName(const string &);
+  void setFacility(int f)
+  {
+    d_facility = f;
+    open();
+  } //!< Choose logging facility
+  void setFlag(int f)
+  {
+    flags |= f;
+    open();
+  } //!< set a syslog flag
+  void setName(const string&);
 
   //! set lower limit of urgency needed for console display. Messages of this urgency, and higher, will be displayed
   void toConsole(Urgency);
-  void setLoglevel( Urgency );
+  void setLoglevel(Urgency);
 
-  void disableSyslog(bool d) {
+  void disableSyslog(bool d)
+  {
     d_disableSyslog = d;
   }
 
-  void setTimestamps(bool t) {
+  void setTimestamps(bool t)
+  {
     d_timestamps = t;
   }
 
-  void setPrefixed(bool p) {
+  void setPrefixed(bool p)
+  {
     d_prefixed = p;
   }
 
   //! Log to a file.
-  void toFile( const string & filename );
-  
-  void resetFlags(){flags=0;open();} //!< zero the flags
+  void toFile(const string& filename);
+
+  void resetFlags()
+  {
+    flags = 0;
+    open();
+  } //!< zero the flags
   /** Use this to stream to your log, like this:
       \code
       g_log<<"This is an informational message"<<endl; // logged at default loglevel (Info)
@@ -78,27 +103,31 @@ public:
       g_log<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
-  Logger& operator<<(const char *s);
-  Logger& operator<<(const string &s);   //!< log a string
-  Logger& operator<<(const DNSName&); 
+  Logger& operator<<(const char* s);
+  Logger& operator<<(const string& s); //!< log a string
+  Logger& operator<<(const DNSName&);
   Logger& operator<<(const ComboAddress&); //!< log an address
-  Logger& operator<<(Urgency);    //!< set the urgency, << style
+  Logger& operator<<(Urgency); //!< set the urgency, << style
 
   // Using const & since otherwise SyncRes:: values induce (illegal) copies
-  template<typename T> Logger & operator<<(const T & i) {
-	ostringstream tmp;
-	tmp<<i;
-	*this<<tmp.str();
-	return *this;
+  template <typename T>
+  Logger& operator<<(const T& i)
+  {
+    ostringstream tmp;
+    tmp << i;
+    *this << tmp.str();
+    return *this;
   }
 
-  Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
+  Logger& operator<<(std::ostream& (&)(std::ostream&)); //!< this is to recognise the endl, and to commit the log
 
 private:
   struct PerThread
   {
-    PerThread() : d_urgency(Info)
-    {}
+    PerThread() :
+      d_urgency(Info)
+    {
+    }
     string d_output;
     Urgency d_urgency;
   };

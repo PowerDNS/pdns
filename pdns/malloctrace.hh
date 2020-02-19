@@ -35,21 +35,26 @@
 class MallocTracer
 {
 public:
-  void* malloc (size_t size);
+  void* malloc(size_t size);
   void free(void*);
   uint64_t getAllocs(const std::string& = std::string()) const { return d_allocs; }
   uint64_t getAllocFlux(const std::string& = std::string()) const { return d_allocflux; }
   uint64_t getTotAllocated(const std::string& = std::string()) const { return d_totAllocated; }
-  uint64_t getNumOut() { std::lock_guard<std::mutex> lock(d_mut); return d_sizes.size(); }
+  uint64_t getNumOut()
+  {
+    std::lock_guard<std::mutex> lock(d_mut);
+    return d_sizes.size();
+  }
   struct AllocStats
   {
     int count;
     std::map<unsigned int, unsigned int> sizes;
   };
-  typedef std::vector<std::pair<MallocTracer::AllocStats, 
-				std::vector<void*> > > allocators_t;
-  allocators_t topAllocators(int num=-1);
-  std::string topAllocatorsString(int num=-1);
+  typedef std::vector<std::pair<MallocTracer::AllocStats,
+    std::vector<void*>>>
+    allocators_t;
+  allocators_t topAllocators(int num = -1);
+  std::string topAllocatorsString(int num = -1);
   void clearAllocators();
 
 private:

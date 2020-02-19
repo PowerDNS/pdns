@@ -86,8 +86,8 @@ using namespace ::boost::multi_index;
 #include "namespaces.hh"
 
 StatBag S;
-bool g_quiet=true;
-int g_timeoutMsec=0; 
+bool g_quiet = true;
+int g_timeoutMsec = 0;
 
 namespace po = boost::program_options;
 
@@ -97,23 +97,23 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
 {
   //  cout<<"In: "<<rhs.tv_sec<<" + "<<rhs.tv_usec<<"\n";
   struct timeval ret;
-  if( (2000000000 / fact) < rhs.tv_usec) {
-    double d=1.0 * rhs.tv_usec * fact;
-    ret.tv_sec=fact * rhs.tv_sec;
-    ret.tv_sec+=(int) (d/1000000);
-    d/=1000000;
-    d-=(int)d;
+  if ((2000000000 / fact) < rhs.tv_usec) {
+    double d = 1.0 * rhs.tv_usec * fact;
+    ret.tv_sec = fact * rhs.tv_sec;
+    ret.tv_sec += (int)(d / 1000000);
+    d /= 1000000;
+    d -= (int)d;
 
-    ret.tv_usec=(unsigned int)(1000000*d);
+    ret.tv_usec = (unsigned int)(1000000 * d);
     normalizeTV(ret);
-    
-    cout<<"out complex: "<<ret.tv_sec<<" + "<<ret.tv_usec<<"\n";
-    
+
+    cout << "out complex: " << ret.tv_sec << " + " << ret.tv_usec << "\n";
+
     return ret;
   }
 
-  ret.tv_sec=rhs.tv_sec * fact;
-  ret.tv_usec=rhs.tv_usec * fact;
+  ret.tv_sec = rhs.tv_sec * fact;
+  ret.tv_usec = rhs.tv_usec * fact;
 
   normalizeTV(ret);
   //  cout<<"out simple: "<<ret.tv_sec<<" + "<<ret.tv_usec<<"\n";
@@ -123,7 +123,7 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
 bool g_pleaseQuit;
 void pleaseQuitHandler(int)
 {
-  g_pleaseQuit=true;
+  g_pleaseQuit = true;
 }
 
 class DNSIDManager : public boost::noncopyable
@@ -131,15 +131,15 @@ class DNSIDManager : public boost::noncopyable
 public:
   DNSIDManager()
   {
-    for(unsigned int i=0; i < 65536; ++i)
+    for (unsigned int i = 0; i < 65536; ++i)
       d_available.push_back(i);
   }
 
   uint16_t peakID()
   {
     uint16_t ret;
-    if(!d_available.empty()) {
-      ret=d_available.front();
+    if (!d_available.empty()) {
+      ret = d_available.front();
       return ret;
     }
     else
@@ -148,7 +148,7 @@ public:
 
   uint16_t getID()
   {
-    uint16_t ret=peakID();
+    uint16_t ret = peakID();
     d_available.pop_front();
     return ret;
   }
@@ -160,22 +160,21 @@ public:
 
 private:
   deque<uint16_t> d_available;
-  
-} s_idmanager;
 
+} s_idmanager;
 
 void setSocketBuffer(int fd, int optname, uint32_t size)
 {
-  uint32_t psize=0;
-  socklen_t len=sizeof(psize);
-  
-  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
-    return; 
+  uint32_t psize = 0;
+  socklen_t len = sizeof(psize);
+
+  if (!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
+    cerr << "Not decreasing socket buffer size from " << psize << " to " << size << endl;
+    return;
   }
 
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<stringerror()<<endl;
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0)
+    cerr << "Warning: unable to raise socket buffer size to " << size << ": " << stringerror() << endl;
 }
 
 static void setSocketReceiveBuffer(int fd, uint32_t size)
@@ -188,13 +187,22 @@ static void setSocketSendBuffer(int fd, uint32_t size)
   setSocketBuffer(fd, SO_SNDBUF, size);
 }
 
-
-struct AssignedIDTag{};
-struct QuestionTag{};
+struct AssignedIDTag
+{
+};
+struct QuestionTag
+{
+};
 
 struct QuestionData
 {
-  QuestionData() : d_assignedID(-1), d_origRcode(-1), d_newRcode(-1), d_norecursionavailable(false), d_origlate(false), d_newlate(false)
+  QuestionData() :
+    d_assignedID(-1),
+    d_origRcode(-1),
+    d_newRcode(-1),
+    d_norecursionavailable(false),
+    d_origlate(false),
+    d_newlate(false)
   {
   }
   QuestionIdentifier d_qi;
@@ -207,13 +215,12 @@ struct QuestionData
 };
 
 typedef multi_index_container<
-  QuestionData, 
+  QuestionData,
   indexed_by<
-             ordered_unique<tag<QuestionTag>, BOOST_MULTI_INDEX_MEMBER(QuestionData, QuestionIdentifier, d_qi) > ,
-             ordered_unique<tag<AssignedIDTag>,  BOOST_MULTI_INDEX_MEMBER(QuestionData, int, d_assignedID) >
-            >
-> qids_t;
-                                         
+    ordered_unique<tag<QuestionTag>, BOOST_MULTI_INDEX_MEMBER(QuestionData, QuestionIdentifier, d_qi)>,
+    ordered_unique<tag<AssignedIDTag>, BOOST_MULTI_INDEX_MEMBER(QuestionData, int, d_assignedID)>>>
+  qids_t;
+
 qids_t qids;
 bool g_throttled;
 
@@ -223,39 +230,37 @@ unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
 
-
-
 void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlow, int& origSlow)
 {
   struct timeval now;
   gettimeofday(&now, 0);
 
-  weOutstanding=origOutstanding=weSlow=origSlow=0;
+  weOutstanding = origOutstanding = weSlow = origSlow = 0;
 
-  for(qids_t::iterator i=qids.begin(); i!=qids.end(); ++i) {
-    double dt=DiffTime(i->d_resentTime, now);
-    if(dt < 2.0) {
-      if(i->d_newRcode == -1) 
+  for (qids_t::iterator i = qids.begin(); i != qids.end(); ++i) {
+    double dt = DiffTime(i->d_resentTime, now);
+    if (dt < 2.0) {
+      if (i->d_newRcode == -1)
         weOutstanding++;
-      if(i->d_origRcode == -1)
+      if (i->d_origRcode == -1)
         origOutstanding++;
     }
     else {
-      if(i->d_newRcode == -1) {
+      if (i->d_newRcode == -1) {
         weSlow++;
-        if(!i->d_newlate) {
-          QuestionData qd=*i;
-          qd.d_newlate=true;
+        if (!i->d_newlate) {
+          QuestionData qd = *i;
+          qd.d_newlate = true;
           qids.replace(i, qd);
 
           s_wetimedout++;
         }
       }
-      if(i->d_origRcode == -1) {
+      if (i->d_origRcode == -1) {
         origSlow++;
-        if(!i->d_origlate) {
-          QuestionData qd=*i;
-          qd.d_origlate=true;
+        if (!i->d_origlate) {
+          QuestionData qd = *i;
+          qd.d_origlate = true;
           qids.replace(i, qd);
 
           s_origtimedout++;
@@ -267,30 +272,30 @@ void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlo
 
 void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
 {
-  for(MOADNSParser::answers_t::const_iterator i=orig.begin(); i != orig.end(); ++i)
-    if(i->first.d_place==DNSResourceRecord::ANSWER)
+  for (MOADNSParser::answers_t::const_iterator i = orig.begin(); i != orig.end(); ++i)
+    if (i->first.d_place == DNSResourceRecord::ANSWER)
       compacted.insert(i->first);
 }
 
 bool isRcodeOk(int rcode)
 {
-  return rcode==0 || rcode==3;
+  return rcode == 0 || rcode == 3;
 }
 
-set<pair<DNSName,uint16_t> > s_origbetterset;
+set<pair<DNSName, uint16_t>> s_origbetterset;
 
 bool isRootReferral(const MOADNSParser::answers_t& answers)
 {
-  if(answers.empty())
+  if (answers.empty())
     return false;
 
-  bool ok=true;
-  for(MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
+  bool ok = true;
+  for (MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
     //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_name<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
-    if(iter->first.d_place!=2)
-      ok=false;
-    if(!iter->first.d_name.isRoot() || iter->first.d_type!=QType::NS)
-      ok=false;
+    if (iter->first.d_place != 2)
+      ok = false;
+    if (!iter->first.d_name.isRoot() || iter->first.d_type != QType::NS)
+      ok = false;
   }
   return ok;
 }
@@ -298,22 +303,22 @@ bool isRootReferral(const MOADNSParser::answers_t& answers)
 vector<uint32_t> flightTimes;
 void accountFlightTime(qids_t::const_iterator iter)
 {
-  if(flightTimes.empty())
-    flightTimes.resize(2050); 
+  if (flightTimes.empty())
+    flightTimes.resize(2050);
 
   struct timeval now;
   gettimeofday(&now, 0);
-  unsigned int mdiff = 1000*DiffTime(iter->d_resentTime, now);
-  if(mdiff > flightTimes.size()-2)
-    mdiff= flightTimes.size()-1;
+  unsigned int mdiff = 1000 * DiffTime(iter->d_resentTime, now);
+  if (mdiff > flightTimes.size() - 2)
+    mdiff = flightTimes.size() - 1;
 
   flightTimes[mdiff]++;
 }
 
 uint64_t countLessThan(unsigned int msec)
 {
-  uint64_t ret=0;
-  for(unsigned int i = 0 ; i < msec && i < flightTimes.size() ; ++i) {
+  uint64_t ret = 0;
+  for (unsigned int i = 0; i < msec && i < flightTimes.size(); ++i) {
     ret += flightTimes[i];
   }
   return ret;
@@ -322,150 +327,141 @@ uint64_t countLessThan(unsigned int msec)
 void emitFlightTimes()
 {
   uint64_t totals = countLessThan(flightTimes.size());
-  unsigned int limits[]={1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, (unsigned int) flightTimes.size()};
-  uint64_t sofar=0;
+  unsigned int limits[] = {1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, (unsigned int)flightTimes.size()};
+  uint64_t sofar = 0;
   cout.setf(std::ios::fixed);
   cout.precision(2);
-  for(unsigned int i =0 ; i < sizeof(limits)/sizeof(limits[0]); ++i) {
-    if(limits[i]!=flightTimes.size())
-      cout<<"Within "<<limits[i]<<" msec: ";
-    else 
-      cout<<"Beyond "<<limits[i]-2<<" msec: ";
+  for (unsigned int i = 0; i < sizeof(limits) / sizeof(limits[0]); ++i) {
+    if (limits[i] != flightTimes.size())
+      cout << "Within " << limits[i] << " msec: ";
+    else
+      cout << "Beyond " << limits[i] - 2 << " msec: ";
     uint64_t here = countLessThan(limits[i]);
-    cout<<100.0*here/totals<<"% ("<<100.0*(here-sofar)/totals<<"%)"<<endl;
-    sofar=here;
-    
+    cout << 100.0 * here / totals << "% (" << 100.0 * (here - sofar) / totals << "%)" << endl;
+    sofar = here;
   }
 }
 
 void measureResultAndClean(qids_t::const_iterator iter)
 {
-  const QuestionData& qd=*iter;
+  const QuestionData& qd = *iter;
   accountFlightTime(iter);
 
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
-        
-  if(!g_quiet) {
-    cout<<qd.d_qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
-    cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
+
+  if (!g_quiet) {
+    cout << qd.d_qi << ", orig rcode: " << qd.d_origRcode << ", ours: " << qd.d_newRcode;
+    cout << ", " << canonicOrig.size() << " vs " << canonicNew.size() << ", perfect: ";
   }
 
-  if(canonicOrig==canonicNew) {
+  if (canonicOrig == canonicNew) {
     s_perfect++;
-    if(!g_quiet)
-      cout<<"yes\n";
+    if (!g_quiet)
+      cout << "yes\n";
   }
   else {
-    if(!g_quiet)
-      cout<<"no\n";
-    
-    if(qd.d_norecursionavailable)
-      if(!g_quiet)
-        cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
-    if(qd.d_origRcode == qd.d_newRcode ) {
-      if(!g_quiet)
-        cout<<"\t* mostly correct *"<<endl;
+    if (!g_quiet)
+      cout << "no\n";
+
+    if (qd.d_norecursionavailable)
+      if (!g_quiet)
+        cout << "\t* original nameserver did not provide recursion for this question *" << endl;
+    if (qd.d_origRcode == qd.d_newRcode) {
+      if (!g_quiet)
+        cout << "\t* mostly correct *" << endl;
       s_mostly++;
     }
 
-    if(!isRcodeOk(qd.d_origRcode) && isRcodeOk(qd.d_newRcode)) {
-      if(!g_quiet)
-        cout<<"\t* we better *"<<endl;
+    if (!isRcodeOk(qd.d_origRcode) && isRcodeOk(qd.d_newRcode)) {
+      if (!g_quiet)
+        cout << "\t* we better *" << endl;
       s_webetter++;
     }
-    if(isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode) && !isRootReferral(qd.d_origAnswers)) {
-      if(!g_quiet)
-        cout<<"\t* orig better *"<<endl;
+    if (isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode) && !isRootReferral(qd.d_origAnswers)) {
+      if (!g_quiet)
+        cout << "\t* orig better *" << endl;
       s_origbetter++;
-      if(!g_quiet) 
-        if(s_origbetterset.insert(make_pair(qd.d_qi.d_qname, qd.d_qi.d_qtype)).second) {
-          cout<<"orig better: " << qd.d_qi.d_qname<<" "<< qd.d_qi.d_qtype<<endl;
+      if (!g_quiet)
+        if (s_origbetterset.insert(make_pair(qd.d_qi.d_qname, qd.d_qi.d_qtype)).second) {
+          cout << "orig better: " << qd.d_qi.d_qname << " " << qd.d_qi.d_qtype << endl;
         }
     }
 
-    if(!g_quiet) {
-      cout<<"orig: rcode="<<qd.d_origRcode<<"\n";
-      for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
-        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
-      cout<<"new: rcode="<<qd.d_newRcode<<"\n";
-      for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
-      cout<<"\n";
-      cout<<"-\n";
-
+    if (!g_quiet) {
+      cout << "orig: rcode=" << qd.d_origRcode << "\n";
+      for (set<DNSRecord>::const_iterator i = canonicOrig.begin(); i != canonicOrig.end(); ++i)
+        cout << "\t" << i->d_name << "\t" << DNSRecordContent::NumberToType(i->d_type) << "\t'" << (i->d_content ? i->d_content->getZoneRepresentation() : "") << "'\n";
+      cout << "new: rcode=" << qd.d_newRcode << "\n";
+      for (set<DNSRecord>::const_iterator i = canonicNew.begin(); i != canonicNew.end(); ++i)
+        cout << "\t" << i->d_name << "\t" << DNSRecordContent::NumberToType(i->d_type) << "\t'" << (i->d_content ? i->d_content->getZoneRepresentation() : "") << "'\n";
+      cout << "\n";
+      cout << "-\n";
     }
   }
-  
-  int releaseID=qd.d_assignedID;
+
+  int releaseID = qd.d_assignedID;
   qids.erase(iter); // qd invalid now
   s_idmanager.releaseID(releaseID);
 }
 
-
 std::unique_ptr<Socket> s_socket = nullptr;
 
 void receiveFromReference()
-try
-{
+try {
   string packet;
   ComboAddress remote;
-  int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, 1000*(g_timeoutMsec%1000));
-  
-  if(res < 0 || res==0)
+  int res = waitForData(s_socket->getHandle(), g_timeoutMsec / 1000, 1000 * (g_timeoutMsec % 1000));
+
+  if (res < 0 || res == 0)
     return;
 
-  while(s_socket->recvFromAsync(packet, remote)) {
+  while (s_socket->recvFromAsync(packet, remote)) {
     try {
       s_weanswers++;
       MOADNSParser mdp(false, packet.c_str(), packet.length());
-      if(!mdp.d_header.qr) {
-        cout<<"Received a question from our reference nameserver!"<<endl;
+      if (!mdp.d_header.qr) {
+        cout << "Received a question from our reference nameserver!" << endl;
         continue;
       }
 
       typedef qids_t::index<AssignedIDTag>::type qids_by_id_index_t;
-      qids_by_id_index_t& idindex=qids.get<AssignedIDTag>();
-      qids_by_id_index_t::const_iterator found=idindex.find(ntohs(mdp.d_header.id));
-      if(found == idindex.end()) {
-        if(!g_quiet)      
-          cout<<"Received an answer ("<<mdp.d_qname<<") from reference nameserver with id "<<mdp.d_header.id<<" which we can't match to a question!"<<endl;
+      qids_by_id_index_t& idindex = qids.get<AssignedIDTag>();
+      qids_by_id_index_t::const_iterator found = idindex.find(ntohs(mdp.d_header.id));
+      if (found == idindex.end()) {
+        if (!g_quiet)
+          cout << "Received an answer (" << mdp.d_qname << ") from reference nameserver with id " << mdp.d_header.id << " which we can't match to a question!" << endl;
         s_weunmatched++;
         continue;
       }
 
-      QuestionData qd=*found;    // we have to make a copy because we reinsert below      
-      qd.d_newAnswers=mdp.d_answers;
-      qd.d_newRcode=mdp.d_header.rcode;
+      QuestionData qd = *found; // we have to make a copy because we reinsert below
+      qd.d_newAnswers = mdp.d_answers;
+      qd.d_newRcode = mdp.d_header.rcode;
       idindex.replace(found, qd);
-      if(qd.d_origRcode!=-1) {
-	qids_t::const_iterator iter= qids.project<0>(found);
-	measureResultAndClean(iter);
+      if (qd.d_origRcode != -1) {
+        qids_t::const_iterator iter = qids.project<0>(found);
+        measureResultAndClean(iter);
       }
     }
-    catch(const MOADNSException &mde)
-    {
+    catch (const MOADNSException& mde) {
       s_wednserrors++;
     }
-    catch(std::out_of_range &e)
-    {
+    catch (std::out_of_range& e) {
       s_wednserrors++;
     }
-    catch(std::exception& e) 
-    {
+    catch (std::exception& e) {
       s_wednserrors++;
     }
   }
 }
-catch(std::exception& e)
-{
-  cerr<<"Receiver function died: "<<e.what()<<endl;
+catch (std::exception& e) {
+  cerr << "Receiver function died: " << e.what() << endl;
   exit(1);
 }
-catch(...)
-{
-  cerr<<"Receiver function died with unknown exception"<<endl;
+catch (...) {
+  cerr << "Receiver function died with unknown exception" << endl;
   exit(1);
 }
 
@@ -474,15 +470,15 @@ void pruneQids()
   struct timeval now;
   gettimeofday(&now, 0);
 
-  for(qids_t::iterator i=qids.begin(); i!=qids.end(); ) {
-    if(DiffTime(i->d_resentTime, now) < 10)
+  for (qids_t::iterator i = qids.begin(); i != qids.end();) {
+    if (DiffTime(i->d_resentTime, now) < 10)
       ++i;
     else {
       s_idmanager.releaseID(i->d_assignedID);
-      if(i->d_newRcode==-1) {
-       s_wenever++;
+      if (i->d_newRcode == -1) {
+        s_wenever++;
       }
-      if(i->d_origRcode==-1) {
+      if (i->d_origRcode == -1) {
         s_orignever++;
       }
 
@@ -491,24 +487,25 @@ void pruneQids()
   }
 }
 
-void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
+void printStats(uint64_t origWaitingFor = 0, uint64_t weWaitingFor = 0)
 {
-  format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
+  format headerfmt("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
   format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
 
-  cerr<<headerfmt;
-  cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);
-  cerr<<(datafmt % "Refer." % s_questions % weWaitingFor    % s_wenever    % s_weanswers   % 0 % s_wetimedout    % 0 % 0);
+  cerr << headerfmt;
+  cerr << (datafmt % "Orig" % s_questions % origWaitingFor % s_orignever % s_origanswers % 0 % s_origtimedout % 0 % 0);
+  cerr << (datafmt % "Refer." % s_questions % weWaitingFor % s_wenever % s_weanswers % 0 % s_wetimedout % 0 % 0);
 
-  cerr<<weWaitingFor<<" queries that could still come in on time, "<<qids.size()<<" outstanding"<<endl;
-  
-  cerr<<"we late: "<<s_wetimedout<<", orig late: "<< s_origtimedout<<", "<<s_questions<<" questions sent, "<<s_origanswers
-      <<" original answers, "<<s_perfect<<" perfect, "<<s_mostly<<" mostly correct"<<", "<<s_webetter<<" we better, "<<s_origbetter<<" orig better ("<<s_origbetterset.size()<<" diff)"<<endl;
-  cerr<<"we never: "<<s_wenever<<", orig never: "<<s_orignever<<endl;
-  cerr<<"original questions from IP addresses for which recursion was not available: "<<s_norecursionavailable<<endl;
-  cerr<<"Unmatched from us: "<<s_weunmatched<<", unmatched from original: "<<s_origunmatched << " ( - decoding err: "<<s_origunmatched-s_origdnserrors<<")"<<endl;
-  cerr<<"DNS decoding errors from us: "<<s_wednserrors<<", from original: "<<s_origdnserrors<<", exact duplicates from client: "<<s_duplicates<<endl<<endl;
+  cerr << weWaitingFor << " queries that could still come in on time, " << qids.size() << " outstanding" << endl;
 
+  cerr << "we late: " << s_wetimedout << ", orig late: " << s_origtimedout << ", " << s_questions << " questions sent, " << s_origanswers
+       << " original answers, " << s_perfect << " perfect, " << s_mostly << " mostly correct"
+       << ", " << s_webetter << " we better, " << s_origbetter << " orig better (" << s_origbetterset.size() << " diff)" << endl;
+  cerr << "we never: " << s_wenever << ", orig never: " << s_orignever << endl;
+  cerr << "original questions from IP addresses for which recursion was not available: " << s_norecursionavailable << endl;
+  cerr << "Unmatched from us: " << s_weunmatched << ", unmatched from original: " << s_origunmatched << " ( - decoding err: " << s_origunmatched - s_origdnserrors << ")" << endl;
+  cerr << "DNS decoding errors from us: " << s_wednserrors << ", from original: " << s_origdnserrors << ", exact duplicates from client: " << s_duplicates << endl
+       << endl;
 }
 
 void houseKeeping()
@@ -518,27 +515,27 @@ void houseKeeping()
   struct timeval now;
   gettimeofday(&now, 0);
 
-  if(DiffTime(last, now) < 0.3)
+  if (DiffTime(last, now) < 0.3)
     return;
 
   int weWaitingFor, origWaitingFor, weSlow, origSlow;
   WeOrigSlowQueriesDelta(weWaitingFor, origWaitingFor, weSlow, origSlow);
-    
-  if(!g_throttled) {
-    if( weWaitingFor > 1000) {
-      cerr<<"Too many questions ("<<weWaitingFor<<") outstanding, throttling"<<endl;
-      g_throttled=true;
+
+  if (!g_throttled) {
+    if (weWaitingFor > 1000) {
+      cerr << "Too many questions (" << weWaitingFor << ") outstanding, throttling" << endl;
+      g_throttled = true;
     }
   }
-  else if(weWaitingFor < 750) {
-    cerr<<"Unthrottling ("<<weWaitingFor<<")"<<endl;
-    g_throttled=false;
+  else if (weWaitingFor < 750) {
+    cerr << "Unthrottling (" << weWaitingFor << ")" << endl;
+    g_throttled = false;
   }
 
-  if(DiffTime(last, now) < 2)
+  if (DiffTime(last, now) < 2)
     return;
 
-  last=now;
+  last = now;
 
   /*
         Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)
@@ -559,34 +556,33 @@ static void generateOptRR(const std::string& optRData, string& res)
   edns0.extRCode = 0;
   edns0.version = 0;
   edns0.extFlags = 0;
-  
+
   dh.d_type = htons(QType::OPT);
   dh.d_class = htons(1280);
   memcpy(&dh.d_ttl, &edns0, sizeof edns0);
-  dh.d_clen = htons((uint16_t) optRData.length());
-  res.assign((const char *) &name, sizeof name);
-  res.append((const char *) &dh, sizeof dh);
+  dh.d_clen = htons((uint16_t)optRData.length());
+  res.assign((const char*)&name, sizeof name);
+  res.append((const char*)&dh, sizeof dh);
   res.append(optRData.c_str(), optRData.length());
 }
 
 static void addECSOption(char* packet, const size_t packetSize, uint16_t* len, const ComboAddress& remote, int stamp)
 {
   string EDNSRR;
-  struct dnsheader* dh = (struct dnsheader*) packet;
+  struct dnsheader* dh = (struct dnsheader*)packet;
 
   EDNSSubnetOpts eso;
-  if(stamp < 0)
+  if (stamp < 0)
     eso.source = Netmask(remote);
   else {
     ComboAddress stamped(remote);
-    *((char*)&stamped.sin4.sin_addr.s_addr)=stamp;
+    *((char*)&stamped.sin4.sin_addr.s_addr) = stamp;
     eso.source = Netmask(stamped);
   }
-  string optRData=makeEDNSSubnetOptsString(eso);
+  string optRData = makeEDNSSubnetOptsString(eso);
   string record;
   generateEDNSOption(EDNSOptionCode::ECS, optRData, record);
   generateOptRR(record, EDNSRR);
-
 
   uint16_t arcount = ntohs(dh->arcount);
   /* does it fit in the existing buffer? */
@@ -603,7 +599,7 @@ static uint16_t g_pcapDnsPort;
 
 static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
 {
-  bool sent=false;
+  bool sent = false;
   if (pr.d_len <= sizeof(dnsheader)) {
     return sent;
   }
@@ -611,18 +607,18 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
     /* too large for an DNS UDP query, something is not right */
     return false;
   }
-  dnsheader* dh=const_cast<dnsheader*>(reinterpret_cast<const dnsheader*>(pr.d_payload));
-  if((ntohs(pr.d_udp->uh_dport)!=g_pcapDnsPort && ntohs(pr.d_udp->uh_sport)!=g_pcapDnsPort) || dh->rd != g_rdSelector)
+  dnsheader* dh = const_cast<dnsheader*>(reinterpret_cast<const dnsheader*>(pr.d_payload));
+  if ((ntohs(pr.d_udp->uh_dport) != g_pcapDnsPort && ntohs(pr.d_udp->uh_sport) != g_pcapDnsPort) || dh->rd != g_rdSelector)
     return sent;
 
   QuestionData qd;
   try {
-    // yes, we send out ALWAYS. Even if we don't do anything with it later, 
-    if(!dh->qr) { // this is to stress out the reference server with all the pain
+    // yes, we send out ALWAYS. Even if we don't do anything with it later,
+    if (!dh->qr) { // this is to stress out the reference server with all the pain
       s_questions++;
       qd.d_assignedID = s_idmanager.getID();
-      uint16_t tmp=dh->id;
-      dh->id=htons(qd.d_assignedID);
+      uint16_t tmp = dh->id;
+      dh->id = htons(qd.d_assignedID);
       //      dh->rd=1; // useful to replay traffic to auths to a recursor
       uint16_t dlen = pr.d_len;
 
@@ -633,105 +629,88 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
           return false;
         }
         addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
-        pr.d_len=dlen;
+        pr.d_len = dlen;
       }
 
       s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
-      sent=true;
-      dh->id=tmp;
+      sent = true;
+      dh->id = tmp;
     }
     MOADNSParser mdp(false, (const char*)pr.d_payload, pr.d_len);
-    QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
+    QuestionIdentifier qi = QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
-    if(!mdp.d_header.qr) {
+    if (!mdp.d_header.qr) {
 
-      if(qids.count(qi)) {
-        if(!g_quiet)
-          cout<<"Saw an exact duplicate question in PCAP "<<qi<< endl;
+      if (qids.count(qi)) {
+        if (!g_quiet)
+          cout << "Saw an exact duplicate question in PCAP " << qi << endl;
         s_duplicates++;
-	s_idmanager.releaseID(qd.d_assignedID); // release = puts at back of pool
+        s_idmanager.releaseID(qd.d_assignedID); // release = puts at back of pool
         return sent;
       }
       // new question - ID assigned above already
-      qd.d_qi=qi;
-      gettimeofday(&qd.d_resentTime,0);
+      qd.d_qi = qi;
+      gettimeofday(&qd.d_resentTime, 0);
       qids.insert(qd);
     }
     else {
       s_origanswers++;
-      qids_t::const_iterator iter=qids.find(qi);      
-      if(iter != qids.end()) {
-        QuestionData eqd=*iter;
-        eqd.d_origAnswers=mdp.d_answers;
-        eqd.d_origRcode=mdp.d_header.rcode;
-        
-        if(!dh->ra) {
+      qids_t::const_iterator iter = qids.find(qi);
+      if (iter != qids.end()) {
+        QuestionData eqd = *iter;
+        eqd.d_origAnswers = mdp.d_answers;
+        eqd.d_origRcode = mdp.d_header.rcode;
+
+        if (!dh->ra) {
           s_norecursionavailable++;
-          eqd.d_norecursionavailable=true;
+          eqd.d_norecursionavailable = true;
         }
         qids.replace(iter, eqd);
 
-        if(eqd.d_newRcode!=-1) {
+        if (eqd.d_newRcode != -1) {
           measureResultAndClean(iter);
         }
-        
+
         return sent;
       }
       else {
         s_origunmatched++;
-        if(!g_quiet)
-          cout<<"Unmatched original answer "<<qi<<endl;
+        if (!g_quiet)
+          cout << "Unmatched original answer " << qi << endl;
       }
     }
   }
-  catch(const MOADNSException &mde)
-  {
-    if(!g_quiet)
-      cerr<<"Error parsing packet: "<<mde.what()<<endl;
-    s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
+  catch (const MOADNSException& mde) {
+    if (!g_quiet)
+      cerr << "Error parsing packet: " << mde.what() << endl;
+    s_idmanager.releaseID(qd.d_assignedID); // not added to qids for cleanup
     s_origdnserrors++;
   }
-  catch(std::exception &e)
-  {
-    if(!g_quiet)
-      cerr<<"Error parsing packet: "<<e.what()<<endl;
+  catch (std::exception& e) {
+    if (!g_quiet)
+      cerr << "Error parsing packet: " << e.what() << endl;
 
-    s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
-    s_origdnserrors++;    
+    s_idmanager.releaseID(qd.d_assignedID); // not added to qids for cleanup
+    s_origdnserrors++;
   }
 
   return sent;
 }
 
-void usage(po::options_description &desc) {
-  cerr << "Usage: dnsreplay [OPTIONS] FILENAME [IP-ADDRESS] [PORT]"<<endl;
+void usage(po::options_description& desc)
+{
+  cerr << "Usage: dnsreplay [OPTIONS] FILENAME [IP-ADDRESS] [PORT]" << endl;
   cerr << desc << "\n";
 }
 
 int main(int argc, char** argv)
-try
-{
+try {
   po::options_description desc("Allowed options");
-  desc.add_options()
-    ("help,h", "produce help message")
-    ("version", "show version number")
-    ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
-    ("pcap-dns-port", po::value<uint16_t>()->default_value(53), "look at packets from or to this port in the PCAP (defaults to 53)")
-    ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
-    ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
-    ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
-    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply")
-    ("ecs-stamp", "Add original IP address to ECS in replay")
-    ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS")
-    ("source-ip", po::value<string>()->default_value(""), "IP to send the replayed packet from")
-    ("source-port", po::value<uint16_t>()->default_value(0), "Port to send the replayed packet from");
+  desc.add_options()("help,h", "produce help message")("version", "show version number")("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")("pcap-dns-port", po::value<uint16_t>()->default_value(53), "look at packets from or to this port in the PCAP (defaults to 53)")("quiet", po::value<bool>()->default_value(true), "don't be too noisy")("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")("speedup", po::value<float>()->default_value(1), "replay at this speedup")("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply")("ecs-stamp", "Add original IP address to ECS in replay")("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS")("source-ip", po::value<string>()->default_value(""), "IP to send the replayed packet from")("source-port", po::value<uint16_t>()->default_value(0), "Port to send the replayed packet from");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");
-  hidden.add_options()
-    ("pcap-source", po::value<string>(), "PCAP source file")
-    ("target-ip", po::value<string>()->default_value("127.0.0.1"), "target-ip")
-    ("target-port", po::value<uint16_t>()->default_value(5300), "target port");
+  hidden.add_options()("pcap-source", po::value<string>(), "PCAP source file")("target-ip", po::value<string>()->default_value("127.0.0.1"), "target-ip")("target-port", po::value<uint16_t>()->default_value(5300), "target port");
 
   alloptions.add(desc).add(hidden);
   po::positional_options_description p;
@@ -750,12 +729,12 @@ try
   }
 
   if (g_vm.count("version")) {
-    cerr<<"dnsreplay "<<VERSION<<endl;
+    cerr << "dnsreplay " << VERSION << endl;
     return EXIT_SUCCESS;
   }
 
-  if(!g_vm.count("pcap-source")) {
-    cerr<<"Fatal, need to specify at least a PCAP source file"<<endl;
+  if (!g_vm.count("pcap-source")) {
+    cerr << "Fatal, need to specify at least a PCAP source file" << endl;
     usage(desc);
     return EXIT_FAILURE;
   }
@@ -768,81 +747,80 @@ try
   g_quiet = g_vm["quiet"].as<bool>();
 
   signal(SIGINT, pleaseQuitHandler);
-  float speedup=g_vm["speedup"].as<float>();
-  g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
+  float speedup = g_vm["speedup"].as<float>();
+  g_timeoutMsec = g_vm["timeout-msec"].as<uint32_t>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
-  s_socket= make_unique<Socket>(AF_INET, SOCK_DGRAM);
+  s_socket = make_unique<Socket>(AF_INET, SOCK_DGRAM);
 
   s_socket->setNonBlocking();
 
-  if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty())
+  if (g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty())
     s_socket->bind(ComboAddress(g_vm["source-ip"].as<string>(), g_vm["source-port"].as<uint16_t>()));
 
   setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
   setSocketSendBuffer(s_socket->getHandle(), 2000000);
 
-  ComboAddress remote(g_vm["target-ip"].as<string>(), 
-                    g_vm["target-port"].as<uint16_t>());
+  ComboAddress remote(g_vm["target-ip"].as<string>(),
+    g_vm["target-port"].as<uint16_t>());
 
- int stamp = -1;
- if(g_vm.count("ecs-stamp") && g_vm.count("ecs-mask"))
-   stamp=g_vm["ecs-mask"].as<uint16_t>();
+  int stamp = -1;
+  if (g_vm.count("ecs-stamp") && g_vm.count("ecs-mask"))
+    stamp = g_vm["ecs-mask"].as<uint16_t>();
 
-  cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
+  cerr << "Replaying packets to: '" << g_vm["target-ip"].as<string>() << "', port " << g_vm["target-port"].as<uint16_t>() << endl;
 
-  unsigned int once=0;
+  unsigned int once = 0;
   struct timeval mental_time;
-  mental_time.tv_sec=0; mental_time.tv_usec=0;
+  mental_time.tv_sec = 0;
+  mental_time.tv_usec = 0;
 
-  if(!pr.getUDPPacket()) // we do this here so we error out more cleanly on no packets
+  if (!pr.getUDPPacket()) // we do this here so we error out more cleanly on no packets
     return 0;
-  unsigned int count=0;
+  unsigned int count = 0;
   bool first = true;
-  for(;;) {
-    if(g_pleaseQuit) {
-      cerr<<"Interrupted from terminal"<<endl;
+  for (;;) {
+    if (g_pleaseQuit) {
+      cerr << "Interrupted from terminal" << endl;
       break;
     }
-    if(!((once++)%100)) 
+    if (!((once++) % 100))
       houseKeeping();
-    
-    struct timeval packet_ts;
-    packet_ts.tv_sec = 0; 
-    packet_ts.tv_usec = 0; 
 
-    while(packet_ts < mental_time) {
-      if(!first && !pr.getUDPPacket()) // otherwise we miss the first packet
+    struct timeval packet_ts;
+    packet_ts.tv_sec = 0;
+    packet_ts.tv_usec = 0;
+
+    while (packet_ts < mental_time) {
+      if (!first && !pr.getUDPPacket()) // otherwise we miss the first packet
         goto out;
-      first=false;
+      first = false;
 
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
-      if(sendPacketFromPR(pr, remote, stamp))
+      if (sendPacketFromPR(pr, remote, stamp))
         count++;
-    } 
-    if(packetLimit && count >= packetLimit) 
+    }
+    if (packetLimit && count >= packetLimit)
       break;
 
-    mental_time=packet_ts;
+    mental_time = packet_ts;
     struct timeval then, now;
-    gettimeofday(&then,0);
+    gettimeofday(&then, 0);
 
     receiveFromReference();
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + speedup * (now-then);
+    mental_time = mental_time + speedup * (now - then);
   }
- out:;
+out:;
   sleep(1);
   receiveFromReference();
   printStats();
   emitFlightTimes();
 }
-catch(std::exception& e)
-{
-  cerr<<"Fatal: "<<e.what()<<endl;
+catch (std::exception& e) {
+  cerr << "Fatal: " << e.what() << endl;
 }
-

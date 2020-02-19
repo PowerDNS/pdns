@@ -26,12 +26,12 @@
 
 #include <openssl/evp.h>
 
-inline std::string pdns_hash(const EVP_MD * md, const std::string& input)
+inline std::string pdns_hash(const EVP_MD* md, const std::string& input)
 {
 #if OPENSSL_VERSION_NUMBER < 0x1010000fL
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
 #else
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
 #endif
   if (!mdctx) {
     throw std::runtime_error(std::string(EVP_MD_name(md)) + " context initialization failed");
@@ -49,7 +49,7 @@ inline std::string pdns_hash(const EVP_MD * md, const std::string& input)
   std::string result;
   result.resize(EVP_MD_size(md));
 
-  if (EVP_DigestFinal_ex(mdctx.get(), const_cast<unsigned char *>(reinterpret_cast<const unsigned char*>(result.c_str())), &written) != 1) {
+  if (EVP_DigestFinal_ex(mdctx.get(), const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(result.c_str())), &written) != 1) {
     throw std::runtime_error(std::string(EVP_MD_name(md)) + " EVP final failed");
   }
 

@@ -32,13 +32,13 @@ public:
   void run()
   {
 #ifdef HAVE_NET_SNMP
-  d_thread = std::thread(&SNMPAgent::worker, this);
+    d_thread = std::thread(&SNMPAgent::worker, this);
 #endif /* HAVE_NET_SNMP */
   }
 
 #ifdef HAVE_NET_SNMP
   static int setCounter64Value(netsnmp_request_info* request,
-                               uint64_t value);
+    uint64_t value);
 #endif /* HAVE_NET_SNMP */
 protected:
 #ifdef HAVE_NET_SNMP
@@ -47,9 +47,9 @@ protected:
   static const size_t snmpTrapOIDLen;
 
   static bool sendTrap(int fd,
-                       netsnmp_variable_list* varList);
+    netsnmp_variable_list* varList);
 
-  int d_trapPipe[2] = { -1, -1};
+  int d_trapPipe[2] = {-1, -1};
 #endif /* HAVE_NET_SNMP */
 private:
   void worker();

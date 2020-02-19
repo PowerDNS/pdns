@@ -35,110 +35,109 @@
 void setupLuaBindingsProtoBuf(bool client, bool configCheck)
 {
 #ifdef HAVE_LIBCRYPTO
-  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
-      return encryptCA(ca, key);
-    });
-  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
-      return decryptCA(ca, key);
-    });
+  g_lua.registerFunction<ComboAddress (ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
+    return encryptCA(ca, key);
+  });
+  g_lua.registerFunction<ComboAddress (ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
+    return decryptCA(ca, key);
+  });
 
   g_lua.writeFunction("makeIPCipherKey", [](const std::string& password) {
-      return makeIPCipherKey(password);
-    });
+    return makeIPCipherKey(password);
+  });
 #endif /* HAVE_LIBCRYPTO */
 
   /* ProtobufMessage */
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {
-      message.addTag(strValue);
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(vector<pair<int, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<int, string>>&tags) {
-      for (const auto& tag : tags) {
-        message.addTag(tag.second);
-      }
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint32_t> uSec)>("setProtobufResponseType",
-                                        [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint32_t> uSec) {
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {
+    message.addTag(strValue);
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(vector<pair<int, string>>)>("setTagArray", [](DNSDistProtoBufMessage& message, const vector<pair<int, string>>& tags) {
+    for (const auto& tag : tags) {
+      message.addTag(tag.second);
+    }
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(boost::optional<time_t> sec, boost::optional<uint32_t> uSec)>("setProtobufResponseType",
+    [](DNSDistProtoBufMessage& message, boost::optional<time_t> sec, boost::optional<uint32_t> uSec) {
       message.setType(DNSProtoBufMessage::Response);
-      message.setQueryTime(sec?*sec:0, uSec?*uSec:0);
+      message.setQueryTime(sec ? *sec : 0, uSec ? *uSec : 0);
     });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message,
-                                                            const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob) {
-      message.addRR(DNSName(strQueryName), uType, uClass, uTTL, strBlob);
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const DNSName&, uint16_t, uint16_t)>("setQuestion", [](DNSDistProtoBufMessage& message, const DNSName& qname, uint16_t qtype, uint16_t qclass) { message.setQuestion(qname, qtype, qclass); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(size_t)>("setBytes", [](DNSDistProtoBufMessage& message, size_t bytes) { message.setBytes(bytes); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setTime(sec, usec); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
-  g_lua.registerFunction<std::string(DNSDistProtoBufMessage::*)()>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
-      message.setRequestor(addr);
-      if (port) {
-        message.setRequestorPort(*port);
-      }
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
-      message.setRequestor(str);
-      if (port) {
-        message.setRequestorPort(*port);
-      }
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
-      message.setResponder(addr);
-      if (port) {
-        message.setResponderPort(*port);
-      }
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
-      message.setResponder(str);
-      if (port) {
-        message.setResponderPort(*port);
-      }
-    });
-  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setServerIdentity", [](DNSDistProtoBufMessage& message, const std::string& str) {
-      message.setServerIdentity(str);
-    });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message, const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob) {
+    message.addRR(DNSName(strQueryName), uType, uClass, uTTL, strBlob);
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const Netmask&)>("setEDNSSubnet", [](DNSDistProtoBufMessage& message, const Netmask& subnet) { message.setEDNSSubnet(subnet); });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const DNSName&, uint16_t, uint16_t)>("setQuestion", [](DNSDistProtoBufMessage& message, const DNSName& qname, uint16_t qtype, uint16_t qclass) { message.setQuestion(qname, qtype, qclass); });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(size_t)>("setBytes", [](DNSDistProtoBufMessage& message, size_t bytes) { message.setBytes(bytes); });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setTime(sec, usec); });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
+  g_lua.registerFunction<std::string (DNSDistProtoBufMessage::*)()>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
+    message.setRequestor(addr);
+    if (port) {
+      message.setRequestorPort(*port);
+    }
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
+    message.setRequestor(str);
+    if (port) {
+      message.setRequestorPort(*port);
+    }
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setResponder", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
+    message.setResponder(addr);
+    if (port) {
+      message.setResponderPort(*port);
+    }
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
+    message.setResponder(str);
+    if (port) {
+      message.setResponderPort(*port);
+    }
+  });
+  g_lua.registerFunction<void (DNSDistProtoBufMessage::*)(const std::string&)>("setServerIdentity", [](DNSDistProtoBufMessage& message, const std::string& str) {
+    message.setServerIdentity(str);
+  });
 
-  g_lua.registerFunction<std::string(DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
-  g_lua.registerFunction<void(DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
-      message.setExtra(str);
-    });
+  g_lua.registerFunction<std::string (DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
+  g_lua.registerFunction<void (DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
+    message.setExtra(str);
+  });
 
   /* RemoteLogger */
-  g_lua.writeFunction("newRemoteLogger", [client,configCheck](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
-      if (client || configCheck) {
-        return std::shared_ptr<RemoteLoggerInterface>(nullptr);
-      }
-      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries*100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
-    });
+  g_lua.writeFunction("newRemoteLogger", [client, configCheck](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
+    if (client || configCheck) {
+      return std::shared_ptr<RemoteLoggerInterface>(nullptr);
+    }
+    return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
+  });
 
-  g_lua.writeFunction("newFrameStreamUnixLogger", [client,configCheck](const std::string& address) {
+  g_lua.writeFunction("newFrameStreamUnixLogger", [client, configCheck](const std::string& address) {
 #ifdef HAVE_FSTRM
-      if (client || configCheck) {
-        return std::shared_ptr<RemoteLoggerInterface>(nullptr);
-      }
-      return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client));
+    if (client || configCheck) {
+      return std::shared_ptr<RemoteLoggerInterface>(nullptr);
+    }
+    return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client));
 #else
       throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
 #endif /* HAVE_FSTRM */
-    });
+  });
 
-  g_lua.writeFunction("newFrameStreamTcpLogger", [client,configCheck](const std::string& address) {
+  g_lua.writeFunction("newFrameStreamTcpLogger", [client, configCheck](const std::string& address) {
 #if defined(HAVE_FSTRM) && defined(HAVE_FSTRM_TCP_WRITER_INIT)
-      if (client || configCheck) {
-        return std::shared_ptr<RemoteLoggerInterface>(nullptr);
-      }
-      return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client));
+    if (client || configCheck) {
+      return std::shared_ptr<RemoteLoggerInterface>(nullptr);
+    }
+    return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client));
 #else
       throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
-    });
+  });
 
-  g_lua.registerFunction<std::string(std::shared_ptr<RemoteLoggerInterface>::*)()>("toString", [](const std::shared_ptr<RemoteLoggerInterface>& logger) {
-      if (logger) {
-        return logger->toString();
-      }
-      return std::string();
+  g_lua.registerFunction<std::string (std::shared_ptr<RemoteLoggerInterface>::*)()>("toString", [](const std::shared_ptr<RemoteLoggerInterface>& logger) {
+    if (logger) {
+      return logger->toString();
+    }
+    return std::string();
   });
 }

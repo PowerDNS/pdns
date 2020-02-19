@@ -36,7 +36,8 @@
 using namespace ::boost;
 using namespace ::boost::multi_index;
 
-struct TinyDomainInfo {
+struct TinyDomainInfo
+{
   uint32_t id;
   uint32_t notified_serial;
   DNSName zone;
@@ -47,45 +48,50 @@ struct TinyDomainInfo {
   }
 };
 
-struct TDI_SerialModifier {
-  TDI_SerialModifier (const int newSerial) : d_newSerial(newSerial) {}
+struct TDI_SerialModifier
+{
+  TDI_SerialModifier(const int newSerial) :
+    d_newSerial(newSerial) {}
 
   void operator()(TinyDomainInfo& tdi)
   {
     tdi.notified_serial = d_newSerial;
   }
 
-  private:
-    int d_newSerial;
+private:
+  int d_newSerial;
 };
-
 
 class TinyDNSBackend : public DNSBackend
 {
 public:
   // Methods for simple operation
-  TinyDNSBackend(const string &suffix);
-  void lookup(const QType &qtype, const DNSName &qdomain, int zoneId, DNSPacket *pkt_p=nullptr) override;
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
-  bool get(DNSResourceRecord &rr) override;
-  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
+  TinyDNSBackend(const string& suffix);
+  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
+  bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
+  bool get(DNSResourceRecord& rr) override;
+  void getAllDomains(vector<DomainInfo>* domains, bool include_disabled = false) override;
 
   //Master mode operation
   void getUpdatedMasters(vector<DomainInfo>* domains) override;
   void setNotified(uint32_t id, uint32_t serial) override;
+
 private:
   vector<string> getLocations();
 
   //TypeDefs
-  struct tag_zone{};
-  struct tag_domainid{};
+  struct tag_zone
+  {
+  };
+  struct tag_domainid
+  {
+  };
   typedef multi_index_container<
     TinyDomainInfo,
     indexed_by<
-      hashed_unique<tag<tag_zone>, member<TinyDomainInfo, DNSName, &TinyDomainInfo::zone> >,
-      hashed_unique<tag<tag_domainid>, member<TinyDomainInfo, uint32_t, &TinyDomainInfo::id> >
-    >
-  > TDI_t;
+      hashed_unique<tag<tag_zone>, member<TinyDomainInfo, DNSName, &TinyDomainInfo::zone>>,
+      hashed_unique<tag<tag_domainid>, member<TinyDomainInfo, uint32_t, &TinyDomainInfo::id>>>>
+    TDI_t;
   typedef map<string, TDI_t> TDI_suffix_t;
   typedef TDI_t::index<tag_zone>::type TDIByZone_t;
   typedef TDI_t::index<tag_domainid>::type TDIById_t;
@@ -94,7 +100,7 @@ private:
   uint64_t d_taiepoch;
   QType d_qtype;
   std::unique_ptr<CDB> d_cdbReader;
-  DNSPacket *d_dnspacket; // used for location and edns-client support.
+  DNSPacket* d_dnspacket; // used for location and edns-client support.
   bool d_isWildcardQuery; // Indicate if the query received was a wildcard query.
   bool d_isAxfr; // Indicate if we received a list() and not a lookup().
   bool d_locations;

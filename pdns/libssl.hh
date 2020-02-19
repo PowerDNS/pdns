@@ -10,7 +10,14 @@
 #include "circular_buffer.hh"
 #include "lock.hh"
 
-enum class LibsslTLSVersion { Unknown, TLS10, TLS11, TLS12, TLS13 };
+enum class LibsslTLSVersion
+{
+  Unknown,
+  TLS10,
+  TLS11,
+  TLS12,
+  TLS13
+};
 
 class TLSConfig
 {
@@ -70,8 +77,8 @@ public:
   ~OpenSSLTLSTicketKey();
 
   bool nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const;
-  int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const;
-  bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const;
+  int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
+  bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
 
 private:
   unsigned char d_name[TLS_TICKETS_KEY_NAME_SIZE];
@@ -92,31 +99,31 @@ public:
   void rotateTicketsKey(time_t now);
 
 private:
-  boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > d_ticketKeys;
+  boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey>> d_ticketKeys;
   pthread_rwlock_t d_lock;
 };
 
 void* libssl_get_ticket_key_callback_data(SSL* s);
 void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data);
-int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc);
+int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc);
 
 int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& ocspMap);
 
 std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::string>& ocspFiles, std::vector<int> keyTypes);
-int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx);
+int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx);
 
 #ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin);
 #endif
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters);
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters);
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
 
-std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
-                                                                       std::map<int, std::string>& ocspResponses);
+std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
+  std::map<int, std::string>& ocspResponses);
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile);
+std::unique_ptr<FILE, int (*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void (*)(SSL_CTX*)>& ctx, const std::string& logFile);
 #endif /* HAVE_LIBSSL */

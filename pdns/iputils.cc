@@ -23,7 +23,7 @@
 #include "config.h"
 #endif
 #include "iputils.hh"
-#include <sys/socket.h> 
+#include <sys/socket.h>
 
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
@@ -40,7 +40,7 @@ static void NetworkErr(const boost::format& fmt)
 int SSocket(int family, int type, int flags)
 {
   int ret = socket(family, type, flags);
-  if(ret < 0)
+  if (ret < 0)
     RuntimeError(boost::format("creating socket of type %d: %s") % family % stringerror());
   return ret;
 }
@@ -48,7 +48,7 @@ int SSocket(int family, int type, int flags)
 int SConnect(int sockfd, const ComboAddress& remote)
 {
   int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
-  if(ret < 0) {
+  if (ret < 0) {
     int savederrno = errno;
     RuntimeError(boost::format("connecting socket to %s: %s") % remote.toStringWithPort() % strerror(savederrno));
   }
@@ -58,7 +58,7 @@ int SConnect(int sockfd, const ComboAddress& remote)
 int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
 {
   int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
-  if(ret < 0) {
+  if (ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
       if (timeout <= 0) {
@@ -73,7 +73,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
         if (error) {
           savederrno = 0;
           socklen_t errlen = sizeof(savederrno);
-          if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *)&savederrno, &errlen) == 0) {
+          if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void*)&savederrno, &errlen) == 0) {
             NetworkErr(boost::format("connecting to %s failed: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
           }
           else {
@@ -87,7 +87,8 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
       }
       else if (res == 0) {
         NetworkErr(boost::format("timeout while connecting to %s") % remote.toStringWithPort());
-      } else if (res < 0) {
+      }
+      else if (res < 0) {
         savederrno = errno;
         NetworkErr(boost::format("waiting to connect to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
       }
@@ -103,7 +104,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
 int SBind(int sockfd, const ComboAddress& local)
 {
   int ret = bind(sockfd, (struct sockaddr*)&local, local.getSocklen());
-  if(ret < 0) {
+  if (ret < 0) {
     int savederrno = errno;
     RuntimeError(boost::format("binding socket to %s: %s") % local.toStringWithPort() % strerror(savederrno));
   }
@@ -115,7 +116,7 @@ int SAccept(int sockfd, ComboAddress& remote)
   socklen_t remlen = remote.getSocklen();
 
   int ret = accept(sockfd, (struct sockaddr*)&remote, &remlen);
-  if(ret < 0)
+  if (ret < 0)
     RuntimeError(boost::format("accepting new connection on socket: %s") % stringerror());
   return ret;
 }
@@ -123,7 +124,7 @@ int SAccept(int sockfd, ComboAddress& remote)
 int SListen(int sockfd, int limit)
 {
   int ret = listen(sockfd, limit);
-  if(ret < 0)
+  if (ret < 0)
     RuntimeError(boost::format("setting socket to listen: %s") % stringerror());
   return ret;
 }
@@ -131,7 +132,7 @@ int SListen(int sockfd, int limit)
 int SSetsockopt(int sockfd, int level, int opname, int value)
 {
   int ret = setsockopt(sockfd, level, opname, &value, sizeof(value));
-  if(ret < 0)
+  if (ret < 0)
     RuntimeError(boost::format("setsockopt for level %d and opname %d to %d failed: %s") % level % opname % value % stringerror());
   return ret;
 }
@@ -148,7 +149,7 @@ void setSocketIgnorePMTU(int sockfd)
     SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
     return;
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     /* failed, let's try IP_PMTUDISC_DONT instead */
   }
 #endif /* IP_PMTUDISC_OMIT */
@@ -158,13 +159,12 @@ void setSocketIgnorePMTU(int sockfd)
 #endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
 }
 
-bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
+bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 {
 #ifdef SO_TIMESTAMP
-  struct cmsghdr *cmsg;
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && 
-	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
+  struct cmsghdr* cmsg;
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh, cmsg)) {
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
       return true;
     }
@@ -182,26 +182,26 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 #endif
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
-     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
-        struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
-        destination->sin4.sin_addr = i->ipi_addr;
-        destination->sin4.sin_family = AF_INET;
-        return true;
+    if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
+      struct in_pktinfo* i = (struct in_pktinfo*)CMSG_DATA(cmsg);
+      destination->sin4.sin_addr = i->ipi_addr;
+      destination->sin4.sin_family = AF_INET;
+      return true;
     }
 #elif defined(IP_RECVDSTADDR)
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
-      struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
+      struct in_addr* i = (struct in_addr*)CMSG_DATA(cmsg);
       destination->sin4.sin_addr = *i;
-      destination->sin4.sin_family = AF_INET;      
+      destination->sin4.sin_family = AF_INET;
       return true;
     }
 #endif
 
     if ((cmsg->cmsg_level == IPPROTO_IPV6) && (cmsg->cmsg_type == IPV6_PKTINFO)) {
-        struct in6_pktinfo *i = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-        destination->sin6.sin6_addr = i->ipi6_addr;
-        destination->sin4.sin_family = AF_INET6;
-        return true;
+      struct in6_pktinfo* i = (struct in6_pktinfo*)CMSG_DATA(cmsg);
+      destination->sin6.sin6_addr = i->ipi6_addr;
+      destination->sin4.sin_family = AF_INET6;
+      return true;
     }
   }
   return false;
@@ -209,11 +209,11 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 
 bool IsAnyAddress(const ComboAddress& addr)
 {
-  if(addr.sin4.sin_family == AF_INET)
+  if (addr.sin4.sin_family == AF_INET)
     return addr.sin4.sin_addr.s_addr == 0;
-  else if(addr.sin4.sin_family == AF_INET6)
+  else if (addr.sin4.sin_family == AF_INET6)
     return !memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr));
-  
+
   return false;
 }
 
@@ -232,11 +232,11 @@ ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const Comb
   msgh.msg_name = (struct sockaddr*)&to;
   msgh.msg_namelen = to.getSocklen();
 
-  if(from.sin4.sin_family) {
+  if (from.sin4.sin_family) {
     addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
   }
   else {
-    msgh.msg_control=NULL;
+    msgh.msg_control = NULL;
   }
   return sendmsg(sock, &msgh, flags);
 }
@@ -247,15 +247,15 @@ ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const Comb
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr)
 {
   iov->iov_base = data;
-  iov->iov_len  = datalen;
+  iov->iov_len = datalen;
 
   memset(msgh, 0, sizeof(struct msghdr));
-  
+
   msgh->msg_control = cbuf;
   msgh->msg_controllen = cbufsize;
   msgh->msg_name = addr;
   msgh->msg_namelen = addr->getSocklen();
-  msgh->msg_iov  = iov;
+  msgh->msg_iov = iov;
   msgh->msg_iovlen = 1;
   msgh->msg_flags = 0;
 }
@@ -264,30 +264,30 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, s
 void ComboAddress::truncate(unsigned int bits) noexcept
 {
   uint8_t* start;
-  int len=4;
-  if(sin4.sin_family==AF_INET) {
-    if(bits >= 32)
+  int len = 4;
+  if (sin4.sin_family == AF_INET) {
+    if (bits >= 32)
       return;
     start = (uint8_t*)&sin4.sin_addr.s_addr;
-    len=4;
+    len = 4;
   }
   else {
-    if(bits >= 128)
+    if (bits >= 128)
       return;
     start = (uint8_t*)&sin6.sin6_addr.s6_addr;
-    len=16;
+    len = 16;
   }
 
-  auto tozero= len*8 - bits; // if set to 22, this will clear 1 byte, as it should
+  auto tozero = len * 8 - bits; // if set to 22, this will clear 1 byte, as it should
 
-  memset(start + len - tozero/8, 0, tozero/8); // blot out the whole bytes on the right
-  
-  auto bitsleft=tozero % 8; // 2 bits left to clear
+  memset(start + len - tozero / 8, 0, tozero / 8); // blot out the whole bytes on the right
+
+  auto bitsleft = tozero % 8; // 2 bits left to clear
 
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
-  uint8_t* place = start + len - 1 - tozero/8; 
-  *place &= (~((1<<bitsleft)-1));
+  uint8_t* place = start + len - 1 - tozero / 8;
+  *place &= (~((1 << bitsleft) - 1));
 }
 
 size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
@@ -365,8 +365,7 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
         unixDie("failed in sendMsgWithTimeout");
       }
     }
-  }
-  while (true);
+  } while (true);
 
   return 0;
 }

@@ -24,11 +24,10 @@
 #include <ldap.h>
 #include <string>
 
-void ldapSetOption( LDAP *conn, int option, void *value );
+void ldapSetOption(LDAP* conn, int option, void* value);
 
-void ldapGetOption( LDAP *conn, int option, void *value );
+void ldapGetOption(LDAP* conn, int option, void* value);
 
-std::string ldapGetError( LDAP *conn, int code );
+std::string ldapGetError(LDAP* conn, int code);
 
-int ldapWaitResult( LDAP *conn, int msgid, int timeout, LDAPMessage** result = NULL );
-
+int ldapWaitResult(LDAP* conn, int msgid, int timeout, LDAPMessage** result = NULL);

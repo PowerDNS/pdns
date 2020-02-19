@@ -57,7 +57,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool n
       }
     }
   }
-  if(newState != dss->upStatus) {
+  if (newState != dss->upStatus) {
     warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 
     if (newState && !dss->connected) {
@@ -93,7 +93,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
       return false;
     }
 
-    const dnsheader * responseHeader = reinterpret_cast<const dnsheader *>(reply.c_str());
+    const dnsheader* responseHeader = reinterpret_cast<const dnsheader*>(reply.c_str());
 
     if (reply.size() < sizeof(*responseHeader)) {
       if (g_verboseHealthChecks) {
@@ -141,15 +141,13 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
       return false;
     }
   }
-  catch(const std::exception& e)
-  {
+  catch (const std::exception& e) {
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", ds->getNameWithAddr(), e.what());
     }
     return false;
   }
-  catch(...)
-  {
+  catch (...) {
     if (g_verboseHealthChecks) {
       infolog("Unknown exception while checking the health of backend %s", ds->getNameWithAddr());
     }
@@ -177,8 +175,7 @@ static void initialHealthCheckCallback(int fd, FDMultiplexer::funcparam_t& param
 
 bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initialCheck)
 {
-  try
-  {
+  try {
     uint16_t queryID = getRandomDNSID();
     DNSName checkName = ds->checkName;
     uint16_t checkType = ds->checkType.getCode();
@@ -204,7 +201,7 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
 
     vector<uint8_t> packet;
     DNSPacketWriter dpw(packet, checkName, checkType, checkClass);
-    dnsheader * requestHeader = dpw.getHeader();
+    dnsheader* requestHeader = dpw.getHeader();
     *requestHeader = checkHeader;
 
     Socket sock(ds->remote.sin4.sin_family, SOCK_DGRAM);
@@ -243,15 +240,13 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
 
     return true;
   }
-  catch(const std::exception& e)
-  {
+  catch (const std::exception& e) {
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", ds->getNameWithAddr(), e.what());
     }
     return false;
   }
-  catch(...)
-  {
+  catch (...) {
     if (g_verboseHealthChecks) {
       infolog("Unknown exception while checking the health of backend %s", ds->getNameWithAddr());
     }

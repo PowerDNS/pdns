@@ -41,22 +41,22 @@
 void CommunicatorClass::retrievalLoopThread(void)
 {
   setThreadName("pdns/comm-retre");
-  for(;;) {
+  for (;;) {
     d_suck_sem.wait();
     SuckRequest sr;
     {
       Lock l(&d_lock);
-      if(d_suckdomains.empty()) 
+      if (d_suckdomains.empty())
         continue;
-        
-      sr=d_suckdomains.front();
+
+      sr = d_suckdomains.front();
       d_suckdomains.pop_front();
     }
     suck(sr.domain, sr.master);
   }
 }
 
-void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &listset)
+void CommunicatorClass::loadArgsIntoSet(const char* listname, set<string>& listset)
 {
   vector<string> parts;
   stringtok(parts, ::arg()[listname], ", \t");
@@ -65,8 +65,8 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
       ComboAddress caIp(*iter, 53);
       listset.insert(caIp.toStringWithPort());
     }
-    catch(PDNSException &e) {
-      g_log<<Logger::Error<<"Unparseable IP in "<<listname<<". Error: "<<e.reason<<endl;
+    catch (PDNSException& e) {
+      g_log << Logger::Error << "Unparseable IP in " << listname << ". Error: " << e.reason << endl;
       _exit(1);
     }
   }
@@ -75,16 +75,16 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
 void CommunicatorClass::go()
 {
   try {
-    PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"] );
+    PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"]);
   }
-  catch(PDNSException &e) {
-    g_log<<Logger::Error<<"Unparseable IP in allow-notify-from. Error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    g_log << Logger::Error << "Unparseable IP in allow-notify-from. Error: " << e.reason << endl;
     _exit(1);
   }
 
   pthread_t tid;
-  pthread_create(&tid,0,&launchhelper,this); // Starts CommunicatorClass::mainloop()
-  for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n)
+  pthread_create(&tid, 0, &launchhelper, this); // Starts CommunicatorClass::mainloop()
+  for (int n = 0; n < ::arg().asNum("retrieval-threads", 1); ++n)
     pthread_create(&tid, 0, &retrieveLaunchhelper, this); // Starts CommunicatorClass::retrievalLoopThread()
 
   d_preventSelfNotification = ::arg().mustDo("prevent-self-notification");
@@ -92,8 +92,8 @@ void CommunicatorClass::go()
   try {
     d_onlyNotify.toMasks(::arg()["only-notify"]);
   }
-  catch(PDNSException &e) {
-    g_log<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    g_log << Logger::Error << "Unparseable IP in only-notify. Error: " << e.reason << endl;
     _exit(1);
   }
 
@@ -106,28 +106,28 @@ void CommunicatorClass::mainloop(void)
 {
   try {
     setThreadName("pdns/comm-main");
-    signal(SIGPIPE,SIG_IGN);
-    g_log<<Logger::Error<<"Master/slave communicator launching"<<endl;
+    signal(SIGPIPE, SIG_IGN);
+    g_log << Logger::Error << "Master/slave communicator launching" << endl;
     PacketHandler P;
-    d_tickinterval=::arg().asNum("slave-cycle-interval");
+    d_tickinterval = ::arg().asNum("slave-cycle-interval");
     makeNotifySockets();
 
     int rc;
     time_t next, tick;
 
-    for(;;) {
+    for (;;) {
       slaveRefresh(&P);
       masterUpdateCheck(&P);
-      tick=doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
-      
-      tick = min (tick, d_tickinterval); 
-      
-      next=time(0)+tick;
+      tick = doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
 
-      while(time(0) < next) {
-        rc=d_any_sem.tryWait();
+      tick = min(tick, d_tickinterval);
 
-        if(rc) {
+      next = time(0) + tick;
+
+      while (time(0) < next) {
+        rc = d_any_sem.tryWait();
+
+        if (rc) {
           bool extraSlaveRefresh = false;
           Utility::sleep(1);
           {
@@ -149,19 +149,17 @@ void CommunicatorClass::mainloop(void)
       }
     }
   }
-  catch(PDNSException &ae) {
-    g_log<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
+  catch (PDNSException& ae) {
+    g_log << Logger::Error << "Exiting because communicator thread died with error: " << ae.reason << endl;
     Utility::sleep(1);
     _exit(1);
   }
-  catch(std::exception &e) {
-    g_log<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
+  catch (std::exception& e) {
+    g_log << Logger::Error << "Exiting because communicator thread died with STL error: " << e.what() << endl;
     _exit(1);
   }
-  catch( ... )
-  {
+  catch (...) {
     g_log << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
     _exit(1);
   }
 }
-

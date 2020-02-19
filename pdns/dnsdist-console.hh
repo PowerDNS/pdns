@@ -21,7 +21,8 @@
  */
 #pragma once
 
-struct ConsoleKeyword {
+struct ConsoleKeyword
+{
   std::string name;
   bool function;
   std::string parameters;
@@ -47,7 +48,8 @@ extern uint32_t g_consoleOutputMsgMaxSize;
 
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();
-extern "C" {
-char** my_completion( const char * text , int start,  int end);
+extern "C"
+{
+  char** my_completion(const char* text, int start, int end);
 }
 void controlThread(int fd, ComboAddress local);

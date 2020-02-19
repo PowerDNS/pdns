@@ -14,7 +14,8 @@ GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -79,10 +80,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -165,10 +166,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -256,10 +257,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -376,7 +377,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -445,10 +447,10 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
     BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -606,7 +608,8 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges)
+{
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
@@ -658,7 +661,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
     BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

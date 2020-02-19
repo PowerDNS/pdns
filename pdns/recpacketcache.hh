@@ -39,7 +39,6 @@
 #endif
 #include "rec-protobuf.hh"
 
-
 using namespace ::boost::multi_index;
 
 //! Stores whole packets, ready for lobbing back at the client. Not threadsafe.
@@ -47,7 +46,7 @@ using namespace ::boost::multi_index;
    you can use a query as a key too. But query and answer must compare as identical! 
    
    This precludes doing anything smart with EDNS directly from the packet */
-class RecursorPacketCache: public PacketCache
+class RecursorPacketCache : public PacketCache
 {
 public:
   RecursorPacketCache();
@@ -56,21 +55,28 @@ public:
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, uint16_t* ecsBegin, uint16_t* ecsEnd, RecProtoBufMessage* protobufMessage);
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, uint16_t* ecsBegin, uint16_t* ecsEnd, RecProtoBufMessage* protobufMessage);
   void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, uint16_t ecsBegin, uint16_t ecsEnd, boost::optional<RecProtoBufMessage>&& protobufMessage);
-  void doPruneTo(unsigned int maxSize=250000);
+  void doPruneTo(unsigned int maxSize = 250000);
   uint64_t doDump(int fd);
-  int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
-  
+  int doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
+
   void prune();
   uint64_t d_hits, d_misses;
   uint64_t size();
   uint64_t bytes();
 
 private:
-  struct HashTag {};
-  struct NameTag {};
-  struct Entry 
+  struct HashTag
   {
-    Entry(const DNSName& qname, std::string&& packet, std::string&& query): d_name(qname), d_packet(std::move(packet)), d_query(std::move(query))
+  };
+  struct NameTag
+  {
+  };
+  struct Entry
+  {
+    Entry(const DNSName& qname, std::string&& packet, std::string&& query) :
+      d_name(qname),
+      d_packet(std::move(packet)),
+      d_query(std::move(query))
     {
     }
 
@@ -97,16 +103,17 @@ private:
     }
   };
 
-  struct SequencedTag{};
+  struct SequencedTag
+  {
+  };
   typedef multi_index_container<
     Entry,
-    indexed_by  <
-      hashed_non_unique<tag<HashTag>, composite_key<Entry, member<Entry,uint32_t,&Entry::d_tag>, member<Entry,uint32_t,&Entry::d_qhash> > >,
-      sequenced<tag<SequencedTag>> ,
-      ordered_non_unique<tag<NameTag>, member<Entry,DNSName,&Entry::d_name>, CanonDNSNameCompare >
-      >
-  > packetCache_t;
-  
+    indexed_by<
+      hashed_non_unique<tag<HashTag>, composite_key<Entry, member<Entry, uint32_t, &Entry::d_tag>, member<Entry, uint32_t, &Entry::d_qhash>>>,
+      sequenced<tag<SequencedTag>>,
+      ordered_non_unique<tag<NameTag>, member<Entry, DNSName, &Entry::d_name>, CanonDNSNameCompare>>>
+    packetCache_t;
+
   packetCache_t d_packetCache;
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t ecsBegin, uint16_t ecsEnd);

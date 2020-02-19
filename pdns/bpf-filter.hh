@@ -35,11 +35,12 @@ public:
   void addSocket(int sock);
   void removeSocket(int sock);
   void block(const ComboAddress& addr);
-  void block(const DNSName& qname, uint16_t qtype=255);
+  void block(const DNSName& qname, uint16_t qtype = 255);
   void unblock(const ComboAddress& addr);
-  void unblock(const DNSName& qname, uint16_t qtype=255);
-  std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
-  std::vector<std::tuple<DNSName, uint16_t, uint64_t> > getQNameStats();
+  void unblock(const DNSName& qname, uint16_t qtype = 255);
+  std::vector<std::pair<ComboAddress, uint64_t>> getAddrStats();
+  std::vector<std::tuple<DNSName, uint16_t, uint64_t>> getQNameStats();
+
 private:
   struct FDWrapper
   {

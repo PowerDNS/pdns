@@ -31,28 +31,28 @@
 #include "iputils.hh"
 #include "circular_buffer.hh"
 
-
-template<typename T, typename Comp=std::less<T> >
+template <typename T, typename Comp = std::less<T>>
 class StatRing
 {
 public:
-  StatRing(unsigned int size=10000);
+  StatRing(unsigned int size = 10000);
   // Some older C++ libs have trouble emplacing without a copy-contructor, so provide one
-  StatRing(const StatRing &);
-  StatRing & operator=(const StatRing &) = delete;
-  
-  void account(const T &item);
+  StatRing(const StatRing&);
+  StatRing& operator=(const StatRing&) = delete;
+
+  void account(const T& item);
 
   uint64_t getSize() const;
   uint64_t getEntriesCount() const;
-  void resize(unsigned int newsize);  
+  void resize(unsigned int newsize);
   void reset();
-  void setHelp(const string &str);
+  void setHelp(const string& str);
   string getHelp();
 
-  vector<pair<T, unsigned int> > get() const;
+  vector<pair<T, unsigned int>> get() const;
+
 private:
-  static bool popisort(const pair<T,int> &a, const pair<T,int> &b) 
+  static bool popisort(const pair<T, int>& a, const pair<T, int>& b)
   {
     return (a.second > b.second);
   }
@@ -62,15 +62,14 @@ private:
   string d_help;
 };
 
-
 //! use this to gather and query statistics
 class StatBag
 {
   map<string, std::unique_ptr<AtomicCounter>> d_stats;
   map<string, string> d_keyDescrips;
-  map<string,StatRing<string, CIStringCompare> >d_rings;
-  map<string,StatRing<SComboAddress> >d_comborings;
-  map<string,StatRing<std::tuple<DNSName, QType> > >d_dnsnameqtyperings;
+  map<string, StatRing<string, CIStringCompare>> d_rings;
+  map<string, StatRing<SComboAddress>> d_comborings;
+  map<string, StatRing<std::tuple<DNSName, QType>>> d_dnsnameqtyperings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
@@ -82,75 +81,75 @@ class StatBag
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
   ~StatBag();
-  void declare(const string &key, const string &descrip=""); //!< Before you can store or access a key, you need to declare it
-  void declare(const string &key, const string &descrip, func_t func); //!< Before you can store or access a key, you need to declare it
+  void declare(const string& key, const string& descrip = ""); //!< Before you can store or access a key, you need to declare it
+  void declare(const string& key, const string& descrip, func_t func); //!< Before you can store or access a key, you need to declare it
 
-  void declareRing(const string &name, const string &title, unsigned int size=10000);
-  void declareComboRing(const string &name, const string &help, unsigned int size=10000);
-  void declareDNSNameQTypeRing(const string &name, const string &help, unsigned int size=10000);
-  vector<pair<string, unsigned int> >getRing(const string &name);
-  string getRingTitle(const string &name);
-  void ringAccount(const char* name, const string &item)
+  void declareRing(const string& name, const string& title, unsigned int size = 10000);
+  void declareComboRing(const string& name, const string& help, unsigned int size = 10000);
+  void declareDNSNameQTypeRing(const string& name, const string& help, unsigned int size = 10000);
+  vector<pair<string, unsigned int>> getRing(const string& name);
+  string getRingTitle(const string& name);
+  void ringAccount(const char* name, const string& item)
   {
-    if(d_doRings)  {
-      if(!d_rings.count(name))
-	throw runtime_error("Attempting to account to non-existent ring '"+std::string(name)+"'");
+    if (d_doRings) {
+      if (!d_rings.count(name))
+        throw runtime_error("Attempting to account to non-existent ring '" + std::string(name) + "'");
 
       d_rings[name].account(item);
     }
   }
-  void ringAccount(const char* name, const ComboAddress &item)
+  void ringAccount(const char* name, const ComboAddress& item)
   {
-    if(d_doRings) {
-      if(!d_comborings.count(name))
-	throw runtime_error("Attempting to account to non-existent comboring '"+std::string(name)+"'");
+    if (d_doRings) {
+      if (!d_comborings.count(name))
+        throw runtime_error("Attempting to account to non-existent comboring '" + std::string(name) + "'");
       d_comborings[name].account(item);
     }
   }
-  void ringAccount(const char* name, const DNSName &dnsname, const QType &qtype)
+  void ringAccount(const char* name, const DNSName& dnsname, const QType& qtype)
   {
-    if(d_doRings) {
-      if(!d_dnsnameqtyperings.count(name))
-	throw runtime_error("Attempting to account to non-existent dnsname+qtype ring '"+std::string(name)+"'");
+    if (d_doRings) {
+      if (!d_dnsnameqtyperings.count(name))
+        throw runtime_error("Attempting to account to non-existent dnsname+qtype ring '" + std::string(name) + "'");
       d_dnsnameqtyperings[name].account(std::make_tuple(dnsname, qtype));
     }
   }
 
   void doRings()
   {
-    d_doRings=true;
+    d_doRings = true;
   }
 
-  vector<string>listRings();
-  bool ringExists(const string &name);
-  void resetRing(const string &name);
-  void resizeRing(const string &name, unsigned int newsize);
-  uint64_t getRingSize(const string &name);
-  uint64_t getRingEntriesCount(const string &name);
+  vector<string> listRings();
+  bool ringExists(const string& name);
+  void resetRing(const string& name);
+  void resizeRing(const string& name, unsigned int newsize);
+  uint64_t getRingSize(const string& name);
+  uint64_t getRingEntriesCount(const string& name);
 
   string directory(); //!< Returns a list of all data stored
   vector<string> getEntries(); //!< returns a vector with datums (items)
-  string getDescrip(const string &item); //!< Returns the description of this datum/item
-  void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
-  inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
-  inline void inc(const string &key); //!< increase this key's value by one
-  void set(const string &key, unsigned long value); //!< set this key's value
-  unsigned long read(const string &key); //!< read the value behind this key
-  unsigned long readZero(const string &key); //!< read the value behind this key, and zero it afterwards
-  AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
-  string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
-  string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
-  void blacklist(const string &str);
+  string getDescrip(const string& item); //!< Returns the description of this datum/item
+  void exists(const string& key); //!< call this function to throw an exception in case a key does not exist
+  inline void deposit(const string& key, int value); //!< increment the statistics behind this key by value amount
+  inline void inc(const string& key); //!< increase this key's value by one
+  void set(const string& key, unsigned long value); //!< set this key's value
+  unsigned long read(const string& key); //!< read the value behind this key
+  unsigned long readZero(const string& key); //!< read the value behind this key, and zero it afterwards
+  AtomicCounter* getPointer(const string& key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
+  string getValueStr(const string& key); //!< read a value behind a key, and return it as a string
+  string getValueStrZero(const string& key); //!< read a value behind a key, and return it as a string, and zero afterwards
+  void blacklist(const string& str);
 };
 
-inline void StatBag::deposit(const string &key, int value)
+inline void StatBag::deposit(const string& key, int value)
 {
   exists(key);
 
-  *d_stats[key]+=value;
+  *d_stats[key] += value;
 }
 
-inline void StatBag::inc(const string &key)
+inline void StatBag::inc(const string& key)
 {
-  deposit(key,1);
+  deposit(key, 1);
 }

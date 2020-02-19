@@ -31,7 +31,8 @@ static void init()
   reportAllTypes();
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
   static bool initialized = false;
 
   if (!initialized) {
@@ -46,17 +47,17 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   try {
     MOADNSParser moaQuery(true, reinterpret_cast<const char*>(data), size);
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
   }
-  catch(const PDNSException& e) {
+  catch (const PDNSException& e) {
   }
 
   try {
     MOADNSParser moaAnswer(false, reinterpret_cast<const char*>(data), size);
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
   }
-  catch(const PDNSException& e) {
+  catch (const PDNSException& e) {
   }
 
   return 0;

@@ -46,21 +46,21 @@ public:
   ~TCPNameserver();
   void go();
   unsigned int numTCPConnections();
-private:
 
+private:
   static void sendPacket(std::unique_ptr<DNSPacket>& p, int outsock);
-  static int readLength(int fd, ComboAddress *remote);
-  static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
-  static int doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock);
+  static int readLength(int fd, ComboAddress* remote);
+  static void getQuestion(int fd, char* mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
+  static int doAXFR(const DNSName& target, std::unique_ptr<DNSPacket>& q, int outsock);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q);
-  static void *doConnection(void *data);
-  static void *launcher(void *data);
+  static void* doConnection(void* data);
+  static void* launcher(void* data);
   static void decrementClientCount(const ComboAddress& remote);
   void thread(void);
   static pthread_mutex_t s_plock;
   static std::mutex s_clientsCountMutex;
-  static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_clientsCount;
+  static std::map<ComboAddress, size_t, ComboAddress::addressOnlyLessThan> s_clientsCount;
   static std::unique_ptr<PacketHandler> s_P;
   pthread_t d_tid;
   static std::unique_ptr<Semaphore> d_connectionroom_sem;
@@ -71,6 +71,6 @@ private:
   static unsigned int d_idleTimeout;
   static unsigned int d_maxConnectionDuration;
 
-  vector<int>d_sockets;
+  vector<int> d_sockets;
   vector<struct pollfd> d_prfds;
 };

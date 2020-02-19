@@ -40,10 +40,11 @@ using namespace ::boost::multi_index;
 class FDMultiplexerException : public std::runtime_error
 {
 public:
-  FDMultiplexerException(const std::string& str) : std::runtime_error(str)
-  {}
+  FDMultiplexerException(const std::string& str) :
+    std::runtime_error(str)
+  {
+  }
 };
-
 
 /** Very simple FD multiplexer, based on callbacks and boost::any parameters
     As a special service, this parameter is kept around and can be modified, 
@@ -56,9 +57,9 @@ class FDMultiplexer
 {
 public:
   typedef boost::any funcparam_t;
-  typedef boost::function< void(int, funcparam_t&) > callbackfunc_t;
-protected:
+  typedef boost::function<void(int, funcparam_t&)> callbackfunc_t;
 
+protected:
   struct Callback
   {
     callbackfunc_t d_callback;
@@ -68,30 +69,33 @@ protected:
   };
 
 public:
-  FDMultiplexer() : d_inrun(false)
-  {}
+  FDMultiplexer() :
+    d_inrun(false)
+  {
+  }
   virtual ~FDMultiplexer()
-  {}
+  {
+  }
 
   static FDMultiplexer* getMultiplexerSilent();
-  
+
   /* tv will be updated to 'now' before run returns */
   /* timeout is in ms */
   /* returns 0 on timeout, -1 in case of error (but all implementations
      actually throw in that case) and the number of ready events otherwise */
-  virtual int run(struct timeval* tv, int timeout=500) = 0;
+  virtual int run(struct timeval* tv, int timeout = 500) = 0;
 
   /* timeout is in ms, 0 will return immediately, -1 will block until at least one FD is ready */
   virtual void getAvailableFDs(std::vector<int>& fds, int timeout) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
-  virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t(), const struct timeval* ttd=nullptr)
+  virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter = funcparam_t(), const struct timeval* ttd = nullptr)
   {
     this->addFD(d_readCallbacks, fd, toDo, parameter, ttd);
   }
 
   //! Add an fd to the write watch list - currently an fd can only be on one list at a time!
-  virtual void addWriteFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t(), const struct timeval* ttd=nullptr)
+  virtual void addWriteFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter = funcparam_t(), const struct timeval* ttd = nullptr)
   {
     this->addFD(d_writeCallbacks, fd, toDo, parameter, ttd);
   }
@@ -136,9 +140,9 @@ public:
     d_writeCallbacks.replace(it, newEntry);
   }
 
-  virtual std::vector<std::pair<int, funcparam_t> > getTimeouts(const struct timeval& tv, bool writes=false)
+  virtual std::vector<std::pair<int, funcparam_t>> getTimeouts(const struct timeval& tv, bool writes = false)
   {
-    std::vector<std::pair<int, funcparam_t> > ret;
+    std::vector<std::pair<int, funcparam_t>> ret;
     const auto tied = boost::tie(tv.tv_sec, tv.tv_usec);
     auto& idx = writes ? d_writeCallbacks.get<TTDOrderedTag>() : d_readCallbacks.get<TTDOrderedTag>();
 
@@ -160,7 +164,7 @@ public:
     static FDMultiplexermap_t theMap;
     return theMap;
   }
-  
+
   virtual std::string getName() const = 0;
 
   size_t getWatchedFDCount(bool writeFDs) const
@@ -169,12 +173,16 @@ public:
   }
 
 protected:
-  struct FDBasedTag {};
-  struct TTDOrderedTag {};
+  struct FDBasedTag
+  {
+  };
+  struct TTDOrderedTag
+  {
+  };
   struct ttd_compare
   {
     /* we want a 0 TTD (no timeout) to come _after_ everything else */
-    bool operator() (const struct timeval& lhs, const struct timeval& rhs) const
+    bool operator()(const struct timeval& lhs, const struct timeval& rhs) const
     {
       /* special treatment if at least one of the TTD is 0,
          normal comparison otherwise */
@@ -194,30 +202,27 @@ protected:
 
   typedef multi_index_container<
     Callback,
-    indexed_by <
-                hashed_unique<tag<FDBasedTag>,
-                              member<Callback,int,&Callback::d_fd>
-                              >,
-                ordered_non_unique<tag<TTDOrderedTag>,
-                                   member<Callback,struct timeval,&Callback::d_ttd>,
-                                   ttd_compare
-                                   >
-               >
-  > callbackmap_t;
+    indexed_by<
+      hashed_unique<tag<FDBasedTag>,
+        member<Callback, int, &Callback::d_fd>>,
+      ordered_non_unique<tag<TTDOrderedTag>,
+        member<Callback, struct timeval, &Callback::d_ttd>,
+        ttd_compare>>>
+    callbackmap_t;
 
   callbackmap_t d_readCallbacks, d_writeCallbacks;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr)=0;
-  virtual void removeFD(callbackmap_t& cbmap, int fd)=0;
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd = nullptr) = 0;
+  virtual void removeFD(callbackmap_t& cbmap, int fd) = 0;
   bool d_inrun;
   callbackmap_t::iterator d_iter;
 
-  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr)
+  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd = nullptr)
   {
     Callback cb;
     cb.d_fd = fd;
-    cb.d_callback=toDo;
-    cb.d_parameter=parameter;
+    cb.d_callback = toDo;
+    cb.d_parameter = parameter;
     memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
     if (ttd) {
       cb.d_ttd = *ttd;
@@ -225,14 +230,14 @@ protected:
 
     auto pair = cbmap.insert(cb);
     if (!pair.second) {
-      throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
+      throw FDMultiplexerException("Tried to add fd " + std::to_string(fd) + " to multiplexer twice");
     }
   }
 
-  void accountingRemoveFD(callbackmap_t& cbmap, int fd) 
+  void accountingRemoveFD(callbackmap_t& cbmap, int fd)
   {
-    if(!cbmap.erase(fd)) {
-      throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
+    if (!cbmap.erase(fd)) {
+      throw FDMultiplexerException("Tried to remove unlisted fd " + std::to_string(fd) + " from multiplexer");
     }
   }
 };

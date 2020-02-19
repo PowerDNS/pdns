@@ -28,7 +28,11 @@ struct DOHServerConfig;
 class DOHResponseMapEntry
 {
 public:
-  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::string& content, const boost::optional<std::vector<std::pair<std::string, std::string>>>& headers): d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
+  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::string& content, const boost::optional<std::vector<std::pair<std::string, std::string>>>& headers) :
+    d_regex(regex),
+    d_customHeaders(headers),
+    d_content(content),
+    d_status(status)
   {
   }
 
@@ -73,13 +77,13 @@ struct DOHFrontend
   std::vector<std::pair<std::string, std::string>> d_customResponseHeaders;
   ComboAddress d_local;
 
-  uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
+  uint32_t d_idleTimeout{30}; // HTTP idle timeout in seconds
   std::vector<std::string> d_urls;
 
-  std::atomic<uint64_t> d_httpconnects{0};   // number of TCP/IP connections established
-  std::atomic<uint64_t> d_getqueries{0};     // valid DNS queries received via GET
-  std::atomic<uint64_t> d_postqueries{0};    // valid DNS queries received via POST
-  std::atomic<uint64_t> d_badrequests{0};     // request could not be converted to dns query
+  std::atomic<uint64_t> d_httpconnects{0}; // number of TCP/IP connections established
+  std::atomic<uint64_t> d_getqueries{0}; // valid DNS queries received via GET
+  std::atomic<uint64_t> d_postqueries{0}; // valid DNS queries received via POST
+  std::atomic<uint64_t> d_badrequests{0}; // request could not be converted to dns query
   std::atomic<uint64_t> d_errorresponses{0}; // dnsdist set 'error' on response
   std::atomic<uint64_t> d_redirectresponses{0}; // dnsdist set 'redirect' on response
   std::atomic<uint64_t> d_validresponses{0}; // valid responses sent out
@@ -203,7 +207,7 @@ struct DOHUnit
   std::string getHTTPScheme() const;
   std::string getHTTPQueryString() const;
   std::unordered_map<std::string, std::string> getHTTPHeaders() const;
-  void setHTTPResponse(uint16_t statusCode, const std::string& body, const std::string& contentType="");
+  void setHTTPResponse(uint16_t statusCode, const std::string& body, const std::string& contentType = "");
 };
 
 #endif /* HAVE_DNS_OVER_HTTPS  */

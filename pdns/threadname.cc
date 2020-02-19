@@ -39,7 +39,8 @@
 
 #include "threadname.hh"
 
-void setThreadName(const std::string& threadName) {
+void setThreadName(const std::string& threadName)
+{
   int retval = 0;
 
 #ifdef HAVE_PTHREAD_SETNAME_NP_2
@@ -62,8 +63,7 @@ void setThreadName(const std::string& threadName) {
 #ifdef DNSDIST
     warnlog("Could not set thread name %s for thread: %s", threadName, strerror(retval));
 #else
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for thread: "<<strerror(retval)<<endl;
+    g_log << Logger::Warning << "Could not set thread name " << threadName << " for thread: " << strerror(retval) << endl;
 #endif
   }
 }
-

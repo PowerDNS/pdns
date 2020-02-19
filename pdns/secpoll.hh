@@ -32,5 +32,5 @@
  * secPollStatus: The actual secpoll status, pass the current status in here and it is changed to the new status
  * secPollMessage: Will be cleared and filled with the message from the secpoll message
  */
-void processSecPoll(const int res, const std::vector<DNSRecord> &ret, int &secPollStatus, std::string &secPollMessage);
-bool isReleaseVersion(const std::string &version);
+void processSecPoll(const int res, const std::vector<DNSRecord>& ret, int& secPollStatus, std::string& secPollMessage);
+bool isReleaseVersion(const std::string& version);

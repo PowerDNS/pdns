@@ -27,6 +27,5 @@ class gODBCBackend : public GSQLBackend
 {
 public:
   //! Constructor that connects to the database, throws an exception if something went wrong.
-  gODBCBackend( const std::string & mode, const std::string & suffix );
-
+  gODBCBackend(const std::string& mode, const std::string& suffix);
 };

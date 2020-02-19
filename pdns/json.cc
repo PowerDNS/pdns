@@ -33,9 +33,11 @@ int intFromJson(const Json container, const std::string& key)
   auto val = container[key];
   if (val.is_number()) {
     return val.int_value();
-  } else if (val.is_string()) {
+  }
+  else if (val.is_string()) {
     return std::stoi(val.string_value());
-  } else {
+  }
+  else {
     throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
 }
@@ -45,13 +47,16 @@ int intFromJson(const Json container, const std::string& key, const int default_
   auto val = container[key];
   if (val.is_number()) {
     return val.int_value();
-  } else if (val.is_string()) {
+  }
+  else if (val.is_string()) {
     try {
       return std::stoi(val.string_value());
-    } catch (std::out_of_range&) {
+    }
+    catch (std::out_of_range&) {
       throw JsonException("Value for key '" + string(key) + "' is out of range");
     }
-  } else {
+  }
+  else {
     // TODO: check if value really isn't present
     return default_value;
   }
@@ -62,13 +67,16 @@ double doubleFromJson(const Json container, const std::string& key)
   auto val = container[key];
   if (val.is_number()) {
     return val.number_value();
-  } else if (val.is_string()) {
+  }
+  else if (val.is_string()) {
     try {
       return std::stod(val.string_value());
-    } catch (std::out_of_range&) {
+    }
+    catch (std::out_of_range&) {
       throw JsonException("Value for key '" + string(key) + "' is out of range");
     }
-  } else {
+  }
+  else {
     throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
 }
@@ -78,20 +86,23 @@ double doubleFromJson(const Json container, const std::string& key, const double
   auto val = container[key];
   if (val.is_number()) {
     return val.number_value();
-  } else if (val.is_string()) {
+  }
+  else if (val.is_string()) {
     return std::stod(val.string_value());
-  } else {
+  }
+  else {
     // TODO: check if value really isn't present
     return default_value;
   }
 }
 
-string stringFromJson(const Json container, const std::string &key)
+string stringFromJson(const Json container, const std::string& key)
 {
   const Json val = container[key];
   if (val.is_string()) {
     return val.string_value();
-  } else {
+  }
+  else {
     throw JsonException("Key '" + string(key) + "' not present or not a String");
   }
 }

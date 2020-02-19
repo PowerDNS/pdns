@@ -35,41 +35,41 @@
 void dropCapabilities(std::set<std::string> capabilitiesToKeep)
 {
 #ifdef HAVE_LIBCAP
-   cap_t caps = cap_get_proc();
-   if (caps != nullptr) {
-     cap_clear(caps);
+  cap_t caps = cap_get_proc();
+  if (caps != nullptr) {
+    cap_clear(caps);
 
-     if (!capabilitiesToKeep.empty()) {
-       std::vector<cap_value_t> toKeep;
-       toKeep.reserve(capabilitiesToKeep.size());
+    if (!capabilitiesToKeep.empty()) {
+      std::vector<cap_value_t> toKeep;
+      toKeep.reserve(capabilitiesToKeep.size());
 
-       for (const auto& capToKeep : capabilitiesToKeep) {
-         cap_value_t value;
-         int res = cap_from_name(capToKeep.c_str(), &value);
-         if (res != 0) {
-           cap_free(caps);
-           throw std::runtime_error("Unable to convert capability name '" + capToKeep + "': " + stringerror());
-         }
-         toKeep.push_back(value);
-       }
+      for (const auto& capToKeep : capabilitiesToKeep) {
+        cap_value_t value;
+        int res = cap_from_name(capToKeep.c_str(), &value);
+        if (res != 0) {
+          cap_free(caps);
+          throw std::runtime_error("Unable to convert capability name '" + capToKeep + "': " + stringerror());
+        }
+        toKeep.push_back(value);
+      }
 
-       if (cap_set_flag(caps, CAP_EFFECTIVE, toKeep.size(), toKeep.data(), CAP_SET) != 0) {
-         cap_free(caps);
-         throw std::runtime_error("Unable to set effective flag capabilities: " + stringerror());
-       }
+      if (cap_set_flag(caps, CAP_EFFECTIVE, toKeep.size(), toKeep.data(), CAP_SET) != 0) {
+        cap_free(caps);
+        throw std::runtime_error("Unable to set effective flag capabilities: " + stringerror());
+      }
 
-       if (cap_set_flag(caps, CAP_PERMITTED, toKeep.size(), toKeep.data(), CAP_SET) != 0) {
-         cap_free(caps);
-         throw std::runtime_error("Unable to set permitted flag capabilities: " + stringerror());
-       }
-     }
+      if (cap_set_flag(caps, CAP_PERMITTED, toKeep.size(), toKeep.data(), CAP_SET) != 0) {
+        cap_free(caps);
+        throw std::runtime_error("Unable to set permitted flag capabilities: " + stringerror());
+      }
+    }
 
-     if (cap_set_proc(caps) != 0) {
-       cap_free(caps);
-       throw std::runtime_error("Unable to drop capabilities: " + stringerror());
-     }
+    if (cap_set_proc(caps) != 0) {
+      cap_free(caps);
+      throw std::runtime_error("Unable to drop capabilities: " + stringerror());
+    }
 
-     cap_free(caps);
-   }
+    cap_free(caps);
+  }
 #endif /* HAVE_LIBCAP */
 }

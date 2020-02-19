@@ -37,16 +37,19 @@ using namespace ::boost::multi_index;
 
 // #define MTASKERTIMING 1
 
-struct KeyTag {};
+struct KeyTag
+{
+};
 
-//! The main MTasker class    
+//! The main MTasker class
 /** The main MTasker class. See the main page for more information.
     \tparam EventKey Type of the key with which events are to be identified. Defaults to int.
     \tparam EventVal Type of the content or value of an event. Defaults to int. Cannot be set to void.
     \note The EventKey needs to have an operator< defined because it is used as the key of an associative array
 */
 
-template<class EventKey=int, class EventVal=int> class MTasker
+template <class EventKey = int, class EventVal = int>
+class MTasker
 {
 private:
   pdns_ucontext_t d_kernel;
@@ -55,13 +58,13 @@ private:
 
   struct ThreadInfo
   {
-	std::shared_ptr<pdns_ucontext_t> context;
-	boost::function<void(void)> start;
-	char* startOfStack;
-	char* highestStackSeen;
+    std::shared_ptr<pdns_ucontext_t> context;
+    boost::function<void(void)> start;
+    char* startOfStack;
+    char* highestStackSeen;
 #ifdef MTASKERTIMING
-    	CPUTime dt;
-	unsigned int totTime;
+    CPUTime dt;
+    unsigned int totTime;
 #endif
   };
 
@@ -73,7 +76,12 @@ private:
   int d_maxtid;
 
   EventVal d_waitval;
-  enum waitstatusenum {Error=-1,TimeOut=0,Answer} d_waitstatus;
+  enum waitstatusenum
+  {
+    Error = -1,
+    TimeOut = 0,
+    Answer
+  } d_waitstatus;
 
 public:
   struct Waiter
@@ -81,16 +89,15 @@ public:
     EventKey key;
     std::shared_ptr<pdns_ucontext_t> context;
     struct timeval ttd;
-    int tid;    
+    int tid;
   };
 
   typedef multi_index_container<
     Waiter,
-    indexed_by <
-                ordered_unique<member<Waiter,EventKey,&Waiter::key> >,
-                ordered_non_unique<tag<KeyTag>, member<Waiter,struct timeval,&Waiter::ttd> >
-               >
-  > waiters_t;
+    indexed_by<
+      ordered_unique<member<Waiter, EventKey, &Waiter::key>>,
+      ordered_non_unique<tag<KeyTag>, member<Waiter, struct timeval, &Waiter::ttd>>>>
+    waiters_t;
 
   waiters_t d_waiters;
 
@@ -110,7 +117,12 @@ public:
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
       the use of new/delete is suggested. 
    */
-  MTasker(size_t stacksize=16*8192) : d_stacksize(stacksize), d_threadsCount(0), d_tid(0), d_maxtid(0), d_waitstatus(Error)
+  MTasker(size_t stacksize = 16 * 8192) :
+    d_stacksize(stacksize),
+    d_threadsCount(0),
+    d_tid(0),
+    d_maxtid(0),
+    d_waitstatus(Error)
   {
     initMainStackBounds();
 
@@ -118,13 +130,13 @@ public:
     d_stacksize = d_stacksize >> 4 << 4;
   }
 
-  typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
-  int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeoutMsec=0, struct timeval* now=0);
+  typedef void tfunc_t(void*); //!< type of the pointer that starts a thread
+  int waitEvent(EventKey& key, EventVal* val = 0, unsigned int timeoutMsec = 0, struct timeval* now = 0);
   void yield();
-  int sendEvent(const EventKey& key, const EventVal* val=0);
+  int sendEvent(const EventKey& key, const EventVal* val = 0);
   void getEvents(std::vector<EventKey>& events);
-  void makeThread(tfunc_t *start, void* val);
-  bool schedule(struct timeval* now=0);
+  void makeThread(tfunc_t* start, void* val);
+  bool schedule(struct timeval* now = 0);
   bool noProcesses() const;
   unsigned int numProcesses() const;
   int getTid() const;
@@ -132,6 +144,6 @@ public:
   unsigned int getUsec();
 
 private:
-  EventKey d_eventkey;   // for waitEvent, contains exact key it was awoken for
+  EventKey d_eventkey; // for waitEvent, contains exact key it was awoken for
 };
 #include "mtasker.cc"

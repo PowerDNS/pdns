@@ -30,13 +30,13 @@
 
 #include "misc.hh"
 
-static __u64 ptr_to_u64(void *ptr)
+static __u64 ptr_to_u64(void* ptr)
 {
-  return (__u64) (unsigned long) ptr;
+  return (__u64)(unsigned long)ptr;
 }
 
 int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
-		   int max_entries)
+  int max_entries)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -47,7 +47,7 @@ int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
   return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
-int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
+int bpf_update_elem(int fd, void* key, void* value, unsigned long long flags)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -58,7 +58,7 @@ int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
   return syscall(SYS_bpf, BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
 }
 
-int bpf_lookup_elem(int fd, void *key, void *value)
+int bpf_lookup_elem(int fd, void* key, void* value)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -68,7 +68,7 @@ int bpf_lookup_elem(int fd, void *key, void *value)
   return syscall(SYS_bpf, BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr));
 }
 
-int bpf_delete_elem(int fd, void *key)
+int bpf_delete_elem(int fd, void* key)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -77,7 +77,7 @@ int bpf_delete_elem(int fd, void *key)
   return syscall(SYS_bpf, BPF_MAP_DELETE_ELEM, &attr, sizeof(attr));
 }
 
-int bpf_get_next_key(int fd, void *key, void *next_key)
+int bpf_get_next_key(int fd, void* key, void* next_key)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -88,16 +88,16 @@ int bpf_get_next_key(int fd, void *key, void *next_key)
 }
 
 int bpf_prog_load(enum bpf_prog_type prog_type,
-		  const struct bpf_insn *insns, int prog_len,
-		  const char *license, int kern_version)
+  const struct bpf_insn* insns, int prog_len,
+  const char* license, int kern_version)
 {
   char log_buf[65535];
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
   attr.prog_type = prog_type;
-  attr.insns = ptr_to_u64((void *) insns);
+  attr.insns = ptr_to_u64((void*)insns);
   attr.insn_cnt = prog_len / sizeof(struct bpf_insn);
-  attr.license = ptr_to_u64((void *) license);
+  attr.license = ptr_to_u64((void*)license);
   attr.log_buf = ptr_to_u64(log_buf);
   attr.log_size = sizeof(log_buf);
   attr.log_level = 1;
@@ -139,19 +139,22 @@ struct QNameValue
   uint16_t qtype;
 };
 
-BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames): d_maxV4(maxV4Addresses), d_maxV6(maxV6Addresses), d_maxQNames(maxQNames)
+BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames) :
+  d_maxV4(maxV4Addresses),
+  d_maxV6(maxV6Addresses),
+  d_maxQNames(maxQNames)
 {
-  d_v4map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), (int) maxV4Addresses);
+  d_v4map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), (int)maxV4Addresses);
   if (d_v4map.fd == -1) {
     throw std::runtime_error("Error creating a BPF v4 map of size " + std::to_string(maxV4Addresses) + ": " + stringerror());
   }
 
-  d_v6map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct KeyV6), sizeof(uint64_t), (int) maxV6Addresses);
+  d_v6map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct KeyV6), sizeof(uint64_t), (int)maxV6Addresses);
   if (d_v6map.fd == -1) {
     throw std::runtime_error("Error creating a BPF v6 map of size " + std::to_string(maxV6Addresses) + ": " + stringerror());
   }
 
-  d_qnamemap.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct QNameKey), sizeof(struct QNameValue), (int) maxQNames);
+  d_qnamemap.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct QNameKey), sizeof(struct QNameValue), (int)maxQNames);
   if (d_qnamemap.fd == -1) {
     throw std::runtime_error("Error creating a BPF qname map of size " + std::to_string(maxQNames) + ": " + stringerror());
   }
@@ -166,10 +169,10 @@ BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t 
   };
 
   d_mainfilter.fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
-                                  main_filter,
-                                  sizeof(main_filter),
-                                  "GPL",
-                                  0);
+    main_filter,
+    sizeof(main_filter),
+    "GPL",
+    0);
   if (d_mainfilter.fd == -1) {
     throw std::runtime_error("Error loading BPF main filter: " + stringerror());
   }
@@ -179,10 +182,10 @@ BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t 
   };
 
   d_qnamefilter.fd = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
-                                   qname_filter,
-                                   sizeof(qname_filter),
-                                   "GPL",
-                                   0);
+    qname_filter,
+    sizeof(qname_filter),
+    "GPL",
+    0);
   if (d_qnamefilter.fd == -1) {
     throw std::runtime_error("Error loading BPF qname filter: " + stringerror());
   }
@@ -330,9 +333,9 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
 
 void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
 {
-  struct QNameKey key = { { 0 } };
+  struct QNameKey key = {{0}};
   std::string keyStr = qname.toDNSStringLC();
-  (void) qtype;
+  (void)qtype;
 
   if (keyStr.size() > sizeof(key.qname)) {
     throw std::runtime_error("Invalid QName to block " + qname.toLogString());
@@ -352,9 +355,9 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
   }
 }
 
-std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
+std::vector<std::pair<ComboAddress, uint64_t>> BPFFilter::getAddrStats()
 {
-  std::vector<std::pair<ComboAddress, uint64_t> > result;
+  std::vector<std::pair<ComboAddress, uint64_t>> result;
   std::unique_lock<std::mutex> lock(d_mutex);
 
   uint32_t v4Key = 0;
@@ -401,21 +404,21 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   return result;
 }
 
-std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
+std::vector<std::tuple<DNSName, uint16_t, uint64_t>> BPFFilter::getQNameStats()
 {
-  std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
+  std::vector<std::tuple<DNSName, uint16_t, uint64_t>> result;
   std::unique_lock<std::mutex> lock(d_mutex);
 
-  struct QNameKey key = { { 0 } };
-  struct QNameKey nextKey = { { 0 } };
+  struct QNameKey key = {{0}};
+  struct QNameKey nextKey = {{0}};
   struct QNameValue value;
 
   int res = bpf_get_next_key(d_qnamemap.fd, &key, &nextKey);
 
   while (res == 0) {
     if (bpf_lookup_elem(d_qnamemap.fd, &nextKey, &value) == 0) {
-      nextKey.qname[sizeof(nextKey.qname) - 1 ] = '\0';
-      result.push_back(std::make_tuple(DNSName((const char*) nextKey.qname, sizeof(nextKey.qname), 0, false), value.qtype, value.counter));
+      nextKey.qname[sizeof(nextKey.qname) - 1] = '\0';
+      result.push_back(std::make_tuple(DNSName((const char*)nextKey.qname, sizeof(nextKey.qname), 0, false), value.qtype, value.counter));
     }
 
     res = bpf_get_next_key(d_qnamemap.fd, &nextKey, &nextKey);

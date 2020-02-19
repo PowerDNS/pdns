@@ -69,8 +69,7 @@ bool parseXPFPayload(const char* payload, size_t len, ComboAddress& source, Comb
   uint16_t sourcePort;
   uint16_t destinationPort;
 
-  if (len != (sizeof(version) + sizeof(protocol) + (addr4Size * 2) + sizeof(sourcePort) + sizeof(destinationPort)) &&
-      len != (sizeof(version) + sizeof(protocol) + (addr6Size * 2) + sizeof(sourcePort) + sizeof(destinationPort))) {
+  if (len != (sizeof(version) + sizeof(protocol) + (addr4Size * 2) + sizeof(sourcePort) + sizeof(destinationPort)) && len != (sizeof(version) + sizeof(protocol) + (addr6Size * 2) + sizeof(sourcePort) + sizeof(destinationPort))) {
     return false;
   }
 
