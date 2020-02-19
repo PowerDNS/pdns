@@ -851,10 +851,10 @@ struct DownstreamState
   void setUp() { availability = Availability::Up; }
   void setDown() { availability = Availability::Down; }
   void setAuto() { availability = Availability::Auto; }
-  string getName() const {
+  const string& getName() const {
     return name;
   }
-  string getNameWithAddr() const {
+  const string& getNameWithAddr() const {
     return nameWithAddr;
   }
   void setName(const std::string& newName)
