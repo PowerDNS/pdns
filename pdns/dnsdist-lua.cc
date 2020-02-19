@@ -1683,11 +1683,9 @@ static void setupLuaConfig(bool client, bool configCheck)
     });
 
   g_lua.writeFunction("sendCustomTrap", [](const std::string& str) {
-#ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
         g_snmpAgent->sendCustomTrap(str);
       }
-#endif /* HAVE_NET_SNMP */
     });
 
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy) {

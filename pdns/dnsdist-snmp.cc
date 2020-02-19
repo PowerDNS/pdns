@@ -2,6 +2,10 @@
 #include "dnsdist-snmp.hh"
 #include "dolog.hh"
 
+bool g_snmpEnabled{false};
+bool g_snmpTrapsEnabled{false};
+DNSDistSNMPAgent* g_snmpAgent{nullptr};
+
 #ifdef HAVE_NET_SNMP
 
 #define DNSDIST_OID 1, 3, 6, 1, 4, 1, 43315, 3
@@ -51,10 +55,6 @@ static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
 static const oid specialMemoryUsageOID[] = { DNSDIST_STATS_OID, 39 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
-
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
-DNSDistSNMPAgent* g_snmpAgent{nullptr};
 
 /* We are never called for a GETNEXT if it's registered as a
    "instance", as it's "magically" handled for us.  */
