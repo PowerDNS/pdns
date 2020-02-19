@@ -111,8 +111,8 @@ void setupLuaBindings(bool client)
       }
       s.setAuto();
     });
-  g_lua.registerFunction("getName", &DownstreamState::getName);
-  g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
+  g_lua.registerFunction<std::string(DownstreamState::*)()>("getName", [](const DownstreamState& s) { return s.getName(); });
+  g_lua.registerFunction<std::string(DownstreamState::*)()>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);
   g_lua.registerMember<int (DownstreamState::*)>("weight",
     [](const DownstreamState& s) -> int {return s.weight;},
