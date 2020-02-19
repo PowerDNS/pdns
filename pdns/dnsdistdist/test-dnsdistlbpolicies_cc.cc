@@ -485,7 +485,7 @@ BOOST_AUTO_TEST_CASE(test_lua)
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
-      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      servers.push_back({idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53"))});
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
@@ -546,7 +546,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr)
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
-      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      servers.push_back({idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53"))});
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
@@ -604,7 +604,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed)
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
-      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      servers.push_back({idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53"))});
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed)
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
-      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      servers.push_back({idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53"))});
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
@@ -719,7 +719,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
-      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      servers.push_back({idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53"))});
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
       /* we need to have a weight of at least 1000 to get an optimal repartition with the consistent hashing algo */
