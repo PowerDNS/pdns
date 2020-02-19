@@ -2046,12 +2046,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       /* we ignore the TCP field for now, but we could properly set whether
          the connection was received over UDP or TCP if neede */
       bool tcp;
-      if (parseProxyHeader(conn->data, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues) <= 0) {
+      bool proxy = false;
+      if (parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues) <= 0) {
         t_fdm->removeReadFD(fd);
         return;
       }
 
       /* check the real source */
+      /* note that if the proxy header used a 'LOCAL' command, the original source and destination are untouched so everything should be fine */
       if (t_allowFrom && !t_allowFrom->match(&conn->d_source)) {
         if (!g_quiet) {
           g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<conn->d_source.toString()<<", address not matched by allow-from"<<endl;
@@ -2623,7 +2625,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       if (expectProxyProtocol(fromaddr)) {
         bool tcp;
-        ssize_t used = parseProxyHeader(data, source, destination, tcp, proxyProtocolValues);
+        ssize_t used = parseProxyHeader(data, proxyProto, source, destination, tcp, proxyProtocolValues);
         if (used <= 0) {
           ++g_stats.proxyProtocolInvalidCount;
           if (!g_quiet) {
@@ -2631,10 +2633,10 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
           return;
         }
-        proxyProto = true;
         data.erase(0, used);
       }
-      else {
+
+      if (!proxyProto) {
         source = fromaddr;
       }
 

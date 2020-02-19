@@ -320,9 +320,10 @@ try {
 
     ComboAddress source, destination;
     bool wastcp;
+    bool proxy = false;
     std::vector<ProxyProtocolValue> ignoredValues;
-    ssize_t offset = parseProxyHeader(reply, source, destination, wastcp, ignoredValues);
-    if (offset) {
+    ssize_t offset = parseProxyHeader(reply, proxy, source, destination, wastcp, ignoredValues);
+    if (offset && proxy) {
       cout<<"proxy "<<(wastcp ? "tcp" : "udp")<<" headersize="<<offset<<" source="<<source.toStringWithPort()<<" destination="<<destination.toStringWithPort()<<endl;
       reply = reply.substr(offset);
     }

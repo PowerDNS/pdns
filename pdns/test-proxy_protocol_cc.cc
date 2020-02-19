@@ -38,11 +38,13 @@ BOOST_AUTO_TEST_CASE(test_roundtrip) {
     "KL"            // dst port
     ));
 
+  bool proxy;
   bool ptcp2;
   ComboAddress src2, dest2;
 
-  BOOST_CHECK_EQUAL(parseProxyHeader(proxyheader, src2, dest2, ptcp2, values), 28);
+  BOOST_CHECK_EQUAL(parseProxyHeader(proxyheader, proxy, src2, dest2, ptcp2, values), 28);
 
+  BOOST_CHECK_EQUAL(proxy, true);
   BOOST_CHECK_EQUAL(ptcp2, true);
   BOOST_CHECK(src2 == ComboAddress("65.66.67.68:18762"));
   BOOST_CHECK(dest2 == ComboAddress("69.70.71.72:19276"));
