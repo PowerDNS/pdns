@@ -217,6 +217,7 @@ testrunner_SOURCES = \
 	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
 	test-mplexer.cc \
+	test-proxy_protocol_cc.cc \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	dnsdist.hh \
@@ -245,6 +246,7 @@ testrunner_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	sholder.hh \
 	sodcrypto.cc \
