@@ -566,7 +566,7 @@ static void setupLuaConfig(bool client, bool configCheck)
 	ComboAddress loc(addr, 53);
         for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
           /* DoH, DoT and DNSCrypt frontends are separate */
-          if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+          if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->dohFrontend == nullptr) {
             it = g_frontends.erase(it);
           }
           else {
