@@ -62,6 +62,12 @@ DNSCrypt objects and functions
 
   Return the :class:`DNSCryptContext` object corresponding to the bind ``n``.
 
+.. function:: getDNSCryptBindCount()
+
+  .. versionadded:: 1.5.0
+
+  Return the number of DNSCrypt binds.
+
 Certificates
 ------------
 
