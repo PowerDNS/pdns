@@ -181,7 +181,7 @@ ssize_t isProxyHeaderComplete(const std::string& header, bool* proxy, bool* tcp,
     return 0;
   }
 
-  uint16_t contentlen = (header.at(14) << 8) + header.at(15);
+  uint16_t contentlen = (static_cast<uint8_t>(header.at(14)) << 8) + static_cast<uint8_t>(header.at(15));
   uint16_t expectedlen = 0;
   if (command != 0x00) {
     expectedlen = (addrSize * 2) + sizeof(ComboAddress::sin4.sin_port) + sizeof(ComboAddress::sin4.sin_port);
@@ -217,9 +217,9 @@ ssize_t parseProxyHeader(const std::string& header, bool& proxy, ComboAddress& s
     pos = pos + addrSize;
     destination = makeComboAddressFromRaw(protocol, &header.at(pos), addrSize);
     pos = pos + addrSize;
-    source.setPort((header.at(pos) << 8) + header.at(pos+1));
+    source.setPort((static_cast<uint8_t>(header.at(pos)) << 8) + static_cast<uint8_t>(header.at(pos+1)));
     pos = pos + sizeof(uint16_t);
-    destination.setPort((header.at(pos) << 8) + header.at(pos+1));
+    destination.setPort((static_cast<uint8_t>(header.at(pos)) << 8) + static_cast<uint8_t>(header.at(pos+1)));
     pos = pos + sizeof(uint16_t);
   }
 
@@ -228,7 +228,7 @@ ssize_t parseProxyHeader(const std::string& header, bool& proxy, ComboAddress& s
     /* we still have TLV values to parse */
     uint8_t type = static_cast<uint8_t>(header.at(pos));
     pos += sizeof(uint8_t);
-    uint16_t len = (header.at(pos) << 8) + header.at(pos + 1);
+    uint16_t len = (static_cast<uint8_t>(header.at(pos)) << 8) + static_cast<uint8_t>(header.at(pos + 1));
     pos += sizeof(uint16_t);
 
     if (len > 0) {
