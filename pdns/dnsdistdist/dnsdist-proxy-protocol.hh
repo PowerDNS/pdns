@@ -19,26 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
 #pragma once
 
-#include <iputils.hh>
+#include "dnsdist.hh"
 
-struct ProxyProtocolValue
-{
-  std::string content;
-  uint8_t type;
-};
+bool addProxyProtocol(DNSQuestion& dq);
 
-static const size_t s_proxyProtocolMinimumHeaderSize = 16;
-
-std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);
-
-/* returns: number of bytes consumed (positive) after successful parse
-         or number of bytes missing (negative)
-         or unfixable parse error (0)*/
-ssize_t isProxyHeaderComplete(const std::string& header, bool* tcp=nullptr, size_t* addrSizeOut=nullptr, uint8_t* protocolOut=nullptr);
-/* returns: number of bytes consumed (positive) after successful parse
-         or number of bytes missing (negative)
-         or unfixable parse error (0)*/
-ssize_t parseProxyHeader(const std::string& payload, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values);

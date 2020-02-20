@@ -407,6 +407,9 @@ Servers
   .. versionchanged:: 1.4.0
     Added ``checkInterval``, ``checkTimeout`` and ``rise`` to server_table.
 
+  .. versionchanged:: 1.5.0
+    Added ``useProxyProtocol`` to server_table.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -449,7 +452,8 @@ Servers
                              -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
       sockets=NUM,           -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
       disableZeroScope=BOOL, -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
-      rise=NUM               -- Require NUM consecutive successful checks before declaring the backend up, default: 1
+      rise=NUM,              -- Require NUM consecutive successful checks before declaring the backend up, default: 1
+      useProxyProtocol=BOOL  -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
     })
 
   :param str server_string: A simple IP:PORT string.

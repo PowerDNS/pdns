@@ -152,6 +152,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
+	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
@@ -180,6 +181,7 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \
+	proxy-protocol.cc proxy-protocol.hh \
 	dnstap.cc dnstap.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \

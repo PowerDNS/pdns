@@ -30,7 +30,7 @@
 
 static string proxymagic(PROXYMAGIC, PROXYMAGICLEN);
 
-std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAddress& destination)
+std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
 {
   if (source.sin4.sin_family != destination.sin4.sin_family) {
     throw std::runtime_error("The PROXY destination and source addresses must be of the same family");
@@ -76,20 +76,19 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
 /* returns: number of bytes consumed (positive) after successful parse
          or number of bytes missing (negative)
          or unfixable parse error (0)*/
-ssize_t parseProxyHeader(const char* payload, size_t len, ComboAddress& source, ComboAddress& destination, bool& tcp)
+ssize_t isProxyHeaderComplete(const std::string& header, bool* tcp, size_t* addrSizeOut, uint8_t* protocolOut)
 {
-  string header(payload, len);
-  static const size_t addr4Size = sizeof(source.sin4.sin_addr.s_addr);
-  static const size_t addr6Size = sizeof(source.sin6.sin6_addr.s6_addr);
+  static const size_t addr4Size = sizeof(ComboAddress::sin4.sin_addr.s_addr);
+  static const size_t addr6Size = sizeof(ComboAddress::sin6.sin6_addr.s6_addr);
   uint8_t versioncommand;
   uint8_t protocol;
 
-  if (len < 16) {
+  if (header.size() < s_proxyProtocolMinimumHeaderSize) {
     // this is too short to be a complete proxy header
-    return -(16 - len); 
+    return -(s_proxyProtocolMinimumHeaderSize - header.size());
   }
 
-  if (header.substr(0, proxymagic.size()) != proxymagic) {
+  if (header.compare(0, proxymagic.size(), proxymagic) != 0) {
     // wrong magic, can not be a proxy header
     return 0;
   }
@@ -103,9 +102,13 @@ ssize_t parseProxyHeader(const char* payload, size_t len, ComboAddress& source, 
   protocol = header.at(13);
   size_t addrSize;
   if ((protocol & 0xf) == 1) {
-    tcp = true;
+    if (tcp) {
+      *tcp = true;
+    }
   } else if ((protocol & 0xf) == 2) {
-    tcp = false;
+    if (tcp) {
+      *tcp = false;
+    }
   } else {
     return 0;
   }
@@ -113,28 +116,51 @@ ssize_t parseProxyHeader(const char* payload, size_t len, ComboAddress& source, 
   protocol = protocol >> 4;
 
   if (protocol == 1) {
-    protocol = 4;
+    if (protocolOut) {
+      *protocolOut = 4;
+    }
     addrSize = addr4Size; // IPv4
   } else if (protocol == 2) {
-    protocol = 6;
+    if (protocolOut) {
+      *protocolOut = 6;
+    }
     addrSize = addr6Size; // IPv6
   } else {
     // invalid protocol
     return 0;
   }
 
-  uint16_t contentlen = (header.at(14) << 8) + header.at(15);
-  uint16_t expectedlen = (addrSize * 2) + sizeof(source.sin4.sin_port) + sizeof(source.sin4.sin_port);
+  if (addrSizeOut) {
+    *addrSizeOut = addrSize;
+  }
 
-  if (contentlen != expectedlen) {
+  uint16_t contentlen = (header.at(14) << 8) + header.at(15);
+  uint16_t expectedlen = (addrSize * 2) + sizeof(ComboAddress::sin4.sin_port) + sizeof(ComboAddress::sin4.sin_port);
+
+  if (contentlen < expectedlen) {
     return 0;
   }
 
-  if (len < 16 + contentlen) {
-    return (-(16 + contentlen) - len);
+  if (header.size() < s_proxyProtocolMinimumHeaderSize + contentlen) {
+    return -((s_proxyProtocolMinimumHeaderSize + contentlen) - header.size());
   }
 
-  size_t pos = 16;
+  return s_proxyProtocolMinimumHeaderSize + contentlen;
+}
+
+/* returns: number of bytes consumed (positive) after successful parse
+         or number of bytes missing (negative)
+         or unfixable parse error (0)*/
+ssize_t parseProxyHeader(const std::string& header, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values)
+{
+  size_t addrSize = 0;
+  uint8_t protocol = 0;
+  ssize_t got = isProxyHeaderComplete(header, &tcp, &addrSize, &protocol);
+  if (got <= 0) {
+    return got;
+  }
+
+  size_t pos = s_proxyProtocolMinimumHeaderSize;
 
   source = makeComboAddressFromRaw(protocol, &header.at(pos), addrSize);
   pos = pos + addrSize;

@@ -21,6 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-xpf.hh"
 
@@ -905,7 +906,6 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
     return;
   }
 
-  state->d_buffer.resize(dq.len);
   setIDStateFromDNSQuestion(state->d_ids, dq, std::move(qname));
 
   const uint8_t sizeBytes[] = { static_cast<uint8_t>(dq.len / 256), static_cast<uint8_t>(dq.len % 256) };
@@ -913,6 +913,16 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
      that could occur if we had to deal with the size during the processing,
      especially alignment issues */
   state->d_buffer.insert(state->d_buffer.begin(), sizeBytes, sizeBytes + 2);
+  dq.len = dq.len + 2;
+  dq.dh = reinterpret_cast<dnsheader*>(&state->d_buffer.at(0));
+  dq.size = state->d_buffer.size();
+
+  if (dq.addProxyProtocol && state->d_ds->useProxyProtocol) {
+    addProxyProtocol(dq);
+  }
+
+  state->d_buffer.resize(dq.len);
+
   sendQueryToBackend(state, now);
 }
 

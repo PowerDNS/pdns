@@ -20,25 +20,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#pragma once
+#include "dnsdist-proxy-protocol.hh"
 
-#include <iputils.hh>
-
-struct ProxyProtocolValue
+bool addProxyProtocol(DNSQuestion& dq)
 {
-  std::string content;
-  uint8_t type;
-};
+  auto payload = makeProxyHeader(dq.tcp, *dq.remote, *dq.local, dq.proxyProtocolValues ? *dq.proxyProtocolValues : std::vector<ProxyProtocolValue>());
+  if ((dq.size - dq.len) < payload.size()) {
+    return false;
+  }
 
-static const size_t s_proxyProtocolMinimumHeaderSize = 16;
+  memmove(reinterpret_cast<char*>(dq.dh) + payload.size(), dq.dh, dq.len);
+  memcpy(dq.dh, payload.c_str(), payload.size());
+  dq.len += payload.size();
 
-std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);
-
-/* returns: number of bytes consumed (positive) after successful parse
-         or number of bytes missing (negative)
-         or unfixable parse error (0)*/
-ssize_t isProxyHeaderComplete(const std::string& header, bool* tcp=nullptr, size_t* addrSizeOut=nullptr, uint8_t* protocolOut=nullptr);
-/* returns: number of bytes consumed (positive) after successful parse
-         or number of bytes missing (negative)
-         or unfixable parse error (0)*/
-ssize_t parseProxyHeader(const std::string& payload, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values);
+  return true;
+}

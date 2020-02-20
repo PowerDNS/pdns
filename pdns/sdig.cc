@@ -265,7 +265,7 @@ try {
         bool ptcp = atoi(argv[++i]);
         ComboAddress src(argv[++i]);
         ComboAddress dest(argv[++i]);
-        proxyheader = makeProxyHeader(ptcp, src, dest);
+        proxyheader = makeProxyHeader(ptcp, src, dest, {});
       }
     }
   }
@@ -320,7 +320,8 @@ try {
 
     ComboAddress source, destination;
     bool wastcp;
-    ssize_t offset = parseProxyHeader(reply.c_str(), reply.size(), source, destination, wastcp);
+    std::vector<ProxyProtocolValue> ignoredValues;
+    ssize_t offset = parseProxyHeader(reply, source, destination, wastcp, ignoredValues);
     if (offset) {
       cout<<"proxy "<<(wastcp ? "tcp" : "udp")<<" headersize="<<offset<<" source="<<source.toStringWithPort()<<" destination="<<destination.toStringWithPort()<<endl;
       reply = reply.substr(offset);

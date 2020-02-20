@@ -19,12 +19,13 @@ BOOST_AUTO_TEST_SUITE(test_proxy_protocol_cc)
 static string proxymagic(PROXYMAGIC, PROXYMAGICLEN);
 
 BOOST_AUTO_TEST_CASE(test_roundtrip) {
+  std::vector<ProxyProtocolValue> values;
   string proxyheader;
 
   bool ptcp = true;
   ComboAddress src("65.66.67.68:18762");  // 18762 = 0x494a = "IJ"
   ComboAddress dest("69.70.71.72:19276"); // 19276 = 0x4b4c = "KL"
-  proxyheader = makeProxyHeader(ptcp, src, dest);
+  proxyheader = makeProxyHeader(ptcp, src, dest, values);
 
   BOOST_CHECK_EQUAL(proxyheader, BINARY(
     PROXYMAGIC
@@ -40,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_roundtrip) {
   bool ptcp2;
   ComboAddress src2, dest2;
 
-  BOOST_CHECK_EQUAL(parseProxyHeader(proxyheader.c_str(), proxyheader.size(), src2, dest2, ptcp2), 28);
+  BOOST_CHECK_EQUAL(parseProxyHeader(proxyheader, src2, dest2, ptcp2, values), 28);
 
   BOOST_CHECK_EQUAL(ptcp2, true);
   BOOST_CHECK(src2 == ComboAddress("65.66.67.68:18762"));
