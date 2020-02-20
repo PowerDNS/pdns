@@ -2621,6 +2621,15 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
       firstQuery = false;
+
+      if (msgh.msg_flags & MSG_TRUNC) {
+        g_stats.truncatedDrops++;
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
+        }
+        return;
+      }
+
       data.resize(static_cast<size_t>(len));
 
       if (expectProxyProtocol(fromaddr)) {
@@ -2635,9 +2644,13 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
         data.erase(0, used);
       }
-
-      if (!proxyProto) {
-        source = fromaddr;
+      else if (len > 512) {
+        /* we only allow UDP packets larger than 512 for those with a proxy protocol header */
+        g_stats.truncatedDrops++;
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
+        }
+        return;
       }
 
       if (data.size() < sizeof(dnsheader)) {
@@ -2648,12 +2661,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
 
-      if (msgh.msg_flags & MSG_TRUNC) {
-        g_stats.truncatedDrops++;
-        if (!g_quiet) {
-          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
-        }
-        return;
+      if (!proxyProto) {
+        source = fromaddr;
       }
 
       if(t_remotes) {
