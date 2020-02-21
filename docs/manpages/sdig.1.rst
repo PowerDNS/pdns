@@ -4,7 +4,7 @@ sdig
 Synopsis
 --------
 
-:program:`sdig` *IP-ADDRESS-OR-DOH-URL * *PORT* *QNAME* *QTYPE* [*OPTION*]
+:program:`sdig` *IP-ADDRESS-OR-DOH-URL* *PORT* *QNAME* *QTYPE* [*OPTION*]
 
 Description
 -----------
@@ -13,6 +13,8 @@ Description
 If the address starts with an ``h``, it is assumed to be a DoH endpoint, and *PORT* is ignored.
 If qname and qtype are both `-` and tcp is used, multiple lines are read from stdin, where each line contains a qname and a type.
 If the address is ``stdin``, a DNS packet is read from stdin instead of from the network, and *PORT* is ignored.
+All input is literal and case sensitive.
+Queries need option `recurse` to expect a resource record reply if the query target is not known to be the authoritative server for that record.
 
 Options
 -------
@@ -37,3 +39,15 @@ tcp
     Use TCP instead of UDP to send the query.
 xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFSRC*
 	Send an *XPF* additional with these parameters.
+
+Examples
+--------
+
+Simple queries to local resolvers 
+    sdig 127.0.0.1 53 example.com AAAA recurse
+    sdig ::1 53 example.com A recurse
+
+Query to a DNS-over-HTTPS server requesting dnssec and recursion
+    sdig https://dns.somesample.net/dns-query 443 example.com A dnssec recurse
+
+
