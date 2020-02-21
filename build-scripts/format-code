@@ -28,6 +28,15 @@ if [ x$CIRCLECI = xtrue ]; then
     verbose=0
 fi
 
+FORMAT=clang-format-8
+if ! which $FORMAT 2> /dev/null; then
+    FORMAT=clang-format
+fi
+
+if [ $verbose = 1 ]; then
+    echo Using executable $FORMAT
+fi
+
 for file in "${@}"; do
     if [ -h "$file" -o ! -f "$file" ]; then
         if [ $verbose = 1 ]; then
@@ -36,7 +45,7 @@ for file in "${@}"; do
         continue
     fi
     tmp=$(mktemp "$file.XXXXXXXX")
-    if ! clang-format -style=file "$file" > "$tmp"; then
+    if ! $FORMAT -style=file "$file" > "$tmp"; then
         rm "$tmp"
     else
         if ! cmp -s "$file" "$tmp"; then
