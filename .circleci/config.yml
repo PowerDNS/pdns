@@ -70,6 +70,7 @@ commands:
             apt-get -y -qq install \
               bc \
               bind9utils \
+              curl \
               default-jre-headless \
               dnsutils \
               ldnsutils \
@@ -531,6 +532,9 @@ jobs:
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns lua2' \
               --enable-systemd \
               --enable-tools \
+              --enable-unit-tests \
+              --enable-backend-unit-tests \
+              --enable-fuzz-targets \
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
@@ -540,6 +544,9 @@ jobs:
           command: make -j3 -k
       - save-ccache-cache:
           product: auth
+      - run:
+          name: Run unit tests
+          command: PDNS_TEST_NO_IPV6=1 make check || (cat pdns/test-suite.log; false)
       - run:
           name: Install the binaries
           command: make install
@@ -802,7 +809,7 @@ jobs:
       - image: debian:buster
     steps:
       - auth-regress-setup
-      - run: apt-get install -y -qq jq curl
+      - run: apt-get install -y -qq jq
       - auth-regress:
           context: lmdb-nodnssec-both
       - auth-regress:
@@ -1068,7 +1075,6 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
-              --disable-lua-records \
               --disable-systemd \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
               --enable-tools \
