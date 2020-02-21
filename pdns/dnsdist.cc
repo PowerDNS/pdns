@@ -56,6 +56,7 @@
 #include "delaypipe.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
+#include "dnsrecords.hh"
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
@@ -2147,6 +2148,8 @@ try
     doClient(g_serverControl, g_cmdLine.command);
     _exit(EXIT_SUCCESS);
   }
+
+  reportAllTypes();
 
   auto acl = g_ACL.getCopy();
   if(acl.empty()) {

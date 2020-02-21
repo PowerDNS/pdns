@@ -57,6 +57,10 @@ public:
   {
   }
 
+  SpoofAction(uint16_t qtype, const std::string& raw) : d_rawResponse(raw), d_qtype(qtype)
+  {
+  }
+
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
 
   string toString() const override
@@ -81,6 +85,7 @@ private:
   std::vector<ComboAddress> d_addrs;
   std::set<uint16_t> d_types;
   std::string d_rawResponse;
+  uint16_t d_qtype;
   DNSName d_cname;
 };
 

@@ -36,6 +36,8 @@
 
 #include <boost/optional/optional_io.hpp>
 
+#include "dnsrecords.hh"
+
 #ifdef HAVE_LIBCRYPTO
 #include "ipcipher.hh"
 #endif /* HAVE_LIBCRYPTO */
@@ -552,6 +554,9 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
       ++numberOfRecords;
     }
   }
+
+  if (d_qtype > 0)
+    qtype = d_qtype;
 
   if(addrs.size() > 1)
     random_shuffle(addrs.begin(), addrs.end());
@@ -1596,6 +1601,15 @@ void setupLuaActions()
 
   g_lua.writeFunction("SpoofRawAction", [](const std::string& raw, boost::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raw));
+      auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
+      parseResponseConfig(vars, sa->d_responseConfig);
+      return ret;
+    });
+  g_lua.writeFunction("SpoofRecordAction", [](uint16_t qtype, const std::string& content, boost::optional<responseParams_t> vars) {
+      std::shared_ptr<DNSRecordContent> drc = DNSRecordContent::mastermake(qtype, 1, content);
+      DNSName root{"."};
+      std::string raw = drc->serialize(root);
+      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(drc->getType(), raw));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       return ret;
