@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
   Netmask nm25("192.0.2.255/25");
   BOOST_CHECK(nm25.getBits() == 25);
-  BOOST_CHECK(nm25.getNetwork() == ComboAddress("192.0.2.255"));
+  BOOST_CHECK(nm25.getNetwork() == ComboAddress("192.0.2.128"));
   BOOST_CHECK(nm25.getMaskedNetwork() == ComboAddress("192.0.2.128"));
 
   /* Make sure that more specific Netmasks are lesser than less specific ones,
@@ -225,8 +225,15 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
   Netmask sameMask1("192.0.0.0/16");
   Netmask sameMask2("192.0.0.1/16");
-  BOOST_CHECK(sameMask1 < sameMask2);
-  BOOST_CHECK(sameMask2 > sameMask1);
+  BOOST_CHECK(!(sameMask1 < sameMask2));
+  BOOST_CHECK(!(sameMask2 > sameMask1));
+  BOOST_CHECK(sameMask1 == sameMask2);
+
+  Netmask nm1921("192.1.255.255/16");
+  Netmask nm1922("192.2.255.255/16");
+  BOOST_CHECK(!(nm1921 == nm1922));
+  BOOST_CHECK(nm1921 < nm1922);
+  BOOST_CHECK(nm1922 > nm1921);
 
   /* An empty Netmask should be larger than
      every others. */
