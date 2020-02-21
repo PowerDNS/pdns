@@ -728,6 +728,12 @@ Also called frontend or bind, the Client State object returned by :func:`getBind
 
   :param int index: The object index
 
+.. function:: getBindCount()
+
+  .. versionadded:: 1.5.0
+
+  Return the number of binds (Do53, DNSCrypt, DoH and DoT).
+
 ClientState functions
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -768,6 +774,12 @@ Status, Statistics and More
 
   Return the DOHFrontend object for the DNS over HTTPS bind of index ``idx``.
 
+.. function:: getDOHFrontendCount()
+
+  .. versionadded:: 1.5.0
+
+  Return the number of DOHFrontend binds.
+
 .. function:: getTLSContext(idx)
 
   .. versionadded:: 1.3.0
@@ -779,6 +791,12 @@ Status, Statistics and More
   .. versionadded:: 1.3.1
 
   Return the TLSFrontend object for the TLS bind of index ``idx``.
+
+.. function:: getTLSFrontendCount()
+
+  .. versionadded:: 1.5.0
+
+  Return the number of TLSFrontend binds.
 
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])

@@ -565,8 +565,8 @@ static void setupLuaConfig(bool client, bool configCheck)
       try {
 	ComboAddress loc(addr, 53);
         for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
-          /* TLS and DNSCrypt frontends are separate */
-          if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+          /* DoH, DoT and DNSCrypt frontends are separate */
+          if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->dohFrontend == nullptr) {
             it = g_frontends.erase(it);
           }
           else {
@@ -1287,6 +1287,11 @@ static void setupLuaConfig(bool client, bool configCheck)
 #endif
     });
 
+  g_lua.writeFunction("getDNSCryptBindCount", []() {
+      setLuaNoSideEffect();
+      return g_dnsCryptLocals.size();
+    });
+
   g_lua.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string privateKeyFile) {
       setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
@@ -1442,6 +1447,11 @@ static void setupLuaConfig(bool client, bool configCheck)
       }
       return ret;
       });
+
+  g_lua.writeFunction("getBindCount", []() {
+      setLuaNoSideEffect();
+      return g_frontends.size();
+    });
 
   g_lua.writeFunction("help", [](boost::optional<std::string> command) {
       setLuaNoSideEffect();
@@ -1967,6 +1977,11 @@ static void setupLuaConfig(bool client, bool configCheck)
         return result;
       });
 
+    g_lua.writeFunction("getDOHFrontendCount", []() {
+        setLuaNoSideEffect();
+        return g_dohlocals.size();
+      });
+
     g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
         if (frontend != nullptr) {
           frontend->reloadCertificates();
@@ -2123,6 +2138,11 @@ static void setupLuaConfig(bool client, bool configCheck)
         g_outputBuffer="DNS over TLS support is not present!\n";
 #endif
         return result;
+      });
+
+    g_lua.writeFunction("getTLSFrontendCount", []() {
+        setLuaNoSideEffect();
+        return g_tlslocals.size();
       });
 
     g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx> ctx) {
