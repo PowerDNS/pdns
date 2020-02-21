@@ -117,6 +117,7 @@ dnsdist-web.$(OBJEXT): htmlfiles.h
 dnsdist_SOURCES = \
 	ascii.hh \
 	base64.hh \
+	base32.cc base32.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
@@ -164,6 +165,10 @@ dnsdist_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
+	dnsrecords.cc dnsrecords.hh \
+	nsecrecords.cc sillyrecords.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	utility.cc utility.hh \
 	doh.hh doh.cc \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
