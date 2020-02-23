@@ -89,7 +89,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
   :param int reconnectWaitTime: How long to wait, in seconds, between two reconnection attempts
   :param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued..
 
-Protobol Buffers Definition
+Protocol Buffers Definition
 ---------------------------
 
 The protocol buffers message types can be found in the `dnsmessage.proto <https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto>`_ file and is included here:

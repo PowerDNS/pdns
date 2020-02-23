@@ -19,7 +19,7 @@ They return a table whose key is a :class:`ComboAddress` object, representing th
 All exceed-functions are documented in the :ref:`Configuration Reference <exceedfuncs>`.
 
 Dynamic blocks drop matched queries by default, but this behavior can be changed with :func:`setDynBlocksAction`.
-For example, to send a REFUSED code instead of droppping the query::
+For example, to send a REFUSED code instead of dropping the query::
 
   setDynBlocksAction(DNSAction.Refused)
 

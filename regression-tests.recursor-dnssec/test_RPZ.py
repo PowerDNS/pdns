@@ -606,7 +606,7 @@ tc.example.zone.rpz. 60 IN CNAME rpz-tcp-only.
         super(RPZFileDefaultPolNotOverrideLocalRecursorTest, cls).generateRecursorConfig(confdir)
 
     def testRPZ(self):
-        # local data entries will not be overridden by the default polic
+        # local data entries will not be overridden by the default policy
         self.checkCustom('a.example.', 'A', dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.42', '192.0.2.43'))
         self.checkCustom('a.example.', 'TXT', dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'TXT', '"some text"'))
         # will be blocked because the default policy does not override local data entries

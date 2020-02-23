@@ -240,7 +240,7 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected)
 
-        # the first IP should not be up so only second shoud be returned
+        # the first IP should not be up so only second should be returned
         expected = [expected[1]]
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)

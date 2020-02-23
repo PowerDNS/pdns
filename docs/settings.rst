@@ -359,7 +359,7 @@ to enable DNSSEC. Must be one of:
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
-  PowerDNS was compiled against. To check the supported DNSSEC algoritms
+  PowerDNS was compiled against. To check the supported DNSSEC algorithms
   in your build of PowerDNS, run ``pdnsutil list-algorithms``.
 
 .. _setting-default-ksk-size:
@@ -482,7 +482,7 @@ to enable DNSSEC. Must be one of:
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
-  PowerDNS was compiled against. To check the supported DNSSEC algoritms
+  PowerDNS was compiled against. To check the supported DNSSEC algorithms
   in your build of PowerDNS, run ``pdnsutil list-algorithms``.
 
 .. _setting-default-zsk-size:
@@ -665,7 +665,7 @@ Entropy source file to use.
 
 .. versionadded:: 4.1.0
 
-If this is enabled, ALIAS records are expanded (synthesised to their
+If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA).
 
 If this is disabled (the default), ALIAS records will not be expanded and
@@ -1224,7 +1224,7 @@ default has been "yes" since 2005.
 -  Boolean
 -  Default: no
 
-If this is enabled, ALIAS records are expanded (synthesised to their
+If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA) during outgoing AXFR. This means slaves will not automatically
 follow changes in those A/AAAA records unless you AXFR regularly!
 
@@ -1393,7 +1393,7 @@ it is disabled by default.
 - String
 - Default: auto
 
-Specify which random number generator to use. Permissible choises are:
+Specify which random number generator to use. Permissible choices are:
 
 - auto - choose automatically
 - sodium - Use libsodium ``randombytes_uniform``
@@ -1404,7 +1404,7 @@ Specify which random number generator to use. Permissible choises are:
 - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
 
 .. note::
-  Not all choises are available on all systems.
+  Not all choices are available on all systems.
 
 .. _setting-security-poll-suffix:
 

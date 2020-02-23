@@ -179,7 +179,7 @@ Listen Sockets
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time. Default is to use OpenSSL when available.
-  * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provder is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
+  * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
   * ``ciphersTLS13``: str - The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
   * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
@@ -1150,7 +1150,7 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
-    :param function vistitor: The Lua function to call.
+    :param function visitor: The Lua function to call.
 
   .. method:: DynBlockRulesGroup:setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor)
 
@@ -1164,7 +1164,7 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
-    :param function vistitor: The Lua FFI function to call.
+    :param function visitor: The Lua FFI function to call.
 
   .. method:: DynBlockRulesGroup:apply()
 
@@ -1417,7 +1417,7 @@ record if the received request had one, which is the case by default and can be 
 
 We must, however, provide a responder's maximum payload size in this record, and we can't easily know the
 maximum payload size of the actual backend so we need to provide one. The default value is 1500 and can be
-overriden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
+overridden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
 
 .. function:: setAddEDNSToSelfGeneratedResponses(add)
 

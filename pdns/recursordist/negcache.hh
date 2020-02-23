@@ -30,7 +30,7 @@
 
 using namespace ::boost::multi_index;
 
-/* FIXME should become part of the normal cache (I think) and shoudl become more like
+/* FIXME should become part of the normal cache (I think) and should become more like
  * struct {
  *   vector<DNSRecord> records;
  *   vector<DNSRecord> signatures;

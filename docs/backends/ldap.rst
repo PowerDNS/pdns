@@ -381,7 +381,7 @@ Reverse lookups
 Currently there are two options: Set ``ldap-method`` to ``strict`` to
 have the code automatically derive PTR records from A and AAAA records
 in the tree. Or, in ``simple`` and ``tree`` modes, create additional
-objects explictly mapping each address to a PTR record.
+objects explicitly mapping each address to a PTR record.
 
 For ``strict`` or ``simple`` modes, first create an object with an SOA
 record for the reverse-lookup zone(s) corresponding to the A and AAAA
@@ -429,7 +429,7 @@ Tree mode requires each component to be a dc element of its own:
     associateddomain:1.0.1.10.in-addr.arpa
 
 To use this kind of record, add the dnsdomain2 schema to the
-configuration of ther LDAP server.
+configuration of the LDAP server.
 
 **CAUTION:** ``ldap-method=strict`` can not be used if zone transfers
 (AXFR) are needed to other name servers. Distributing zones can only be

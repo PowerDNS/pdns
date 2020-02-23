@@ -1348,7 +1348,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   }
 }
 
-/** Throws ApiException if records which violate RRset contraints are present.
+/** Throws ApiException if records which violate RRset constraints are present.
  *  NOTE: sorts records in-place.
  *
  *  Constraints being checked:

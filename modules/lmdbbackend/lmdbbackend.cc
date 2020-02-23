@@ -237,12 +237,12 @@ std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::s
   return drc->serialize(domain, false);
 }
 
-std::shared_ptr<DNSRecordContent> unserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
+std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
 {
   if(qtype == QType::A && content.size() == 4) {
     return std::make_shared<ARecordContent>(*((uint32_t*)content.c_str()));
   }
-  return DNSRecordContent::unserialize(qname, qtype, content);
+  return DNSRecordContent::deserialize(qname, qtype, content);
 }
 
 
@@ -653,7 +653,7 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
     rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
     rr.domain_id = compoundOrdername::getDomainID(key);
     rr.dr.d_ttl = drr.ttl;
-    rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
+    rr.dr.d_content = deserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
     rr.auth = drr.auth;
 
     if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {

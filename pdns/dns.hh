@@ -96,7 +96,7 @@ public:
   DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
 
-  // Aligned on 8-byte boundries on systems where time_t is 8 bytes and int
+  // Aligned on 8-byte boundaries on systems where time_t is 8 bytes and int
   // is 4 bytes, aka modern linux on x86_64
   time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
 

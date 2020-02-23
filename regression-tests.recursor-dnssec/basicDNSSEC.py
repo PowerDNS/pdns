@@ -95,7 +95,7 @@ class BasicDNSSEC(RecursorTest):
     def testSecureCNAMEWildCardNXDOMAIN(self):
         # the answer to this query reaches the UDP truncation threshold, so let's use TCP
         res = self.sendQuery('something.cnamewildcardnxdomain.secure.example.', 'A', useTCP=True)
-        expectedCNAME = dns.rrset.from_text('something.cnamewildcardnxdomain.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'doesntexist.secure.example.')
+        expectedCNAME = dns.rrset.from_text('something.cnamewildcardnxdomain.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'doesnotexist.secure.example.')
 
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.assertMatchingRRSIGInAnswer(res, expectedCNAME)

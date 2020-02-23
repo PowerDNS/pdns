@@ -118,4 +118,4 @@ Prefixing a mask with ``!`` excludes that mask from matching.
 
       Returns true if ``address`` matches any of the masks in the group.
 
-      :param ComboAddress address: The IP addres to match the netmasks against.
+      :param ComboAddress address: The IP address to match the netmasks against.

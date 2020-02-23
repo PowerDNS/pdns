@@ -37,7 +37,7 @@ class StatRing
 {
 public:
   StatRing(unsigned int size=10000);
-  // Some older C++ libs have trouble emplacing without a copy-contructor, so provide one
+  // Some older C++ libs have trouble emplacing without a copy-constructor, so provide one
   StatRing(const StatRing &);
   StatRing & operator=(const StatRing &) = delete;
   
@@ -69,7 +69,7 @@ class StatBag
   map<string, std::unique_ptr<AtomicCounter>> d_stats;
   map<string, string> d_keyDescrips;
   map<string,StatRing<string, CIStringCompare> >d_rings;
-  map<string,StatRing<SComboAddress> >d_comborings;
+  map<string,StatRing<SComboAddress> >d_comboRings;
   map<string,StatRing<std::tuple<DNSName, QType> > >d_dnsnameqtyperings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
@@ -102,9 +102,9 @@ public:
   void ringAccount(const char* name, const ComboAddress &item)
   {
     if(d_doRings) {
-      if(!d_comborings.count(name))
-	throw runtime_error("Attempting to account to non-existent comboring '"+std::string(name)+"'");
-      d_comborings[name].account(item);
+      if(!d_comboRings.count(name))
+	throw runtime_error("Attempting to account to non-existent comboRing '"+std::string(name)+"'");
+      d_comboRings[name].account(item);
     }
   }
   void ringAccount(const char* name, const DNSName &dnsname, const QType &qtype)

@@ -71,7 +71,7 @@ Changelogs for 4.3.x
     :tags: Improvements
     :pullreq: 8726
 
-    Give an explicit messsage if something is wrong with socket-dir.
+    Give an explicit message if something is wrong with socket-dir.
 
 .. changelog::
   :version: 4.3.0-beta2

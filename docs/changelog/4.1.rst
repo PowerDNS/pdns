@@ -883,7 +883,7 @@ Changelogs for 4.1.x
 
     Existing zone files may now be interpreted differently.
     Specifically, where we previously used the SOA minimum field for the default
-    TTL if none was set explictly, or no $TTL was set, we now use the TTL from
+    TTL if none was set explicitly, or no $TTL was set, we now use the TTL from
     the previous line.
 
   .. change::

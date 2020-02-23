@@ -255,7 +255,7 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Send at most ``limit`` queries/s for this pool, letting the subsequent rules apply otherwise.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, as it is only a convience function for the following syntax::
+  This function has been deprecated as of 1.2.0 and removed in 1.3.0, as it is only a convenience function for the following syntax::
 
     addAction("192.0.2.0/24", QPSPoolAction(15, "myPool")
 
@@ -413,7 +413,7 @@ For Rules related to responses:
 
   Move the last response rule to the first position.
 
-Functions for manipulating Cache Hit Respone Rules:
+Functions for manipulating Cache Hit Response Rules:
 
 .. function:: addCacheHitResponseAction(DNSRule, action [, options])
 
@@ -1370,7 +1370,7 @@ The following actions exist.
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
 
-  :param string remote: An IP:PORT conbination to send the copied queries to
+  :param string remote: An IP:PORT combination to send the copied queries to
   :param bool addECS: Whether or not to add ECS information. Default false
 
 .. function:: TempFailureCacheTTLAction(ttl)

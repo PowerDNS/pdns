@@ -1308,7 +1308,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing)
   BOOST_CHECK(ret[2].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[2].d_name, cnameTarget);
 
-  // Check if we correctly return a synthesizd CNAME, should send out just 1 more query
+  // Check if we correctly return a synthesized CNAME, should send out just 1 more query
   ret.clear();
   res = sr->beginResolve(uncachedTarget, QType(QType::A), QClass::IN, ret);
 

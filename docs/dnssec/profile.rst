@@ -58,5 +58,5 @@ while not strictly conforming to :rfc:`6979`.
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
-  PowerDNS was compiled against. To check the supported DNSSEC algoritms
+  PowerDNS was compiled against. To check the supported DNSSEC algorithms
   in your build of PowerDNS, run ``pdnsutil list-algorithms``.

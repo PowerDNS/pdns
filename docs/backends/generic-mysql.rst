@@ -36,7 +36,7 @@ assumes this layout is in place. For full migration notes, please see
 for master, slave and superslave operation.
 
 When using the InnoDB storage engine, we suggest adding foreign key
-contraints to the tables in order to automate deletion of records, key
+constraints to the tables in order to automate deletion of records, key
 material, and other information upon deletion of a domain from the
 domains table. The following SQL does the job:
 
@@ -130,7 +130,7 @@ Use the InnoDB READ-COMMITTED transaction isolation level. Default: yes.
 ^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.2.1
 
-Send the CLIENT_SSL capabily flag to the server. SSL suppport is announced by the server via CLIENT_SSL and is enabled if the client returns the same capability. Default: no.
+Send the CLIENT_SSL capability flag to the server. SSL support is announced by the server via CLIENT_SSL and is enabled if the client returns the same capability. Default: no.
 
 .. _setting-gmysql-timeout:
 

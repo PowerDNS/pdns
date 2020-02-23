@@ -26,7 +26,7 @@ namespace {
 // CASE_L can be used where this is not the case. See LOC below for a good example why this might happen
 
 /*   (CASE_S(QType::NAME, "zone format", "line format")) */
-/*   (CASE_L(QType::NAME, "zone format", "canonic zone format", "line format")) */
+/*   (CASE_L(QType::NAME, "zone format", "canonical zone format", "line format")) */
 
 #define _CASE_L(type, inval, zoneval, lineval, broken) case_t(type, BINARY(inval), BINARY(zoneval), BINARY(lineval), broken)
 #define CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::WORKING)
@@ -233,8 +233,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       }
       recData = rec->serialize(DNSName("rec.test"));
 
-      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
-      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
+      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::deserialize(DNSName("rec.test"),q.getCode(),recData);
+      BOOST_CHECK_MESSAGE(rec2 != NULL, "deserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
       REC_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneval);

@@ -4,7 +4,7 @@ import subprocess
 from recursortests import RecursorTest
 
 
-class testReadTrustAnchorsFronFile(RecursorTest):
+class testReadTrustAnchorsFromFile(RecursorTest):
     _confdir = 'ReadTAsFromFile'
 
     _config_template = """dnssec=validate"""

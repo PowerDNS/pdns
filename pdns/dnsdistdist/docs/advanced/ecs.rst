@@ -3,7 +3,7 @@ Using EDNS Client Subnet
 
 In order to provide the downstream server with the address of the real client, or at least the one talking to dnsdist, the ``useClientSubnet`` parameter can be used when creating a :func:`new server <newServer>`.
 This parameter indicates whether an EDNS Client Subnet option should be added to the request.
-If the incoming request already contains an EDNS Client Subnet value, it will not be overriden unless :func:`setECSOverride` is set to ``true``.
+If the incoming request already contains an EDNS Client Subnet value, it will not be overridden unless :func:`setECSOverride` is set to ``true``.
 The default source prefix-length is 24 for IPv4 and 56 for IPv6, meaning that for a query received from 192.0.2.42, the EDNS Client Subnet value sent to the backend will be 192.0.2.0.
 This can be changed with :func:`setECSSourcePrefixV4` and :func:`setECSSourcePrefixV6`.
 

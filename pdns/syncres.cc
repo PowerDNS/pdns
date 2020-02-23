@@ -1369,11 +1369,11 @@ static void reapRecordsFromNegCacheEntryForValidation(tcache_t& tcache, const ve
 }
 
 /*!
- * Convience function to push the records from records into ret with a new TTL
+ * Convenience function to push the records from records into ret with a new TTL
  *
  * \param records DNSRecords that need to go into ret
  * \param ttl     The new TTL for these records
- * \param ret     The vector of DNSRecords that should contian the records with the modified TTL
+ * \param ret     The vector of DNSRecords that should contain the records with the modified TTL
  */
 static void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
   for (const auto& rec : records) {
@@ -1449,7 +1449,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     prefix.append(depth, ' ');
   }
 
-  // sqname and sqtype are used contain 'higher' names if we have them (e.g. powerdns.com|SOA when we find a negative entry for doesnotexists.powerdns.com|A)
+  // sqname and sqtype are used contain 'higher' names if we have them (e.g. powerdns.com|SOA when we find a negative entry for doesnotexist.powerdns.com|A)
   DNSName sqname(qname);
   QType sqt(qtype);
   uint32_t sttl=0;
@@ -2553,7 +2553,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       isCNAMEAnswer = false;
     }
 
-    /* if we have a positive answer synthetized from a wildcard,
+    /* if we have a positive answer synthesized from a wildcard,
        we need to store the corresponding NSEC/NSEC3 records proving
        that the exact name did not exist in the negative cache */
     if(gatherWildcardProof) {
@@ -2572,7 +2572,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       if (rrsig) {
         /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
            count can be lower than the name's label count if it was
-           synthetized from the wildcard. Note that the difference might
+           synthesized from the wildcard. Note that the difference might
            be > 1. */
         if (rec.d_name == qname && isWildcardExpanded(labelCount, rrsig)) {
           gatherWildcardProof = true;
@@ -2582,11 +2582,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
                We still want to gather the corresponding NSEC/NSEC3 records
                to pass them to our client in case it wants to validate by itself.
             */
-            LOG(prefix<<qname<<": RRSIG indicates the name was synthetized from a wildcard, we need a wildcard proof"<<endl);
+            LOG(prefix<<qname<<": RRSIG indicates the name was synthesized from a wildcard, we need a wildcard proof"<<endl);
             needWildcardProof = true;
           }
           else {
-            LOG(prefix<<qname<<": RRSIG indicates the name was synthetized from a wildcard expanded onto itself, we need to gather wildcard proof"<<endl);
+            LOG(prefix<<qname<<": RRSIG indicates the name was synthesized from a wildcard expanded onto itself, we need to gather wildcard proof"<<endl);
           }
           wildcardLabelsCount = rrsig->d_labels;
         }
@@ -2993,7 +2993,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         }
       }
     }
-    /* if we have a positive answer synthetized from a wildcard, we need to
+    /* if we have a positive answer synthesized from a wildcard, we need to
        return the corresponding NSEC/NSEC3 records from the AUTHORITY section
        proving that the exact name did not exist */
     else if(gatherWildcardProof && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::AUTHORITY) {
@@ -3011,7 +3011,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       done=true;
 
       if (state == Secure && needWildcardProof) {
-        /* We have a positive answer synthetized from a wildcard, we need to check that we have
+        /* We have a positive answer synthesized from a wildcard, we need to check that we have
            proof that the exact name doesn't exist so the wildcard can be used,
            as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
         */

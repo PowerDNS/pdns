@@ -2348,7 +2348,7 @@ Changelog
     :tags: Improvements, Performance
     :pullreq: 5185
 
-    Add the possiblity to fill a :class:`NetmaskGroup` (using :meth:`NetmaskGroup:addMask`) from `exceeds*` results.
+    Add the possibility to fill a :class:`NetmaskGroup` (using :meth:`NetmaskGroup:addMask`) from `exceeds*` results.
 
   .. change::
     :tags: Improvements

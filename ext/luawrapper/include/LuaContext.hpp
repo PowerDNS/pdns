@@ -1427,7 +1427,7 @@ private:
         if (pcallReturnValue != 0) {
             PushedObject errorCode{state, 1};
 
-            // an error occured during execution, either an error message or a std::exception_ptr was pushed on the stack
+            // an error occurred during execution, either an error message or a std::exception_ptr was pushed on the stack
             if (pcallReturnValue == LUA_ERRMEM) {
                 throw std::bad_alloc{};
 

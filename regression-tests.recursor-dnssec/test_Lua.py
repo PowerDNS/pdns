@@ -378,7 +378,7 @@ quiet=no
             self.assertEqual(res.answer[0].ttl, 1)
 
     def testIPFilterHeader(self):
-        query = dns.message.make_query('ipfiler.luahooks.example.', 'A', 'IN')
+        query = dns.message.make_query('ipfilter.luahooks.example.', 'A', 'IN')
         query.flags |= dns.flags.AD
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

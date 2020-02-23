@@ -11,7 +11,7 @@ Most likely this path is ``/etc/dnsdist``,  ``/etc`` or ``/usr/local/etc/``, dns
 dnsdist is designed to (re)start almost instantly.
 But to prevent downtime when changing configuration, the console (see :ref:`Console`) can be used for live configuration.
 
-Issueing :func:`delta` on the console will print the changes to the configuration that have been made since startup::
+Issuing :func:`delta` on the console will print the changes to the configuration that have been made since startup::
 
   > delta()
   -- Wed Feb 22 2017 11:31:44 CET

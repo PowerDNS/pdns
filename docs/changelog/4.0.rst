@@ -122,7 +122,7 @@ Bug fixes
    integers 16 bits, fixes
    `#5443 <https://github.com/PowerDNS/pdns/issues/5443>`__
 -  `#5346 <https://github.com/PowerDNS/pdns/pull/5346>`__: configure.ac:
-   Corrects syntax error in test statement on existance of
+   Corrects syntax error in test statement on existence of
    libcrypto\_ecdsa (shinsterneck)
 -  `#5440 <https://github.com/PowerDNS/pdns/pull/5440>`__: configure.ac:
    Fix quoting issue fixes

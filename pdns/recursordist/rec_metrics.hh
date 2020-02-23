@@ -299,7 +299,7 @@ private:
         "Number of packets dropped because of (Lua) policy decision")},
     {"policy-result-noaction",
       MetricDefinition(PrometheusMetricType::counter,
-        "Number of packets that were not actioned upon by the RPZ/filter engine")},
+        "Number of packets that were not acted upon by the RPZ/filter engine")},
     {"policy-result-drop",
       MetricDefinition(PrometheusMetricType::counter,
         "Number of packets that were dropped by the RPZ/filter engine")},

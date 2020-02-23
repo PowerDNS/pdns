@@ -2,7 +2,7 @@
 DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 
 # Enable hardening features for daemons
-# Note: blhc (build log hardening check) will find these false positivies: CPPFLAGS 2 missing, LDFLAGS 1 missing
+# Note: blhc (build log hardening check) will find these false positives: CPPFLAGS 2 missing, LDFLAGS 1 missing
 export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
 DPKG_EXPORT_BUILDFLAGS = 1
 # Include buildflags.mk so we can append to the vars it sets.

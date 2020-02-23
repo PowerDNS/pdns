@@ -253,10 +253,10 @@ bench-db [*FILE*]
 
 OTHER TOOLS
 -----------
-ipencrypt *IP-ADDRESS* passsword
+ipencrypt *IP-ADDRESS* password
     Encrypt an IP address according to the 'ipcipher' standard
 
-ipdecrypt *IP-ADDRESS* passsword
+ipdecrypt *IP-ADDRESS* password
     Encrypt an IP address according to the 'ipcipher' standard
 
 See also

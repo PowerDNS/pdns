@@ -17,4 +17,4 @@ bit in the query.
 Example
 -------
 
-``nsec3dig 8.8.8.8 53 doesntexist.isoc.nl TXT recurse``
+``nsec3dig 8.8.8.8 53 doesnotexist.isoc.nl TXT recurse``

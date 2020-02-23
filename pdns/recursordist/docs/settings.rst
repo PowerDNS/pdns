@@ -1037,7 +1037,7 @@ Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 - Default: no (disabled)
 
 Whether to track newly observed domains, i.e. never seen before. This
-is a probablistic algorithm, using a stable bloom filter to store
+is a probabilistic algorithm, using a stable bloom filter to store
 records of previously seen domains. When enabled for the first time,
 all domains will appear to be newly observed, so the feature is best
 left enabled for e.g. a week or longer before using the results. Note
@@ -1337,7 +1337,7 @@ Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport``
 - String
 - Default: auto
 
-Specify which random number generator to use. Permissible choises are
+Specify which random number generator to use. Permissible choices are
  - auto - choose automatically
  - sodium - Use libsodium ``randombytes_uniform``
  - openssl - Use libcrypto ``RAND_bytes``
@@ -1347,7 +1347,7 @@ Specify which random number generator to use. Permissible choises are
  - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
 
 .. note::
-  Not all choises are available on all systems.
+  Not all choices are available on all systems.
 
 .. _setting-root-nx-trust:
 

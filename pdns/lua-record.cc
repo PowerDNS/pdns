@@ -701,7 +701,7 @@ void setupLuaRecords()
    * Simplistic test to see if an IP address listens on a certain port
    * Will return a single IP address from the set of available IP addresses. If
    * no IP address is available, will return a random element of the set of
-   * addresses suppplied for testing.
+   * addresses supplied for testing.
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */

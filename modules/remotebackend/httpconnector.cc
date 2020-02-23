@@ -399,7 +399,7 @@ int HTTPConnector::recv_message(Json& output) {
           throw NetworkError(std::string(strerror(rd)));
         arl.feed(std::string(buffer, rd));
       }
-      // timeout occured.
+      // timeout occurred.
       if (arl.ready() == false)
         throw NetworkError("timeout");
     } catch (NetworkError &ne) {

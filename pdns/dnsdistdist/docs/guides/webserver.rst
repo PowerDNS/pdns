@@ -12,7 +12,7 @@ Now point your browser at http://127.0.0.1:8083 and log in with any username, an
 Security of the Webserver
 -------------------------
 
-The built-in webserver serves its content from inside the binary, this means it will not and connot read from disk.
+The built-in webserver serves its content from inside the binary, this means it will not and cannot read from disk.
 
 By default, our web server sends some security-related headers::
 
@@ -38,7 +38,7 @@ To access the API, the `apikey` must be set in the :func:`webserver` function.
 Use the API, this key will need to be sent to dnsdist in the ``X-API-Key`` request header.
 An HTTP 401 response is returned when a wrong or no API key is received.
 A 404 response is generated is the requested endpoint does not exist.
-And a 405 response is returned when the HTTP methos is not allowed.
+And a 405 response is returned when the HTTP method is not allowed.
 
 URL Endpoints
 ~~~~~~~~~~~~~

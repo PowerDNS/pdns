@@ -60,7 +60,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         """
         Try to get get a key that does not exist
         """
-        name = "idontexist"
+        name = "idonotexist"
         r = self.session.get(self.url(
             "/api/v1/servers/localhost/tsigkeys/" + name + '.'),
             headers={'accept': 'application/json'})

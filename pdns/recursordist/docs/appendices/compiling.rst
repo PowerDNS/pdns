@@ -65,13 +65,13 @@ Protobuf to emit DNS logs
 
 The PowerDNS Recursor can log DNS query information over :doc:`Protocol Buffers <../lua-config/protobuf>`.
 To enable this functionality, install the  `protobuf <https://developers.google.com/protocol-buffers/>`_ library and compiler.
-The configure script will automatically detect this and bump the Boost version depencency to 1.42.
+The configure script will automatically detect this and bump the Boost version dependency to 1.42.
 
 To disable building this functionality, use ``--without-protobuf``.
 
 systemd notify support
 ^^^^^^^^^^^^^^^^^^^^^^
 
-During configure, ``configure`` will attempt to detect the availibility of `systemd or systemd-daemon <https://freedesktop.org/wiki/Software/systemd/>`_ headers.
+During configure, ``configure`` will attempt to detect the availability of `systemd or systemd-daemon <https://freedesktop.org/wiki/Software/systemd/>`_ headers.
 To force the use of systemd (and failing configure if the headers do not exist), use ``--enable-systemd``.
 To set the directory where the unit files should be installed, use ``--with-systemd=/path/to/unit/dir``.

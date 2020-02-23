@@ -722,7 +722,7 @@ Changes between RC2 and 3.4.0:
 -  `commit 016d810 <https://github.com/PowerDNS/pdns/commit/016d810>`__:
    improve postgresql detection during ./configure
 -  `commit dce1e90 <https://github.com/PowerDNS/pdns/commit/dce1e90>`__:
-   DNAME: don't sign the synthesised CNAME
+   DNAME: don't sign the synthesized CNAME
 -  `commit 25e7af3 <https://github.com/PowerDNS/pdns/commit/25e7af3>`__:
    send empty SERVFAIL after a backend throws a DBException, instead of
    including useless content

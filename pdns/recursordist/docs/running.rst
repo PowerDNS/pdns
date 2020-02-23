@@ -71,7 +71,7 @@ Whole subtrees can we wiped as well, to wipe all cache entries for 'example.com'
 
   When wiping cache entries, matching entries in *all* caches (packet cache, recursor cache, negative cache) are removed.
 
-When debugging resolving issues, it can be advantagious to have a dump of all the cache entries.
+When debugging resolving issues, it can be advantageous to have a dump of all the cache entries.
 :doc:`rec_control <manpages/rec_control.1>` can write the caches of all threads to a file::
 
   rec_control dump-cache /tmp/cache
