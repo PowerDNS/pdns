@@ -498,14 +498,15 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apt-get update && apt-get -qq --no-install-recommends install \
-            clang-format git
+            echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
+            apt-get update && apt-get -qq --no-install-recommends install git
+            apt-get -qq -t buster-backports --no-install-recommends install clang-format-8
       - get-workspace
       - run:
           name: Check formatting
           command: |
             ./build-scripts/format-code pdns/recursordist/*.[ch][ch]
-            git diff
+            git --no-pager diff
             exit $(git diff | wc -l)
           working_directory: ~/project
 
