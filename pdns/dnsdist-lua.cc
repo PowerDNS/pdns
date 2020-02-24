@@ -547,6 +547,11 @@ static void setupLuaConfig(bool client, bool configCheck)
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
+  g_lua.writeFunction("rmACL", [](const std::string& netmask) {
+    setLuaSideEffect();
+    g_ACL.modify([netmask](NetmaskGroup& nmg) { nmg.deleteMask(netmask); });
+  });
+
   g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
       setLuaSideEffect();
       if(client)
