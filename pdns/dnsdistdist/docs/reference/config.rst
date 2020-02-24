@@ -325,6 +325,19 @@ Access Control Lists
 
   :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
 
+.. function:: rmACL(netmask)
+
+  Remove a network from the existing ACL controlling which clients can send UDP, TCP, DNS over TLS and DNS over HTTPS queries. See :ref:`ACL` for more information.
+  This function only removes previously added entries, it does not remove subnets of entries.
+
+  :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
+
+  .. code-block:: lua
+
+    addACL("192.0.2.0/24") -- for example add subnet to the ACL
+    rmACL("192.0.2.10")    -- does NOT work, the ACL is unchanged
+    rmACL("192.0.2.0/24")  -- does work, the exact match is removed from the ACL
+
 .. function:: setACL(netmasks)
 
   Remove the existing ACL and add the netmasks from the table of those allowed to send UDP, TCP, DNS over TLS and DNS over HTTPS queries. See :ref:`ACL` for more information.
