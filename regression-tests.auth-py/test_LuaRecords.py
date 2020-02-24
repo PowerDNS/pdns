@@ -55,6 +55,7 @@ none.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21
 all.noneup.ifportup          3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='all' }})"
 
 whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
+whashedzero.example.org.     3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{0, '4.3.2.1'}} }})"
 rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{'2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268'}})"
@@ -553,6 +554,16 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testWHashedZero(self):
+        """
+        Test that pickwhashed() does not accept zero weights
+        """
+
+        query = dns.message.make_query('whashedzero.example.org', 'A')
+
+        response = self.sendUDPQuery(query)
+        self.assertRcodeEqual(response, dns.rcode.SERVFAIL)
 
     def testTimeout(self):
         """
