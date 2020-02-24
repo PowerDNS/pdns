@@ -208,7 +208,7 @@ This state can be modified from the various hooks.
 
     .. versionadded:: 1.5.0
 
-    Set the Type-Length Values to send to the backend using the Proxy Protocol.
+    Set the Proxy-Protocol Type-Length values to send to the backend along with this query.
 
     :param table values: A table of types and values to send, for example: ``{ ["0"] = foo", ["42"] = "bar" }``
 

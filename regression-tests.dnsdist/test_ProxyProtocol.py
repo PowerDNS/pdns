@@ -168,6 +168,7 @@ class TestProxyProtocol(ProxyProtocolTest):
     end
 
     addAction("values-lua.proxy.tests.powerdns.com.", LuaAction(addValues))
+    addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
     """
     _config_params = ['_proxyResponderPort']
 
@@ -300,3 +301,68 @@ class TestProxyProtocol(ProxyProtocolTest):
       self.assertEquals(receivedQuery, query)
       self.assertEquals(receivedResponse, response)
       self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'] , [ 42, b'bar'] ])
+
+    def testProxyUDPWithValuesFromAction(self):
+        """
+        Proxy Protocol: values from Action (UDP)
+        """
+        name = 'values-action.proxy.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        toProxyQueue.put(response, True, 2.0)
+
+        data = query.to_wire()
+        self._sock.send(data)
+        receivedResponse = None
+        try:
+            self._sock.settimeout(2.0)
+            data = self._sock.recv(4096)
+        except socket.timeout:
+            print('timeout')
+            data = None
+        if data:
+            receivedResponse = dns.message.from_wire(data)
+
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(receivedQuery, query)
+        self.assertEquals(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', False, [ [1, b'dnsdist'] , [ 255, b'proxy-protocol'] ])
+
+    def testProxyTCPWithValuesFromAction(self):
+      """
+        Proxy Protocol: values from Action (TCP)
+      """
+      name = 'values-action.proxy.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      response = dns.message.make_response(query)
+
+      toProxyQueue.put(response, True, 2.0)
+
+      conn = self.openTCPConnection(2.0)
+      data = query.to_wire()
+      self.sendTCPQueryOverConnection(conn, data, rawQuery=True)
+      receivedResponse = None
+      try:
+        receivedResponse = self.recvTCPResponseOverConnection(conn)
+      except socket.timeout:
+            print('timeout')
+
+      (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+      self.assertTrue(receivedProxyPayload)
+      self.assertTrue(receivedDNSData)
+      self.assertTrue(receivedResponse)
+
+      receivedQuery = dns.message.from_wire(receivedDNSData)
+      receivedQuery.id = query.id
+      receivedResponse.id = response.id
+      self.assertEquals(receivedQuery, query)
+      self.assertEquals(receivedResponse, response)
+      self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [1, b'dnsdist'] , [ 255, b'proxy-protocol'] ])
