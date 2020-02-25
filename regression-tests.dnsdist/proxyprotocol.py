@@ -19,18 +19,20 @@ class ProxyProtocol(object):
         if data[:len(self.MAGIC)] != self.MAGIC:
             return False
 
-        self.version = int(data[12]) >> 4
+        value = struct.unpack('!B', bytes(bytearray([data[12]])))[0]
+        self.version = value >> 4
         if self.version != 0x02:
             return False
 
-        self.command = int(data[12]) & ~0x20
+        self.command = value & ~0x20
         self.local = False
         self.offset = self.HEADER_SIZE
 
         if self.command == 0x00:
             self.local = True
         elif self.command == 0x01:
-            self.family = int(data[13]) >> 4
+            value = struct.unpack('!B', bytes(bytearray([data[13]])))[0]
+            self.family = value >> 4
             if self.family == 0x01:
                 self.addrSize = 4
             elif self.family == 0x02:
@@ -38,7 +40,7 @@ class ProxyProtocol(object):
             else:
                 return False
 
-            self.protocol = int(data[13]) & ~0xF0
+            self.protocol = value & ~0xF0
             if self.protocol == 0x01:
                 self.tcp = True
             elif self.protocol == 0x02:
@@ -103,7 +105,7 @@ class ProxyProtocol(object):
             return False
 
         while remaining >= 3:
-            valueType = data[self.offset]
+            valueType = struct.unpack("!B", bytes(bytearray([data[self.offset]])))[0]
             self.offset = self.offset + 1
             valueLen = struct.unpack("!H", data[self.offset:self.offset+2])[0]
             self.offset = self.offset + 2
