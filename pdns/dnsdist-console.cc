@@ -397,7 +397,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getBind", true, "n", "returns the listener at index n" },
   { "getBindCount", true, "", "returns the number of listeners all kinds" },
   { "getDNSCryptBind", true, "n", "return the `DNSCryptContext` object corresponding to the bind `n`" },
-  { "geDNSCrypttBindCount", true, "", "returns the number of DNSCrypt listeners" },
+  { "getDNSCryptBindCount", true, "", "returns the number of DNSCrypt listeners" },
   { "getDOHFrontend", true, "n", "returns the DOH frontend with index n" },
   { "getDOHFrontendCount", true, "", "returns the number of DoH listeners" },
   { "getPool", true, "name", "return the pool named `name`, or \"\" for the default pool" },
