@@ -2032,6 +2032,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     conn->data.resize(conn->proxyProtocolGot);
     ssize_t remaining = isProxyHeaderComplete(conn->data);
     if (remaining == 0) {
+      if (g_logCommonErrors) {
+        g_log<<Logger::Error<<"Unable to consume proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
+      }
       ++g_stats.proxyProtocolInvalidCount;
       t_fdm->removeReadFD(fd);
       return;
@@ -2048,6 +2051,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool tcp;
       bool proxy = false;
       if (parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues) <= 0) {
+        if (g_logCommonErrors) {
+          g_log<<Logger::Error<<"Unable to parse proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
+        }
+        ++g_stats.proxyProtocolInvalidCount;
         t_fdm->removeReadFD(fd);
         return;
       }
@@ -2182,10 +2189,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
               }
               else if (t_pdl->d_gettag) {
-                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName);
+                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_proxyProtocolValues);
               }
             }
             catch(const std::exception& e)  {
@@ -2440,10 +2447,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, proxyProtocolValues, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
             }
             else if (t_pdl->d_gettag) {
-              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName);
+              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, proxyProtocolValues);
             }
           }
           catch(const std::exception& e)  {
@@ -2638,7 +2645,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (used <= 0) {
           ++g_stats.proxyProtocolInvalidCount;
           if (!g_quiet) {
-            g_log<<Logger::Error<<"Ignoring invalid proxy protocol ("<<std::to_string(len)<<") query from "<<fromaddr.toString()<<endl;
+            g_log<<Logger::Error<<"Ignoring invalid proxy protocol ("<<std::to_string(len)<<", "<<std::to_string(used)<<") query from "<<fromaddr.toString()<<endl;
           }
           return;
         }
@@ -2671,12 +2678,13 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       if(t_allowFrom && !t_allowFrom->match(&source)) {
         if(!g_quiet) {
-          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
+          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<source.toString()<<", address not matched by allow-from"<<endl;
         }
 
         g_stats.unauthorizedUDP++;
         return;
       }
+
       BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
       if(!fromaddr.sin4.sin_port) { // also works for IPv6
         if(!g_quiet) {
