@@ -730,6 +730,7 @@ jobs:
       - image: circleci/postgres:9
         environment:
           POSTGRES_USER: root
+          POSTGRES_HOST_AUTH_METHOD: trust
     steps:
       - auth-regress-setup
       - run:
