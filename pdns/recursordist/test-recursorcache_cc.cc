@@ -906,4 +906,134 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 }
 
+BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
+{
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  time_t now = time(nullptr);
+
+  BOOST_CHECK_EQUAL(MRC.size(), 0U);
+  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none, boost::none);
+  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none, string("mytag"));
+  BOOST_CHECK_EQUAL(MRC.size(), 2U);
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 2U);
+  BOOST_CHECK_EQUAL(MRC.size(), 0U);
+  BOOST_CHECK_EQUAL(MRC.bytes(), 0U);
+
+  uint64_t counter = 0;
+  try {
+    for (counter = 0; counter < 100; ++counter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
+      BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none, string("mytagA"));
+      if (!MRC.doWipeCache(a, false))
+        BOOST_FAIL("Could not remove entry we just added to the cache!");
+      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none, string("mytagB"));
+    }
+
+    BOOST_CHECK_EQUAL(MRC.size(), counter);
+
+    uint64_t delcounter = 0;
+    for (delcounter = 0; delcounter < counter / 100; ++delcounter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(delcounter));
+      BOOST_CHECK_EQUAL(MRC.doWipeCache(a, false, QType::A), 1U);
+    }
+
+    BOOST_CHECK_EQUAL(MRC.size(), counter - delcounter);
+
+    std::vector<DNSRecord> retrieved;
+    ComboAddress who("192.0.2.1");
+    int64_t matches = 0;
+    int64_t expected = counter - delcounter;
+    int64_t delstart = delcounter;
+
+    for (; delcounter < counter; ++delcounter) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, boost::none)) {
+        matches++;
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, expected);
+    BOOST_CHECK_EQUAL(retrieved.size(), records.size());
+
+    matches = 0;
+    retrieved.clear();
+    for (delcounter = delstart; delcounter < counter; ++delcounter) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, string("mytagB"))) {
+        matches++;
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, expected);
+    BOOST_CHECK_EQUAL(retrieved.size(), records.size());
+
+    matches = 0;
+    for (delcounter = delstart; delcounter < counter; ++delcounter) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, string("mytagX"))) {
+        matches++;
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, expected);
+    BOOST_CHECK_EQUAL(retrieved.size(), records.size());
+
+    MRC.doWipeCache(DNSName("."), true);
+    BOOST_CHECK_EQUAL(MRC.size(), 0U);
+
+    time_t ttd = now + 30;
+    DNSName power("powerdns.com.");
+    DNSRecord dr1;
+    ComboAddress dr1Content("2001:DB8::1");
+    dr1.d_name = power;
+    dr1.d_type = QType::AAAA;
+    dr1.d_class = QClass::IN;
+    dr1.d_content = std::make_shared<AAAARecordContent>(dr1Content);
+    dr1.d_ttl = static_cast<uint32_t>(ttd);
+    dr1.d_place = DNSResourceRecord::ANSWER;
+
+    DNSRecord dr2;
+    ComboAddress dr2Content("192.0.2.42");
+    dr2.d_name = power;
+    dr2.d_type = QType::A;
+    dr2.d_class = QClass::IN;
+    dr2.d_content = std::make_shared<ARecordContent>(dr2Content);
+    dr2.d_ttl = static_cast<uint32_t>(ttd);
+    // the place should not matter to the cache
+    dr2.d_place = DNSResourceRecord::AUTHORITY;
+
+    // insert a tagged entry
+    records.push_back(dr1);
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"), string("mytag"));
+    BOOST_CHECK_EQUAL(MRC.size(), 1U);
+
+    // tagged specific should be returned for a matching tag
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), string("mytag")), (ttd - now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+
+    // tag specific should not be returned for a different tag
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), string("othertag")), 0);
+    BOOST_CHECK_EQUAL(retrieved.size(), 0U);
+
+    // insert a new  entry without tag
+    records.push_back(dr2);
+    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"), boost::none);
+    BOOST_CHECK_EQUAL(MRC.size(), 2U);
+
+    // tagged specific should be returned for a matching tag
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), string("mytag")), (ttd - now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+
+    // remove everything
+    MRC.doWipeCache(DNSName("."), true);
+    BOOST_CHECK_EQUAL(MRC.size(), 0U);
+  }
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
+    throw;
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
