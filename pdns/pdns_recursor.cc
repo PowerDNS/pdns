@@ -1820,7 +1820,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Error processing or aging answer packet: "<<e.what()<<endl;
+    if(g_logCommonErrors)
+      L<<Logger::Error<<"Error processing or aging answer packet: "<<e.what()<<endl;
     return 0;
   }
 
