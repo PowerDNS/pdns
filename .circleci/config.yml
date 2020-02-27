@@ -852,6 +852,8 @@ jobs:
   build-recursor:
     docker:
       - image: debian:buster
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - restore-cache-ccache:
           product: recursor
@@ -901,7 +903,9 @@ jobs:
             --with-lua=luajit \
             --with-libcap \
             --with-protobuf=yes \
-            --without-net-snmp
+            --without-net-snmp \
+            --enable-asan \
+            --enable-ubsan
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build
@@ -927,6 +931,8 @@ jobs:
 
     docker:
       - image: debian:buster
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc virtualenv protobuf-compiler
