@@ -1226,6 +1226,28 @@ Improves performance on Linux.
 
 Whether to compute the latency of responses in protobuf messages using the timestamp set by the kernel when the query packet was received (when available), instead of computing it based on the moment we start processing the query.
 
+.. _setting-proxy-protocol-from:
+
+``proxy-protocol-from``
+-----------------------
+.. versionadded:: 4.4.0
+
+-  IP ranges, separated by commas
+-  Default: empty
+
+Ranges that are allowed to send a Proxy Protocol header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
+
+.. _setting-proxy-protocol-maximum-size:
+
+``proxy-protocol-maximum-size``
+-------------------------------
+.. versionadded:: 4.4.0
+
+-  Integer
+-  Default: 512
+
+The maximum size, in bytes, of a Proxy Protocol payload (header, addresses and ports, and TLV values). Queries with a larger payload will be dropped.
+
 .. _setting-public-suffix-list-file:
 
 ``public-suffix-list-file``

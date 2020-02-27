@@ -53,12 +53,17 @@ Interception Functions
     :param DNSHeader dh: The DNS Header of the query.
 
 
-.. function:: gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp) -> int
+.. function:: gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp, proxyprotocolvalues) -> int
+              gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp) -> int
               gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions) -> int
 
     .. versionchanged:: 4.1.0
 
       The ``tcp`` parameter was added.
+
+    .. versionchanged:: 4.3.0
+
+      The ``proxyprotocolvalues`` parameter was added.
 
     The ``gettag`` function is invoked when the Recursor attempts to discover in which packetcache an answer is available.
 
@@ -69,6 +74,7 @@ Interception Functions
     .. versionadded:: 4.1.0
 
         It can also return a table whose keys and values are strings to fill the :attr:`DNSQuestion.data` table, as well as a ``requestorId`` value to fill the :attr:`DNSQuestion.requestorId` field and a ``deviceId`` value to fill the :attr:`DNSQuestion.deviceId` field.
+
     .. versionadded:: 4.3.0
 
         Along the ``deviceId`` value that can be returned, it was addded a ``deviceName`` field to fill the :attr:`DNSQuestion.deviceName` field.
@@ -84,6 +90,7 @@ Interception Functions
     :param int qtype: The query type of the query
     :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-gettag-needs-edns-options` option is set.
     :param bool tcp: Added in 4.1.0, a boolean indicating whether the query was received over UDP (false) or TCP (true).
+    :param proxyprotocolvalues: Added in 4.4.0, a table of :class:`ProxyProtocolValue` objects representing the Type-Length Values received via the Proxy Protocol, if any.
 
 .. function:: prerpz(dq)
 
