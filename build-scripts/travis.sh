@@ -659,7 +659,7 @@ if [ "$CC" = "clang" ]
 then
   compilerflags="$compilerflags -Werror=string-plus-int"
   if [ "${PDNS_BUILD_PRODUCT}" = "recursor" ]; then
-    sanitizerflags="${sanitizerflags} --enable-asan"
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
   elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
     sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
   elif [ "${PDNS_BUILD_PRODUCT}" = "ixfrdist" ]; then
