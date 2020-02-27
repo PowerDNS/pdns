@@ -22,7 +22,6 @@
 
 #include "proxy-protocol.hh"
 
-// TODO: handle TLV after address struct
 // TODO: maybe use structs instead of explicitly working byte by byte, like https://github.com/dovecot/core/blob/master/src/lib-master/master-service-haproxy.c
 
 #define PROXYMAGIC "\x0D\x0A\x0D\x0A\x00\x0D\x0A\x51\x55\x49\x54\x0A"
@@ -42,7 +41,16 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
   const size_t addrSize = source.isIPv4() ? sizeof(source.sin4.sin_addr.s_addr) : sizeof(source.sin6.sin6_addr.s6_addr);
   const uint16_t sourcePort = source.sin4.sin_port;
   const uint16_t destinationPort = destination.sin4.sin_port;
-  const uint16_t contentlen = htons((addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort));
+
+  size_t valuesSize = 0;
+  for (const auto& value : values) {
+    if (value.content.size() > std::numeric_limits<uint16_t>::max()) {
+      throw std::runtime_error("The size of proxy protocol values is limited to " + std::to_string(std::numeric_limits<uint16_t>::max()) + ", trying to add a value of size " + std::to_string(value.content.size()));
+    }
+    valuesSize += sizeof(uint8_t) + sizeof(uint8_t) * 2 + value.content.size();
+  }
+
+  const uint16_t contentlen = htons((addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort) + valuesSize);
 
   ret.reserve(proxymagic.size() + sizeof(versioncommand) + sizeof(protocol) + sizeof(contentlen) + contentlen);
 
@@ -69,6 +77,13 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
 
   ret.append(reinterpret_cast<const char*>(&sourcePort), sizeof(sourcePort));
   ret.append(reinterpret_cast<const char*>(&destinationPort), sizeof(destinationPort));
+
+  for (const auto& value : values) {
+    uint16_t contentSize = htons(static_cast<uint16_t>(value.content.size()));
+    ret.append(reinterpret_cast<const char*>(&value.type), sizeof(value.type));
+    ret.append(reinterpret_cast<const char*>(&contentSize), sizeof(contentSize));
+    ret.append(reinterpret_cast<const char*>(value.content.data()), value.content.size());
+  }
 
   return ret;
 }
@@ -170,6 +185,29 @@ ssize_t parseProxyHeader(const std::string& header, ComboAddress& source, ComboA
   pos = pos + sizeof(uint16_t);
   destination.setPort((header.at(pos) << 8) + header.at(pos+1));
   pos = pos + sizeof(uint16_t);
+
+  size_t remaining = got - pos;
+  while (remaining >= (sizeof(uint8_t) + sizeof(uint16_t))) {
+    /* we still have TLV values to parse */
+    uint8_t type = static_cast<uint8_t>(header.at(pos));
+    pos += sizeof(uint8_t);
+    uint16_t len = (header.at(pos) << 8) + header.at(pos + 1);
+    pos += sizeof(uint16_t);
+
+    if (len > 0) {
+      if (len > (got - pos)) {
+        return 0;
+      }
+
+      values.push_back({ std::string(&header.at(pos), len), type });
+      pos += len;
+    }
+    else {
+      values.push_back({ std::string(), type });
+    }
+
+    remaining = got - pos;
+  }
 
   return pos;
 }
