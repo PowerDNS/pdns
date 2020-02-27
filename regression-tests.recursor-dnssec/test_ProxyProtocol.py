@@ -169,6 +169,7 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
 
     _config_template = """
     proxy-protocol-from=127.0.0.1
+    proxy-protocol-maximum-size=512
     allow-from=127.0.0.0/24, ::1/128, ::42/128
 """ % ()
 
@@ -182,7 +183,6 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
         payload = ppPayload + queryPayload
 
         # UDP
-
         self._sock.settimeout(2.0)
 
         try:
@@ -237,7 +237,6 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
         payload = ppPayload + queryPayload
 
         # UDP
-
         self._sock.settimeout(2.0)
 
         try:
@@ -323,6 +322,61 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
             res = dns.message.from_wire(data)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
+
+    def testTooLargeProxyProtocol(self):
+        # the total payload (proxy protocol + DNS) is larger than proxy-protocol-maximum-size
+        # so it should be dropped
+        qname = 'too-large.proxy-protocol.recursor-tests.powerdns.com.'
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+
+        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        queryPayload = query.to_wire()
+        ppPayload = ProxyProtocol.getPayload(False, True, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [1, b'A'*512], [ 255, b'bar'] ])
+        payload = ppPayload + queryPayload
+
+        # UDP
+        self._sock.settimeout(2.0)
+
+        try:
+            self._sock.send(payload)
+            data = self._sock.recv(4096)
+        except socket.timeout:
+            data = None
+        finally:
+            self._sock.settimeout(None)
+
+        res = None
+        if data:
+            res = dns.message.from_wire(data)
+        self.assertEqual(res, None)
+
+        # TCP
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", self._recursorPort))
+
+        try:
+            sock.send(ppPayload)
+            sock.send(struct.pack("!H", len(queryPayload)))
+            sock.send(queryPayload)
+
+            data = sock.recv(2)
+            if data:
+                (datalen,) = struct.unpack("!H", data)
+                data = sock.recv(datalen)
+        except socket.timeout as e:
+            print("Timeout: %s" % (str(e)))
+            data = None
+        except socket.error as e:
+            print("Network error: %s" % (str(e)))
+            data = None
+        finally:
+            sock.close()
+
+        res = None
+        if data:
+            res = dns.message.from_wire(data)
+        self.assertEqual(res, None)
 
     def testNoHeaderProxyProtocol(self):
         qname = 'no-header.proxy-protocol.recursor-tests.powerdns.com.'
@@ -519,11 +573,6 @@ class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
       return true
     end
     """
-
-    _config_template = """
-    proxy-protocol-from=127.0.0.1
-    allow-from=127.0.0.0/24, ::1/128, ::42/128
-""" % ()
 
 class ProxyProtocolNotAllowedRecursorTest(ProxyProtocolRecursorTest):
     _confdir = 'ProxyProtocolNotAllowed'

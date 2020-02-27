@@ -2050,9 +2050,18 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
          the connection was received over UDP or TCP if neede */
       bool tcp;
       bool proxy = false;
-      if (parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues) <= 0) {
+      size_t used = parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues);
+      if (used <= 0) {
         if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Unable to parse proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
+        }
+        ++g_stats.proxyProtocolInvalidCount;
+        t_fdm->removeReadFD(fd);
+        return;
+      }
+      else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+        if (g_logCommonErrors) {
+          g_log<<Logger::Error<<"Proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping"<< endl;
         }
         ++g_stats.proxyProtocolInvalidCount;
         t_fdm->removeReadFD(fd);
@@ -2645,17 +2654,25 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (used <= 0) {
           ++g_stats.proxyProtocolInvalidCount;
           if (!g_quiet) {
-            g_log<<Logger::Error<<"Ignoring invalid proxy protocol ("<<std::to_string(len)<<", "<<std::to_string(used)<<") query from "<<fromaddr.toString()<<endl;
+            g_log<<Logger::Error<<"Ignoring invalid proxy protocol ("<<std::to_string(len)<<", "<<std::to_string(used)<<") query from "<<fromaddr.toStringWithPort()<<endl;
           }
           return;
         }
+        else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+          if (g_quiet) {
+            g_log<<Logger::Error<<"Proxy protocol header in UDP packet from "<< fromaddr.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping"<< endl;
+          }
+          ++g_stats.proxyProtocolInvalidCount;
+          return;
+        }
+
         data.erase(0, used);
       }
       else if (len > 512) {
         /* we only allow UDP packets larger than 512 for those with a proxy protocol header */
         g_stats.truncatedDrops++;
         if (!g_quiet) {
-          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
+          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toStringWithPort()<<endl;
         }
         return;
       }
