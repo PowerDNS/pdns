@@ -1287,6 +1287,7 @@ static void startDoResolve(void *p)
     dq.deviceId = dc->d_deviceId;
     dq.deviceName = dc->d_deviceName;
 #endif
+    dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
 
     if(ednsExtRCode != 0) {
       goto sendit;
@@ -2049,6 +2050,18 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         t_fdm->removeReadFD(fd);
         return;
       }
+
+      /* check the real source */
+      if (t_allowFrom && !t_allowFrom->match(&conn->d_source)) {
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<conn->d_source.toString()<<", address not matched by allow-from"<<endl;
+        }
+
+        ++g_stats.unauthorizedTCP;
+        t_fdm->removeReadFD(fd);
+        return;
+      }
+
       conn->data.resize(2);
       conn->state = TCPConnection::BYTE0;
     }
@@ -2280,11 +2293,14 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       return;
     }
 
-    if(t_remotes)
+    if(t_remotes) {
       t_remotes->push_back(addr);
-    if(t_allowFrom && !t_allowFrom->match(&addr)) {
+    }
+
+    bool fromProxyProtocolSource = expectProxyProtocol(addr);
+    if(t_allowFrom && !t_allowFrom->match(&addr) && !fromProxyProtocolSource) {
       if(!g_quiet)
-        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
+        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address neither matched by allow-from nor proxy-protocol-from"<<endl;
 
       g_stats.unauthorizedTCP++;
       try {
@@ -2295,6 +2311,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       }
       return;
     }
+
     if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
       try {
@@ -2314,7 +2331,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     socklen_t len = tc->d_destination.getSocklen();
     getsockname(tc->getFD(), reinterpret_cast<sockaddr*>(&tc->d_destination), &len); // if this fails, we're ok with it
 
-    if (expectProxyProtocol(addr)) {
+    if (fromProxyProtocolSource) {
       tc->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
       tc->data.resize(tc->proxyProtocolNeed);
       tc->state = TCPConnection::PROXYPROTOCOLHEADER;
@@ -2641,7 +2658,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         t_remotes->push_back(fromaddr);
       }
 
-      if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
+      if(t_allowFrom && !t_allowFrom->match(&source)) {
         if(!g_quiet) {
           g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
         }
@@ -4169,7 +4186,7 @@ static int serviceMain(int argc, char*argv[])
   g_XPFAcl.toMasks(::arg()["xpf-allow-from"]);
   g_xpfRRCode = ::arg().asNum("xpf-rr-code");
 
-  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-allow-from"]);
+  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");

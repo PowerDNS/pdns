@@ -33,6 +33,8 @@
 #include "ednsoptions.hh"
 #include "validate.hh"
 #include "lua-base4.hh"
+#include "proxy-protocol.hh"
+
 #include <unordered_map>
 
 #include "lua-recursor4-ffi.hh"
@@ -74,6 +76,7 @@ public:
     vector<DNSRecord>* currentRecords{nullptr};
     DNSFilterEngine::Policy* appliedPolicy{nullptr};
     std::vector<std::string>* policyTags{nullptr};
+    const std::vector<ProxyProtocolValue>* proxyProtocolValues{nullptr};
     std::unordered_map<std::string,bool>* discardedPolicies{nullptr};
     std::string requestorId;
     std::string deviceId;
@@ -91,6 +94,7 @@ public:
     vector<pair<uint16_t, string> > getEDNSOptions() const;
     boost::optional<string> getEDNSOption(uint16_t code) const;
     boost::optional<Netmask> getEDNSSubnet() const;
+    std::vector<std::pair<uint8_t, string>> getProxyProtocolValues() const;
     vector<string> getEDNSFlags() const;
     bool getEDNSFlag(string flag) const;
     void setRecords(const vector<pair<int,DNSRecord> >& records);

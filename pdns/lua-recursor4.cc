@@ -183,6 +183,19 @@ boost::optional<Netmask>  RecursorLua4::DNSQuestion::getEDNSSubnet() const
   return boost::optional<Netmask>();
 }
 
+std::vector<std::pair<uint8_t, string>> RecursorLua4::DNSQuestion::getProxyProtocolValues() const
+{
+  std::vector<std::pair<uint8_t, string>> result;
+  if (proxyProtocolValues) {
+    result.reserve(proxyProtocolValues->size());
+
+    for (const auto& value: *proxyProtocolValues) {
+      result.push_back({ value.type, value.content });
+    }
+  }
+
+  return result;
+}
 
 vector<pair<int, DNSRecord> > RecursorLua4::DNSQuestion::getRecords() const
 {
@@ -291,6 +304,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
   d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
   d_lw->registerFunction("getEDNSSubnet", &DNSQuestion::getEDNSSubnet);
+  d_lw->registerFunction("getProxyProtocolValues", &DNSQuestion::getProxyProtocolValues);
   d_lw->registerFunction("getEDNSFlags", &DNSQuestion::getEDNSFlags);
   d_lw->registerFunction("getEDNSFlag", &DNSQuestion::getEDNSFlag);
   d_lw->registerMember("name", &DNSRecord::d_name);
