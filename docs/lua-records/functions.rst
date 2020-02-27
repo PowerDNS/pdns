@@ -202,8 +202,6 @@ Reverse DNS functions
       - Example: A query for ``15.0.0.127.in-addr.arpa``
       - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
 
-  **NOTE:** At the current time, only forward dotted format works with :func:`createForward` (i.e. ``127.0.0.1.static.example.com``)
-  
   Example records::
   
     *.0.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%1%.%2%.%3%.%4%.static.example.com')"
@@ -233,7 +231,7 @@ Reverse DNS functions
     
     *.static.example.com    IN    LUA    A "createForward()"
   
-  **NOTE:** At the current time, only forward dotted format works for this function (i.e. ``127.0.0.1.static.example.com``)
+  This function supports the forward dotted format (``127.0.0.1.static.example.com``), and the hex format, when prefixed by two ignored characters (``ip40414243.static.example.com``)
   
   When queried::
   
@@ -270,8 +268,6 @@ Reverse DNS functions
       - ``%35%`` - returns ``000a`` (chunk 2)
       - ``%41%`` - returns ``0123`` (chunk 8)
   
-  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
-  
   Example records::
   
     *.1.0.0.2.ip6.arpa IN    LUA    PTR "createReverse('%33%.static6.example.com')"
@@ -301,7 +297,7 @@ Reverse DNS functions
     
     *.static6.example.com    IN    LUA    AAAA "createForward6()"
   
-  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
+  This function supports the dashed compressed format (i.e. ``2001-a-b--1.static6.example.com``), and the dot-split uncompressed format (``2001.db8.6.5.4.3.2.1.static6.example.com``)
   
   When queried::
   
