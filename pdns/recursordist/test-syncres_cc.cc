@@ -31,6 +31,30 @@ void primeRootNSZones(bool)
 {
 }
 
+BaseLua4::~BaseLua4()
+{
+}
+
+void BaseLua4::getFeatures(Features &)
+{
+}
+
+RecursorLua4::~RecursorLua4()
+{
+}
+
+void RecursorLua4::postPrepareContext()
+{
+}
+
+void RecursorLua4::postLoad()
+{
+}
+
+void RecursorLua4::getFeatures(Features& features)
+{
+}
+
 bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const
 {
   return false;

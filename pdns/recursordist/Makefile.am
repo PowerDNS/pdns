@@ -361,6 +361,7 @@ endif
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
+testrunner_LDADD += $(LUA_LIBS)
 endif
 
 if HAVE_FREEBSD
