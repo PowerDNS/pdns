@@ -429,7 +429,7 @@ Overrides :ref:`setting-default-soa-edit`
 -  String
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.3.0
+  This setting has been deprecated and will be removed in 4.4.0
 
 Mail address to insert in the SOA record if none set in the backend.
 
@@ -442,7 +442,7 @@ Mail address to insert in the SOA record if none set in the backend.
 -  Default: a.misconfigured.powerdns.server
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.3.0
+  This setting has been deprecated and will be removed in 4.4.0
 
 Name to insert in the SOA record if none set in the backend.
 
@@ -1516,7 +1516,7 @@ See :ref:`metadata-slave-renotify` to set this per-zone.
 -  Default: 604800
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.3.0
+  This setting has been deprecated and will be removed in 4.4.0
 
 Default :ref:`types-soa` expire.
 
@@ -1529,7 +1529,7 @@ Default :ref:`types-soa` expire.
 -  Default: 3600
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.3.0
+  This setting has been deprecated and will be removed in 4.4.0
 
 Default :ref:`types-soa` minimum ttl.
 
@@ -1542,7 +1542,7 @@ Default :ref:`types-soa` minimum ttl.
 -  Default: 10800
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.3.0
+  This setting has been deprecated and will be removed in 4.4.0
 
 Default :ref:`types-soa` refresh.
 
@@ -1555,7 +1555,7 @@ Default :ref:`types-soa` refresh.
 -  Default: 3600
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.3.0
+  This setting has been deprecated and will be removed in 4.4.0
 
 Default :ref:`types-soa` retry.
 
