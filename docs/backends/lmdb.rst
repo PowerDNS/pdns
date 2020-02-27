@@ -14,7 +14,7 @@ LMDB backend
 
 
 .. warning::
-  The LMDB backend is EXPERIMENTAL, and as of 4.2.0, it has `known <https://github.com/PowerDNS/pdns/issues/8012>`__ `bugs <https://github.com/PowerDNS/pdns/issues/8134>`__. Be prepared for incompatible changes between minor releases in the 4.2.x branch, and while tracking our git master.
+  The LMDB backend is considered stable as of 4.3.0, but it has one important `known bug <https://github.com/PowerDNS/pdns/issues/8012>`__, that affects anybody with big records such as long TXT content. Because of that bug, we suspect production deployment is still limited, which means some bugs may not have been found yet. We do not plan to do any breaking changes in the 4.3.x time frame; this means that the 'long content' bug will hopefully be fixed in 4.4.0.
 
 Enabling the backend
 --------------------
