@@ -144,6 +144,7 @@ pdns_recursor_SOURCES = \
 	pdnsexception.hh \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
+	proxy-protocol.cc proxy-protocol.hh \
 	pubsuffix.hh pubsuffix.cc \
 	pubsuffixloader.cc \
 	qtype.hh qtype.cc \

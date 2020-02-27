@@ -406,6 +406,12 @@ policy-result-custom
 ^^^^^^^^^^^^^^^^^^^^
 packets that were sent a custom answer by   the RPZ/filter engine
 
+proxy-protocol-invalid
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4
+
+Invalid proxy-protocol headers received.
+
 qa-latency
 ^^^^^^^^^^
 shows the current latency average, in microseconds,   exponentially weighted over past 'latency-statistic-size' packets
