@@ -89,22 +89,23 @@ public:
   void queueData(const std::string& data) override;
   std::string toString() const override
   {
-    return d_remote.toStringWithPort();
+    return d_remote.toStringWithPort() + " (" + std::to_string(d_queued) + " queued, " + std::to_string(d_drops) + " dropped)";
   }
   void stop()
   {
     d_exiting = true;
   }
-  std::atomic<uint32_t> d_drops{0};
 
 private:
   bool reconnect();
   void maintenanceThread();
 
+  std::unique_ptr<CircularWriteBuffer> d_writer;
   ComboAddress d_remote;
+  std::atomic<uint64_t> d_drops{0};
+  std::atomic<uint64_t> d_queued{0};
   uint64_t d_maxQueuedBytes;
   int d_socket{-1};
-  std::unique_ptr<CircularWriteBuffer> d_writer;
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
