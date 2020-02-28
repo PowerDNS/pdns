@@ -2047,7 +2047,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     else {
       /* proxy header received */
       /* we ignore the TCP field for now, but we could properly set whether
-         the connection was received over UDP or TCP if neede */
+         the connection was received over UDP or TCP if needed */
       bool tcp;
       bool proxy = false;
       size_t used = parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues);
