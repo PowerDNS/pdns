@@ -1838,7 +1838,7 @@ static void startDoResolve(void *p)
     else
       g_stats.answersSlow++;
 
-    uint64_t newLat=(uint64_t)(spent*1000000);
+    uint64_t newLat=(uint64_t)(spent*static_cast<uint64_t>(1000000));
     newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
     g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
