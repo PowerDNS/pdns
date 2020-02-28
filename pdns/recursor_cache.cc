@@ -187,7 +187,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   return map.d_map.end();
 }
 
-std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> MemRecursorCache::getEntries(MapCombo& map, const DNSName &qname, const QType& qt, const OptTag& rtag )
+MemRecursorCache::Entries MemRecursorCache::getEntries(MapCombo& map, const DNSName &qname, const QType& qt, const OptTag& rtag )
 {
   // MUTEX SHOULD BE ACQUIRED
   if (!map.d_cachecachevalid || map.d_cachedqname != qname || map.d_cachedrtag != rtag) {
@@ -446,10 +446,15 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
     auto& map = getMap(name);
     const lock l(map);
     map.d_cachecachevalid = false;
-    auto& idx = map.d_map.get<NameOnlyHashedTag>();
-    size_t n = idx.erase(name);
-    count += n;
-    map.d_entriesCount -= n;
+    auto& idx = map.d_map.get<OrderedTag>();
+    auto i = idx.lower_bound(name);
+    auto upper_bound = idx.upper_bound(name);
+    while (i != upper_bound) {
+      i = idx.erase(i);
+      count++;
+      map.d_entriesCount--;
+    }
+
     if (qtype == 0xffff) {
       auto& ecsIdx = map.d_ecsIndex.get<OrderedTag>();
       auto ecsIndexRange = ecsIdx.equal_range(name);
