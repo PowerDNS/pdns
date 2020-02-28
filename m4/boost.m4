@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 31
+# serial 32
 ], [#
 ], [])])
 
@@ -666,6 +666,8 @@ LDFLAGS=$boost_filesystem_save_LDFLAGS
 # * The implementation details were moved to boost::context::detail in 1.61.0
 # * 1.61 also introduces execution_context_v2, which is the "lowest common
 #   denominator" for boost::context presence since then.
+# * boost::context::fiber was introduced in 1.69 and execution_context_v2 was
+#   removed in 1.72
 BOOST_DEFUN([Context],
 [boost_context_save_LIBS=$LIBS
  boost_context_save_LDFLAGS=$LDFLAGS
@@ -676,7 +678,31 @@ if test $boost_major_version -ge 157; then
   LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
 fi
 
-if test $boost_major_version -ge 161; then
+if test $boost_major_version -ge 169; then
+
+BOOST_FIND_LIB([context], [$1],
+                [boost/context/fiber.hpp], [[
+namespace ctx=boost::context;
+int a;
+ctx::fiber source{[&a](ctx::fiber&& sink){
+    a=0;
+    int b=1;
+    for(;;){
+        sink=std::move(sink).resume();
+        int next=a+b;
+        a=b;
+        b=next;
+    }
+    return std::move(sink);
+}};
+for (int j=0;j<10;++j) {
+    source=std::move(source).resume();
+}
+return a == 34;
+]], [], [], [$2])
+
+elif test $boost_major_version -ge 161; then
+
 BOOST_FIND_LIB([context], [$1],
                 [boost/context/execution_context_v2.hpp], [[
 namespace ctx=boost::context;
