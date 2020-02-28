@@ -193,8 +193,8 @@ MemRecursorCache::Entries MemRecursorCache::getEntries(MapCombo& map, const DNSN
   if (!map.d_cachecachevalid || map.d_cachedqname != qname || map.d_cachedrtag != rtag) {
     map.d_cachedqname = qname;
     map.d_cachedrtag = rtag;
-    const auto& idx = map.d_map.get<NameOnlyHashedTag>();
-    map.d_cachecache = idx.equal_range(qname);
+    const auto& idx = map.d_map.get<NameAndRTagOnlyHashedTag>();
+    map.d_cachecache = idx.equal_range(tie(qname, rtag));
     map.d_cachecachevalid = true;
   }
   return map.d_cachecache;
@@ -216,16 +216,15 @@ bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entr
   return match;
 }
 
-bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const OptTag &rtag)
+bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth)
 {
   // MUTEX SHOULD BE ACQUIRED
   if (requireAuth && !entry->d_auth)
     return false;
 
   bool match = (entry->d_qtype == qt || qt == QType::ANY ||
-                (qt == QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)))
-    && entry->d_rtag ==  rtag;
-  //cerr << match << "T  " << qt << ':' << entry->d_qtype << ' ' << entry->d_rtag << ':' << rtag << endl;
+                (qt == QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)));
+  //cerr << match << "T  " << qt << ':' << entry->d_qtype << ' ' << entry->d_rtag << endl;
   return match;
 }
 
@@ -311,7 +310,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
           continue;
         }
 
-        if (!entryMatches(firstIndexIterator, qtype, requireAuth, routingTag)) {
+        if (!entryMatches(firstIndexIterator, qtype, requireAuth)) {
           continue;
         }
 
@@ -335,7 +334,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
           continue;
         }
 
-        if (!entryMatches(firstIndexIterator, qtype, requireAuth, boost::none)) {
+        if (!entryMatches(firstIndexIterator, qtype, requireAuth)) {
           continue;
         }
 
@@ -361,7 +360,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   if (ednsmask) {
     ednsmask = ednsmask->getNormalized();
   }
-  auto key = boost::make_tuple(qname, qt.getCode(), routingTag, ednsmask ? *ednsmask : Netmask());
+
+  // We only store an ednsmask if we do not have a tag and we do have a mask.
+  auto key = boost::make_tuple(qname, qt.getCode(), routingTag, (ednsmask && !routingTag) ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = map.d_map.find(key);
   if (stored == map.d_map.end()) {
@@ -552,7 +553,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
     auto firstIndexIterator = map.d_map.project<OrderedTag>(i);
 
     if (routingTag) {
-      if (!entryMatches(firstIndexIterator, qtype, requireAuth, routingTag)) {
+      if (!entryMatches(firstIndexIterator, qtype, requireAuth)) {
         continue;
       }
     } else {
@@ -597,7 +598,7 @@ uint64_t MemRecursorCache::doDump(int fd)
       for (const auto j : i.d_records) {
         count++;
         try {
-          fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+          fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str(), !i.d_rtag ? "" : i.d_rtag.get().c_str());
         }
         catch(...) {
           fprintf(fp.get(), "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
@@ -624,3 +625,9 @@ void MemRecursorCache::doPrune(size_t keep)
   pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
 }
 
+namespace boost {
+  size_t hash_value(const MemRecursorCache::OptTag& o)
+  {
+    return o ? hash_value(o.get()) : 0xcafebaaf;
+  }
+}

@@ -984,13 +984,15 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     time_t ttd = now + 30;
     DNSName power("powerdns.com.");
     DNSRecord dr1;
-    ComboAddress dr1Content("2001:DB8::1");
+    ComboAddress dr1Content("192.0.2.41");
     dr1.d_name = power;
-    dr1.d_type = QType::AAAA;
+    dr1.d_type = QType::A;
     dr1.d_class = QClass::IN;
-    dr1.d_content = std::make_shared<AAAARecordContent>(dr1Content);
+    dr1.d_content = std::make_shared<ARecordContent>(dr1Content);
     dr1.d_ttl = static_cast<uint32_t>(ttd);
     dr1.d_place = DNSResourceRecord::ANSWER;
+    std::vector<DNSRecord> rset1;
+    rset1.push_back(dr1);
 
     DNSRecord dr2;
     ComboAddress dr2Content("192.0.2.42");
@@ -999,32 +1001,69 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     dr2.d_class = QClass::IN;
     dr2.d_content = std::make_shared<ARecordContent>(dr2Content);
     dr2.d_ttl = static_cast<uint32_t>(ttd);
-    // the place should not matter to the cache
-    dr2.d_place = DNSResourceRecord::AUTHORITY;
+    dr2.d_place = DNSResourceRecord::ANSWER;
+    std::vector<DNSRecord> rset2;
+    rset2.push_back(dr2);
+
+    DNSRecord dr3;
+    ComboAddress dr3Content("192.0.2.43");
+    dr3.d_name = power;
+    dr3.d_type = QType::A;
+    dr3.d_class = QClass::IN;
+    dr3.d_content = std::make_shared<ARecordContent>(dr3Content);
+    dr3.d_ttl = static_cast<uint32_t>(ttd);
+    dr3.d_place = DNSResourceRecord::ANSWER;
+    std::vector<DNSRecord> rset3;
+    rset3.push_back(dr3);
 
     // insert a tagged entry
     records.push_back(dr1);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"), string("mytag"));
+    MRC.replace(now, power, QType(QType::A), rset1, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.0/24"), string("mytag"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // tagged specific should be returned for a matching tag
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
-    BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     // tag specific should not be returned for a different tag
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), string("othertag")), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("othertag")), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0U);
 
     // insert a new  entry without tag
-    records.push_back(dr2);
-    MRC.replace(now, power, QType(QType::AAAA), records, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.1/25"), boost::none);
+    MRC.replace(now, power, QType(QType::A), rset2, signatures, authRecords, true, boost::optional<Netmask>("192.0.3.0/24"), boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // tagged specific should be returned for a matching tag
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), false, &retrieved, ComboAddress("127.0.0.1"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
-    BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+
+    // if no tag given nothing should be retrieved if address doesn't match
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none), 0);
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
+
+    // if no tag given and no-non-tagged entries are available nothing should be retrieved even if address  matches
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), 0);
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
+
+    // Insert untagged entry with no netmask
+    MRC.replace(now, power, QType(QType::A), rset3, signatures, authRecords, true, boost::none, boost::none);
+    BOOST_CHECK_EQUAL(MRC.size(), 3U);
+
+    // Retrieval with no address and no tag should get that one
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress(), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
+
+    // If no tag given match non-tagged entry
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), (ttd - now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
+
+    // tagged specific should still be returned for a matching tag, address is not used
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     // remove everything
     MRC.doWipeCache(DNSName("."), true);
