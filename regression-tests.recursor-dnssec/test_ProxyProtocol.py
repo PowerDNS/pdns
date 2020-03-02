@@ -5,6 +5,11 @@ import struct
 import sys
 import time
 
+try:
+    range = xrange
+except NameError:
+    pass
+
 from recursortests import RecursorTest
 from proxyprotocol import ProxyProtocol
 
@@ -448,6 +453,51 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
             sender = getattr(self, method)
             res = sender(query, True, '2001:db8::1', '2001:db8::ff', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
             self.assertEqual(res, None)
+
+    def testIPv6ProxyProtocolSeveralQueriesOverTCP(self):
+        qname = 'several-queries-tcp.proxy-protocol.recursor-tests.powerdns.com.'
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+
+        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        queryPayload = query.to_wire()
+        ppPayload = ProxyProtocol.getPayload(False, True, True, '::42', '2001:db8::ff', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
+        payload = ppPayload + queryPayload
+
+        # TCP
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", self._recursorPort))
+
+        sock.send(ppPayload)
+
+        count = 0
+        for idx in range(5):
+            try:
+                sock.send(struct.pack("!H", len(queryPayload)))
+                sock.send(queryPayload)
+
+                data = sock.recv(2)
+                if data:
+                    (datalen,) = struct.unpack("!H", data)
+                    data = sock.recv(datalen)
+            except socket.timeout as e:
+                print("Timeout: %s" % (str(e)))
+                data = None
+                break
+            except socket.error as e:
+                print("Network error: %s" % (str(e)))
+                data = None
+                break
+
+            res = None
+            if data:
+                res = dns.message.from_wire(data)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+            count = count + 1
+
+        self.assertEqual(count, 5)
+        sock.close()
 
 class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
     # same tests than ProxyProtocolAllowedRecursorTest but with the Lua FFI interface instead of the regular one

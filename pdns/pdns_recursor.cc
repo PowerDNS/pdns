@@ -2161,7 +2161,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
       dc->setDestination(conn->d_destination);
-      dc->d_proxyProtocolValues = std::move(conn->proxyProtocolValues);
+      /* we can't move this if we want to be able to access the values in
+         all queries sent over this connection */
+      dc->d_proxyProtocolValues = conn->proxyProtocolValues;
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
