@@ -2,6 +2,22 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0
+  :released: 3rd of March 2020
+
+.. change::
+    :tags: Improvements
+    :pullreq: 8870
+
+    Only log qname parsing errors when 'log-common-errors' is set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8863
+
+    Update copyright year.
+
+.. changelog::
   :version: 4.3.0-rc2
   :released: 18th of February 2020
 
