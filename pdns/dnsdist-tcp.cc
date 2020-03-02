@@ -173,6 +173,19 @@ public:
     return d_enableFastOpen;
   }
 
+  bool canBeReused() const
+  {
+    /* we can't reuse a connection where a proxy protocol payload has been sent,
+       since:
+       - it cannot be reused for a different client
+       - we might have different TLV values for each query
+    */
+    if (d_ds && d_ds->useProxyProtocol) {
+      return false;
+    }
+    return true;
+  }
+
 private:
   std::unique_ptr<Socket> d_socket{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
@@ -205,6 +218,11 @@ static std::unique_ptr<TCPConnectionToBackend> getConnectionToDownstream(std::sh
 static void releaseDownstreamConnection(std::unique_ptr<TCPConnectionToBackend>&& conn)
 {
   if (conn == nullptr) {
+    return;
+  }
+
+  if (!conn->canBeReused()) {
+    conn.reset();
     return;
   }
 
@@ -917,7 +935,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   dq.dh = reinterpret_cast<dnsheader*>(&state->d_buffer.at(0));
   dq.size = state->d_buffer.size();
 
-  if (dq.addProxyProtocol && state->d_ds->useProxyProtocol) {
+  if (state->d_ds->useProxyProtocol) {
     addProxyProtocol(dq);
   }
 
@@ -1092,6 +1110,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
   }
 
   if (connectionDied) {
+    state->d_downstreamConnection.reset();
     sendQueryToBackend(state, now);
   }
 }

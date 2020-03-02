@@ -1368,7 +1368,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     dh->id = idOffset;
 
-    if (dq.addProxyProtocol && ss->useProxyProtocol) {
+    if (ss->useProxyProtocol) {
       addProxyProtocol(dq);
     }
 

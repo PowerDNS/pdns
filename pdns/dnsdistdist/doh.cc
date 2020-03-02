@@ -503,7 +503,7 @@ static int processDOHQuery(DOHUnit* du)
 
     dh->id = idOffset;
 
-    if (dq.addProxyProtocol && ss->useProxyProtocol) {
+    if (ss->useProxyProtocol) {
       addProxyProtocol(dq);
     }
 

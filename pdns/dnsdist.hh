@@ -109,7 +109,6 @@ struct DNSQuestion
   bool ecsOverride;
   bool useECS{true};
   bool addXPF{true};
-  bool addProxyProtocol{true};
   bool ecsSet{false};
   bool ecsAdded{false};
   bool ednsAdded{false};

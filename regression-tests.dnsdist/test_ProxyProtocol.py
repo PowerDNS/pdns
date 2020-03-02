@@ -91,26 +91,34 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
             continue
 
         payload = header + proxyContent
+        while True:
+          try:
+            data = conn.recv(2)
+          except socket.timeout:
+            data = None
 
-        data = conn.recv(2)
-        (datalen,) = struct.unpack("!H", data)
-
-        data = conn.recv(datalen)
-
-        toQueue.put([payload, data], True, 2.0)
-
-        response = fromQueue.get(True, 2.0)
-        if not response:
+          if not data:
             conn.close()
-            continue
+            break
 
-        # computing the correct ID for the response
-        request = dns.message.from_wire(data)
-        response.id = request.id
+          (datalen,) = struct.unpack("!H", data)
+          data = conn.recv(datalen)
 
-        wire = response.to_wire()
-        conn.send(struct.pack("!H", len(wire)))
-        conn.send(wire)
+          toQueue.put([payload, data], True, 2.0)
+
+          response = fromQueue.get(True, 2.0)
+          if not response:
+            conn.close()
+            break
+
+          # computing the correct ID for the response
+          request = dns.message.from_wire(data)
+          response.id = request.id
+
+          wire = response.to_wire()
+          conn.send(struct.pack("!H", len(wire)))
+          conn.send(wire)
+
         conn.close()
 
     sock.close()
@@ -366,3 +374,35 @@ class TestProxyProtocol(ProxyProtocolTest):
       self.assertEquals(receivedQuery, query)
       self.assertEquals(receivedResponse, response)
       self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [1, b'dnsdist'] , [ 255, b'proxy-protocol'] ])
+
+    def testProxyTCPSeveralQueriesOnSameConnection(self):
+      """
+        Proxy Protocol: Several queries on the same TCP connection
+      """
+      name = 'several-queries-same-conn.proxy.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      response = dns.message.make_response(query)
+
+      conn = self.openTCPConnection(2.0)
+      data = query.to_wire()
+
+      for idx in range(10):
+        toProxyQueue.put(response, True, 2.0)
+        self.sendTCPQueryOverConnection(conn, data, rawQuery=True)
+        receivedResponse = None
+        try:
+          receivedResponse = self.recvTCPResponseOverConnection(conn)
+        except socket.timeout:
+          print('timeout')
+
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(receivedQuery, query)
+        self.assertEquals(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [])
