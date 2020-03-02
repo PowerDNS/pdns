@@ -217,7 +217,7 @@ static void setupLuaConfig(bool client, bool configCheck)
         return client && !g_configurationDone;
   });
 
-  g_lua.writeFunction("inConfigCheck", [client, configCheck]() {
+  g_lua.writeFunction("inConfigCheck", [configCheck]() {
         return !configCheck;
   });
 
