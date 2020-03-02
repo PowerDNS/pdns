@@ -183,6 +183,10 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
     config.d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
   }
 
+  if (vars->count("sessionTimeout")) {
+    config.d_sessionTimeout = boost::get<int>((*vars)["sessionTimeout"]);
+  }
+
   if (vars->count("sessionTickets")) {
     config.d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
   }
