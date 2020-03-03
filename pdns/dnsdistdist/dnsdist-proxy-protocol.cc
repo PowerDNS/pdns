@@ -35,3 +35,15 @@ bool addProxyProtocol(DNSQuestion& dq)
 
   return true;
 }
+
+bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
+{
+  auto payload = makeProxyHeader(tcp, source, destination, values);
+
+  auto previousSize = buffer.size();
+  buffer.resize(previousSize + payload.size());
+  std::copy_backward(buffer.begin(), buffer.begin() + previousSize, buffer.end());
+  std::copy(payload.begin(), payload.end(), buffer.begin());
+
+  return true;
+}

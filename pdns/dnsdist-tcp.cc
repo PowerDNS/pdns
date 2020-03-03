@@ -672,6 +672,8 @@ public:
   bool d_isXFR{false};
   bool d_xfrStarted{false};
   bool d_selfGeneratedResponse{false};
+  bool d_proxyProtocolPayloadAdded{false};
+  bool d_proxyProtocolPayloadHasTLV{false};
 };
 
 static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
@@ -809,7 +811,6 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
   state->d_state = IncomingTCPConnectionState::State::sendingQueryToBackend;
   state->d_currentPos = 0;
   state->d_firstResponsePacket = true;
-  state->d_downstreamConnection.reset();
 
   if (state->d_xfrStarted) {
     /* sorry, but we are not going to resume a XFR if we have already sent some packets
@@ -817,20 +818,29 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
     return;
   }
 
-  if (state->d_downstreamFailures < state->d_ds->retries) {
-    try {
-      state->d_downstreamConnection = getConnectionToDownstream(ds, state->d_downstreamFailures, now);
-    }
-    catch (const std::runtime_error& e) {
-      state->d_downstreamConnection.reset();
-    }
-  }
-
   if (!state->d_downstreamConnection) {
-    ++ds->tcpGaveUp;
-    ++state->d_ci.cs->tcpGaveUp;
-    vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
-    return;
+    if (state->d_downstreamFailures < state->d_ds->retries) {
+      try {
+        state->d_downstreamConnection = getConnectionToDownstream(ds, state->d_downstreamFailures, now);
+      }
+      catch (const std::runtime_error& e) {
+        state->d_downstreamConnection.reset();
+      }
+    }
+
+    if (!state->d_downstreamConnection) {
+      ++ds->tcpGaveUp;
+      ++state->d_ci.cs->tcpGaveUp;
+      vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
+      return;
+    }
+
+    if (ds->useProxyProtocol && !state->d_proxyProtocolPayloadAdded) {
+      /* we know there is no TLV values to add, otherwise we would not have tried
+         to reuse the connection and d_proxyProtocolPayloadAdded would be true already */
+      addProxyProtocol(state->d_buffer, true, state->d_ci.remote, state->d_ids.origDest, std::vector<ProxyProtocolValue>());
+      state->d_proxyProtocolPayloadAdded = true;
+    }
   }
 
   vinfolog("Got query for %s|%s from %s (%s), relayed to %s", state->d_ids.qname.toLogString(), QType(state->d_ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), ds->getName());
@@ -847,6 +857,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   }
 
   state->d_readingFirstQuery = false;
+  state->d_proxyProtocolPayloadAdded = false;
   ++state->d_queriesCount;
   ++state->d_ci.cs->queries;
   ++g_stats.queries;
@@ -934,12 +945,26 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   dq.len = dq.len + 2;
   dq.dh = reinterpret_cast<dnsheader*>(&state->d_buffer.at(0));
   dq.size = state->d_buffer.size();
+  state->d_buffer.resize(dq.len);
 
   if (state->d_ds->useProxyProtocol) {
-    addProxyProtocol(dq);
-  }
+    /* if we ever sent a TLV over a connection, we can never go back */
+    if (!state->d_proxyProtocolPayloadHasTLV) {
+      state->d_proxyProtocolPayloadHasTLV = dq.proxyProtocolValues && !dq.proxyProtocolValues->empty();
+    }
 
-  state->d_buffer.resize(dq.len);
+    if (state->d_downstreamConnection && !state->d_proxyProtocolPayloadHasTLV) {
+      /* we have an existing connection, on which we already sent a Proxy Protocol header with no values
+         (in the previous query had TLV values we would have reset the connection afterwards),
+         so let's reuse it as long as we still don't have any values */
+      state->d_proxyProtocolPayloadAdded = false;
+    }
+    else {
+      state->d_downstreamConnection.reset();
+      addProxyProtocol(state->d_buffer, true, state->d_ci.remote, state->d_ids.origDest, dq.proxyProtocolValues ? *dq.proxyProtocolValues : std::vector<ProxyProtocolValue>());
+      state->d_proxyProtocolPayloadAdded = true;
+    }
+  }
 
   sendQueryToBackend(state, now);
 }
@@ -1051,7 +1076,20 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
           /* but don't reset it either, we will need to read more messages */
         }
         else {
-          releaseDownstreamConnection(std::move(state->d_downstreamConnection));
+          /* if we did not send a Proxy Protocol header, let's pool the connection */
+          if (state->d_ds && state->d_ds->useProxyProtocol == false) {
+            releaseDownstreamConnection(std::move(state->d_downstreamConnection));
+          }
+          else {
+            if (state->d_proxyProtocolPayloadHasTLV) {
+              /* sent a Proxy Protocol header with TLV values, we can't reuse it */
+              state->d_downstreamConnection.reset();
+            }
+            else {
+              /* if we did but there was no TLV values, let's try to reuse it but only
+                 for this incoming connection */
+            }
+          }
         }
         fd = -1;
 
