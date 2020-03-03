@@ -5,7 +5,7 @@ Changelogs for 4.3.x
   :version: 4.3.0
   :released: 3rd of March 2020
 
-.. change::
+  .. change::
     :tags: Improvements
     :pullreq: 8870
 
