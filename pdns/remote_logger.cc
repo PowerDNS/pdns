@@ -54,11 +54,13 @@ void CircularWriteBuffer::flush()
     throw std::runtime_error("EOF");
   }
   //  cout<<"Flushed "<<res<<" bytes out of " << total <<endl;
-  if((size_t)res == d_buffer.size())
+  if (static_cast<size_t>(res) == d_buffer.size()) {
     d_buffer.clear();
+  }
   else {
-    while(res--)
+    while(res--) {
       d_buffer.pop_front();
+    }
   }
 }
 
@@ -96,17 +98,18 @@ bool RemoteLogger::reconnect()
 void RemoteLogger::queueData(const std::string& data)
 {
   if(!d_writer) {
-    d_drops++;
+    ++d_drops;
     return;
   }
   std::unique_lock<std::mutex> lock(d_mutex);
   if(d_writer) {
     try {
       d_writer->write(data);
+      ++d_queued;
     }
-    catch(std::exception& e) {
+    catch(const std::exception& e) {
       //      cout << "Got exception writing: "<<e.what()<<endl;
-      d_drops++;
+      ++d_drops;
       d_writer.reset();
       close(d_socket);
       d_socket = -1;
@@ -151,7 +154,7 @@ try
     sleep(d_reconnectWaitTime);
   }
 }
-catch(std::exception& e)
+catch(const std::exception& e)
 {
   cerr<<"Thead died on: "<<e.what()<<endl;
 }

@@ -195,13 +195,15 @@ void FrameStreamLogger::queueData(const std::string& data)
 
   if (res == fstrm_res_success) {
     // Frame successfully queued.
+    ++d_framesSent;
   } else if (res == fstrm_res_again) {
     free(frame);
 #ifdef RECURSOR
-    g_log<<Logger::Warning<<"FrameStreamLogger: queue full, dropping."<<std::endl;
+    g_log<<Logger::Debug<<"FrameStreamLogger: queue full, dropping."<<std::endl;
 #else
-    warnlog("FrameStreamLogger: queue full, dropping.");
+    vinfolog("FrameStreamLogger: queue full, dropping.");
 #endif
+    ++d_queueFullDrops;
  } else {
     // Permanent failure.
     free(frame);
@@ -210,6 +212,7 @@ void FrameStreamLogger::queueData(const std::string& data)
 #else
     warnlog("FrameStreamLogger: submitting to queue failed.");
 #endif
+    ++d_permanentFailures;
   }
 }
 

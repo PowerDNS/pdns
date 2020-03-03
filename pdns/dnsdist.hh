@@ -33,7 +33,6 @@
 
 #include <boost/variant.hpp>
 
-#include "bpf-filter.hh"
 #include "capabilities.hh"
 #include "circular_buffer.hh"
 #include "dnscrypt.hh"
