@@ -130,12 +130,11 @@ void WebServer::apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req,
 
   resp->headers["access-control-allow-origin"] = "*";
 
-  if (d_apikey.empty()) {
-    g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
-    throw HttpUnauthorizedException("X-API-Key");
-  }
+  bool auth_ok = false;
 
-  bool auth_ok = req->compareHeader("x-api-key", d_apikey) || req->getvars["api-key"] == d_apikey;
+  if (!d_apikey.empty()) {
+    auth_ok = req->compareHeader("x-api-key", d_apikey) || req->getvars["api-key"] == d_apikey;
+  }
 
   if (!auth_ok && allowPassword) {
     if (!d_webserverPassword.empty()) {
@@ -143,6 +142,11 @@ void WebServer::apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req,
     } else {
       auth_ok = true;
     }
+  }
+
+  if (!auth_ok && d_apikey.empty()) {
+    g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
+    throw HttpUnauthorizedException("X-API-Key");
   }
 
   if (!auth_ok) {
