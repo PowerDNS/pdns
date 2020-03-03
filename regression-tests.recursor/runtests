@@ -15,6 +15,6 @@ fi
 testsdir=.
 export testsdir
 
-nameserver=$PREFIX.9 port=53 ../regression-tests/runtests
+LD_PRELOAD="${LIBASAN}" nameserver=$PREFIX.9 port=53 ../regression-tests/runtests
 context=recursor ../regression-tests/toxml
 ! grep . */diff

@@ -933,6 +933,7 @@ jobs:
       - image: debian:buster
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          LIBASAN: '/usr/lib/x86_64-linux-gnu/libasan.so.3'
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc virtualenv protobuf-compiler
