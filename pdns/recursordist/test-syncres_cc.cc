@@ -35,7 +35,7 @@ BaseLua4::~BaseLua4()
 {
 }
 
-void BaseLua4::getFeatures(Features &)
+void BaseLua4::getFeatures(Features&)
 {
 }
 
