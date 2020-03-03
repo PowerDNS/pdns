@@ -24,6 +24,7 @@ public:
   std::string d_keyLogFile;
 
   size_t d_maxStoredSessions{20480};
+  time_t d_sessionTimeout{0};
   time_t d_ticketsKeyRotationDelay{43200};
   uint8_t d_numberOfTicketsKeys{5};
   LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};

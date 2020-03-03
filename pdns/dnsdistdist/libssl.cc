@@ -662,6 +662,10 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 #endif /* HAVE_SSL_CTX_SET_NUM_TICKETS */
   }
 
+  if (config.d_sessionTimeout > 0) {
+    SSL_CTX_set_timeout(ctx.get(), config.d_sessionTimeout);
+  }
+
   if (config.d_preferServerCiphers) {
     sslOptions |= SSL_OP_CIPHER_SERVER_PREFERENCE;
   }
