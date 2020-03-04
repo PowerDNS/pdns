@@ -384,7 +384,7 @@ public:
   }
 
   //! Return subzones for a zone, returns true if search was done successfully.
-  virtual bool getSubZones(const string &pattern, vector<std::tuple<string, string>>& result)
+  virtual bool getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result)
   {
     return false;
   }

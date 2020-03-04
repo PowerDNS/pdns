@@ -228,7 +228,7 @@ public:
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
   bool publishDomainKey(const DNSName& name, unsigned int id) override;
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
-  
+
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
@@ -241,7 +241,7 @@ public:
   string directBackendCmd(const string &query) override;
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
-  bool getSubZones(const string &pattern, vector<std::tuple<string, string>>& result) override;
+  bool getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result) override;
 
 protected:
   string pattern2SQLPattern(const string& pattern);

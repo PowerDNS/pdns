@@ -1832,10 +1832,10 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
   return false;
 }
 
-bool GSQLBackend::getSubZones(const string &pattern, vector<std::tuple<string, string>>& result)
+bool GSQLBackend::getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result)
 {
   d_qname.clear();
-  string escaped_pattern = "%." +pattern2SQLPattern(pattern);
+  string escaped_pattern = "%." +pattern2SQLPattern(zoneName);
   try {
     reconnectIfNeeded();
 
@@ -1858,7 +1858,7 @@ bool GSQLBackend::getSubZones(const string &pattern, vector<std::tuple<string, s
     return true;
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to search for subzones with pattern '" + pattern + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to search for subzones for zone '" + zoneName + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
   }
 
   return false;

@@ -188,7 +188,7 @@ class RemoteBackend : public DNSBackend
   string directBackendCmd(const string& querystr) override;
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
-  bool getSubZones(const string &pattern, vector<std::tuple<string, string>>& result) override;
+  bool getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
   void getUpdatedMasters(vector<DomainInfo>* domains) override;
   void alsoNotifies(const DNSName &domain, set<string> *ips) override;

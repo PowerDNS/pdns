@@ -2291,11 +2291,11 @@ static void apiServerSubZones(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zoneName = apiZoneIdToName(req->parameters["id"]);
   Json::array doc;
   vector<std::tuple<string, string>> subZoneResult;
   UeberBackend B;
-  B.getSubZones(zonename.toStringNoDot(), subZoneResult);
+  B.getSubZones(zoneName.toStringNoDot(), subZoneResult);
   for(const std::tuple<string, string> &z: subZoneResult)
   {
     auto object = Json::object {

@@ -933,12 +933,12 @@ bool RemoteBackend::searchComments(const string &pattern, int maxResults, vector
   return false;
 }
 
-bool RemoteBackend::getSubZones(const string &pattern, vector<std::tuple<string, string>>& result)
+bool RemoteBackend::getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result)
 {
     Json query = Json::object{
     { "method", "getSubZones" },
     { "parameters", Json::object{
-      { "pattern", pattern }
+      { "zoneName", zoneName }
     }}
   };
 
