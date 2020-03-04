@@ -186,6 +186,14 @@ public:
     return true;
   }
 
+  bool matches(const std::shared_ptr<DownstreamState>& ds) const
+  {
+    if (!ds || !d_ds) {
+      return false;
+    }
+    return ds == d_ds;
+  }
+
 private:
   std::unique_ptr<Socket> d_socket{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
@@ -953,7 +961,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
       state->d_proxyProtocolPayloadHasTLV = dq.proxyProtocolValues && !dq.proxyProtocolValues->empty();
     }
 
-    if (state->d_downstreamConnection && !state->d_proxyProtocolPayloadHasTLV) {
+    if (state->d_downstreamConnection && !state->d_proxyProtocolPayloadHasTLV && state->d_downstreamConnection->matches(state->d_ds)) {
       /* we have an existing connection, on which we already sent a Proxy Protocol header with no values
          (in the previous query had TLV values we would have reset the connection afterwards),
          so let's reuse it as long as we still don't have any values */
