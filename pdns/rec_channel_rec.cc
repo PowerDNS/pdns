@@ -213,7 +213,7 @@ static uint64_t dumpNegCache(NegCache& negcache, int fd)
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(t_RC->doDump(fd) + dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
+  return new uint64_t(dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
 }
 
 static uint64_t* pleaseDumpEDNSMap(int fd)
@@ -281,7 +281,7 @@ static string doDumpCache(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDump, fd));
+    total = s_RC->doDump(fd) + broadcastAccFunction<uint64_t>(boost::bind(pleaseDump, fd));
   }
   catch(...){}
   
@@ -396,7 +396,7 @@ static string doDumpFailedServers(T begin, T end)
 
 uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(t_RC->doWipeCache(canon, subtree, qtype));
+  return new uint64_t(s_RC->doWipeCache(canon, subtree));
 }
 
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
@@ -932,19 +932,9 @@ static uint64_t getConcurrentQueries()
   return broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries);
 }
 
-uint64_t* pleaseGetCacheSize()
-{
-  return new uint64_t(t_RC ? t_RC->size() : 0);
-}
-
-static uint64_t* pleaseGetCacheBytes()
-{
-  return new uint64_t(t_RC ? t_RC->bytes() : 0);
-}
-
 static uint64_t doGetCacheSize()
 {
-  return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
+  return s_RC->size();
 }
 
 static uint64_t doGetAvgLatencyUsec()
@@ -954,27 +944,17 @@ static uint64_t doGetAvgLatencyUsec()
 
 static uint64_t doGetCacheBytes()
 {
-  return broadcastAccFunction<uint64_t>(pleaseGetCacheBytes);
-}
-
-uint64_t* pleaseGetCacheHits()
-{
-  return new uint64_t(t_RC ? t_RC->cacheHits : 0);
+  return s_RC->bytes();
 }
 
 static uint64_t doGetCacheHits()
 {
-  return broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
-}
-
-uint64_t* pleaseGetCacheMisses()
-{
-  return new uint64_t(t_RC ? t_RC->cacheMisses : 0);
+  return s_RC->cacheHits;
 }
 
 static uint64_t doGetCacheMisses()
 {
-  return broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
+  return s_RC->cacheMisses;
 }
 
 uint64_t* pleaseGetPacketCacheSize()
