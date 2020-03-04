@@ -24,7 +24,7 @@ Netmask
 
   .. method:: Netmask:getMaskedNetwork() -> ComboAddress
 
-    Return a :class:`ComboAddress` object representing the base network of this netmask object after masking any additional bits if necessary (for example ``192.0.2.0`` if the netmask was constructed with ``newNetmask('192.0.2.1/24')).
+    Return a :class:`ComboAddress` object representing the base network of this netmask object after masking any additional bits if necessary (for example ``192.0.2.0`` if the netmask was constructed with ``newNetmask('192.0.2.1/24')``).
 
   .. method:: Netmask:empty() -> bool
 
