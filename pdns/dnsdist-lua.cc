@@ -208,7 +208,12 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   }
 
   if (vars->count("keyLogFile")) {
+#ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
     config.d_keyLogFile = boost::get<const string>((*vars)["keyLogFile"]);
+#else
+    errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to %s(), but this version of OpenSSL does not support it", context);
+    g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to " + context + "(), but this version of OpenSSL does not support it";
+#endif
   }
 }
 
