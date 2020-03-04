@@ -9,6 +9,7 @@ These chapters contain extensive information on all functions and object availab
   config
   constants
   comboaddress
+  netmask
   netmaskgroup
   dnsname
   dnsnameset
