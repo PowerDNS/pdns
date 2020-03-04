@@ -301,18 +301,19 @@ trace-regex *REGEX*
     tracing. To unset the regex, pass **trace-regex** without a new regex.
 
     The regular expression is matched against domain queries terminated with a
-    '.'. For example the regex 'powerdns.com$' will not match a query for
-    'www.powerdns.com', since the attempted match will be with
-    'www.powerdns.com.'.
+    dot. For example the regex ``'powerdns.com$'`` will not match a query for
+    ``'www.powerdns.com'``, since the attempted match will be with
+    ``'www.powerdns.com.'``.
 
     In addition, since this is a regular expression, to exclusively match
-    queries for 'www.powerdns.com', one should escape the dots:
-    '^www\\.powerdns\\.com\\.$'. Note that the single quotes prevent
+    queries for ``'www.powerdns.com'``, one should escape the dots:
+    ``'^www\.powerdns\.com\.$'``.
+    Note that the single quotes prevent
     further interpretation of the backslashes by the shell.
 
-    Multiple matches can be chained with the '|' operator. For example, to
-    match all queries for Dutch (.nl) and German (.de) domain names, use:
-    '\\.nl\\.$|\\.de\\.$'.
+    Multiple matches can be chained with the ``|`` operator. For example, to
+    match all queries for Dutch (``.nl``) and German (``.de``) domain names, use:
+    ``'\.nl\.$|\.de\.$'``.
 
 unload-lua-script
     Unloads Lua script if one was loaded.
