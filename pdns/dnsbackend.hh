@@ -383,6 +383,12 @@ public:
     return false;
   }
 
+  //! Return subzones for a zone, returns true if search was done successfully.
+  virtual bool getSubZones(const string &pattern, vector<std::tuple<string, string>>& result)
+  {
+    return false;
+  }
+
   const string& getPrefix() { return d_prefix; };
 protected:
   bool mustDo(const string &key);

@@ -2287,6 +2287,27 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
+static void apiServerSubZones(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  Json::array doc;
+  vector<std::tuple<string, string>> subZoneResult;
+  UeberBackend B;
+  B.getSubZones(zonename.toStringNoDot(), subZoneResult);
+  for(const std::tuple<string, string> &z: subZoneResult)
+  {
+    auto object = Json::object {
+        { "object_type", "subzone" },
+        { "zone_id", std::get<0>(z) },
+        { "name", std::get<1>(z) }
+      };
+    doc.push_back(object);
+   }
+  resp->setBody(doc);
+}
+
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
@@ -2388,6 +2409,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", &apiZoneMetadata);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/rectify", &apiServerZoneRectify);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/sub-zones", &apiServerSubZones);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);

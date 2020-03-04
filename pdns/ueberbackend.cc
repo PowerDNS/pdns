@@ -681,6 +681,14 @@ bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<
   return rc;
 }
 
+bool UeberBackend::getSubZones(const string& pattern, vector<std::tuple<string, string>>& result)
+{
+  bool rc = false;
+  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+    if ((*i)->getSubZones(pattern, result)) rc = true;
+  return rc;
+}
+
 AtomicCounter UeberBackend::handle::instances(0);
 
 UeberBackend::handle::handle()

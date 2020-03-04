@@ -2081,6 +2081,20 @@ $ORIGIN %NAME%
         self.assertEquals(r.status_code, 422)
         self.assertIn('A TSIG key with the name', r.json()['error'])
 
+    def test_get_subzones(self):
+        name = unique_zone_name()
+        self.create_zone(name=name)
+        self.create_zone(name='subdomain.'+name)
+        self.create_zone(name='subdomain2.'+name)
+        other_zone_name = unique_zone_name()
+        self.create_zone(name=other_zone_name)
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name + "/sub-zones"))
+        self.assert_success_json(r)
+        self.assertEquals(len(r.json()), 2)
+        self.assertIn('subdomain', str(r.json()))
+        self.assertIn('subdomain2', str(r.json()))
+        self.assertNotIn(other_zone_name, str(r.json()))
+
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):

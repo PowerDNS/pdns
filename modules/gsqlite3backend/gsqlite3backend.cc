@@ -155,6 +155,7 @@ public:
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=:domain_id");
     declare(suffix, "search-records-query", "", record_query+" name LIKE :value OR content LIKE :value2 LIMIT :limit");
     declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE :value OR comment LIKE :value2 LIMIT :limit");
+    declare(suffix, "get-sub-zones-query", "", "SELECT id,name FROM domains WHERE name LIKE :value");
   }
 
   //! Constructs a new gSQLite3Backend object.

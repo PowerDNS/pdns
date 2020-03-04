@@ -115,6 +115,7 @@ protected:
       d_DeleteCommentsQuery_stmt = d_db->prepare(d_DeleteCommentsQuery, 1);
       d_SearchRecordsQuery_stmt = d_db->prepare(d_SearchRecordsQuery, 3);
       d_SearchCommentsQuery_stmt = d_db->prepare(d_SearchCommentsQuery, 3);
+      d_GetSubZonesQuery_stmt = d_db->prepare(d_GetSubZonesQuery, 1);
     }
   }
 
@@ -179,6 +180,7 @@ protected:
     d_DeleteCommentsQuery_stmt.reset();
     d_SearchRecordsQuery_stmt.reset();
     d_SearchCommentsQuery_stmt.reset();
+    d_GetSubZonesQuery_stmt.reset();
   }
 
 public:
@@ -239,11 +241,13 @@ public:
   string directBackendCmd(const string &query) override;
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
+  bool getSubZones(const string &pattern, vector<std::tuple<string, string>>& result) override;
 
 protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
+  void extractZoneReference(SSqlStatement::row_t& row, std::tuple<string, string>& reference);
   bool isConnectionUsable() {
     if (d_db) {
       return d_db->isConnectionUsable();
@@ -344,6 +348,7 @@ private:
 
   string d_SearchRecordsQuery;
   string d_SearchCommentsQuery;
+  string d_GetSubZonesQuery;
 
 
   unique_ptr<SSqlStatement> d_NoIdQuery_stmt;
@@ -406,6 +411,7 @@ private:
   unique_ptr<SSqlStatement> d_DeleteCommentsQuery_stmt;
   unique_ptr<SSqlStatement> d_SearchRecordsQuery_stmt;
   unique_ptr<SSqlStatement> d_SearchCommentsQuery_stmt;
+  unique_ptr<SSqlStatement> d_GetSubZonesQuery_stmt;
 
 protected:
   std::unique_ptr<SSql> d_db{nullptr};
