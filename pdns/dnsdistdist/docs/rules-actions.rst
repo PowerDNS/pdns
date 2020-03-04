@@ -1311,7 +1311,15 @@ The following actions exist.
   .. versionadded:: 1.5.0
 
   Forge a response with the specified raw bytes as record data.
-  For example, for a TXT record of "aaa" "bbbb": SpoofRawAction("\003aaa\004bbbb")
+
+  .. code-block:: Lua
+
+    -- select queries for the 'raw.powerdns.com.' name and TXT type, and answer with a "aaa" "bbb" TXT record:
+    addAction(AndRule({QNameRule('raw.powerdns.com.'), QTypeRule(DNSQType.TXT)}), SpoofRawAction("\003aaa\004bbbb"))
+    -- select queries for the 'raw-srv.powerdns.com.' name and SRV type, and answer with a '0 0 65535 srv.powerdns.com.' SRV record, setting the AA bit to 1 and the TTL to 3600s
+    addAction(AndRule({QNameRule('raw-srv.powerdns.com.'), QTypeRule(DNSQType.SRV)}), SpoofRawAction("\000\000\000\000\255\255\003srv\008powerdns\003com\000", { aa=true, ttl=3600 }))
+    -- select reverse queries for '127.0.0.1' and answer with 'localhost'
+    addAction(AndRule({QNameRule('1.0.0.127.in-addr.arpa.'), QTypeRule(DNSQType.PTR)}), SpoofRawAction("\009localhost\000"))
 
   :param string rawAnswer: The raw record data
   :param table options: A table with key: value pairs with options.
