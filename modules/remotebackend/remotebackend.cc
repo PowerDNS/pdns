@@ -933,6 +933,28 @@ bool RemoteBackend::searchComments(const string &pattern, int maxResults, vector
   return false;
 }
 
+bool RemoteBackend::getSubZones(const string &pattern, vector<std::tuple<string, string>>& result)
+{
+    Json query = Json::object{
+    { "method", "getSubZones" },
+    { "parameters", Json::object{
+      { "pattern", pattern }
+    }}
+  };
+
+  Json answer;
+  if (this->send(query) == false || this->recv(answer) == false)
+    return false;
+
+  if (answer["result"].is_array() == false)
+    return false;
+  
+  for(const auto& row: answer["result"].array_items()) {
+    result.push_back(std::tuple<string, string>{stringFromJson(row, "zone_id"), stringFromJson(row, "name")});
+  }
+  return true;
+}
+
 void RemoteBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
 {
   Json query = Json::object{
