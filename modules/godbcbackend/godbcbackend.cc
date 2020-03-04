@@ -146,7 +146,7 @@ public:
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=?");
     declare(suffix, "search-records-query", "", record_query+" name LIKE ? OR content LIKE ? LIMIT ?");
     declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE ? OR comment LIKE ? LIMIT ?");
-    declare(suffix, "get-sub-zones-query", "", "SELECT id,name FROM domains WHERE name LIKE ?");
+    declare(suffix, "list-sub-domains-query", "", "SELECT id,name FROM domains WHERE name LIKE ?");
   }
 
   //! Constructs a new gODBCBackend object.

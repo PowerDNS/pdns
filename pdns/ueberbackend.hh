@@ -131,7 +131,7 @@ public:
   void reload();
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
-  bool getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result);
+  bool listSubDomains(const DNSName &parent_zone, vector<std::tuple<uint32_t, string>>& result);
 private:
   handle d_handle;
   vector<DNSZoneRecord> d_answers;

@@ -384,7 +384,7 @@ public:
   }
 
   //! Return subzones for a zone, returns true if search was done successfully.
-  virtual bool getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result)
+  virtual bool listSubDomains(const DNSName &parent_zone, vector<std::tuple<uint32_t, string>>& result)
   {
     return false;
   }

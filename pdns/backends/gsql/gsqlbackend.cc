@@ -59,7 +59,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYIdQuery=getArg("any-id-query");
 
   d_listQuery=getArg("list-query");
-  d_listSubZoneQuery=getArg("list-subzone-query");
+  d_ListSubDomainQuery=getArg("list-subzone-query");
 
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
@@ -123,7 +123,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
   d_SearchRecordsQuery = getArg("search-records-query");
   d_SearchCommentsQuery = getArg("search-comments-query");
-  d_GetSubZonesQuery = getArg("get-sub-zones-query");
+  d_ListSubDomainsQuery = getArg("list-sub-domains-query");
 
   d_query_stmt = NULL;
   d_NoIdQuery_stmt = NULL;
@@ -131,7 +131,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYNoIdQuery_stmt = NULL;
   d_ANYIdQuery_stmt = NULL;
   d_listQuery_stmt = NULL;
-  d_listSubZoneQuery_stmt = NULL;
+  d_ListSubDomainQuery_stmt = NULL;
   d_InfoOfDomainsZoneQuery_stmt = NULL;
   d_InfoOfAllSlaveDomainsQuery_stmt = NULL;
   d_SuperMasterInfoQuery_stmt = NULL;
@@ -185,7 +185,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteCommentsQuery_stmt = NULL;
   d_SearchRecordsQuery_stmt = NULL;
   d_SearchCommentsQuery_stmt = NULL;
-  d_GetSubZonesQuery_stmt = NULL;
+  d_ListSubDomainsQuery_stmt = NULL;
 }
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -1173,7 +1173,7 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
     reconnectIfNeeded();
 
     d_query_name = "list-subzone-query";
-    d_query_stmt = &d_listSubZoneQuery_stmt;
+    d_query_stmt = &d_ListSubDomainQuery_stmt;
     (*d_query_stmt)->
       bind("zone", zone)->
       bind("wildzone", wildzone)->
@@ -1832,33 +1832,33 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
   return false;
 }
 
-bool GSQLBackend::getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result)
+bool GSQLBackend::listSubDomains(const DNSName &parent_zone, vector<std::tuple<uint32_t, string>>& result)
 {
   d_qname.clear();
-  string escaped_pattern = "%." +pattern2SQLPattern(zoneName);
+  string escaped_pattern = "%." +pattern2SQLPattern(parent_zone.toStringNoDot());
   try {
     reconnectIfNeeded();
 
-    d_GetSubZonesQuery_stmt->
+    d_ListSubDomainsQuery_stmt->
       bind("value", escaped_pattern)->
       execute();
 
-    while(d_GetSubZonesQuery_stmt->hasNextRow())
+    while(d_ListSubDomainsQuery_stmt->hasNextRow())
     {
       SSqlStatement::row_t row;
-      std::tuple<string, string> z;
-      d_GetSubZonesQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("get-sub-zones-query", row, 2);
-      extractZoneReference(row, z);
+      d_ListSubDomainsQuery_stmt->nextRow(row);
+      ASSERT_ROW_COLUMNS("list-sub-domains-query", row, 2);
+      std::tuple<uint32_t, string> z = std::tuple<uint32_t, string>{static_cast<uint32_t>(std::stoi(row[0])), row[1]};
       result.push_back(z);
     }
 
-    d_GetSubZonesQuery_stmt->reset();
+    d_ListSubDomainsQuery_stmt->reset();
 
     return true;
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to search for subzones for zone '" + zoneName + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to search for subzones for zone '" + parent_zone.toStringNoDot() 
+                        + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
   }
 
   return false;
@@ -1908,11 +1908,6 @@ void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
   comment.modified_at = pdns_stou(row[3]);
   comment.account = std::move(row[4]);
   comment.content = std::move(row[5]);
-}
-
-void GSQLBackend::extractZoneReference(const SSqlStatement::row_t& row, std::tuple<string, string>& reference)
-{
-  reference = std::tuple<string, string>{row[0], row[1]};
 }
 
 SSqlStatement::~SSqlStatement() { 

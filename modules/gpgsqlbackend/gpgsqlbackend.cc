@@ -166,7 +166,7 @@ public:
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=$1");
     declare(suffix, "search-records-query", "", record_query+" name LIKE $1 OR content LIKE $2 LIMIT $3");
     declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE $1 OR comment LIKE $2 LIMIT $3");
-    declare(suffix, "get-sub-zones-query", "", "SELECT id,name FROM domains WHERE name LIKE $1");
+    declare(suffix, "list-sub-domains-query", "", "SELECT id,name FROM domains WHERE name LIKE $1");
 
   }
 

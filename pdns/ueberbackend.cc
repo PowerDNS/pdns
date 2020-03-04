@@ -681,11 +681,11 @@ bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<
   return rc;
 }
 
-bool UeberBackend::getSubZones(const string& zoneName, vector<std::tuple<string, string>>& result)
+bool UeberBackend::listSubDomains(const DNSName &parent_zone,  vector<std::tuple<uint32_t, string>>& result)
 {
   bool rc = false;
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
-    if ((*i)->getSubZones(zoneName, result)) rc = true;
+    if ((*i)->listSubDomains(parent_zone, result)) rc = true;
   return rc;
 }
 

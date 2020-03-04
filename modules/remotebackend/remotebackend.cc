@@ -933,12 +933,12 @@ bool RemoteBackend::searchComments(const string &pattern, int maxResults, vector
   return false;
 }
 
-bool RemoteBackend::getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result)
+bool RemoteBackend::listSubDomains(const DNSName &parent_zone, vector<std::tuple<uint32_t, string>>& result)
 {
     Json query = Json::object{
     { "method", "getSubZones" },
     { "parameters", Json::object{
-      { "zoneName", zoneName }
+      { "parent_zone", parent_zone.toStringNoDot() }
     }}
   };
 
@@ -950,7 +950,7 @@ bool RemoteBackend::getSubZones(const string &zoneName, vector<std::tuple<string
     return false;
   
   for(const auto& row: answer["result"].array_items()) {
-    result.push_back(std::tuple<string, string>{stringFromJson(row, "zone_id"), stringFromJson(row, "name")});
+    result.push_back(std::tuple<uint32_t, string>{intFromJson(row, "zone_id"), stringFromJson(row, "name")});
   }
   return true;
 }

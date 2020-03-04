@@ -60,7 +60,7 @@ protected:
       d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
       d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
       d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
-      d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
+      d_ListSubDomainQuery_stmt = d_db->prepare(d_ListSubDomainQuery, 3);
       d_MasterOfDomainsZoneQuery_stmt = d_db->prepare(d_MasterOfDomainsZoneQuery, 1);
       d_InfoOfDomainsZoneQuery_stmt = d_db->prepare(d_InfoOfDomainsZoneQuery, 1);
       d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
@@ -115,7 +115,7 @@ protected:
       d_DeleteCommentsQuery_stmt = d_db->prepare(d_DeleteCommentsQuery, 1);
       d_SearchRecordsQuery_stmt = d_db->prepare(d_SearchRecordsQuery, 3);
       d_SearchCommentsQuery_stmt = d_db->prepare(d_SearchCommentsQuery, 3);
-      d_GetSubZonesQuery_stmt = d_db->prepare(d_GetSubZonesQuery, 1);
+      d_ListSubDomainsQuery_stmt = d_db->prepare(d_ListSubDomainsQuery, 1);
     }
   }
 
@@ -125,7 +125,7 @@ protected:
     d_ANYNoIdQuery_stmt.reset();
     d_ANYIdQuery_stmt.reset();
     d_listQuery_stmt.reset();
-    d_listSubZoneQuery_stmt.reset();
+    d_ListSubDomainQuery_stmt.reset();
     d_MasterOfDomainsZoneQuery_stmt.reset();
     d_InfoOfDomainsZoneQuery_stmt.reset();
     d_InfoOfAllSlaveDomainsQuery_stmt.reset();
@@ -180,7 +180,7 @@ protected:
     d_DeleteCommentsQuery_stmt.reset();
     d_SearchRecordsQuery_stmt.reset();
     d_SearchCommentsQuery_stmt.reset();
-    d_GetSubZonesQuery_stmt.reset();
+    d_ListSubDomainsQuery_stmt.reset();
   }
 
 public:
@@ -241,13 +241,12 @@ public:
   string directBackendCmd(const string &query) override;
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
-  bool getSubZones(const string &zoneName, vector<std::tuple<string, string>>& result) override;
+  bool listSubDomains(const DNSName &parent_zone, vector<std::tuple<uint32_t, string>>& result) override;
 
 protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
-  void extractZoneReference(SSqlStatement::row_t& row, std::tuple<string, string>& reference);
   bool isConnectionUsable() {
     if (d_db) {
       return d_db->isConnectionUsable();
@@ -280,7 +279,7 @@ private:
   string d_ANYIdQuery;
 
   string d_listQuery;
-  string d_listSubZoneQuery;
+  string d_ListSubDomainQuery;
   string d_logprefix;
 
   string d_MasterOfDomainsZoneQuery;
@@ -348,7 +347,7 @@ private:
 
   string d_SearchRecordsQuery;
   string d_SearchCommentsQuery;
-  string d_GetSubZonesQuery;
+  string d_ListSubDomainsQuery;
 
 
   unique_ptr<SSqlStatement> d_NoIdQuery_stmt;
@@ -356,7 +355,7 @@ private:
   unique_ptr<SSqlStatement> d_ANYNoIdQuery_stmt;
   unique_ptr<SSqlStatement> d_ANYIdQuery_stmt;
   unique_ptr<SSqlStatement> d_listQuery_stmt;
-  unique_ptr<SSqlStatement> d_listSubZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_ListSubDomainQuery_stmt;
   unique_ptr<SSqlStatement> d_MasterOfDomainsZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfDomainsZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfAllSlaveDomainsQuery_stmt;
@@ -411,7 +410,7 @@ private:
   unique_ptr<SSqlStatement> d_DeleteCommentsQuery_stmt;
   unique_ptr<SSqlStatement> d_SearchRecordsQuery_stmt;
   unique_ptr<SSqlStatement> d_SearchCommentsQuery_stmt;
-  unique_ptr<SSqlStatement> d_GetSubZonesQuery_stmt;
+  unique_ptr<SSqlStatement> d_ListSubDomainsQuery_stmt;
 
 protected:
   std::unique_ptr<SSql> d_db{nullptr};
