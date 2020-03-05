@@ -1796,12 +1796,15 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
   return false;
 }
 
-void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& r)
+void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 {
+  static const int defaultTTL = ::arg().asNum( "default-ttl" );
+
   if (row[1].empty())
-      r.ttl = ::arg().asNum( "default-ttl" );
+      r.ttl = defaultTTL;
   else
       r.ttl=pdns_stou(row[1]);
+
   if(!d_qname.empty())
     r.qname=d_qname;
   else
@@ -1809,10 +1812,13 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
 
   r.qtype=row[3];
 
-  if (r.qtype==QType::MX || r.qtype==QType::SRV)
+  if (r.qtype==QType::MX || r.qtype==QType::SRV) {
+    r.content.reserve(row[2].size() + row[0].size() + 1);
     r.content=row[2]+" "+row[0];
-  else
-    r.content=row[0];
+  }
+  else {
+    r.content=std::move(row[0]);
+  }
 
   r.last_modified=0;
 
@@ -1826,14 +1832,14 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
   r.domain_id=pdns_stou(row[4]);
 }
 
-void GSQLBackend::extractComment(const SSqlStatement::row_t& row, Comment& comment)
+void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
 {
   comment.domain_id = pdns_stou(row[0]);
   comment.qname = DNSName(row[1]);
   comment.qtype = row[2];
   comment.modified_at = pdns_stou(row[3]);
-  comment.account = row[4];
-  comment.content = row[5];
+  comment.account = std::move(row[4]);
+  comment.content = std::move(row[5]);
 }
 
 SSqlStatement::~SSqlStatement() { 

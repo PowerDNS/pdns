@@ -222,7 +222,7 @@ UDPNameserver::UDPNameserver( bool additional_socket )
 
 void UDPNameserver::send(DNSPacket& p)
 {
-  string buffer=p.getString();
+  const string& buffer=p.getString();
   g_rs.submitResponse(p, true);
 
   struct msghdr msgh;

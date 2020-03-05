@@ -170,7 +170,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
     }
 
     /* no existing entry found to refresh */
-    mc.d_map.insert(entry);
+    mc.d_map.insert(std::move(entry));
 
     if (*d_statnumentries >= d_maxEntries) {
       /* remove the least recently inserted or replaced entry */
@@ -178,7 +178,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
       sidx.pop_front();
     }
     else {
-      (*d_statnumentries)++;
+      ++(*d_statnumentries);
     }
   }
 }

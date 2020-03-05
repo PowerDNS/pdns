@@ -53,9 +53,9 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
   dnsheader.opcode=opcode;
 
   const uint8_t* ptr=(const uint8_t*)&dnsheader;
-  uint32_t len=d_content.size();
-  d_content.resize(len + sizeof(dnsheader));
-  uint8_t* dptr=(&*d_content.begin()) + len;
+  d_content.reserve(sizeof(dnsheader) + qname.wirelength() + sizeof(qtype) + sizeof(qclass));
+  d_content.resize(sizeof(dnsheader));
+  uint8_t* dptr=(&*d_content.begin());
 
   memcpy(dptr, ptr, sizeof(dnsheader));
   d_namepositions.reserve(16);

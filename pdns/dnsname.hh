@@ -148,6 +148,9 @@ public:
   const string_t& getStorage() const {
     return d_storage;
   }
+
+  bool has8bitBytes() const; /* returns true if at least one byte of the labels forming the name is not included in [A-Za-z0-9_*./@ \\:-] */
+
 private:
   string_t d_storage;
 

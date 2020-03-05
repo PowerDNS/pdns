@@ -30,7 +30,7 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, const DNSName& zname=DNSName("."), const string& reldir="");
+  ZoneParserTNG(const string& fname, const DNSName& zname=g_rootdnsname, const string& reldir="");
   ZoneParserTNG(const vector<string> zonedata, const DNSName& zname);
 
   ~ZoneParserTNG();
@@ -61,6 +61,7 @@ private:
     int d_lineno;
   };
 
+  parts_t d_parts;
   string d_reldir;
   string d_line;
   DNSName d_prevqname;
