@@ -575,7 +575,7 @@ Changelogs for 4.3.x
     :tags: New Features
     :pullreq: 7538
 
-    Rec dnstap
+    DNSTAP logging for queries to, and responses from, auths
 
   .. change::
     :tags: Internals, Improvements
