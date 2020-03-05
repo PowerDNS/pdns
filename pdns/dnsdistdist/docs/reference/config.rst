@@ -110,6 +110,7 @@ Listen Sockets
 
   .. versionchanged:: 1.5.0
     ``sendCacheControlHeaders``, ``sessionTimeout`` options added.
+    ``url`` now defaults to ``/dns-query`` instead of ``/``
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -118,7 +119,7 @@ Listen Sockets
                       The default port is 443.
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
-  :param str-or-list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
+  :param str-or-list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /dns-query.
   :param table options: A table with key: value pairs with listen options.
 
   Options:

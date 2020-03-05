@@ -1867,7 +1867,7 @@ static void setupLuaConfig(bool client, bool configCheck)
       }
     }
     else {
-      frontend->d_urls = {"/"};
+      frontend->d_urls = {"/dns-query"};
     }
 
     bool reusePort = false;
