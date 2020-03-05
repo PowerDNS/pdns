@@ -1832,10 +1832,10 @@ static void setupLuaConfig(bool client, bool configCheck)
   });
 
   g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
-#ifdef HAVE_DNS_OVER_HTTPS
     if (client) {
       return;
     }
+#ifdef HAVE_DNS_OVER_HTTPS
     setLuaSideEffect();
     if (g_configurationDone) {
       g_outputBuffer="addDOHLocal cannot be used at runtime!\n";
@@ -2028,9 +2028,10 @@ static void setupLuaConfig(bool client, bool configCheck)
       });
 
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
-#ifdef HAVE_DNS_OVER_TLS
-        if (client)
+        if (client) {
           return;
+        }
+#ifdef HAVE_DNS_OVER_TLS
         setLuaSideEffect();
         if (g_configurationDone) {
           g_outputBuffer="addTLSLocal cannot be used at runtime!\n";
