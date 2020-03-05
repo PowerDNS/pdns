@@ -632,7 +632,7 @@ static bool constantTimeStringEquals(const std::string& a, const std::string& b)
     return false;
   }
   const size_t size = a.size();
-#if OPENSSL_VERSION_NUMBER >= 0x0090819fL
+#ifdef HAVE_CRYPTO_MEMCMP
   return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
 #else
   const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
