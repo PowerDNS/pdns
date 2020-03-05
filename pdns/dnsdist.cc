@@ -204,12 +204,13 @@ bool DNSQuestion::setTrailingData(const std::string& tail)
   const uint16_t messageLen = getDNSPacketLength(message, this->len);
   const uint16_t tailLen = tail.size();
   if (tailLen > (this->size - messageLen)) {
+    vinfolog("Trailing data update failed, the new trailing data size was %d, the existing message length was %d, packet size was %d and buffer size %d", tail.size(), messageLen, this->len, this->size);
     return false;
   }
 
   /* Update length and copy data from the Lua string. */
   this->len = messageLen + tailLen;
-  if(tailLen > 0) {
+  if (tailLen > 0) {
     tail.copy(message + messageLen, tailLen);
   }
   return true;
