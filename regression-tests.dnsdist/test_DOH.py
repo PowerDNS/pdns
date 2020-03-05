@@ -720,7 +720,7 @@ class TestDOHOverHTTP(DNSDistDOHTest):
 
     _dohServerPort = 8480
     _serverName = 'tls.tests.dnsdist.org'
-    _dohBaseURL = ("http://%s:%d/" % (_serverName, _dohServerPort))
+    _dohBaseURL = ("http://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     addDOHLocal("127.0.0.1:%s")
@@ -788,7 +788,7 @@ class TestDOHWithCache(DNSDistDOHTest):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _dohServerPort = 8443
-    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
 
