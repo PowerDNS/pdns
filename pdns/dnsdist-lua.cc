@@ -1642,7 +1642,7 @@ static void setupLuaConfig(bool client, bool configCheck)
 
   g_lua.writeFunction("setConsistentHashingBalancingFactor", [](double factor) {
       setLuaSideEffect();
-      if (factor >= 0) {
+      if (factor >= 1.0) {
         g_consistentHashBalancingFactor = factor;
       }
       else {
@@ -1654,7 +1654,7 @@ static void setupLuaConfig(bool client, bool configCheck)
 
   g_lua.writeFunction("setWeightedBalancingFactor", [](double factor) {
       setLuaSideEffect();
-      if (factor >= 0) {
+      if (factor >= 1.0) {
         g_weightedBalancingFactor = factor;
       }
       else {
