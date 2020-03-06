@@ -22,6 +22,7 @@
 #pragma once
 #include <string>
 #include <set>
+#include <mutex>
 #include "dns.hh"
 #include "qtype.hh"
 #include "misc.hh"
@@ -46,26 +47,26 @@ using namespace ::boost::multi_index;
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
-  MemRecursorCache() : d_cachecachevalid(false)
-  {
-    cacheHits = cacheMisses = 0;
-  }
-  unsigned int size() const;
-  unsigned int bytes() const;
-  size_t ecsIndexSize() const;
+  MemRecursorCache(size_t mapsCount = 1024);
+  ~MemRecursorCache();
+
+  size_t size();
+  size_t bytes();
+  pair<uint64_t,uint64_t> stats();
+  size_t ecsIndexSize();
 
   int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
 
   void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
 
-  void doPrune(unsigned int keep);
+  void doPrune(size_t keep);
   uint64_t doDump(int fd);
 
-  int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
+  size_t doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);
   bool updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
 
-  uint64_t cacheHits, cacheMisses;
+  std::atomic<uint64_t> cacheHits{0}, cacheMisses{0};
 
 private:
 
@@ -94,7 +95,7 @@ private:
   };
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
-     entry for a given (qname,qtype) entry in the cache (d_cache), and if so
+     entry for a given (qname,qtype) entry in the cache (d_map), and if so
      provides a NetmaskTree of those ECS entries.
      This allows figuring out quickly if we should look for an entry
      specific to the requestor IP, and if so which entry is the most
@@ -112,14 +113,12 @@ private:
 
     Netmask lookupBestMatch(const ComboAddress& addr) const
     {
-      Netmask result = Netmask();
-
       const auto best = d_nmt.lookup(addr);
       if (best != nullptr) {
-        result = best->first;
+        return best->first;
       }
 
-      return result;
+      return Netmask();
     }
 
     void addMask(const Netmask& nm) const
@@ -190,18 +189,50 @@ private:
     >
   > ecsIndex_t;
 
-  cache_t d_cache;
-  ecsIndex_t d_ecsIndex;
-  std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> d_cachecache;
-  DNSName d_cachedqname;
-  bool d_cachecachevalid;
+  struct MapCombo
+  {
+    MapCombo() {}
+    MapCombo(const MapCombo &) = delete;
+    MapCombo & operator=(const MapCombo &) = delete;
+    cache_t d_map;
+    ecsIndex_t d_ecsIndex;
+    DNSName d_cachedqname;
+    std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> d_cachecache;
+    std::mutex mutex;
+    bool d_cachecachevalid{false};
+    std::atomic<uint64_t> d_entriesCount{0};
+    uint64_t d_contended_count{0};
+    uint64_t d_acquired_count{0};
+  };
+
+  vector<MapCombo> d_maps;
+  MapCombo& getMap(const DNSName &qname)
+  {
+    return d_maps[qname.hash() % d_maps.size()];
+  }
 
   bool entryMatches(OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
-  std::pair<NameOnlyHashedTagIterator_t, NameOnlyHashedTagIterator_t> getEntries(const DNSName &qname, const QType& qt);
-  cache_t::const_iterator getEntryUsingECSIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
-  int32_t handleHit(OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
+  std::pair<NameOnlyHashedTagIterator_t, NameOnlyHashedTagIterator_t> getEntries(MapCombo& map, const DNSName &qname, const QType& qt);
+  cache_t::const_iterator getEntryUsingECSIndex(MapCombo& map, time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
+  int32_t handleHit(MapCombo& map, OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
 
 public:
+  struct lock {
+    lock(MapCombo& map) : m(map.mutex)
+    {
+      if (!m.try_lock()) {
+        m.lock();
+        map.d_contended_count++;
+      }
+      map.d_acquired_count++;
+    }
+    ~lock() {
+      m.unlock();
+    }
+  private:
+    std::mutex &m;
+  };
+
   void preRemoval(const CacheEntry& entry)
   {
     if (entry.d_netmask.empty()) {
@@ -209,11 +240,12 @@ public:
     }
 
     auto key = tie(entry.d_qname, entry.d_qtype);
-    auto ecsIndexEntry = d_ecsIndex.find(key);
-    if (ecsIndexEntry != d_ecsIndex.end()) {
+    auto& map = getMap(entry.d_qname);
+    auto ecsIndexEntry = map.d_ecsIndex.find(key);
+    if (ecsIndexEntry != map.d_ecsIndex.end()) {
       ecsIndexEntry->removeNetmask(entry.d_netmask);
       if (ecsIndexEntry->isEmpty()) {
-        d_ecsIndex.erase(ecsIndexEntry);
+        map.d_ecsIndex.erase(ecsIndexEntry);
       }
     }
   }

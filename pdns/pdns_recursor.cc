@@ -127,7 +127,9 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 #endif /* HAVE_FSTRM */
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
-thread_local std::unique_ptr<MemRecursorCache> t_RC;
+std::unique_ptr<MemRecursorCache> s_RC;
+
+
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
@@ -1821,10 +1823,10 @@ static void startDoResolve(void *p)
     }
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
-      t_RC->cacheMisses++;
+      s_RC->cacheMisses++;
     }
     else {
-      t_RC->cacheHits++;
+      s_RC->cacheHits++;
     }
 
     if(spent < 0.001)
@@ -2842,14 +2844,18 @@ static void doStats(void)
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
 
-  uint64_t cacheHits = broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
-  uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
-
+  uint64_t cacheHits = s_RC->cacheHits;
+  uint64_t cacheMisses = s_RC->cacheMisses;
+  uint64_t cacheSize = s_RC->size();
+  auto rc_stats = s_RC->stats();
+  double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
+  
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
-      broadcastAccFunction<uint64_t>(pleaseGetCacheSize)<< " cache entries, "<<
+      cacheSize << " cache entries, "<<
       broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
       (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl;
+    g_log << Logger::Notice<< "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
     g_log<<Logger::Notice<<"stats: throttle map: "
       << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) <<", ns speeds: "
@@ -2891,8 +2897,9 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static thread_local time_t last_rootupdate, last_secpoll, last_trustAnchorUpdate{0};
-  static thread_local timeval last_prune;
+  static thread_local time_t last_rootupdate, last_secpoll, last_trustAnchorUpdate{0}, last_RC_prune;
+  static thread_local struct timeval last_prune;
+
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -2913,9 +2920,7 @@ static void houseKeeping(void *)
     past = now;
     past.tv_sec -= 5;
     if (last_prune < past) {
-      t_RC->doPrune(g_maxCacheEntries / g_numThreads); // this function is local to a thread, so fine anyhow
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
-
       SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));
 
       time_t limit;
@@ -2931,15 +2936,19 @@ static void houseKeeping(void *)
       Utility::gettimeofday(&last_prune, nullptr);
     }
 
-    if(now.tv_sec - last_rootupdate > 7200) {
-      int res = SyncRes::getRootNS(g_now, nullptr);
-      if (!res) {
-        last_rootupdate=now.tv_sec;
-        primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
-      }
-    }
-
     if(isHandlerThread()) {
+      if (now.tv_sec - last_RC_prune > 5) {
+        s_RC->doPrune(g_maxCacheEntries);
+        last_RC_prune = now.tv_sec;
+      }
+      // XXX !!! global
+      if(now.tv_sec - last_rootupdate > 7200) {
+        int res = SyncRes::getRootNS(g_now, nullptr);
+        if (!res) {
+          last_rootupdate=now.tv_sec;
+          primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
+        }
+      }
 
       if(now.tv_sec - last_secpoll >= 3600) {
 	try {
@@ -4783,6 +4792,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="yes";
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
+    ::arg().set("cache-shards", "Number of shards in the record cache")="1024";
 
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
@@ -4880,6 +4890,8 @@ int main(int argc, char **argv)
       showBuildConfiguration();
       exit(0);
     }
+
+    s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("cache-shards")));
 
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
 

@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
   MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_GT(MRC.bytes(), 1U);
-  BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 1);
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 1U);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.bytes(), 0U);
 
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     uint64_t delcounter = 0;
     for (delcounter = 0; delcounter < counter / 100; ++delcounter) {
       DNSName a = DNSName("hello ") + DNSName(std::to_string(delcounter));
-      BOOST_CHECK_EQUAL(MRC.doWipeCache(a, false, QType::A), 1);
+      BOOST_CHECK_EQUAL(MRC.doWipeCache(a, false, QType::A), 1U);
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), counter - delcounter);
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 {
-  MemRecursorCache MRC;
+  MemRecursorCache MRC(1);
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
@@ -473,7 +473,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 {
-  MemRecursorCache MRC;
+  MemRecursorCache MRC(1);
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
@@ -651,7 +651,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
 {
-  MemRecursorCache MRC;
+  MemRecursorCache MRC(1);
 
   const DNSName power("powerdns.com.");
   std::vector<DNSRecord> records;
@@ -892,16 +892,16 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 5U);
 
   /* wipe everything under the powerdns.com domain */
-  BOOST_CHECK_EQUAL(MRC.doWipeCache(power, true), 3);
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(power, true), 3U);
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 2U);
 
   /* now wipe the other domains too */
-  BOOST_CHECK_EQUAL(MRC.doWipeCache(other1, true), 1);
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(other1, true), 1U);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
 
-  BOOST_CHECK_EQUAL(MRC.doWipeCache(other2, true), 1);
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(other2, true), 1U);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 }

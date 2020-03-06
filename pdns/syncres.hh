@@ -965,7 +965,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     return a.domain < b.domain;
   }
 };
-extern thread_local std::unique_ptr<MemRecursorCache> t_RC;
+extern std::unique_ptr<MemRecursorCache> s_RC;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 MT_t* getMT();
@@ -1091,10 +1091,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetFailedServersSize();
 uint64_t* pleaseGetEDNSStatusesSize();
-uint64_t* pleaseGetCacheSize();
 uint64_t* pleaseGetNegCacheSize();
-uint64_t* pleaseGetCacheHits();
-uint64_t* pleaseGetCacheMisses();
 uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
