@@ -105,7 +105,6 @@ private:
   ComboAddress d_remote;
   std::atomic<uint64_t> d_drops{0};
   std::atomic<uint64_t> d_queued{0};
-  uint64_t d_maxQueuedBytes;
   std::unique_ptr<Socket> d_socket{nullptr};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;

@@ -97,7 +97,7 @@ bool CircularWriteBuffer::flush(int fd)
   return true;
 }
 
-RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect): d_writer(maxQueuedBytes), d_remote(remote), d_maxQueuedBytes(maxQueuedBytes), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect)
+RemoteLogger::RemoteLogger(const ComboAddress& remote, uint16_t timeout, uint64_t maxQueuedBytes, uint8_t reconnectWaitTime, bool asyncConnect): d_writer(maxQueuedBytes), d_remote(remote), d_timeout(timeout), d_reconnectWaitTime(reconnectWaitTime), d_asyncConnect(asyncConnect)
 {
   if (!d_asyncConnect) {
     reconnect();
@@ -196,6 +196,9 @@ try
         /* we don't want to take the lock while trying to reconnect */
         std::unique_lock<std::mutex> lock(d_mutex);
         if (d_socket) { // check if it is set
+          /* if flush() returns false, it means that we couldn't flush anything yet
+             either because there is nothing to flush, or because the outgoing TCP
+             buffer is full. That's fine by us */
           d_writer.flush(d_socket->getHandle());
         }
         else {
@@ -218,7 +221,10 @@ try
 }
 catch(const std::exception& e)
 {
-  cerr<<"Thead died on: "<<e.what()<<endl;
+  cerr << "Remote Logger's maintenance thead died on: " << e.what() << endl;
+}
+catch(...) {
+  cerr << "Remote Logger's maintenance thead died on unknown exception" << endl;
 }
 
 RemoteLogger::~RemoteLogger()
