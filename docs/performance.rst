@@ -132,6 +132,7 @@ Several users have reported that ``4`` works well for them.
 Via ``systemctl edit pdns`` you can put ``Environment=MALLOC_ARENA_MAX=4`` in your pdns unit file to enable this tweak.
 
 Note that `newer glibc versions replace MALLOC_ARENA_MAX with a different setting syntax <https://www.gnu.org/software/libc/manual/html_node/Tunables.html#Tunables>`__.
+The new syntax is ``GLIBC_TUNABLES=glibc.malloc.arena_max=4``, please check which syntax is valid for your glibc version (it is quite likely that both syntaxes will work).
 
 Performance Monitoring
 ----------------------
