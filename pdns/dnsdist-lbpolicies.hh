@@ -76,3 +76,8 @@ std::shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVecto
 std::shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
 std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> getSelectedBackendFromPolicy(const ServerPolicy& policy, const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq);
+
+extern double g_consistentHashBalancingFactor;
+extern double g_weightedBalancingFactor;
+extern uint32_t g_hashperturb;
+extern bool g_roundrobinFailOnNoServer;

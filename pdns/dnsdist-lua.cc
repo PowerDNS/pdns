@@ -1652,6 +1652,18 @@ static void setupLuaConfig(bool client, bool configCheck)
       }
     });
 
+  g_lua.writeFunction("setWeightedBalancingFactor", [](double factor) {
+      setLuaSideEffect();
+      if (factor >= 0) {
+        g_weightedBalancingFactor = factor;
+      }
+      else {
+        errlog("Invalid value passed to setWeightedBalancingFactor()!");
+        g_outputBuffer="Invalid value passed to setWeightedBalancingFactor()!\n";
+        return;
+      }
+    });
+
   g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {
