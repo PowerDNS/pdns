@@ -91,7 +91,6 @@ void Bind2Backend::freeStatements()
 
 #else
 
-#include "pdns/bind-dnssec.schema.sqlite3.sql.h"
 #include "pdns/logger.hh"
 #include "pdns/ssqlite3.hh"
 
