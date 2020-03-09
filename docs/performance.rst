@@ -120,6 +120,20 @@ mind that the Query Cache mostly saves database access but that the
 Packet Cache also saves a lot of CPU because 0 internal processing is
 done when answering a question from the Packet Cache.
 
+Caches & Memory Allocations & glibc
+-----------------------------------
+
+Managing the two caches described above involves a lot of memory management, that is handled by ``malloc`` in your libc.
+To avoid contention between threads, the allocator in glibc separates memory into separate arenas, sometimes even hundreds of them.
+This avoids locking, but it may cause massive memory fragmentation, that could make PowerDNS take `an order of magnitude more memory <https://sourceware.org/bugzilla/show_bug.cgi?id=11261>`_ in some situations.
+
+If you suspect this is happening on your setup, you can consider lowering ``MALLOC_ARENA_MAX`` to a small number.
+Several users have reported that ``4`` works well for them.
+Via ``systemctl edit pdns`` you can put ``Environment=MALLOC_ARENA_MAX=4`` in your pdns unit file to enable this tweak.
+
+Note that `newer glibc versions replace MALLOC_ARENA_MAX with a different setting syntax <https://www.gnu.org/software/libc/manual/html_node/Tunables.html#Tunables>`__.
+The new syntax is ``GLIBC_TUNABLES=glibc.malloc.arena_max=4``, please check which syntax is valid for your glibc version (it is quite likely that both syntaxes will work).
+
 Performance Monitoring
 ----------------------
 
