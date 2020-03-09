@@ -896,19 +896,45 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 {
   MemRecursorCache MRC;
 
-  std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
+  time_t ttd = now + 30;
+
+  DNSName power("powerdns.com.");
+  DNSRecord dr0;
+  ComboAddress dr0Content("192.0.2.40");
+  dr0.d_name = power;
+  dr0.d_type = QType::A;
+  dr0.d_class = QClass::IN;
+  dr0.d_content = std::make_shared<ARecordContent>(dr0Content);
+  dr0.d_ttl = static_cast<uint32_t>(ttd);
+  dr0.d_place = DNSResourceRecord::ANSWER;
+  std::vector<DNSRecord> rset0;
+  rset0.push_back(dr0);
+
+  DNSRecord dr0tagged;
+  ComboAddress dr0taggedContent("192.0.2.100");
+  dr0tagged.d_name = power;
+  dr0tagged.d_type = QType::A;
+  dr0tagged.d_class = QClass::IN;
+  dr0tagged.d_content = std::make_shared<ARecordContent>(dr0taggedContent);
+  dr0tagged.d_ttl = static_cast<uint32_t>(ttd);
+  dr0tagged.d_place = DNSResourceRecord::ANSWER;
+  std::vector<DNSRecord> rset0tagged;
+  rset0tagged.push_back(dr0tagged);
 
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
-  // An entry withoug edns subnet gets stored without tag as well
-  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none, boost::none);
-  MRC.replace(now, DNSName("hello"), QType(QType::A), records, signatures, authRecords, true, boost::none, string("mytag"));
+  // An entry without edns subnet gets stored without tag as well
+  MRC.replace(ttd, DNSName("hello"), QType(QType::A), rset0, signatures, authRecords, true, boost::none, boost::none);
+  MRC.replace(ttd, DNSName("hello"), QType(QType::A), rset0, signatures, authRecords, true, boost::none, string("mytag"));
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
   BOOST_CHECK_EQUAL(MRC.doWipeCache(DNSName("hello"), false, QType::A), 1U);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.bytes(), 0U);
+
+  ComboAddress nobody;
+  ComboAddress who("192.0.2.1");
 
   uint64_t counter = 0;
   try {
@@ -916,60 +942,94 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none, string("mytagA"));
-      if (!MRC.doWipeCache(a, false))
-        BOOST_FAIL("Could not remove entry we just added to the cache!");
-      MRC.replace(now, a, QType(QType::A), records, signatures, authRecords, true, boost::none, string("mytagB"));
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, boost::none, string("mytagA"));
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, boost::none, string("mytagB"));
+      // After this, we have untagged entries, since no address was specified for both replace calls
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), counter);
 
-    uint64_t delcounter = 0;
-    for (delcounter = 0; delcounter < counter / 100; ++delcounter) {
-      DNSName a = DNSName("hello ") + DNSName(std::to_string(delcounter));
-      BOOST_CHECK_EQUAL(MRC.doWipeCache(a, false, QType::A), 1U);
-    }
-
-    BOOST_CHECK_EQUAL(MRC.size(), counter - delcounter);
-
     std::vector<DNSRecord> retrieved;
-    ComboAddress who("192.0.2.1");
     int64_t matches = 0;
-    int64_t expected = counter - delcounter;
-    int64_t delstart = delcounter;
+    int64_t expected = counter;
 
-    for (; delcounter < counter; ++delcounter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, boost::none)) {
+    for (counter = 0; counter < 110; counter++) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, boost::none) > 0) {
         matches++;
+        BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+        BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
       }
     }
     BOOST_CHECK_EQUAL(matches, expected);
-    BOOST_CHECK_EQUAL(retrieved.size(), records.size());
-
-    matches = 0;
-    retrieved.clear();
-    for (delcounter = delstart; delcounter < counter; ++delcounter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, string("mytagB"))) {
-        matches++;
-      }
-    }
-    BOOST_CHECK_EQUAL(matches, expected);
-    BOOST_CHECK_EQUAL(retrieved.size(), records.size());
 
     matches = 0;
-    for (delcounter = delstart; delcounter < counter; ++delcounter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, string("mytagX"))) {
+    for (counter = 0; counter < 110; ++counter) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, string("mytagB")) > 0) {
         matches++;
+        BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+        BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
       }
     }
     BOOST_CHECK_EQUAL(matches, expected);
-    BOOST_CHECK_EQUAL(retrieved.size(), records.size());
+
+    matches = 0;
+    for (counter = 0; counter < 110; counter++) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, string("mytagX")) > 0) {
+        matches++;
+        BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+        BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, expected);
+
+    // Now insert some tagged entries
+    for (counter = 0; counter < 50; ++counter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
+      BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+      MRC.replace(now, a, QType(QType::A), rset0tagged, signatures, authRecords, true, boost::optional<Netmask>("128.0.0.0/8"), string("mytagA"));
+    }
+    BOOST_CHECK_EQUAL(MRC.size(), 150U);
+
+    matches = 0;
+    for (counter = 0; counter < 110; counter++) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, boost::none) > 0) {
+        matches++;
+        BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+        BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, 100U);
+
+    matches = 0;
+    for (counter = 0; counter < 110; ++counter) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, string("mytagA")) > 0) {
+        matches++;
+        if (counter < 50) {
+          BOOST_CHECK_EQUAL(retrieved.size(), rset0tagged.size());
+          BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0taggedContent.toString());
+        }
+        else {
+          BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+          BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
+        }
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, 100U);
+
+    matches = 0;
+    for (counter = 0; counter < 110; counter++) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, string("mytagX")) > 0) {
+        matches++;
+        BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+        BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, 100U);
 
     MRC.doWipeCache(DNSName("."), true);
     BOOST_CHECK_EQUAL(MRC.size(), 0U);
 
-    time_t ttd = now + 30;
-    DNSName power("powerdns.com.");
     DNSRecord dr1;
     ComboAddress dr1Content("192.0.2.41");
     dr1.d_name = power;
@@ -1004,7 +1064,6 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     rset3.push_back(dr3);
 
     // insert a tagged entry
-    records.push_back(dr1);
     MRC.replace(now, power, QType(QType::A), rset1, signatures, authRecords, true, boost::optional<Netmask>("192.0.2.0/24"), string("mytag"));
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 

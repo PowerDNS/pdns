@@ -200,9 +200,6 @@ MemRecursorCache::Entries MemRecursorCache::getEntries(MapCombo& map, const DNSN
   return map.d_cachecache;
 }
 
-#include <boost/optional/optional_io.hpp>
-
-
 bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who)
 {
   // MUTEX SHOULD BE ACQUIRED
@@ -449,9 +446,9 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
     const lock l(map);
     map.d_cachecachevalid = false;
     auto& idx = map.d_map.get<OrderedTag>();
-    auto i = idx.lower_bound(name);
-    auto upper_bound = idx.upper_bound(name);
-    while (i != upper_bound) {
+    auto range = idx.equal_range(name);
+    auto i = range.first;
+    while (i != range.second) {
       i = idx.erase(i);
       count++;
       map.d_entriesCount--;
