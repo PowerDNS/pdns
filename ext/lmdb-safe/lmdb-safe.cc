@@ -6,7 +6,10 @@
 #include <string.h>
 #include <map>
 
-using namespace std;
+using std::string;
+using std::runtime_error;
+using std::tuple;
+using std::weak_ptr;
 
 static string MDBError(int rc)
 {
