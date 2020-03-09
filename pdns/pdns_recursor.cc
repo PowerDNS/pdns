@@ -90,6 +90,7 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "ednsextendederror.hh"
+#include "ednspadding.hh"
 #include "gettime.hh"
 #include "proxy-protocol.hh"
 #include "pubsuffix.hh"
@@ -192,6 +193,7 @@ static deferredAdd_t g_deferredAdds;
 
 typedef vector<int> tcpListenSockets_t;
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
+enum class PaddingMode { Always, PaddedQueries };
 
 static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism (without actually using sendfromto())
@@ -200,6 +202,7 @@ static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads 
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 static NetmaskGroup g_XPFAcl;
 static NetmaskGroup g_proxyProtocolACL;
+static NetmaskGroup g_paddingFrom;
 static boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 static DNSName g_dns64PrefixReverse;
 static size_t g_proxyProtocolMaximumSize;
@@ -211,9 +214,11 @@ static unsigned int g_maxTCPPerClient;
 static unsigned int g_maxMThreads;
 static unsigned int g_numDistributorThreads;
 static unsigned int g_numWorkerThreads;
+static unsigned int g_paddingTag;
 static int g_tcpTimeout;
 static uint16_t g_udpTruncationThreshold;
 static uint16_t g_xpfRRCode{0};
+static PaddingMode g_paddingMode;
 static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
 static bool g_logCommonErrors;
@@ -1484,6 +1489,8 @@ static void startDoResolve(void *p)
     std::vector<pair<uint16_t, string> > ednsOpts;
     bool variableAnswer = dc->d_variable;
     bool haveEDNS=false;
+    bool paddingAllowed = g_paddingFrom.match(dc->d_remote);
+    bool padResponse = paddingAllowed ? (g_paddingMode == PaddingMode::Always) : false;
 #ifdef NOD_ENABLED
     bool hasUDR = false;
 #endif /* NOD_ENABLED */
@@ -1515,9 +1522,24 @@ static void startDoResolve(void *p)
             variableAnswer = true; // Can't packetcache an answer with NSID
             maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size();
           }
+        } else if (paddingAllowed && padResponse == false && g_paddingMode == PaddingMode::PaddedQueries && o.first == EDNSOptionCode::PADDING) {
+          /* we should only pad on 'secure' cases to limit amplification:
+             - over TCP ;
+             - from 'known-good' sources (dnsdist for example).
+             We should also support a strict mode (only pad if the query has a padding option)
+             and a relaxed mode (pad if the client supports EDNS).
+             The block-size should be configurable as well.
+          */
+          padResponse = true;
+          maxanswersize -= 4;
         }
       }
     }
+
+    if (padResponse && dc->d_tag == 0) {
+      dc->d_tag = g_paddingTag;
+    }
+
     /* perhaps there was no EDNS or no ECS but by now we looked */
     dc->d_ecsParsed = true;
     vector<DNSRecord> ret;
@@ -1965,6 +1987,26 @@ static void startDoResolve(void *p)
         maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size();
 
         returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
+      }
+    }
+
+    if (padResponse) {
+      size_t currentSize = pw.getSizeWithOpts(returnedEdnsOptions);
+      if (currentSize < (static_cast<size_t>(maxanswersize) - 4)) {
+        size_t remaining = static_cast<size_t>(maxanswersize) - currentSize;
+        /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
+           If a server receives a query that includes the EDNS(0) "Padding"
+           option, it MUST pad the corresponding response (see Section 4 of
+           RFC 7830) and SHOULD pad the corresponding response to a
+           multiple of 468 octets (see below).
+        */
+        static const size_t blockSize = 468;
+        size_t modulo = (currentSize + 4) % blockSize;
+        size_t padSize = 0;
+        if (modulo > 0) {
+          padSize = std::min(blockSize - modulo, remaining);
+        }
+        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize)));
       }
     }
 
@@ -2599,6 +2641,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 
+      if (dc->d_tag == 0 && g_paddingFrom.match(dc->d_remote)) {
+        dc->d_tag = g_paddingTag;
+      }
+
       const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
 
       if (t_protobufServers || t_outgoingProtobufServers) {
@@ -2889,13 +2935,15 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     RecursorPacketCache::OptPBData pbData{boost::none};
-
     if (t_protobufServers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(luaconfsLocal, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName);
       }
     }
 
+    if (ctag == 0 && g_paddingFrom.match(fromaddr)) {
+      ctag = g_paddingTag;
+    }
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
@@ -4716,6 +4764,19 @@ static int serviceMain(int argc, char*argv[])
 
   g_lowercaseOutgoing = ::arg().mustDo("lowercase-outgoing");
 
+  g_paddingFrom.toMasks(::arg()["edns-padding-from"]);
+  if (::arg()["edns-padding-mode"] == "always") {
+    g_paddingMode = PaddingMode::Always;
+  }
+  else if (::arg()["edns-padding-mode"] == "padded-queries-only") {
+    g_paddingMode = PaddingMode::PaddedQueries;
+  }
+  else {
+    g_log << Logger::Error << "Unknown edns-padding-mode: " << ::arg()["edns-padding-mode"] << endl;
+    exit(1);
+  }
+  g_paddingTag = ::arg().asNum("edns-padding-tag");
+
   g_numDistributorThreads = ::arg().asNum("distributor-threads");
   g_numWorkerThreads = ::arg().asNum("threads");
   if (g_numWorkerThreads < 1) {
@@ -5529,6 +5590,10 @@ int main(int argc, char **argv)
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
 
     ::arg().setSwitch("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="100000";
+
+    ::arg().set("edns-padding-from", "Sources (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses")="";
+    ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to the ones to padded queries ('padded-queries-only')")="padded-queries-only";
+    ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to non-whitelisted clients.")="7830";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

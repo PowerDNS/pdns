@@ -77,7 +77,7 @@ public:
    */
   void commit();
 
-  uint32_t size(); // needs to be 32 bit because otherwise we don't see the wrap coming when it happened!
+  uint32_t size() const; // needs to be 32 bit because otherwise we don't see the wrap coming when it happened!
 
   /** Should the packet have grown too big for the writer's liking, rollback removes the record currently being written */
   void rollback();
@@ -155,6 +155,9 @@ public:
   const string getRemaining() const {
     return "";
   }
+
+  size_t getSizeWithOpts(const optvect_t& options) const;
+
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
   vector<uint16_t> d_namepositions;
