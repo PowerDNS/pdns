@@ -32,7 +32,7 @@ required backend as follows:
 Redhat-based Systems
 ~~~~~~~~~~~~~~~~~~~~
 
-On RedHat based system there are 2 options to install PowerDNS, from
+On RedHat based systems there are 3 options to install PowerDNS, from
 `EPEL <https://fedoraproject.org/wiki/EPEL>`__, the `repository from
 Kees Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 or from `the PowerDNS repositories <https://repo.powerdns.com>`__:
@@ -48,6 +48,8 @@ The different backends can be installed using
 .. code-block:: shell
 
     $ sudo yum install pdns-backend-$backend
+
+Note that for some of those package sources, the bind backend is shipped as part of the base ``pdns`` package, and there is no separate ``pdns-backend-bind`` package.
 
 FreeBSD
 ~~~~~~~
