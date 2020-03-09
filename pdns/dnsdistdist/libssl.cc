@@ -72,7 +72,7 @@ static int s_keyLogIndex{-1};
 void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && (!defined LIBRESSL_VERSION_NUMBER || LIBRESSL_VERSION_NUMBER >= 0x2070000fL))
+#ifdef HAVE_OPENSSL_INIT_CRYPTO
     /* load the default configuration file (or one specified via OPENSSL_CONF),
        which can then be used to load engines */
     OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, nullptr);
@@ -333,7 +333,7 @@ std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<std::str
 
 int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx)
 {
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined LIBRESSL_VERSION_NUMBER)
+#ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
   auto pkey = SSL_CTX_get0_privatekey(ctx.get());
 #else
   auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(ctx.get()), SSL_free);
@@ -432,8 +432,9 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
 
 bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
 {
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && !defined LIBRESSL_VERSION_NUMBER)
-  /* these functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated */
+#if defined(HAVE_SSL_CTX_SET_MIN_PROTO_VERSION) || defined(SSL_CTX_set_min_proto_version)
+  /* These functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated
+     Warning: SSL_CTX_set_min_proto_version is a function-like macro in OpenSSL */
   int vers;
   switch(version) {
   case LibsslTLSVersion::TLS10:

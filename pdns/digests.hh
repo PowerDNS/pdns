@@ -28,10 +28,10 @@
 
 inline std::string pdns_hash(const EVP_MD * md, const std::string& input)
 {
-#if OPENSSL_VERSION_NUMBER < 0x1010000fL
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
-#else
+#if defined(HAVE_EVP_MD_CTX_NEW) && defined(HAVE_EVP_MD_CTX_FREE)
   auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+#else
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
 #endif
   if (!mdctx) {
     throw std::runtime_error(std::string(EVP_MD_name(md)) + " context initialization failed");

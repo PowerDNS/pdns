@@ -38,7 +38,7 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
 static pthread_mutex_t *openssllocks;
 
@@ -81,7 +81,7 @@ void openssl_thread_cleanup()
   OPENSSL_free(openssllocks);
 }
 
-#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070000fL
+#ifndef HAVE_RSA_GET0_KEY
 /* those symbols are defined in LibreSSL 2.7.0+ */
 /* compat helpers. These DO NOT do any of the checking that the libssl 1.1 functions do. */
 static inline void RSA_get0_key(const RSA* rsakey, const BIGNUM** n, const BIGNUM** e, const BIGNUM** d) {
@@ -150,7 +150,7 @@ static inline int ECDSA_SIG_set0(ECDSA_SIG* signature, BIGNUM* pr, BIGNUM* ps) {
 }
 #endif /* HAVE_LIBCRYPTO_ECDSA */
 
-#endif /* !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070000fL */
+#endif /* HAVE_RSA_GET0_KEY */
 
 #else
 void openssl_thread_setup() {}
