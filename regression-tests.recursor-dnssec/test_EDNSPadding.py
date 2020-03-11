@@ -6,7 +6,7 @@ import paddingoption
 
 from recursortests import RecursorTest
 
-class TestRecursorEDNSPadding(RecursorTest):
+class RecursorEDNSPaddingTest(RecursorTest):
 
     @classmethod
     def setUpClass(cls):
@@ -42,6 +42,9 @@ class TestRecursorEDNSPadding(RecursorTest):
       self.assertEqual(message.edns, 0)
       self.assertEquals(len(message.options), 0)
 
+    def checkNoEDNS(self, message):
+      self.assertEqual(message.edns, -1)
+
     def sendUDPQueryOverIPv6(self, query, timeout=2.0):
       sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
       sock.settimeout(2.0)
@@ -64,7 +67,16 @@ class TestRecursorEDNSPadding(RecursorTest):
         message = dns.message.from_wire(data)
       return message
 
-class PaddingDefaultTest(TestRecursorEDNSPadding):
+    def testQueryWithoutEDNS(self):
+        name = 'secure.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
+        query = dns.message.make_query(name, 'A', want_dnssec=False)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.checkNoEDNS(res)
+        self.assertRRsetInAnswer(res, expected)
+
+class PaddingDefaultTest(RecursorEDNSPaddingTest):
 
     _confdir = 'PaddingDefault'
 
@@ -78,7 +90,7 @@ class PaddingDefaultTest(TestRecursorEDNSPadding):
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-    def testqueryWithoutPadding(self):
+    def testQueryWithoutPadding(self):
         name = 'secure.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -87,7 +99,7 @@ class PaddingDefaultTest(TestRecursorEDNSPadding):
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingAllowedAlwaysTest(TestRecursorEDNSPadding):
+class PaddingAllowedAlwaysTest(RecursorEDNSPaddingTest):
 
     _confdir = 'PaddingAlways'
     _config_template = """edns-padding-from=127.0.0.1
@@ -105,7 +117,7 @@ edns-padding-tag=7830
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-    def testqueryWithoutPadding(self):
+    def testQueryWithoutPadding(self):
         name = 'secure.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -114,7 +126,7 @@ edns-padding-tag=7830
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingAllowedWhenPaddedTest(TestRecursorEDNSPadding):
+class PaddingAllowedWhenPaddedTest(RecursorEDNSPaddingTest):
 
     _confdir = 'PaddingWhenPadded'
     _config_template = """edns-padding-from=127.0.0.1
@@ -132,7 +144,7 @@ edns-padding-tag=7830
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-    def testqueryWithoutPadding(self):
+    def testQueryWithoutPadding(self):
         name = 'secure.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -141,7 +153,7 @@ edns-padding-tag=7830
         self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-class PaddingAllowedAlwaysSameTagTest(TestRecursorEDNSPadding):
+class PaddingAllowedAlwaysSameTagTest(RecursorEDNSPaddingTest):
 
     # we use the default tag (0) for padded responses, which will cause
     # the same packet cache entry (with padding ) to be returned to a client
@@ -167,7 +179,7 @@ local-address=127.0.0.1, ::1
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
-    def testqueryWithoutPadding(self):
+    def testQueryWithoutPadding(self):
         name = 'secure.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
