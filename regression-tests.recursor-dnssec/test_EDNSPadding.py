@@ -256,6 +256,13 @@ local-address=127.0.0.1, ::1
 packetcache-ttl=60
     """
 
+    @classmethod
+    def setUpClass(cls):
+        if 'SKIP_IPV6_TESTS' in os.environ:
+            raise unittest.SkipTest('IPv6 tests are disabled')
+
+        super(PaddingAllowedAlwaysSameTagTest, cls).setUpClass()
+
     def testQueryWithPadding(self):
         name = 'secure.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.17')
