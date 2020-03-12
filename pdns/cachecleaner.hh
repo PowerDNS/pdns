@@ -112,39 +112,25 @@ template <typename S, typename T> void moveCacheItemToBack(T& collection, typena
   moveCacheItemToFrontOrBack<S>(collection, iter, false);
 }
 
-template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+template <typename S, typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps)
 {
-  time_t now = time(nullptr);
   uint64_t totErased = 0;
-  uint64_t toTrim = 0;
-  uint64_t lookAt = 0;
-
-  // two modes - if toTrim is 0, just look through 10%  of the cache and nuke everything that is expired
-  // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if (maxCached && cacheSize > maxCached) {
-    toTrim = cacheSize - maxCached;
-    lookAt = 5 * toTrim;
-  } else {
-    lookAt = cacheSize / 10;
-  }
+  time_t now = time(nullptr);
 
   for(auto& mc : maps) {
     WriteLock wl(&mc.d_mut);
+
+    uint64_t lookAt = (mc.d_map.size() + 9) / 10; // Look at 10% of this shard
+    uint64_t erased = 0;
+
     auto& sidx = boost::multi_index::get<S>(mc.d_map);
-    uint64_t erased = 0, lookedAt = 0;
-    for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
-      if (i->ttd < now) {
+    for(auto i = sidx.begin(); i != sidx.end() && lookAt > 0; lookAt--) {
+      if(i->ttd < now) {
         i = sidx.erase(i);
         erased++;
       } else {
         ++i;
       }
-
-      if(toTrim && erased > toTrim / maps.size())
-        break;
-
-      if(lookedAt > lookAt / maps.size())
-        break;
     }
     totErased += erased;
   }
