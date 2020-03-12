@@ -152,6 +152,7 @@ fi
 %service_add_post %{name}.service
 %endif
 %if 0%{?rhel} >= 7
+systemctl daemon-reload ||:
 %systemd_post %{name}.service
 %endif
 

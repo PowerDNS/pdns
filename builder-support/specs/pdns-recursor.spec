@@ -116,6 +116,7 @@ exit 0
 %if 0%{?rhel} == 6
 chkconfig --add %{name}
 %else
+systemctl daemon-reload ||:
 %systemd_post %{name}.service
 %endif
 
