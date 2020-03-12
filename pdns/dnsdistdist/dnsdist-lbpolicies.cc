@@ -64,17 +64,36 @@ shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVec
   return leastOutstanding(servers, dq);
 }
 
+double g_weightedBalancingFactor = 0;
+
 static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolicy::NumberedServerVector& servers)
 {
   vector<pair<int, size_t>> poss;
   poss.reserve(servers.size());
   int sum = 0;
   int max = std::numeric_limits<int>::max();
+  double targetLoad = std::numeric_limits<double>::max();
 
-  for(const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if(d.second->isUp()) {
+  if (g_weightedBalancingFactor > 0) {
+    /* we start with one, representing the query we are currently handling */
+    double currentLoad = 1;
+    size_t totalWeight = 0;
+    for (const auto& pair : servers) {
+      if (pair.second->isUp()) {
+        currentLoad += pair.second->outstanding;
+        totalWeight += pair.second->weight;
+      }
+    }
+
+    if (totalWeight > 0) {
+      targetLoad = (currentLoad / totalWeight) * g_weightedBalancingFactor;
+    }
+  }
+
+  for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
+    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->weight)))) {
       // Don't overflow sum when adding high weights
-      if(d.second->weight > max - sum) {
+      if (d.second->weight > max - sum) {
         sum = max;
       } else {
         sum += d.second->weight;
@@ -126,14 +145,21 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
   if (g_consistentHashBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
+    size_t totalWeight = 0;
     for (const auto& pair : servers) {
-      currentLoad += pair.second->outstanding;
+      if (pair.second->isUp()) {
+        currentLoad += pair.second->outstanding;
+        totalWeight += pair.second->weight;
+      }
     }
-    targetLoad = (currentLoad / servers.size()) * g_consistentHashBalancingFactor;
+
+    if (totalWeight > 0) {
+      targetLoad = (currentLoad / totalWeight) * g_consistentHashBalancingFactor;
+    }
   }
 
   for (const auto& d: servers) {
-    if (d.second->isUp() && d.second->outstanding <= targetLoad) {
+    if (d.second->isUp() && (g_consistentHashBalancingFactor == 0 || d.second->outstanding <= (targetLoad * d.second->weight))) {
       // make sure hashes have been computed
       if (d.second->hashes.empty()) {
         d.second->hash();

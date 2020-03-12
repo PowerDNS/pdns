@@ -1642,12 +1642,24 @@ static void setupLuaConfig(bool client, bool configCheck)
 
   g_lua.writeFunction("setConsistentHashingBalancingFactor", [](double factor) {
       setLuaSideEffect();
-      if (factor >= 0) {
+      if (factor >= 1.0) {
         g_consistentHashBalancingFactor = factor;
       }
       else {
         errlog("Invalid value passed to setConsistentHashingBalancingFactor()!");
         g_outputBuffer="Invalid value passed to setConsistentHashingBalancingFactor()!\n";
+        return;
+      }
+    });
+
+  g_lua.writeFunction("setWeightedBalancingFactor", [](double factor) {
+      setLuaSideEffect();
+      if (factor >= 1.0) {
+        g_weightedBalancingFactor = factor;
+      }
+      else {
+        errlog("Invalid value passed to setWeightedBalancingFactor()!");
+        g_outputBuffer="Invalid value passed to setWeightedBalancingFactor()!\n";
         return;
       }
     });
