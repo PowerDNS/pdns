@@ -32,7 +32,7 @@ hidesoadetails
 hidettl
     Replace TTLs with `[ttl]` in the response.
 proxy *TCP?* *SRC* *DST*
-    Wrap query in PROXYv2 protocol with these parameters.
+    Wrap query in PROXYv2 protocol with these parameters. The first parameter accepts 0 for UDP and 1 for TCP. The second and third take IP addresses and port.
 recurse
     Set the RD bit in the question.
 showflags

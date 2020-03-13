@@ -18,9 +18,9 @@
 
 StatBag S;
 
-bool hidettl = false;
+static bool hidettl = false;
 
-string ttl(uint32_t ttl)
+static string ttl(uint32_t ttl)
 {
   if (hidettl)
     return "[ttl]";
@@ -28,13 +28,13 @@ string ttl(uint32_t ttl)
     return std::to_string(ttl);
 }
 
-void usage()
+static void usage()
 {
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] "
           "[recurse] [showflags] [tcp] [xpf XPFDATA] [class CLASSNUM] "
-          "[proxy PROXYDATA]"
+          "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
        << endl;
 }
 
