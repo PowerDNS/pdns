@@ -209,13 +209,9 @@ uint64_t AuthQueryCache::purge(const string &match)
 
 void AuthQueryCache::cleanup()
 {
-  uint64_t maxCached = d_maxEntries;
-  uint64_t cacheSize = *d_statnumentries;
-  uint64_t totErased = 0;
-
-  totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps, maxCached, cacheSize);
-
+  uint64_t totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps);
   *d_statnumentries -= totErased;
+
   DLOG(g_log<<"Done with cache clean, cacheSize: "<<*d_statnumentries<<", totErased"<<totErased<<endl);
 }
 
