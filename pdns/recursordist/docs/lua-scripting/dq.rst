@@ -193,10 +193,6 @@ The DNSQuestion object contains at least the following fields:
 
       Returns the :class:`DNSHeader` of the query or nil.
 
-  .. method:: DNSQuestion:getPolicyTags() -> {str}
-
-      Get the current policy tags as a table of strings.
-
   .. method:: DNSQuestion:getProxyProtocolValues() -> {ProxyProtocolValue}
 
     .. versionadded:: 4.4.0
