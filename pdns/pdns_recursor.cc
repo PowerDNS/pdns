@@ -2068,7 +2068,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
 
-      /* check the real source */
+      /* Now that we have retrieved the address of the client, as advertised by the proxy
+         via the proxy protocol header, check that it is allowed by our ACL */
       /* note that if the proxy header used a 'LOCAL' command, the original source and destination are untouched so everything should be fine */
       if (t_allowFrom && !t_allowFrom->match(&conn->d_source)) {
         if (!g_quiet) {
@@ -2095,7 +2096,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->bytesread=0;
       conn->state=TCPConnection::GETQUESTION;
     }
-    if(!bytes || bytes < 0) {
+    if (bytes <= 0) {
       handleTCPReadResult(fd, bytes);
       return;
     }
@@ -2109,7 +2110,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->data.resize(conn->qlen);
       conn->bytesread=0;
     }
-    if(!bytes || bytes < 0) {
+    if (bytes <= 0) {
       if (!handleTCPReadResult(fd, bytes)) {
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected after first byte"<<endl;
