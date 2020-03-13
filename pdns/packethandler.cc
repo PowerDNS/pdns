@@ -506,7 +506,10 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const SOAData& sd, c
   nrc.set(QType::RRSIG);
   if(sd.qname == name) {
     nrc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
-    nrc.set(QType::DNSKEY);
+    auto keyset = d_dk.getKeys(name);
+    if (!keyset.empty()) {
+      nrc.set(QType::DNSKEY);
+    }
     string publishCDNSKEY;
     d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
     if (publishCDNSKEY == "1")
@@ -555,7 +558,10 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, 
     if (sd.qname == name) {
       n3rc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
       n3rc.set(QType::NSEC3PARAM);
-      n3rc.set(QType::DNSKEY);
+      auto keyset = d_dk.getKeys(name);
+      if (!keyset.empty()) {
+        n3rc.set(QType::DNSKEY);
+      }
       string publishCDNSKEY;
       d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
       if (publishCDNSKEY == "1")
