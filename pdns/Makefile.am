@@ -1423,6 +1423,7 @@ fuzz_targets_programs =  \
 	fuzz_target_dnsdistcache \
 	fuzz_target_moadnsparser \
 	fuzz_target_packetcache \
+	fuzz_target_proxyprotocol \
 	fuzz_target_zoneparsertng
 
 fuzz_targets: $(fuzz_targets_programs)
@@ -1478,6 +1479,16 @@ fuzz_target_packetcache_SOURCES = \
 fuzz_target_packetcache_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_packetcache_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_packetcache_LDADD = $(fuzz_targets_libs)
+
+fuzz_target_proxyprotocol_SOURCES = \
+	fuzz_proxyprotocol.cc \
+	iputils.hh \
+	proxy-protocol.cc \
+	proxy-protocol.hh
+
+fuzz_target_proxyprotocol_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_proxyprotocol_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_proxyprotocol_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_dnsdistcache_SOURCES = \
 	fuzz_dnsdistcache.cc \
