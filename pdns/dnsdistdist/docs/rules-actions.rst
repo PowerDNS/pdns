@@ -1257,7 +1257,7 @@ The following actions exist.
 
   Set the Proxy-Protocol Type-Length values to be sent to the server along with this query to ``values``.
 
-  :param table values: A table of types and values to send, for example: ``{ ["0"] = foo", ["42"] = "bar" }``
+  :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
 
 .. function:: SkipCacheAction()
 

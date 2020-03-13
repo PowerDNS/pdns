@@ -170,7 +170,7 @@ class TestProxyProtocol(ProxyProtocolTest):
     newServer{address="127.0.0.1:%d", useProxyProtocol=true}
 
     function addValues(dq)
-      local values = { ["0"]="foo", ["42"]="bar" }
+      local values = { [0]="foo", [42]="bar" }
       dq:setProxyProtocolValues(values)
       return DNSAction.None
     end
