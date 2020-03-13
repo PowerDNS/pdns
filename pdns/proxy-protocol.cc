@@ -71,8 +71,12 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
     valuesSize += sizeof(uint8_t) + sizeof(uint8_t) * 2 + value.content.size();
   }
 
-  const uint16_t contentlen = htons((addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort) + valuesSize);
+  size_t total = (addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort) + valuesSize;
+  if (total > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("The size of a proxy protocol header is limited to " + std::to_string(std::numeric_limits<uint16_t>::max()) + ", trying to send one of size " + std::to_string(total));
+  }
 
+  const uint16_t contentlen = htons(static_cast<uint16_t>(total));
   std::string ret = makeSimpleHeader(command, protocol, contentlen);
 
   // We already established source and destination sin_family equivalence
