@@ -117,21 +117,27 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
 
   const auto& rows = std::get<1>(ret);
 
-  for(const auto& row: rows) {
-    DNSResourceRecord rec;
-    for(const auto& col: row.second) {
-      if (col.first == "qtype")
-        rec.qtype = QType(boost::get<unsigned int>(col.second));
-      else if (col.first == "qname")
-        rec.qname = DNSName(boost::get<std::string>(col.second)).makeLowerCase();
-      else if (col.first == "ttl")
-        rec.ttl = boost::get<unsigned int>(col.second);
-      else if (col.first == "content")
-        rec.setContent(boost::get<std::string>(col.second));
-      else
-        throw PDNSException("Cannot understand "+col.first+" in axfr filter response on row "+std::to_string(row.first));
+  try {
+    for(const auto& row: rows) {
+      DNSResourceRecord rec;
+
+      const auto& map = row.second;
+      rec.qtype = QType(boost::get<unsigned int>(map.at("qtype")));
+      rec.qname = DNSName(boost::get<std::string>(map.at("qname")));
+      rec.qname.makeUsLowerCase();
+      if (map.count("ttl")) {
+        rec.ttl = boost::get<unsigned int>(map.at("ttl"));
+      }
+      rec.setContent(boost::get<std::string>(map.at("content")));
+
+      out.push_back(rec);
     }
-    out.push_back(rec);
+  }
+  catch (const std::exception& e) {
+    throw PDNSException("Cannot understand axfr filter response: " + std::string(e.what()));
+  }
+  catch (const PDNSException& e) {
+    throw PDNSException("Cannot understand axfr filter response: " + e.reason);
   }
 
   return true;
