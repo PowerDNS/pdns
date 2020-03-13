@@ -167,7 +167,7 @@ void RecProtoBufMessage::setAppliedPolicyType(const DNSFilterEngine::PolicyType&
 #endif /* HAVE_PROTOBUF */
 }
 
-void RecProtoBufMessage::setPolicyTags(const std::vector<std::string>& policyTags)
+void RecProtoBufMessage::setPolicyTags(const std::unordered_set<std::string>& policyTags)
 {
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSResponse* response = d_message.mutable_response();

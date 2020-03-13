@@ -52,7 +52,7 @@ public:
 #endif /* NOD_ENABLED */
   void setAppliedPolicy(const std::string& policy);
   void setAppliedPolicyType(const DNSFilterEngine::PolicyType& policyType);
-  void setPolicyTags(const std::vector<std::string>& policyTags);
+  void setPolicyTags(const std::unordered_set<std::string>& policyTags);
   void addPolicyTag(const std::string& policyTag);
   void removePolicyTag(const std::string& policyTag);
   std::string getAppliedPolicy() const;

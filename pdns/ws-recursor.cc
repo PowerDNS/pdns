@@ -404,8 +404,8 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
     auto zone = luaconf->dfe.getZone(i);
     if (zone == nullptr)
       continue;
-    auto name = zone->getName();
-    auto stats = getRPZZoneStats(*name);
+    const auto& name = zone->getName();
+    auto stats = getRPZZoneStats(name);
     if (stats == nullptr)
       continue;
     Json::object zoneInfo = {
@@ -416,7 +416,7 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
       {"last_update", (double)stats->d_lastUpdate},
       {"serial", (double)stats->d_serial},
     };
-    ret[*name] = zoneInfo;
+    ret[name] = zoneInfo;
   }
   resp->setBody(ret);
 }

@@ -51,9 +51,9 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
   return iter->second;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string > > rpzOptions_t;
+typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>> > > rpzOptions_t;
 
-static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL, size_t& zoneSizeHint)
+static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL, size_t& zoneSizeHint, std::unordered_set<std::string>& tags)
 {
   if(have.count("policyName")) {
     polName = boost::get<std::string>(have["policyName"]);
@@ -61,7 +61,7 @@ static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::
   if(have.count("defpol")) {
     defpol=DNSFilterEngine::Policy();
     defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
-    defpol->d_name = std::make_shared<std::string>(polName);
+    defpol->setName(polName);
     if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
       defpol->d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN,
                                                               boost::get<string>(have["defcontent"])));
@@ -81,6 +81,12 @@ static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::
   }
   if(have.count("zoneSizeHint")) {
     zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
+  }
+  if (have.count("tags")) {
+    const auto tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
+    for (const auto& tag : tagsTable) {
+      tags.insert(tag.second);
+    }
   }
 }
 
@@ -238,10 +244,12 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if(options) {
           auto& have = *options;
           size_t zoneSizeHint = 0;
-          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint);
+          std::unordered_set<std::string> tags;
+          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint, tags);
           if (zoneSizeHint > 0) {
             zone->reserve(zoneSizeHint);
           }
+          zone->setTags(std::move(tags));
         }
         g_log<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         zone->setName(polName);
@@ -286,10 +294,12 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if (options) {
           auto& have = *options;
           size_t zoneSizeHint = 0;
-          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint);
+          std::unordered_set<std::string> tags;
+          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint, tags);
           if (zoneSizeHint > 0) {
             zone->reserve(zoneSizeHint);
           }
+          zone->setTags(std::move(tags));
 
           if(have.count("tsigname")) {
             tt.name=DNSName(toLower(boost::get<string>(have["tsigname"])));

@@ -106,6 +106,12 @@ policyName
 ^^^^^^^^^^
 The name logged as 'appliedPolicy' in :doc:`protobuf <protobuf>` messages when this policy is applied.
 
+tags
+^^^^
+.. versionadded:: 4.4.0
+
+List of tags as string, that will be added to the policy tags exported over protobuf when a policy of this zone matches.
+
 zoneSizeHint
 ^^^^^^^^^^^^
 An indication of the number of expected entries in the zone, speeding up the loading of huge zones by reserving space in advance.
