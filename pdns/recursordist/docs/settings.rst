@@ -24,6 +24,8 @@ The default allows access only from :rfc:`1918` private IP addresses.
 Due to the aggressive nature of the internet these days, it is highly recommended to not open up the recursor for the entire internet.
 Questions from IP addresses not listed here are ignored and do not get an answer.
 
+When the Proxy Protocol is enabled (see `proxy-protocol-from`_), the recursor will check the address of the client IP advertised in the Proxy Protocol header instead of the one of the proxy.
+
 .. _setting-allow-from-file:
 
 ``allow-from-file``
@@ -1235,7 +1237,10 @@ Whether to compute the latency of responses in protobuf messages using the times
 -  IP ranges, separated by commas
 -  Default: empty
 
-Ranges that are allowed to send a Proxy Protocol header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
+Ranges that are required to send a Proxy Protocol header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
+Queries that are not prefix with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
+
+Note that once a Proxy Protocol header has been received, the original source address will be checked against the `allow-from`_ ACL, instead of the address of the proxy.
 
 .. _setting-proxy-protocol-maximum-size:
 
