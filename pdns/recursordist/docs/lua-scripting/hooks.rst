@@ -61,7 +61,7 @@ Interception Functions
 
       The ``tcp`` parameter was added.
 
-    .. versionchanged:: 4.3.0
+    .. versionchanged:: 4.4.0
 
       The ``proxyprotocolvalues`` parameter was added.
 
