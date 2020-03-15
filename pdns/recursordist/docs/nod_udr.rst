@@ -46,7 +46,7 @@ A similar feature to NOD is Unique Domain Response (UDR). This feature uses the 
 * Botnet Command and Control Servers
   etc.
 
-This is because well-behaved domains tend to return fairly stable results to DNS record lookups, and thus domains which don't exhibit this behaviour may be suspsicious or may indicate a domain under attack.
+This is because well-behaved domains tend to return fairly stable results to DNS record lookups, and thus domains which don't exhibit this behaviour may be suspicious or may indicate a domain under attack.
 
 UDR is disabled by default - to enable it, set ``unique-response-tracking=yes`` in recursor.conf.
 
