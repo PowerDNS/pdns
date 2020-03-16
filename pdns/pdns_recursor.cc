@@ -93,6 +93,7 @@
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
+#include "query-local-address.hh"
 
 #include "rec-protobuf.hh"
 #include "rec-snmp.hh"
@@ -190,10 +191,8 @@ static deferredAdd_t g_deferredAdds;
 typedef vector<int> tcpListenSockets_t;
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
 
-static const ComboAddress g_local4("0.0.0.0"), g_local6("::");
 static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism
-static vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
 static AtomicCounter counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
@@ -464,7 +463,7 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
 {
   Socket s(dest.sin4.sin_family, SOCK_DGRAM);
   s.setNonBlocking();
-  ComboAddress local = getQueryLocalAddress(dest.sin4.sin_family, 0);
+  ComboAddress local = pdns::getQueryLocalAddress(dest.sin4.sin_family, 0);
   
   s.bind(local);
   s.connect(dest);
@@ -488,28 +487,6 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
     return data;
   }
   return data;
-}
-
-//! pick a random query local address
-ComboAddress getQueryLocalAddress(int family, uint16_t port)
-{
-  ComboAddress ret;
-  if(family==AF_INET) {
-    if(g_localQueryAddresses4.empty())
-      ret = g_local4;
-    else
-      ret = g_localQueryAddresses4[dns_random(g_localQueryAddresses4.size())];
-    ret.sin4.sin_port = htons(port);
-  }
-  else {
-    if(g_localQueryAddresses6.empty())
-      ret = g_local6;
-    else
-      ret = g_localQueryAddresses6[dns_random(g_localQueryAddresses6.size())];
-
-    ret.sin6.sin6_port = htons(port);
-  }
-  return ret;
 }
 
 static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
@@ -627,7 +604,7 @@ private:
         while (s_avoidUdpSourcePorts.count(port));
       }
 
-      sin=getQueryLocalAddress(family, port); // does htons for us
+      sin=pdns::getQueryLocalAddress(family, port); // does htons for us
 
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0)
         break;
@@ -4013,28 +3990,20 @@ static int serviceMain(int argc, char*argv[])
 
   checkLinuxIPv6Limits();
   try {
-    vector<string> addrs;
-    if(!::arg()["query-local-address6"].empty()) {
-      SyncRes::s_doIPv6=true;
-      g_log<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
-
-      stringtok(addrs, ::arg()["query-local-address6"], ", ;");
-      for(const string& addr : addrs) {
-        g_localQueryAddresses6.push_back(ComboAddress(addr));
-      }
-    }
-    else {
-      g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
-    }
-    addrs.clear();
-    stringtok(addrs, ::arg()["query-local-address"], ", ;");
-    for(const string& addr : addrs) {
-      g_localQueryAddresses4.push_back(ComboAddress(addr));
-    }
+    pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
+    pdns::parseQueryLocalAddress(::arg()["query-local-address6"]);
   }
   catch(std::exception& e) {
     g_log<<Logger::Error<<"Assigning local query addresses: "<<e.what();
     exit(99);
+  }
+
+  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
+    SyncRes::s_doIPv6=true;
+    g_log<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
+  }
+  else {
+    g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
   }
 
   // keep this ABOVE loadRecursorLuaConfig!
@@ -4173,26 +4142,25 @@ static int serviceMain(int argc, char*argv[])
     SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
   }
   else {
-    bool found = false;
-    for (const auto& addr : g_localQueryAddresses4) {
-      if (!IsAnyAddress(addr)) {
-        SyncRes::setECSScopeZeroAddress(Netmask(addr, 32));
-        found = true;
-        break;
+    Netmask nm;
+    bool done = false;
+
+    auto addr = pdns::getNonAnyQueryLocalAddress(AF_INET);
+    if (addr.sin4.sin_family != 0) {
+      nm = Netmask(addr, 32);
+      done = true;
+    }
+    if (!done) {
+      addr = pdns::getNonAnyQueryLocalAddress(AF_INET6);
+      if (addr.sin4.sin_family != 0) {
+        nm = Netmask(addr, 128);
+        done = true;
       }
     }
-    if (!found) {
-      for (const auto& addr : g_localQueryAddresses6) {
-        if (!IsAnyAddress(addr)) {
-          SyncRes::setECSScopeZeroAddress(Netmask(addr, 128));
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        SyncRes::setECSScopeZeroAddress(Netmask("127.0.0.1/32"));
-      }
+    if (!done) {
+      nm = Netmask(ComboAddress("127.0.0.1"), 32);
     }
+    SyncRes::setECSScopeZeroAddress(nm);
   }
 
   SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);

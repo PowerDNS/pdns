@@ -9,6 +9,7 @@
 #include "rpzloader.hh"
 #include "zoneparser-tng.hh"
 #include "threadname.hh"
+#include "query-local-address.hh"
 
 Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
@@ -193,7 +194,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master
 
   ComboAddress local(localAddress);
   if (local == ComboAddress())
-    local = getQueryLocalAddress(master.sin4.sin_family, 0);
+    local = pdns::getQueryLocalAddress(master.sin4.sin_family, 0);
 
   AXFRRetriever axfr(master, zoneName, tt, &local, maxReceivedBytes, axfrTimeout);
   unsigned int nrecords=0;
@@ -433,7 +434,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
 
       ComboAddress local(localAddress);
       if (local == ComboAddress()) {
-        local = getQueryLocalAddress(master.sin4.sin_family, 0);
+        local = pdns::getQueryLocalAddress(master.sin4.sin_family, 0);
       }
 
       try {

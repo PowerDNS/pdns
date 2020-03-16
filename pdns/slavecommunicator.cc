@@ -44,6 +44,7 @@
 #include "inflighter.cc"
 #include "namespaces.hh"
 #include "common_startup.hh"
+#include "query-local-address.hh"
 
 #include "ixfr.hh"
 
@@ -373,15 +374,13 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
         return;
       }
     } else {
-      if(remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
-        laddr = ComboAddress(::arg()["query-local-address"]);
-      } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
-        laddr = ComboAddress(::arg()["query-local-address6"]);
-      } else {
-        bool isv6 = remote.sin4.sin_family == AF_INET6;
-        g_log<<Logger::Error<<"Unable to AXFR, destination address is IPv" << (isv6 ? "6" : "4") << ", but query-local-address"<< (isv6 ? "6" : "") << " is unset!"<<endl;
+      if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
+        bool isV6 = remote.sin4.sin_family == AF_INET6;
+        g_log<<Logger::Error<<"Unable to AXFR, destination address is "<<remote<<" (IPv"<< (isV6 ? "6" : "4") <<
+          ", but that address family is not enabled for outgoing traffic (query-local-address"<<(isV6 ? "6" : "")<<")"<<endl;
         return;
       }
+      laddr = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
     }
 
     bool hadDnssecZone = false;

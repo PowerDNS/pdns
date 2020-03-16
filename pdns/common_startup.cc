@@ -31,6 +31,7 @@
 #include "dnsseckeeper.hh"
 #include "threadname.hh"
 #include "misc.hh"
+#include "query-local-address.hh"
 
 #include <thread>
 
@@ -627,6 +628,9 @@ void mainthread()
       exit(1);
     }
   }
+
+  pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
+  pdns::parseQueryLocalAddress(::arg()["query-local-address6"]);
 
   // NOW SAFE TO CREATE THREADS!
   dl->go();

@@ -25,6 +25,7 @@
 #include "dns_random.hh"
 #include "utility.hh"
 #include "resolver.hh"
+#include "query-local-address.hh"
 
 using pdns::resolver::parseResult;
 
@@ -40,11 +41,10 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   if (laddr != nullptr) {
     local = ComboAddress(*laddr);
   } else {
-    string qlas = remote.sin4.sin_family == AF_INET ? "query-local-address" : "query-local-address6";
-    if (::arg()[qlas].empty()) {
-      throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". " + qlas + " is unset");
+    if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
+      throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". Address family is not configured for outgoing queries");
     }
-    local=ComboAddress(::arg()[qlas]);
+    local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
   }
   d_sock = -1;
   try {

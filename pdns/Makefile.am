@@ -204,6 +204,7 @@ pdns_server_SOURCES = \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
+	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
@@ -634,6 +635,7 @@ ixfrdist_SOURCES = \
 	misc.cc misc.hh \
 	mplexer.hh \
 	nsecrecords.cc \
+	query-local-address.hh query-local-address.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
@@ -689,6 +691,7 @@ ixplore_SOURCES = \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
+	query-local-address.hh query-local-address.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
@@ -840,9 +843,11 @@ tsig_tests_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
+	query-local-address.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \

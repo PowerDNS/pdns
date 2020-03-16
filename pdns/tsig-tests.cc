@@ -14,6 +14,7 @@
 #include "axfr-retriever.hh"
 #include "arguments.hh"
 #include "dns_random.hh"
+#include "query-local-address.hh"
 
 StatBag S;
 
@@ -26,8 +27,7 @@ ArgvMap& arg()
 int main(int argc, char** argv)
 try
 {
-  ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
-  ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
+  pdns::parseQueryLocalAddress(":: 0.0.0.0");
 
   reportAllTypes();
 

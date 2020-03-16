@@ -40,6 +40,7 @@
 #include "packetcache.hh"
 #include "base64.hh"
 #include "namespaces.hh"
+#include "query-local-address.hh"
 
 
 void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
@@ -299,13 +300,13 @@ bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 
 void CommunicatorClass::makeNotifySockets()
 {
-  if(!::arg()["query-local-address"].empty()) {
-    d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
+  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
+    d_nsock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
   } else {
     d_nsock4 = -1;
   }
-  if(!::arg()["query-local-address6"].empty()) {
-    d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
+  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
+    d_nsock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
   } else {
     d_nsock6 = -1;
   }

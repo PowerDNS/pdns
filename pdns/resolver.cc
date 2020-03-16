@@ -44,7 +44,7 @@
 #include "base64.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
-
+#include "query-local-address.hh"
 
 #include "dns_random.hh"
 #include <poll.h>
@@ -102,10 +102,12 @@ Resolver::Resolver()
   locals["default4"] = -1;
   locals["default6"] = -1;
   try {
-    if(!::arg()["query-local-address"].empty())
-      locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true, ::arg().mustDo("non-local-bind"));
-    if(!::arg()["query-local-address6"].empty())
-      locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true, ::arg().mustDo("non-local-bind"));
+    if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
+      locals["default4"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
+    }
+    if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
+      locals["default6"] = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
+    }
   }
   catch(...) {
     if(locals["default4"]>=0)
@@ -158,12 +160,13 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   // choose socket based on local
   if (local.sin4.sin_family == 0) {
     // up to us.
-    sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
-    if (sock == -1) {
-      string ipv = remote.sin4.sin_family == AF_INET ? "4" : "6";
-      string qla = remote.sin4.sin_family == AF_INET ? "" : "6";
-      throw ResolverException("No IPv" + ipv + " socket available, is query-local-address" + qla + " unset?");
+    if (remote.sin4.sin_family == AF_INET && !pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
+      throw ResolverException("No IPv4 socket available, is query-local-address set?");
     }
+    if (remote.sin4.sin_family == AF_INET6 && !pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
+      throw ResolverException("No IPv6 socket available, is query-local-address6 set?");
+    }
+    sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
   } else {
     std::string lstr = local.toString();
     std::map<std::string, int>::iterator lptr;
