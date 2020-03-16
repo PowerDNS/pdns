@@ -506,15 +506,18 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const SOAData& sd, c
   nrc.set(QType::RRSIG);
   if(sd.qname == name) {
     nrc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
-    nrc.set(QType::DNSKEY);
-    string publishCDNSKEY;
-    d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
-    if (publishCDNSKEY == "1")
-      nrc.set(QType::CDNSKEY);
-    string publishCDS;
-    d_dk.getPublishCDS(name, publishCDS);
-    if (! publishCDS.empty())
-      nrc.set(QType::CDS);
+    auto keyset = d_dk.getKeys(name);
+    if (!keyset.empty()) {
+      nrc.set(QType::DNSKEY);
+      string publishCDNSKEY;
+      d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
+      if (publishCDNSKEY == "1")
+        nrc.set(QType::CDNSKEY);
+      string publishCDS;
+      d_dk.getPublishCDS(name, publishCDS);
+      if (! publishCDS.empty())
+        nrc.set(QType::CDS);
+    }
   }
 
   DNSZoneRecord rr;
@@ -555,15 +558,18 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, 
     if (sd.qname == name) {
       n3rc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
       n3rc.set(QType::NSEC3PARAM);
-      n3rc.set(QType::DNSKEY);
-      string publishCDNSKEY;
-      d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
-      if (publishCDNSKEY == "1")
-        n3rc.set(QType::CDNSKEY);
-      string publishCDS;
-      d_dk.getPublishCDS(name, publishCDS);
-      if (! publishCDS.empty())
-        n3rc.set(QType::CDS);
+      auto keyset = d_dk.getKeys(name);
+      if (!keyset.empty()) {
+        n3rc.set(QType::DNSKEY);
+        string publishCDNSKEY;
+        d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
+        if (publishCDNSKEY == "1")
+          n3rc.set(QType::CDNSKEY);
+        string publishCDS;
+        d_dk.getPublishCDS(name, publishCDS);
+        if (! publishCDS.empty())
+          n3rc.set(QType::CDS);
+      }
     }
 
     B.lookup(QType(QType::ANY), name, sd.domain_id);
