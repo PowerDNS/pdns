@@ -1238,7 +1238,7 @@ Whether to compute the latency of responses in protobuf messages using the times
 -  Default: empty
 
 Ranges that are required to send a Proxy Protocol header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
-Queries that are not prefix with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
+Queries that are not prefixed with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
 
 Note that once a Proxy Protocol header has been received, the original source address will be checked against the `allow-from`_ ACL, instead of the address of the proxy.
 
