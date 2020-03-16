@@ -65,4 +65,5 @@ effective_tld_names.dat
 /fuzz_target_dnsdistcache
 /fuzz_target_moadnsparser
 /fuzz_target_packetcache
+/fuzz_target_proxyprotocol
 /fuzz_target_zoneparsertng
