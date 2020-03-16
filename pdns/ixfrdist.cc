@@ -36,7 +36,7 @@
 #include <condition_variable>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
-#include "resolver.hh"
+#include "axfr-retriever.hh"
 #include "dns_random.hh"
 #include "sstuff.hh"
 #include "mplexer.hh"

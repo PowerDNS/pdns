@@ -11,7 +11,7 @@
 #include "digests.hh"
 #include "base64.hh"
 #include "dnssecinfra.hh"
-#include "resolver.hh"
+#include "axfr-retriever.hh"
 #include "arguments.hh"
 #include "dns_random.hh"
 

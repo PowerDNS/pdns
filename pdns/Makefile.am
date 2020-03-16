@@ -207,6 +207,7 @@ pdns_server_SOURCES = \
 	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
+	axfr-retriever.cc axfr-retriever.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
 	secpoll.cc secpoll.hh \
@@ -636,6 +637,7 @@ ixfrdist_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
+	axfr-retriever.cc \
 	pollmplexer.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -690,6 +692,7 @@ ixplore_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
+	axfr-retriever.cc \
 	ixfr.cc ixfr.hh \
 	ixfrutils.cc ixfrutils.hh \
 	ixplore.cc \
@@ -823,6 +826,7 @@ toysdig_LDADD += $(P11KIT1_LIBS)
 endif
 
 tsig_tests_SOURCES = \
+	axfr-retriever.cc \
 	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \

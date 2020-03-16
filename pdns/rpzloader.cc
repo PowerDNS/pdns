@@ -3,7 +3,7 @@
 #include "dnsrecords.hh"
 #include "ixfr.hh"
 #include "syncres.hh"
-#include "resolver.hh"
+#include "axfr-retriever.hh"
 #include "logger.hh"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"

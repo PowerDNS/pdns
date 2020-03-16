@@ -160,6 +160,7 @@ pdns_recursor_SOURCES = \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
 	resolver.hh resolver.cc \
+	axfr-retriever.hh axfr-retriever.cc \
 	resolve-context.hh \
 	responsestats.hh responsestats.cc \
 	root-addresses.hh \
@@ -259,6 +260,7 @@ testrunner_SOURCES = \
 	responsestats.cc \
 	rpzloader.cc rpzloader.hh \
 	resolver.hh resolver.cc \
+	axfr-retriever.hh axfr-retriever.cc \
 	root-dnssec.hh \
 	secpoll.cc \
 	sillyrecords.cc \

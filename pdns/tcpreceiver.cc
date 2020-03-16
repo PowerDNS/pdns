@@ -53,7 +53,6 @@
 #include "common_startup.hh"
 #include "packethandler.hh"
 #include "statbag.hh"
-#include "resolver.hh"
 #include "communicator.hh"
 #include "namespaces.hh"
 #include "signingpipe.hh"

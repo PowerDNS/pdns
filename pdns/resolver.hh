@@ -76,31 +76,8 @@ private:
   std::map<std::string, int> locals;
 };
 
-class AXFRRetriever : public boost::noncopyable
-{
-  public:
-    AXFRRetriever(const ComboAddress& remote,
-                  const DNSName& zone,
-                  const TSIGTriplet& tt = TSIGTriplet(),
-                  const ComboAddress* laddr = NULL,
-                  size_t maxReceivedBytes=0,
-                  uint16_t timeout=10);
-    ~AXFRRetriever();
-    int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0, uint16_t timeout=10);
-  
-  private:
-    void connect(uint16_t timeout);
-    int getLength(uint16_t timeout);
-    void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
-
-    shared_array<char> d_buf;
-    string d_domain;
-    int d_sock;
-    int d_soacount;
-    ComboAddress d_remote;
-    TSIGTCPVerifier d_tsigVerifier;
-
-    size_t d_receivedBytes;
-    size_t d_maxReceivedBytes;
-    TSIGRecordContent d_trc;
-};
+namespace pdns {
+  namespace resolver {
+    int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result);
+  } // namespace resolver
+} // namespace pdns
