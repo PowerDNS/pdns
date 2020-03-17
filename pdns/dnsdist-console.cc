@@ -452,8 +452,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newDNSName", true, "name", "make a DNSName based on this .-terminated name" },
   { "newDNSNameSet", true, "", "returns a new DNSNameSet" },
   { "newDynBPFFilter", true, "bpf", "Return a new dynamic eBPF filter associated to a given BPF Filter" },
-  { "newFrameStreamTcpLogger", true, "addr", "create a FrameStream logger object writing to a TCP address (addr should be ip:port), to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
-  { "newFrameStreamUnixLogger", true, "socket", "create a FrameStream logger object writing to a local unix socket, to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
+  { "newFrameStreamTcpLogger", true, "addr [, options]", "create a FrameStream logger object writing to a TCP address (addr should be ip:port), to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
+  { "newFrameStreamUnixLogger", true, "socket [, options]", "create a FrameStream logger object writing to a local unix socket, to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
 #ifdef HAVE_LMDB
   { "newLMDBKVStore", true, "fname, dbName", "Return a new KeyValueStore object associated to the corresponding LMDB database" },
 #endif
