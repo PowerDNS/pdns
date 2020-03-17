@@ -507,16 +507,19 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const SOAData& sd, c
   if(sd.qname == name) {
     nrc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
     auto keyset = d_dk.getKeys(name);
-    if (!keyset.empty()) {
-      nrc.set(QType::DNSKEY);
-      string publishCDNSKEY;
-      d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
-      if (publishCDNSKEY == "1")
-        nrc.set(QType::CDNSKEY);
-      string publishCDS;
-      d_dk.getPublishCDS(name, publishCDS);
-      if (! publishCDS.empty())
-        nrc.set(QType::CDS);
+    for(const auto& value: keyset) {
+      if (value.second.published) {
+        nrc.set(QType::DNSKEY);
+        string publishCDNSKEY;
+        d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
+        if (publishCDNSKEY == "1")
+          nrc.set(QType::CDNSKEY);
+        string publishCDS;
+        d_dk.getPublishCDS(name, publishCDS);
+        if (! publishCDS.empty())
+          nrc.set(QType::CDS);
+        break;
+      }
     }
   }
 
@@ -559,16 +562,19 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, 
       n3rc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
       n3rc.set(QType::NSEC3PARAM);
       auto keyset = d_dk.getKeys(name);
-      if (!keyset.empty()) {
-        n3rc.set(QType::DNSKEY);
-        string publishCDNSKEY;
-        d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
-        if (publishCDNSKEY == "1")
-          n3rc.set(QType::CDNSKEY);
-        string publishCDS;
-        d_dk.getPublishCDS(name, publishCDS);
-        if (! publishCDS.empty())
-          n3rc.set(QType::CDS);
+      for(const auto& value: keyset) {
+        if (value.second.published) {
+          n3rc.set(QType::DNSKEY);
+          string publishCDNSKEY;
+          d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
+          if (publishCDNSKEY == "1")
+            n3rc.set(QType::CDNSKEY);
+          string publishCDS;
+          d_dk.getPublishCDS(name, publishCDS);
+          if (! publishCDS.empty())
+            n3rc.set(QType::CDS);
+          break;
+        }
       }
     }
 

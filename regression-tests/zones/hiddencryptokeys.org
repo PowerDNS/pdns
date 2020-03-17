@@ -1,0 +1,10 @@
+hiddencryptokeys.org.	3600	IN SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. (
+					    2009071301 ; serial
+					    14400       ; refresh (2 hours 30 minutes)
+					    3600        ; retry (7 minutes 30 seconds)
+					    604800     ; expire (1 week)
+					    3600       ; minimum (7 minutes 30 seconds)
+					    )
+			            3600	NS	cryptokeys.ds9a.nl.
+			            3600	NS	cryptokeys.ds9a.nl.
+            			3600	A	212.123.148.70
