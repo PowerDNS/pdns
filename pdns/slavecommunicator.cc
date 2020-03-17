@@ -377,7 +377,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
       if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
         bool isV6 = remote.sin4.sin_family == AF_INET6;
         g_log<<Logger::Error<<"Unable to AXFR, destination address is "<<remote<<" (IPv"<< (isV6 ? "6" : "4") <<
-          ", but that address family is not enabled for outgoing traffic (query-local-address"<<(isV6 ? "6" : "")<<")"<<endl;
+          ", but that address family is not enabled for outgoing traffic (query-local-address)"<<endl;
         return;
       }
       laddr = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);

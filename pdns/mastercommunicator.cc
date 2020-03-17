@@ -215,7 +215,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler *P)
         ComboAddress remote(ip, 53); // default to 53
         if((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) ||
            (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
-             g_log<<Logger::Warning<<"Unable to notify "<<remote.toStringWithPort()<<" for domain '"<<domain<<"', address family is disabled. Is query-local-address"<<(remote.sin4.sin_family == AF_INET ? "" : "6")<<" unset?"<<endl;
+             g_log<<Logger::Warning<<"Unable to notify "<<remote.toStringWithPort()<<" for domain '"<<domain<<"', address family is disabled. Is an IPv"<<(remote.sin4.sin_family == AF_INET ? "4" : "6")<<" address set in query-local-address?"<<endl;
              d_nq.removeIf(remote.toStringWithPort(), id, domain); // Remove, we'll never be able to notify
              continue; // don't try to notify what we can't!
         }

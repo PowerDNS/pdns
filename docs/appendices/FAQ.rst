@@ -59,7 +59,7 @@ Also, check that the configured backend is master or slave capable and you enter
 My masters won't allow PowerDNS to access zones as it is using the wrong local IP address
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default, PowerDNS lets the kernel pick the source address.
-To set an explicit source address, use the :ref:`setting-query-local-address` and :ref:`setting-query-local-address6` settings.
+To set an explicit source address, use the :ref:`setting-query-local-address` setting.
 
 PowerDNS does not answer queries on all my IP addresses (and I've ignored the warning I got about that at startup)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
