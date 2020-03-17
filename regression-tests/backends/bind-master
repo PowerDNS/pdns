@@ -1,42 +1,42 @@
 case $context in
-	bind)
-		cat > pdns-bind.conf << __EOF__
+    bind)
+        cat > pdns-bind.conf << __EOF__
 module-dir=./modules
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
 __EOF__
 
-		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
-			--config-name=bind --socket-dir=./ --no-shuffle \
-			--cache-ttl=$cachettl --dname-processing \
-			--disable-axfr-rectify=yes &
-		skipreasons="nodnssec nodyndns nometa noalias"
-		bindwait bind
-		;;
+        $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
+            --config-name=bind --socket-dir=./ --no-shuffle \
+            --cache-ttl=$cachettl --dname-processing \
+            --disable-axfr-rectify=yes &
+        skipreasons="nodnssec nodyndns nometa noalias"
+        bindwait bind
+        ;;
 
-	bind-dnssec | bind-dnssec-nsec3 | bind-hybrid-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
-		rm -f dnssec.sqlite3
-		cat > pdns-bind.conf << __EOF__
+    bind-dnssec | bind-dnssec-nsec3 | bind-hybrid-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
+        rm -f dnssec.sqlite3
+        cat > pdns-bind.conf << __EOF__
 module-dir=./modules
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
 __EOF__
-		if [ $context = bind-hybrid-nsec3 ]
-		then
-			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
-			[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
-			[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
-			[ -z "$GMYSQLPASSWD" ] && GMYSQLPASSWD=''
+        if [ $context = bind-hybrid-nsec3 ]
+        then
+            [ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
+            [ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
+            [ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
+            [ -z "$GMYSQLPASSWD" ] && GMYSQLPASSWD=''
 
-			mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" --force drop "$GMYSQLDB" \
-				|| echo ignoring mysqladmin drop failure
-			mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
-			mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-				"$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
+            mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" --force drop "$GMYSQLDB" \
+                || echo ignoring mysqladmin drop failure
+            mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
+            mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+                "$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
 
-		cat >> pdns-bind.conf << __EOF__
+        cat >> pdns-bind.conf << __EOF__
 bind-hybrid
 launch+=gmysql
 gmysql-dbname=$GMYSQLDB
@@ -45,71 +45,71 @@ gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
 gmysql-dnssec
 __EOF__
-		else
-			echo "bind-dnssec-db=./dnssec.sqlite3" >> pdns-bind.conf
-			$PDNSUTIL --config-dir=. --config-name=bind create-bind-db dnssec.sqlite3
-		fi
+        else
+            echo "bind-dnssec-db=./dnssec.sqlite3" >> pdns-bind.conf
+            $PDNSUTIL --config-dir=. --config-name=bind create-bind-db dnssec.sqlite3
+        fi
 
-		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-		do
-			if [ $context = bind-hybrid-nsec3 ]
-			then
-				mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-					"$GMYSQLDB" -e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
-			fi
-			if [ $zone != insecure.dnssec-parent.com ]
-			then
+        for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+        do
+            if [ $context = bind-hybrid-nsec3 ]
+            then
+                mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+                    "$GMYSQLDB" -e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
+            fi
+            if [ $zone != insecure.dnssec-parent.com ]
+            then
                 securezone $zone bind
                 if [ $zone = hiddencryptokeys.org ]
                 then
                     keyid=$($PDNSUTIL --config-dir=. --config-name=bind list-keys $zone | grep hiddencryptokeys.org | awk '{ print $5 }')
                     $PDNSUTIL --config-dir=. --config-name=bind unpublish-zone-key $zone $keyid
                 fi
-				if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ] || [ $context = bind-hybrid-nsec3 ]
-				then
-					$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
-				elif [ $context = bind-dnssec-nsec3-narrow ]
-				then
-					$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
-				fi
+                if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ] || [ $context = bind-hybrid-nsec3 ]
+                then
+                    $PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+                elif [ $context = bind-dnssec-nsec3-narrow ]
+                then
+                    $PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+                fi
                 if [ $zone = cryptokeys.org ]
                 then
                     $PDNSUTIL --config-dir=. --config-name=bind add-zone-key $zone zsk 384 active unpublished ecdsa384
                     $PDNSUTIL --config-dir=. --config-name=bind add-zone-key $zone zsk 2048 inactive published rsasha512
                     $PDNSUTIL --config-dir=. --config-name=bind add-zone-key $zone zsk 2048 inactive unpublished rsasha256
                 fi
-			fi
-			if [ "$zone" = "tsig.com" ]; then
-				$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
-				$PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
-			fi
-		done
+            fi
+            if [ "$zone" = "tsig.com" ]; then
+                $PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
+                $PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
+            fi
+        done
 
-		if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-hybrid-nsec3 ]
-		then
-			extracontexts="bind dnssec nsec3"
-			skipreasons="nsec3 nodyndns noalias"
-		elif [ $context = bind-dnssec-nsec3-optout ]
-		then
-			extracontexts="bind dnssec nsec3 nsec3-optout"
-			skipreasons="optout nodyndns noalias"
-		elif [ $context = bind-dnssec-nsec3-narrow ]
-		then
-			extracontexts="bind dnssec narrow"
-			skipreasons="narrow nodyndns noalias"
-		else
-			extracontexts="bind dnssec"
-			skipreasons="nodyndns noalias nsec"
-		fi
+        if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-hybrid-nsec3 ]
+        then
+            extracontexts="bind dnssec nsec3"
+            skipreasons="nsec3 nodyndns noalias"
+        elif [ $context = bind-dnssec-nsec3-optout ]
+        then
+            extracontexts="bind dnssec nsec3 nsec3-optout"
+            skipreasons="optout nodyndns noalias"
+        elif [ $context = bind-dnssec-nsec3-narrow ]
+        then
+            extracontexts="bind dnssec narrow"
+            skipreasons="narrow nodyndns noalias"
+        else
+            extracontexts="bind dnssec"
+            skipreasons="nodyndns noalias nsec"
+        fi
 
-		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
-			--config-name=bind --socket-dir=./ --no-shuffle \
-			--cache-ttl=$cachettl --dname-processing \
-			--disable-axfr-rectify=yes $lua_prequery &
+        $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
+            --config-name=bind --socket-dir=./ --no-shuffle \
+            --cache-ttl=$cachettl --dname-processing \
+            --disable-axfr-rectify=yes $lua_prequery &
 
-		bindwait bind
-		;;
+        bindwait bind
+        ;;
 
-	*)
-		nocontext=yes
+    *)
+        nocontext=yes
 esac
