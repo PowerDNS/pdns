@@ -123,7 +123,7 @@ public:
 
     const std::unordered_set<std::string>& getTags() const
     {
-      static std::unordered_set<std::string> notSet;
+      static const std::unordered_set<std::string> notSet;
       if (d_zoneData) {
         return d_zoneData->d_tags;
       }
