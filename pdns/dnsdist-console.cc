@@ -316,10 +316,7 @@ void doConsole()
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      if(!strcmp(e.what(),"invalid key to 'next'"))
-        std::cerr<<"Error parsing parameters, did you forget parameter name?";
-      else
-        std::cerr << e.what(); 
+      std::cerr << e.what();
       try {
         std::rethrow_if_nested(e);
 
@@ -749,10 +746,7 @@ try
       // tried to return something we don't understand
     }
     catch(const LuaContext::ExecutionErrorException& e) {
-      if(!strcmp(e.what(),"invalid key to 'next'"))
-        response = "Error: Parsing function parameters, did you forget parameter name?";
-      else
-        response = "Error: " + string(e.what());
+      response = "Error: " + string(e.what());
       try {
         std::rethrow_if_nested(e);
       } catch(const std::exception& ne) {
