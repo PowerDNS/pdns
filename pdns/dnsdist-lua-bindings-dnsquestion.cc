@@ -118,6 +118,18 @@ void setupLuaBindingsDNSQuestion()
       return *dq.qTag;
     });
 
+  g_lua.registerFunction<void(DNSQuestion::*)(std::vector<std::pair<uint8_t, std::string>>)>("setProxyProtocolValues", [](DNSQuestion& dq, const std::vector<std::pair<uint8_t, std::string>>& values) {
+      if (!dq.proxyProtocolValues) {
+        dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+      }
+
+      dq.proxyProtocolValues->clear();
+      dq.proxyProtocolValues->reserve(values.size());
+      for (const auto& value : values) {
+        dq.proxyProtocolValues->push_back({value.second, value.first});
+      }
+    });
+
   /* LuaWrapper doesn't support inheritance */
   g_lua.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
   g_lua.registerMember<const DNSName (DNSResponse::*)>("qname", [](const DNSResponse& dq) -> const DNSName { return *dq.qname; }, [](DNSResponse& dq, const DNSName newName) { (void) newName; });

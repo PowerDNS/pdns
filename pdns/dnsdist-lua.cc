@@ -437,6 +437,10 @@ static void setupLuaConfig(bool client, bool configCheck)
         ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
       }
 
+      if(vars.count("useProxyProtocol")) {
+        ret->useProxyProtocol = boost::get<bool>(vars["useProxyProtocol"]);
+      }
+
       if(vars.count("disableZeroScope")) {
         ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
       }

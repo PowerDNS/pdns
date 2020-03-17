@@ -48,6 +48,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-xpf.hh"
@@ -1366,6 +1367,10 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     dh->id = idOffset;
+
+    if (ss->useProxyProtocol) {
+      addProxyProtocol(dq);
+    }
 
     int fd = pickBackendSocketForSending(ss);
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);

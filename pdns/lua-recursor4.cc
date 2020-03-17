@@ -183,6 +183,20 @@ boost::optional<Netmask>  RecursorLua4::DNSQuestion::getEDNSSubnet() const
   return boost::optional<Netmask>();
 }
 
+std::vector<std::pair<int, ProxyProtocolValue>> RecursorLua4::DNSQuestion::getProxyProtocolValues() const
+{
+  std::vector<std::pair<int, ProxyProtocolValue>> result;
+  if (proxyProtocolValues) {
+    result.reserve(proxyProtocolValues->size());
+
+    int idx = 1;
+    for (const auto& value: *proxyProtocolValues) {
+      result.push_back({ idx++, value });
+    }
+  }
+
+  return result;
+}
 
 vector<pair<int, DNSRecord> > RecursorLua4::DNSQuestion::getRecords() const
 {
@@ -291,6 +305,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction("getEDNSOptions", &DNSQuestion::getEDNSOptions);
   d_lw->registerFunction("getEDNSOption", &DNSQuestion::getEDNSOption);
   d_lw->registerFunction("getEDNSSubnet", &DNSQuestion::getEDNSSubnet);
+  d_lw->registerFunction("getProxyProtocolValues", &DNSQuestion::getProxyProtocolValues);
   d_lw->registerFunction("getEDNSFlags", &DNSQuestion::getEDNSFlags);
   d_lw->registerFunction("getEDNSFlag", &DNSQuestion::getEDNSFlag);
   d_lw->registerMember("name", &DNSRecord::d_name);
@@ -336,6 +351,8 @@ void RecursorLua4::postPrepareContext()
       return ret;
     });
 
+  d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) { return value.content; });
+  d_lw->registerFunction<const ProxyProtocolValue, uint8_t()>("getType", [](const ProxyProtocolValue& value) { return value.type; });
 
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, 1, newContent); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
@@ -520,10 +537,17 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName) const
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const
 {
   if(d_gettag) {
-    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
+    std::vector<std::pair<int, const ProxyProtocolValue*>> proxyProtocolValuesMap;
+    proxyProtocolValuesMap.reserve(proxyProtocolValues.size());
+    int num = 1;
+    for (const auto& value : proxyProtocolValues) {
+      proxyProtocolValuesMap.emplace_back(num++, &value);
+    }
+
+    auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp, proxyProtocolValuesMap);
 
     if (policyTags) {
       const auto& tags = std::get<1>(ret);
@@ -558,7 +582,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -567,6 +591,7 @@ public:
   std::unique_ptr<std::string> remoteStr{nullptr};
   std::unique_ptr<std::string> ednssubnetStr{nullptr};
   std::vector<pdns_ednsoption_t> ednsOptionsVect;
+  std::vector<pdns_proxyprotocol_value_t> proxyProtocolValuesVect;
 
   const DNSName& qname;
   const ComboAddress& local;
@@ -575,6 +600,7 @@ public:
   std::vector<std::string>& policyTags;
   std::vector<DNSRecord>& records;
   const EDNSOptionViewMap& ednsOptions;
+  const std::vector<ProxyProtocolValue>& proxyProtocolValues;
   std::string& requestorId;
   std::string& deviceId;
   std::string& deviceName;
@@ -590,10 +616,10 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const
 {
   if (d_gettag_ffi) {
-    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, requestorId, deviceId, deviceName, rcode, ttlCap, variable, tcp, logQuery, logResponse, followCNAMERecords);
+    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, rcode, ttlCap, variable, tcp, logQuery, logResponse, followCNAMERecords);
 
     auto ret = d_gettag_ffi(&param);
     if (ret) {
@@ -821,6 +847,30 @@ size_t pdns_ffi_param_get_edns_options_by_code(pdns_ffi_param_t* ref, uint16_t o
   *out = ref->ednsOptionsVect.data();
 
   return pos;
+}
+
+size_t pdns_ffi_param_get_proxy_protocol_values(pdns_ffi_param_t* ref, const pdns_proxyprotocol_value_t** out)
+{
+  if (ref->proxyProtocolValues.empty()) {
+    return 0;
+  }
+
+  ref->proxyProtocolValuesVect.resize(ref->proxyProtocolValues.size());
+
+  size_t pos = 0;
+  for (const auto& value : ref->proxyProtocolValues) {
+    auto& dest = ref->proxyProtocolValuesVect.at(pos);
+    dest.type = value.type;
+    dest.len = value.content.size();
+    if (dest.len > 0) {
+      dest.data = value.content.data();
+    }
+    pos++;
+  }
+
+  *out = ref->proxyProtocolValuesVect.data();
+
+  return ref->proxyProtocolValuesVect.size();
 }
 
 void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag)

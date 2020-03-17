@@ -88,6 +88,7 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#include "proxy-protocol.hh"
 #include "pubsuffix.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -197,6 +198,8 @@ static AtomicCounter counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 static NetmaskGroup g_XPFAcl;
+static NetmaskGroup g_proxyProtocolACL;
+static size_t g_proxyProtocolMaximumSize;
 static size_t g_tcpMaxQueriesPerConn;
 static size_t s_maxUDPQueriesPerRound;
 static uint64_t g_latencyStatSize;
@@ -305,6 +308,7 @@ struct DNSComboWriter {
     return d_source.toStringWithPort() + " (proxied by " + d_remote.toStringWithPort() + ")";
   }
 
+  std::vector<ProxyProtocolValue> d_proxyProtocolValues;
   MOADNSParser d_mdp;
   struct timeval d_now;
   /* Remote client, might differ from d_source
@@ -1283,6 +1287,7 @@ static void startDoResolve(void *p)
     dq.deviceId = dc->d_deviceId;
     dq.deviceName = dc->d_deviceName;
 #endif
+    dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
 
     if(ednsExtRCode != 0) {
       goto sendit;
@@ -1995,11 +2000,93 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
   }
 }
 
+static bool handleTCPReadResult(int fd, ssize_t bytes)
+{
+  if (bytes == 0) {
+    /* EOF */
+    t_fdm->removeReadFD(fd);
+    return false;
+  }
+  else if (bytes < 0) {
+    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+      t_fdm->removeReadFD(fd);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
-  if(conn->state==TCPConnection::BYTE0) {
+  if (conn->state == TCPConnection::PROXYPROTOCOLHEADER) {
+    ssize_t bytes = recv(conn->getFD(), &conn->data.at(conn->proxyProtocolGot), conn->proxyProtocolNeed, 0);
+    if (bytes <= 0) {
+      handleTCPReadResult(fd, bytes);
+      return;
+    }
+
+    conn->proxyProtocolGot += bytes;
+    conn->data.resize(conn->proxyProtocolGot);
+    ssize_t remaining = isProxyHeaderComplete(conn->data);
+    if (remaining == 0) {
+      if (g_logCommonErrors) {
+        g_log<<Logger::Error<<"Unable to consume proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
+      }
+      ++g_stats.proxyProtocolInvalidCount;
+      t_fdm->removeReadFD(fd);
+      return;
+    }
+    else if (remaining < 0) {
+      conn->proxyProtocolNeed = -remaining;
+      conn->data.resize(conn->proxyProtocolGot + conn->proxyProtocolNeed);
+      return;
+    }
+    else {
+      /* proxy header received */
+      /* we ignore the TCP field for now, but we could properly set whether
+         the connection was received over UDP or TCP if needed */
+      bool tcp;
+      bool proxy = false;
+      size_t used = parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues);
+      if (used <= 0) {
+        if (g_logCommonErrors) {
+          g_log<<Logger::Error<<"Unable to parse proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
+        }
+        ++g_stats.proxyProtocolInvalidCount;
+        t_fdm->removeReadFD(fd);
+        return;
+      }
+      else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+        if (g_logCommonErrors) {
+          g_log<<Logger::Error<<"Proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping"<< endl;
+        }
+        ++g_stats.proxyProtocolInvalidCount;
+        t_fdm->removeReadFD(fd);
+        return;
+      }
+
+      /* Now that we have retrieved the address of the client, as advertised by the proxy
+         via the proxy protocol header, check that it is allowed by our ACL */
+      /* note that if the proxy header used a 'LOCAL' command, the original source and destination are untouched so everything should be fine */
+      if (t_allowFrom && !t_allowFrom->match(&conn->d_source)) {
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<conn->d_source.toString()<<", address not matched by allow-from"<<endl;
+        }
+
+        ++g_stats.unauthorizedTCP;
+        t_fdm->removeReadFD(fd);
+        return;
+      }
+
+      conn->data.resize(2);
+      conn->state = TCPConnection::BYTE0;
+    }
+  }
+
+  if (conn->state==TCPConnection::BYTE0) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[0], 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
@@ -2009,12 +2096,13 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->bytesread=0;
       conn->state=TCPConnection::GETQUESTION;
     }
-    if(!bytes || bytes < 0) {
-      t_fdm->removeReadFD(fd);
+    if (bytes <= 0) {
+      handleTCPReadResult(fd, bytes);
       return;
     }
   }
-  else if(conn->state==TCPConnection::BYTE1) {
+
+  if (conn->state==TCPConnection::BYTE1) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[1], 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
@@ -2022,18 +2110,29 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->data.resize(conn->qlen);
       conn->bytesread=0;
     }
-    if(!bytes || bytes < 0) {
-      if(g_logCommonErrors)
-        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected after first byte"<<endl;
-      t_fdm->removeReadFD(fd);
+    if (bytes <= 0) {
+      if (!handleTCPReadResult(fd, bytes)) {
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected after first byte"<<endl;
+        }
+      }
       return;
     }
   }
-  else if(conn->state==TCPConnection::GETQUESTION) {
+
+  if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
-    if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
+    if (bytes <= 0) {
+      if (!handleTCPReadResult(fd, bytes)) {
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+        }
+      }
+      return;
+    }
+    else if (bytes > std::numeric_limits<std::uint16_t>::max()) {
       if(g_logCommonErrors) {
-        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" sent an invalid question size while reading question body"<<endl;
       }
       t_fdm->removeReadFD(fd);
       return;
@@ -2055,14 +2154,17 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       dc->d_tcp=true;
       dc->setRemote(conn->d_remote);
-      dc->setSource(conn->d_remote);
+      dc->setSource(conn->d_source);
       ComboAddress dest;
       dest.reset();
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
-      dc->setDestination(dest);
+      dc->setDestination(conn->d_destination);
+      /* we can't move this if we want to be able to access the values in
+         all queries sent over this connection */
+      dc->d_proxyProtocolValues = conn->proxyProtocolValues;
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
@@ -2099,10 +2201,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
               }
               else if (t_pdl->d_gettag) {
-                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName);
+                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_proxyProtocolValues);
               }
             }
             catch(const std::exception& e)  {
@@ -2189,6 +2291,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
+static bool expectProxyProtocol(const ComboAddress& from)
+{
+  return g_proxyProtocolACL.match(from);
+}
+
 //! Handle new incoming TCP connection
 static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 {
@@ -2207,11 +2314,14 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       return;
     }
 
-    if(t_remotes)
+    if(t_remotes) {
       t_remotes->push_back(addr);
-    if(t_allowFrom && !t_allowFrom->match(&addr)) {
+    }
+
+    bool fromProxyProtocolSource = expectProxyProtocol(addr);
+    if(t_allowFrom && !t_allowFrom->match(&addr) && !fromProxyProtocolSource) {
       if(!g_quiet)
-        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
+        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address neither matched by allow-from nor proxy-protocol-from"<<endl;
 
       g_stats.unauthorizedTCP++;
       try {
@@ -2222,6 +2332,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       }
       return;
     }
+
     if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
       try {
@@ -2235,7 +2346,20 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 
     setNonBlocking(newsock);
     std::shared_ptr<TCPConnection> tc = std::make_shared<TCPConnection>(newsock, addr);
-    tc->state=TCPConnection::BYTE0;
+    tc->d_source = addr;
+    tc->d_destination.reset();
+    tc->d_destination.sin4.sin_family = addr.sin4.sin_family;
+    socklen_t len = tc->d_destination.getSocklen();
+    getsockname(tc->getFD(), reinterpret_cast<sockaddr*>(&tc->d_destination), &len); // if this fails, we're ok with it
+
+    if (fromProxyProtocolSource) {
+      tc->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+      tc->data.resize(tc->proxyProtocolNeed);
+      tc->state = TCPConnection::PROXYPROTOCOLHEADER;
+    }
+    else {
+      tc->state = TCPConnection::BYTE0;
+    }
 
     struct timeval ttd;
     Utility::gettimeofday(&ttd, 0);
@@ -2245,7 +2369,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
 
-static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
+static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues)
 {
   gettimeofday(&g_now, 0);
   if (tv.tv_sec) {
@@ -2270,8 +2394,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool needXPF = g_XPFAcl.match(fromaddr);
   std::vector<std::string> policyTags;
   LuaContext::LuaObject data;
-  ComboAddress source = fromaddr;
-  ComboAddress destination = destaddr;
   string requestorId;
   string deviceId;
   string deviceName;
@@ -2337,10 +2459,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, proxyProtocolValues, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
             }
             else if (t_pdl->d_gettag) {
-              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName);
+              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, proxyProtocolValues);
             }
           }
           catch(const std::exception& e)  {
@@ -2488,6 +2610,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_deviceName = deviceName;
   dc->d_kernelTimestamp = tv;
 #endif
+  dc->d_proxyProtocolValues = std::move(proxyProtocolValues);
 
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;
@@ -2497,15 +2620,19 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   ssize_t len;
-  static const size_t maxIncomingQuerySize = 512;
+  static const size_t maxIncomingQuerySize = g_proxyProtocolACL.empty() ? 512 : (512 + g_proxyProtocolMaximumSize);
   static thread_local std::string data;
   ComboAddress fromaddr;
+  ComboAddress source;
+  ComboAddress destination;
   struct msghdr msgh;
   struct iovec iov;
   cmsgbuf_aligned cbuf;
   bool firstQuery = true;
+  std::vector<ProxyProtocolValue> proxyProtocolValues;
 
   for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++) {
+    bool proxyProto = false;
     data.resize(maxIncomingQuerySize);
     fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
     fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
@@ -2513,14 +2640,6 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
       firstQuery = false;
-
-      if (static_cast<size_t>(len) < sizeof(dnsheader)) {
-        g_stats.ignoredCount++;
-        if (!g_quiet) {
-          g_log<<Logger::Error<<"Ignoring too-short ("<<std::to_string(len)<<") query from "<<fromaddr.toString()<<endl;
-        }
-        return;
-      }
 
       if (msgh.msg_flags & MSG_TRUNC) {
         g_stats.truncatedDrops++;
@@ -2530,18 +2649,62 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
 
+      data.resize(static_cast<size_t>(len));
+
+      if (expectProxyProtocol(fromaddr)) {
+        bool tcp;
+        ssize_t used = parseProxyHeader(data, proxyProto, source, destination, tcp, proxyProtocolValues);
+        if (used <= 0) {
+          ++g_stats.proxyProtocolInvalidCount;
+          if (!g_quiet) {
+            g_log<<Logger::Error<<"Ignoring invalid proxy protocol ("<<std::to_string(len)<<", "<<std::to_string(used)<<") query from "<<fromaddr.toStringWithPort()<<endl;
+          }
+          return;
+        }
+        else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+          if (g_quiet) {
+            g_log<<Logger::Error<<"Proxy protocol header in UDP packet from "<< fromaddr.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping"<< endl;
+          }
+          ++g_stats.proxyProtocolInvalidCount;
+          return;
+        }
+
+        data.erase(0, used);
+      }
+      else if (len > 512) {
+        /* we only allow UDP packets larger than 512 for those with a proxy protocol header */
+        g_stats.truncatedDrops++;
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toStringWithPort()<<endl;
+        }
+        return;
+      }
+
+      if (data.size() < sizeof(dnsheader)) {
+        g_stats.ignoredCount++;
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"Ignoring too-short ("<<std::to_string(data.size())<<") query from "<<fromaddr.toString()<<endl;
+        }
+        return;
+      }
+
+      if (!proxyProto) {
+        source = fromaddr;
+      }
+
       if(t_remotes) {
         t_remotes->push_back(fromaddr);
       }
 
-      if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
+      if(t_allowFrom && !t_allowFrom->match(&source)) {
         if(!g_quiet) {
-          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
+          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<source.toString()<<", address not matched by allow-from"<<endl;
         }
 
         g_stats.unauthorizedUDP++;
         return;
       }
+
       BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
       if(!fromaddr.sin4.sin_port) { // also works for IPv6
         if(!g_quiet) {
@@ -2553,7 +2716,6 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 
       try {
-        data.resize(static_cast<size_t>(len));
         dnsheader* dh=(dnsheader*)&data[0];
 
         if(dh->qr) {
@@ -2596,13 +2758,16 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
               getsockname(fd, (sockaddr*)&dest, &slen); // if this fails, we're ok with it
             }
           }
+          if (!proxyProto) {
+            destination = dest;
+          }
 
           if(g_weDistributeQueries) {
-            distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, tv, fd));
+            distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues));
           }
           else {
             ++s_threadInfos[t_id].numberOfDistributedQueries;
-            doProcessUDPQuestion(data, fromaddr, dest, tv, fd);
+            doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues);
           }
         }
       }
@@ -4060,6 +4225,9 @@ static int serviceMain(int argc, char*argv[])
   g_XPFAcl.toMasks(::arg()["xpf-allow-from"]);
   g_xpfRRCode = ::arg().asNum("xpf-rr-code");
 
+  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
+  g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -4781,6 +4949,9 @@ int main(int argc, char **argv)
 
     ::arg().set("xpf-allow-from","XPF information is only processed from these subnets")="";
     ::arg().set("xpf-rr-code","XPF option code to use")="0";
+
+    ::arg().set("proxy-protocol-from", "A Proxy Protocol header is only allowed from these subnets")="";
+    ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values")="512";
 
     ::arg().set("udp-source-port-min", "Minimum UDP port to bind on")="1024";
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";

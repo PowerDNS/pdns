@@ -40,6 +40,7 @@ max-cache-ttl=15
 threads=1
 loglevel=9
 disable-syslog=yes
+log-common-errors=yes
 """
     _config_template = """
 """

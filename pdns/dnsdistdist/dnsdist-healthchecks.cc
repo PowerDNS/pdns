@@ -207,6 +207,11 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
     dnsheader * requestHeader = dpw.getHeader();
     *requestHeader = checkHeader;
 
+    if (ds->useProxyProtocol) {
+      auto payload = makeLocalProxyHeader();
+      packet.insert(packet.begin(), payload.begin(), payload.end());
+    }
+
     Socket sock(ds->remote.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     if (!IsAnyAddress(ds->sourceAddr)) {

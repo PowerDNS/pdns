@@ -3,7 +3,6 @@
 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP)
 {
-  
   DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, ids.qname.wirelength(), &ids.origDest, &ids.origRemote, dh, bufferSize, responseLen, isTCP, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
   dr.ecsAdded = ids.ecsAdded;
@@ -25,7 +24,7 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_
     dr.dnsCryptQuery = std::move(ids.dnsCryptQuery);
   }
 
-  return dr;  
+  return dr;
 }
 
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
@@ -49,9 +48,9 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.useZeroScope = dq.useZeroScope;
   ids.qTag = dq.qTag;
   ids.dnssecOK = dq.dnssecOK;
-  
+
   ids.dnsCryptQuery = std::move(dq.dnsCryptQuery);
-  
+
 #ifdef HAVE_PROTOBUF
   ids.uniqueId = std::move(dq.uniqueId);
 #endif

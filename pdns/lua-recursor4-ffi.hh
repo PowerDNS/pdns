@@ -29,6 +29,12 @@ extern "C" {
     const void* data;
   } pdns_ednsoption_t;
 
+  typedef struct pdns_proxyprotocol_value {
+    uint8_t     type;
+    uint16_t    len;
+    const void* data;
+  } pdns_proxyprotocol_value_t;
+
   typedef enum
   {
     answer = 1,
@@ -52,6 +58,9 @@ extern "C" {
   // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
   size_t pdns_ffi_param_get_edns_options(pdns_ffi_param_t* ref, const pdns_ednsoption_t** out) __attribute__ ((visibility ("default")));
   size_t pdns_ffi_param_get_edns_options_by_code(pdns_ffi_param_t* ref, uint16_t optionCode, const pdns_ednsoption_t** out) __attribute__ ((visibility ("default")));
+
+  // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
+  size_t pdns_ffi_param_get_proxy_protocol_values(pdns_ffi_param_t* ref, const pdns_proxyprotocol_value_t** out) __attribute__ ((visibility ("default")));
 
   void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_add_policytag(pdns_ffi_param_t *ref, const char* name) __attribute__ ((visibility ("default")));

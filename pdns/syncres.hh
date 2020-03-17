@@ -49,6 +49,7 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "negcache.hh"
+#include "proxy-protocol.hh"
 #include "sholder.hh"
 
 #ifdef HAVE_CONFIG_H
@@ -1018,6 +1019,7 @@ struct RecursorStats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
   std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
   std::atomic<uint64_t> rebalancedQueries{0};
+  std::atomic<uint64_t> proxyProtocolInvalidCount{0};
 };
 
 //! represents a running TCP/IP client session
@@ -1032,10 +1034,15 @@ public:
     return d_fd;
   }
 
+  std::vector<ProxyProtocolValue> proxyProtocolValues;
   std::string data;
   const ComboAddress d_remote;
+  ComboAddress d_source;
+  ComboAddress d_destination;
   size_t queriesCount{0};
-  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
+  size_t proxyProtocolGot{0};
+  ssize_t proxyProtocolNeed{0};
+  enum stateenum {PROXYPROTOCOLHEADER, BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
   uint16_t qlen{0};
   uint16_t bytesread{0};
   uint16_t d_requestsInFlight{0}; // number of mthreads spawned for this connection

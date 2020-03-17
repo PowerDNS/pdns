@@ -1251,6 +1251,14 @@ The following actions exist.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
+.. function:: SetProxyProtocolValuesAction(values)
+
+  .. versionadded:: 1.5.0
+
+  Set the Proxy-Protocol Type-Length values to be sent to the server along with this query to ``values``.
+
+  :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
+
 .. function:: SkipCacheAction()
 
   Don't lookup the cache for this query, don't store the answer.

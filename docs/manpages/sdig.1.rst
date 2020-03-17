@@ -31,13 +31,15 @@ hidesoadetails
     Don't show the SOA serial in the response.
 hidettl
     Replace TTLs with `[ttl]` in the response.
+proxy *TCP?* *SRC* *DST*
+    Wrap query in PROXYv2 protocol with these parameters. The first parameter accepts 0 for UDP and 1 for TCP. The second and third take IP addresses and port.
 recurse
     Set the RD bit in the question.
 showflags
     Show the NSEC3 flags in the response (they are hidden by default).
 tcp
     Use TCP instead of UDP to send the query.
-xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFSRC*
+xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFDST*
 	Send an *XPF* additional with these parameters.
 
 Examples
@@ -49,5 +51,4 @@ Simple queries to local resolvers
 
 Query to a DNS-over-HTTPS server requesting dnssec and recursion
     sdig https://dns.somesample.net/dns-query 443 example.com A dnssec recurse
-
 

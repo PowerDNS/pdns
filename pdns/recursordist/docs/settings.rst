@@ -24,6 +24,8 @@ The default allows access only from :rfc:`1918` private IP addresses.
 Due to the aggressive nature of the internet these days, it is highly recommended to not open up the recursor for the entire internet.
 Questions from IP addresses not listed here are ignored and do not get an answer.
 
+When the Proxy Protocol is enabled (see `proxy-protocol-from`_), the recursor will check the address of the client IP advertised in the Proxy Protocol header instead of the one of the proxy.
+
 .. _setting-allow-from-file:
 
 ``allow-from-file``
@@ -1225,6 +1227,31 @@ Improves performance on Linux.
 - Default: false
 
 Whether to compute the latency of responses in protobuf messages using the timestamp set by the kernel when the query packet was received (when available), instead of computing it based on the moment we start processing the query.
+
+.. _setting-proxy-protocol-from:
+
+``proxy-protocol-from``
+-----------------------
+.. versionadded:: 4.4.0
+
+-  IP ranges, separated by commas
+-  Default: empty
+
+Ranges that are required to send a Proxy Protocol header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
+Queries that are not prefixed with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
+
+Note that once a Proxy Protocol header has been received, the source address from the proxy header instead of the address of the proxy will be checked against the `allow-from`_ ACL, 
+
+.. _setting-proxy-protocol-maximum-size:
+
+``proxy-protocol-maximum-size``
+-------------------------------
+.. versionadded:: 4.4.0
+
+-  Integer
+-  Default: 512
+
+The maximum size, in bytes, of a Proxy Protocol payload (header, addresses and ports, and TLV values). Queries with a larger payload will be dropped.
 
 .. _setting-public-suffix-list-file:
 

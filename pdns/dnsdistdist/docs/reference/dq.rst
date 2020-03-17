@@ -204,6 +204,14 @@ This state can be modified from the various hooks.
     :param int expire: The value of the expire field in the SOA record
     :param int minimum: The value of the minimum field in the SOA record
 
+  .. method:: DNSQuestion:setProxyProtocolValues(values)
+
+    .. versionadded:: 1.5.0
+
+    Set the Proxy-Protocol Type-Length values to send to the backend along with this query.
+
+    :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
+
   .. method:: DNSQuestion:setTag(key, value)
 
     .. versionadded:: 1.2.0

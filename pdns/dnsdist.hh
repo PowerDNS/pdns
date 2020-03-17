@@ -49,6 +49,7 @@
 #include "sholder.hh"
 #include "tcpiohandler.hh"
 #include "uuid-utils.hh"
+#include "proxy-protocol.hh"
 
 void carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
@@ -84,6 +85,7 @@ struct DNSQuestion
   const ComboAddress* local{nullptr};
   const ComboAddress* remote{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
+  std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
   std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
@@ -832,6 +834,7 @@ struct DownstreamState
   bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
+  bool useProxyProtocol{false};
   bool setCD{false};
   bool disableZeroScope{false};
   std::atomic<bool> connected{false};
