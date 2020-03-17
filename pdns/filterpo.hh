@@ -99,7 +99,7 @@ public:
 
     const std::string& getName() const
     {
-      static std::string notSet;
+      static const std::string notSet;
       if (d_zoneData) {
         return d_zoneData->d_name;
       }
