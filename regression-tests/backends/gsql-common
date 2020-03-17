@@ -1,30 +1,30 @@
 gsql_master()
 {
-	backend=$1
-	skipreasons=$2
+    backend=$1
+    skipreasons=$2
 
-	real_backend=$backend
-	if `echo $backend | grep -q '_'`; then
-		real_backend=$(echo $backend | awk -F '_' '{print $1}')
-	fi
+    real_backend=$backend
+    if `echo $backend | grep -q '_'`; then
+        real_backend=$(echo $backend | awk -F '_' '{print $1}')
+    fi
 
-	if [ $context != ${backend}-nodnssec ]
-	then
-		echo "${real_backend}-dnssec" >> pdns-${backend}.conf
-	fi
+    if [ $context != ${backend}-nodnssec ]
+    then
+        echo "${real_backend}-dnssec" >> pdns-${backend}.conf
+    fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-	do
-		if [ $context != ${backend}-nodnssec ] && [ $zone != insecure.dnssec-parent.com ]
-		then
-			if [ $context = ${backend}-nsec3 ] || [ $context = ${backend}-nsec3-optout ]
-			then
-				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
-			elif [ $context = ${backend}-nsec3-narrow ]
-			then
-				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
-			fi
-    		securezone $zone ${backend}
+    for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+    do
+        if [ $context != ${backend}-nodnssec ] && [ $zone != insecure.dnssec-parent.com ]
+        then
+            if [ $context = ${backend}-nsec3 ] || [ $context = ${backend}-nsec3-optout ]
+            then
+                $PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+            elif [ $context = ${backend}-nsec3-narrow ]
+            then
+                $PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+            fi
+            securezone $zone ${backend}
             if [ $zone = hiddencryptokeys.org ]
             then
                 keyid=$($PDNSUTIL --config-dir=. --config-name=$backend list-keys $zone | grep hiddencryptokeys.org | awk '{ print $5 }')
@@ -36,40 +36,40 @@ gsql_master()
                 $PDNSUTIL --config-dir=. --config-name=$backend add-zone-key $zone zsk 2048 inactive published rsasha512
                 $PDNSUTIL --config-dir=. --config-name=$backend add-zone-key $zone zsk 2048 inactive unpublished rsasha256
             fi
-		else
-			$PDNSUTIL --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
-		fi
-		if [ "$zone" = "tsig.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
-			$PDNSUTIL --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
-		fi
-	done
+        else
+            $PDNSUTIL --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
+        fi
+        if [ "$zone" = "tsig.com" ]; then
+            $PDNSUTIL --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
+            $PDNSUTIL --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
+        fi
+    done
 
 
-	$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
-		--config-name=$backend --socket-dir=./ --no-shuffle \
-		--dnsupdate=yes --resolver=$RESOLVERIP --outgoing-axfr-expand-alias=yes \
-		--expand-alias=yes \
-		--cache-ttl=$cachettl --dname-processing \
-		--disable-axfr-rectify=yes $lua_prequery &
+    $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
+        --config-name=$backend --socket-dir=./ --no-shuffle \
+        --dnsupdate=yes --resolver=$RESOLVERIP --outgoing-axfr-expand-alias=yes \
+        --expand-alias=yes \
+        --cache-ttl=$cachettl --dname-processing \
+        --disable-axfr-rectify=yes $lua_prequery &
 
-	if [ $context = ${backend}-nsec3 ]
-	then
-		extracontexts="dnssec nsec3"
-		skipreasons="$skipreasons nsec3"
-	elif [ $context = ${backend}-nsec3-optout ]
-	then
-		extracontexts="dnssec nsec3 nsec3-optout"
-		skipreasons="$skipreasons optout"
-	elif [ $context = ${backend}-nsec3-narrow ]
-	then
-		extracontexts="dnssec narrow"
-		skipreasons="$skipreasons narrow"
-	elif [ $context = ${backend}-nodnssec ]
-	then
-		skipreasons="$skipreasons nodnssec"
-	else
-		extracontexts="dnssec"
-		skipreasons="$skipreasons nsec"
-	fi
+    if [ $context = ${backend}-nsec3 ]
+    then
+        extracontexts="dnssec nsec3"
+        skipreasons="$skipreasons nsec3"
+    elif [ $context = ${backend}-nsec3-optout ]
+    then
+        extracontexts="dnssec nsec3 nsec3-optout"
+        skipreasons="$skipreasons optout"
+    elif [ $context = ${backend}-nsec3-narrow ]
+    then
+        extracontexts="dnssec narrow"
+        skipreasons="$skipreasons narrow"
+    elif [ $context = ${backend}-nodnssec ]
+    then
+        skipreasons="$skipreasons nodnssec"
+    else
+        extracontexts="dnssec"
+        skipreasons="$skipreasons nsec"
+    fi
 }
