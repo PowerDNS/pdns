@@ -146,7 +146,7 @@ The default value of 0 means no restriction.
 localAddress
 ^^^^^^^^^^^^
 The source IP address to use when transferring the RPZ.
-When unset, :ref:`setting-query-local-address` and :ref:`setting-query-local-address6` are used.
+When unset, :ref:`setting-query-local-address` is used.
 
 axfrTimeout
 ^^^^^^^^^^^

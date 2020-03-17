@@ -88,12 +88,8 @@ at `<https://doc.powerdns.com/>`
     Maximum number of simultaneous TCP clients.
 --max-tcp-per-client=<num>
     If set, maximum number of TCP sessions per client (IP address).
---query-local-address=<address>
+--query-local-address=<address>[,address...]
     Use *address* as Source IP address when sending queries.
---query-local-address6=<address>
-    Send out local IPv6 queries from *address*. Disabled by default,
-    which also disables outgoing IPv6 support. A useful setting is
-    '::0'.
 --quiet
     Suppress logging of questions and answers.
 --server-id=<text>

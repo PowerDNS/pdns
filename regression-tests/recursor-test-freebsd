@@ -12,13 +12,13 @@ limit=$2
 
 if [ $IPv6 = 1 ]
 then
-	QLA6="::"
+	QLA6=" ::"
 else
 	QLA6=""
 fi
 
 rm -f recursor.pid pdns_recursor.pid
-${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --local-address=0.0.0.0 --allow-from=0.0.0.0/0 --query-local-address6="${QLA6}" > recursor.log 2>&1 &
+${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --local-address=0.0.0.0 --allow-from=0.0.0.0/0 --query-local-address="0.0.0.0${QLA6}" > recursor.log 2>&1 &
 sleep 3
 ./dnsbulktest -qe 37.252.127.190 $port $limit < ${CSV} > bulktest.results
 kill $(cat pdns_recursor.pid)

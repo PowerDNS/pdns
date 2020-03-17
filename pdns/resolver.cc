@@ -160,11 +160,9 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   // choose socket based on local
   if (local.sin4.sin_family == 0) {
     // up to us.
-    if (remote.sin4.sin_family == AF_INET && !pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
-      throw ResolverException("No IPv4 socket available, is query-local-address set?");
-    }
-    if (remote.sin4.sin_family == AF_INET6 && !pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
-      throw ResolverException("No IPv6 socket available, is query-local-address6 set?");
+    if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
+      string ipv = remote.sin4.sin_family == AF_INET ? "4" : "6";
+      throw ResolverException("No IPv" + ipv + " socket available, is such an address configured in query-local-address?");
     }
     sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
   } else {

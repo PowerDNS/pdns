@@ -529,7 +529,7 @@ The IP address sent via EDNS Client Subnet to authoritative servers listed in
 `edns-subnet-whitelist`_ when `use-incoming-edns-subnet`_ is set and the query has
 an ECS source prefix-length set to 0.
 The default is to look for the first usable (not an ``any`` one) address in
-`query-local-address`_ then `query-local-address6`_. If no suitable address is
+`query-local-address`_ (starting with IPv4). If no suitable address is
 found, the recursor fallbacks to sending 127.0.0.1.
 
 .. _setting-edns-outgoing-bufsize:
@@ -1280,15 +1280,24 @@ described in :rfc:`7816`.
 
 ``query-local-address``
 -----------------------
--  IPv4 Address, comma separated
+.. versionchanged:: 4.4.0
+  IPv6 addresses can be set with this option as well.
+
+-  IP addresses, comma separated
 -  Default: 0.0.0.0
 
-Send out local queries from this address, or addresses, by adding multiple addresses, increased spoofing resilience is achieved.
+Send out local queries from this address, or addresses. By adding multiple
+addresses, increased spoofing resilience is achieved. When no address of a certain
+address family is configured, there are *no* queries sent with that address family.
+In the default configuration this means that IPv6 is not used for outgoing queries.
 
 .. _setting-query-local-address6:
 
 ``query-local-address6``
 ------------------------
+.. deprecated:: 4.4.0
+  Use :ref:`setting-query-local-address` for IPv4 and IPv6.
+
 -  IPv6 addresses, comma separated
 -  Default: unset
 
