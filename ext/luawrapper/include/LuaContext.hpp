@@ -1416,15 +1416,47 @@ private:
         return readTopAndPop<TReturnType>(state, std::move(outArguments));
     }
     
+    static int gettraceback(lua_State* L) {
+        lua_getglobal(L, "debug"); // stack: error, "debug"
+        lua_getfield(L, -1, "traceback"); // stack: error, "debug", debug.traceback
+        lua_remove(L, -2); // stack: error, debug.traceback
+        lua_pushstring(L, ""); // stack: error, debug.traceback, ""
+        lua_pushinteger(L, 2); // stack: error, debug.traceback, "", 2
+        lua_call(L, 2, 1); // stack: error, traceback
+        lua_createtable(L, 2, 0); // stack: error, traceback, {}
+        lua_insert(L, 1); // stack: {}, error, traceback
+        lua_rawseti(L, 1, 2); // stack: {[2]=traceback}, error
+        lua_rawseti(L, 1, 1); // stack: {[1]=error,[2]=traceback}
+        return 1; // return the table
+    }
+
     // this function just calls lua_pcall and checks for errors
     static PushedObject callRaw(lua_State* state, PushedObject functionAndArguments, const int outArguments)
     {
+        // provide traceback handler
+        int tbindex = lua_gettop(state) - (functionAndArguments.getNum() - 1);
+        lua_pushcfunction(state, gettraceback);
+
+        // move it back up, before our function and arguments
+        lua_insert(state, tbindex);
+
         // calling pcall automatically pops the parameters and pushes output
-        const auto pcallReturnValue = lua_pcall(state, functionAndArguments.getNum() - 1, outArguments, 0);
+        const auto pcallReturnValue = lua_pcall(state, functionAndArguments.getNum() - 1, outArguments, tbindex);
         functionAndArguments.release();
+
+        lua_remove(state, tbindex); // remove traceback function
+
 
         // if pcall failed, analyzing the problem and throwing
         if (pcallReturnValue != 0) {
+
+            // stack top: {error, traceback}
+            lua_rawgeti(state, -1, 1); // stack top: {error, traceback}, error
+            lua_rawgeti(state, -2, 2); // stack top: {error, traceback}, error, traceback
+            lua_remove(state, -3); // stack top: error, traceback
+
+            PushedObject traceBackRef{state, 1};
+            const auto traceBack = readTopAndPop<std::string>(state, std::move(traceBackRef)); // stack top: error
             PushedObject errorCode{state, 1};
 
             // an error occured during execution, either an error message or a std::exception_ptr was pushed on the stack
@@ -1435,7 +1467,7 @@ private:
                 if (lua_isstring(state, 1)) {
                     // the error is a string
                     const auto str = readTopAndPop<std::string>(state, std::move(errorCode));
-                    throw ExecutionErrorException{str};
+                    throw ExecutionErrorException{str+traceBack};
 
                 } else {
                     // an exception_ptr was pushed on the stack
@@ -1447,7 +1479,7 @@ private:
                     } catch(const std::exception& e) {
                         std::throw_with_nested(ExecutionErrorException{std::string{"Exception thrown by a callback function: "} + e.what()});
                     } catch(...) {
-                        std::throw_with_nested(ExecutionErrorException{"Exception thrown by a callback function called by Lua"});
+                        std::throw_with_nested(ExecutionErrorException{"Exception thrown by a callback function called by Lua. "+traceBack});
                     }
                     throw ExecutionErrorException{"Unknown Lua error"};
                 }
