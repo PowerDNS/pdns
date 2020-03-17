@@ -59,7 +59,12 @@ __EOF__
 			fi
 			if [ $zone != insecure.dnssec-parent.com ]
 			then
-				securezone $zone bind
+                securezone $zone bind
+                if [ $zone = hiddencryptokeys.org ]
+                then
+                    keyid=$($PDNSUTIL --config-dir=. --config-name=bind list-keys $zone | grep hiddencryptokeys.org | awk '{ print $5 }')
+                    $PDNSUTIL --config-dir=. --config-name=bind unpublish-zone-key $zone $keyid
+                fi
 				if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ] || [ $context = bind-hybrid-nsec3 ]
 				then
 					$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
