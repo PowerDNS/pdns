@@ -1136,7 +1136,10 @@ enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
 
 static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
 {
-  ++g_stats.policyResults[appliedPolicy.d_kind];
+  /* don't account truncate actions for TCP queries, since they are not applied */
+  if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
+    ++g_stats.policyResults[appliedPolicy.d_kind];
+  }
 
   switch (appliedPolicy.d_kind) {
 
