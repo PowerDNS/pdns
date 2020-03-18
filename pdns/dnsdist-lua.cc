@@ -2030,7 +2030,7 @@ static void setupLuaConfig(bool client, bool configCheck)
         }
       });
 
-    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(const std::map<int, std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const std::map<int, std::shared_ptr<DOHResponseMapEntry>>& map) {
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(const std::vector<std::pair<int, std::shared_ptr<DOHResponseMapEntry>>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const std::vector<std::pair<int, std::shared_ptr<DOHResponseMapEntry>>>& map) {
         if (frontend != nullptr) {
           std::vector<std::shared_ptr<DOHResponseMapEntry>> newMap;
           newMap.reserve(map.size());
