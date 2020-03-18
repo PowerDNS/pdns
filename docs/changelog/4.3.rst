@@ -2,6 +2,25 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0-rc2
+  :released: 18th of March 2020
+
+  This is the first Release Candidate for version 4.3.0 of the Authoritative Server.
+  The version called 4.3.0-rc1 was never released because of the cache cleanup change mentioned below.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8924
+
+    Make sure we look at 10% of all cached items during cleanup (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8936
+
+    emit correct NSEC/NSEC3 bitmaps in hidden key situations (Robin Geuze)
+
+.. changelog::
   :version: 4.3.0-beta2
   :released: 21st of February 2020
 
