@@ -2764,6 +2764,17 @@ struct LuaContext::Reader<std::map<TKey,TValue>>
         if (!lua_istable(state, index))
             return boost::none;
 
+        size_t len;
+
+#if     LUA_VERSION_NUM >= 502
+        len = lua_rawlen(state, index);
+#else
+        len = lua_objlen(state, index);
+#endif
+
+        if (len != 0)
+            throw std::logic_error("Expected key/value table, got array");
+
         std::map<TKey,TValue> result;
 
         // we traverse the table at the top of the stack
