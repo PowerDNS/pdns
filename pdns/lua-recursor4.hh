@@ -137,7 +137,7 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool, const std::vector<std::pair<int, const ProxyProtocolValue*>>&)> gettag_t;
+  typedef std::function<std::tuple<unsigned int,boost::optional<std::vector<std::pair<int,string> > >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool, const std::vector<std::pair<int, const ProxyProtocolValue*>>&)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
   typedef std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)> gettag_ffi_t;
   gettag_ffi_t d_gettag_ffi;

@@ -479,7 +479,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       lci.protobufMaskV6 = maskV6;
     });
 
-  Lua.writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+  Lua.writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::vector<std::pair<int, std::string> > > servers, boost::optional<protobufOptions_t> vars) {
         if (!lci.protobufExportConfig.enabled) {
 
           lci.protobufExportConfig.enabled = true;
@@ -491,7 +491,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
               lci.protobufExportConfig.servers.emplace_back(server);
             }
             else {
-              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              auto serversMap = boost::get<const std::vector<std::pair<int, std::string> >>(servers);
               for (const auto& serverPair : serversMap) {
                 lci.protobufExportConfig.servers.emplace_back(serverPair.second);
               }
@@ -511,7 +511,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         }
     });
 
-  Lua.writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+  Lua.writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::vector<std::pair<int, std::string>>> servers, boost::optional<protobufOptions_t> vars) {
       if (!lci.outgoingProtobufExportConfig.enabled) {
 
         lci.outgoingProtobufExportConfig.enabled = true;
@@ -523,7 +523,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
               lci.outgoingProtobufExportConfig.servers.emplace_back(server);
             }
             else {
-              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              auto serversMap = boost::get<const std::vector<std::pair<int, std::string>>>(servers);
               for (const auto& serverPair : serversMap) {
                 lci.outgoingProtobufExportConfig.servers.emplace_back(serverPair.second);
               }
@@ -545,7 +545,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 #endif
 
 #ifdef HAVE_FSTRM
-  Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+  Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::vector<std::pair<int, std::string>>> servers, boost::optional<frameStreamOptions_t> vars) {
       if (!lci.frameStreamExportConfig.enabled) {
 
         lci.frameStreamExportConfig.enabled = true;
@@ -559,7 +559,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
               lci.frameStreamExportConfig.servers.emplace_back(server);
             }
             else {
-              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              auto serversMap = boost::get<const std::vector<std::pair<int,std::string>>>(servers);
               for (const auto& serverPair : serversMap) {
                 lci.frameStreamExportConfig.servers.emplace_back(serverPair.second);
               }
