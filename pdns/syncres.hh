@@ -781,6 +781,7 @@ public:
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  std::unordered_set<std::string> d_policyTags;
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;

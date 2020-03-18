@@ -123,11 +123,11 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
   bool allEmpty = true;
   for (const auto& z : d_zones) {
     bool enabled = true;
-    const auto zoneName = z->getName();
-    if (z->getPriority() >= pol.d_priority) {
+    const auto& zoneName = z->getName();
+    if (z->getPriority() >= pol.getPriority()) {
       enabled = false;
     }
-    else if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
+    else if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
       enabled = false;
     }
     else {
@@ -182,11 +182,11 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
 {
   //  cout<<"Got question for nameserver IP "<<address.toString()<<endl;
   for(const auto& z : d_zones) {
-    if (z->getPriority() >= pol.d_priority) {
+    if (z->getPriority() >= pol.getPriority()) {
       break;
     }
-    const auto zoneName = z->getName();
-    if(zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
+    const auto& zoneName = z->getName();
+    if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
       continue;
     }
 
@@ -206,11 +206,11 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
   bool allEmpty = true;
   for (const auto& z : d_zones) {
     bool enabled = true;
-    if (z->getPriority() >= pol.d_priority) {
+    if (z->getPriority() >= pol.getPriority()) {
       enabled = false;
     } else {
-      const auto zoneName = z->getName();
-      if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
+      const auto& zoneName = z->getName();
+      if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
         enabled = false;
       }
       else {
@@ -289,11 +289,11 @@ bool DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std:
       continue;
 
     for (const auto& z : d_zones) {
-      if (z->getPriority() >= pol.d_priority) {
+      if (z->getPriority() >= pol.getPriority()) {
         break;
       }
-      const auto zoneName = z->getName();
-      if (zoneName && discardedPolicies.find(*zoneName) != discardedPolicies.end()) {
+      const auto& zoneName = z->getName();
+      if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
         continue;
       }
 
@@ -313,14 +313,14 @@ void DNSFilterEngine::assureZones(size_t zone)
 
 void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy&& pol)
 {
-  pol.d_name = d_name;
+  pol.d_zoneData = d_zoneData;
   pol.d_type = PolicyType::ClientIP;
   d_qpolAddr.insert(nm).second=std::move(pol);
 }
 
 void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol)
 {
-  pol.d_name = d_name;
+  pol.d_zoneData = d_zoneData;
   pol.d_type = PolicyType::ResponseIP;
   d_postpolAddr.insert(nm).second=std::move(pol);
 }
@@ -346,21 +346,21 @@ void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool
   }
   else {
     auto& qpol = d_qpolName.insert({n, std::move(pol)}).first->second;
-    qpol.d_name = d_name;
+    qpol.d_zoneData = d_zoneData;
     qpol.d_type = PolicyType::QName;
   }
 }
 
 void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy&& pol)
 {
-  pol.d_name = d_name;
+  pol.d_zoneData = d_zoneData;
   pol.d_type = PolicyType::NSDName;
   d_propolName.insert({n, std::move(pol)});
 }
 
 void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy&& pol)
 {
-  pol.d_name = d_name;
+  pol.d_zoneData = d_zoneData;
   pol.d_type = PolicyType::NSIP;
   d_propolNSAddr.insert(nm).second = std::move(pol);
 }
@@ -636,5 +636,12 @@ void DNSFilterEngine::Zone::dump(FILE* fp) const
 
   for (const auto pair : d_postpolAddr) {
     dumpAddrPolicy(fp, pair.first, DNSName("rpz-ip.") + d_domain, pair.second);
+  }
+}
+
+void mergePolicyTags(std::unordered_set<std::string>& tags, const std::unordered_set<std::string>& newTags)
+{
+  for (const auto& tag : newTags) {
+    tags.insert(tag);
   }
 }

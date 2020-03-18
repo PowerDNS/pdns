@@ -271,7 +271,7 @@ struct DNSComboWriter {
   {
   }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
   {
   }
 
@@ -331,7 +331,7 @@ struct DNSComboWriter {
   struct timeval d_kernelTimestamp{0,0};
 #endif
   std::string d_query;
-  std::vector<std::string> d_policyTags;
+  std::unordered_set<std::string> d_policyTags;
   std::vector<DNSRecord> d_records;
   LuaContext::LuaObject d_data;
   EDNSSubnetOpts d_ednssubnet;
@@ -813,7 +813,7 @@ catch(...)
 }
 
 #ifdef HAVE_PROTOBUF
-static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName)
+static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName)
 {
   if (!t_protobufServers) {
     return;
@@ -1132,6 +1132,59 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
   return rcode;
 }
 
+enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
+
+static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
+{
+  /* don't account truncate actions for TCP queries, since they are not applied */
+  if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
+    ++g_stats.policyResults[appliedPolicy.d_kind];
+  }
+
+  switch (appliedPolicy.d_kind) {
+
+  case DNSFilterEngine::PolicyKind::NoAction:
+      return PolicyResult::NoAction;
+
+  case DNSFilterEngine::PolicyKind::Drop:
+    ++g_stats.policyDrops;
+    return PolicyResult::Drop;
+
+  case DNSFilterEngine::PolicyKind::NXDOMAIN:
+    ret.clear();
+    res = RCode::NXDomain;
+    return PolicyResult::HaveAnswer;
+
+  case DNSFilterEngine::PolicyKind::NODATA:
+    ret.clear();
+    res = RCode::NoError;
+    return PolicyResult::HaveAnswer;
+
+  case DNSFilterEngine::PolicyKind::Truncate:
+    if (!dc->d_tcp) {
+      ret.clear();
+      res = RCode::NoError;
+      pw.getHeader()->tc = 1;
+      return PolicyResult::HaveAnswer;
+    }
+    return PolicyResult::NoAction;
+
+  case DNSFilterEngine::PolicyKind::Custom:
+    ret.clear();
+    res = RCode::NoError;
+    {
+      auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+      for (auto& dr : spoofed) {
+        ret.push_back(dr);
+        handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+      }
+    }
+    return PolicyResult::HaveAnswer;
+  }
+
+  return PolicyResult::NoAction;
+}
+
 static void startDoResolve(void *p)
 {
   auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1271,7 +1324,6 @@ static void startDoResolve(void *p)
     int res = RCode::NoError;
 
     DNSFilterEngine::Policy appliedPolicy;
-    std::vector<DNSRecord> spoofed;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
@@ -1334,52 +1386,29 @@ static void startDoResolve(void *p)
 
     // Check if the query has a policy attached to it
     if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
-      luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies, appliedPolicy);
+      if (luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
+        mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
+      }
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl || !t_pdl->preresolve(dq, res)) {
 
       sr.setWantsRPZ(wantsRPZ);
-      if(wantsRPZ) {
-        switch(appliedPolicy.d_kind) {
-          case DNSFilterEngine::PolicyKind::NoAction:
-            break;
-          case DNSFilterEngine::PolicyKind::Drop:
-            g_stats.policyDrops++;
-            g_stats.policyResults[appliedPolicy.d_kind]++;
-            return; 
-          case DNSFilterEngine::PolicyKind::NXDOMAIN:
-            g_stats.policyResults[appliedPolicy.d_kind]++;
-            res=RCode::NXDomain;
-            goto haveAnswer;
-          case DNSFilterEngine::PolicyKind::NODATA:
-            g_stats.policyResults[appliedPolicy.d_kind]++;
-            res=RCode::NoError;
-            goto haveAnswer;
-          case DNSFilterEngine::PolicyKind::Custom:
-            g_stats.policyResults[appliedPolicy.d_kind]++;
-            res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
-            for (const auto& dr : spoofed) {
-              ret.push_back(dr);
-              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
-            }
-            goto haveAnswer;
-          case DNSFilterEngine::PolicyKind::Truncate:
-            if(!dc->d_tcp) {
-              g_stats.policyResults[appliedPolicy.d_kind]++;
-              res=RCode::NoError;	
-              pw.getHeader()->tc=1;
-              goto haveAnswer;
-            }
-            break;
+      if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        if (policyResult == PolicyResult::HaveAnswer) {
+          goto haveAnswer;
+        }
+        else if (policyResult == PolicyResult::Drop) {
+          return;
         }
       }
 
       // Query got not handled for QNAME Policy reasons, now actually go out to find an answer
       try {
         sr.d_appliedPolicy = appliedPolicy;
+        sr.d_policyTags = std::move(dc->d_policyTags);
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
       }
@@ -1394,50 +1423,26 @@ static void startDoResolve(void *p)
       }
       dq.validationState = sr.getValidationState();
       appliedPolicy = sr.d_appliedPolicy;
+      dc->d_policyTags = std::move(sr.d_policyTags);
 
       // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
       if (res == -2) { // XXX This block should be macro'd, it is repeated post-resolve.
-        appliedPolicy = sr.d_appliedPolicy;
-        g_stats.policyResults[appliedPolicy.d_kind]++;
-        switch(appliedPolicy.d_kind) {
-          case DNSFilterEngine::PolicyKind::NoAction: // This can never happen
-            throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
-          case DNSFilterEngine::PolicyKind::Drop:
-            g_stats.policyDrops++;
-            return;
-          case DNSFilterEngine::PolicyKind::NXDOMAIN:
-            ret.clear();
-            res=RCode::NXDomain;
-            goto haveAnswer;
-
-          case DNSFilterEngine::PolicyKind::NODATA:
-            ret.clear();
-            res=RCode::NoError;
-            goto haveAnswer;
-
-          case DNSFilterEngine::PolicyKind::Truncate:
-            if(!dc->d_tcp) {
-              ret.clear();
-              res=RCode::NoError;
-              pw.getHeader()->tc=1;
-              goto haveAnswer;
-            }
-            break;
-
-          case DNSFilterEngine::PolicyKind::Custom:
-            ret.clear();
-            res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
-            for (const auto& dr : spoofed) {
-              ret.push_back(dr);
-              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
-            }
-            goto haveAnswer;
+        if (appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
+          throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
+        }
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        if (policyResult == PolicyResult::HaveAnswer) {
+          goto haveAnswer;
+        }
+        else if (policyResult == PolicyResult::Drop) {
+          return;
         }
       }
 
       if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
-        luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies, appliedPolicy);
+        if (luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies, appliedPolicy)) {
+          mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
+        }
       }
 
       if(t_pdl) {
@@ -1458,41 +1463,13 @@ static void startDoResolve(void *p)
       }
 
       if (wantsRPZ) { //XXX This block is repeated, see above
-        g_stats.policyResults[appliedPolicy.d_kind]++;
-        switch(appliedPolicy.d_kind) {
-          case DNSFilterEngine::PolicyKind::NoAction:
-            break;
-          case DNSFilterEngine::PolicyKind::Drop:
-            g_stats.policyDrops++;
-            return; 
-          case DNSFilterEngine::PolicyKind::NXDOMAIN:
-            ret.clear();
-            res=RCode::NXDomain;
-            goto haveAnswer;
 
-          case DNSFilterEngine::PolicyKind::NODATA:
-            ret.clear();
-            res=RCode::NoError;
-            goto haveAnswer;
-
-          case DNSFilterEngine::PolicyKind::Truncate:
-            if(!dc->d_tcp) {
-              ret.clear();
-              res=RCode::NoError;
-              pw.getHeader()->tc=1;
-              goto haveAnswer;
-            }
-            break;
-
-          case DNSFilterEngine::PolicyKind::Custom:
-            ret.clear();
-            res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
-            for (const auto& dr : spoofed) {
-              ret.push_back(dr);
-              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
-            }
-            goto haveAnswer;
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        if (policyResult == PolicyResult::HaveAnswer) {
+          goto haveAnswer;
+        }
+        else if (policyResult == PolicyResult::Drop) {
+          return;
         }
       }
     }
@@ -1666,11 +1643,11 @@ static void startDoResolve(void *p)
     }
 #endif /* NOD_ENABLED */
 #ifdef HAVE_PROTOBUF
-    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
+    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
       pbMessage->setResponseCode(pw.getHeader()->rcode);
-      if (appliedPolicy.d_name) {
-        pbMessage->setAppliedPolicy(*appliedPolicy.d_name);
+      if (!appliedPolicy.getName().empty()) {
+        pbMessage->setAppliedPolicy(appliedPolicy.getName());
         pbMessage->setAppliedPolicyType(appliedPolicy.d_type);
       }
       pbMessage->setPolicyTags(dc->d_policyTags);
@@ -2392,7 +2369,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   uint32_t qhash = 0;
   bool needECS = false;
   bool needXPF = g_XPFAcl.match(fromaddr);
-  std::vector<std::string> policyTags;
+  std::unordered_set<std::string> policyTags;
   LuaContext::LuaObject data;
   string requestorId;
   string deviceId;

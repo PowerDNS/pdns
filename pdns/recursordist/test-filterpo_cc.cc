@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
   std::string zoneName("Unit test policy 0");
   auto zone = std::make_shared<DNSFilterEngine::Zone>();
   zone->setName(zoneName);
-  BOOST_CHECK_EQUAL(*(zone->getName()), zoneName);
+  BOOST_CHECK_EQUAL(zone->getName(), zoneName);
   zone->setDomain(DNSName("powerdns.com."));
   BOOST_CHECK_EQUAL(zone->getDomain(), DNSName("powerdns.com."));
   zone->setSerial(42);
@@ -471,7 +471,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* zone 1 should still match if zone 2 has been disabled */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone2->getName()), true}}, DNSFilterEngine::maximumPriority);
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{zone2->getName(), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
@@ -486,7 +486,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* if zone 1 is disabled, zone 2 should match */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}}, DNSFilterEngine::maximumPriority);
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{zone1->getName(), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
@@ -501,7 +501,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 
   {
     /* if both zones are disabled, we should not match */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}, {*(zone2->getName()), true}}, DNSFilterEngine::maximumPriority);
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{zone1->getName(), true}, {zone2->getName(), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
   }
 }
@@ -556,7 +556,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
 
   {
     /* client IP and qname should match, but zone 1 is disabled and zone2's priority is too high */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.128"), {{*(zone1->getName()), true}}, 1);
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.128"), {{zone1->getName(), true}}, 1);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
@@ -600,7 +600,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
 
   {
     /* if we disable zone 1, zone 2 should match */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}}, DNSFilterEngine::maximumPriority);
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{zone1->getName(), true}}, DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
@@ -615,7 +615,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
 
   {
     /* if we disable zone 1, zone 2 should match, except if we require a priority < 1 */
-    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{*(zone1->getName()), true}}, 1);
+    const auto matchingPolicy = dfe.getQueryPolicy(bad, ComboAddress("192.0.2.142"), {{zone1->getName(), true}}, 1);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
@@ -637,7 +637,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
 
   {
     /* blocked NS name, except policy 1 is disabled and policy2's priority is too high */
-    auto matchingPolicy = dfe.getProcessingPolicy(nsName, {{*(zone1->getName()), true}}, 1);
+    auto matchingPolicy = dfe.getProcessingPolicy(nsName, {{zone1->getName(), true}}, 1);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
@@ -659,7 +659,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
 
   {
     /* blocked NS ip, except policy 1 is disabled and policy2's priority is too high */
-    auto matchingPolicy = dfe.getProcessingPolicy(nsIP, {{*(zone1->getName()), true}}, 1);
+    auto matchingPolicy = dfe.getProcessingPolicy(nsIP, {{zone1->getName(), true}}, 1);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
@@ -687,7 +687,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies_order)
     DNSRecord dr;
     dr.d_type = QType::A;
     dr.d_content = DNSRecordContent::mastermake(QType::A, QClass::IN, responseIP.toString());
-    const auto matchingPolicy = dfe.getPostPolicy({dr}, {{*(zone1->getName()), true}}, 1);
+    const auto matchingPolicy = dfe.getPostPolicy({dr}, {{zone1->getName(), true}}, 1);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }

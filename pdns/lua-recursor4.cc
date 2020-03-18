@@ -269,12 +269,10 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("appliedPolicy", &DNSQuestion::appliedPolicy);
   d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyName",
     [](const DNSFilterEngine::Policy& pol) -> std::string {
-      if(pol.d_name)
-        return *pol.d_name;
-      return std::string();
+      return pol.getName();
     },
     [](DNSFilterEngine::Policy& pol, const std::string& name) {
-      pol.d_name = std::make_shared<std::string>(name);
+      pol.setName(name);
     });
   d_lw->registerMember("policyKind", &DNSFilterEngine::Policy::d_kind);
   d_lw->registerMember("policyType", &DNSFilterEngine::Policy::d_type);
@@ -360,12 +358,13 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
   d_lw->registerFunction("setRecords", &DNSQuestion::setRecords);
 
-  d_lw->registerFunction<void(DNSQuestion::*)(const std::string&)>("addPolicyTag", [](DNSQuestion& dq, const std::string& tag) { if (dq.policyTags) { dq.policyTags->push_back(tag); } });
+  d_lw->registerFunction<void(DNSQuestion::*)(const std::string&)>("addPolicyTag", [](DNSQuestion& dq, const std::string& tag) { if (dq.policyTags) { dq.policyTags->insert(tag); } });
   d_lw->registerFunction<void(DNSQuestion::*)(const std::vector<std::pair<int, std::string> >&)>("setPolicyTags", [](DNSQuestion& dq, const std::vector<std::pair<int, std::string> >& tags) {
       if (dq.policyTags) {
         dq.policyTags->clear();
+        dq.policyTags->reserve(tags.size());
         for (const auto& tag : tags) {
-          dq.policyTags->push_back(tag.second);
+          dq.policyTags->insert(tag.second);
         }
       }
     });
@@ -373,6 +372,7 @@ void RecursorLua4::postPrepareContext()
       std::vector<std::pair<int, std::string> > ret;
       if (dq.policyTags) {
         int count = 1;
+        ret.reserve(dq.policyTags->size());
         for (const auto& tag : *dq.policyTags) {
           ret.push_back({count++, tag});
         }
@@ -537,7 +537,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const
 {
   if(d_gettag) {
     std::vector<std::pair<int, const ProxyProtocolValue*>> proxyProtocolValuesMap;
@@ -552,8 +552,9 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
     if (policyTags) {
       const auto& tags = std::get<1>(ret);
       if (tags) {
+        policyTags->reserve(policyTags->size() + tags->size());
         for (const auto& tag : *tags) {
-          policyTags->push_back(tag.second);
+          policyTags->insert(tag.second);
         }
       }
     }
@@ -582,7 +583,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -597,7 +598,7 @@ public:
   const ComboAddress& local;
   const ComboAddress& remote;
   const Netmask& ednssubnet;
-  std::vector<std::string>& policyTags;
+  std::unordered_set<std::string>& policyTags;
   std::vector<DNSRecord>& records;
   const EDNSOptionViewMap& ednsOptions;
   const std::vector<ProxyProtocolValue>& proxyProtocolValues;
@@ -616,7 +617,7 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const
 {
   if (d_gettag_ffi) {
     pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, rcode, ttlCap, variable, tcp, logQuery, logResponse, followCNAMERecords);
@@ -880,7 +881,7 @@ void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag)
 
 void pdns_ffi_param_add_policytag(pdns_ffi_param_t *ref, const char* name)
 {
-  ref->policyTags.push_back(std::string(name));
+  ref->policyTags.insert(std::string(name));
 }
 
 void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name)
