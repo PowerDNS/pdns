@@ -91,13 +91,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         try:
             output = subprocess.check_output(testcmd, stderr=subprocess.STDOUT, close_fds=True)
         except subprocess.CalledProcessError as exc:
-            raise AssertionError('dnsdist --check-config failed (%d): %s' % (exc.returncode, exc.output))
+            raise AssertionError('dnsdist --check-config (-C %s) failed (%d): %s' % (confFile, exc.returncode, exc.output))
         if cls._checkConfigExpectedOutput is not None:
           expectedOutput = cls._checkConfigExpectedOutput
         else:
           expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
         if output != expectedOutput:
-            raise AssertionError('dnsdist --check-config failed: %s' % output)
+            raise AssertionError('dnsdist --check-config (-C %s) failed: %s' % (confFile, output))
 
         logFile = os.path.join('configs', 'dnsdist_%s.log' % (cls.__name__))
         with open(logFile, 'w') as fdLog:
