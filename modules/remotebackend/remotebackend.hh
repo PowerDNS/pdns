@@ -207,6 +207,7 @@ class RemoteBackend : public DNSBackend
 
     bool send(Json &value);
     bool recv(Json &value);
+    void makeErrorAndThrow(Json &value);
  
     string asString(const Json& value) {
       if (value.is_number()) return std::to_string(value.int_value());
