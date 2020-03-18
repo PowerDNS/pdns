@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export PDNSRECURSOR=${PDNSRECURSOR:-/usr/sbin/pdns_recursor}
+export PDNSRECCONTROL=${PDNSRECCONTROL:-/usr/bin/rec_control}
 export DNSBULKTEST=${DNSBULKTEST:-/usr/bin/dnsbulktest}
 
 if [ "$0" != "./build-scripts/test-recursor-bulk" ]; then
@@ -38,7 +39,7 @@ for IPv6 in 0 1; do
       export context="${version}_v6:${IPv6}_csv:${CSV%%.*}"
       export IPv6
       export CSV
-      RECURSOR=$PDNSRECURSOR THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains || EXIT=1
+      RECURSOR=$PDNSRECURSOR RECCONTROL=$PDNSRECCONTROL THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains || EXIT=1
       mv -f recursor.log recursor-${context}.log
       sleep 10
     done
