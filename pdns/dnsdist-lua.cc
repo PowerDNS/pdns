@@ -1913,6 +1913,10 @@ static void setupLuaConfig(bool client, bool configCheck)
         frontend->d_sendCacheControlHeaders = boost::get<bool>((*vars)["sendCacheControlHeaders"]);
       }
 
+      if (vars->count("trustForwardedForHeader")) {
+        frontend->d_trustForwardedForHeader = boost::get<bool>((*vars)["trustForwardedForHeader"]);
+      }
+
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);

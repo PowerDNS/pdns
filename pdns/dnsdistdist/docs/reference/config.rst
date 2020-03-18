@@ -109,7 +109,7 @@ Listen Sockets
   .. versionadded:: 1.4.0
 
   .. versionchanged:: 1.5.0
-    ``sendCacheControlHeaders``, ``sessionTimeout`` options added.
+    ``sendCacheControlHeaders``, ``sessionTimeout``, ``trustForwardedForHeader`` options added.
     ``url`` now defaults to ``/dns-query`` instead of ``/``
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
@@ -144,6 +144,7 @@ Listen Sockets
   * ``preferServerCiphers``: bool - Whether to prefer the order of ciphers set by the server instead of the one set by the client. Default is true, meaning that the order of the server is used.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1.
   * ``sendCacheControlHeaders``: bool - Whether to parse the response to find the lowest TTL and set a HTTP Cache-Control header accordingly. Default is true.
+  * ``trustForwardedForHeader``: bool - Whether to parse any existing X-Forwarded-For header in the HTTP query and use the right-most value as the client source address and port, for ACL checks, rules, logging and so on. Default is false.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 

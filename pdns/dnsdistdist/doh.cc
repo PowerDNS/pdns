@@ -29,6 +29,7 @@
 #include "dnsdist-xpf.hh"
 #include "libssl.hh"
 #include "threadname.hh"
+#include "views.hh"
 
 using namespace std;
 
@@ -654,6 +655,51 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
   }
 }
 
+static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, string_view& value)
+{
+  bool found = false;
+
+  for (size_t i = 0; i < req->headers.size; ++i) {
+    if (string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerName) {
+      value = string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
+      /* don't stop there, we might have more than one header with the same name, and we want the last one */
+      found = true;
+    }
+  }
+
+  return found;
+}
+
+static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote)
+{
+  static const std::string headerName = "x-forwarded-for";
+  string_view value;
+
+  if (getHTTPHeaderValue(req, headerName, value)) {
+    try {
+      auto pos = value.rfind(',');
+      if (pos != string_view::npos) {
+        ++pos;
+        for (; pos < value.size() && value.at(pos) == ' '; ++pos)
+        {
+        }
+
+        if (pos < value.size()) {
+          value = value.substr(pos);
+        }
+      }
+      auto newRemote = ComboAddress(std::string(value));
+      remote = newRemote;
+    }
+    catch (const std::exception& e) {
+      vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what());
+    }
+    catch (const PDNSException& e) {
+      vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason);
+    }
+  }
+}
+
 /*
   A query has been parsed by h2o.
   For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
@@ -672,6 +718,10 @@ try
   h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
   h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
+
+  if (dsc->df->d_trustForwardedForHeader) {
+    processForwardedForHeader(req, remote);
+  }
 
   auto& holders = dsc->holders;
   if (!holders.acl->match(remote)) {
@@ -1016,8 +1066,8 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  ComboAddress remote;
-  h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
+  // ComboAddress remote;
+  // h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
   //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
 
   sock->data = dsc;
