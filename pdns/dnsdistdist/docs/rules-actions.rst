@@ -911,7 +911,8 @@ The following actions exist.
 
 .. function:: DelayAction(milliseconds)
 
-  Delay the response by the specified amount of milliseconds (UDP-only).
+  Delay the response by the specified amount of milliseconds (UDP-only). Note that the sending of the query to the backend, if needed,
+  is not delayed. Only the sending of the response to the client will be delayed.
   Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
@@ -919,6 +920,7 @@ The following actions exist.
 .. function:: DelayResponseAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
+  The only difference between this action and  :func:`DelayAction` is that they can only be applied on, respectively, responses and queries.
   Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
