@@ -50,13 +50,13 @@ void setupLuaBindingsDNSCrypt()
 
       ctx->addNewCertificate(newCert, newKey, active ? *active : true);
     });
-    g_lua.registerFunction<std::map<int, std::shared_ptr<DNSCryptCertificatePair>>(std::shared_ptr<DNSCryptContext>::*)()>("getCertificatePairs", [](std::shared_ptr<DNSCryptContext> ctx) {
-      std::map<int, std::shared_ptr<DNSCryptCertificatePair>> result;
+    g_lua.registerFunction<std::vector<std::pair<int, std::shared_ptr<DNSCryptCertificatePair>>>(std::shared_ptr<DNSCryptContext>::*)()>("getCertificatePairs", [](std::shared_ptr<DNSCryptContext> ctx) {
+      std::vector<std::pair<int, std::shared_ptr<DNSCryptCertificatePair>>> result;
 
       if (ctx != nullptr) {
         size_t idx = 1;
         for (auto pair : ctx->getCertificates()) {
-          result[idx++] = pair;
+          result.push_back(make_pair(idx++, pair));
         }
       }
 
