@@ -24,12 +24,12 @@ LuaContext* AuthLua4::getLua()
 void AuthLua4::postPrepareContext() {
   d_lw->writeFunction("resolve", [](const std::string& qname, uint16_t qtype) {
       std::vector<DNSZoneRecord> ret;
-      std::unordered_map<int, DNSResourceRecord> luaResult;
+      std::vector<std::pair<int, DNSResourceRecord> > luaResult;
       stubDoResolve(DNSName(qname), qtype, ret);
       int i = 0;
       for(const auto &row: ret) {
-        luaResult[++i] = DNSResourceRecord::fromWire(row.dr);
-        luaResult[i].auth = row.auth;
+        luaResult.push_back(make_pair(++i, DNSResourceRecord::fromWire(row.dr)));
+        luaResult[i].second.auth = row.auth;
       }
       return luaResult;
   });
