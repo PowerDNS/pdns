@@ -35,8 +35,11 @@
 
 extern int  g_luaRecordExecLimit;
 
+// FIXME: some of these types really only want to store one int and one string
+// but instead we map Lua tables onto them with the 'int' at 1 and the 'string' at 2
+// for those types (wiplist_t at least) we should map a two-entry Lua table to one std::pair<int, ..>
 using iplist_t = vector<pair<int, string> >;
-using wiplist_t = std::unordered_map<int, string>;
+using wiplist_t = vector<pair<int, string> >;
 using ipunitlist_t = vector<pair<int, iplist_t> >;
 using opts_t = std::unordered_map<string,string>;
 
@@ -503,12 +506,12 @@ static vector<ComboAddress> convIplist(const iplist_t& src)
   return ret;
 }
 
-static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wiplist_t > src)
+static vector<pair<int, ComboAddress> > convWIplist(std::vector<pair<int, wiplist_t > > src)
 {
   vector<pair<int,ComboAddress> > ret;
 
   for(const auto& i : src) {
-    ret.emplace_back(atoi(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
+    ret.emplace_back(atoi(i.second.at(0).second.c_str()), ComboAddress(i.second.at(1).second));
   }
 
   return ret;
@@ -791,7 +794,7 @@ void setupLuaRecords()
    * various ``weight`` parameters
    * @example pickwrandom({ {100, '1.2.3.4'}, {50, '5.4.3.2'}, {1, '192.168.1.0'} })
    */
-  lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) {
+  lua.writeFunction("pickwrandom", [](std::vector<pair<int, wiplist_t> > ips) {
       vector<pair<int,ComboAddress> > conv = convWIplist(ips);
 
       return pickwrandom(conv).toString();
@@ -802,11 +805,11 @@ void setupLuaRecords()
    * supplied, as weighted by the various `weight` parameters
    * @example pickwhashed({ {15, '1.2.3.4'}, {50, '5.4.3.2'} })
    */
-  lua.writeFunction("pickwhashed", [](std::unordered_map<int, wiplist_t > ips) {
+  lua.writeFunction("pickwhashed", [](std::vector<pair <int, wiplist_t > > ips) {
       vector<pair<int,ComboAddress> > conv;
 
       for(auto& i : ips)
-        conv.emplace_back(atoi(i.second[1].c_str()), ComboAddress(i.second[2]));
+        conv.emplace_back(atoi(i.second[0].second.c_str()), ComboAddress(i.second[1].second));
 
       return pickwhashed(s_lua_record_ctx->bestwho, conv).toString();
     });
