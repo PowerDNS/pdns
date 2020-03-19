@@ -1128,6 +1128,37 @@ faster than the existing rules.
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
+  .. method:: DynBlockRulesGroup:setSuffixMatchRule(seconds, reason, blockingTime, action , visitor)
+
+    .. versionadded:: 1.4.0
+
+    Set a Lua visitor function that will be called for each label of every domain seen in queries and responses. The function receives a `StatNode` object representing the stats of the parent, a second one with the stats of the current label and one with the stats of the current node plus all its children.
+    Note that this function will not be called if a FFI version has been set using :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`
+    If the function returns true, the current label will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters.
+    Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup:excludeDomains` method.
+
+    This replaces the existing :func:`addDynBlockSMT` function.
+
+    :param int seconds: Number of seconds the rate has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param function vistitor: The Lua function to call.
+
+  .. method:: DynBlockRulesGroup:setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor)
+
+    .. versionadded:: 1.4.0
+
+    Set a Lua FFI visitor function that will be called for each label of every domain seen in queries and responses. The function receives a `dnsdist_ffi_stat_node_t` object containing the stats of the parent, a second one with the stats of the current label and one with the stats of the current node plus all its children.
+    If the function returns true, the current label will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters.
+    Selected domains can be excluded from this processing using the :meth:`DynBlockRulesGroup:excludeDomains` method.
+
+    :param int seconds: Number of seconds the rate has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param function vistitor: The Lua FFI function to call.
+
   .. method:: DynBlockRulesGroup:apply()
 
     Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
@@ -1140,13 +1171,21 @@ faster than the existing rules.
 
     :param bool quiet: True means that insertions will not be logged, false that they will. Default is false.
 
+  .. method:: DynBlockRulesGroup:excludeDomains(domains)
+
+    .. versionadded:: 1.4.0
+
+    Exclude this domain, or list of domains, meaning that no dynamic block will ever be inserted for this domain via :meth:`DynBlockRulesGroup:setSuffixMatchRule` or :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`. Default to empty, meaning rules are applied to all domains.
+
+    :param str domain: A domain, or list of domains, as strings, like for example "powerdns.com"
+
   .. method:: DynBlockRulesGroup:excludeRange(netmasks)
 
     .. versionadded:: 1.3.1
 
     Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBlockRulesGroup:includeRange`, the more specific entry wins.
 
-    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+    :param list netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
 
   .. method:: DynBlockRulesGroup:includeRange(netmasks)
 
@@ -1154,13 +1193,56 @@ faster than the existing rules.
 
     Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBlockRulesGroup:excludeRange`, the more specific entry wins.
 
-    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+    :param list netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
 
   .. method:: DynBlockRulesGroup:toString()
 
     .. versionadded:: 1.3.1
 
     Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
+
+StatNode
+~~~~~~~~
+
+.. class:: StatNode
+
+  Represent metrics about a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRul` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`. Note that some nodes includes the metrics for their children as well as their own.
+
+  .. attribute:: StatNode.bytes
+
+    The number of bytes for all responses returned for that node.
+
+  .. attribute:: StatNode.drops
+
+    The number of drops for that node.
+
+  .. attribute:: StatNode.fullname
+
+    The complete name of that node, ie 'www.powerdns.com'.
+
+  .. attribute:: StatNode.labelsCount
+
+    The number of labels in that node, for example 3 for 'www.powerdns.com'.
+
+  .. attribute:: StatNode.noerrors
+
+    The number of No Error answers returned for that node.
+
+  .. attribute:: StatNode.nxdomains
+
+    The number of NXDomain answers returned for that node.
+
+  .. attribute:: StatNode.queries
+
+    The number of queries for that node.
+
+  .. attribute:: StatNode.servfails
+
+    The number of Server Failure answers returned for that node.
+
+  .. method:: StatNode:numChildren
+
+    The number of children of that node.
 
 SuffixMatchNode
 ~~~~~~~~~~~~~~~
