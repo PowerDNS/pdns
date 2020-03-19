@@ -1098,6 +1098,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
 
   h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
 
+  acceptCtx.d_ticketsKeyRotationDelay = tlsConfig.d_ticketsKeyRotationDelay;
   if (tlsConfig.d_ticketKeyFile.empty()) {
     acceptCtx.handleTicketsKeyRotation();
   }
