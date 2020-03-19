@@ -320,8 +320,8 @@ For Rules related to the incoming query:
 
   Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
 
-  :param Rule rule: A `Rule <#traffic-matching>`_
-  :param Action action: The `Action <#actions>`_ to apply to the matched traffic
+  :param Rule rule: A `Rule (see `Matching Packets (Selectors)`_)
+  :param Action action: The Action (see `Actions`_) to apply to the matched traffic
   :param table options: A table with key: value pairs with options.
 
   Options:
