@@ -273,6 +273,7 @@ chown -R pdns:pdns /var/lib/powerdns || :
 
 %post
 %if 0%{?rhel} >= 7
+systemctl daemon-reload ||:
 %systemd_post pdns.service
 %else
 /sbin/chkconfig --add pdns
