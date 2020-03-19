@@ -98,6 +98,7 @@ struct DOHFrontend
   HTTPVersionStats d_http1Stats;
   HTTPVersionStats d_http2Stats;
   bool d_sendCacheControlHeaders{true};
+  bool d_trustForwardedForHeader{false};
 
   time_t getTicketsKeyRotationDelay() const
   {
