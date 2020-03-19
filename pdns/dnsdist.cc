@@ -2193,6 +2193,10 @@ try
       // pre compute hashes
       auto backends = g_dstates.getLocal();
       for (auto& backend: *backends) {
+        if (backend->weight < 100) {
+          vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->weight);
+        }
+
         backend->hash();
       }
     }
