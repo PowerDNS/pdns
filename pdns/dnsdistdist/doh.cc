@@ -658,9 +658,11 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, string_view& value)
 {
   bool found = false;
+  /* early versions of boost::string_ref didn't have the ability to compare to string */
+  string_view headerNameView(headerName);
 
   for (size_t i = 0; i < req->headers.size; ++i) {
-    if (string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerName) {
+    if (string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerNameView) {
       value = string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
       /* don't stop there, we might have more than one header with the same name, and we want the last one */
       found = true;
@@ -680,7 +682,7 @@ static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote
       auto pos = value.rfind(',');
       if (pos != string_view::npos) {
         ++pos;
-        for (; pos < value.size() && value.at(pos) == ' '; ++pos)
+        for (; pos < value.size() && value[pos] == ' '; ++pos)
         {
         }
 
