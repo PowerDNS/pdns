@@ -1370,21 +1370,6 @@ jobs:
 
 workflows:
   version: 2
-  coverity:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only: master
-    jobs:
-      - coverity-auth:
-          context: auth-coverity
-      - coverity-dnsdist:
-          context: dnsdist-coverity
-      - coverity-recursor:
-          context: recursor-coverity
-
   build-and-test-all:
     jobs:
       - checkout
@@ -1427,24 +1412,6 @@ workflows:
       - check-formatting:
           requires:
             - checkout
-      - build-recursor:
-          requires:
-            - checkout
-      - test-recursor-regression:
-          requires:
-            - build-recursor
-      - test-recursor-bulk:
-          requires:
-            - build-recursor
-      - test-recursor-api:
-          requires:
-            - build-recursor
-      - build-dnsdist:
-          requires:
-            - checkout
-      - test-dnsdist-regression:
-          requires:
-            - build-dnsdist
       - test-ixfrdist-regression:
           requires:
             - build-auth
