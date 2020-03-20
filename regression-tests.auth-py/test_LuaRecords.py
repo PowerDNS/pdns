@@ -115,6 +115,8 @@ www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
 any              IN    LUA    A   "'192.0.2.1'"
 any              IN           TXT "hello there"
 
+resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}} for _,v in ipairs(r) do table.insert(t, v:toString()) end return t"
+
         """,
     }
     _web_rrsets = []
@@ -592,6 +594,22 @@ any              IN           TXT "hello there"
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(self.sortRRsets(res.answer), self.sortRRsets(response.answer))
+
+    def testResolve(self):
+        """
+        Test resolve() function
+        """
+        name = 'resolve.example.org.'
+
+        query = dns.message.make_query(name, 'A')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '127.0.0.1'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, response.answer)
 
 if __name__ == '__main__':
     unittest.main()
