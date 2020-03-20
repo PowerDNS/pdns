@@ -1273,6 +1273,16 @@ If you are looking for exact name matching, your might want to consider using a 
     :param string name: The suffix to add to the set.
     :param table name: The suffixes to add to the set. Elements of the table should be of the same type, either DNSName or string.
 
+  .. method:: SuffixMatchNode:remove(name)
+
+    .. versionadded:: 1.5.0
+
+    Remove a suffix from the current set.
+
+    :param DNSName name: The suffix to remove from the set.
+    :param string name: The suffix to remove from the set.
+    :param table name: The suffixes to remove from the set. Elements of the table should be of the same type, either DNSName or string.
+
   .. method:: SuffixMatchNode:check(name) -> bool
 
     Return true if the given name is a sub-domain of one of those in the set, and false otherwise.

@@ -258,6 +258,35 @@ void setupLuaBindings(bool client)
           return;
       }
   });
+  g_lua.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name)>("remove", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name) {
+      if (name.type() == typeid(DNSName)) {
+          auto n = boost::get<DNSName>(name);
+          smn.remove(n);
+          return;
+      }
+      if (name.type() == typeid(string)) {
+          auto n = boost::get<string>(name);
+          DNSName d(n);
+          smn.remove(d);
+          return;
+      }
+      if (name.type() == typeid(vector<pair<int, DNSName>>)) {
+          auto names = boost::get<vector<pair<int, DNSName>>>(name);
+          for (auto const n : names) {
+            smn.remove(n.second);
+          }
+          return;
+      }
+      if (name.type() == typeid(vector<pair<int, string>>)) {
+          auto names = boost::get<vector<pair<int, string>>>(name);
+          for (auto const n : names) {
+            DNSName d(n.second);
+            smn.remove(d);
+          }
+          return;
+      }
+  });
+
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
   /* Netmask */
