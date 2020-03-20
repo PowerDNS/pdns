@@ -149,12 +149,12 @@ public:
     row.reserve(PQnfields(d_res));
     for(i=0;i<PQnfields(d_res);i++) {
       if (PQgetisnull(d_res, d_residx, i)) {
-        row.push_back("");
+        row.emplace_back("");
       } else if (PQftype(d_res, i) == 16) { // BOOLEAN
         char *val = PQgetvalue(d_res, d_residx, i);
-        row.push_back(val[0] == 't' ? "1" : "0");
+        row.emplace_back(val[0] == 't' ? "1" : "0");
       } else {
-        row.push_back(string(PQgetvalue(d_res, d_residx, i)));
+        row.emplace_back(PQgetvalue(d_res, d_residx, i));
       }
     }
     d_residx++;
@@ -171,7 +171,7 @@ public:
     if (d_res == NULL) return this;
     result.reserve(d_resnum);
     row_t row;
-    while(hasNextRow()) { nextRow(row); result.push_back(row); }
+    while(hasNextRow()) { nextRow(row); result.push_back(std::move(row)); }
     return this;
   }
 

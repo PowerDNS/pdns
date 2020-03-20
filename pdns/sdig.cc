@@ -84,7 +84,7 @@ void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
 
   if (xpfcode) {
     ComboAddress src(xpfsrc), dst(xpfdst);
-    pw.startRecord(DNSName("."), xpfcode, 0, QClass::IN, DNSResourceRecord::ADDITIONAL);
+    pw.startRecord(g_rootdnsname, xpfcode, 0, QClass::IN, DNSResourceRecord::ADDITIONAL);
     // xpf->toPacket(pw);
     pw.xfr8BitInt(xpfversion);
     pw.xfr8BitInt(xpfproto);

@@ -114,7 +114,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
       for (auto &ip : ips)
       {
         ip.dr.d_name = aname;
-        r->addRecord(ip);
+        r->addRecord(std::move(ip));
       }
     }
 
@@ -262,7 +262,7 @@ void DNSProxy::mainloop(void)
                 dzr.dr.d_ttl=j->first.d_ttl;
                 dzr.dr.d_place= j->first.d_place;
                 dzr.dr.d_content=j->first.d_content;
-                i->second.complete->addRecord(dzr);
+                i->second.complete->addRecord(std::move(dzr));
               }
             }
           }

@@ -39,7 +39,7 @@ public:
   AuthQueryCache(size_t mapsCount=1024);
   ~AuthQueryCache();
 
-  void insert(const DNSName &qname, const QType& qtype, const vector<DNSZoneRecord>& content, uint32_t ttl, int zoneID);
+  void insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& content, uint32_t ttl, int zoneID);
 
   bool getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& entry, int zoneID);
 

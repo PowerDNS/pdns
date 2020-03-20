@@ -241,8 +241,8 @@ public:
 protected:
   bool createDomain(const DNSName &domain, const string &type, const string &masters, const string &account);
   string pattern2SQLPattern(const string& pattern);
-  void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
-  void extractComment(const SSqlStatement::row_t& row, Comment& c);
+  void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
+  void extractComment(SSqlStatement::row_t& row, Comment& c);
   bool isConnectionUsable() {
     if (d_db) {
       return d_db->isConnectionUsable();

@@ -125,7 +125,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
     rr.dr.d_name=p.qdomain;
     rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
     rr.auth=true;
-    r->addRecord(rr);
+    r->addRecord(std::move(rr));
     haveOne=true;
   }
 
@@ -134,7 +134,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.minimum;
-      r->addRecord(rr);
+      r->addRecord(std::move(rr));
       haveOne=true;
     }
   }
@@ -164,7 +164,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
     rr.dr.d_name=p.qdomain;
     rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
     rr.auth=true;
-    r->addRecord(rr);
+    r->addRecord(std::move(rr));
     haveOne=true;
   }
 
@@ -173,7 +173,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.minimum;
-      r->addRecord(rr);
+      r->addRecord(std::move(rr));
       haveOne=true;
     }
   }
@@ -216,7 +216,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SO
     }
     for(auto const &digestAlgo : digestAlgos){
       rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
-      r->addRecord(rr);
+      r->addRecord(DNSZoneRecord(rr));
       haveOne=true;
     }
   }
@@ -226,7 +226,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SO
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.minimum;
-      r->addRecord(rr);
+      r->addRecord(std::move(rr));
       haveOne=true;
     }
   }
@@ -247,7 +247,7 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
     ns3prc.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
     rr.dr.d_content=std::make_shared<NSEC3PARAMRecordContent>(ns3prc);
     rr.auth = true;
-    r->addRecord(rr);
+    r->addRecord(std::move(rr));
     return true;
   }
   return false;
@@ -300,7 +300,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
     rr.dr.d_name=target;
     rr.dr.d_type=QType::TXT;
     rr.dr.d_class=QClass::CHAOS;
-    r->addRecord(rr);
+    r->addRecord(std::move(rr));
     return 1;
   }
 
@@ -486,8 +486,10 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket& p, std::unique_ptr
         toAdd.push_back(rr);
       }
     }
-    for(const auto& rec : toAdd)
-      r->addRecord(rec);
+
+    for(auto& rec : toAdd) {
+      r->addRecord(std::move(rec));
+    }
     
     //records.insert(records.end(), toAdd.cbegin(), toAdd.cend()); // would be faster, but no dedup
   }
@@ -538,7 +540,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const SOAData& sd, c
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
-  r->addRecord(rr);
+  r->addRecord(std::move(rr));
 }
 
 void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode)
@@ -594,7 +596,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, 
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
-  r->addRecord(rr);
+  r->addRecord(std::move(rr));
 }
 
 /*
@@ -946,22 +948,10 @@ int PacketHandler::processNotify(const DNSPacket& p)
   return 0;
 }
 
-static bool validDNSName(const DNSName &name)
+static bool validDNSName(const DNSName& name)
 {
   if (!g_8bitDNS) {
-    string::size_type pos, length;
-    char c;
-    for(const auto& s : name.getRawLabels()) {
-      length=s.length();
-      for(pos=0; pos < length; ++pos) {
-        c=s[pos];
-        if(!((c >= 'a' && c <= 'z') ||
-             (c >= 'A' && c <= 'Z') ||
-             (c >= '0' && c <= '9') ||
-             c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@' || c==' ' || c=='\\' || c==':'))
-          return false;
-      }
-    }
+    return name.has8bitBytes() == false;
   }
   return true;
 }
@@ -991,7 +981,7 @@ void PacketHandler::makeNXDomain(DNSPacket& p, std::unique_ptr<DNSPacket>& r, co
   DNSZoneRecord rr;
   rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=sd.getNegativeTTL();
-  r->addRecord(rr);
+  r->addRecord(std::move(rr));
 
   if(d_dnssec) {
     addNSECX(p, r, target, wildcard, sd.qname, 4);
@@ -1005,7 +995,7 @@ void PacketHandler::makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
   DNSZoneRecord rr;
   rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=sd.getNegativeTTL();
-  r->addRecord(rr);
+  r->addRecord(std::move(rr));
 
   if(d_dnssec) {
     addNSECX(p, r, target, wildcard, sd.qname, mode);
@@ -1024,7 +1014,7 @@ bool PacketHandler::addDSforNS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
   while(B.get(rr)) {
     gotOne=true;
     rr.dr.d_place = DNSResourceRecord::AUTHORITY;
-    r->addRecord(rr);
+    r->addRecord(std::move(rr));
   }
   return gotOne;
 }
@@ -1034,16 +1024,17 @@ bool PacketHandler::tryReferral(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
   vector<DNSZoneRecord> rrset = getBestReferralNS(p, sd, target);
   if(rrset.empty())
     return false;
-  
+
+  DNSName name = rrset.begin()->dr.d_name;
   for(auto& rr: rrset) {
     rr.dr.d_place=DNSResourceRecord::AUTHORITY;
-    r->addRecord(rr);
+    r->addRecord(std::move(rr));
   }
   if(!retargeted)
     r->setA(false);
 
-  if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name) && d_dnssec) {
-    addNSECX(p, r, rrset.begin()->dr.d_name, DNSName(), sd.qname, 1);
+  if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, name) && d_dnssec) {
+    addNSECX(p, r, name, DNSName(), sd.qname, 1);
   }
 
   return true;
@@ -1069,7 +1060,7 @@ bool PacketHandler::tryDNAME(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
   if(!rrset.empty()) {
     for(auto& rr: rrset) {
       rr.dr.d_place = DNSResourceRecord::ANSWER;
-      r->addRecord(rr);
+      r->addRecord(std::move(rr));
     }
     return true;
   }
@@ -1099,7 +1090,7 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
       }
   
       rr.dr.d_place=DNSResourceRecord::ANSWER;
-      r->addRecord(rr);
+      r->addRecord(std::move(rr));
     }
   }
   if(d_dnssec && !nodata) {
@@ -1314,7 +1305,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     if(p.qtype.getCode() == QType::SOA && sd.qname==p.qdomain) {
       rr=makeEditedDNSZRFromSOAData(d_dk, sd);
-      r->addRecord(rr);
+      r->addRecord(std::move(rr));
       goto sendit;
     }
 
@@ -1509,7 +1500,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(weRedirected) {
       for(auto& loopRR: rrset) {
         if(loopRR.dr.d_type == QType::CNAME) {
-          r->addRecord(loopRR);
+          r->addRecord(DNSZoneRecord(loopRR));
           target = getRR<CNAMERecordContent>(loopRR.dr)->getTarget();
           retargetcount++;
           goto retargeted;
@@ -1524,7 +1515,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
             continue;
 #endif
         if((p.qtype.getCode() == QType::ANY || loopRR.dr.d_type == p.qtype.getCode()) && loopRR.dr.d_type && loopRR.dr.d_type != QType::ALIAS && loopRR.auth) {
-          r->addRecord(loopRR);
+          r->addRecord(DNSZoneRecord(loopRR));
           haveRecords = true;
         }
       }
