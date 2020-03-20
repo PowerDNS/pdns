@@ -11,6 +11,8 @@ These chapters contain information on the advanced features of dnsdist
    luaaction
    timedipsetrule
    ecs
+   xpf
+   proxyprotocol
    qpslimits
    ebpf
    tuning
