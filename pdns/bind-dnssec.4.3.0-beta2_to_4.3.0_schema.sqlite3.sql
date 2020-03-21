@@ -8,7 +8,7 @@ BEGIN TRANSACTION;
     content             TEXT
   );
 
-  INSERT INTO cryptokeys_temp SELECT id,domain,flags,active,1,content FROM cryptokeys;
+  INSERT INTO cryptokeys_temp SELECT id,domain,flags,active,published,content FROM cryptokeys;
   DROP TABLE cryptokeys;
   ALTER TABLE cryptokeys_temp RENAME TO cryptokeys;
 

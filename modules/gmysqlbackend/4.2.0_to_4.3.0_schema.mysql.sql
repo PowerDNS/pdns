@@ -1,2 +1,1 @@
-ALTER TABLE cryptokeys ADD COLUMN published BOOL DEFAULT 1;
-
+ALTER TABLE cryptokeys ADD published BOOL NULL DEFAULT 1 AFTER active;
