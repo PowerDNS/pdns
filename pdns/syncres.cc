@@ -53,6 +53,7 @@ unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
 unsigned int SyncRes::s_maxcachettl;
 unsigned int SyncRes::s_maxqperq;
+unsigned int SyncRes::s_maxnsaddressqperq;
 unsigned int SyncRes::s_maxtotusec;
 unsigned int SyncRes::s_maxdepth;
 unsigned int SyncRes::s_minimumTTL;
@@ -909,7 +910,7 @@ struct speedOrderCA
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS)
 {
   typedef vector<DNSRecord> res_t;
   typedef vector<ComboAddress> ret_t;
@@ -918,6 +919,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   bool oldCacheOnly = setCacheOnly(cacheOnly);
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
+  const unsigned int startqueries = d_outqueries;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
 
@@ -968,6 +970,10 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
        of a NS and keep processing the current query */
   }
 
+  if (ret.empty() && d_outqueries > startqueries) {
+    // We did 1 or more outgoing queries to resolve this NS name but returned empty handed
+    addressQueriesForNS++;
+  }
   d_requireAuthData = oldRequireAuthData;
   d_DNSSECValidationRequested = oldValidationRequested;
   setCacheOnly(oldCacheOnly);
@@ -1839,13 +1845,13 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &retrieveAddressesForNS)
 {
   vector<ComboAddress> result;
 
   if(!tns->first.empty()) {
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-    result = getAddrs(tns->first, depth+2, beenthere, cacheOnly);
+    result = getAddrs(tns->first, depth+2, beenthere, cacheOnly, retrieveAddressesForNS);
     pierceDontQuery=false;
   }
   else {
@@ -3444,10 +3450,24 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
   LOG(endl);
 
+  unsigned int addressQueriesForNS = 0;
   for(;;) { // we may get more specific nameservers
     auto rnameservers = shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname.toString()+": ") : string() );
 
+    // We allow s_maxnsaddressqperq (default 10) queries with empty responses when resolving NS names.
+    // If a zone publishes many (more than s_maxnsaddressqperq) NS records, we allow less.
+    // This is to "punish" zones that publish many non-resolving NS names.
+    // We always allow 5 NS name resolving attempts with empty results.
+    unsigned int nsLimit = s_maxnsaddressqperq;
+    if (rnameservers.size() > nsLimit) {
+      int newLimit = static_cast<int>(nsLimit) - (rnameservers.size() - nsLimit);
+      nsLimit = std::max(5, newLimit);
+    }
+
     for(auto tns=rnameservers.cbegin();;++tns) {
+      if (addressQueriesForNS >= nsLimit) {
+        throw ImmediateServFailException(std::to_string(nsLimit)+" (adjusted max-ns-address-qperq) or more queries with empty results for NS addresses sent resolving "+qname.toLogString());
+      }
       if(tns==rnameservers.cend()) {
         LOG(prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
         if(!auth.isRoot() && flawedNSSet) {
@@ -3503,7 +3523,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
       }
       else {
         /* if tns is empty, retrieveAddressesForNS() knows we have hardcoded servers (i.e. "forwards") */
-        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly);
+        remoteIPs = retrieveAddressesForNS(prefix, qname, tns, depth, beenthere, rnameservers, nameservers, sendRDQuery, pierceDontQuery, flawedNSSet, cacheOnly, addressQueriesForNS);
 
         if(remoteIPs.empty()) {
           LOG(prefix<<qname<<": Failed to get IP for NS "<<tns->first<<", trying next if available"<<endl);
