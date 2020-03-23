@@ -1577,11 +1577,23 @@ endif
 if !HAVE_SYSTEMD_PRIVATE_TMP
 	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateTmp/' $@
 endif
+if !HAVE_SYSTEMD_PRIVATE_USERS
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateUsers/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_CLOCK
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectClock/' $@
+endif
 if !HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectControlGroups/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_HOME
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHome/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_HOSTNAME
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHostname/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_LOGS
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelLogs/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_KERNEL_MODULES
 	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelModules/' $@
@@ -1600,6 +1612,9 @@ if !HAVE_SYSTEMD_RESTRICT_NAMESPACES
 endif
 if !HAVE_SYSTEMD_RESTRICT_REALTIME
 	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictRealtime/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_SUIDSGID
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictSUIDSGID/' $@
 endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
 	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallArchitectures/' $@
