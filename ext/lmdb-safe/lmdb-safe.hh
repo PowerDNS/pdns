@@ -13,7 +13,7 @@
 #include <algorithm>
 
 // apple compiler somehow has string_view even in c++11!
-#if __cplusplus < 201703L && !defined(__APPLE__)
+#if __cplusplus < 201703L && !defined(__APPLE__) && !defined(__OpenBSD__) && !defined(__FreeBSD__)
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 106100
 #include <boost/utility/string_view.hpp>
