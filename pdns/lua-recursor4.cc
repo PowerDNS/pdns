@@ -34,95 +34,6 @@
 
 RecursorLua4::RecursorLua4() { prepareContext(); }
 
-static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
-{
-  int rcode=directResolve(qname, QType(QType::A), 1, ret);
-
-  ComboAddress prefixAddress(prefix);
-
-  // Remove double CNAME records
-  std::set<DNSName> seenCNAMEs;
-  ret.erase(std::remove_if(
-        ret.begin(),
-        ret.end(),
-        [&seenCNAMEs](DNSRecord& rr) {
-          if (rr.d_type == QType::CNAME) {
-            auto target = getRR<CNAMERecordContent>(rr);
-            if (target == nullptr) {
-              return false;
-            }
-            if (seenCNAMEs.count(target->getTarget()) > 0) {
-              // We've had this CNAME before, remove it
-              return true;
-            }
-            seenCNAMEs.insert(target->getTarget());
-          }
-          return false;
-        }),
-      ret.end());
-
-  bool seenA = false;
-  for(DNSRecord& rr :  ret)
-  {
-    if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
-      if(auto rec = getRR<ARecordContent>(rr)) {
-        ComboAddress ipv4(rec->getCA());
-        uint32_t tmp;
-        memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
-        // tmp=htonl(tmp);
-        memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
-        rr.d_content = std::make_shared<AAAARecordContent>(prefixAddress);
-        rr.d_type = QType::AAAA;
-      }
-      seenA = true;
-    }
-  }
-
-  if (seenA) {
-    // We've seen an A in the ANSWER section, so there is no need to keep any
-    // SOA in the AUTHORITY section as this is not a NODATA response.
-    ret.erase(std::remove_if(
-          ret.begin(),
-          ret.end(),
-          [](DNSRecord& rr) {
-            return (rr.d_type == QType::SOA && rr.d_place==DNSResourceRecord::AUTHORITY);
-          }),
-        ret.end());
-  }
-  return rcode;
-}
-
-static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
-{
-  /* qname has a reverse ordered IPv6 address, need to extract the underlying IPv4 address from it
-     and turn it into an IPv4 in-addr.arpa query */
-  ret.clear();
-  vector<string> parts = qname.getRawLabels();
-
-  if(parts.size() < 8)
-    return -1;
-
-  string newquery;
-  for(int n = 0; n < 4; ++n) {
-    newquery +=
-      std::to_string(stoll(parts[n*2], 0, 16) + 16*stoll(parts[n*2+1], 0, 16));
-    newquery.append(1,'.');
-  }
-  newquery += "in-addr.arpa.";
-
-
-  DNSRecord rr;
-  rr.d_name = qname;
-  rr.d_type = QType::CNAME;
-  rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
-  ret.push_back(rr);
-
-  int rcode = directResolve(DNSName(newquery), QType(QType::PTR), 1, ret);
-
-  return rcode;
-
-}
-
 boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
 {
   if (dh)
@@ -662,10 +573,10 @@ loop:;
         ret = followCNAMERecords(dq.records, QType(dq.qtype));
       }
       else if(dq.followupFunction=="getFakeAAAARecords") {
-        ret=getFakeAAAARecords(dq.followupName, dq.followupPrefix, dq.records);
+        ret=getFakeAAAARecords(dq.followupName, ComboAddress(dq.followupPrefix), dq.records);
       }
       else if(dq.followupFunction=="getFakePTRRecords") {
-        ret=getFakePTRRecords(dq.followupName, dq.followupPrefix, dq.records);
+        ret=getFakePTRRecords(dq.followupName, dq.records);
       }
       else if(dq.followupFunction=="udpQueryResponse") {
         dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);

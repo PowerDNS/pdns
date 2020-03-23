@@ -372,6 +372,20 @@ If `pdns-distributes-queries`_ is set, spawn this number of distributor threads 
 handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
 ratio.
 
+.. _setting-dns64-prefix:
+
+``dns64-prefix``
+----------------
+.. versionadded:: 4.4.0
+
+-  Netmask, as a string
+-  Default: None
+
+Enable DNS64 (:rfc:`6147`) support using the supplied /96 IPv6 prefix. This will generate 'fake' AAAA records for names
+with only `A` records, as well as 'fake' PTR records to make sure that reverse lookup of DNS64-generated IPv6 addresses
+generate the right name.
+See :doc:`dns64` for more flexible but slower alternatives using Lua.
+
 .. _setting-dnssec:
 
 ``dnssec``

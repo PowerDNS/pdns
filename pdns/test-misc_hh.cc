@@ -8,10 +8,13 @@
 #include <boost/assign/list_of.hpp>
 
 #include <boost/tuple/tuple.hpp>
-#include "misc.hh"
-#include "dns.hh"
+
 #include <arpa/inet.h>
-#include <utility>
+
+#include "dns.hh"
+#include "iputils.hh"
+#include "misc.hh"
+#include "utility.hh"
 
 using std::string;
 
@@ -202,5 +205,12 @@ BOOST_AUTO_TEST_CASE(test_rfc1982LessThan) {
   BOOST_CHECK(rfc1982check<uint64_t>(UINT64_MAX/2, UINT64_MAX-10));
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_CASE(test_reverse_name_to_ip)
+{
+  static const ComboAddress v4("192.0.2.1");
+  static const ComboAddress v6("2001:DB8::42");
+  BOOST_CHECK_EQUAL(reverseNameFromIP(v4).toString(), "1.2.0.192.in-addr.arpa.");
+  BOOST_CHECK_EQUAL(reverseNameFromIP(v6).toString(), "2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.");
+}
 
+BOOST_AUTO_TEST_SUITE_END()

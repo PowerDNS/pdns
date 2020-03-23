@@ -9,7 +9,8 @@ However, if ``example.com`` does not actually have an IPv6 address, what we do i
 We do this by retrieving the A records for ``www.example.com``, and translating them to AAAA records.
 Elsewhere, a NAT64 device listens on these IPv6 addresses, and extracts the IPv4 address from each packet, and proxies it on.
 
-For maximum flexibility, DNS64 support is included in the :doc:`lua-scripting/index`.
+As of 4.4.0, an efficient implementation is built the recursor and can be enabled via the using the :ref:`dns64-prefix setting <setting-dns64-prefix>`.
+On earlier versions or for maximum flexibility, DNS64 support is included in the :doc:`lua-scripting/index`.
 This allows for example to hand out custom IPv6 gateway ranges depending on the location of the requestor, enabling the use of NAT64 services close to the user.
 
 Apart from faking AAAA records, it is also possible to also generate the associated PTR records.

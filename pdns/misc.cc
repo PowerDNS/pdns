@@ -1613,3 +1613,30 @@ bool setPipeBufferSize(int fd, size_t size)
   return false;
 #endif /* F_SETPIPE_SZ */
 }
+
+DNSName reverseNameFromIP(const ComboAddress& ip)
+{
+  if (ip.isIPv4()) {
+    std::string result("in-addr.arpa.");
+    auto ptr = reinterpret_cast<const uint8_t*>(&ip.sin4.sin_addr.s_addr);
+    for (size_t idx = 0; idx < sizeof(ip.sin4.sin_addr.s_addr); idx++) {
+      result = std::to_string(ptr[idx]) + "." + result;
+    }
+    return DNSName(result);
+  }
+  else if (ip.isIPv6()) {
+    std::string result("ip6.arpa.");
+    auto ptr = reinterpret_cast<const uint8_t*>(&ip.sin6.sin6_addr.s6_addr[0]);
+    for (size_t idx = 0; idx < sizeof(ip.sin6.sin6_addr.s6_addr); idx++) {
+      std::stringstream stream;
+      stream << std::hex << (ptr[idx] & 0x0F);
+      stream << '.';
+      stream << std::hex << (((ptr[idx]) >> 4) & 0x0F);
+      stream << '.';
+      result = stream.str() + result;
+    }
+    return DNSName(result);
+  }
+
+  throw std::runtime_error("Calling reverseNameFromIP() for an address which is neither an IPv4 nor an IPv6");
+}
