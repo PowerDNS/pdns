@@ -941,6 +941,10 @@ at a minimum to allow for the extra queries qname-minimization generates when th
 
 ``max-ns-address-qperq``
 ------------------------
+.. versionadded:: 4.1.16
+.. versionadded:: 4.2.2
+.. versionadded:: 4.3.1
+
 -  Integer
 -  Default: 10
 
