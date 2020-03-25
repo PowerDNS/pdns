@@ -452,73 +452,85 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
       continue;
     }
 
-    g_log<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
+    try {
+      g_log<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
-    oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
-    /* we need to make a _full copy_ of the zone we are going to work on */
-    std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
+      oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
+      /* we need to make a _full copy_ of the zone we are going to work on */
+      std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
+      std::shared_ptr<SOARecordContent> newSR{nullptr};
 
-    int totremove=0, totadd=0;
-    bool fullUpdate = false;
-    for(const auto& delta : deltas) {
-      const auto& remove = delta.first;
-      const auto& add = delta.second;
-      if(remove.empty()) {
-        g_log<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
-        newZone->clear();
-        fullUpdate = true;
-      }
-      for(const auto& rr : remove) { // should always contain the SOA
-        if(rr.d_type == QType::NS)
-          continue;
-	if(rr.d_type == QType::SOA) {
-	  auto oldsr = getRR<SOARecordContent>(rr);
-	  if(oldsr && oldsr->d_st.serial == sr->d_st.serial) {
-	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
-	  }
-	  else
-	    g_log<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
-	}
-	else {
-          totremove++;
-	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
-	  RPZRecordToPolicy(rr, newZone, false, defpol, defpolOverrideLocal, maxTTL);
-	}
+      int totremove=0, totadd=0;
+      bool fullUpdate = false;
+      for(const auto& delta : deltas) {
+        const auto& remove = delta.first;
+        const auto& add = delta.second;
+        if(remove.empty()) {
+          g_log<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
+          newZone->clear();
+          fullUpdate = true;
+        }
+        for(const auto& rr : remove) { // should always contain the SOA
+          if(rr.d_type == QType::NS)
+            continue;
+          if(rr.d_type == QType::SOA) {
+            auto oldsr = getRR<SOARecordContent>(rr);
+            if(oldsr && oldsr->d_st.serial == sr->d_st.serial) {
+              //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
+            }
+            else
+              g_log<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
+          }
+          else {
+            totremove++;
+            g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
+            RPZRecordToPolicy(rr, newZone, false, defpol, defpolOverrideLocal, maxTTL);
+          }
+        }
+
+        for(const auto& rr : add) { // should always contain the new SOA
+          if(rr.d_type == QType::NS)
+            continue;
+          if(rr.d_type == QType::SOA) {
+            auto tempSR = getRR<SOARecordContent>(rr);
+            //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
+            if (tempSR) {
+              newSR = tempSR;
+            }
+          }
+          else {
+            totadd++;
+            g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
+            RPZRecordToPolicy(rr, newZone, true, defpol, defpolOverrideLocal, maxTTL);
+          }
+        }
       }
 
-      for(const auto& rr : add) { // should always contain the new SOA
-        if(rr.d_type == QType::NS)
-          continue;
-	if(rr.d_type == QType::SOA) {
-	  auto newsr = getRR<SOARecordContent>(rr);
-	  //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
-	  if (newsr) {
-	    sr = newsr;
-	  }
-	}
-	else {
-          totadd++;
-	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
-	  RPZRecordToPolicy(rr, newZone, true, defpol, defpolOverrideLocal, maxTTL);
-	}
+      /* only update sr now that all changes have been converted */
+      if (newSR) {
+        sr = newSR;
       }
+
+      g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
+      newZone->setSerial(sr->d_st.serial);
+      newZone->setRefresh(sr->d_st.refresh);
+      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), fullUpdate);
+
+      /* we need to replace the existing zone with the new one,
+         but we don't want to touch anything else, especially other zones,
+         since they might have been updated by another RPZ IXFR tracker thread.
+      */
+      g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
+                          lci.dfe.setZone(zoneIdx, newZone);
+                        });
+
+      if (!dumpZoneFileName.empty()) {
+        dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
+      }
+      refresh = std::max(refreshFromConf ? refreshFromConf :  newZone->getRefresh(), 1U);
     }
-    g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
-    newZone->setSerial(sr->d_st.serial);
-    newZone->setRefresh(sr->d_st.refresh);
-    setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), fullUpdate);
-
-    /* we need to replace the existing zone with the new one,
-       but we don't want to touch anything else, especially other zones,
-       since they might have been updated by another RPZ IXFR tracker thread.
-    */
-    g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
-                        lci.dfe.setZone(zoneIdx, newZone);
-                      });
-
-    if (!dumpZoneFileName.empty()) {
-      dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
+    catch (const std::exception& e) {
+      g_log << Logger::Error << "Error while applying the update received over XFR for "<<zoneName<<", skipping the update: "<< e.what() <<endl;
     }
-    refresh = std::max(refreshFromConf ? refreshFromConf :  newZone->getRefresh(), 1U);
   }
 }
