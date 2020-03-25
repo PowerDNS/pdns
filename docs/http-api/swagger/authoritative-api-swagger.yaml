@@ -1033,7 +1033,7 @@ definitions:
 
   TSIGKey:
     title: TSIGKey
-    description: A TSIG key that can be used to authenticate NOTIFYs and AXFRs
+    description: A TSIG key that can be used to authenticate NOTIFY, AXFR, and DNSUPDATE queries.
     properties:
       name:
         type: string
