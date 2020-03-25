@@ -510,7 +510,6 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
       if (newSR) {
         sr = newSR;
       }
-
       g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
       newZone->setSerial(sr->d_st.serial);
       newZone->setRefresh(sr->d_st.refresh);
