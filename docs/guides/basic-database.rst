@@ -68,7 +68,7 @@ Now, let's add a zone and some records:
 
 .. code-block:: shell
 
-    $  create-zone example.org ns1.example.com
+    $ pdnsutil create-zone example.org ns1.example.com
     Creating empty zone 'example.com'
     Also adding one NS record
     $ pdnsutil add-record example.com '' MX '25 mail.example.com'
