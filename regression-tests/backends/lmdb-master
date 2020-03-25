@@ -29,6 +29,11 @@ __EOF__
                         $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
                     fi
                     securezone $zone lmdb
+                    if [ $zone = hiddencryptokeys.org ]
+                    then
+                        keyid=$($PDNSUTIL --config-dir=. --config-name=lmdb list-keys $zone | grep hiddencryptokeys.org | awk '{ print $5 }')
+                        $PDNSUTIL --config-dir=. --config-name=lmdb unpublish-zone-key $zone $keyid
+                    fi
                     if [ $zone = cryptokeys.org ]
                     then
                         $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 384 active unpublished ecdsa384
