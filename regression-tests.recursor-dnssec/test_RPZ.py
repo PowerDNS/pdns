@@ -52,7 +52,8 @@ class RPZServer(object):
         elif message.question[0].rdtype == dns.rdatatype.IXFR:
             oldSerial = message.authority[0][0].serial
 
-            if oldSerial != self._currentSerial:
+            # special case for the 9th update, which might get skipped
+            if oldSerial != self._currentSerial and self._currentSerial != 9:
                 print('Received an IXFR query with an unexpected serial %d, expected %d' % (oldSerial, self._currentSerial))
                 return (None, self._currentSerial)
 
@@ -122,6 +123,23 @@ class RPZServer(object):
                 # this one is a bit special too, we are answering with a full AXFR and the new zone is empty
                 records = [
                     dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial),
+                    dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial)
+                    ]
+            elif newSerial == 9:
+                # IXFR inserting a duplicate, we should not crash and skip it
+                records = [
+                    dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial),
+                    dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % oldSerial),
+                    dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial),
+                    dns.rrset.from_text('dup.example.zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.CNAME, 'rpz-passthru.'),
+                    dns.rrset.from_text('dup.example.zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.CNAME, 'rpz-passthru.'),
+                    dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial)
+                    ]
+            elif newSerial == 10:
+                # full AXFR to make sure we are removing the duplicate, adding a record, to the that the update was correctly applied
+                records = [
+                    dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial),
+                    dns.rrset.from_text('f.example.zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'),
                     dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial)
                     ]
 
@@ -452,6 +470,21 @@ e 3600 IN A 192.0.2.42
         self.checkNotBlocked('d.example.')
         self.checkNotBlocked('e.example.')
         self.checkNXD('f.example.')
+        self.checkNXD('tc.example.')
+        self.checkNXD('drop.example.')
+
+        # 9th zone is a duplicate, it might get skipped
+        global rpzServer
+        rpzServer.moveToSerial(9)
+        time.sleep(3)
+        self.waitUntilCorrectSerialIsLoaded(10)
+        self.checkRPZStats(10, 1, 4, self._xfrDone)
+        self.checkNotBlocked('a.example.')
+        self.checkNotBlocked('b.example.')
+        self.checkNotBlocked('c.example.')
+        self.checkNotBlocked('d.example.')
+        self.checkNotBlocked('e.example.')
+        self.checkBlocked('f.example.')
         self.checkNXD('tc.example.')
         self.checkNXD('drop.example.')
 
