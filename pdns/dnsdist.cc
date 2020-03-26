@@ -1844,14 +1844,15 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
 #endif
   }
 
-  if (!cs->tcp) {
-    if (cs->local.isIPv4()) {
-      try {
-        setSocketIgnorePMTU(cs->udpFD);
-      }
-      catch(const std::exception& e) {
-        warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", cs->local.toStringWithPort(), e.what());
-      }
+  /* Only set this on IPv4 UDP sockets.
+     Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
+     purposes, so we do receive large, sometimes fragmented datagrams. */
+  if (!cs->tcp && cs->local.isIPv4() && !cs->dnscryptCtx) {
+    try {
+      setSocketIgnorePMTU(cs->udpFD);
+    }
+    catch(const std::exception& e) {
+      warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", cs->local.toStringWithPort(), e.what());
     }
   }
 
