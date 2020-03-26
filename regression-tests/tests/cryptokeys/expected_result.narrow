@@ -5,10 +5,10 @@
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='cryptokeys.org.', qtype=DNSKEY
-1	hiddencryptokeys.org.	IN	NSEC	3600	hiddencryptokeys.org. A NS SOA RRSIG NSEC
-1	hiddencryptokeys.org.	IN	RRSIG	3600	NSEC 13 2 3600 [expiry] [inception] [keytag] hiddencryptokeys.org. ...
 1	hiddencryptokeys.org.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] hiddencryptokeys.org. ...
 1	hiddencryptokeys.org.	IN	SOA	3600	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
+1	vd844e5oi5854h79fnaa0f80nqo8brf0.hiddencryptokeys.org.	IN	NSEC3	3600	1 [flags] 1 abcd VD844E5OI5854H79FNAA0F80NQO8BRF1 A NS SOA RRSIG NSEC3PARAM
+1	vd844e5oi5854h79fnaa0f80nqo8brf0.hiddencryptokeys.org.	IN	RRSIG	3600	NSEC3 13 3 3600 [expiry] [inception] [keytag] hiddencryptokeys.org. ...
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='hiddencryptokeys.org.', qtype=DNSKEY
