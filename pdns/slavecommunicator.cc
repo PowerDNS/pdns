@@ -141,8 +141,8 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         vector<DNSRecord> rrset;
         {
           DNSZoneRecord zrr;
-          B.lookup(QType(g.first.second), g.first.first+domain, 0, di.id);
-          while(B.get(zrr)) {
+          di.backend->lookup(QType(g.first.second), g.first.first+domain, 0, di.id);
+          while(di.backend->get(zrr)) {
             zrr.dr.d_name.makeUsRelative(domain);
             rrset.push_back(zrr.dr);
           }
