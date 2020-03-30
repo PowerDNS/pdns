@@ -77,7 +77,7 @@ CREATE TABLE cryptokeys (
   domain_id             INT REFERENCES domains(id) ON DELETE CASCADE,
   flags                 INT NOT NULL,
   active                BOOL,
-  published             BOOL DEFAULT true,
+  published             BOOL DEFAULT TRUE,
   content               TEXT
 );
 
