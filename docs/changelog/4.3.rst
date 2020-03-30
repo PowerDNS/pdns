@@ -2,6 +2,39 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0
+  :released: 7th of April 2020
+
+  This is version 4.3.0 of the Authoritative Server.
+  It contains all changes mentioned in the alpha, beta and RC versions below, plus two more bugfixes.
+
+  If you are upgrading from beta2 or rc2, AND ONLY THEN, please read `pull request #8975 <https://github.com/PowerDNS/pdns/pull/8975>`__ very carefully.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8977
+
+    avoid IXFR-in record duplication
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8975
+
+    improve sql schema updates
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8951
+
+    reduce the number of temporary memory allocations
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8973
+
+    Fix NSECx for unpublished DNSKEYs properly
+
+.. changelog::
   :version: 4.3.0-rc2
   :released: 18th of March 2020
 
