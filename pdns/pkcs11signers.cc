@@ -15,6 +15,7 @@
 #include "pdns/lock.hh"
 
 #ifdef HAVE_LIBCRYPTO_ECDSA
+#include <openssl/bn.h>
 #include <openssl/ec.h>
 #endif
 
