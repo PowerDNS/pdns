@@ -7,7 +7,7 @@ Make sure the SQLite3 backend is installed:
 
 .. code-block:: shell
 
-    $ sudo apt-get install pdns-backend-sqlite3
+    sudo apt-get install pdns-backend-sqlite3
 
 or
 
@@ -164,4 +164,3 @@ came in on. In such cases, use :ref:`setting-local-address` to bind to specific 
 addresses, which can be comma separated. The second error comes from
 remotes disregarding answers to questions it didn't ask to that IP
 address and sending back ICMP errors.
-
