@@ -15,7 +15,7 @@ or
 
     sudo yum install pdns-backend-sqlite
 
-This backend is called 'gsqlite3', and needs to be configured in ``pdns.conf``.
+This backend is called :doc:`'gsqlite3 <../../backends/gsqlite3>'`, and needs to be configured in ``pdns.conf``.
 Add the following lines, adjusted for your local setup:
 
 .. code-block:: ini
