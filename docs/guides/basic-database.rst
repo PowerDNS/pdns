@@ -29,9 +29,9 @@ Now create the database (on RPM systems, the schema path is ``/usr/share/doc/pdn
 
 .. code-block:: shell
 
-    $ sudo mkdir /var/lib/powerdns
-    $ sudo sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/share/doc/pdns-backend-sqlite3/schema.sqlite3.sql
-    $ sudo chown -R pdns:pdns /var/lib/powerdns
+    sudo mkdir /var/lib/powerdns
+    sudo sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/share/doc/pdns-backend-sqlite3/schema.sqlite3.sql
+    sudo chown -R pdns:pdns /var/lib/powerdns
 
 And start PowerDNS
 
