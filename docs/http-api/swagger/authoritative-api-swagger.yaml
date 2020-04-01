@@ -443,7 +443,7 @@ paths:
 
   '/servers/{server_id}/zones/{zone_id}/metadata':
     get:
-      summary: Get all the MetaData associated with the zone.
+      summary: 'Get all the Metadata associated with the zone.'
       operationId: listMetadata
       tags:
         - zonemetadata
@@ -482,20 +482,18 @@ paths:
           in: path
           required: true
         - name: metadata
-          description: List of metadata to add/create
+          description: Metadata object with list of values to create
           required: true
           in: body
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/Metadata'
+            $ref: '#/definitions/Metadata'
       responses:
         '204':
           description: OK
 
   '/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}':
     get:
-      summary: Get the content of a single kind of domain metadata as a list of MetaData objects.
+      summary: 'Get the content of a single kind of domain metadata as a Metadata object.'
       operationId: getMetadata
       tags:
         - zonemetadata
@@ -514,14 +512,15 @@ paths:
           type: string
           in: path
           required: true
-          description: '???'
+          description: The kind of metadata
       responses:
         '200':
-          description: List of Metadata objects
+          description: Metadata object with list of values
           schema:
             $ref: '#/definitions/Metadata'
     put:
-      summary: 'Modify the content of a single kind of domain metadata.'
+      summary: 'Replace the content of a single kind of domain metadata.'
+      description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed.'
       operationId: modifyMetadata
       tags:
         - zonemetadata
@@ -569,7 +568,7 @@ paths:
           type: string
           in: path
           required: true
-          description: '???'
+          description: The kind of metadata
       responses:
         '204':
           description: OK
