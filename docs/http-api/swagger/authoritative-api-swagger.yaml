@@ -546,8 +546,10 @@ paths:
           schema:
             $ref: '#/definitions/Metadata'
       responses:
-        '204':
-          description: OK
+        '200':
+          description: Metadata object with list of values
+          schema:
+            $ref: '#/definitions/Metadata'
     delete:
       summary: 'Delete all items of a single kind of domain metadata.'
       operationId: deleteMetadata
