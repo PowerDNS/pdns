@@ -29,7 +29,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
-  if (size > std::numeric_limits<uint16_t>::max()) {
+  if (size > std::numeric_limits<uint16_t>::max() || size < sizeof(dnsheader)) {
     return 0;
   }
 

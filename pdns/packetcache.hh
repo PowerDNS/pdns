@@ -76,7 +76,7 @@ public:
     uint16_t optionLen;
 
     while (pos < packetSize && rdataRead < rdLen && getNextEDNSOption(&packet.at(pos), rdLen - rdataRead, optionCode, optionLen)) {
-      if (optionLen > (rdLen - rdataRead)) {
+      if (optionLen > (rdLen - rdataRead - 4)) {
         if (packetSize > pos) {
           currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
         }
