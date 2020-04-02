@@ -47,5 +47,7 @@ typedef std::map<uint16_t, EDNSOptionView> EDNSOptionViewMap;
 int getEDNSOptions(const char* optRR, size_t len, EDNSOptionViewMap& options);
 /* extract all EDNS0 options from the content (so after rdLen) of the OPT RR */
 bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair<uint16_t, std::string>>& options);
+/* parse the next EDNS option and the return the code and length. data should point to the beginning of the option code, dataLen should be maximum length of the data (minimum of remaining size in packet and remaining size in rdata) */
+bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, uint16_t& optionLen);
 
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res);

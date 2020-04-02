@@ -165,7 +165,7 @@ try
        we directly compute the hash instead of querying the
        cache because 1/ it's faster 2/ no deferred-lookup issues
     */
-    q.setHash(g_PC->canHashPacket(q.getString()));
+    q.setHash(g_PC->canHashPacket(q.getString(), false));
 
     const unsigned int maxTTL = 3600;
     g_PC->insert(q, r, maxTTL);

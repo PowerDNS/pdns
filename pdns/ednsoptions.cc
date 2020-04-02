@@ -23,6 +23,23 @@
 #include "ednsoptions.hh"
 #include "iputils.hh"
 
+bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, uint16_t& optionLen)
+{
+  if (data == nullptr || dataLen < (sizeof(uint16_t) + sizeof(uint16_t))) {
+    return false;
+  }
+
+  size_t pos = 0;
+
+  optionCode = (static_cast<unsigned char>(data[pos]) * 256) + static_cast<unsigned char>(data[pos + 1]);
+  pos += EDNS_OPTION_CODE_SIZE;
+
+  optionLen = (static_cast<unsigned char>(data[pos]) * 256) + static_cast<unsigned char>(data[pos + 1]);
+  pos += EDNS_OPTION_LENGTH_SIZE;
+
+  return true;
+}
+
 /* extract a specific EDNS0 option from a pointer on the beginning rdLen of the OPT RR */
 int getEDNSOption(char* optRR, const size_t len, uint16_t wantedOption, char ** optionValue, size_t * optionValueSize)
 {
@@ -42,14 +59,20 @@ int getEDNSOption(char* optRR, const size_t len, uint16_t wantedOption, char ** 
 
   while(len >= (pos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE) &&
         rdLen >= (rdPos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
-    const uint16_t optionCode = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
+    uint16_t optionCode;
+    uint16_t optionLen;
+    if (!getNextEDNSOption(optRR + pos, len-pos, optionCode, optionLen)) {
+      break;
+    }
+
     pos += EDNS_OPTION_CODE_SIZE;
     rdPos += EDNS_OPTION_CODE_SIZE;
-    const uint16_t optionLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
     pos += EDNS_OPTION_LENGTH_SIZE;
     rdPos += EDNS_OPTION_LENGTH_SIZE;
-    if (optionLen > (rdLen - rdPos) || optionLen > (len - pos))
+
+    if (optionLen > (rdLen - rdPos) || optionLen > (len - pos)) {
       return EINVAL;
+    }
 
     if (optionCode == wantedOption) {
       *optionValue = optRR + pos - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE);

@@ -28,6 +28,7 @@
 #include "dnsdist-ecs.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "packetcache.hh"
 
 DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock), d_parseECS(parseECS)
 {
@@ -206,8 +207,9 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
   const auto& dnsQName = dq.qname->getStorage();
   uint32_t key = getKey(dnsQName, consumed, reinterpret_cast<const unsigned char*>(dq.dh), dq.len, dq.tcp);
 
-  if (keyOut)
+  if (keyOut) {
     *keyOut = key;
+  }
 
   if (d_parseECS) {
     getClientSubnet(reinterpret_cast<const char*>(dq.dh), consumed, dq.len, subnet);
@@ -415,15 +417,23 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, uint16_t con
 {
   uint32_t result = 0;
   /* skip the query ID */
-  if (packetLen < sizeof(dnsheader))
-    throw std::range_error("Computing packet cache key for an invalid packet size");
+  if (packetLen < sizeof(dnsheader)) {
+    throw std::range_error("Computing packet cache key for an invalid packet size (" + std::to_string(packetLen) +")");
+  }
+
   result = burtle(packet + 2, sizeof(dnsheader) - 2, result);
   result = burtleCI((const unsigned char*) qname.c_str(), qname.length(), result);
   if (packetLen < sizeof(dnsheader) + consumed) {
-    throw std::range_error("Computing packet cache key for an invalid packet");
+    throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packetLen) + " < " + std::to_string(sizeof(dnsheader) + consumed) + ")");
   }
   if (packetLen > ((sizeof(dnsheader) + consumed))) {
-    result = burtle(packet + sizeof(dnsheader) + consumed, packetLen - (sizeof(dnsheader) + consumed), result);
+    if (!d_cookieHashing) {
+      /* skip EDNS Cookie options if any */
+      result = PacketCache::hashAfterQname(string_view(reinterpret_cast<const char*>(packet), packetLen), result, sizeof(dnsheader) + consumed, false);
+    }
+    else {
+      result = burtle(packet + sizeof(dnsheader) + consumed, packetLen - (sizeof(dnsheader) + consumed), result);
+    }
   }
   result = burtle((const unsigned char*) &tcp, sizeof(tcp), result);
   return result;

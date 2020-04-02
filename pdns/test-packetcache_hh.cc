@@ -21,6 +21,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
   uint16_t qtype = QType::AAAA;
   EDNSSubnetOpts opt;
   DNSPacketWriter::optvect_t ednsOptions;
+  static const std::unordered_set<uint16_t> optionsToSkip{ EDNSOptionCode::COOKIE };
+  static const std::unordered_set<uint16_t> noOptionsToSkip{ };
 
   {
     /* same query, different IDs */
@@ -30,7 +32,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1);
+    auto hash1 = PacketCache::canHashPacket(spacket1, false);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
@@ -38,10 +40,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2);
+    auto hash2 = PacketCache::canHashPacket(spacket2, false);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
-    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname));
+    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
   }
 
   {
@@ -51,32 +53,69 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("10.0.18.199/32");
+    opt.source = Netmask("10.0.152.74/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pw1.addOpt(512, 0, 0, ednsOptions);
     pw1.commit();
 
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1);
+    auto hash1 = PacketCache::canHashPacket(spacket1, false);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("10.0.131.66/32");
+    opt.source = Netmask("10.2.70.250/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
 
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2);
+    auto hash2 = PacketCache::canHashPacket(spacket2, false);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
     /* the hash is the same but we should _not_ match */
-    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname));
+    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
+
+#if 0
+    /* to be able to compute a new collision if the hashing function is updated */
+    {
+    std::map<uint32_t, Netmask> colMap;
+    size_t collisions = 0;
+    size_t total = 0;
+
+    for (size_t idxA = 0; idxA < 256; idxA++) {
+      for (size_t idxB = 0; idxB < 256; idxB++) {
+        for (size_t idxC = 0; idxC < 256; idxC++) {
+          vector<uint8_t> secondQuery;
+          DNSPacketWriter pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
+          pwFQ.getHeader()->rd = 1;
+          pwFQ.getHeader()->qr = false;
+          pwFQ.getHeader()->id = 0x42;
+          opt.source = Netmask("10." + std::to_string(idxA) + "." + std::to_string(idxB) + "." + std::to_string(idxC) + "/32");
+          ednsOptions.clear();
+          ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+          pwFQ.addOpt(512, 0, 0, ednsOptions);
+          pwFQ.commit();
+          auto secondKey = PacketCache::canHashPacket(std::string(reinterpret_cast<const char *>(secondQuery.data()), secondQuery.size()), false);
+          auto pair = colMap.insert(std::make_pair(secondKey, opt.source));
+          total++;
+          if (!pair.second) {
+            collisions++;
+            cerr<<"Collision between "<<colMap[secondKey].toString()<<" and "<<opt.source.toString()<<" for key "<<secondKey<<endl;
+            goto done1;
+          }
+        }
+      }
+    }
+  done1:
+    cerr<<"collisions: "<<collisions<<endl;
+    cerr<<"total: "<<total<<endl;
+    }
+#endif
   }
 
   {
@@ -86,21 +125,21 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("47.8.0.0/32");
+    opt.source = Netmask("10.0.34.159/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1);
+    auto hash1 = PacketCache::canHashPacket(spacket1, false);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("18.43.1.0/32");
+    opt.source = Netmask("10.0.179.58/32");
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     /* no EDNSOpts::DNSSECOK !! */
@@ -108,11 +147,11 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.commit();
 
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2);
+    auto hash2 = PacketCache::canHashPacket(spacket2, false);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
     /* the hash is the same but we should _not_ match */
-    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname));
+    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
   }
 
   {
@@ -128,16 +167,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     EDNSCookiesOpt cookiesOpt;
     cookiesOpt.client = string("deadbeef");
     cookiesOpt.server = string("deadbeef");
-    cookiesOpt.server[4] = -42;
-    cookiesOpt.server[5] = -6;
-    cookiesOpt.server[6] = 1;
-    cookiesOpt.server[7] = 0;
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, makeEDNSCookiesOptString(cookiesOpt)));
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1);
+    auto hash1 = PacketCache::canHashPacket(spacket1, false);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
@@ -148,21 +183,69 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     ednsOptions.clear();
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     cookiesOpt.client = string("deadbeef");
-    cookiesOpt.server = string("deadbeef");
-    cookiesOpt.server[4] = 29;
-    cookiesOpt.server[5] = -79;
-    cookiesOpt.server[6] = 1;
-    cookiesOpt.server[7] = 0;
+    cookiesOpt.server = string("badc0fee");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::COOKIE, makeEDNSCookiesOptString(cookiesOpt)));
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw2.commit();
 
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2);
+    auto hash2 = PacketCache::canHashPacket(spacket2, false);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
     /* the hash is the same but we should _not_ match */
-    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname));
+    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname, noOptionsToSkip));
+    /* but it does match if we skip cookies, though */
+    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
+
+#if 0
+    {
+      /* to be able to compute a new collision if the packet cache hashing code is updated */
+    std::map<uint32_t, Netmask> colMap;
+    size_t collisions = 0;
+    size_t total = 0;
+
+    for (size_t idxA = 0; idxA < 256; idxA++) {
+      for (size_t idxB = 0; idxB < 256; idxB++) {
+        for (size_t idxC = 0; idxC < 256; idxC++) {
+          vector<uint8_t> secondQuery;
+          DNSPacketWriter pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
+          pwFQ.getHeader()->rd = 1;
+          pwFQ.getHeader()->qr = false;
+          pwFQ.getHeader()->id = 0x42;
+          opt.source = Netmask("10." + std::to_string(idxA) + "." + std::to_string(idxB) + "." + std::to_string(idxC) + "/32");
+          ednsOptions.clear();
+          ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+          pwFQ.addOpt(512, 0, 32768, ednsOptions);
+          pwFQ.commit();
+          auto secondKey = PacketCache::canHashPacket(std::string(reinterpret_cast<const char *>(secondQuery.data()), secondQuery.size()), false);
+          colMap.insert(std::make_pair(secondKey, opt.source));
+
+          secondQuery.clear();
+          DNSPacketWriter pwSQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
+          pwSQ.getHeader()->rd = 1;
+          pwSQ.getHeader()->qr = false;
+          pwSQ.getHeader()->id = 0x42;
+          opt.source = Netmask("10." + std::to_string(idxA) + "." + std::to_string(idxB) + "." + std::to_string(idxC) + "/32");
+          ednsOptions.clear();
+          ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+          pwSQ.addOpt(512, 0, 0, ednsOptions);
+          pwSQ.commit();
+          secondKey = PacketCache::canHashPacket(std::string(reinterpret_cast<const char *>(secondQuery.data()), secondQuery.size()), false);
+
+          total++;
+          if (colMap.count(secondKey)) {
+            collisions++;
+            cerr<<"Collision between "<<colMap[secondKey].toString()<<" and "<<opt.source.toString()<<" for key "<<secondKey<<endl;
+            goto done2;
+          }
+        }
+      }
+    }
+  done2:
+    cerr<<"collisions: "<<collisions<<endl;
+    cerr<<"total: "<<total<<endl;
+  }
+#endif
   }
 }
 
@@ -172,8 +255,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple) {
   uint16_t qtype = QType::AAAA;
   EDNSSubnetOpts opt;
   DNSPacketWriter::optvect_t ednsOptions;
-  uint16_t ecsBegin;
-  uint16_t ecsEnd;
 
   {
     vector<uint8_t> packet;
@@ -191,10 +272,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple) {
     *(ptr + 1) = 255;
     /* truncate the end of the OPT header to try to trigger an out of bounds read */
     spacket1.resize(spacket1.size() - 6);
-    PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
-    /* no ECS */
-    BOOST_CHECK_EQUAL(ecsBegin, 0);
-    BOOST_CHECK_EQUAL(ecsEnd, 0);
+    BOOST_CHECK_NO_THROW(PacketCache::canHashPacket(spacket1, true));
   }
 }
 
@@ -205,8 +283,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
   uint16_t qtype = QType::AAAA;
   EDNSSubnetOpts opt;
   DNSPacketWriter::optvect_t ednsOptions;
-  uint16_t ecsBegin;
-  uint16_t ecsEnd;
+  static const std::unordered_set<uint16_t> optionsToSkip{ EDNSOptionCode::COOKIE, EDNSOptionCode::ECS };
 
   {
     /* same query, different IDs */
@@ -216,10 +293,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
-    /* no ECS */
-    BOOST_CHECK_EQUAL(ecsBegin, 0);
-    BOOST_CHECK_EQUAL(ecsEnd, 0);
+    auto hash1 = PacketCache::canHashPacket(spacket1, true);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
@@ -227,13 +301,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2, &ecsBegin, &ecsEnd);
-    /* no ECS */
-    BOOST_CHECK_EQUAL(ecsBegin, 0);
-    BOOST_CHECK_EQUAL(ecsEnd, 0);
+    auto hash2 = PacketCache::canHashPacket(spacket2, true);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
-    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, ecsBegin, ecsEnd));
+    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
   }
 
   {
@@ -250,10 +321,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.commit();
 
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
-    /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
-    BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
+    auto hash1 = PacketCache::canHashPacket(spacket1, true);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
@@ -267,14 +335,11 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.commit();
 
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2, &ecsBegin, &ecsEnd);
-    /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
-    BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
+    auto hash2 = PacketCache::canHashPacket(spacket2, true);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
     /* the hash is the same and we don't hash the ECS so we should match */
-    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, ecsBegin, ecsEnd));
+    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
   }
 
   {
@@ -299,10 +364,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.commit();
 
     string spacket1((const char*)&packet[0], packet.size());
-    auto hash1 = PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
-    /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
-    BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
+    auto hash1 = PacketCache::canHashPacket(spacket1, true);
 
     packet.clear();
     DNSPacketWriter pw2(packet, qname, qtype);
@@ -323,14 +385,15 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.commit();
 
     string spacket2((const char*)&packet[0], packet.size());
-    auto hash2 = PacketCache::canHashPacket(spacket2, &ecsBegin, &ecsEnd);
-    /* ECS value */
-    BOOST_CHECK_EQUAL(ecsBegin, sizeof(dnsheader) + qname.wirelength() + ( 2 * sizeof(uint16_t)) /* qtype */ + (2 * sizeof(uint16_t)) /* qclass */ + /* OPT root label */ 1 + sizeof(uint32_t) /* TTL */ + DNS_RDLENGTH_SIZE);
-    BOOST_CHECK_EQUAL(ecsEnd, ecsBegin + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 /* family */ + 1 /* scope length */ + 1 /* source length */ + 4 /* IPv4 */);
+    auto hash2 = PacketCache::canHashPacket(spacket2, true);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
     /* the hash is the same but we should _not_ match, even though we skip the ECS part, because the cookies are different */
-    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname, ecsBegin, ecsEnd));
+    static const std::unordered_set<uint16_t> skipECSOnly{ EDNSOptionCode::ECS };
+    BOOST_CHECK(!PacketCache::queryMatches(spacket1, spacket2, qname, skipECSOnly));
+
+    /* we do match if we skip the cookie as well */
+    BOOST_CHECK(PacketCache::queryMatches(spacket1, spacket2, qname, optionsToSkip));
   }
 }
 

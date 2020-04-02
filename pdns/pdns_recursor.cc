@@ -344,8 +344,6 @@ struct DNSComboWriter {
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
   uint32_t d_ttlCap{std::numeric_limits<uint32_t>::max()};
-  uint16_t d_ecsBegin{0};
-  uint16_t d_ecsEnd{0};
   bool d_variable{false};
   bool d_ecsFound{false};
   bool d_ecsParsed{false};
@@ -1846,8 +1844,6 @@ static void startDoResolve(void *p)
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                                             min(minTTL,SyncRes::s_packetcachettl),
                                             dq.validationState,
-                                            dc->d_ecsBegin,
-                                            dc->d_ecsEnd,
                                             std::move(pbMessage));
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
@@ -2535,8 +2531,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
   bool ecsParsed = false;
-  uint16_t ecsBegin = 0;
-  uint16_t ecsEnd = 0;
   std::vector<DNSRecord> records;
   boost::optional<int> rcode = boost::none;
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
@@ -2613,10 +2607,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
     vState valState;
     if (qnameParsed) {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &valState, &qhash, &ecsBegin, &ecsEnd, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
     else {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &valState, &qhash, &ecsBegin, &ecsEnd, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
 
     if (cacheHit) {
@@ -2711,8 +2705,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_tcp=false;
   dc->d_ecsFound = ecsFound;
   dc->d_ecsParsed = ecsParsed;
-  dc->d_ecsBegin = ecsBegin;
-  dc->d_ecsEnd = ecsEnd;
   dc->d_ednssubnet = ednssubnet;
   dc->d_ttlCap = ttlCap;
   dc->d_variable = variable;
@@ -4832,7 +4824,6 @@ try
     t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_bogusqueryring->set_capacity(ringsize);
   }
-
   MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
   threadInfo.mt = MT.get();
 

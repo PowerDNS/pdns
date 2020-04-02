@@ -1,7 +1,12 @@
 Upgrade Guide
 =============
 
-1.4.0 to 1.5.x
+1.5.x to 1.6.0
+--------------
+
+The packet cache no longer hashes EDNS Cookies by default, which means that two queries that are identical except for the content of their cookie will now be served the same answer. This only works if the backend is not returning any answer containing EDNS Cookies, otherwise the wrong cookie might be returned to a client. To prevent this, the ``cookieHashing=true`` parameter might be passed to :func:`newPacketCache` so that cookies are hashed, resulting in separate entries in the packet cache.
+
+1.4.x to 1.5.0
 --------------
 
 DOH endpoints specified in the fourth parameter of :func:`addDOHLocal` are now specified as exact paths instead of path prefixes. The default endpoint also switched from ``/`` to ``/dns-query``.

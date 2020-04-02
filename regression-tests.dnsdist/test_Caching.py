@@ -3,6 +3,7 @@ import base64
 import time
 import dns
 import clientsubnetoption
+import cookiesoption
 from dnsdisttests import DNSDistTest
 
 class TestCaching(DNSDistTest):
@@ -467,6 +468,310 @@ class TestCaching(DNSDistTest):
             TestCaching._responsesCounter[key] = 0
 
         self.assertEquals(total, 1)
+
+    def testCacheDifferentCookies(self):
+        """
+        Cache: The content of cookies should be ignored by the cache
+        """
+        ttl = 600
+        name = 'cache-different-cookies.cache.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        eco = cookiesoption.CookiesOption(b'badc0fee', b'badc0fee')
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco])
+        # second query should be served from the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        receivedResponse.id = response.id
+        self.assertEquals(receivedResponse, response)
+
+    def testCacheCookies(self):
+        """
+        Cache: A query with a cookie should not match one without any cookie
+        """
+        ttl = 600
+        name = 'cache-cookie.cache.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        # second query should NOT be served from the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+    def testCacheSameCookieDifferentECS(self):
+        """
+        Cache: The content of cookies should be ignored by the cache but not the ECS one
+        """
+        ttl = 600
+        name = 'cache-different-cookies-different-ecs.cache.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco,ecso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.2', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco,ecso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+class TestCachingHashingCookies(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, cookieHashing=true})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testCached(self):
+        """
+        Cache: Served from cache
+
+        dnsdist is configured to cache entries, we are sending several
+        identical requests and checking that the backend only receive
+        the first one.
+        """
+        numberOfQueries = 10
+        name = 'cached.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
+
+        # TCP should not be cached
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
+
+
+    def testCacheDifferentCookies(self):
+        """
+        Cache: The content of cookies should NOT be ignored by the cache (cookieHashing is set)
+        """
+        ttl = 600
+        name = 'cache-different-cookies.cache-cookie-hashing.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        eco = cookiesoption.CookiesOption(b'badc0fee', b'badc0fee')
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco])
+        differentResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1')
+        differentResponse.answer.append(rrset)
+        # second query should NOT be served from the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, differentResponse)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, differentResponse)
+        self.assertNotEquals(receivedResponse, response)
+
+    def testCacheCookies(self):
+        """
+        Cache: A query with a cookie should not match one without any cookie (cookieHashing=true)
+        """
+        ttl = 600
+        name = 'cache-cookie.cache-cookie-hashing.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        # second query should NOT be served from the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+    def testCacheSameCookieDifferentECS(self):
+        """
+        Cache: The content of cookies should NOT be ignored by the cache (cookieHashing=true), even with ECS there
+        """
+        ttl = 600
+        name = 'cache-different-cookies-different-ecs.cache-cookie-hashing.tests.powerdns.com.'
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco,ecso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.2', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, options=[eco,ecso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
 
 class TestTempFailureCacheTTLAction(DNSDistTest):
 
@@ -1863,7 +2168,7 @@ class TestCachingCollisionNoECSParsing(DNSDistTest):
         Cache: Collision with no ECS parsing
         """
         name = 'collision-no-ecs-parsing.cache.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('10.0.188.3', 32)
+        ecso = clientsubnetoption.ClientSubnetOption('10.0.226.63', 32)
         query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=512)
         query.flags = dns.flags.RD
         response = dns.message.make_response(query)
@@ -1885,7 +2190,7 @@ class TestCachingCollisionNoECSParsing(DNSDistTest):
         # second query will hash to the same key, triggering a collision which
         # will not be detected because the qname, qtype, qclass and flags will
         # match and EDNS Client Subnet parsing has not been enabled
-        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.192.138', 32)
+        ecso2 = clientsubnetoption.ClientSubnetOption('10.1.60.19', 32)
         query2 = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso2], payload=512)
         query2.flags = dns.flags.RD
         (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
@@ -1905,7 +2210,7 @@ class TestCachingCollisionWithECSParsing(DNSDistTest):
         Cache: Collision with ECS parsing
         """
         name = 'collision-with-ecs-parsing.cache.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('10.0.115.61', 32)
+        ecso = clientsubnetoption.ClientSubnetOption('10.0.150.206', 32)
         query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=512)
         query.flags = dns.flags.RD
         response = dns.message.make_response(query)
@@ -1927,7 +2232,7 @@ class TestCachingCollisionWithECSParsing(DNSDistTest):
         # second query will hash to the same key, triggering a collision which
         # _will_ be detected this time because the qname, qtype, qclass and flags will
         # match but EDNS Client Subnet parsing is now enabled and will detect the issue
-        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.143.21', 32)
+        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.212.51', 32)
         query2 = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso2], payload=512)
         query2.flags = dns.flags.RD
         response2 = dns.message.make_response(query2)
