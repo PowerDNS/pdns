@@ -70,6 +70,9 @@ Listen Sockets
   .. versionchanged:: 1.4.0
     Removed ``doTCP`` from the options. A listen socket on TCP is always created.
 
+  .. versionchanged:: 1.5.0
+    Added ``tcpListenQueueSize`` parameter.
+
   Add to the list of listen addresses.
 
   :param str address: The IP Address with an optional port to listen on.
@@ -83,6 +86,7 @@ Listen Sockets
   * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
+  * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
 
   .. code-block:: lua
 
@@ -110,7 +114,7 @@ Listen Sockets
 
   .. versionchanged:: 1.5.0
     ``sendCacheControlHeaders``, ``sessionTimeout``, ``trustForwardedForHeader`` options added.
-    ``url`` now defaults to ``/dns-query`` instead of ``/``
+    ``url`` now defaults to ``/dns-query`` instead of ``/``. Added ``tcpListenQueueSize`` parameter.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -145,6 +149,7 @@ Listen Sockets
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1.
   * ``sendCacheControlHeaders``: bool - Whether to parse the response to find the lowest TTL and set a HTTP Cache-Control header accordingly. Default is true.
   * ``trustForwardedForHeader``: bool - Whether to parse any existing X-Forwarded-For header in the HTTP query and use the right-most value as the client source address and port, for ACL checks, rules, logging and so on. Default is false.
+  * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -157,7 +162,7 @@ Listen Sockets
   .. versionchanged:: 1.4.0
     ``ciphersTLS13``, ``minTLSVersion``, ``ocspResponses``, ``preferServerCiphers``, ``keyLogFile`` options added.
   .. versionchanged:: 1.5.0
-    ``sessionTimeout`` option added.
+    ``sessionTimeout`` and ``tcpListenQueueSize`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -186,6 +191,7 @@ Listen Sockets
   * ``minTLSVersion``: str - Minimum version of the TLS protocol to support. Possible values are 'tls1.0', 'tls1.1', 'tls1.2' and 'tls1.3'. Default is to require at least TLS 1.0. Note that this value is ignored when the GnuTLS provider is in use, and the ``ciphers`` option should be set accordingly instead. For example, 'NORMAL:!VERS-TLS1.0:!VERS-TLS1.1' will disable TLS 1.0 and 1.1.
   * ``preferServerCiphers``: bool - Whether to prefer the order of ciphers set by the server instead of the one set by the client. Default is true, meaning that the order of the server is used.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1.
+  * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
 
 .. function:: setLocal(address[, options])
 

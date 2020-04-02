@@ -1891,7 +1891,8 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
   SBind(fd, cs->local);
 
   if (cs->tcp) {
-    SListen(cs->tcpFD, SOMAXCONN);
+    SListen(cs->tcpFD, cs->tcpListenQueueSize);
+
     if (cs->tlsFrontend != nullptr) {
       warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
     }
