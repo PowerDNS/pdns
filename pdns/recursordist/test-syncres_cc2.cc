@@ -5,7 +5,7 @@
 
 BOOST_AUTO_TEST_SUITE(syncres_cc2)
 
-BOOST_AUTO_TEST_CASE(test_referral_depth)
+void do_test_referral_depth(bool limited)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
@@ -35,34 +35,65 @@ BOOST_AUTO_TEST_CASE(test_referral_depth)
       }
       else if (domain == DNSName("ns3.powerdns.org.")) {
         addRecordToLW(res, domain, QType::NS, "ns4.powerdns.org.", DNSResourceRecord::AUTHORITY, 172800);
-      }
-      else if (domain == DNSName("ns4.powerdns.org.")) {
-        addRecordToLW(res, domain, QType::NS, "ns5.powerdns.org.", DNSResourceRecord::AUTHORITY, 172800);
-        addRecordToLW(res, domain, QType::A, "192.0.2.1", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "ns4.powerdns.org.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
       }
 
       return 1;
     }
     else if (ip == ComboAddress("192.0.2.1:53")) {
-
       setLWResult(res, 0, true, false, false);
-      addRecordToLW(res, domain, QType::A, "192.0.2.2");
+      if (domain == DNSName("www.powerdns.com.")) {
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+      }
+      else {
+        addRecordToLW(res, domain, QType::A, "192.0.2.1");
+      }
       return 1;
     }
 
     return 0;
   });
 
-  /* Set the maximum depth low */
-  SyncRes::s_maxdepth = 10;
+  if (limited) {
+    /* Set the maximum depth low */
+    SyncRes::s_maxdepth = 10;
+    try {
+      vector<DNSRecord> ret;
+      sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+      BOOST_CHECK(false);
+    }
+    catch (const ImmediateServFailException& e) {
+      BOOST_CHECK(e.reason.find("max-recursion-depth") != string::npos);
+    }
+  }
+  else {
+    // Check if the setup with high limit is OK.
+    SyncRes::s_maxdepth = 50;
+    try {
+      vector<DNSRecord> ret;
+      int rcode = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+      BOOST_CHECK_EQUAL(rcode, RCode::NoError);
+      BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+      BOOST_CHECK_EQUAL(ret[0].d_name, target);
+      BOOST_REQUIRE(ret[0].d_type == QType::A);
+      BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress("192.0.2.2"));
+    }
+    catch (const ImmediateServFailException& e) {
+      BOOST_CHECK(false);
+    }
+  }
+}
 
-  try {
-    vector<DNSRecord> ret;
-    sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-    BOOST_CHECK(false);
-  }
-  catch (const ImmediateServFailException& e) {
-  }
+BOOST_AUTO_TEST_CASE(test_referral_depth)
+{
+  // Test with limit
+  do_test_referral_depth(true);
+}
+
+BOOST_AUTO_TEST_CASE(test_referral_depth_ok)
+{
+  // Test with default limit
+  do_test_referral_depth(false);
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_qperq)
