@@ -384,7 +384,6 @@ int HTTPConnector::recv_message(Json& output) {
     if (d_socket == nullptr ) return -1; // cannot receive :(
     char buffer[4096];
     int rd = -1;
-    bool fail = false;
     time_t t0;
 
     arl.initialize(&resp);
@@ -403,25 +402,18 @@ int HTTPConnector::recv_message(Json& output) {
       if (arl.ready() == false)
         throw NetworkError("timeout");
     } catch (NetworkError &ne) {
-      g_log<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl; 
       d_socket.reset();
-      fail = true;
+      throw PDNSException("While reading from HTTP endpoint " + d_addr.toStringWithPort() + ": " + ne.what());
     } catch (...) {
-      g_log<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
       d_socket.reset();
-      fail = true;
-    }
-
-    if (fail) {
-      return -1;
+      throw PDNSException("While reading from HTTP endpoint " + d_addr.toStringWithPort() + ": unknown error");
     }
 
     arl.finalize();
 
     if ((resp.status < 200 || resp.status >= 400) && resp.status != 404) {
       // bad. 
-      g_log<<Logger::Warning<<"Received unacceptable HTTP status code "<<std::to_string(resp.status)<<" from HTTP endpoint"<<endl;
-      return -1;
+      throw PDNSException("Received unacceptable HTTP status code " + std::to_string(resp.status) + " from HTTP endpoint " + d_addr.toStringWithPort());
     }
 
     int rv = -1;
