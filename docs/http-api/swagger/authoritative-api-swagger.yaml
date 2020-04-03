@@ -572,7 +572,7 @@ paths:
           required: true
           description: The kind of metadata
       responses:
-        '204':
+        '200':
           description: OK
 
   '/servers/{server_id}/zones/{zone_id}/cryptokeys':
