@@ -718,23 +718,19 @@ Indication of how many queries will be averaged to get the average latency repor
 -  IPv4/IPv6 Addresses, with optional port numbers, separated by commas or whitespace
 -  Default: ``0.0.0.0, ::``
 
-Local IP addresses to which we bind. It is highly advised to bind to
-specific interfaces and not use the default 'bind to any'. This causes
-big problems if you have multiple IP addresses. Unix does not provide a
-way of figuring out what IP address a packet was sent to when binding to
-any.
-
-Each address specified can include a port number; if no port is included
-then the :ref:`setting-local-port` port will be used for that address. If a
-port number is specified, it must be separated from the address with a ':';
-for an IPv6 address the address must be enclosed in square brackets.
+Local IP addresses to which we bind. Each address specified can
+include a port number; if no port is included then the
+:ref:`setting-local-port` port will be used for that address. If a
+port number is specified, it must be separated from the address with a
+':'; for an IPv6 address the address must be enclosed in square
+brackets.
 
 Examples:
 
-``local-address=127.0.0.1 ::1``
-``local-address=0.0.0.0:5353``
-``local-address=[::]:8053``
-``local-address=127.0.0.1:53, [::1]:5353``
+  local-address=127.0.0.1 ::1
+  local-address=0.0.0.0:5353
+  local-address=[::]:8053
+  local-address=127.0.0.1:53, [::1]:5353
 
 .. _setting-local-port:
 
