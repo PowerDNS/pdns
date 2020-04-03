@@ -782,9 +782,11 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
   state = Indeterminate;
 
-  if(s_maxdepth && depth > s_maxdepth)
-    throw ImmediateServFailException("More than "+std::to_string(s_maxdepth)+" (max-recursion-depth) levels of recursion needed while resolving "+qname.toLogString());
-
+  if (s_maxdepth && depth > s_maxdepth) {
+    string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
+    LOG(prefix << qname << ": " << msg << endl);
+    throw ImmediateServFailException(msg);
+  }
   int res=0;
 
   // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
