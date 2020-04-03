@@ -725,7 +725,7 @@ port number is specified, it must be separated from the address with a
 ':'; for an IPv6 address the address must be enclosed in square
 brackets.
 
-Examples:
+Examples::
 
   local-address=127.0.0.1 ::1
   local-address=0.0.0.0:5353
