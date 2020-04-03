@@ -1164,10 +1164,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
     if (rr.d_type == QType::A && rr.d_place == DNSResourceRecord::ANSWER) {
       if (auto rec = getRR<ARecordContent>(rr)) {
         ComboAddress ipv4(rec->getCA());
-        uint32_t tmp;
-        memcpy(&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
-        // tmp=htonl(tmp);
-        memcpy(((char*)&prefix.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
+        memcpy(&prefix.sin6.sin6_addr.s6_addr[12], &ipv4.sin4.sin_addr.s_addr, sizeof(ipv4.sin4.sin_addr.s_addr));
         rr.d_content = std::make_shared<AAAARecordContent>(prefix);
         rr.d_type = QType::AAAA;
       }
@@ -1537,7 +1534,7 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (t_pdl || g_dns64Prefix) {
+      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != Bogus)) {
         if (res == RCode::NoError) {
           auto i = ret.cbegin();
           for(; i!= ret.cend(); ++i) {
@@ -4311,16 +4308,22 @@ static int serviceMain(int argc, char*argv[])
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
   if (!::arg()["dns64-prefix"].empty()) {
-    auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
-    if (dns64Prefix.getBits() != 96) {
-      g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixe: " << ::arg()["dns64-prefix"] << endl;
-      exit(1);
+    try {
+      auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
+      if (dns64Prefix.getBits() != 96) {
+        g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixe: " << ::arg()["dns64-prefix"] << endl;
+        exit(1);
+      }
+      g_dns64Prefix = dns64Prefix.getNetwork();
+      g_dns64PrefixReverse = reverseNameFromIP(*g_dns64Prefix);
+      /* /96 is 24 nibbles + 2 for "ip6.arpa." */
+      while (g_dns64PrefixReverse.countLabels() > 26) {
+        g_dns64PrefixReverse.chopOff();
+      }
     }
-    g_dns64Prefix = dns64Prefix.getNetwork();
-    g_dns64PrefixReverse = reverseNameFromIP(*g_dns64Prefix);
-    /* /96 is 24 nibbles + 2 for "ip6.arpa." */
-    while (g_dns64PrefixReverse.countLabels() > 26) {
-      g_dns64PrefixReverse.chopOff();
+    catch (const NetmaskException& ne) {
+      g_log << Logger::Error << "Invalid prefix '" << ::arg()["dns64-prefix"] << "' for 'dns64-prefix': " << ne.reason << endl;
+      exit(1);
     }
   }
 
