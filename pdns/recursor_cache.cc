@@ -353,7 +353,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   ce.d_records.clear();
   ce.d_records.reserve(content.size());
 
-  for(const auto i : content) {
+  for(const auto& i : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
     ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
@@ -511,8 +511,8 @@ uint64_t MemRecursorCache::doDump(int fd)
     const auto& sidx = map.d_map.get<SequencedTag>();
 
     time_t now = time(0);
-    for (const auto i : sidx) {
-      for (const auto j : i.d_records) {
+    for (const auto& i : sidx) {
+      for (const auto& j : i.d_records) {
         count++;
         try {
           fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
