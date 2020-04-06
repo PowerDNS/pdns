@@ -155,6 +155,7 @@ private:
   bool d_cached{false};
   bool d_stale{false};
 
+  static AtomicCounter* s_backendQueries;
   static bool d_go;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
