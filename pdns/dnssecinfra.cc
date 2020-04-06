@@ -134,7 +134,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecor
 
 std::string DNSCryptoKeyEngine::convertToISC() const
 {
-  storvector_t stormap = this->convertToISCVector();
+  storvector_t storvector = this->convertToISCVector();
   ostringstream ret;
   ret<<"Private-key-format: v1.2\n";
   for(const storvector_t::value_type& value :  stormap) {
