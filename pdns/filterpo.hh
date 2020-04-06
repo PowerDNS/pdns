@@ -301,7 +301,7 @@ public:
   }
   const std::shared_ptr<Zone> getZone(const std::string& name) const
   {
-    for (const auto zone : d_zones) {
+    for (const auto& zone : d_zones) {
       const auto& zName = zone->getName();
       if (zName == name) {
         return zone;

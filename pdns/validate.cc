@@ -693,7 +693,7 @@ static const vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& en
     qname.prependRawLabel(labelsToAdd.back());
     labelsToAdd.pop_back();
     auto records = dro.get(qname, (uint16_t)QType::NS);
-    for (const auto record : records) {
+    for (const auto& record : records) {
       if(record.d_type != QType::NS || record.d_name != qname)
         continue;
       foundCut = true;
@@ -1090,7 +1090,7 @@ bool isSupportedDS(const DSRecordContent& ds)
 
 DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
-  for (const auto sig : signatures) {
+  for (const auto& sig : signatures) {
     if (sig) {
       return sig->d_signer;
     }

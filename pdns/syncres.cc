@@ -479,7 +479,7 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   uint64_t count=0;
 
   const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
-  for(const auto i : throttleMap)
+  for(const auto& i : throttleMap)
   {
     count++;
     char tmp[26];

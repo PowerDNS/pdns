@@ -4643,13 +4643,13 @@ try
     if (threadInfo.isListener) {
       if (g_reusePort) {
         /* then every listener has its own FDs */
-        for(const auto deferred : threadInfo.deferredAdds) {
+        for(const auto& deferred : threadInfo.deferredAdds) {
           t_fdm->addReadFD(deferred.first, deferred.second);
         }
       }
       else {
         /* otherwise all listeners are listening on the same ones */
-        for(const auto deferred : g_deferredAdds) {
+        for(const auto& deferred : g_deferredAdds) {
           t_fdm->addReadFD(deferred.first, deferred.second);
         }
       }
@@ -4977,7 +4977,7 @@ int main(int argc, char **argv)
       }
       cerr<<" (";
       bool first = true;
-      for (auto const c : ::arg().getCommands()) {
+      for (const auto& c : ::arg().getCommands()) {
         if (!first) {
           cerr<<", ";
         }
