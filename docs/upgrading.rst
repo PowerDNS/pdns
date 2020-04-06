@@ -77,6 +77,19 @@ A bug in PowerDNS versions before 4.2.2/4.3.0 would cause wrong deletion or addi
 If you have zones which use inbound IXFR (in other words, the ``IXFR`` metadata item for that zone is set to ``1``), we strongly suggest triggering a completely fresh transfer.
 You could accomplish that by deleting all records in the zone with an SQL query and waiting for a fresh transfer, or (1) disabling IXFR (2) forcing a fresh transfer using ``pdns_control retrieve example.com`` (3) enabling IXFR again.
 
+4.X.X to 4.2.2
+--------------
+
+.. _ixfr-in-corruption-4.2.2:
+
+IXFR-in corruption
+^^^^^^^^^^^^^^^^^^
+
+A bug in PowerDNS versions before 4.2.2/4.3.0 would cause wrong deletion or addition of records if IXFR deltas came in very quickly (within the query cache timeout, which defaults to 20/60 seconds).
+If you have zones which use inbound IXFR (in other words, the ``IXFR`` metadata item for that zone is set to ``1``), we strongly suggest triggering a completely fresh transfer.
+You could accomplish that by deleting all records in the zone with an SQL query and waiting for a fresh transfer, or (1) disabling IXFR (2) forcing a fresh transfer using ``pdns_control retrieve example.com`` (3) enabling IXFR again.
+
+
 4.1.X to 4.2.0
 --------------
 
