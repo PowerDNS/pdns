@@ -153,6 +153,7 @@ private:
 
   bool d_negcached;
   bool d_cached;
+  static AtomicCounter* s_backendQueries;
   static bool d_go;
   bool d_stale;
   static bool s_doANYLookupsOnly;

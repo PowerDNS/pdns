@@ -57,6 +57,7 @@ bool UeberBackend::d_go=false;
 bool UeberBackend::s_doANYLookupsOnly=false;
 std::mutex UeberBackend::d_mut;
 std::condition_variable UeberBackend::d_cond;
+AtomicCounter* UeberBackend::s_backendQueries = nullptr;
 
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string &name)
@@ -98,6 +99,9 @@ void UeberBackend::go(void)
   if (::arg().mustDo("consistent-backends")) {
     s_doANYLookupsOnly = true;
   }
+
+  S.declare("backend-queries", "Number of queries sent to the backend(s)");
+  s_backendQueries = S.getPointer("backend-queries");
 
   {
     std::unique_lock<std::mutex> l(d_mut);
@@ -612,6 +616,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       d_negcached=d_cached=false;
       d_answers.clear(); 
       (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
+      ++(*s_backendQueries);
     } 
     else if(cstat==0) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
@@ -719,6 +724,7 @@ bool UeberBackend::handle::get(DNSZoneRecord &r)
       
       d_hinterBackend=parent->backends[i++];
       d_hinterBackend->lookup(qtype,qname,zoneId,pkt_p);
+      ++(*s_backendQueries);
     }
     else 
       break;
