@@ -368,8 +368,8 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
       if(i == backends.end()) {
         if(d_negcache_ttl) {
           DLOG(g_log<<Logger::Error<<"add neg cache entry:"<<shorter<<endl);
-          d_question.qname=shorter;
-          addNegCache(d_question);
+          d_question.qname = shorter;
+          addNegCache(d_question, d_question.qtype);
         }
         continue;
       } else if(d_cache_ttl) {
@@ -385,7 +385,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         rr.dr.d_ttl = sd->ttl;
         rr.domain_id = sd->domain_id;
 
-        addCache(d_question, {rr});
+        addCache(d_question, d_question.qtype, {rr});
       }
     }
 
@@ -443,14 +443,16 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
         rr.dr.d_ttl = sd.ttl;
         rr.domain_id = sd.domain_id;
 
-        addCache(d_question, {rr});
+        addCache(d_question, d_question.qtype, {rr});
 
       }
       return true;
     }
 
-  if(d_negcache_ttl)
-    addNegCache(d_question);
+  if (d_negcache_ttl) {
+    addNegCache(d_question, d_question.qtype);
+  }
+
   return false;
 }
 
@@ -477,16 +479,12 @@ UeberBackend::UeberBackend(const string &pname)
     instances.push_back(this); // report to the static list of ourself
   }
 
-  d_negcached=0;
-  d_ancount=0;
-  d_domain_id=-1;
-  d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
   d_stale = false;
 
-  backends=BackendMakers().all(pname=="key-only");
+  backends = BackendMakers().all(pname=="key-only");
 }
 
 static void del(DNSBackend* d)
@@ -510,48 +508,81 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSZoneRecord> &rrs)
 {
   extern AuthQueryCache QC;
 
-  if(!d_cache_ttl && ! d_negcache_ttl) {
+  if (!d_cache_ttl && !d_negcache_ttl) {
     return -1;
   }
 
   rrs.clear();
-  //  g_log<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
+  //  g_log<<Logger::Warning<<"looking up: '"<<q.qname<<"'|N|"<<q.qtype.getName()<<"|"<<q.zoneId<<endl;
 
-  bool ret=QC.getEntry(q.qname, q.qtype, rrs, q.zoneId);   // think about lowercasing here
-  if(!ret) {
-    return -1;
+  std::vector<DNSZoneRecord> anyRecs;
+  bool ret = QC.getEntry(q.qname, QType::ANY, anyRecs, q.zoneId);
+
+  if (ret) {
+    if (anyRecs.empty()) {// negatively cached
+      return 0;
+    }
+
+    for (auto& rec : anyRecs) {
+      if (q.qtype.getCode() == QType::ANY || rec.dr.d_type == q.qtype.getCode()) {
+        rrs.push_back(std::move(rec));
+      }
+    }
+
+    if (rrs.empty()) {
+      // we know there is no record of this type */
+      return 0;
+    }
+
+    return 1;
   }
-  if(rrs.empty()) // negatively cached
-    return 0;
-  
-  return 1;
+
+  // miss for ANY, see if by any chance we have a cached entry for the exact type (mostly SOA)
+  // or a negative cache entry (all types)
+  if (q.qtype != QType::ANY) {
+    ret = QC.getEntry(q.qname, q.qtype, rrs, q.zoneId);
+    if (ret) {
+      if (rrs.empty()) {
+        // negatively cached
+        return 0;
+      }
+      return 1;
+    }
+  }
+
+  return -1;
 }
 
-void UeberBackend::addNegCache(const Question &q)
+void UeberBackend::addNegCache(const Question &q, const QType& qtype)
 {
   extern AuthQueryCache QC;
-  if(!d_negcache_ttl)
+  if (!d_negcache_ttl) {
     return;
+  }
+
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  QC.insert(q.qname, q.qtype, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
+  QC.insert(q.qname, qtype, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
 }
 
-void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
+void UeberBackend::addCache(const Question &q, const QType& qtype, vector<DNSZoneRecord>&& rrs)
 {
   extern AuthQueryCache QC;
 
-  if(!d_cache_ttl)
+  if (!d_cache_ttl) {
     return;
+  }
 
   unsigned int store_ttl = d_cache_ttl;
   for(const auto& rr : rrs) {
-   if (rr.dr.d_ttl < d_cache_ttl)
-     store_ttl = rr.dr.d_ttl;
-   if (rr.scopeMask)
-     return;
+    if (rr.dr.d_ttl < d_cache_ttl) {
+      store_ttl = rr.dr.d_ttl;
+    }
+    if (rr.scopeMask) {
+      return;
+    }
   }
 
-  QC.insert(q.qname, q.qtype, std::move(rrs), store_ttl, q.zoneId);
+  QC.insert(q.qname, qtype, std::move(rrs), store_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
@@ -569,7 +600,7 @@ UeberBackend::~UeberBackend()
 // this handle is more magic than most
 void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, DNSPacket *pkt_p)
 {
-  if(d_stale) {
+  if (d_stale) {
     g_log<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
     throw PDNSException("We are stale, please recycle");
   }
@@ -582,45 +613,47 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     g_log<<Logger::Error<<"Broadcast received, unblocked"<<endl;
   }
 
-  d_domain_id=zoneId;
+  d_domain_id = zoneId;
 
-  d_handle.i=0;
-  d_handle.qtype=qtype;
-  d_handle.qname=qname;
-  d_handle.pkt_p=pkt_p;
-  d_ancount=0;
+  d_handle.i = 0;
+  d_handle.qtype = QType::ANY;
+  d_handle.qname = qname;
+  d_handle.pkt_p = pkt_p;
+  d_ancount = 0;
+  d_anyCount = 0;
 
-  if(!backends.size()) {
+  if (!backends.size()) {
     g_log<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
-    d_stale=true; // please recycle us!
+    d_stale = true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
   else {
-    d_question.qtype=qtype;
-    d_question.qname=qname;
-    d_question.zoneId=zoneId;
-    int cstat=cacheHas(d_question, d_answers);
-    if(cstat<0) { // nothing
+    d_question.qtype = qtype;
+    d_question.qname = qname;
+    d_question.zoneId = zoneId;
+    int cstat = cacheHas(d_question, d_answers);
+    if (cstat < 0) { // nothing
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
-      d_negcached=d_cached=false;
-      d_answers.clear(); 
-      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,zoneId,pkt_p);
+      d_negcached = d_cached = false;
+      d_answers.clear();
+      d_handle.d_hinterBackend = backends.at(d_handle.i++);
+      d_handle.d_hinterBackend->lookup(QType::ANY, qname, zoneId, pkt_p);
     } 
-    else if(cstat==0) {
+    else if (cstat == 0) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
-      d_negcached=true;
-      d_cached=false;
+      d_negcached = true;
+      d_cached = false;
       d_answers.clear();
     }
     else {
       // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
-      d_negcached=false;
-      d_cached=true;
+      d_negcached = false;
+      d_cached = true;
       d_cachehandleiter = d_answers.begin();
     }
   }
 
-  d_handle.parent=this;
+  d_handle.parent = this;
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
@@ -632,36 +665,59 @@ void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
 
 bool UeberBackend::get(DNSZoneRecord &rr)
 {
-  // cout<<"UeberBackend::get(DNSZoneRecord) called"<<endl;
-  if(d_negcached) {
+  // cout<<"UeberBackend::get(DNSZoneRecord) called for "<<d_question.qname.toString()<<" / "<<d_question.qtype.getName()<<endl;
+  if (d_negcached) {
     return false; 
   }
 
-  if(d_cached) {
-    if(d_cachehandleiter != d_answers.end()) {
-      rr=*d_cachehandleiter++;;
+  if (d_cached) {
+    if (d_cachehandleiter != d_answers.end()) {
+      rr = *d_cachehandleiter++;
       return true;
     }
     return false;
   }
-  if(!d_handle.get(rr)) {
+
+  bool gotRecord = false;
+  /* since we might have requested ANY instead of the exact qtype,
+     we need to filter a bit */
+  DNSZoneRecord anyRecord;
+
+  while (!gotRecord && d_handle.get(anyRecord)) {
+    // cerr<<"got a record of type "<<QType(anyRecord.dr.d_type).getName()<<endl;
+    anyRecord.dr.d_place=DNSResourceRecord::ANSWER;
+
+    if (d_question.qtype.getCode() == QType::ANY || anyRecord.dr.d_type == d_question.qtype.getCode()) {
+      ++d_ancount;
+      gotRecord = true;
+      rr = anyRecord;
+    }
+
+    ++d_anyCount;
+    d_answers.push_back(std::move(anyRecord));
+  }
+
+  if (!gotRecord) {
     // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-    if(!d_ancount && d_handle.qname.countLabels()) {// don't cache axfr
-      // cout<<"adding negcache"<<endl;
-      addNegCache(d_question);
+    if (d_anyCount == 0 && d_handle.qname.countLabels()) {
+      /* we can negcache the whole name */
+      // cerr<<"we can negcache the whole name"<<endl;
+      addNegCache(d_question, QType::ANY);
     }
-    else {
-      // cout<<"adding query cache"<<endl;
-      addCache(d_question, std::move(d_answers));
+    else if (d_ancount == 0 && d_handle.qname.countLabels()) {
+      /* we can negcache that specific type */
+      // cerr<<"we can negcache the exact type of type "<<d_question.qtype.getName()<<endl;
+      addNegCache(d_question, d_question.qtype);
     }
+
+    if (d_anyCount) {
+      addCache(d_question, QType::ANY, std::move(d_answers));
+    }
+
     d_answers.clear();
     return false;
   }
 
-  rr.dr.d_place=DNSResourceRecord::ANSWER;
-
-  d_ancount++;
-  d_answers.push_back(rr);
   return true;
 }
 
@@ -687,10 +743,6 @@ UeberBackend::handle::handle()
 {
   //  g_log<<Logger::Warning<<"Handle instances: "<<instances<<endl;
   ++instances;
-  parent=NULL;
-  d_hinterBackend=NULL;
-  pkt_p=NULL;
-  i=0;
 }
 
 UeberBackend::handle::~handle()
@@ -702,26 +754,27 @@ bool UeberBackend::handle::get(DNSZoneRecord &r)
 {
   DLOG(g_log << "Ueber get() was called for a "<<qtype.getName()<<" record" << endl);
   bool isMore=false;
-  while(d_hinterBackend && !(isMore=d_hinterBackend->get(r))) { // this backend out of answers
-    if(i<parent->backends.size()) {
+  while (d_hinterBackend && !(isMore = d_hinterBackend->get(r))) { // this backend out of answers
+    if (i < parent->backends.size()) {
       DLOG(g_log<<"Backend #"<<i<<" of "<<parent->backends.size()
            <<" out of answers, taking next"<<endl);
       
-      d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,parent->d_domain_id,pkt_p);
+      d_hinterBackend = parent->backends.at(i++);
+      d_hinterBackend->lookup(qtype, qname, parent->d_domain_id, pkt_p);
     }
-    else 
+    else {
       break;
+    }
 
     DLOG(g_log<<"Now asking backend #"<<i<<endl);
   }
 
-  if(!isMore && i==parent->backends.size()) {
+  if (!isMore && i == parent->backends.size()) {
     DLOG(g_log<<"UeberBackend reached end of backends"<<endl);
     return false;
   }
 
   DLOG(g_log<<"Found an answering backend - will not try another one"<<endl);
-  i=parent->backends.size(); // don't go on to the next backend
+  i = parent->backends.size(); // don't go on to the next backend
   return true;
 }

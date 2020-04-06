@@ -76,16 +76,16 @@ public:
     ~handle();
 
     //! The UeberBackend class where this handle belongs to
-    UeberBackend *parent;
+    UeberBackend *parent{nullptr};
     //! The current real backend, which is answering questions
-    DNSBackend *d_hinterBackend;
+    DNSBackend *d_hinterBackend{nullptr};
 
     //! DNSPacket who asked this question
-    DNSPacket* pkt_p;
+    DNSPacket* pkt_p{nullptr};
     DNSName qname;
 
     //! Index of the current backend within the backends vector
-    unsigned int i;
+    unsigned int i{0};
     QType qtype;
 
   private:
@@ -144,19 +144,20 @@ private:
     DNSName qname;
     int zoneId;
     QType qtype;
-  }d_question;
+  } d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  int d_domain_id;
-  int d_ancount;
+  unsigned int d_ancount{0};
+  unsigned int d_anyCount{0};
+  int d_domain_id{-1};
 
-  bool d_negcached;
-  bool d_cached;
+  bool d_negcached{false};
+  bool d_cached{false};
+  bool d_stale{false};
+
   static bool d_go;
-  bool d_stale;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
-  void addNegCache(const Question &q);
-  void addCache(const Question &q, vector<DNSZoneRecord>&& rrs);
-  
+  void addNegCache(const Question &q, const QType& qtype);
+  void addCache(const Question &q, const QType& qtype, vector<DNSZoneRecord>&& rrs);
 };
