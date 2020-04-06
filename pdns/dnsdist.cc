@@ -240,6 +240,11 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   }
 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response);
+  if (dh->qr == 0) {
+    ++g_stats.nonCompliantResponses;
+    return false;
+  }
+
   if (dh->qdcount == 0) {
     if ((dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) || g_allowEmptyResponse) {
       return true;
