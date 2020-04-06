@@ -213,6 +213,7 @@ pdns_server_SOURCES = \
 	secpoll-auth.cc secpoll-auth.hh \
 	serialtweaker.cc \
 	sha.hh \
+	shuffle.cc shuffle.hh \
 	signingpipe.cc signingpipe.hh \
 	sillyrecords.cc \
 	slavecommunicator.cc \
@@ -324,6 +325,7 @@ pdnsutil_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	serialtweaker.cc \
+	shuffle.cc shuffle.hh \
 	signingpipe.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -1298,6 +1300,7 @@ testrunner_SOURCES = \
 	rcpgenerator.cc \
 	responsestats.cc \
 	responsestats-auth.cc \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	test-arguments_cc.cc \

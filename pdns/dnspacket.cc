@@ -50,6 +50,7 @@
 #include "ednssubnet.hh"
 #include "gss_context.hh"
 #include "dns_random.hh"
+#include "shuffle.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
@@ -226,7 +227,7 @@ void DNSPacket::wrapup()
   static bool mustNotShuffle = ::arg().mustDo("no-shuffle");
 
   if(!d_tcp && !mustNotShuffle) {
-    shuffle(d_rrs);
+    pdns::shuffle(d_rrs);
   }
   d_wrapped=true;
 

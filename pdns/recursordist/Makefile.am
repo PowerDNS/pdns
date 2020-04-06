@@ -168,6 +168,7 @@ pdns_recursor_SOURCES = \
 	secpoll-recursor.cc secpoll-recursor.hh \
 	secpoll.cc secpoll.hh \
 	sholder.hh \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \
 	sortlist.cc sortlist.hh \
