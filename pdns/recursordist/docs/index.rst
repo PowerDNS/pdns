@@ -64,7 +64,7 @@ If possible, supply the actual name of your domain and the IP address of your se
 I found a bug!
 ^^^^^^^^^^^^^^
 As much as we'd like to think we are perfect, bugs happen.
-If you have found a bug, please file a bug report on `GitHub <https://github.com/PowerDNS/pdns/issues/new>`_.
+If you have found a bug, please file a bug report on `GitHub <https://github.com/PowerDNS/pdns/issues/new?template=bug_report.md>`_.
 Please fill in the template and we'll try our best to help you.
 
 I found a security issue!
@@ -74,4 +74,4 @@ Please report this in private, see the :ref:`securitypolicy`.
 I have a good idea for a feature!
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We like to work on new things!
-You can file a feature request on `GitHub <https://github.com/PowerDNS/pdns/issues/new>`_.
+You can file a feature request on `GitHub <https://github.com/PowerDNS/pdns/issues/new?template=feature_request.md>`_.
