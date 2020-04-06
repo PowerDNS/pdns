@@ -119,6 +119,8 @@ options {
                 bind_dnssec_db=bind_dnssec_db))
             pdnsconf.write(cls._config_template % params)
 
+        os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
+
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
                        'create-bind-db',
@@ -159,16 +161,15 @@ options {
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
-        if cls._zones:
-            cls.generateAuthConfig(confdir)
-            cls.generateAuthNamedConf(confdir, cls._zones.keys())
+        cls.generateAuthConfig(confdir)
+        cls.generateAuthNamedConf(confdir, cls._zones.keys())
 
-            for zonename, zonecontent in cls._zones.items():
-                cls.generateAuthZone(confdir,
-                                     zonename,
-                                     zonecontent)
-                if cls._zone_keys.get(zonename, None):
-                    cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+        for zonename, zonecontent in cls._zones.items():
+            cls.generateAuthZone(confdir,
+                                 zonename,
+                                 zonecontent)
+            if cls._zone_keys.get(zonename, None):
+                cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
 
     @classmethod
     def startAuth(cls, confdir, ipaddress):
@@ -284,37 +285,6 @@ options {
         if timeout:
             sock.settimeout(timeout)
 
-        sock.connect(("127.0.0.1", cls._recursorPort))
-
-        try:
-            wire = query.to_wire()
-            sock.send(struct.pack("!H", len(wire)))
-            sock.send(wire)
-            data = sock.recv(2)
-            if data:
-                (datalen,) = struct.unpack("!H", data)
-                data = sock.recv(datalen)
-        except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
-            data = None
-        except socket.error as e:
-            print("Network error: %s" % (str(e)))
-            data = None
-        finally:
-            sock.close()
-
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
-        return message
-
-
-    @classmethod
-    def sendTCPQuery(cls, query, timeout=2.0):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if timeout:
-            sock.settimeout(timeout)
-
         sock.connect(("127.0.0.1", cls._authPort))
 
         try:
@@ -338,6 +308,41 @@ options {
         if data:
             message = dns.message.from_wire(data)
         return message
+
+    @classmethod
+    def sendTCPQueryMultiResponse(cls, query, timeout=2.0, count=1):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if timeout:
+            sock.settimeout(timeout)
+
+        sock.connect(("127.0.0.1", cls._authPort))
+
+        try:
+            wire = query.to_wire()
+            sock.send(struct.pack("!H", len(wire)))
+            sock.send(wire)
+        except socket.timeout as e:
+            raise Exception("Timeout: %s" % (str(e)))
+        except socket.error as e:
+            raise Exception("Network error: %s" % (str(e)))
+
+        messages = []
+        for i in range(count):
+            try:
+                data = sock.recv(2)
+                print("got data", repr(data))
+                if data:
+                    (datalen,) = struct.unpack("!H", data)
+                    data = sock.recv(datalen)
+                    messages.append(dns.message.from_wire(data))
+                else:
+                    break
+            except socket.timeout as e:
+                raise Exception("Timeout: %s" % (str(e)))
+            except socket.error as e:
+                raise Exception("Network error: %s" % (str(e)))
+
+        return messages
 
     def setUp(self):
         # This function is called before every tests
