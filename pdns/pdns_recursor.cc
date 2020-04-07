@@ -199,6 +199,8 @@ static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads 
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 static NetmaskGroup g_XPFAcl;
 static NetmaskGroup g_proxyProtocolACL;
+static boost::optional<ComboAddress> g_dns64Prefix{boost::none};
+static DNSName g_dns64PrefixReverse;
 static size_t g_proxyProtocolMaximumSize;
 static size_t g_tcpMaxQueriesPerConn;
 static size_t s_maxUDPQueriesPerRound;
@@ -1132,6 +1134,88 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
   return rcode;
 }
 
+int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret)
+{
+  int rcode = directResolve(qname, QType(QType::A), QClass::IN, ret);
+
+  // Remove double CNAME records
+  std::set<DNSName> seenCNAMEs;
+  ret.erase(std::remove_if(
+        ret.begin(),
+        ret.end(),
+        [&seenCNAMEs](DNSRecord& rr) {
+          if (rr.d_type == QType::CNAME) {
+            auto target = getRR<CNAMERecordContent>(rr);
+            if (target == nullptr) {
+              return false;
+            }
+            if (seenCNAMEs.count(target->getTarget()) > 0) {
+              // We've had this CNAME before, remove it
+              return true;
+            }
+            seenCNAMEs.insert(target->getTarget());
+          }
+          return false;
+        }),
+      ret.end());
+
+  bool seenA = false;
+  for (DNSRecord& rr : ret) {
+    if (rr.d_type == QType::A && rr.d_place == DNSResourceRecord::ANSWER) {
+      if (auto rec = getRR<ARecordContent>(rr)) {
+        ComboAddress ipv4(rec->getCA());
+        memcpy(&prefix.sin6.sin6_addr.s6_addr[12], &ipv4.sin4.sin_addr.s_addr, sizeof(ipv4.sin4.sin_addr.s_addr));
+        rr.d_content = std::make_shared<AAAARecordContent>(prefix);
+        rr.d_type = QType::AAAA;
+      }
+      seenA = true;
+    }
+  }
+
+  if (seenA) {
+    // We've seen an A in the ANSWER section, so there is no need to keep any
+    // SOA in the AUTHORITY section as this is not a NODATA response.
+    ret.erase(std::remove_if(
+          ret.begin(),
+          ret.end(),
+          [](DNSRecord& rr) {
+            return (rr.d_type == QType::SOA && rr.d_place == DNSResourceRecord::AUTHORITY);
+          }),
+        ret.end());
+  }
+  return rcode;
+}
+
+int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
+{
+  /* qname has a reverse ordered IPv6 address, need to extract the underlying IPv4 address from it
+     and turn it into an IPv4 in-addr.arpa query */
+  ret.clear();
+  vector<string> parts = qname.getRawLabels();
+
+  if (parts.size() < 8) {
+    return -1;
+  }
+
+  string newquery;
+  for (int n = 0; n < 4; ++n) {
+    newquery +=
+      std::to_string(stoll(parts[n*2], 0, 16) + 16*stoll(parts[n*2+1], 0, 16));
+    newquery.append(1, '.');
+  }
+  newquery += "in-addr.arpa.";
+
+  DNSRecord rr;
+  rr.d_name = qname;
+  rr.d_type = QType::CNAME;
+  rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
+  ret.push_back(rr);
+
+  int rcode = directResolve(DNSName(newquery), QType(QType::PTR), QClass::IN, ret);
+
+  return rcode;
+}
+
 enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
 
 static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
@@ -1392,7 +1476,12 @@ static void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl || !t_pdl->preresolve(dq, res)) {
+    if (!t_pdl || !t_pdl->preresolve(dq, res)) {
+
+      if (!g_dns64PrefixReverse.empty() && dq.qtype == QType::PTR && dq.qname.isPartOf(g_dns64PrefixReverse)) {
+        res = getFakePTRRecords(dq.qname, ret);
+        goto haveAnswer;
+      }
 
       sr.setWantsRPZ(wantsRPZ);
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
@@ -1445,21 +1534,34 @@ static void startDoResolve(void *p)
         }
       }
 
-      if(t_pdl) {
-        if(res == RCode::NoError) {
-	        auto i=ret.cbegin();
-                for(; i!= ret.cend(); ++i)
-                  if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
-                          break;
-                if(i == ret.cend() && t_pdl->nodata(dq, res))
-                  shouldNotValidate = true;
+      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != Bogus)) {
+        if (res == RCode::NoError) {
+          auto i = ret.cbegin();
+          for(; i!= ret.cend(); ++i) {
+            if (i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER) {
+              break;
+            }
+          }
+
+          if (i == ret.cend()) {
+            /* no record in the answer section, NODATA */
+            if (t_pdl && t_pdl->nodata(dq, res)) {
+              shouldNotValidate = true;
+            }
+            else if (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != Bogus) {
+              res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
+              shouldNotValidate = true;
+            }
+          }
 
 	}
-	else if(res == RCode::NXDomain && t_pdl->nxdomain(dq, res))
+	else if(res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res)) {
           shouldNotValidate = true;
+        }
 
-	if(t_pdl->postresolve(dq, res))
+	if (t_pdl && t_pdl->postresolve(dq, res)) {
           shouldNotValidate = true;
+        }
       }
 
       if (wantsRPZ) { //XXX This block is repeated, see above
@@ -4205,6 +4307,26 @@ static int serviceMain(int argc, char*argv[])
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
+  if (!::arg()["dns64-prefix"].empty()) {
+    try {
+      auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
+      if (dns64Prefix.getBits() != 96) {
+        g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixe: " << ::arg()["dns64-prefix"] << endl;
+        exit(1);
+      }
+      g_dns64Prefix = dns64Prefix.getNetwork();
+      g_dns64PrefixReverse = reverseNameFromIP(*g_dns64Prefix);
+      /* /96 is 24 nibbles + 2 for "ip6.arpa." */
+      while (g_dns64PrefixReverse.countLabels() > 26) {
+        g_dns64PrefixReverse.chopOff();
+      }
+    }
+    catch (const NetmaskException& ne) {
+      g_log << Logger::Error << "Invalid prefix '" << ::arg()["dns64-prefix"] << "' for 'dns64-prefix': " << ne.reason << endl;
+      exit(1);
+    }
+  }
+
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   g_initialDomainMap = parseAuthAndForwards();
@@ -4929,6 +5051,8 @@ int main(int argc, char **argv)
 
     ::arg().set("proxy-protocol-from", "A Proxy Protocol header is only allowed from these subnets")="";
     ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values")="512";
+
+    ::arg().set("dns64-prefix", "DNS64 prefix")="";
 
     ::arg().set("udp-source-port-min", "Minimum UDP port to bind on")="1024";
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";

@@ -609,3 +609,5 @@ bool isSettingThreadCPUAffinitySupported();
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus);
 
 std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);
+
+DNSName reverseNameFromIP(const ComboAddress& ip);
