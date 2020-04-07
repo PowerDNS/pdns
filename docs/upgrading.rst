@@ -61,6 +61,8 @@ Removed settings
 Schema changes
 ^^^^^^^^^^^^^^
 - The new 'unpublished DNSSEC keys' feature comes with a mandatory schema change for all database backends (including BIND with a DNSSEC database). Please find files named "4.2.0_to_4.3.0_schema.X.sql" for your database backend in our Git repo, tarball, or distro-specific documentation path. For the LMDB backend, please review :ref:`setting-lmdb-schema-version`.
+- If you are upgrading from beta2 or rc2, AND ONLY THEN, please read `pull request #8975 <https://github.com/PowerDNS/pdns/pull/8975>`__ very carefully.
+
 
 Implicit 5->7 algorithm upgrades
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
