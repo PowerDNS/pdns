@@ -75,6 +75,7 @@ commands:
               dnsutils \
               ldnsutils \
               libnet-dns-perl \
+              pdns-recursor \
               unbound-host
       - run:
           name: Install jdnssectools
@@ -89,6 +90,10 @@ commands:
       - run:
           name: Allow missing tools in verify-dnssec-zone
           command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
+      - run:
+          name: Start PowerDNS Recursor in the background
+          command: pdns_recursor
+          background: true
 
   auth-regress:
     description: Run one auth regression context
@@ -130,6 +135,7 @@ commands:
             ZONE2LDAP=<< parameters.prefix >>bin/zone2ldap \
             PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
             PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
+            RESOLVERIP=127.0.0.1 \
             ./start-test-stop 5300 << parameters.context >>
       - when:
           condition: << parameters.doroot >>
@@ -154,6 +160,7 @@ commands:
                   ZONE2LDAP=<< parameters.prefix >>bin/zone2ldap \
                   PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
                   PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
+                  RESOLVERIP=127.0.0.1 \
                   ./start-test-stop 5300 << parameters.context >>
 
   install-recursor-deps:
