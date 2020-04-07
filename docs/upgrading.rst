@@ -63,11 +63,19 @@ Schema changes
 - The new 'unpublished DNSSEC keys' feature comes with a mandatory schema change for all database backends (including BIND with a DNSSEC database). Please find files named "4.2.0_to_4.3.0_schema.X.sql" for your database backend in our Git repo, tarball, or distro-specific documentation path. For the LMDB backend, please review :ref:`setting-lmdb-schema-version`.
 - If you are upgrading from beta2 or rc2, AND ONLY THEN, please read `pull request #8975 <https://github.com/PowerDNS/pdns/pull/8975>`__ very carefully.
 
-
 Implicit 5->7 algorithm upgrades
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since version 3.0 (the first version of the PowerDNS Authoritative Server that supported DNSSEC signing), we have automatically, silently, upgraded algorithm 5 (RSASHA1) keys to algorithm 7 (RSASHA1-NSEC3-SHA1) when the user enabled NSEC3. This has been a source of confusion, and because of that, we introduced warnings for users of this feature in 4.0 and 4.1. To see if you are affected, run ``pdnsutil check-all-zones`` from version 4.0 or up. In this release, the automatic upgrade is gone, and affected zones will break if no action is taken.
+
+.. _ixfr-in-corruption-4.3.0:
+
+IXFR-in corruption
+^^^^^^^^^^^^^^^^^^
+
+A bug in PowerDNS versions before 4.2.2/4.3.0 would cause wrong deletion or addition of records if IXFR deltas came in very quickly (within the query cache timeout, which defaults to 20/60 seconds).
+If you have zones which use inbound IXFR (in other words, the ``IXFR`` metadata item for that zone is set to ``1``), we strongly suggest triggering a completely fresh transfer.
+You could accomplish that by deleting all records in the zone with an SQL query and waiting for a fresh transfer, or (1) disabling IXFR (2) forcing a fresh transfer using ``pdns_control retrieve example.com`` (3) enabling IXFR again.
 
 4.1.X to 4.2.0
 --------------
