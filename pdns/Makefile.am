@@ -1300,6 +1300,7 @@ testrunner_SOURCES = \
 	rcpgenerator.cc \
 	responsestats.cc \
 	responsestats-auth.cc \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	test-arguments_cc.cc \
