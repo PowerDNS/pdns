@@ -90,6 +90,7 @@
 #include "gettime.hh"
 #include "proxy-protocol.hh"
 #include "pubsuffix.hh"
+#include "shuffle.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -1557,7 +1558,7 @@ static void startDoResolve(void *p)
       }
 
       if(ret.size()) {
-        orderAndShuffle(ret);
+        pdns::orderAndShuffle(ret);
 	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_source)) {
 	  stable_sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
