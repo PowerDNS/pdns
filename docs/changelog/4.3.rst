@@ -14,7 +14,7 @@ Changelogs for 4.3.x
     :tags: Bug Fixes
     :pullreq: 8977
 
-    avoid IXFR-in record duplication
+    avoid IXFR-in corruption when deltas come in close together (please see the :ref:`ixfr-in-corruption-4.3.0` upgrade notes)
 
   .. change::
     :tags: Bug Fixes
