@@ -30,11 +30,12 @@ bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, u
   }
 
   size_t pos = 0;
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
 
-  optionCode = (static_cast<unsigned char>(data[pos]) * 256) + static_cast<unsigned char>(data[pos + 1]);
+  optionCode = (static_cast<uint16_t>(p[pos]) * 256) + p[pos + 1];
   pos += EDNS_OPTION_CODE_SIZE;
 
-  optionLen = (static_cast<unsigned char>(data[pos]) * 256) + static_cast<unsigned char>(data[pos + 1]);
+  optionLen = (static_cast<uint16_t>(p[pos]) * 256) + p[pos + 1];
   pos += EDNS_OPTION_LENGTH_SIZE;
 
   return true;

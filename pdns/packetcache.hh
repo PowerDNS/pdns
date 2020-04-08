@@ -59,7 +59,7 @@ public:
     /* already hashed above */
     pos += 13;
 
-    const uint16_t rdLen = ((static_cast<unsigned char>(packet.at(pos)) * 256) + static_cast<unsigned char>(packet.at(pos + 1)));
+    const uint16_t rdLen = ((static_cast<uint16_t>(packet.at(pos)) * 256) + static_cast<uint16_t>(packet.at(pos + 1)));
     /* skip the rd length */
     /* already hashed above */
     pos += 2;
@@ -116,7 +116,7 @@ public:
   static uint32_t hashHeaderAndQName(const std::string& packet, size_t& pos)
   {
     uint32_t currentHash = 0;
-    size_t packetSize = packet.size();
+    const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
     currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(2)), sizeof(dnsheader) - 2, currentHash); // rest of dnsheader, skip id
     pos = sizeof(dnsheader);
