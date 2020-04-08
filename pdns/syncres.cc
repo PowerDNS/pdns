@@ -1657,9 +1657,7 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
       return rnameservers;
   }
 
-  // Using  shuffle(rnameservers.begin(), rnameservers.end(), pdsn:dns_ramndom_engine()) causes a boost assert,
-  // to be investigated
-  random_shuffle(rnameservers.begin(),rnameservers.end());
+  shuffle(rnameservers.begin(),rnameservers.end(), pdns::dns_random_engine());
   speedOrder so;
   stable_sort(rnameservers.begin(),rnameservers.end(), so);
 

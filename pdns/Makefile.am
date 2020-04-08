@@ -920,7 +920,9 @@ dnsbulktest_SOURCES = \
 	rcpgenerator.cc \
 	sillyrecords.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	arguments.cc arguments.hh \
+	dns_random.cc dns_random.hh
 
 dnsbulktest_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1083,6 +1085,7 @@ pdns_notify_LDADD = \
 
 if LIBSODIUM
 pdns_notify_LDADD += $(LIBSODIUM_LIBS)
+dnsbulktest_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 dnsscope_SOURCES = \

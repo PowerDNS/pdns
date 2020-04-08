@@ -25,9 +25,8 @@
 struct DNSRecord;
 struct DNSZoneRecord;
 
-namespace pdns {
-  void shuffle(std::vector<DNSRecord>& rrs);
-  void shuffle(std::vector<DNSZoneRecord>& rrs);
-  void orderAndShuffle(std::vector<DNSRecord>& rrs);
+namespace pdns
+{
+void shuffle(std::vector<DNSZoneRecord>& rrs);
+void orderAndShuffle(std::vector<DNSRecord>& rrs);
 }
-

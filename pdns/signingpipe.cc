@@ -3,6 +3,7 @@
 #endif
 #include "signingpipe.hh"
 #include "misc.hh"
+#include "dns_random.hh"
 #include <poll.h>
 
 #include <sys/socket.h>
@@ -196,7 +197,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
   rwVect = waitForRW(wantRead, wantWrite, -1); // wait for something to happen
   
   if(wantWrite && !rwVect.second.empty()) {
-    random_shuffle(rwVect.second.begin(), rwVect.second.end()); // pick random available worker
+    shuffle(rwVect.second.begin(), rwVect.second.end(), pdns::dns_random_engine()); // pick random available worker
     auto ptr = d_rrsetToSign.release();
     writen2(*rwVect.second.begin(), &ptr, sizeof(ptr));
     d_rrsetToSign = make_unique<rrset_t>();
@@ -245,7 +246,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
   
   if(wantWrite) {  // our optimization above failed, we now wait synchronously
     rwVect = waitForRW(false, wantWrite, -1); // wait for something to happen
-    random_shuffle(rwVect.second.begin(), rwVect.second.end()); // pick random available worker
+    shuffle(rwVect.second.begin(), rwVect.second.end(), pdns::dns_random_engine()); // pick random available worker
     auto ptr = d_rrsetToSign.release();
     writen2(*rwVect.second.begin(), &ptr, sizeof(ptr));
     d_rrsetToSign = make_unique<rrset_t>();

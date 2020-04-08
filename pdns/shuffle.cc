@@ -33,58 +33,81 @@
 void pdns::shuffle(std::vector<DNSZoneRecord>& rrs)
 {
   std::vector<DNSZoneRecord>::iterator first, second;
-  for(first=rrs.begin();first!=rrs.end();++first)
-    if(first->dr.d_place==DNSResourceRecord::ANSWER && first->dr.d_type != QType::CNAME) // CNAME must come first
+
+  // We assume the CNAMES are listed firts in the ANSWWER section and the the other records
+  // and we want to shuffle the other records only
+
+  // First we scan for the first non-CNAME ANSWER record
+  for (first = rrs.begin(); first != rrs.end(); ++first) {
+    if (first->dr.d_place == DNSResourceRecord::ANSWER && first->dr.d_type != QType::CNAME) {
       break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->dr.d_place!=DNSResourceRecord::ANSWER)
+    }
+  }
+  // And then for one past the last ANSWER recordd
+  for (second = first; second != rrs.end(); ++second)
+    if (second->dr.d_place != DNSResourceRecord::ANSWER)
       break;
 
+  // Now shuffle the non-CNAME ANSWER records
   dns_random_engine r;
-  if(second-first > 1)
+  if (second - first > 1) {
     shuffle(first, second, r);
+  }
 
-  // now shuffle the additional records
-  for(first=second;first!=rrs.end();++first)
-    if(first->dr.d_place==DNSResourceRecord::ADDITIONAL && first->dr.d_type != QType::CNAME) // CNAME must come first
+  // now shuffle the ADDITIONAL records in the same manner as the ANSWER records
+  for (first = second; first != rrs.end(); ++first) {
+    if (first->dr.d_place == DNSResourceRecord::ADDITIONAL && first->dr.d_type != QType::CNAME) {
       break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->dr.d_place!=DNSResourceRecord::ADDITIONAL)
+    }
+  }
+  for (second = first; second != rrs.end(); ++second) {
+    if (second->dr.d_place != DNSResourceRecord::ADDITIONAL) {
       break;
+    }
+  }
 
-  if(second-first>1)
+  if (second - first > 1) {
     shuffle(first, second, r);
-
+  }
   // we don't shuffle the rest
 }
 
-
 // shuffle, maintaining some semblance of order
-void pdns::shuffle(std::vector<DNSRecord>& rrs)
+static void shuffle(std::vector<DNSRecord>& rrs)
 {
+  // This shuffles in the same style as the above method, keeping CNAME in the front and RRSIGs at the end
   std::vector<DNSRecord>::iterator first, second;
-  for(first=rrs.begin();first!=rrs.end();++first)
-    if(first->d_place==DNSResourceRecord::ANSWER && first->d_type != QType::CNAME) // CNAME must come first
+  for (first = rrs.begin(); first != rrs.end(); ++first) {
+    if (first->d_place == DNSResourceRecord::ANSWER && first->d_type != QType::CNAME) {
       break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSResourceRecord::ANSWER || second->d_type == QType::RRSIG) // leave RRSIGs at the end
+    }
+  }
+  for (second = first; second != rrs.end(); ++second) {
+    if (second->d_place != DNSResourceRecord::ANSWER || second->d_type == QType::RRSIG) {
       break;
+    }
+  }
 
-  dns_random_engine r;
-  if(second-first>1)
+  pdns::dns_random_engine r;
+  if (second - first > 1) {
     shuffle(first, second, r);
+  }
 
   // now shuffle the additional records
-  for(first=second;first!=rrs.end();++first)
-    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->d_type != QType::CNAME) // CNAME must come first
+  for (first = second; first != rrs.end(); ++first) {
+    if (first->d_place == DNSResourceRecord::ADDITIONAL && first->d_type != QType::CNAME) {
       break;
-  for(second=first; second!=rrs.end(); ++second)
-    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
+    }
+  }
+  for (second = first; second != rrs.end(); ++second) {
+    if (second->d_place != DNSResourceRecord::ADDITIONAL) {
       break;
+    }
+  }
 
-  if(second-first>1)
+  if (second - first > 1) {
     shuffle(first, second, r);
-
+  }
   // we don't shuffle the rest
 }
 
@@ -102,8 +125,8 @@ static uint16_t mapTypesToOrder(uint16_t type)
 // then shuffle the parts that desire shuffling
 void pdns::orderAndShuffle(vector<DNSRecord>& rrs)
 {
-  std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord&a, const DNSRecord& b) { 
-      return std::make_tuple(a.d_place, mapTypesToOrder(a.d_type)) < std::make_tuple(b.d_place, mapTypesToOrder(b.d_type));
-    });
+  std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord& a, const DNSRecord& b) {
+    return std::make_tuple(a.d_place, mapTypesToOrder(a.d_type)) < std::make_tuple(b.d_place, mapTypesToOrder(b.d_type));
+  });
   shuffle(rrs);
 }
