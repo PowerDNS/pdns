@@ -1668,7 +1668,7 @@ class TestCachingNegativeTTL(DNSDistTest):
 
         time.sleep(self._negCacheTTL + 1)
 
-        # we should not have cached for longer than the negativel TTL
+        # we should not have cached for longer than the negative TTL
         # so it should be a miss
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedQuery)

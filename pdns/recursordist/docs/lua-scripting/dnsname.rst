@@ -8,7 +8,7 @@ The DNSName object
 ------------------
 The PowerDNS Recursor's Lua engine has the notion of a :class:`DNSName`, an object that represents a name in the DNS.
 It is returned by several functions and has several functions to programmatically interact with it.
-:class:`DNSNames <DNSName>` can be compared agains each other using the :meth:`:equal <DNSName:equal>` function or the ``==`` operator.
+:class:`DNSNames <DNSName>` can be compared against each other using the :meth:`:equal <DNSName:equal>` function or the ``==`` operator.
 As names in the DNS are case-insensitive, ``www.powerdns.com`` is equal to ``Www.PowerDNS.cOM``.
 
 Creating a :class:`DNSName` is done with :func:`newDN()`.

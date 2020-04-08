@@ -1,7 +1,7 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
-# This defines the dstribution base layer
+# This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
 FROM amazonlinux:2 as dist-base
 ARG BUILDER_CACHE_BUSTER=

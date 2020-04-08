@@ -57,7 +57,7 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 6' /etc/redhat-release); then 
     fi
 @ENDIF
 
-# mv accross layers with overlay2 is buggy in some kernel versions (results in empty dirs)
+# mv across layers with overlay2 is buggy in some kernel versions (results in empty dirs)
 # See: https://github.com/moby/moby/issues/33733
 #RUN mv /root/rpmbuild/RPMS/* /dist/
 RUN cp -R /root/rpmbuild/RPMS/* /dist/

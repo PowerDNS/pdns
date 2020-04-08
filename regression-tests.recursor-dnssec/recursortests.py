@@ -149,7 +149,7 @@ insecure.sub2.secure.example. 3600 IN NS ns1.insecure.example.
 
 *.cnamewildcard.secure.example. 3600 IN CNAME host1.secure.example.
 
-*.cnamewildcardnxdomain.secure.example. 3600 IN CNAME doesntexist.secure.example.
+*.cnamewildcardnxdomain.secure.example. 3600 IN CNAME doesnotexist.secure.example.
 
 cname-to-formerr.secure.example. 3600 IN CNAME host1.insecure-formerr.example.
 

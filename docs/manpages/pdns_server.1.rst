@@ -29,7 +29,7 @@ See the online documentation for all options
 --loglevel=<LEVEL>      Set the logging level.
 --config                Show the currently configuration. There are three optional values:
                         --config=default show the default configuration.
-                        --config=diff    show modified options in the curent configuration.
+                        --config=diff    show modified options in the current configuration.
                         --config=check   parse the current configuration, with error checking.
 --help                  To view more options that are available use this program.
 

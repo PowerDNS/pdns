@@ -50,5 +50,5 @@ Simple queries to local resolvers
     sdig ::1 53 example.com A recurse
 
 Query to a DNS-over-HTTPS server requesting dnssec and recursion
-    sdig https://dns.somesample.net/dns-query 443 example.com A dnssec recurse
+    sdig https://dns.example.net/dns-query 443 example.com A dnssec recurse
 

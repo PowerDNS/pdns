@@ -1069,7 +1069,7 @@ static bool nodCheckNewDomain(const DNSName& dname)
   bool ret = false;
   // First check the (sub)domain isn't whitelisted for NOD purposes
   if (!g_nodDomainWL.check(dname)) {
-    // Now check the NODDB (note this is probablistic so can have FNs/FPs)
+    // Now check the NODDB (note this is probabilistic so can have FNs/FPs)
     if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
       if (g_nodLog) {
         // This should probably log to a dedicated log file
@@ -4461,7 +4461,7 @@ static int serviceMain(int argc, char*argv[])
       For years, this was a safe assumption, but containers change that: in
       most (all?) container implementations, the application itself is running
       as pid 1. This means that sending signals to those applications, will not
-      be handled by default. Results might be "your container not responsing
+      be handled by default. Results might be "your container not responding
       when asking it to stop", or "ctrl-c not working even when the app is
       running in the foreground inside a container".
 

@@ -8,7 +8,7 @@ Glossary
 
   Open Resolver
     A recursive DNS server available for many hosts on the internet.
-    Ususally without adequate rate-limiting, allowing it to be used in reflection attacks.
+    Usually without adequate rate-limiting, allowing it to be used in reflection attacks.
 
   QPS
     Queries Per Second

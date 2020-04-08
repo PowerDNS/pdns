@@ -1432,7 +1432,7 @@ Changelogs for 4.2.x
     :pullreq: 5361
     :tickets: 3602
 
-    Make requests always return to sender, for usage in multimaster slave zones. Also - made sure that the master that is questioned for updates will be selected randomly, to prevent repeatidally asking a dead master for updates.
+    Make requests always return to sender, for usage in multimaster slave zones. Also - made sure that the master that is questioned for updates will be selected randomly, to prevent repeatedly asking a dead master for updates.
 
   .. change::
     :tags: Improvements, API

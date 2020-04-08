@@ -28,7 +28,7 @@ be true:
 
 * ``forward-zones``, ``forward-zones-recurse`` and/or ``auth-zones``
   settings must be set (possibly to the empty string) in a
-  configuration file. These settings must not be overriden on the
+  configuration file. These settings must not be overridden on the
   command line. Setting these options on the command line will
   override what has been set in the dynamically generated
   configuration files.

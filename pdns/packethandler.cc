@@ -1446,7 +1446,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       bool doReferral = true;
       if(d_dk.doesDNSSEC()) {
         for(auto& loopRR: rrset) {
-          // In a dnssec capable backend auth=true means, there is no delagation at
+          // In a dnssec capable backend auth=true means, there is no delegation at
           // or above this qname in this zone (for DS queries). Without a delegation,
           // at or above this level, it is pointless to search for refferals.
           if(loopRR.auth) {

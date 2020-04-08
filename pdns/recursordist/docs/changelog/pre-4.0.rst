@@ -141,7 +141,7 @@ Improvements:
    messages from being logged f48d7b657ec32517f8bfcada3bfe6353ca313314
 -  Webserver now implements CORS for the API
    ea89a97e864c43c1cb03f2959ad04c4ebe7580ad, fixing ticket #1984
--  Houskeeping thread would sometimes run multiple times simultaneously,
+-  Housekeeping thread would sometimes run multiple times simultaneously,
    which worked, but was odd cc59bce675e62e2b9657b42614ce8be3312cae82
 
 New features:

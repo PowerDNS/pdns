@@ -3,7 +3,7 @@
 DNSName objects
 ===============
 
-A :class:`DNSName` object represents a name in the DNS. It has serveral functions that can manipulate it without conversions to strings.
+A :class:`DNSName` object represents a name in the DNS. It has several functions that can manipulate it without conversions to strings.
 Creating a ``DNSName`` is done with the :func:`newDNSName`::
 
   myname = newDNSName("www.example.com")

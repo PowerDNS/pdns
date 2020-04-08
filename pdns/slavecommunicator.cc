@@ -798,7 +798,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     dp.getTSIGDetails(&trc, &tsigkeyname);
-    P->trySuperMasterSynchronous(dp, tsigkeyname); // FIXME could use some error loging
+    P->trySuperMasterSynchronous(dp, tsigkeyname); // FIXME could use some error logging
   }
   if(rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);

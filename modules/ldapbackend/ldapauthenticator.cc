@@ -118,7 +118,7 @@ bool LdapGssapiAuthenticator::authenticate( LDAP *conn )
     return false;
   }
   else if ( code == -2 ) {
-    // Here it may be possible to retry after obtainting a fresh ticket
+    // Here it may be possible to retry after obtaining a fresh ticket
     g_log<<Logger::Debug << d_logPrefix << "No TGT found, trying to acquire a new one" << std::endl;
     code = updateTgt();
 

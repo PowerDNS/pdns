@@ -339,14 +339,14 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
   - If `wantsNoDataProof` is set but a NSEC proves that the whole name does not exist, the function will return
   NXQTYPE is the name is proven to be ENT and NXDOMAIN otherwise.
   - If `needWildcardProof` is false, the proof that a wildcard covering this qname|qtype is not checked. It is
-  useful when we have a positive answer synthetized from a wildcard and we only need to prove that the exact
+  useful when we have a positive answer synthesized from a wildcard and we only need to prove that the exact
   name does not exist.
 */
 dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needWildcardProof, unsigned int wildcardLabelsCount)
 {
   bool nsec3Seen = false;
   if (!needWildcardProof && wildcardLabelsCount == 0) {
-    throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthetized from a wildcard");
+    throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthesized from a wildcard");
   }
 
   for(const auto& v : validrrsets) {

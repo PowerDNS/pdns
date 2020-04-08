@@ -18,7 +18,7 @@ Generating a new TSIG key
 
   {"name": "mytsigkey", "algorithm": "hmac-sha256"}
 
-Will yield a response similar to this (several headers ommitted):
+Will yield a response similar to this (several headers omitted):
 
 .. code-block:: http
 

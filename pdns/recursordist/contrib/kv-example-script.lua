@@ -13,7 +13,7 @@ To test, use the 'kvresp' example program provided.
 --]]
 
 function preresolve (dq)
-	print ("prereesolve handler called for: "..dq.remoteaddr:toString().. ", local: ".. dq.localaddr:toString()..", ".. dq.qname:toString()..", ".. dq.qtype)
+	print ("preresolve handler called for: "..dq.remoteaddr:toString().. ", local: ".. dq.localaddr:toString()..", ".. dq.qname:toString()..", ".. dq.qtype)
 	dq.followupFunction="udpQueryResponse"
 	dq.udpCallback="gotdomaindetails"
 	dq.udpQueryDest=newCA("127.0.0.1:5555")
