@@ -622,6 +622,7 @@ struct ClientState
   std::atomic<double> tcpAvgConnectionDuration{0.0};
   int udpFD{-1};
   int tcpFD{-1};
+  int tcpListenQueueSize{SOMAXCONN};
   int fastOpenQueueSize{0};
   bool muted{false};
   bool tcp;
