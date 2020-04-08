@@ -57,6 +57,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
+#include <random>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
@@ -588,6 +589,7 @@ string makeHexDump(const string& str)
 // shuffle, maintaining some semblance of order
 void shuffle(vector<DNSZoneRecord>& rrs)
 {
+  unsigned seed = 0;
   vector<DNSZoneRecord>::iterator first, second;
   for(first=rrs.begin();first!=rrs.end();++first)
     if(first->dr.d_place==DNSResourceRecord::ANSWER && first->dr.d_type != QType::CNAME) // CNAME must come first
@@ -597,7 +599,7 @@ void shuffle(vector<DNSZoneRecord>& rrs)
       break;
 
   if(second-first > 1)
-    random_shuffle(first,second);
+    shuffle(first, second, std::default_random_engine(seed));
 
   // now shuffle the additional records
   for(first=second;first!=rrs.end();++first)
@@ -608,7 +610,7 @@ void shuffle(vector<DNSZoneRecord>& rrs)
       break;
 
   if(second-first>1)
-    random_shuffle(first,second);
+    shuffle(first, second, std::default_random_engine(seed));
 
   // we don't shuffle the rest
 }
@@ -617,6 +619,7 @@ void shuffle(vector<DNSZoneRecord>& rrs)
 // shuffle, maintaining some semblance of order
 void shuffle(vector<DNSRecord>& rrs)
 {
+  unsigned seed = 0;
   vector<DNSRecord>::iterator first, second;
   for(first=rrs.begin();first!=rrs.end();++first)
     if(first->d_place==DNSResourceRecord::ANSWER && first->d_type != QType::CNAME) // CNAME must come first
@@ -626,7 +629,7 @@ void shuffle(vector<DNSRecord>& rrs)
       break;
 
   if(second-first>1)
-    random_shuffle(first,second);
+    shuffle(first, second, std::default_random_engine(seed));
 
   // now shuffle the additional records
   for(first=second;first!=rrs.end();++first)
@@ -637,7 +640,7 @@ void shuffle(vector<DNSRecord>& rrs)
       break;
 
   if(second-first>1)
-    random_shuffle(first,second);
+    shuffle(first, second, std::default_random_engine(seed));
 
   // we don't shuffle the rest
 }
