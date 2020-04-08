@@ -57,7 +57,6 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-#include <random>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
@@ -584,85 +583,6 @@ string makeHexDump(const string& str)
     ret+=tmp;
   }
   return ret;
-}
-
-// shuffle, maintaining some semblance of order
-void shuffle(vector<DNSZoneRecord>& rrs)
-{
-  unsigned seed = 0;
-  vector<DNSZoneRecord>::iterator first, second;
-  for(first=rrs.begin();first!=rrs.end();++first)
-    if(first->dr.d_place==DNSResourceRecord::ANSWER && first->dr.d_type != QType::CNAME) // CNAME must come first
-      break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->dr.d_place!=DNSResourceRecord::ANSWER)
-      break;
-
-  if(second-first > 1)
-    shuffle(first, second, std::default_random_engine(seed));
-
-  // now shuffle the additional records
-  for(first=second;first!=rrs.end();++first)
-    if(first->dr.d_place==DNSResourceRecord::ADDITIONAL && first->dr.d_type != QType::CNAME) // CNAME must come first
-      break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->dr.d_place!=DNSResourceRecord::ADDITIONAL)
-      break;
-
-  if(second-first>1)
-    shuffle(first, second, std::default_random_engine(seed));
-
-  // we don't shuffle the rest
-}
-
-
-// shuffle, maintaining some semblance of order
-void shuffle(vector<DNSRecord>& rrs)
-{
-  unsigned seed = 0;
-  vector<DNSRecord>::iterator first, second;
-  for(first=rrs.begin();first!=rrs.end();++first)
-    if(first->d_place==DNSResourceRecord::ANSWER && first->d_type != QType::CNAME) // CNAME must come first
-      break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSResourceRecord::ANSWER || second->d_type == QType::RRSIG) // leave RRSIGs at the end
-      break;
-
-  if(second-first>1)
-    shuffle(first, second, std::default_random_engine(seed));
-
-  // now shuffle the additional records
-  for(first=second;first!=rrs.end();++first)
-    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->d_type != QType::CNAME) // CNAME must come first
-      break;
-  for(second=first; second!=rrs.end(); ++second)
-    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
-      break;
-
-  if(second-first>1)
-    shuffle(first, second, std::default_random_engine(seed));
-
-  // we don't shuffle the rest
-}
-
-static uint16_t mapTypesToOrder(uint16_t type)
-{
-  if(type == QType::CNAME)
-    return 0;
-  if(type == QType::RRSIG)
-    return 65535;
-  else
-    return 1;
-}
-
-// make sure rrs is sorted in d_place order to avoid surprises later
-// then shuffle the parts that desire shuffling
-void orderAndShuffle(vector<DNSRecord>& rrs)
-{
-  std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord&a, const DNSRecord& b) { 
-      return std::make_tuple(a.d_place, mapTypesToOrder(a.d_type)) < std::make_tuple(b.d_place, mapTypesToOrder(b.d_type));
-    });
-  shuffle(rrs);
 }
 
 void normalizeTV(struct timeval& tv)
