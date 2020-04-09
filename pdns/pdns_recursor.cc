@@ -4311,7 +4311,7 @@ static int serviceMain(int argc, char*argv[])
     try {
       auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
       if (dns64Prefix.getBits() != 96) {
-        g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixe: " << ::arg()["dns64-prefix"] << endl;
+        g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes: " << ::arg()["dns64-prefix"] << endl;
         exit(1);
       }
       g_dns64Prefix = dns64Prefix.getNetwork();
