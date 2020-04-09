@@ -2,6 +2,47 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.2
+  :released: 9th of April 2020
+
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9010
+
+    fix records ending up in wrong packet section (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvents
+    :pullreq: 9003, 8736
+
+    cache: strictly enforce maximum size, and improve cleanup routine
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9001
+
+    avoid IXFR-in corruption when deltas come in close together (please see the :ref:`ixfr-in-corruption-4.2.2` upgrade notes)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8786
+
+    api: add includerings option to statistics endpoint
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8612
+
+    fix out-of-bound access for zero length "serialized" string when using lmdbbackend. (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8602
+
+    bind backend: pthread_mutex_t should be inited and destroyed and not be copied
+
+.. changelog::
   :version: 4.2.1
   :released: 2nd of December 2019
 
