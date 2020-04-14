@@ -357,6 +357,15 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
         '18': {'threads': 1,
                'zones': ['example']}
     }
+    # Other IPs used:
+    #  2: test_Interop.py
+    #  3-7: free?
+    # 19: free?
+    # 20: free?
+    # 21: test_ECS.py
+    # 22: test_EDNSBuffer.py
+    # 23: test_Lua.py
+    # 24: test_RoutingTag.py
 
     _auth_cmd = ['authbind',
                  os.environ['PDNS']]
