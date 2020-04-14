@@ -29,7 +29,6 @@ NoNewPrivileges=true
 PrivateDevices=true
 PrivateTmp=true
 # Setting PrivateUsers=true prevents us from opening our sockets
-PrivateUsers=true
 ProtectClock=true
 ProtectControlGroups=true
 ProtectHome=true
