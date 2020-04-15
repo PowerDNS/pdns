@@ -37,12 +37,6 @@ Changelog
     Accept UDP datagrams larger than 1500 bytes for DNSCrypt
 
   .. change::
-    :tags: Improvements, DNS over TLS
-    :pullreq: 8985
-
-    Fix compilation without deprecated OpenSSL APIs (Rosen Penev)
-
-  .. change::
     :tags: Improvements
     :pullreq: 8996
 
