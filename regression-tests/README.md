@@ -165,6 +165,6 @@ GMYSQLHOST=127.0.0.1 ./start-test-stop 5300 gmysql
 
 Postgres:
 ```sh
-docker run -p 5432:5432 --rm -d postgres
+docker run -p 5432:5432 --rm -e POSTGRES_HOST_AUTH_METHOD=trust -d postgres
 GPGSQLUSER=postgres PGHOST=127.0.0.1  ./start-test-stop 5300 gpgsql
 ```
