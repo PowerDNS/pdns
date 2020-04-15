@@ -363,11 +363,11 @@ QName Minimization
 Since the 4.3 release, the recursor implements a relaxed form of QName
 Minimization. This is a method to enhance privacy and described in the
 (draft) RFC 7816. By asking the authoritative server not the full
-QName, but one more label than we already know it is athoratative for
+QName, but one more label than we already know it is authoritative for
 we do not leak which exact names are queried to servers higher up in
 the hierarchy.
 
-The implemenation uses a relaxed form of QName Minimization, following
+The implementation uses a relaxed form of QName Minimization, following
 the recommendations found in the paper "A First Look at QNAME
 Minimization in the Domain Name System" by De Vries et all.
 
@@ -386,7 +386,7 @@ already have a limit on the number of outgoing queries induced by a
 client query. We do a final full QName query if we get an unexpected
 error. This happens when we encounter authoritative servers that are
 not fully compliant, there are still many servers like that. The
-recursor records with respect to this fallback scnenario in the
+recursor records with respect to this fallback scenario in the
 ``qname-min-fallback-success`` metric.
 
 For forwarded queries, we do not use QName Minimization.
