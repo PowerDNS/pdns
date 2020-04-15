@@ -357,6 +357,41 @@ nameserver left to answer queries, and we need to be prepared for that.
 This is the whole DNS algorithm in PowerDNS, all in less than 700 lines
 of code. It contains a lot of tricky bits though, related to the cache.
 
+QName Minimization
+------------------
+
+Since the 4.3 release, the recursor implements a relaxed form of QName
+Minimization. This is a method to enhance privacy and described in the
+(draft) RFC 7816. By asking the authoritative server not the full
+QName, but one more label than we already know it is authoritative for
+we do not leak which exact names are queried to servers higher up in
+the hierarchy.
+
+The implementation uses a relaxed form of QName Minimization, following
+the recommendations found in the paper "A First Look at QNAME
+Minimization in the Domain Name System" by De Vries et all.
+
+We originally started with using NS probes as the example algorithm in
+the RFC draft recommends.
+
+We then quickly discovered that using NS probes were somewhat
+troublesome and after reading the mentioned paper we changed to QType
+A for probes, which worked better. We did not implemented the extra
+label prepend, not understanding why that would be needed (a more
+recent draft of the RFC came to the same conclusion).
+
+Following the recommendations in the paper we also implemented larger
+steps when many labels are present. We use steps 1-1-1-3-3-...; we
+already have a limit on the number of outgoing queries induced by a
+client query. We do a final full QName query if we get an unexpected
+error. This happens when we encounter authoritative servers that are
+not fully compliant, there are still many servers like that. The
+recursor records with respect to this fallback scenario in the
+``qname-min-fallback-success`` metric.
+
+For forwarded queries, we do not use QName Minimization.
+
+
 Some of the things we glossed over
 ----------------------------------
 
