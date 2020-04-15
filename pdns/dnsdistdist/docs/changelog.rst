@@ -2,6 +2,60 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.5.0-rc1
+  :released: 16th of April 2010
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8955
+
+    On OpenBSD string_view is both in boost and std
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8956
+
+    Expose SuffixMatchNode::remove in Lua
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8962
+
+    Remove a std::move() preventing Return-Value Optimization in lmdb-safe.cc
+
+  .. change::
+    :tags: Bug Fixes, DNSCrypt
+    :pullreq: 8974
+
+    Keep accepting fragmented UDP datagrams on DNSCrypt binds
+
+  .. change::
+    :tags: Bug Fixes, DNSCrypt
+    :pullreq: 8976
+    :tickets: 8974
+
+    Accept UDP datagrams larger than 1500 bytes for DNSCrypt
+
+  .. change::
+    :tags: Improvements, DNS over TLS
+    :pullreq: 8985
+
+    Fix compilation without deprecated OpenSSL APIs (Rosen Penev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8996
+
+    Drop responses with the QR bit set to 0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8994
+    :tickets: 8986
+
+    Add an option to control the size of the TCP listen queue
+
+.. changelog::
   :version: 1.5.0-alpha1
   :released: 20th of March 2010
 
