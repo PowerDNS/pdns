@@ -9,7 +9,8 @@ if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
     echo
     echo "  • RELEASE: [ auth-40 | auth-41 | auth-42 | auth-43 |"
-    echo "               rec-40 | rec-41 | rec-42 | rec-43 ]"
+    echo "               rec-40 | rec-41 | rec-42 | rec-43 |"
+    echo "               dnsdist-15 ]"
     exit 1
 fi
 
@@ -63,6 +64,16 @@ write_debian_or_ubuntu()
 deb [arch=amd64] http://repo.powerdns.com/$OS $VERSION-$RELEASE main
 EOF
 
+    # For the following two maybe only create depending on package, but
+    # it's not really a big deal.
+
+    # if not exists
+    cat <<EOF > dnsdist.debian-and-ubuntu
+Package: dnsdist*
+Pin: origin repo.powerdns.com
+Pin-Priority: 600
+EOF
+
     # if not exists
     cat <<EOF > pdns.debian-and-ubuntu
 Package: pdns-*
@@ -76,6 +87,7 @@ FROM $OS:$VERSION
 RUN apt-get update
 RUN apt-get install -y curl gnupg dnsutils
 
+COPY dnsdist.debian-and-ubuntu /etc/apt/preferences.d/dnsdist
 COPY pdns.debian-and-ubuntu /etc/apt/preferences.d/pdns
 COPY pdns.list.$RELEASE.$OS-$VERSION /etc/apt/sources.list.d/pdns.list
 
@@ -158,6 +170,14 @@ elif [ "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" ]; then
     write_debian buster pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
+elif [ "$RELEASE" = "dnsdist-15" ]; then
+    write_centos 6 dnsdist dnsdist
+    write_centos 7 dnsdist dnsdist
+    write_centos 8 dnsdist dnsdist
+    write_debian stretch dnsdist dnsdist
+    write_debian buster dnsdist dnsdist
+    write_ubuntu xenial dnsdist dnsdist
+    write_ubuntu bionic dnsdist dnsdist
 else
     echo "Invalid release: $RELEASE"
     exit 1
