@@ -3,7 +3,9 @@
 # - `docker build --no-cache --pull --file Dockerfile.auth-41.ubuntu-bionic --tag auth-41.ubuntu-bionic .`
 # - `docker run -it auth-41.ubuntu-bionic`
 # - `docker run -it auth-41.ubuntu-bionic /bin/bash`
+#     - `dnsdist --verbose 9.9.9.9`
 #     - `pdns_recursor`
+#     - `pdns_server`
 
 if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
@@ -31,6 +33,11 @@ EOF
     if [ "$VERSION" = "6" -o "$VERSION" = "7" ]; then
         cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 RUN yum install -y yum-plugin-priorities
+EOF
+    elif [ "$RELEASE" = "dnsdist-15" -a "$VERSION" = "8" ]; then
+        cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
+RUN dnf install -y 'dnf-command(config-manager)'
+RUN dnf config-manager --set-enabled PowerTools
 EOF
     fi
 
@@ -97,7 +104,7 @@ RUN apt-get install -y $PKG
 EOF
 
     if [ "$RELEASE" = "rec-43" ]; then
-    cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
+        cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 
 RUN mkdir /var/run/pdns-recursor
 EOF
