@@ -17,6 +17,12 @@ upgrade notes if your version is older than 3.4.2.
 The in-database format of the ``IPSECKEY`` has changed from 'generic' format to its specialized format.
 It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have ``IPSECKEY`` or ``TYPE45`` records.
 
+PostgreSQL configuration escaping
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We now correctly quote/escape Postgres connection parameters.
+If you used single quotes around your Postgres password because it contained spaces, you now need to remove those quotes.
+
 4.3.0 to 4.3.1
 --------------
 
