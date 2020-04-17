@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
 #endif
 
 #if defined(HAVE_ARC4RANDOM)
-BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
+BOOST_AUTO_TEST_CASE(test_dns_random_arc4random_average) {
 
   ::arg().set("rng")="arc4random";
   ::arg().set("entropy-source")="/dev/urandom";
