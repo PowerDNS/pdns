@@ -2842,7 +2842,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
     }
 
-    if(i->first.place == DNSResourceRecord::ANSWER && (ednsmask || d_routingTag))
+    if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
       d_wasVariable=true;
   }
 
