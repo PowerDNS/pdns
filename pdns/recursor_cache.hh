@@ -223,7 +223,6 @@ private:
   }
 
   bool entryMatches(OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
-  //bool entryMatches(OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth);
   Entries getEntries(MapCombo& map, const DNSName &qname, const QType& qt, const OptTag& rtag);
   cache_t::const_iterator getEntryUsingECSIndex(MapCombo& map, time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
   int32_t handleHit(MapCombo& map, OrderedTagIterator_t& entry, const DNSName& qname, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);

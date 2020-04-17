@@ -81,6 +81,9 @@ Interception Functions
 
     .. versionadded:: 4.4.0
        A ``routingTag`` can be returned, which is used as an extra name to identify records in the record cache.
+       If a routing tag is set and a record would be stored with an ENDS subnetmask in the record cache, it will be
+       stored with the tag instead. New request using the same tag will be served by the record in the records cache,
+       avoiding querying authoritative servers.
  
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.

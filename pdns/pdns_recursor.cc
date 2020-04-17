@@ -2697,7 +2697,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_kernelTimestamp = tv;
 #endif
   dc->d_proxyProtocolValues = std::move(proxyProtocolValues);
-  dc->d_routingTag = routingTag;
+  dc->d_routingTag = std::move(routingTag);
 
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;

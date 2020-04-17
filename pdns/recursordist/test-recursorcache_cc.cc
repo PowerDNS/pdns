@@ -985,8 +985,6 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     // Now insert some tagged entries
     for (counter = 0; counter < 50; ++counter) {
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
-      BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
-
       MRC.replace(now, a, QType(QType::A), rset0tagged, signatures, authRecords, true, boost::optional<Netmask>("128.0.0.0/8"), string("mytagA"));
     }
     BOOST_CHECK_EQUAL(MRC.size(), 150U);
@@ -1089,7 +1087,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
-    // if no tag given and no-non-tagged entries are available nothing should be retrieved even if address  matches
+    // if no tag given and no-non-tagged entries matches nothing shoudl be returned
     BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
@@ -1105,6 +1103,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
+
+    // If no tag given we should be able to retrieve the netmask specific record
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.3.1"), boost::none), (ttd - now));
+    BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
     // tagged specific should still be returned for a matching tag, address is not used
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));

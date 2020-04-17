@@ -215,18 +215,6 @@ bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entr
   return match;
 }
 
-// bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth)
-// {
-//   // MUTEX SHOULD BE ACQUIRED
-//   if (requireAuth && !entry->d_auth)
-//     return false;
-
-//   bool match = (entry->d_qtype == qt || qt == QType::ANY ||
-//                 (qt == QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)));
-//   //cerr << match << "T  " << qt << ':' << entry->d_qtype << ' ' << entry->d_rtag << endl;
-//   return match;
-// }
-
 // returns -1 for no hits
 int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {

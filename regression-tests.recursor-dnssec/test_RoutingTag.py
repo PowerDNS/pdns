@@ -149,17 +149,28 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected3)
 
-        # And see if an unknown tag does hit the last
+        # And see if an unknown tag from the same subnet does hit the last
         self.setRoutingTag('baz')
-        query = dns.message.make_query(nameECS, 'TXT', 'IN')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.3.2', 32)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.checkECSQueryHit(query, expected3)
 
-        return # remove this line to peek at cache
+        # And a no tag and no subnet query does hit the general case
+        self.setRoutingTag(None)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN')
+        self.sendECSQuery(query, expected2)
+
+        # And a unknown tag and no subnet query does hit the general case
+        self.setRoutingTag('bag')
+        query = dns.message.make_query(nameECS, 'TXT', 'IN')
+        self.sendECSQuery(query, expected2)
+
+        #return # remove this line to peek at cache
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache x']
         try:
-            expected = 'dumped 5 records\n'
+            expected = 'dumped 6 records\n'
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertEqual(ret, expected)
 
@@ -220,17 +231,28 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected3)
 
-        # And see if an unknown tag does hit the last
+        # And see if an unknown tag from the same subnet does hit the last
         self.setRoutingTag('baz')
-        query = dns.message.make_query(nameECS, 'TXT', 'IN')
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.3.2', 32)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.checkECSQueryHit(query, expected3)
+
+        # And a no tag and no subnet query does hit the general case
+        self.setRoutingTag(None)
+        query = dns.message.make_query(nameECS, 'TXT', 'IN')
+        self.sendECSQuery(query, expected2)
+
+        # And a unknown tag and no subnet query does hit the general case
+        self.setRoutingTag('bag')
+        query = dns.message.make_query(nameECS, 'TXT', 'IN')
+        self.sendECSQuery(query, expected2)
 
         return #remove this line to peek at cache
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache y']
         try:
-            expected = 'dumped 5 records\n'
+            expected = 'dumped 6 records\n'
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertEqual(ret, expected)
 
