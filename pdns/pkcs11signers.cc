@@ -784,7 +784,6 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   std::vector<P11KitAttribute> privAttr;
   CK_MECHANISM mech;
   CK_OBJECT_HANDLE pubKey, privKey;
-  CK_RV rv;
   std::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
   if (d_slot->LoggedIn() == false)
@@ -819,7 +818,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
 
-  if ((rv = d_slot->GenerateKeyPair(&mech, pubAttr, privAttr, &pubKey, &privKey))) {
+  if (d_slot->GenerateKeyPair(&mech, pubAttr, privAttr, &pubKey, &privKey)) {
     throw PDNSException("Keypair generation failed");
   }
 };
