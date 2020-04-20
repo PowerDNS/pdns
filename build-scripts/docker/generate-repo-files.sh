@@ -6,6 +6,20 @@
 #     - `dnsdist --verbose 9.9.9.9`
 #     - `pdns_recursor`
 #     - `pdns_server`
+#
+# Remi contributed this snippet:
+#
+#     #!/bin/bash
+#
+#     readonly product=dnsdist-15
+#
+#     for version in centos-6 centos-7 centos-8 debian-buster debian-stretch ubuntu-bionic ubuntu-xenial; do
+#       docker build --no-cache --pull --file Dockerfile.${product}.${version} --tag ${product}.${version} .
+#     done
+#
+#     for version in centos-6 centos-7 centos-8 debian-buster debian-stretch ubuntu-bionic ubuntu-xenial; do
+#       docker run -it ${product}.${version} dnsdist -v 9.9.9.9
+#     done
 
 if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
