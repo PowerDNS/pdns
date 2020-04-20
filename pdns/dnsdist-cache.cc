@@ -460,7 +460,7 @@ uint64_t DNSDistPacketCache::dump(int fd)
     ReadLock w(&d_shards.at(shardIndex).d_lock);
     auto& map = d_shards[shardIndex].d_map;
 
-    for(const auto entry : map) {
+    for (const auto& entry : map) {
       const CacheValue& value = entry.second;
       count++;
 

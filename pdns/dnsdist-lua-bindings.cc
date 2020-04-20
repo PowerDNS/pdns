@@ -245,14 +245,14 @@ void setupLuaBindings(bool client)
       }
       if (name.type() == typeid(vector<pair<int, DNSName>>)) {
           auto names = boost::get<vector<pair<int, DNSName>>>(name);
-          for (auto const n : names) {
+          for (const auto& n : names) {
             smn.add(n.second);
           }
           return;
       }
       if (name.type() == typeid(vector<pair<int, string>>)) {
           auto names = boost::get<vector<pair<int, string>>>(name);
-          for (auto const n : names) {
+          for (const auto& n : names) {
             smn.add(n.second);
           }
           return;
@@ -272,14 +272,14 @@ void setupLuaBindings(bool client)
       }
       if (name.type() == typeid(vector<pair<int, DNSName>>)) {
           auto names = boost::get<vector<pair<int, DNSName>>>(name);
-          for (auto const n : names) {
+          for (const auto& n : names) {
             smn.remove(n.second);
           }
           return;
       }
       if (name.type() == typeid(vector<pair<int, string>>)) {
           auto names = boost::get<vector<pair<int, string>>>(name);
-          for (auto const n : names) {
+          for (const auto& n : names) {
             DNSName d(n.second);
             smn.remove(d);
           }
