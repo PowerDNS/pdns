@@ -344,6 +344,10 @@ static ComboAddress pickwhashed(const ComboAddress& bestwho, vector<pair<int,Com
     sum += i.first;
     pick.push_back({sum, i.second});
   }
+  if (sum == 0) {
+    /* we should not have any weight of zero, but better safe than sorry */
+    return ComboAddress();
+  }
   ComboAddress::addressOnlyHash aoh;
   int r = aoh(bestwho) % sum;
   auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
