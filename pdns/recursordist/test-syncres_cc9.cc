@@ -937,7 +937,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   vector<DNSRecord> cached;
   bool wasAuth = false;
 
-  auto ttl = s_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth);
+  auto ttl = s_RC->get(now, DNSName("powerdns.com."), QType(QType::NS), false, &cached, who, boost::none, nullptr, nullptr, nullptr, nullptr, &wasAuth);
   BOOST_REQUIRE_GE(ttl, 1);
   BOOST_REQUIRE_LE(ttl, 42);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
@@ -946,7 +946,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   cached.clear();
 
   /* Also check that the the part in additional is still not auth */
-  BOOST_REQUIRE_GE(s_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
+  BOOST_REQUIRE_GE(s_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who, boost::none, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
   BOOST_CHECK_EQUAL(cached.size(), 1U);
   BOOST_CHECK_EQUAL(wasAuth, false);
 }

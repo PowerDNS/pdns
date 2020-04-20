@@ -79,12 +79,12 @@ size_t MemRecursorCache::bytes()
   return ret;
 }
 
-int32_t MemRecursorCache::handleHit(MapCombo& map, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
+int32_t MemRecursorCache::handleHit(MapCombo& map, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {
   // MUTEX SHOULD BE ACQUIRED
   int32_t ttd = entry->d_ttd;
 
-  if(variable && !entry->d_netmask.empty()) {
+  if (variable && (!entry->d_netmask.empty() || entry->d_rtag)) {
     *variable = true;
   }
 
@@ -138,7 +138,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         /* we have nothing more specific for you */
         break;
       }
-      auto key = boost::make_tuple(qname, qtype, best);
+      auto key = boost::make_tuple(qname, qtype, boost::none, best);
       auto entry = map.d_map.find(key);
       if (entry == map.d_map.end()) {
         /* ecsIndex is not up-to-date */
@@ -170,7 +170,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   }
 
   /* we have nothing specific, let's see if we have a generic one */
-  auto key = boost::make_tuple(qname, qtype, Netmask());
+  auto key = boost::make_tuple(qname, qtype, boost::none, Netmask());
   auto entry = map.d_map.find(key);
   if (entry != map.d_map.end()) {
     if (entry->d_ttd > now) {
@@ -187,31 +187,36 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   return map.d_map.end();
 }
 
-std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> MemRecursorCache::getEntries(MapCombo& map, const DNSName &qname, const QType& qt)
+MemRecursorCache::Entries MemRecursorCache::getEntries(MapCombo& map, const DNSName &qname, const QType& qt, const OptTag& rtag )
 {
   // MUTEX SHOULD BE ACQUIRED
-  if (!map.d_cachecachevalid || map.d_cachedqname != qname) {
+  if (!map.d_cachecachevalid || map.d_cachedqname != qname || map.d_cachedrtag != rtag) {
     map.d_cachedqname = qname;
-    const auto& idx = map.d_map.get<NameOnlyHashedTag>();
-    map.d_cachecache = idx.equal_range(qname);
+    map.d_cachedrtag = rtag;
+    const auto& idx = map.d_map.get<NameAndRTagOnlyHashedTag>();
+    map.d_cachecache = idx.equal_range(tie(qname, rtag));
     map.d_cachecachevalid = true;
   }
   return map.d_cachecache;
 }
 
+
 bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who)
 {
+  // This code assumes that if a routing tag is present, it matches
   // MUTEX SHOULD BE ACQUIRED
   if (requireAuth && !entry->d_auth)
     return false;
 
-  return ((entry->d_qtype == qt || qt == QType::ANY ||
-           (qt == QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)))
-          && (entry->d_netmask.empty() || entry->d_netmask.match(who)));
+  bool match = (entry->d_qtype == qt || qt == QType::ANY ||
+                (qt == QType::ADDR && (entry->d_qtype == QType::A || entry->d_qtype == QType::AAAA)))
+    && (entry->d_netmask.empty() || entry->d_netmask.match(who));
+  //cerr << match << "N " << qt << ':' << entry->d_qtype << ' ' << entry->d_netmask.toString() << ':' << who.toString() << endl;
+  return match;
 }
 
 // returns -1 for no hits
-int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
+int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -222,21 +227,20 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 
   auto& map = getMap(qname);
   const lock l(map);
-  
+
   /* If we don't have any netmask-specific entries at all, let's just skip this
      to be able to use the nice d_cachecache hack. */
-  if (qtype != QType::ANY && !map.d_ecsIndex.empty()) {
-
+  if (qtype != QType::ANY && !map.d_ecsIndex.empty() && !routingTag) {
     if (qtype == QType::ADDR) {
       int32_t ret = -1;
 
       auto entryA = getEntryUsingECSIndex(map, now, qname, QType::A, requireAuth, who);
       if (entryA != map.d_map.end()) {
-        ret = handleHit(map, entryA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+        ret = handleHit(map, entryA, qname, res, signatures, authorityRecs, variable, state, wasAuth);
       }
       auto entryAAAA = getEntryUsingECSIndex(map, now, qname, QType::AAAA, requireAuth, who);
       if (entryAAAA != map.d_map.end()) {
-        int32_t ttdAAAA = handleHit(map, entryAAAA, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+        int32_t ttdAAAA = handleHit(map, entryAAAA, qname, res, signatures, authorityRecs, variable, state, wasAuth);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
         } else {
@@ -248,16 +252,42 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
     else {
       auto entry = getEntryUsingECSIndex(map, now, qname, qtype, requireAuth, who);
       if (entry != map.d_map.end()) {
-        return static_cast<int32_t>(handleHit(map, entry, qname, who, res, signatures, authorityRecs, variable, state, wasAuth) - now);
+        return static_cast<int32_t>(handleHit(map, entry, qname, res, signatures, authorityRecs, variable, state, wasAuth) - now);
       }
       return -1;
     }
   }
 
-  auto entries = getEntries(map, qname, qt);
+  if (routingTag) {
+    auto entries = getEntries(map, qname, qt, routingTag);
 
-  if(entries.first!=entries.second) {
-    for(auto i=entries.first; i != entries.second; ++i) {
+    if (entries.first != entries.second) {
+      for (auto i=entries.first; i != entries.second; ++i) {
+
+        auto firstIndexIterator = map.d_map.project<OrderedTag>(i);
+        if (i->d_ttd <= now) {
+          moveCacheItemToFront<SequencedTag>(map.d_map, firstIndexIterator);
+          continue;
+        }
+
+        if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
+          continue;
+        }
+
+        ttd = handleHit(map, firstIndexIterator, qname, res, signatures, authorityRecs, variable, state, wasAuth);
+
+        if (qt.getCode() != QType::ANY && qt.getCode() != QType::ADDR) { // normally if we have a hit, we are done
+          break;
+        }
+      }
+      return static_cast<int32_t>(ttd-now);
+    }
+  }
+  // Try (again) without tag
+  auto entries = getEntries(map, qname, qt, boost::none);
+
+  if (entries.first != entries.second) {
+    for (auto i=entries.first; i != entries.second; ++i) {
 
       auto firstIndexIterator = map.d_map.project<OrderedTag>(i);
       if (i->d_ttd <= now) {
@@ -265,22 +295,22 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         continue;
       }
 
-      if (!entryMatches(firstIndexIterator, qtype, requireAuth, who))
+      if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
         continue;
+      }
 
-      ttd = handleHit(map, firstIndexIterator, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+      ttd = handleHit(map, firstIndexIterator, qname, res, signatures, authorityRecs, variable, state, wasAuth);
 
-      if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+      if (qt.getCode() != QType::ANY && qt.getCode() != QType::ADDR) { // normally if we have a hit, we are done
         break;
+      }
     }
-
-    // cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return static_cast<int32_t>(ttd-now);
   }
   return -1;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state)
 {
   auto& map = getMap(qname);
   const lock l(map);
@@ -290,7 +320,10 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   if (ednsmask) {
     ednsmask = ednsmask->getNormalized();
   }
-  auto key = boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
+
+  // We only store with a tag if we have an ednsmask and the tag is available
+  // We only store an ednsmask if we do not have a tag and we do have a mask.
+  auto key = boost::make_tuple(qname, qt.getCode(), ednsmask ? routingTag : boost::none, (ednsmask && !routingTag) ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = map.d_map.find(key);
   if (stored == map.d_map.end()) {
@@ -306,7 +339,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   */
   if (isNew || stored->d_ttd <= now) {
     /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
-    if (ednsmask && !ednsmask->empty()) {
+    if (!routingTag && ednsmask && !ednsmask->empty()) {
       auto ecsIndexKey = boost::make_tuple(qname, qt.getCode());
       auto ecsIndex = map.d_ecsIndex.find(ecsIndexKey);
       if (ecsIndex == map.d_ecsIndex.end()) {
@@ -329,7 +362,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
-      //      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
+      //  cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
       return;
     }
     else {
@@ -357,7 +390,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
     ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
-    //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
+    //cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i.d_content);
   }
 
@@ -375,10 +408,15 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
     auto& map = getMap(name);
     const lock l(map);
     map.d_cachecachevalid = false;
-    auto& idx = map.d_map.get<NameOnlyHashedTag>();
-    size_t n = idx.erase(name);
-    count += n;
-    map.d_entriesCount -= n;
+    auto& idx = map.d_map.get<OrderedTag>();
+    auto range = idx.equal_range(name);
+    auto i = range.first;
+    while (i != range.second) {
+      i = idx.erase(i);
+      count++;
+      map.d_entriesCount--;
+    }
+
     if (qtype == 0xffff) {
       auto& ecsIdx = map.d_ecsIndex.get<OrderedTag>();
       auto ecsIndexRange = ecsIdx.equal_range(name);
@@ -450,14 +488,14 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
   return false;
 }
 
-bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
+bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
 {
   auto& map = getMap(qname);
   const lock l(map);
 
   bool updated = false;
   uint16_t qtype = qt.getCode();
-  if (qtype != QType::ANY && qtype != QType::ADDR && !map.d_ecsIndex.empty()) {
+  if (qtype != QType::ANY && qtype != QType::ADDR && !map.d_ecsIndex.empty() && !routingTag) {
     auto entry = getEntryUsingECSIndex(map, now, qname, qtype, requireAuth, who);
     if (entry == map.d_map.end()) {
       return false;
@@ -470,13 +508,14 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
     return true;
   }
 
-  auto entries = getEntries(map, qname, qt);
+  auto entries = getEntries(map, qname, qt, routingTag);
 
   for(auto i = entries.first; i != entries.second; ++i) {
     auto firstIndexIterator = map.d_map.project<OrderedTag>(i);
 
-    if (!entryMatches(firstIndexIterator, qtype, requireAuth, who))
+    if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
       continue;
+    }
 
     i->d_state = newState;
     if (capTTD) {
@@ -515,7 +554,7 @@ uint64_t MemRecursorCache::doDump(int fd)
       for (const auto& j : i.d_records) {
         count++;
         try {
-          fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+          fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str(), !i.d_rtag ? "" : i.d_rtag.get().c_str());
         }
         catch(...) {
           fprintf(fp.get(), "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
@@ -542,3 +581,9 @@ void MemRecursorCache::doPrune(size_t keep)
   pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
 }
 
+namespace boost {
+  size_t hash_value(const MemRecursorCache::OptTag& o)
+  {
+    return o ? hash_value(o.get()) : 0xcafebaaf;
+  }
+}

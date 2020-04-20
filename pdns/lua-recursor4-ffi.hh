@@ -67,6 +67,8 @@ extern "C" {
   void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_deviceid(pdns_ffi_param_t* ref, size_t len, const void* name) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_routingtag(pdns_ffi_param_t* ref, const char* name) __attribute__ ((visibility ("default")));
+  
   void pdns_ffi_param_set_variable(pdns_ffi_param_t* ref, bool variable) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_log_query(pdns_ffi_param_t* ref, bool logQuery) __attribute__ ((visibility ("default")));

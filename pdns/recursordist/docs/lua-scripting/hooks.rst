@@ -53,7 +53,7 @@ Interception Functions
     :param DNSHeader dh: The DNS Header of the query.
 
 
-.. function:: gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp, proxyprotocolvalues) -> int
+.. function:: gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp, proxyprotocolvalues) -> multiple values
               gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp) -> int
               gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions) -> int
 
@@ -79,6 +79,12 @@ Interception Functions
 
         Along the ``deviceId`` value that can be returned, it was added a ``deviceName`` field to fill the :attr:`DNSQuestion.deviceName` field.
 
+    .. versionadded:: 4.4.0
+       A ``routingTag`` can be returned, which is used as an extra name to identify records in the record cache.
+       If a routing tag is set and a record would be stored with an ENDS subnetmask in the record cache, it will be
+       stored with the tag instead. New request using the same tag will be served by the record in the records cache,
+       avoiding querying authoritative servers.
+ 
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
     In the latter case, repeated queries will pass through the entire Lua script.
@@ -91,6 +97,8 @@ Interception Functions
     :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-gettag-needs-edns-options` option is set.
     :param bool tcp: Added in 4.1.0, a boolean indicating whether the query was received over UDP (false) or TCP (true).
     :param proxyprotocolvalues: Added in 4.4.0, a table of :class:`ProxyProtocolValue` objects representing the Type-Length Values received via the Proxy Protocol, if any.
+
+    :return: ``tag`` [``, policyTags`` [``, data`` [``, reqId`` [``, deviceId`` [``, deviceName`` [``, routingTag`` ]]]]]]
 
 .. function:: prerpz(dq)
 
