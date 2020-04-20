@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.5.0-rc1
-  :released: 16th of April 2010
+  :released: 16th of April 2020
 
   .. change::
     :tags: Bug Fixes
@@ -51,7 +51,7 @@ Changelog
 
 .. changelog::
   :version: 1.5.0-alpha1
-  :released: 20th of March 2010
+  :released: 20th of March 2020
 
   .. change::
     :tags: Improvements
