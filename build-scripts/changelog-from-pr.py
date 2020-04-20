@@ -35,7 +35,8 @@ for pr in arguments.pullrequest:
     try:
         if access_token:
             res = requests.get('https://api.github.com/repos/PowerDNS/pdns/pulls/'
-                               '{}?access_token={}'.format(pr, access_token))
+                               '{}'.format(pr),
+                               headers={'Authorization': 'token ' + access_token})
         else:
             res = requests.get('https://api.github.com/repos/PowerDNS/pdns/pulls/'
                                '{}'.format(pr), auth=httpAuth)
@@ -69,7 +70,8 @@ for pr in arguments.pullrequest:
                                                 'omoerbeek']:
         try:
             if access_token:
-                user_info = requests.get(pr_info['user']['url'] + '?access_token=' + access_token, auth=httpAuth).json()
+                user_info = requests.get(pr_info['user']['url'],
+                                         headers={'Authorization': 'token ' + access_token}).json()
             else:
                 user_info = requests.get(pr_info['user']['url'], auth=httpAuth).json()
         except (requests.exceptions.HTTPError, ValueError) as e:
