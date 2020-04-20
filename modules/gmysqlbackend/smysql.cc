@@ -515,7 +515,7 @@ SMySQL::~SMySQL()
 
 SSqlException SMySQL::sPerrorException(const string &reason)
 {
-  return SSqlException(reason+string(": ")+mysql_error(&d_db));
+  return SSqlException(reason+string(": ERROR ")+std::to_string(mysql_errno(&d_db))+" ("+string(mysql_sqlstate(&d_db))+"): "+mysql_error(&d_db));
 }
 
 std::unique_ptr<SSqlStatement> SMySQL::prepare(const string& query, int nparams)
