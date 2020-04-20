@@ -113,7 +113,7 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
       interface = boost::get<std::string>((*vars)["interface"]);
     }
     if (vars->count("cpus")) {
-      for (const auto cpu : boost::get<std::vector<std::pair<int,int>>>((*vars)["cpus"])) {
+      for (const auto& cpu : boost::get<std::vector<std::pair<int,int>>>((*vars)["cpus"])) {
         cpus.insert(cpu.second);
       }
     }
@@ -465,7 +465,7 @@ static void setupLuaConfig(bool client, bool configCheck)
       }
 
       if(vars.count("cpus")) {
-        for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
+        for (const auto& cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
           cpus.insert(std::stoi(cpu.second));
         }
       }

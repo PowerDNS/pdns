@@ -430,7 +430,7 @@ void DNSCryptContext::getCertificateResponse(time_t now, const DNSName& qname, u
   dh->rcode = RCode::NoError;
 
   ReadLock r(&d_lock);
-  for (const auto pair : d_certs) {
+  for (const auto& pair : d_certs) {
     if (!pair->active || !pair->cert.isValid(now)) {
       continue;
     }
