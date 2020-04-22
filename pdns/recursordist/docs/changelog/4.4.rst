@@ -1,0 +1,146 @@
+Changelogs for 4.4.x
+====================
+
+.. changelog::
+  :version: 4.4.0-alpha1
+  :released: 22th of April 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9031
+    :tickets: 9025
+
+    Fix compilation of the ports event multiplexer.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9000
+
+    Fix warnings with llvm10 and -Wrange-loop-construct (Kirill Ponomarev).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8985
+
+    Fix compilation without deprecated OpenSSL APIs (Rosen Penev).
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8967
+
+    Implement native DNS64 support, without Lua.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8927
+
+    Add custom tags to RPZ hits.
+
+  .. change::
+    :tags: New Features
+    :pullreq:  8910
+
+    Allow attaching a 'routing' tag string to a query in lua code and use that
+    tag in the record cache when appropriate.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8900
+    :tickets: 8739
+
+    Detect {Libre,Open}SSL functions availability during configure.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8898
+
+    Share record cache between threads.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8887
+
+    Better handling of reconnections in Remote Logger.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8883
+    :tickets: 8629
+
+    Add 'queue full' metrics for our remote logger, log at debug only.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8876, 8740
+    :tickets: 8875
+
+    Update boost.m4
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8874
+
+    Add support for Proxy Protocol between dnsdist and the recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8812
+
+    Keep a masked network in the Netmask class.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8631
+
+    Replace include guard ifdef/define with pragma once (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8830
+
+    Init zone's d_priority field.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8815
+
+    YaHTTP: Support bracketed IPv6 addresses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8355
+
+    Rework NetmaskTree for better CPU and memory efficiency (Stephan Bosch).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8777
+    :tickets: 8697
+
+    QName Minimization sometimes uses 1 label too many.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8778
+
+    RPZ dumpFile/seedFile: store/get SOA refresh on dump/load.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8783
+
+    Add 'IO wait' and 'steal' metrics on Linux.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8792
+
+    DNSName: Don't call strlen() when the length is already known.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8640
+
+    Fix build with gcc-10 (Sander Hoentjen).
+
+
