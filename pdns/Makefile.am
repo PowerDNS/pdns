@@ -1641,6 +1641,60 @@ CLEANFILES += \
 if IXFRDIST
 ixfrdist.service: ixfrdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
+if !HAVE_SYSTEMD_LOCK_PERSONALITY
+	$(AM_V_GEN)perl -ni -e 'print unless /^LockPersonality/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_DEVICES
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateDevices/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_TMP
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateTmp/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_USERS
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateUsers/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_CLOCK
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectClock/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectControlGroups/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_HOME
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHome/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_HOSTNAME
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHostname/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_LOGS
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelLogs/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_MODULES
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelModules/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelTunables/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_SYSTEM
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectSystem/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictAddressFamilies/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_NAMESPACES
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictNamespaces/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_REALTIME
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictRealtime/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_SUIDSGID
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictSUIDSGID/' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallArchitectures/' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
+endif
 
 ixfrdist@.service: ixfrdist.service
 	$(AM_V_GEN)sed -e 's!/ixfrdist!& --config $(sysconfdir)/ixfrdist-%i.yml!' \
