@@ -30,7 +30,7 @@
 /* when we add EDNS to a query, we don't want to advertise
    a large buffer size */
 size_t g_EdnsUDPPayloadSize = 512;
-uint16_t g_PayloadSizeSelfGenAnswers{s_udpIncomingBufferSize};
+uint16_t g_PayloadSizeSelfGenAnswers{1232};
 
 /* draft-ietf-dnsop-edns-client-subnet-04 "11.1.  Privacy" */
 uint16_t g_ECSSourcePrefixV4 = 24;

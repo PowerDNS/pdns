@@ -1416,8 +1416,8 @@ record if the received request had one, which is the case by default and can be 
 :func:`setAddEDNSToSelfGeneratedResponses`.
 
 We must, however, provide a responder's maximum payload size in this record, and we can't easily know the
-maximum payload size of the actual backend so we need to provide one. The default value is 1500 and can be
-overridden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
+maximum payload size of the actual backend so we need to provide one. The default value is 1232 since 1.6.0,
+and can be overridden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
 
 .. function:: setAddEDNSToSelfGeneratedResponses(add)
 
@@ -1431,10 +1431,13 @@ overridden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
 
   .. versionadded:: 1.3.3
 
+  .. versionchanged:: 1.6.0
+    Default value changed from 1500 to 1232.
+
   Set the UDP payload size advertised via EDNS on self-generated responses. In accordance with
   :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512.
 
-  :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1500.
+  :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1232 since 1.6.0, it was 1500 before.
 
 Security Polling
 ~~~~~~~~~~~~~~~~
