@@ -113,7 +113,7 @@ bool sodIsValidKey(const std::string& key)
 #include <inttypes.h>
 
 namespace anonpdns {
-char B64Decode1(char cInChar)
+static char B64Decode1(char cInChar)
 {
   // The incoming character will be A-Z, a-z, 0-9, +, /, or =.
   // The idea is to quickly determine which grouping the
@@ -178,7 +178,7 @@ char B64Decode1(char cInChar)
   return iIndex;
 }
 
-inline char B64Encode1(unsigned char uc)
+static inline char B64Encode1(unsigned char uc)
 {
   if (uc < 26)
     {

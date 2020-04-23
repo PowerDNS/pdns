@@ -39,5 +39,5 @@ extern "C" {
   uint64_t dnsdist_ffi_stat_node_get_children_nxdomains_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   uint64_t dnsdist_ffi_stat_node_get_children_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
   uint64_t dnsdist_ffi_stat_node_get_children_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-  uint64_t dnsdist_ffi_stat_node_get_children_bytes(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
+  uint64_t dnsdist_ffi_stat_node_get_children_bytes_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
 }
