@@ -25,7 +25,7 @@ if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
     echo
     echo "  • RELEASE: [ auth-40 | auth-41 | auth-42 | auth-43 |"
-    echo "               rec-40 | rec-41 | rec-42 | rec-43 |"
+    echo "               rec-40 | rec-41 | rec-42 | rec-43 | rec-44 |"
     echo "               dnsdist-15 ]"
     exit 1
 fi
@@ -60,7 +60,7 @@ RUN curl -o /etc/yum.repos.d/powerdns-$RELEASE.repo https://repo.powerdns.com/re
 RUN yum install -y $PKG
 EOF
 
-    if [ "$RELEASE" = "rec-43" ]; then
+    if [ "$RELEASE" = "rec-43"  -o "$RELEASE" = "rec-44" ]; then
     cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 
 RUN mkdir /var/run/pdns-recursor
@@ -117,7 +117,7 @@ RUN apt-get update
 RUN apt-get install -y $PKG
 EOF
 
-    if [ "$RELEASE" = "rec-43" ]; then
+    if [ "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" ]; then
         cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 
 RUN mkdir /var/run/pdns-recursor
@@ -183,7 +183,7 @@ elif [ "$RELEASE" = "rec-41" ]; then
     write_ubuntu trusty pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" ]; then
+elif [ "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
