@@ -340,6 +340,7 @@ URL Endpoints
   Allows you to update the ``allow-from`` :ref:`ACL <ACL>` with a list of netmasks.
 
   Make sure you made the API writable using :func:`setAPIWritable`.
+  Changes to the ACL are directly applied, no restart is required.
 
   **Example request**:
 
