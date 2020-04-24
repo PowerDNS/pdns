@@ -6,6 +6,7 @@
 
 #include "dnsdist-kvs.hh"
 
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
 static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress& lc, const ComboAddress& rem, const DNSQuestion& dq, const DNSName& plaintextDomain)
 {
   /* source IP */
@@ -195,6 +196,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     BOOST_CHECK_EQUAL(value, "this is the value for the qname");
   }
 }
+#endif // defined(HAVE_LMDB) || defined(HAVE_CDB)
 
 BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
 

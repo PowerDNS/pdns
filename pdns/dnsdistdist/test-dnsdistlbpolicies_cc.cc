@@ -246,12 +246,12 @@ BOOST_AUTO_TEST_CASE(test_wrandom) {
   }
   uint64_t total = 0;
   for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
+    BOOST_CHECK_GT(entry.second, 0U);
     BOOST_CHECK_GT(entry.second, (1000 / servers.size() / 2));
     BOOST_CHECK_LT(entry.second, (1000 / servers.size() * 2));
     total += entry.second;
   }
-  BOOST_CHECK_EQUAL(total, 1000);
+  BOOST_CHECK_EQUAL(total, 1000U);
 
   /* reset */
   for (auto& entry : serversMap) {
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(test_wrandom) {
     total += entry.second;
     totalW += entry.first->weight;
   }
-  BOOST_CHECK_EQUAL(total, 1000);
+  BOOST_CHECK_EQUAL(total, 1000U);
   auto last = servers.at(servers.size()-1).second;
   const auto got = serversMap[last];
   float expected = (1000 * 1.0 * last->weight) / totalW;
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(test_whashed) {
 
   uint64_t total = 0;
   for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
+    BOOST_CHECK_GT(entry.second, 0U);
     BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
     BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
     total += entry.second;
@@ -399,7 +399,7 @@ BOOST_AUTO_TEST_CASE(test_chashed) {
 
   uint64_t total = 0;
   for (const auto& entry : serversMap) {
-    BOOST_CHECK_GT(entry.second, 0);
+    BOOST_CHECK_GT(entry.second, 0U);
     BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
     BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
     total += entry.second;
@@ -483,7 +483,7 @@ BOOST_AUTO_TEST_CASE(test_lua) {
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
-    BOOST_REQUIRE_EQUAL(servers.size(), 10);
+    BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
     for (const auto& name : names) {
       auto dq = getDQ(&name);
@@ -494,7 +494,7 @@ BOOST_AUTO_TEST_CASE(test_lua) {
 
     uint64_t total = 0;
     for (const auto& entry : serversMap) {
-      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, 0U);
       BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
       BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
       total += entry.second;
@@ -543,7 +543,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
-    BOOST_REQUIRE_EQUAL(servers.size(), 10);
+    BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
     for (const auto& name : names) {
       auto dq = getDQ(&name);
@@ -554,7 +554,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
 
     uint64_t total = 0;
     for (const auto& entry : serversMap) {
-      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, 0U);
       BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
       BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
       total += entry.second;
@@ -600,7 +600,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
-    BOOST_REQUIRE_EQUAL(servers.size(), 10);
+    BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
     for (const auto& name : names) {
       auto dq = getDQ(&name);
@@ -611,7 +611,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
 
     uint64_t total = 0;
     for (const auto& entry : serversMap) {
-      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, 0U);
       BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
       BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
       total += entry.second;
@@ -655,7 +655,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed) {
       serversMap[servers.at(idx - 1).second] = 0;
       servers.at(idx - 1).second->setUp();
     }
-    BOOST_REQUIRE_EQUAL(servers.size(), 10);
+    BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
     for (const auto& name : names) {
       auto dq = getDQ(&name);
@@ -666,7 +666,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed) {
 
     uint64_t total = 0;
     for (const auto& entry : serversMap) {
-      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, 0U);
       BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
       BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
       total += entry.second;
@@ -717,7 +717,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
       /* make sure that the hashes have been computed */
       servers.at(idx - 1).second->hash();
     }
-    BOOST_REQUIRE_EQUAL(servers.size(), 10);
+    BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
     for (const auto& name : names) {
       auto dq = getDQ(&name);
@@ -728,7 +728,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
 
     uint64_t total = 0;
     for (const auto& entry : serversMap) {
-      BOOST_CHECK_GT(entry.second, 0);
+      BOOST_CHECK_GT(entry.second, 0U);
       BOOST_CHECK_GT(entry.second, (names.size() / servers.size() / 2));
       BOOST_CHECK_LT(entry.second, (names.size() / servers.size() * 2));
       total += entry.second;
