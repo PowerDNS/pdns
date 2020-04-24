@@ -79,8 +79,14 @@ bool DownstreamState::reconnect()
     for (auto& fd : sockets) {
       if (fd != -1) {
         if (sockets.size() > 1) {
-          std::lock_guard<std::mutex> lock(socketsLock);
-          mplexer->removeReadFD(fd);
+          try {
+            std::lock_guard<std::mutex> lock(socketsLock);
+            mplexer->removeReadFD(fd);
+          }
+          catch (const FDMultiplexerException& e) {
+            /* some sockets might not have been added to the multiplexer
+               yet, that's fine */
+          }
         }
         /* shutdown() is needed to wake up recv() in the responderThread */
         shutdown(fd, SHUT_RDWR);
