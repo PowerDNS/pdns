@@ -9,26 +9,23 @@
 
 #include <boost/tuple/tuple.hpp>
 #include <stdint.h>
+#include <thread>
 #include "misc.hh"
 #include "dns.hh"
 #include "statbag.hh"
 
 using std::string;
 
-static void *threadMangler(void* a)
+static void threadMangler(AtomicCounter* ac)
 {
-  AtomicCounter* ac=(AtomicCounter*)a;
   for(unsigned int n=0; n < 1000000; ++n)
     (*ac)++;
-  return 0;
 }
 
-static void *threadMangler2(void* a)
+static void threadMangler2(StatBag* S)
 {
-  StatBag* S = (StatBag*)a;
   for(unsigned int n=0; n < 1000000; ++n)
     S->inc("c");
-  return 0;
 }
 
 
@@ -56,22 +53,28 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   BOOST_CHECK_EQUAL(s.read("a"), n+1);
 
   AtomicCounter* acc = s.getPointer("c");
-  pthread_t tid[4];
-  for(int i=0; i < 4; ++i) 
-    pthread_create(&tid[i], 0, threadMangler, (void*)acc);
-  void* res;
-  for(int i=0; i < 4 ; ++i)
-    pthread_join(tid[i], &res);
+  std::vector<std::thread> manglers;
+  for (int i=0; i < 4; ++i) {
+    manglers.push_back(std::thread(threadMangler, acc));
+  }
+
+  for (auto& t : manglers) {
+    t.join();
+  }
+  manglers.clear();
 
   BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
  
   s.set("c", 0);
 
-  for(int i=0; i < 4; ++i) 
-    pthread_create(&tid[i], 0, threadMangler2, (void*)&s);
+  for (int i=0; i < 4; ++i) {
+    manglers.push_back(std::thread(threadMangler2, &s));
+  }
 
-  for(int i=0; i < 4 ; ++i)
-    pthread_join(tid[i], &res);
+  for (auto& t : manglers) {
+    t.join();
+  }
+  manglers.clear();
 
   BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
 

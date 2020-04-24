@@ -24,8 +24,9 @@
 #include <map>
 #include <string>
 #include <algorithm>
-#include <pthread.h>
 #include <semaphore.h>
+#include <mutex>
+#include <condition_variable>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -56,7 +57,7 @@ public:
       existing threads of new modules 
   */
   static vector<UeberBackend *>instances;
-  static pthread_mutex_t instances_lock;
+  static std::mutex instances_lock;
 
   static bool loadmodule(const string &name);
   static bool loadModules(const vector<string>& modules, const string& path);
@@ -134,13 +135,12 @@ public:
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
-  pthread_t d_tid;
   handle d_handle;
   vector<DNSZoneRecord> d_answers;
   vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
 
-  static pthread_mutex_t d_mut;
-  static pthread_cond_t d_cond;
+  static std::mutex d_mut;
+  static std::condition_variable d_cond;
 
   struct Question
   {

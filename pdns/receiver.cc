@@ -154,7 +154,7 @@ static void writePid(void)
 
 int g_fd1[2], g_fd2[2];
 FILE *g_fp;
-pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
+std::mutex g_guardian_lock;
 
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
@@ -176,7 +176,7 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   }
   line.append(1,'\n');
   
-  Lock l(&g_guardian_lock);
+  std::lock_guard<std::mutex> l(g_guardian_lock);
 
   try {
     writen2(g_fd1[1],line.c_str(),line.size()+1);
@@ -216,7 +216,7 @@ static int guardian(int argc, char **argv)
   bool first=true;
   cpid=0;
 
-  pthread_mutex_lock(&g_guardian_lock);
+  g_guardian_lock.lock();
 
   for(;;) {
     int pid;
@@ -292,7 +292,7 @@ static int guardian(int argc, char **argv)
 
         writePid();
       }
-      pthread_mutex_unlock(&g_guardian_lock);  
+      g_guardian_lock.unlock();
       int status;
       cpid=pid;
       for(;;) {
@@ -314,7 +314,7 @@ static int guardian(int argc, char **argv)
         }
       }
 
-      pthread_mutex_lock(&g_guardian_lock);
+      g_guardian_lock.lock();
       close(g_fd1[1]);
       fclose(g_fp);
       g_fp=0;

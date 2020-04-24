@@ -62,7 +62,6 @@ static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::DNAME
 static const std::set<uint16_t> exclusiveEntryTypes = { QType::CNAME };
 
 AuthWebServer::AuthWebServer() :
-  d_tid(0),
   d_start(time(nullptr)),
   d_min10(0),
   d_min5(0),
@@ -87,8 +86,10 @@ AuthWebServer::AuthWebServer() :
 void AuthWebServer::go()
 {
   S.doRings();
-  pthread_create(&d_tid, 0, webThreadHelper, this);
-  pthread_create(&d_tid, 0, statThreadHelper, this);
+  std::thread webT(std::bind(&AuthWebServer::webThread, this));
+  webT.detach();
+  std::thread statT(std::bind(&AuthWebServer::statThread, this));
+  statT.detach();
 }
 
 void AuthWebServer::statThread()
@@ -108,20 +109,6 @@ void AuthWebServer::statThread()
     g_log<<Logger::Error<<"Webserver statThread caught an exception, dying"<<endl;
     _exit(1);
   }
-}
-
-void *AuthWebServer::statThreadHelper(void *p)
-{
-  AuthWebServer *self=static_cast<AuthWebServer *>(p);
-  self->statThread();
-  return 0; // never reached
-}
-
-void *AuthWebServer::webThreadHelper(void *p)
-{
-  AuthWebServer *self=static_cast<AuthWebServer *>(p);
-  self->webThread();
-  return 0; // never reached
 }
 
 static string htmlescape(const string &s) {

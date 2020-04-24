@@ -105,7 +105,7 @@ struct GetTimeTest
   }
 };
 
-pthread_mutex_t s_testlock=PTHREAD_MUTEX_INITIALIZER;
+std::mutex s_testlock;
 
 struct GetLockUncontendedTest
 {
@@ -116,8 +116,8 @@ struct GetLockUncontendedTest
 
   void operator()() const
   {
-    pthread_mutex_lock(&s_testlock);
-    pthread_mutex_unlock(&s_testlock);
+    s_testlock.lock();
+    s_testlock.unlock();
   }
 };
 

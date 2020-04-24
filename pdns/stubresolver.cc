@@ -23,7 +23,7 @@
 // s_resolversForStub contains the ComboAddresses that are used by
 // stubDoResolve
 static vector<ComboAddress> s_resolversForStub;
-static pthread_rwlock_t s_resolversForStubLock = PTHREAD_RWLOCK_INITIALIZER;
+static ReadWriteLock s_resolversForStubLock;
 static bool s_stubResolvConfigured = false;
 
 // /etc/resolv.conf last modification time

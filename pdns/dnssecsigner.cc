@@ -33,7 +33,7 @@
 #include "statbag.hh"
 extern StatBag S;
 
-static pthread_rwlock_t g_signatures_lock = PTHREAD_RWLOCK_INITIALIZER;
+static ReadWriteLock g_signatures_lock;
 typedef map<pair<string, string>, string> signaturecache_t;
 static signaturecache_t g_signatures;
 static int g_cacheweekno;

@@ -47,8 +47,8 @@ using namespace boost::assign;
 
 DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
-pthread_rwlock_t DNSSECKeeper::s_metacachelock = PTHREAD_RWLOCK_INITIALIZER;
-pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
+ReadWriteLock DNSSECKeeper::s_metacachelock;
+ReadWriteLock DNSSECKeeper::s_keycachelock;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
 size_t DNSSECKeeper::s_maxEntries = 0;
@@ -276,7 +276,7 @@ void DNSSECKeeper::getSoaEdit(const DNSName& zname, std::string& value)
 uint64_t DNSSECKeeper::dbdnssecCacheSizes(const std::string& str)
 {
   if(str=="meta-cache-size") {
-    ReadLock l(&s_metacachelock); 
+    ReadLock l(&s_metacachelock);
     return s_metacache.size();
   }
   else if(str=="key-cache-size") {

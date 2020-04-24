@@ -47,13 +47,11 @@ AuthQueryCache::AuthQueryCache(size_t mapsCount): d_maps(mapsCount), d_lastclean
 AuthQueryCache::~AuthQueryCache()
 {
   try {
-    vector<WriteLock*> locks;
+    vector<WriteLock> locks;
     for(auto& mc : d_maps) {
-      locks.push_back(new WriteLock(&mc.d_mut));
+      locks.push_back(WriteLock(mc.d_mut));
     }
-    for(auto wl : locks) {
-      delete wl;
-    }
+    locks.clear();
   }
   catch(...) {
   }

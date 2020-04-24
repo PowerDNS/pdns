@@ -49,7 +49,7 @@
 
 void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master)
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   SuckRequest sr;
   sr.domain = domain;
   sr.master = master;
@@ -295,7 +295,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
 {
   {
-    Lock l(&d_lock);
+    std::lock_guard<std::mutex> l(d_lock);
     if(d_inprogress.count(domain)) {
       return; 
     }
@@ -634,7 +634,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
   }
   catch(ResolverException &re) {
     {
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> l(d_lock);
       // The AXFR probably failed due to a problem on the master server. If SOA-checks against this master
       // still succeed, we would constantly try to AXFR the zone. To avoid this, we add the zone to the list of
       // failed slave-checks. This will suspend slave-checks (and subsequent AXFR) for this zone for some time.
@@ -729,7 +729,7 @@ struct SlaveSenderReceiver
 
 void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote)
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   DomainInfo ours = di;
   ours.backend = 0;
 
@@ -750,7 +750,7 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
 
 void CommunicatorClass::addTrySuperMasterRequest(const DNSPacket& p)
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   DNSPacket ours = p;
   if(d_potentialsupermasters.insert(ours).second)
     d_any_sem.post(); // kick the loop!
@@ -766,7 +766,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   vector<DomainNotificationInfo> sdomains;
   set<DNSPacket, cmp> trysuperdomains;
   {
-    Lock l(&d_lock);
+    std::lock_guard<std::mutex> l(d_lock);
     set<DomainInfo> requeue;
     rdomains.reserve(d_tocheck.size());
     for(const auto& di: d_tocheck) {
@@ -806,7 +806,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   sdomains.reserve(rdomains.size());
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
-    Lock l(&d_lock);
+    std::lock_guard<std::mutex> l(d_lock);
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
     time_t now = time(0);
 
@@ -867,14 +867,14 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   if(sdomains.empty())
   {
     if(d_slaveschanged) {
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> l(d_lock);
       g_log<<Logger::Warning<<"No new unfresh slave domains, "<<d_suckdomains.size()<<" queued for AXFR already, "<<d_inprogress.size()<<" in progress"<<endl;
     }
     d_slaveschanged = !rdomains.empty();
     return;
   }
   else {
-    Lock l(&d_lock);
+    std::lock_guard<std::mutex> l(d_lock);
     g_log<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
       " checking, "<<d_suckdomains.size()<<" queued for AXFR"<<endl;
@@ -919,7 +919,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
       uint64_t newCount = 1;
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> l(d_lock);
       const auto failedEntry = d_failedSlaveRefresh.find(di.zone);
       if (failedEntry != d_failedSlaveRefresh.end())
         newCount = d_failedSlaveRefresh[di.zone].first + 1;
@@ -936,7 +936,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
 
     {
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> l(d_lock);
       const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
       if (wasFailedDomain != d_failedSlaveRefresh.end())
         d_failedSlaveRefresh.erase(di.zone);

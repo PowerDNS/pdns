@@ -28,6 +28,8 @@
 
 #include <boost/accumulators/statistics.hpp>
 
+#include <thread>
+
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -172,7 +174,7 @@ AtomicCounter g_pos;
 
 vector<BenchQuery> g_queries;
 
-static void* worker(void*)
+static void worker()
 {
   setThreadName("dnstcpb/worker");
   for(;;) {
@@ -182,7 +184,6 @@ static void* worker(void*)
 
     doQuery(&g_queries[pos]); // this is safe as long as nobody *inserts* to g_queries
   }
-  return 0;
 }
 
 static void usage(po::options_description &desc) {
@@ -251,7 +252,8 @@ try
   }
 
 
-  std::vector<pthread_t> workers(numworkers);
+  std::vector<std::thread> workers;
+  workers.reserve(numworkers);
 
   FILE* fp;
   if(!g_vm.count("file"))
@@ -270,12 +272,11 @@ try
   }
   fclose(fp);
     
-  for(unsigned int n = 0; n < numworkers; ++n) {
-    pthread_create(&workers[n], 0, worker, 0);
+  for (unsigned int n = 0; n < numworkers; ++n) {
+    workers.push_back(std::thread(worker));
   }
-  for(unsigned int n = 0; n < numworkers; ++n) {
-    void* status;
-    pthread_join(workers[n], &status);
+  for (auto& w : workers) {
+    w.join();
   }
   
   using namespace boost::accumulators;
