@@ -114,22 +114,20 @@ void DevPollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 
 void DevPollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 {
+  std::vector<struct pollfd> pollfds(d_readCallbacks.size() + d_writeCallbacks.size());
   struct dvpoll dvp;
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
-  dvp.dp_fds = new pollfd[dvp.dp_nfds];
+  dvp.dp_fds = pollfds.data();
   dvp.dp_timeout = timeout;
   int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
 
   if(ret < 0 && errno!=EINTR) {
-    delete[] dvp.dp_fds;
     throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
   }
 
   for(int n=0; n < ret; ++n) {
-    fds.push_back(dvp.dp_fds[n].fd);
+    fds.push_back(pollfds.at(n).fd);
   }
-
-  delete[] dvp.dp_fds;
 }
 
 int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
@@ -137,39 +135,38 @@ int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
+  std::vector<struct pollfd> fds(d_readCallbacks.size() + d_writeCallbacks.size());
   struct dvpoll dvp;
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
-  dvp.dp_fds = new pollfd[dvp.dp_nfds];
+  dvp.dp_fds = fds.data();
   dvp.dp_timeout = timeout;
   int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
   int err = errno;
   gettimeofday(now,0); // MANDATORY!
 
   if(ret < 0 && err!=EINTR) {
-    delete[] dvp.dp_fds;
     throw FDMultiplexerException("/dev/poll returned error: "+stringerror(err));
   }
 
   if(ret < 1) { // thanks AB!
-    delete[] dvp.dp_fds;
     return 0;
   }
 
   d_inrun=true;
   for(int n=0; n < ret; ++n) {
-    d_iter=d_readCallbacks.find(dvp.dp_fds[n].fd);
+    d_iter=d_readCallbacks.find(fds.at(n).fd);
     
     if(d_iter != d_readCallbacks.end()) {
       d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       continue; // so we don't refind ourselves as writable!
     }
-    d_iter=d_writeCallbacks.find(dvp.dp_fds[n].fd);
+    d_iter=d_writeCallbacks.find(fds.at(n).fd);
     
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
     }
   }
-  delete[] dvp.dp_fds;
+
   d_inrun=false;
   return ret;
 }
