@@ -3381,6 +3381,10 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if(lwr.d_rcode == RCode::NXDomain) {
     LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
 
+    if (state == Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
+      updateValidationState(state, Bogus);
+    }
+
     if(d_doDNSSEC)
       addNXNSECS(ret, lwr.d_records);
 

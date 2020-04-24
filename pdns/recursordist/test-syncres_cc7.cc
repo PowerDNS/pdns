@@ -1403,4 +1403,57 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("powerdns.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+    else {
+
+      setLWResult(res, RCode::NXDomain, true, false, true);
+      return 1;
+    }
+
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+  /* com|NS, powerdns.com|NS, powerdns.com|A */
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+  /* we don't store empty results */
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
