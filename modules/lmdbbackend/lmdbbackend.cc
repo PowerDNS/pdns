@@ -231,13 +231,13 @@ void serFromString(const string_view& str, DNSResourceRecord& rr)
 }
 
 
-std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::string& content)
+static std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::string& content)
 {
   auto drc = DNSRecordContent::mastermake(qtype, 1, content);
   return drc->serialize(domain, false);
 }
 
-std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
+static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
 {
   if(qtype == QType::A && content.size() == 4) {
     return std::make_shared<ARecordContent>(*((uint32_t*)content.c_str()));

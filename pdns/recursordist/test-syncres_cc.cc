@@ -22,11 +22,6 @@ ArgvMap& arg()
   return theArg;
 }
 
-int getMTaskerTID()
-{
-  return 0;
-}
-
 void primeRootNSZones(bool)
 {
 }

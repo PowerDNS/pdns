@@ -147,7 +147,7 @@ static string htmlescape(const string &s) {
   return result;
 }
 
-void printtable(ostringstream &ret, const string &ringname, const string &title, int limit=10)
+static void printtable(ostringstream &ret, const string &ringname, const string &title, int limit=10)
 {
   int tot=0;
   int entries=0;
@@ -2253,7 +2253,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
+static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 

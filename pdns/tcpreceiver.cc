@@ -173,33 +173,6 @@ static void writenWithTimeout(int fd, const void *buffer, unsigned int n, unsign
   }
 }
 
-void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
-{
-  int err;
-  Utility::socklen_t len=sizeof(err);
-
-  if((err=connect(fd, remote, socklen))<0 && errno!=EINPROGRESS)
-    throw NetworkError("connect: "+stringerror());
-
-  if(!err)
-    goto done;
-  
-  err=waitForRWData(fd, false, 5, 0);
-  if(err == 0)
-    throw NetworkError("Timeout connecting to remote");
-  if(err < 0)
-    throw NetworkError("Error connecting to remote");
-
-  if(getsockopt(fd, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-    throw NetworkError("Error connecting to remote: "+stringerror()); // Solaris
-
-  if(err)
-    throw NetworkError("Error connecting to remote: "+string(strerror(err)));
-
- done:
-  ;
-}
-
 void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock)
 {
   g_rs.submitResponse(*p, false);

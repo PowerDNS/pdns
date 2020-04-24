@@ -37,7 +37,7 @@ StatBag S;
 typedef std::pair<string,string> nsec3;
 typedef set<nsec3> nsec3set;
 
-string nsec3Hash(const DNSName &qname, const string &salt, unsigned int iters)
+static string nsec3Hash(const DNSName &qname, const string &salt, unsigned int iters)
 {
   NSEC3PARAMRecordContent ns3prc;
   ns3prc.d_iterations = iters;
@@ -45,7 +45,7 @@ string nsec3Hash(const DNSName &qname, const string &salt, unsigned int iters)
   return toBase32Hex(hashQNameWithSalt(ns3prc, qname));
 }
 
-void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const string &salt, unsigned int iters, set<DNSName> &proven, set<DNSName> &denied)
+static void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const string &salt, unsigned int iters, set<DNSName> &proven, set<DNSName> &denied)
 {
   string hashed = nsec3Hash(qname, salt, iters);
 
@@ -79,7 +79,7 @@ void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const string &sal
   }
 }
 
-void usage() {
+static void usage() {
   cerr<<"nsec3dig"<<endl;
   cerr<<"Syntax: nsec3dig IP-ADDRESS PORT QUESTION QUESTION-TYPE [recurse]\n";
 }

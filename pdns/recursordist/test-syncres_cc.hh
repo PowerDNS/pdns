@@ -31,11 +31,6 @@
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
-ArgvMap& arg();
-int getMTaskerTID();
-
-void primeHints(void);
-
 void initSR(bool debug = false);
 void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec = false, bool debug = false, time_t fakeNow = 0);
 

@@ -12,31 +12,31 @@
 
 BOOST_AUTO_TEST_SUITE(test_secpoll_cc)
 
-bool checkBasicMessage1(const PDNSException& ex)
+static bool checkBasicMessage1(const PDNSException& ex)
 {
   BOOST_CHECK_EQUAL(ex.reason, "Had empty answer on NOERROR RCODE");
   return true;
 }
 
-bool checkBasicMessage2(const PDNSException& ex)
+static bool checkBasicMessage2(const PDNSException& ex)
 {
   BOOST_CHECK_EQUAL(ex.reason, "RCODE was not NOERROR but " + RCode::to_s(1));
   return true;
 }
 
-bool checkBasicMessage3(const PDNSException& ex)
+static bool checkBasicMessage3(const PDNSException& ex)
 {
   BOOST_CHECK_EQUAL(ex.reason, "No TXT record found in response");
   return true;
 }
 
-bool checkBasicMessage4(const PDNSException& ex)
+static bool checkBasicMessage4(const PDNSException& ex)
 {
   BOOST_CHECK(ex.reason.find("Could not parse status number: stoi") == 0);
   return true;
 }
 
-bool checkBasicMessage5(const PDNSException& ex)
+static bool checkBasicMessage5(const PDNSException& ex)
 {
   BOOST_CHECK(ex.reason.find("Could not parse status number: stoi") == 0);
   return true;

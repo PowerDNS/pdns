@@ -480,7 +480,7 @@ UeberBackend::UeberBackend(const string &pname)
   backends=BackendMakers().all(pname=="key-only");
 }
 
-void del(DNSBackend* d)
+static void del(DNSBackend* d)
 {
   delete d;
 }

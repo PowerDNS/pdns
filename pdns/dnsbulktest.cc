@@ -215,7 +215,7 @@ struct SendReceive
   unsigned int d_receiveds, d_receiveerrors, d_senderrors;
 };
 
-void usage(po::options_description &desc) {
+static void usage(po::options_description &desc) {
   cerr << "Usage: dnsbulktest [OPTION].. IPADDRESS PORTNUMBER [LIMIT]"<<endl;
   cerr << desc << "\n";
 }

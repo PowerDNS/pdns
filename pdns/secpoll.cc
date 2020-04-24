@@ -25,12 +25,13 @@
 #include "dnsrecords.hh"
 #include "pdnsexception.hh"
 #include "misc.hh"
+#include "secpoll.hh"
 
 bool isReleaseVersion(const std::string &version) {
   return std::count(version.begin(), version.end(), '.') == 2;
 }
 
-void setSecPollToUnknownOnOK(int &secPollStatus) {
+static void setSecPollToUnknownOnOK(int &secPollStatus) {
   if(secPollStatus == 1) // it was ok, now it is unknown
     secPollStatus = 0;
 }

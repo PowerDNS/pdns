@@ -5,6 +5,7 @@
 #include <string>
 #include "dnsname.hh"
 #include "namespaces.hh"
+#include "dnswriter.hh"
 
 namespace {
 void appendSplit(vector<string>& ret, string& segment, char c)

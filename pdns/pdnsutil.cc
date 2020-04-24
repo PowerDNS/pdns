@@ -51,7 +51,7 @@ ArgvMap &arg()
   return arg;
 }
 
-void loadMainConfig(const std::string& configdir)
+static void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
@@ -149,7 +149,7 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
-bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false, bool rectifyTransaction = true)
+static bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false, bool rectifyTransaction = true)
 {
   string output;
   string error;
@@ -166,7 +166,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false, bool
   return ret;
 }
 
-void dbBench(const std::string& fname)
+static void dbBench(const std::string& fname)
 {
   ::arg().set("query-cache-ttl")="0";
   ::arg().set("negquery-cache-ttl")="0";
@@ -209,7 +209,7 @@ void dbBench(const std::string& fname)
   cout<<"Packet cache reports: "<<S.read("query-cache-hit")<<" hits (should be 0) and "<<S.read("query-cache-miss") <<" misses"<<endl;
 }
 
-bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
+static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
@@ -230,7 +230,7 @@ bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   return result;
 }
 
-int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
+static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
 {
   uint64_t numerrors=0, numwarnings=0;
 
@@ -604,7 +604,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   return EXIT_FAILURE;
 }
 
-int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
+static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
@@ -648,7 +648,7 @@ int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
   return EXIT_FAILURE;
 }
 
-int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
+static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 {
   UeberBackend B("default");
   SOAData sd;
@@ -698,7 +698,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
   return 0;
 }
 
-int deleteZone(const DNSName &zone) {
+static int deleteZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
   if (! B.getDomainInfo(zone, di)) {
@@ -713,7 +713,7 @@ int deleteZone(const DNSName &zone) {
   return EXIT_FAILURE;
 }
 
-void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
+static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
   if (printHeader) {
     cout<<"Zone                          Type    Size    Algorithm    ID   Location    Keytag"<<endl;
     cout<<"----------------------------------------------------------------------------------"<<endl;
@@ -768,7 +768,7 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
   }
 }
 
-int listKeys(const string &zname, DNSSECKeeper& dk){
+static int listKeys(const string &zname, DNSSECKeeper& dk){
   UeberBackend B("default");
 
   if (zname != "all") {
@@ -790,7 +790,7 @@ int listKeys(const string &zname, DNSSECKeeper& dk){
   return EXIT_SUCCESS;
 }
 
-int listZone(const DNSName &zone) {
+static int listZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
 
@@ -816,7 +816,7 @@ int listZone(const DNSName &zone) {
 }
 
 // lovingly copied from http://stackoverflow.com/questions/1798511/how-to-avoid-press-enter-with-any-getchar
-int read1char(){
+static int read1char(){
     int c;
     static struct termios oldt, newt;
 
@@ -843,7 +843,7 @@ int read1char(){
     return c;
 }
 
-int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
+static int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
 
@@ -859,7 +859,7 @@ int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
-int editZone(const DNSName &zone) {
+static int editZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
   DNSSECKeeper dk(&B);
@@ -1076,7 +1076,7 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
 }
 
 
-int loadZone(DNSName zone, const string& fname) {
+static int loadZone(DNSName zone, const string& fname) {
   UeberBackend B;
   DomainInfo di;
 
@@ -1120,7 +1120,7 @@ int loadZone(DNSName zone, const string& fname) {
   return EXIT_SUCCESS;
 }
 
-int createZone(const DNSName &zone, const DNSName& nsname) {
+static int createZone(const DNSName &zone, const DNSName& nsname) {
   UeberBackend B;
   DomainInfo di;
   if (B.getDomainInfo(zone, di)) {
@@ -1162,7 +1162,7 @@ int createZone(const DNSName &zone, const DNSName& nsname) {
   return EXIT_SUCCESS;
 }
 
-int createSlaveZone(const vector<string>& cmds) {
+static int createSlaveZone(const vector<string>& cmds) {
   UeberBackend B;
   DomainInfo di;
   DNSName zone(cmds[1]);
@@ -1186,7 +1186,7 @@ int createSlaveZone(const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
-int changeSlaveZoneMaster(const vector<string>& cmds) {
+static int changeSlaveZoneMaster(const vector<string>& cmds) {
   UeberBackend B;
   DomainInfo di;
   DNSName zone(cmds[1]);
@@ -1211,7 +1211,7 @@ int changeSlaveZoneMaster(const vector<string>& cmds) {
 }
 
 // add-record ZONE name type [ttl] "content" ["content"]
-int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
+static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   DNSResourceRecord rr;
   vector<DNSResourceRecord> newrrs;
   DNSName zone(cmds[1]);
@@ -1302,7 +1302,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 }
 
 // delete-rrset zone name type
-int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
+static int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
 {
   UeberBackend B;
   DomainInfo di;
@@ -1325,7 +1325,7 @@ int deleteRRSet(const std::string& zone_, const std::string& name_, const std::s
   return EXIT_SUCCESS;
 }
 
-int listAllZones(const string &type="") {
+static int listAllZones(const string &type="") {
 
   int kindFilter = -1;
   if (type.size()) {
@@ -1364,17 +1364,17 @@ int listAllZones(const string &type="") {
   return 0;
 }
 
-bool testAlgorithm(int algo)
+static bool testAlgorithm(int algo)
 {
   return DNSCryptoKeyEngine::testOne(algo);
 }
 
-bool testAlgorithms()
+static bool testAlgorithms()
 {
   return DNSCryptoKeyEngine::testAll();
 }
 
-void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int cores)
+static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int cores)
 {
   DNSResourceRecord rr;
   rr.qname=DNSName("blah")+zone;
@@ -1420,7 +1420,7 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
   cerr<<"Net speed: "<<csp.d_signed/ (dt.udiff()/1000000.0) << " sigs/s"<<endl;
 }
 
-void verifyCrypto(const string& zone)
+static void verifyCrypto(const string& zone)
 {
   ZoneParserTNG zpt(zone);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
@@ -1458,7 +1458,8 @@ void verifyCrypto(const string& zone)
     cerr<<"Original DS:   "<<apex.toString()<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
 }
-bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
+
+static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -1476,7 +1477,7 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   return ret;
 }
 
-int setZoneAccount(const DNSName& zone, const string &account)
+static int setZoneAccount(const DNSName& zone, const string &account)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -1492,7 +1493,7 @@ int setZoneAccount(const DNSName& zone, const string &account)
   return EXIT_SUCCESS;
 }
 
-int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
+static int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -1508,7 +1509,7 @@ int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
   return EXIT_SUCCESS;
 }
 
-bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
+static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -1718,7 +1719,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
   return true;
 }
 
-bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
+static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   // parse attribute
   int k_size;
@@ -1809,7 +1810,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   return true;
 }
 
-void testSchema(DNSSECKeeper& dk, const DNSName& zone)
+static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
 {
   cout<<"Note: test-schema will try to create the zone, but it will not remove it."<<endl;
   cout<<"Please clean up after this."<<endl;
@@ -1933,7 +1934,7 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
 }
 
-int addOrSetMeta(const DNSName& zone, const string& kind, const vector<string>& values, bool clobber) {
+static int addOrSetMeta(const DNSName& zone, const string& kind, const vector<string>& values, bool clobber) {
   UeberBackend B("default");
   DomainInfo di;
 

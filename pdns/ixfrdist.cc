@@ -271,7 +271,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   // FIXME: also report zone size?
 }
 
-void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
+static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
   setThreadName("ixfrdist/update");
   std::map<DNSName, time_t> lastCheck;
 

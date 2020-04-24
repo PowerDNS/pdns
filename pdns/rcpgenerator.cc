@@ -310,7 +310,7 @@ static inline uint8_t hextodec(uint8_t val)
 }
 
 
-void HEXDecode(const char* begin, const char* end, string& out)
+static void HEXDecode(const char* begin, const char* end, string& out)
 {
   if(end - begin == 1 && *begin=='-') {
     out.clear();

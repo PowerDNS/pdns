@@ -371,11 +371,6 @@ unsigned int getRecursorThreadId()
   return t_id;
 }
 
-int getMTaskerTID()
-{
-  return MT->getTid();
-}
-
 static bool isDistributorThread()
 {
   if (t_id == 0) {
@@ -3488,19 +3483,13 @@ template<class T> void *voider(const boost::function<T*()>& func)
   return func();
 }
 
-vector<ComboAddress>& operator+=(vector<ComboAddress>&a, const vector<ComboAddress>& b)
+static vector<ComboAddress>& operator+=(vector<ComboAddress>&a, const vector<ComboAddress>& b)
 {
   a.insert(a.end(), b.begin(), b.end());
   return a;
 }
 
-vector<pair<string, uint16_t> >& operator+=(vector<pair<string, uint16_t> >&a, const vector<pair<string, uint16_t> >& b)
-{
-  a.insert(a.end(), b.begin(), b.end());
-  return a;
-}
-
-vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_t> >&a, const vector<pair<DNSName, uint16_t> >& b)
+static vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_t> >&a, const vector<pair<DNSName, uint16_t> >& b)
 {
   a.insert(a.end(), b.begin(), b.end());
   return a;
@@ -3747,7 +3736,7 @@ retryWithName:
   }
 }
 
-FDMultiplexer* getMultiplexer()
+static FDMultiplexer* getMultiplexer()
 {
   FDMultiplexer* ret;
   for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
@@ -4060,7 +4049,7 @@ static void setupNODThread()
   }
 }
 
-void parseNODWhitelist(const std::string& wlist)
+static void parseNODWhitelist(const std::string& wlist)
 {
   vector<string> parts;
   stringtok(parts, wlist, ",; ");
