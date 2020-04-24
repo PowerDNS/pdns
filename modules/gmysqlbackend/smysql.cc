@@ -181,8 +181,6 @@ public:
   }
 
   SSqlStatement* execute() {
-    int err;
-
     prepareStatement();
 
     if (!d_stmt) return this;
@@ -192,20 +190,20 @@ public:
       d_dtime.set();
     }
 
-    if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
+    if (mysql_stmt_bind_param(d_stmt, d_req_bind) != 0) {
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
       throw SSqlException("Could not bind mysql statement: " + d_query + string(": ") + error);
     }
 
-    if ((err = mysql_stmt_execute(d_stmt))) {
+    if (mysql_stmt_execute(d_stmt) != 0) {
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
       throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
 
     // MySQL documentation says you can call this safely for all queries
-    if ((err = mysql_stmt_store_result(d_stmt))) {
+    if (mysql_stmt_store_result(d_stmt) != 0) {
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
       throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
@@ -241,7 +239,7 @@ public:
          stmt->bind_result_done to false, causing the second to reset the existing binding),
          and we can't bind it right after the call to mysql_stmt_store_result() if it returned
          no rows, because then the statement 'contains no metadata' */
-      if (d_res_bind != nullptr && (err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
+      if (d_res_bind != nullptr && mysql_stmt_bind_result(d_stmt, d_res_bind) != 0) {
         string error(mysql_stmt_error(d_stmt));
         releaseStatement();
         throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
@@ -295,7 +293,7 @@ public:
     if (d_residx >= d_resnum) {
       mysql_stmt_free_result(d_stmt);
       while(!mysql_stmt_next_result(d_stmt)) {
-        if ((err = mysql_stmt_store_result(d_stmt))) {
+        if (mysql_stmt_store_result(d_stmt) != 0) {
           string error(mysql_stmt_error(d_stmt));
           releaseStatement();
           throw SSqlException("Could not store mysql statement while processing additional sets: " + d_query + string(": ") + error);
@@ -304,7 +302,7 @@ public:
         // XXX: For some reason mysql_stmt_result_metadata returns NULL here, so we cannot
         // ensure row field count matches first result set.
         if (d_resnum > 0) { // ignore empty result set
-          if (d_res_bind != nullptr && (err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
+          if (d_res_bind != nullptr && mysql_stmt_bind_result(d_stmt, d_res_bind) != 0) {
             string error(mysql_stmt_error(d_stmt));
             releaseStatement();
             throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
@@ -367,8 +365,6 @@ public:
 private:
 
   void prepareStatement() {
-    int err;
-
     if (d_prepared) return;
     if (d_query.empty()) {
       d_prepared = true;
@@ -378,7 +374,7 @@ private:
     if ((d_stmt = mysql_stmt_init(d_db))==NULL)
       throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
 
-    if ((err = mysql_stmt_prepare(d_stmt, d_query.c_str(), d_query.size()))) {
+    if (mysql_stmt_prepare(d_stmt, d_query.c_str(), d_query.size()) != 0) {
       string error(mysql_stmt_error(d_stmt));
       releaseStatement();
       throw SSqlException("Could not prepare statement: " + d_query + string(": ") + error);

@@ -344,6 +344,10 @@ static ComboAddress pickwhashed(const ComboAddress& bestwho, vector<pair<int,Com
     sum += i.first;
     pick.push_back({sum, i.second});
   }
+  if (sum == 0) {
+    /* we should not have any weight of zero, but better safe than sorry */
+    return ComboAddress();
+  }
   ComboAddress::addressOnlyHash aoh;
   int r = aoh(bestwho) % sum;
   auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
@@ -368,7 +372,7 @@ static bool getLatLon(const std::string& ip, string& loc)
   double latsec, lonsec;
   char lathem='X', lonhem='X';
 
-  double lat, lon;
+  double lat = 0, lon = 0;
   if(!getLatLon(ip, lat, lon))
     return false;
 
@@ -532,7 +536,7 @@ void setupLuaRecords()
   LuaContext& lua = *s_LUA->getLua();
 
   lua.writeFunction("latlon", []() {
-      double lat, lon;
+      double lat = 0, lon = 0;
       getLatLon(s_lua_record_ctx->bestwho.toString(), lat, lon);
       return std::to_string(lat)+" "+std::to_string(lon);
     });
@@ -559,7 +563,7 @@ void setupLuaRecords()
       auto labels= s_lua_record_ctx->qname.getRawLabels();
       if(labels.size()<4)
         return std::string("unknown");
-      double lat, lon;
+      double lat = 0, lon = 0;
       getLatLon(labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], lat, lon);
       return std::to_string(lat)+" "+std::to_string(lon);
     });
