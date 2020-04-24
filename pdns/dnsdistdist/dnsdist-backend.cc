@@ -137,7 +137,6 @@ void DownstreamState::setWeight(int newWeight)
 
 DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect=true): sourceItfName(sourceItfName_), remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort())
 {
-  pthread_rwlock_init(&d_lock, nullptr);
   id = getUniqueID();
   threadStarted.clear();
 

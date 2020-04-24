@@ -193,7 +193,7 @@ private:
 
   std::unique_ptr<CDB> d_cdb{nullptr};
   std::string d_fname;
-  pthread_rwlock_t d_lock;
+  ReadWriteLock d_lock;
   time_t d_mtime{0};
   time_t d_nextCheck{0};
   time_t d_refreshDelay{0};

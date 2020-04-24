@@ -54,6 +54,33 @@ public:
   }
 };
 
+class ReadWriteLock
+{
+public:
+  ReadWriteLock()
+  {
+    if (pthread_rwlock_init(&d_lock, nullptr) != 0) {
+      throw std::runtime_error("Error creating a read-write lock: " + stringerror());
+    }
+  }
+
+  ~ReadWriteLock() {
+    /* might have been moved */
+    pthread_rwlock_destroy(&d_lock);
+  }
+
+  ReadWriteLock(const ReadWriteLock& rhs) = delete;
+  ReadWriteLock& operator=(const ReadWriteLock& rhs) = delete;
+
+  pthread_rwlock_t* getLock()
+  {
+    return &d_lock;
+  }
+
+private:
+  pthread_rwlock_t d_lock;
+};
+
 class WriteLock
 {
   pthread_rwlock_t *d_lock;
@@ -75,6 +102,14 @@ public:
       return;
     if(d_lock) // might have been moved
       pthread_rwlock_unlock(d_lock);
+  }
+
+  WriteLock(ReadWriteLock& lock): WriteLock(lock.getLock())
+  {
+  }
+
+  WriteLock(ReadWriteLock* lock): WriteLock(lock->getLock())
+  {
   }
 
   WriteLock(WriteLock&& rhs)
@@ -118,7 +153,14 @@ public:
     rhs.d_havelock = false;
   }
 
-  
+  TryWriteLock(ReadWriteLock& lock): TryWriteLock(lock.getLock())
+  {
+  }
+
+  TryWriteLock(ReadWriteLock* lock): TryWriteLock(lock->getLock())
+  {
+  }
+
   ~TryWriteLock()
   {
     if(g_singleThreaded)
@@ -157,6 +199,15 @@ public:
     }
     d_havelock=(err==0);
   }
+
+  TryReadLock(ReadWriteLock& lock): TryReadLock(lock.getLock())
+  {
+  }
+
+  TryReadLock(ReadWriteLock* lock): TryReadLock(lock->getLock())
+  {
+  }
+
   TryReadLock(TryReadLock&& rhs)
   {
     d_lock = rhs.d_lock;
@@ -198,6 +249,15 @@ public:
       throw PDNSException("error acquiring rwlock readlock: "+stringerror(err));
     }
   }
+
+  ReadLock(ReadWriteLock& lock): ReadLock(lock.getLock())
+  {
+  }
+
+  ReadLock(ReadWriteLock* lock): ReadLock(lock->getLock())
+  {
+  }
+
   ~ReadLock()
   {
     if(g_singleThreaded)
@@ -209,7 +269,7 @@ public:
   ReadLock(ReadLock&& rhs)
   {
     d_lock = rhs.d_lock;
-    rhs.d_lock=0;
+    rhs.d_lock = nullptr;
   }
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;

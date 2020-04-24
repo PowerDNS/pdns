@@ -117,7 +117,6 @@ bool LMDBKVStore::keyExists(const std::string& key)
 
 CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)
 {
-  pthread_rwlock_init(&d_lock, nullptr);
   d_refreshing.clear();
 
   time_t now = time(nullptr);
@@ -129,7 +128,6 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
 }
 
 CDBKVStore::~CDBKVStore() {
-  pthread_rwlock_destroy(&d_lock);
 }
 
 bool CDBKVStore::reload(const struct stat& st)
