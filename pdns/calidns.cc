@@ -408,7 +408,8 @@ try
     }
     unknown.emplace_back(std::make_shared<vector<uint8_t>>(packet));
   }
-  random_shuffle(unknown.begin(), unknown.end());
+
+  shuffle(unknown.begin(), unknown.end(), pdns::dns_random_engine());
   if (!g_quiet) {
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
@@ -473,7 +474,8 @@ try
     for(;n < total; ++n) {
       toSend.push_back(known[dns_random(known.size())].get());
     }
-    random_shuffle(toSend.begin(), toSend.end());
+
+    shuffle(toSend.begin(), toSend.end(), pdns::dns_random_engine());
     g_recvcounter.store(0);
     g_recvbytes=0;
     DTime dt;

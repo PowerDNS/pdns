@@ -992,7 +992,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   t_sstorage.nsSpeeds[qname].purge(speeds);
 
   if(ret.size() > 1) {
-    random_shuffle(ret.begin(), ret.end());
+    shuffle(ret.begin(), ret.end(), pdns::dns_random_engine());
     speedOrderCA so(speeds);
     stable_sort(ret.begin(), ret.end(), so);
 
@@ -1657,7 +1657,7 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
       return rnameservers;
   }
 
-  random_shuffle(rnameservers.begin(),rnameservers.end());
+  shuffle(rnameservers.begin(),rnameservers.end(), pdns::dns_random_engine());
   speedOrder so;
   stable_sort(rnameservers.begin(),rnameservers.end(), so);
 
@@ -1688,7 +1688,7 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddre
     speed=t_sstorage.nsSpeeds[nsName].get(d_now);
     speeds[val]=speed;
   }
-  random_shuffle(nameservers.begin(),nameservers.end());
+  shuffle(nameservers.begin(),nameservers.end(), pdns::dns_random_engine());
   speedOrderCA so(speeds);
   stable_sort(nameservers.begin(),nameservers.end(), so);
 

@@ -34,6 +34,8 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include "dns_random.hh"
+#include "arguments.hh"
 
 using namespace boost::accumulators;
 namespace po = boost::program_options;
@@ -41,6 +43,12 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 StatBag S;
+
+ArgvMap &arg()
+{
+  static ArgvMap theArg;
+  return theArg;
+}
 
 bool g_quiet=false;
 bool g_envoutput=false;
@@ -307,7 +315,7 @@ try
       domains.push_back(TypedQuery("www."+split.second, qtype));
   }
   cerr<<"Read "<<domains.size()<<" domains!"<<endl;
-  random_shuffle(domains.begin(), domains.end());
+  shuffle(domains.begin(), domains.end(), pdns::dns_random_engine());
 
   boost::format datafmt("%s %|20t|%+15s  %|40t|%s %|60t|%+15s\n");
 

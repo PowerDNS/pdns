@@ -694,7 +694,7 @@ struct SlaveSenderReceiver
 
   Identifier send(DomainNotificationInfo& dni)
   {
-    random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
+    shuffle(dni.di.masters.begin(), dni.di.masters.end(), pdns::dns_random_engine());
     try {
       return std::make_tuple(dni.di.zone,
                              *dni.di.masters.begin(),

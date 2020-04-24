@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <random>
+
 struct ResponseConfig
 {
   boost::optional<bool> setAA{boost::none};
@@ -78,6 +80,7 @@ public:
 
   ResponseConfig d_responseConfig;
 private:
+  static thread_local std::default_random_engine t_randomEngine;
   std::vector<ComboAddress> d_addrs;
   std::set<uint16_t> d_types;
   std::string d_rawResponse;

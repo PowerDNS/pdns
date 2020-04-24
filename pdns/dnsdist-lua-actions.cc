@@ -520,6 +520,8 @@ private:
   func_t d_func;
 };
 
+thread_local std::default_random_engine SpoofAction::t_randomEngine;
+
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
   uint16_t qtype = dq->qtype;
@@ -553,8 +555,9 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
     }
   }
 
-  if(addrs.size() > 1)
-    random_shuffle(addrs.begin(), addrs.end());
+  if (addrs.size() > 1) {
+    shuffle(addrs.begin(), addrs.end(), t_randomEngine);
+  }
 
   unsigned int consumed=0;
   DNSName ignore((char*)dq->dh, dq->len, sizeof(dnsheader), false, 0, 0, &consumed);

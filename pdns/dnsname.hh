@@ -63,6 +63,23 @@ class DNSName
 {
 public:
   DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
+  // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
+  DNSName& operator=(const DNSName& rhs)
+  {
+    if (this != &rhs) {
+      d_storage = rhs.d_storage;
+    }
+    return *this;
+  }
+  DNSName& operator=(const DNSName&& rhs)
+  {
+    if (this != &rhs) {
+      d_storage = std::move(rhs.d_storage);
+    }
+    return *this;
+  }
+  DNSName(const DNSName& a) = default;
+  DNSName(DNSName&& a) = default;
   explicit DNSName(const char* p): DNSName(p, std::strlen(p)) {} //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const char* p, size_t len);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str(), str.length()) {}; //!< Constructs from a human formatted, escaped presentation
