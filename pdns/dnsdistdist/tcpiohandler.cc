@@ -399,14 +399,14 @@ private:
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
-void safe_memory_lock(void* data, size_t size)
+static void safe_memory_lock(void* data, size_t size)
 {
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(data, size);
 #endif
 }
 
-void safe_memory_release(void* data, size_t size)
+static void safe_memory_release(void* data, size_t size)
 {
 #ifdef HAVE_LIBSODIUM
   sodium_munlock(data, size);

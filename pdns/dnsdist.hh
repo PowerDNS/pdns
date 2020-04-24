@@ -1097,7 +1097,6 @@ struct LocalHolders
 
 struct dnsheader;
 
-void controlThread(int fd, ComboAddress local);
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
 struct WebserverConfig

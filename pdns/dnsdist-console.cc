@@ -614,7 +614,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
 };
 
 extern "C" {
-char* my_generator(const char* text, int state)
+static char* my_generator(const char* text, int state)
 {
   string t(text);
   /* to keep it readable, we try to keep only 4 keywords per line

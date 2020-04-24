@@ -18,7 +18,7 @@ LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
 CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter $CFLAGS"
-CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter $CXXFLAGS"
+CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
 
 PDNS_WITH_LIBSODIUM
 PDNS_CHECK_DNSTAP([auto])

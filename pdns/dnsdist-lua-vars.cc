@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dnsdist-lua.hh"
 #include "ednsoptions.hh"
 
 #undef BADSIG  // signal.h SIG_ERR
