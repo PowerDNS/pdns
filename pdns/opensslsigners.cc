@@ -41,16 +41,18 @@
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
-static pthread_mutex_t *openssllocks;
+
+#include "lock.hh"
+static std::vector<std::mutex> openssllocks;
 
 extern "C" {
 void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
 {
   if (mode & CRYPTO_LOCK) {
-    pthread_mutex_lock(&(openssllocks[type]));
+    openssllocks.at(type).lock();
 
-  }else {
-    pthread_mutex_unlock(&(openssllocks[type]));
+  } else {
+    openssllocks.at(type).unlock();
   }
 }
 
@@ -62,24 +64,15 @@ unsigned long openssl_pthreads_id_callback()
 
 void openssl_thread_setup()
 {
-  openssllocks = (pthread_mutex_t*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
-
-  for (int i = 0; i < CRYPTO_num_locks(); i++)
-    pthread_mutex_init(&(openssllocks[i]), NULL);
-
-  CRYPTO_set_id_callback(openssl_pthreads_id_callback);
-  CRYPTO_set_locking_callback(openssl_pthreads_locking_callback);
+  openssllocks = std::vector<std::mutex>(CRYPTO_num_locks());
+  CRYPTO_set_id_callback(&openssl_pthreads_id_callback);
+  CRYPTO_set_locking_callback(&openssl_pthreads_locking_callback);
 }
 
 void openssl_thread_cleanup()
 {
-  CRYPTO_set_locking_callback(NULL);
-
-  for (int i=0; i<CRYPTO_num_locks(); i++) {
-    pthread_mutex_destroy(&(openssllocks[i]));
-  }
-
-  OPENSSL_free(openssllocks);
+  CRYPTO_set_locking_callback(nullptr);
+  openssllocks.clear();
 }
 
 #ifndef HAVE_RSA_GET0_KEY

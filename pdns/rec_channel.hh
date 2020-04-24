@@ -73,7 +73,7 @@ public:
 enum class StatComponent { API, Carbon, RecControl, SNMP };
 
 std::map<std::string, std::string> getAllStatsMap(StatComponent component);
-extern pthread_mutex_t g_carbon_config_lock;
+extern std::mutex g_carbon_config_lock;
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetBogusQueryRing();
