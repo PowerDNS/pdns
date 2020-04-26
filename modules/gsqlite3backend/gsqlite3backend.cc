@@ -81,7 +81,7 @@ public:
 
     declare(suffix, "dnssec", "Enable DNSSEC processing","no");
 
-    string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
+    string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE";
 
     declare(suffix, "basic-query", "Basic query", record_query+" disabled=0 and type=:qtype and name=:qname");
     declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=0 and type=:qtype and name=:qname and domain_id=:domain_id");

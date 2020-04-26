@@ -1185,7 +1185,7 @@ skiprow:
   if((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(row);
-      ASSERT_ROW_COLUMNS(d_query_name, row, 8);
+      ASSERT_ROW_COLUMNS(d_query_name, row, 9);
     } catch (SSqlException &e) {
       throw PDNSException("GSQLBackend get: "+e.txtReason());
     }
@@ -1743,7 +1743,7 @@ bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DN
       SSqlStatement::row_t row;
       DNSResourceRecord r;
       d_SearchRecordsQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("search-records-query", row, 8);
+      ASSERT_ROW_COLUMNS("search-records-query", row, 9);
       try {
         extractRecord(row, r);
       } catch (...) {
@@ -1821,6 +1821,9 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   }
 
   r.last_modified=0;
+
+  if (!row[8].empty())
+    r.ordername = DNSName(boost::replace_all_copy(row[8]," ",".")).labelReverse();
 
   if(d_dnssecQueries)
     r.auth = !row[7].empty() && row[7][0]=='1';

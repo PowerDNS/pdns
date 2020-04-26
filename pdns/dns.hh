@@ -95,6 +95,7 @@ public:
   DNSName qname; //!< the name of this record, for example: www.powerdns.com
   DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
+  DNSName ordername;
 
   // Aligned on 8-byte boundaries on systems where time_t is 8 bytes and int
   // is 4 bytes, aka modern linux on x86_64

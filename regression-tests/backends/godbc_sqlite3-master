@@ -14,9 +14,9 @@ godbc-datasource=$GODBC_SQLITE3_DSN
 # ../pdns/pdns_server --module-dir=./modules/ --launch=gsqlite3 --config | grep gsqlite3 | grep query | grep = | cut -c3- | perl -pe 's/^gsqlite3/godbc/; s/:\w+/?/g'
 godbc-activate-domain-key-query=update cryptokeys set active=1 where domain_id=(select id from domains where name=?) and  cryptokeys.id=?
 godbc-add-domain-key-query=insert into cryptokeys (domain_id, flags, active, published, content) select id, ?, ?, ?, ? from domains where name=?
-godbc-any-id-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and name=? and domain_id=?
-godbc-any-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and name=?
-godbc-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=? and name=?
+godbc-any-id-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE disabled=0 and name=? and domain_id=?
+godbc-any-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE disabled=0 and name=?
+godbc-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE disabled=0 and type=? and name=?
 godbc-clear-domain-all-keys-query=delete from cryptokeys where domain_id=(select id from domains where name=?)
 godbc-clear-domain-all-metadata-query=delete from domainmetadata where domain_id=(select id from domains where name=?)
 godbc-clear-domain-metadata-query=delete from domainmetadata where domain_id=(select id from domains where name=?) and domainmetadata.kind=?
@@ -40,7 +40,7 @@ godbc-get-order-last-query=select ordername, name from records where disabled=0 
 godbc-get-tsig-key-query=select algorithm, secret from tsigkeys where name=?
 godbc-get-tsig-keys-query=select name,algorithm, secret from tsigkeys
 godbc-publish-domain-key-query=update cryptokeys set published=1 where domain_id=(select id from domains where name=?) and  cryptokeys.id=?
-godbc-id-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=? and name=? and domain_id=?
+godbc-id-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE disabled=0 and type=? and name=? and domain_id=?
 godbc-info-all-master-query=select id,name,master,last_check,notified_serial,type from domains where type='MASTER'
 godbc-info-all-slaves-query=select id,name,master,last_check from domains where type='SLAVE'
 godbc-info-zone-query=select id,name,master,last_check,notified_serial,type,account from domains where name=?
@@ -50,14 +50,14 @@ godbc-insert-record-query=insert into records (content,ttl,prio,type,domain_id,d
 godbc-insert-zone-query=insert into domains (type,name,master,account,last_check,notified_serial) values(?, ?, ?, ?, null, null)
 godbc-list-comments-query=SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=?
 godbc-list-domain-keys-query=select cryptokeys.id, flags, active, published, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=?
-godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
-godbc-list-subzone-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and (name=? OR name like ?) and domain_id=?
+godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
+godbc-list-subzone-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE disabled=0 and (name=? OR name like ?) and domain_id=?
 godbc-nullify-ordername-and-update-auth-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0
 godbc-nullify-ordername-and-update-auth-type-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0
 godbc-remove-domain-key-query=delete from cryptokeys where domain_id=(select id from domains where name=?) and cryptokeys.id=?
 godbc-remove-empty-non-terminals-from-zone-query=delete from records where domain_id=? and type is null
 godbc-search-comments-query=SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE ? OR comment LIKE ? LIMIT ?
-godbc-search-records-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE name LIKE ? OR content LIKE ? LIMIT ?
+godbc-search-records-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE name LIKE ? OR content LIKE ? LIMIT ?
 godbc-set-domain-metadata-query=insert into domainmetadata (domain_id, kind, content) select id, ?, ? from domains where name=?
 godbc-set-tsig-key-query=replace into tsigkeys (name,algorithm,secret) values(?,?,?)
 godbc-supermaster-query=select account from supermasters where ip=? and nameserver=?
