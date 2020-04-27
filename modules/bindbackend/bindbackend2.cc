@@ -636,13 +636,13 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>&parts, Util
   ostringstream ret;
 
   if (parts.size() > 1) {
-    for (const auto& part : parts) {
+    for (vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
       BB2DomainInfo bbd;
-      if (safeGetBBDomainInfo(DNSName(part), &bbd)) {
+      if (safeGetBBDomainInfo(DNSName(*i), &bbd)) {
         printDomainExtendedStatus(ret, bbd);
       }
       else {
-        ret << part << " no such domain" << std::endl;
+        ret << *i << " no such domain" << std::endl;
       }
     }
   }
