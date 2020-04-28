@@ -29,7 +29,7 @@
 
 static string backendname="[TinyDNSBackend] ";
 uint32_t TinyDNSBackend::s_lastId;
-pthread_mutex_t TinyDNSBackend::s_domainInfoLock=PTHREAD_MUTEX_INITIALIZER;
+std::mutex TinyDNSBackend::s_domainInfoLock;
 TinyDNSBackend::TDI_suffix_t TinyDNSBackend::s_domainInfo;
 
 vector<string> TinyDNSBackend::getLocations()
@@ -90,7 +90,7 @@ TinyDNSBackend::TinyDNSBackend(const string &suffix)
 }
 
 void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
-  Lock l(&s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
+  std::lock_guard<std::mutex> l(s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
 
   if (! s_domainInfo.count(d_suffix)) {
     TDI_t tmp;
@@ -133,7 +133,7 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 }
 
 void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial) {
-  Lock l(&s_domainInfoLock);
+  std::lock_guard<std::mutex> l(s_domainInfoLock);
   if (!s_domainInfo.count(d_suffix)) {
     throw PDNSException("Can't get list of domains to set the serial.");
   }

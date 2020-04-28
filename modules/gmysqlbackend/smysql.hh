@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <mutex>
+
 #include <mysql.h>
 #include "pdns/backends/gsql/ssql.hh"
 #include "pdns/utility.hh"
@@ -48,7 +50,7 @@ private:
   void connect();
 
   static bool s_dolog;
-  static pthread_mutex_t s_myinitlock;
+  static std::mutex s_myinitlock;
 
   MYSQL d_db;
   std::string d_database;
