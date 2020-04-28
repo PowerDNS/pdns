@@ -25,8 +25,6 @@
 #include "misc.hh"
 #include "pdnsexception.hh"
 
-extern bool g_singleThreaded;
-
 class ReadWriteLock
 {
 public:
@@ -61,9 +59,6 @@ public:
 
   WriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded)
-      return;
-
     int err;
     if((err = pthread_rwlock_wrlock(d_lock))) {
       throw PDNSException("error acquiring rwlock wrlock: "+stringerror(err));
@@ -71,8 +66,6 @@ public:
   }
   ~WriteLock()
   {
-    if(g_singleThreaded)
-      return;
     if(d_lock) // might have been moved
       pthread_rwlock_unlock(d_lock);
   }
@@ -105,11 +98,6 @@ public:
 
   TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded) {
-      d_havelock=true;
-      return;
-    }
-
     d_havelock=false;
     int err;
     if((err = pthread_rwlock_trywrlock(d_lock)) && err!=EBUSY) {
@@ -136,17 +124,11 @@ public:
 
   ~TryWriteLock()
   {
-    if(g_singleThreaded)
-      return;
-
     if(d_havelock && d_lock) // we might be moved
       pthread_rwlock_unlock(d_lock);
   }
   bool gotIt()
   {
-    if(g_singleThreaded)
-      return true;
-
     return d_havelock;
   }
 };
@@ -161,11 +143,6 @@ public:
 
   TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded) {
-      d_havelock=true;
-      return;
-    }
-
     int err;
     if((err = pthread_rwlock_tryrdlock(d_lock)) && err!=EBUSY) {
       throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror(err));
@@ -191,17 +168,11 @@ public:
 
   ~TryReadLock()
   {
-    if(g_singleThreaded)
-      return;
-
     if(d_havelock && d_lock)
       pthread_rwlock_unlock(d_lock);
   }
   bool gotIt()
   {
-    if(g_singleThreaded)
-      return true;
-
     return d_havelock;
   }
 };
@@ -214,9 +185,6 @@ public:
 
   ReadLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded)
-      return;
-
     int err;
     if((err = pthread_rwlock_rdlock(d_lock))) {
       throw PDNSException("error acquiring rwlock readlock: "+stringerror(err));
@@ -233,8 +201,6 @@ public:
 
   ~ReadLock()
   {
-    if(g_singleThreaded)
-      return;
     if(d_lock) // may have been moved
       pthread_rwlock_unlock(d_lock);
   }

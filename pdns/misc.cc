@@ -65,8 +65,6 @@
 #  include <sched.h>
 #endif
 
-bool g_singleThreaded;
-
 size_t writen2(int fd, const void *buf, size_t count)
 {
   const char *ptr = (char*)buf;
