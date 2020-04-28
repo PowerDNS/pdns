@@ -54,3 +54,4 @@ built_pkgs
 *-shm
 __pycache__
 .circleci/config.yml-local
+.idea
