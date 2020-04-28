@@ -101,7 +101,7 @@ const char *funnytext=
 This file is where it all happens - main is here, as are the two pivotal threads qthread() and athread()
 */
 
-void daemonize(void)
+static void daemonize(void)
 {
   if(fork())
     exit(0); // bye bye

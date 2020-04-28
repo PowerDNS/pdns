@@ -74,7 +74,7 @@ struct QuestionData
 typedef map<QuestionIdentifier, QuestionData> statmap_t;
 statmap_t statmap;
 
-unsigned int liveQuestions()
+static unsigned int liveQuestions()
 {
   unsigned int ret=0;
   for(statmap_t::value_type& val :  statmap) {
@@ -107,7 +107,7 @@ struct LiveCounts
   }
 };
 
-void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
+static void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
 {
   // 20% servfails, >100 children, on average less than 2 copies of a query
   // >100 different subqueries
@@ -123,7 +123,7 @@ void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNod
   }
 }
 
-const struct timeval operator-(const struct pdns_timeval& lhs, const struct pdns_timeval& rhs)
+static const struct timeval operator-(const struct pdns_timeval& lhs, const struct pdns_timeval& rhs)
 {
   struct timeval a{lhs.tv_sec, static_cast<suseconds_t>(lhs.tv_usec)}, b{rhs.tv_sec, static_cast<suseconds_t>(rhs.tv_usec)};
   return operator-(a,b);

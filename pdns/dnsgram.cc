@@ -40,7 +40,7 @@
 
 StatBag S;
 
-struct tm* pdns_localtime_r(const uint32_t* then, struct tm* tm)
+static struct tm* pdns_localtime_r(const uint32_t* then, struct tm* tm)
 {
   time_t t = *then;
   
@@ -49,7 +49,8 @@ struct tm* pdns_localtime_r(const uint32_t* then, struct tm* tm)
 
 int32_t g_clientQuestions, g_clientResponses, g_serverQuestions, g_serverResponses, g_skipped;
 struct pdns_timeval g_lastanswerTime, g_lastquestionTime;
-void makeReport(const struct pdns_timeval& tv)
+
+static void makeReport(const struct pdns_timeval& tv)
 {
   int64_t clientdiff = g_clientQuestions - g_clientResponses;
   int64_t serverdiff = g_serverQuestions - g_serverResponses;
@@ -100,7 +101,7 @@ void makeReport(const struct pdns_timeval& tv)
   g_skipped=0;
 }
 
-void usage() {
+static void usage() {
   cerr<<"syntax: dnsgram INFILE..."<<endl;
 }
 

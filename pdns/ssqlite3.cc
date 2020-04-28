@@ -37,7 +37,8 @@
 *
 * copied from sqlite 3.3.6 // cmouse
 */
-int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
+#if SQLITE_VERSION_NUMBER < 3003009
+static int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
   int i;
   int rc = SQLITE_OK;
   for(i=1; rc==SQLITE_OK && i<=sqlite3_bind_parameter_count(pStmt); i++){
@@ -45,6 +46,7 @@ int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
   }
   return rc;
 }
+#endif
 
 static string SSQLite3ErrorString(sqlite3 *db)
 {

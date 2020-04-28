@@ -93,7 +93,7 @@ namespace po = boost::program_options;
 
 po::variables_map g_vm;
 
-const struct timeval operator*(float fact, const struct timeval& rhs)
+static const struct timeval operator*(float fact, const struct timeval& rhs)
 {
   //  cout<<"In: "<<rhs.tv_sec<<" + "<<rhs.tv_usec<<"\n";
   struct timeval ret;
@@ -121,7 +121,7 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
 }
 
 bool g_pleaseQuit;
-void pleaseQuitHandler(int)
+static void pleaseQuitHandler(int)
 {
   g_pleaseQuit=true;
 }
@@ -164,7 +164,7 @@ private:
 } s_idmanager;
 
 
-void setSocketBuffer(int fd, int optname, uint32_t size)
+static void setSocketBuffer(int fd, int optname, uint32_t size)
 {
   uint32_t psize=0;
   socklen_t len=sizeof(psize);
@@ -225,7 +225,7 @@ unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
 
 
 
-void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlow, int& origSlow)
+static void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlow, int& origSlow)
 {
   struct timeval now;
   gettimeofday(&now, 0);
@@ -265,21 +265,21 @@ void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlo
   }
 }
 
-void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
+static void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
 {
   for(MOADNSParser::answers_t::const_iterator i=orig.begin(); i != orig.end(); ++i)
     if(i->first.d_place==DNSResourceRecord::ANSWER)
       compacted.insert(i->first);
 }
 
-bool isRcodeOk(int rcode)
+static bool isRcodeOk(int rcode)
 {
   return rcode==0 || rcode==3;
 }
 
 set<pair<DNSName,uint16_t> > s_origbetterset;
 
-bool isRootReferral(const MOADNSParser::answers_t& answers)
+static bool isRootReferral(const MOADNSParser::answers_t& answers)
 {
   if(answers.empty())
     return false;
@@ -296,7 +296,7 @@ bool isRootReferral(const MOADNSParser::answers_t& answers)
 }
 
 vector<uint32_t> flightTimes;
-void accountFlightTime(qids_t::const_iterator iter)
+static void accountFlightTime(qids_t::const_iterator iter)
 {
   if(flightTimes.empty())
     flightTimes.resize(2050); 
@@ -310,7 +310,7 @@ void accountFlightTime(qids_t::const_iterator iter)
   flightTimes[mdiff]++;
 }
 
-uint64_t countLessThan(unsigned int msec)
+static uint64_t countLessThan(unsigned int msec)
 {
   uint64_t ret=0;
   for(unsigned int i = 0 ; i < msec && i < flightTimes.size() ; ++i) {
@@ -319,7 +319,7 @@ uint64_t countLessThan(unsigned int msec)
   return ret;
 }
 
-void emitFlightTimes()
+static void emitFlightTimes()
 {
   uint64_t totals = countLessThan(flightTimes.size());
   unsigned int limits[]={1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, (unsigned int) flightTimes.size()};
@@ -338,7 +338,7 @@ void emitFlightTimes()
   }
 }
 
-void measureResultAndClean(qids_t::const_iterator iter)
+static void measureResultAndClean(qids_t::const_iterator iter)
 {
   const QuestionData& qd=*iter;
   accountFlightTime(iter);
@@ -406,7 +406,7 @@ void measureResultAndClean(qids_t::const_iterator iter)
 
 std::unique_ptr<Socket> s_socket = nullptr;
 
-void receiveFromReference()
+static void receiveFromReference()
 try
 {
   string packet;
@@ -469,7 +469,7 @@ catch(...)
   exit(1);
 }
 
-void pruneQids()
+static void pruneQids()
 {
   struct timeval now;
   gettimeofday(&now, 0);
@@ -491,7 +491,7 @@ void pruneQids()
   }
 }
 
-void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
+static void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
 {
   format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
   format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
@@ -511,7 +511,7 @@ void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
 
 }
 
-void houseKeeping()
+static void houseKeeping()
 {
   static timeval last;
 
@@ -703,7 +703,7 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
   return sent;
 }
 
-void usage(po::options_description &desc) {
+static void usage(po::options_description &desc) {
   cerr << "Usage: dnsreplay [OPTIONS] FILENAME [IP-ADDRESS] [PORT]"<<endl;
   cerr << desc << "\n";
 }

@@ -5,6 +5,8 @@
 #endif
 
 #include "rpzloader.hh"
+#include "syncres.hh"
+
 #include <boost/test/unit_test.hpp>
 
 // Provide stubs for some symbols

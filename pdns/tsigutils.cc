@@ -25,6 +25,7 @@
 #include "dns_random.hh"
 #include "misc.hh"
 #include "pdnsexception.hh"
+#include "tsigutils.hh"
 #include <string>
 
 /*

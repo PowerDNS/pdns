@@ -115,4 +115,3 @@ private:
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
 
-std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);

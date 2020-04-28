@@ -38,7 +38,7 @@ static void usage()
        << endl;
 }
 
-const string nameForClass(uint16_t qclass, uint16_t qtype)
+static const string nameForClass(uint16_t qclass, uint16_t qtype)
 {
   if (qtype == QType::OPT)
     return "IN";
@@ -57,7 +57,7 @@ const string nameForClass(uint16_t qclass, uint16_t qtype)
   }
 }
 
-void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
+static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
   bool dnssec, const boost::optional<Netmask> ednsnm,
   bool recurse, uint16_t xpfcode, uint16_t xpfversion,
   uint64_t xpfproto, char* xpfsrc, char* xpfdst,
@@ -102,7 +102,7 @@ void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
   }
 }
 
-void printReply(const string& reply, bool showflags, bool hidesoadetails)
+static void printReply(const string& reply, bool showflags, bool hidesoadetails)
 {
   MOADNSParser mdp(false, reply);
   cout << "Reply to question for qname='" << mdp.d_qname.toString()

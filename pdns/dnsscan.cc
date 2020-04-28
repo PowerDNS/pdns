@@ -44,7 +44,7 @@ using namespace ::boost::multi_index;
 #include "namespaces.hh"
 StatBag S;
 
-void usage() {
+static void usage() {
   cerr<<"syntax: dnsscan INFILE ..."<<endl;
 }
 

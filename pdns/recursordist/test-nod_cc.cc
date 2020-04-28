@@ -9,7 +9,7 @@ using namespace nod;
 
 BOOST_AUTO_TEST_SUITE(nod_cc)
 
-bool pdns_exception(PDNSException const& ex) { return true; }
+static bool pdns_exception(PDNSException const& ex) { return true; }
 
 BOOST_AUTO_TEST_CASE(test_basic)
 {

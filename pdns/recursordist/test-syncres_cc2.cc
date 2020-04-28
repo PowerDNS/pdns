@@ -5,7 +5,7 @@
 
 BOOST_AUTO_TEST_SUITE(syncres_cc2)
 
-void do_test_referral_depth(bool limited)
+static void do_test_referral_depth(bool limited)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);

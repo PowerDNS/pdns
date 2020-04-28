@@ -46,7 +46,7 @@ ArgvMap &arg()
   return theArg;
 }
 
-void usage() {
+static void usage() {
   cerr<<"Syntax: ixplore diff ZONE BEFORE_FILE AFTER_FILE"<<endl;
   cerr<<"Syntax: ixplore track IP-ADDRESS PORT ZONE DIRECTORY [TSIGKEY TSIGALGO TSIGSECRET]"<<endl;
 }

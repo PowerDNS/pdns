@@ -161,7 +161,7 @@ private:
 };
 
 
-void usage() {
+static void usage() {
   cerr<<"Syntax: dnswasher INFILE1 [INFILE2..] OUTFILE"<<endl;
 }
 

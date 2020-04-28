@@ -22,7 +22,8 @@ extern "C"
 	int yyparse(void);
 	int yylex(void);
 	void yyrestart(FILE *);
-	int yywrap()
+	int yywrap(void);
+	int yywrap(void)
 	{
 		return 1;
 	}

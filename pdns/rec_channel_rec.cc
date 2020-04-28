@@ -1316,7 +1316,7 @@ vector<ComboAddress>* pleaseGetTimeouts()
   return ret;
 }
 
-string doGenericTopRemotes(pleaseremotefunc_t func)
+static string doGenericTopRemotes(pleaseremotefunc_t func)
 {
   typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
   counts_t counts;
@@ -1384,7 +1384,7 @@ static DNSName nopFilter(const DNSName& name)
   return name;
 }
 
-string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const DNSName&)> filter=nopFilter)
+static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const DNSName&)> filter=nopFilter)
 {
   typedef pair<DNSName,uint16_t> query_t;
   typedef map<query_t, int> counts_t;

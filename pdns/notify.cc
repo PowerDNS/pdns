@@ -52,7 +52,7 @@ ArgvMap &arg()
   return arg;
 }
 
-void usage() {
+static void usage() {
   cerr<<"Syntax: pdns_notify IP_ADDRESS/HOSTNAME[:PORT] DOMAIN"<<endl;
 }
 

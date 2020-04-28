@@ -15,7 +15,7 @@ ArgvMap &arg()
   return theArg;
 }
 
-void usage() {
+static void usage() {
   cerr<<"stubquery"<<endl;
   cerr<<"Syntax: stubquery QUESTION [QUESTION-TYPE]"<<endl;
 }

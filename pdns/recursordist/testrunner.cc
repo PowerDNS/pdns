@@ -29,7 +29,7 @@
 #include <iostream>
 #include <dnsrecords.hh>
 
-bool init_unit_test()
+static bool init_unit_test()
 {
   reportAllTypes();
   return true;

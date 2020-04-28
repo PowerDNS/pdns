@@ -249,7 +249,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
 }
 
 
-void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, bool verbose=true)
+static void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, bool verbose=true)
 {
   vector<string> servers;
   stringtok(servers, input, sepa);
@@ -268,13 +268,7 @@ void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, cons
     g_log<<endl;
 }
 
-void* pleaseWipeNegCache()
-{
-  SyncRes::clearNegCache();
-  return 0;
-}
-
-void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newmap)
+static void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newmap)
 {
   SyncRes::setDomainMap(newmap);
   return 0;

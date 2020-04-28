@@ -51,7 +51,7 @@ unsigned int g_timeoutMsec;
 AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates, g_authAnswers, g_timeOuts;
 ComboAddress g_dest;
 
-unsigned int makeUsec(const struct timeval& tv)
+static unsigned int makeUsec(const struct timeval& tv)
 {
   return 1000000*tv.tv_sec + tv.tv_usec;
 }
@@ -69,7 +69,7 @@ struct BenchQuery
   time_t answerSecond;
 };
 
-void doQuery(BenchQuery* q)
+static void doQuery(BenchQuery* q)
 try
 {
   vector<uint8_t> packet;
@@ -185,7 +185,7 @@ static void* worker(void*)
   return 0;
 }
 
-void usage(po::options_description &desc) {
+static void usage(po::options_description &desc) {
   cerr<<"Syntax: dnstcpbench REMOTE [PORT] < QUERIES"<<endl;
   cerr<<"Where QUERIES is one query per line, format: qname qtype, just 1 space"<<endl;
   cerr<<desc<<endl;

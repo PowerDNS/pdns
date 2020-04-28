@@ -56,7 +56,7 @@ map<string, bool> g_entries;
 map<DNSName,bool> g_recorddata;
 map<DNSName, map<string, bool> > g_recordttl;
 
-std::string encode_non_ascii( const std::string &input ) {
+static std::string encode_non_ascii( const std::string &input ) {
         std::ostringstream out;
 
         for ( auto i : input ) {

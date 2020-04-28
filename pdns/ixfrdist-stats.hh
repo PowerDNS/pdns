@@ -96,3 +96,5 @@ class ixfrdistStats {
       return ret;
     };
 };
+
+extern string doGetStats();

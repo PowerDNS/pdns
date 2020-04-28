@@ -67,13 +67,13 @@ struct NotificationInFlight
 typedef map<uint16_t, NotificationInFlight> nifs_t;
 nifs_t g_nifs;
 
-void syslogFmt(const boost::format& fmt)
+static void syslogFmt(const boost::format& fmt)
 {
   cerr<<"nproxy: "<<fmt<<endl;
   syslog(LOG_WARNING, "%s", str(fmt).c_str());
 }
 
-void handleOutsideUDPPacket(int fd, boost::any&)
+static void handleOutsideUDPPacket(int fd, boost::any&)
 try
 {
   char buffer[1500];
@@ -145,7 +145,7 @@ catch(std::exception &e)
 }
 
 
-void handleInsideUDPPacket(int fd, boost::any&)
+static void handleInsideUDPPacket(int fd, boost::any&)
 try
 {
   char buffer[1500];
@@ -191,7 +191,7 @@ catch(std::exception &e)
   syslogFmt(boost::format("Error parsing packet from internal nameserver: %s") % e.what());
 }
 
-void expireOldNotifications()
+static void expireOldNotifications()
 {
   time_t limit = time(0) - 10;
   for(nifs_t::iterator iter = g_nifs.begin(); iter != g_nifs.end(); ) {
@@ -204,9 +204,19 @@ void expireOldNotifications()
   }
 }
 
-void daemonize(int null_fd);
+static void daemonize(int null_fd)
+{
+  if(fork())
+    exit(0); // bye bye
 
-void usage(po::options_description &desc) {
+  setsid();
+
+  dup2(null_fd,0); /* stdin */
+  dup2(null_fd,1); /* stderr */
+  dup2(null_fd,2); /* stderr */
+}
+
+static void usage(po::options_description &desc) {
   cerr<<"nproxy"<<endl;
   cerr<<desc<<endl;
 }
@@ -352,16 +362,4 @@ catch(std::exception& e)
 catch(PDNSException& e)
 {
   syslogFmt(boost::format("Fatal: %s") % e.reason);
-}
-
-void daemonize(int null_fd)
-{
-  if(fork())
-    exit(0); // bye bye
-
-  setsid();
-
-  dup2(null_fd,0); /* stdin */
-  dup2(null_fd,1); /* stderr */
-  dup2(null_fd,2); /* stderr */
 }

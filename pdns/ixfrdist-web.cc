@@ -25,8 +25,6 @@
 #include "iputils.hh"
 #include "ixfrdist-stats.hh"
 
-string doGetStats();
-
 IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const NetmaskGroup &acl, const string &loglevel) :
   d_ws(std::unique_ptr<WebServer>(new WebServer(listenAddress.toString(), listenAddress.getPort())))
 {

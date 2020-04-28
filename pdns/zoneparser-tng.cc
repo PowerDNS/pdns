@@ -222,7 +222,7 @@ bool ZoneParserTNG::getTemplateLine()
   return true;
 }
 
-void chopComment(string& line)
+static void chopComment(string& line)
 {
   if(line.find(';')==string::npos)
     return;
@@ -240,7 +240,7 @@ void chopComment(string& line)
     line.resize(pos);
 }
 
-bool findAndElide(string& line, char c)
+static bool findAndElide(string& line, char c)
 {
   string::size_type pos, len = line.length();
   bool inQuote=false;

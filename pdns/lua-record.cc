@@ -284,7 +284,7 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 
 
-std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
+static std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
 {
   static bool initialized;
   extern std::function<std::string(const std::string& ip, int)> g_getGeo;
@@ -531,7 +531,7 @@ typedef struct AuthLuaRecordContext
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
 
-void setupLuaRecords()
+static void setupLuaRecords()
 {
   LuaContext& lua = *s_LUA->getLua();
 

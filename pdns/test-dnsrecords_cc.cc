@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
  }
 }
 
-bool test_dnsrecords_cc_predicate( std::exception const &ex ) { return true; }
+static bool test_dnsrecords_cc_predicate( std::exception const &ex ) { return true; }
 
 // these *MUST NOT* parse properly!
 BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
