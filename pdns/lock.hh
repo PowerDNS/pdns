@@ -27,33 +27,6 @@
 
 extern bool g_singleThreaded;
 
-class Lock
-{
-  pthread_mutex_t *d_lock;
-public:
-  Lock(const Lock& rhs) = delete;
-  Lock& operator=(const Lock& rhs) = delete;
-
-  Lock(pthread_mutex_t *lock) : d_lock(lock)
-  {
-    if(g_singleThreaded)
-      return;
-
-    int err;
-    if((err = pthread_mutex_lock(d_lock))) {
-      errno = err;
-      throw PDNSException("error acquiring lock: "+stringerror());
-    }
-  }
-  ~Lock()
-  {
-    if(g_singleThreaded)
-      return;
-
-    pthread_mutex_unlock(d_lock);
-  }
-};
-
 class ReadWriteLock
 {
 public:
