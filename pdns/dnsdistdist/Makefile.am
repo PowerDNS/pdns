@@ -468,7 +468,9 @@ if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
 endif
 
 dnsdist@.service: dnsdist.service
-	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' < $< >$@
+	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' \
+	  -e 's!RuntimeDirectory=.*!&-%i!' \
+	  < $< >$@
 
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
