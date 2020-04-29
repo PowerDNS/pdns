@@ -4946,7 +4946,16 @@ int main(int argc, char **argv)
     ::arg().set("socket-group","Group of socket")="";
     ::arg().set("socket-mode", "Permissions for socket")="";
 
-    ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns-recursor when unset and not chrooted" )="";
+    ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns-recursor when unset and not chrooted"
+#ifdef HAVE_SYSTEMD
+      + ". Set to the RUNTIME_DIRECTORY environment variable when that variable has a value (e.g. under systemd).")="";
+   auto runtimeDir = getenv("RUNTIME_DIRECTORY");
+   if (runtimeDir != nullptr) {
+     ::arg().set("socket-dir") = runtimeDir;
+   }
+#else
+      )="";
+#endif
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     ::arg().set("query-local-address6","Source IPv6 address for sending queries. IF UNSET, IPv6 WILL NOT BE USED FOR OUTGOING QUERIES")="";
