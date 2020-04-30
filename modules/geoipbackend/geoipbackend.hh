@@ -67,7 +67,7 @@ public:
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
 
 private:
-  static pthread_rwlock_t s_state_lock;
+  static ReadWriteLock s_state_lock;
 
   void initialize();
   string format2str(string format, const Netmask &addr, GeoIPNetmask& gl);

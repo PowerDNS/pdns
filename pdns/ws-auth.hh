@@ -78,8 +78,6 @@ public:
   static string makePercentage(const double& val);
 
 private:
-  static void *webThreadHelper(void *);
-  static void *statThreadHelper(void *p);
   void indexfunction(HttpRequest* req, HttpResponse* resp);
   void cssfunction(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
@@ -88,7 +86,6 @@ private:
   void printargs(ostringstream &ret);
   void webThread();
   void statThread();
-  pthread_t d_tid;
 
   time_t d_start;
   double d_min10, d_min5, d_min1;

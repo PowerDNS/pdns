@@ -297,14 +297,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
 
 static DNSDistPacketCache g_PC(500000);
 
-static void *threadMangler(void* off)
+static void threadMangler(unsigned int offset)
 {
   struct timespec queryTime;
   gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   try {
     ComboAddress remote;
     bool dnssecOK = false;
-    unsigned int offset=(unsigned int)(unsigned long)off;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
       vector<uint8_t> query;
@@ -337,19 +336,17 @@ static void *threadMangler(void* off)
     cerr<<"Had error: "<<e.reason<<endl;
     throw;
   }
-  return 0;
 }
 
 AtomicCounter g_missing;
 
-static void *threadReader(void* off)
+static void threadReader(unsigned int offset)
 {
   bool dnssecOK = false;
   struct timespec queryTime;
   gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   try
   {
-    unsigned int offset=(unsigned int)(unsigned long)off;
     vector<DNSResourceRecord> entry;
     ComboAddress remote;
     for(unsigned int counter=0; counter < 100000; ++counter) {
@@ -373,25 +370,31 @@ static void *threadReader(void* off)
     cerr<<"Had error in threadReader: "<<e.reason<<endl;
     throw;
   }
-  return 0;
 }
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
   try {
-    pthread_t tid[4];
-    for(int i=0; i < 4; ++i)
-      pthread_create(&tid[i], 0, threadMangler, (void*)(i*1000000UL));
-    void* res;
-    for(int i=0; i < 4 ; ++i)
-      pthread_join(tid[i], &res);
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 4; ++i) {
+      threads.push_back(std::thread(threadMangler, i*1000000UL));
+    }
+
+    for (auto& t : threads) {
+      t.join();
+    }
+
+    threads.clear();
 
     BOOST_CHECK_EQUAL(g_PC.getSize() + g_PC.getDeferredInserts() + g_PC.getInsertCollisions(), 400000U);
     BOOST_CHECK_SMALL(1.0*g_PC.getInsertCollisions(), 10000.0);
 
-    for(int i=0; i < 4; ++i)
-      pthread_create(&tid[i], 0, threadReader, (void*)(i*1000000UL));
-    for(int i=0; i < 4 ; ++i)
-      pthread_join(tid[i], &res);
+    for (int i = 0; i < 4; ++i) {
+      threads.push_back(std::thread(threadReader, i*1000000UL));
+    }
+
+    for (auto& t : threads) {
+      t.join();
+    }
 
     BOOST_CHECK((g_PC.getDeferredInserts() + g_PC.getDeferredLookups() + g_PC.getInsertCollisions()) >= g_missing);
   }

@@ -22,11 +22,14 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <set>
+#include <thread>
+#include <boost/utility.hpp>
+
 #include "packetcache.hh"
 #include "utility.hh"
 #include "communicator.hh"
-#include <set>
-#include <boost/utility.hpp>
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "packethandler.hh"
@@ -45,7 +48,7 @@ void CommunicatorClass::retrievalLoopThread(void)
     d_suck_sem.wait();
     SuckRequest sr;
     {
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> l(d_lock);
       if(d_suckdomains.empty()) 
         continue;
         
@@ -82,10 +85,13 @@ void CommunicatorClass::go()
     _exit(1);
   }
 
-  pthread_t tid;
-  pthread_create(&tid,0,&launchhelper,this); // Starts CommunicatorClass::mainloop()
-  for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n)
-    pthread_create(&tid, 0, &retrieveLaunchhelper, this); // Starts CommunicatorClass::retrievalLoopThread()
+  std::thread mainT(std::bind(&CommunicatorClass::mainloop, this));
+  mainT.detach();
+
+  for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n) {
+    std::thread retrieve(std::bind(&CommunicatorClass::retrievalLoopThread, this));
+    retrieve.detach();
+  }
 
   d_preventSelfNotification = ::arg().mustDo("prevent-self-notification");
 
@@ -131,7 +137,7 @@ void CommunicatorClass::mainloop(void)
           bool extraSlaveRefresh = false;
           Utility::sleep(1);
           {
-            Lock l(&d_lock);
+            std::lock_guard<std::mutex> l(d_lock);
             if (d_tocheck.size())
               extraSlaveRefresh = true;
           }

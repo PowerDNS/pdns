@@ -54,15 +54,13 @@ private:
   static int doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock);
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q);
-  static void *doConnection(void *data);
-  static void *launcher(void *data);
+  static void doConnection(int fd);
   static void decrementClientCount(const ComboAddress& remote);
   void thread(void);
-  static pthread_mutex_t s_plock;
+  static std::mutex s_plock;
   static std::mutex s_clientsCountMutex;
   static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_clientsCount;
   static std::unique_ptr<PacketHandler> s_P;
-  pthread_t d_tid;
   static std::unique_ptr<Semaphore> d_connectionroom_sem;
   static unsigned int d_maxTCPConnections;
   static NetmaskGroup d_ng;

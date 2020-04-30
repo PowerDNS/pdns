@@ -77,9 +77,9 @@ Bind2Backend::state_t Bind2Backend::s_state;
 int Bind2Backend::s_first=1;
 bool Bind2Backend::s_ignore_broken_records=false;
 
-pthread_rwlock_t Bind2Backend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
-pthread_mutex_t Bind2Backend::s_supermaster_config_lock=PTHREAD_MUTEX_INITIALIZER; // protects writes to config file
-pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
+ReadWriteLock Bind2Backend::s_state_lock;
+std::mutex Bind2Backend::s_supermaster_config_lock; // protects writes to config file
+std::mutex Bind2Backend::s_startup_lock;
 string Bind2Backend::s_binddirectory;  
 
 template <typename T>
@@ -463,7 +463,7 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
       (*ips).insert(str);
     }
   }
-  ReadLock rl(&s_state_lock);  
+  ReadLock rl(&s_state_lock);
   for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
     if(i->d_name == domain) {
       for(set<string>::iterator it = i->d_also_notify.begin(); it != i->d_also_notify.end(); it++) {
@@ -730,7 +730,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   if (!loadZones && d_hybrid)
     return;
 
-  Lock l(&s_startup_lock);
+  std::lock_guard<std::mutex> l(s_startup_lock);
   
   setupDNSSEC();
   if(!s_first) {
@@ -1375,7 +1375,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
     << "' from supermaster " << ip << endl;
 
   {
-    Lock l2(&s_supermaster_config_lock);
+    std::lock_guard<std::mutex> l2(s_supermaster_config_lock);
         
     ofstream c_of(getArg("supermaster-config").c_str(),  std::ios::app);
     if (!c_of) {

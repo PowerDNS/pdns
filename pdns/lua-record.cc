@@ -71,15 +71,13 @@ private:
     std::atomic<time_t> lastAccess{0};
   };
 
-  pthread_rwlock_t d_lock;
+  ReadWriteLock d_lock;
 public:
   IsUpOracle()
   {
-    pthread_rwlock_init(&d_lock, nullptr);
   }
   ~IsUpOracle()
   {
-    pthread_rwlock_destroy(&d_lock);
   }
   bool isUp(const ComboAddress& remote, const opts_t& opts);
   bool isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);

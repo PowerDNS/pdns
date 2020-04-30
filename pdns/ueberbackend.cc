@@ -50,12 +50,12 @@
 extern StatBag S;
 
 vector<UeberBackend *>UeberBackend::instances;
-pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
+std::mutex UeberBackend::instances_lock;
 
 // initially we are blocked
 bool UeberBackend::d_go=false;
-pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t UeberBackend::d_cond = PTHREAD_COND_INITIALIZER;
+std::mutex UeberBackend::d_mut;
+std::condition_variable UeberBackend::d_cond;
 
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string &name)
@@ -94,10 +94,11 @@ bool UeberBackend::loadModules(const vector<string>& modules, const string& path
 
 void UeberBackend::go(void)
 {
-  pthread_mutex_lock(&d_mut);
-  d_go=true;
-  pthread_cond_broadcast(&d_cond);
-  pthread_mutex_unlock(&d_mut);
+  {
+    std::unique_lock<std::mutex> l(d_mut);
+    d_go = true;
+  }
+  d_cond.notify_all();
 }
 
 bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
@@ -463,9 +464,10 @@ bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, c
 
 UeberBackend::UeberBackend(const string &pname)
 {
-  pthread_mutex_lock(&instances_lock);
-  instances.push_back(this); // report to the static list of ourself
-  pthread_mutex_unlock(&instances_lock);
+  {
+    std::lock_guard<std::mutex> l(instances_lock);
+    instances.push_back(this); // report to the static list of ourself
+  }
 
   d_negcached=0;
   d_ancount=0;
@@ -474,7 +476,6 @@ UeberBackend::UeberBackend(const string &pname)
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
-  d_tid=pthread_self();
   d_stale=false;
 
   backends=BackendMakers().all(pname=="key-only");
@@ -487,12 +488,11 @@ static void del(DNSBackend* d)
 
 void UeberBackend::cleanup()
 {
-  pthread_mutex_lock(&instances_lock);
-
-  remove(instances.begin(),instances.end(),this);
-  instances.resize(instances.size()-1);
-
-  pthread_mutex_unlock(&instances_lock);
+  {
+    std::lock_guard<std::mutex> l(instances_lock);
+    remove(instances.begin(),instances.end(),this);
+    instances.resize(instances.size()-1);
+  }
 
   for_each(backends.begin(),backends.end(),del);
 }
@@ -567,14 +567,11 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
   }
 
   DLOG(g_log<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname<<endl);
-  if(!d_go) {
-    pthread_mutex_lock(&d_mut);
-    while (d_go==false) {
-      g_log<<Logger::Error<<"UeberBackend is blocked, waiting for 'go'"<<endl;
-      pthread_cond_wait(&d_cond, &d_mut);
-      g_log<<Logger::Error<<"Broadcast received, unblocked"<<endl;
-    }
-    pthread_mutex_unlock(&d_mut);
+  if (!d_go) {
+    g_log<<Logger::Error<<"UeberBackend is blocked, waiting for 'go'"<<endl;
+    std::unique_lock<std::mutex> l(d_mut);
+    d_cond.wait(l, []{ return d_go == true; });
+    g_log<<Logger::Error<<"Broadcast received, unblocked"<<endl;
   }
 
   d_domain_id=zoneId;

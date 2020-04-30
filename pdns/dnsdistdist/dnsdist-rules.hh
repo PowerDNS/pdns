@@ -234,13 +234,9 @@ private:
 public:
   TimedIPSetRule()
   {
-    pthread_rwlock_init(&d_lock4, 0);
-    pthread_rwlock_init(&d_lock6, 0);
   }
   ~TimedIPSetRule()
   {
-    pthread_rwlock_destroy(&d_lock4);
-    pthread_rwlock_destroy(&d_lock6);
   }
   bool matches(const DNSQuestion* dq) const override
   {
@@ -302,7 +298,7 @@ public:
 
   void cleanup()
   {
-    time_t now=time(0);
+    time_t now = time(nullptr);
     {
       WriteLock rl(&d_lock4);
 
@@ -360,8 +356,8 @@ private:
   };
   std::unordered_map<IPv6, time_t, IPv6Hash> d_ip6s;
   std::unordered_map<uint32_t, time_t> d_ip4s;
-  mutable pthread_rwlock_t d_lock4;
-  mutable pthread_rwlock_t d_lock6;
+  mutable ReadWriteLock d_lock4;
+  mutable ReadWriteLock d_lock6;
 };
 
 

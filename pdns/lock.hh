@@ -25,56 +25,79 @@
 #include "misc.hh"
 #include "pdnsexception.hh"
 
-extern bool g_singleThreaded;
-
-class Lock
+class ReadWriteLock
 {
-  pthread_mutex_t *d_lock;
 public:
-  Lock(const Lock& rhs) = delete;
-  Lock& operator=(const Lock& rhs) = delete;
-
-  Lock(pthread_mutex_t *lock) : d_lock(lock)
+  ReadWriteLock()
   {
-    if(g_singleThreaded)
-      return;
-
-    int err;
-    if((err = pthread_mutex_lock(d_lock))) {
-      errno = err;
-      throw PDNSException("error acquiring lock: "+stringerror());
+    if (pthread_rwlock_init(&d_lock, nullptr) != 0) {
+      throw std::runtime_error("Error creating a read-write lock: " + stringerror());
     }
   }
-  ~Lock()
-  {
-    if(g_singleThreaded)
-      return;
 
-    pthread_mutex_unlock(d_lock);
+  ~ReadWriteLock() {
+    /* might have been moved */
+    pthread_rwlock_destroy(&d_lock);
   }
+
+  ReadWriteLock(const ReadWriteLock& rhs) = delete;
+  ReadWriteLock& operator=(const ReadWriteLock& rhs) = delete;
+
+  pthread_rwlock_t* getLock()
+  {
+    return &d_lock;
+  }
+
+private:
+  pthread_rwlock_t d_lock;
+};
+
+class ReadLock
+{
+public:
+  ReadLock(ReadWriteLock& lock): ReadLock(lock.getLock())
+  {
+  }
+
+  ReadLock(ReadWriteLock* lock): ReadLock(lock->getLock())
+  {
+  }
+
+  ~ReadLock()
+  {
+    if(d_lock) // may have been moved
+      pthread_rwlock_unlock(d_lock);
+  }
+
+  ReadLock(ReadLock&& rhs)
+  {
+    d_lock = rhs.d_lock;
+    rhs.d_lock = nullptr;
+  }
+  ReadLock(const ReadLock& rhs) = delete;
+  ReadLock& operator=(const ReadLock& rhs) = delete;
+
+private:
+  ReadLock(pthread_rwlock_t *lock) : d_lock(lock)
+  {
+    int err;
+    if((err = pthread_rwlock_rdlock(d_lock))) {
+      throw PDNSException("error acquiring rwlock readlock: "+stringerror(err));
+    }
+  }
+
+ pthread_rwlock_t *d_lock;
 };
 
 class WriteLock
 {
-  pthread_rwlock_t *d_lock;
 public:
-
-  WriteLock(pthread_rwlock_t *lock) : d_lock(lock)
+  WriteLock(ReadWriteLock& lock): WriteLock(lock.getLock())
   {
-    if(g_singleThreaded)
-      return;
-
-    int err;
-    if((err = pthread_rwlock_wrlock(d_lock))) {
-      throw PDNSException("error acquiring rwlock wrlock: "+stringerror(err));
-    }
   }
-  ~WriteLock()
+
+  WriteLock(ReadWriteLock* lock): WriteLock(lock->getLock())
   {
-    if(g_singleThreaded)
-      return;
-    if(d_lock) // might have been moved
-      pthread_rwlock_unlock(d_lock);
   }
 
   WriteLock(WriteLock&& rhs)
@@ -82,81 +105,39 @@ public:
     d_lock = rhs.d_lock;
     rhs.d_lock=0;
   }
+
+  ~WriteLock()
+  {
+    if(d_lock) // might have been moved
+      pthread_rwlock_unlock(d_lock);
+  }
+
   WriteLock(const WriteLock& rhs) = delete;
   WriteLock& operator=(const WriteLock& rhs) = delete;
 
-};
-
-class TryWriteLock
-{
-  pthread_rwlock_t *d_lock;
-  bool d_havelock;
-public:
-  TryWriteLock(const TryWriteLock& rhs) = delete;
-  TryWriteLock& operator=(const TryWriteLock& rhs) = delete;
-
-  TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
+private:
+  WriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded) {
-      d_havelock=true;
-      return;
-    }
-
-    d_havelock=false;
     int err;
-    if((err = pthread_rwlock_trywrlock(d_lock)) && err!=EBUSY) {
-      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror(err));
+    if((err = pthread_rwlock_wrlock(d_lock))) {
+      throw PDNSException("error acquiring rwlock wrlock: "+stringerror(err));
     }
-    d_havelock=(err==0);
   }
 
-  TryWriteLock(TryWriteLock&& rhs)
-  {
-    d_lock = rhs.d_lock;
-    rhs.d_lock = nullptr;
-    d_havelock = rhs.d_havelock;
-    rhs.d_havelock = false;
-  }
-
-  
-  ~TryWriteLock()
-  {
-    if(g_singleThreaded)
-      return;
-
-    if(d_havelock && d_lock) // we might be moved
-      pthread_rwlock_unlock(d_lock);
-  }
-  bool gotIt()
-  {
-    if(g_singleThreaded)
-      return true;
-
-    return d_havelock;
-  }
+  pthread_rwlock_t *d_lock;
 };
 
 class TryReadLock
 {
-  pthread_rwlock_t *d_lock;
-  bool d_havelock;
 public:
-  TryReadLock(const TryReadLock& rhs) = delete;
-  TryReadLock& operator=(const TryReadLock& rhs) = delete;
-
-  TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
+  TryReadLock(ReadWriteLock& lock): TryReadLock(lock.getLock())
   {
-    if(g_singleThreaded) {
-      d_havelock=true;
-      return;
-    }
-
-    int err;
-    if((err = pthread_rwlock_tryrdlock(d_lock)) && err!=EBUSY) {
-      throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror(err));
-    }
-    d_havelock=(err==0);
   }
+
+  TryReadLock(ReadWriteLock* lock): TryReadLock(lock->getLock())
+  {
+  }
+
   TryReadLock(TryReadLock&& rhs)
   {
     d_lock = rhs.d_lock;
@@ -167,50 +148,77 @@ public:
 
   ~TryReadLock()
   {
-    if(g_singleThreaded)
-      return;
-
     if(d_havelock && d_lock)
       pthread_rwlock_unlock(d_lock);
   }
+
+  TryReadLock(const TryReadLock& rhs) = delete;
+  TryReadLock& operator=(const TryReadLock& rhs) = delete;
+
   bool gotIt()
   {
-    if(g_singleThreaded)
-      return true;
-
     return d_havelock;
   }
+
+private:
+  TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
+  {
+    int err;
+    if((err = pthread_rwlock_tryrdlock(d_lock)) && err!=EBUSY) {
+      throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror(err));
+    }
+    d_havelock=(err==0);
+  }
+
+  pthread_rwlock_t *d_lock;
+  bool d_havelock;
 };
 
-
-class ReadLock
+class TryWriteLock
 {
-  pthread_rwlock_t *d_lock;
 public:
-
-  ReadLock(pthread_rwlock_t *lock) : d_lock(lock)
+  TryWriteLock(ReadWriteLock& lock): TryWriteLock(lock.getLock())
   {
-    if(g_singleThreaded)
-      return;
-
-    int err;
-    if((err = pthread_rwlock_rdlock(d_lock))) {
-      throw PDNSException("error acquiring rwlock readlock: "+stringerror(err));
-    }
   }
-  ~ReadLock()
+
+  TryWriteLock(ReadWriteLock* lock): TryWriteLock(lock->getLock())
   {
-    if(g_singleThreaded)
-      return;
-    if(d_lock) // may have been moved
+  }
+
+  TryWriteLock(TryWriteLock&& rhs)
+  {
+    d_lock = rhs.d_lock;
+    rhs.d_lock = nullptr;
+    d_havelock = rhs.d_havelock;
+    rhs.d_havelock = false;
+  }
+
+  ~TryWriteLock()
+  {
+    if(d_havelock && d_lock) // we might be moved
       pthread_rwlock_unlock(d_lock);
   }
 
-  ReadLock(ReadLock&& rhs)
+  TryWriteLock(const TryWriteLock& rhs) = delete;
+  TryWriteLock& operator=(const TryWriteLock& rhs) = delete;
+
+  bool gotIt()
   {
-    d_lock = rhs.d_lock;
-    rhs.d_lock=0;
+    return d_havelock;
   }
-  ReadLock(const ReadLock& rhs) = delete;
-  ReadLock& operator=(const ReadLock& rhs) = delete;
+
+private:
+  TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
+  {
+    d_havelock=false;
+    int err;
+    if((err = pthread_rwlock_trywrlock(d_lock)) && err!=EBUSY) {
+      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror(err));
+    }
+    d_havelock=(err==0);
+  }
+
+  pthread_rwlock_t *d_lock;
+  bool d_havelock;
 };
+

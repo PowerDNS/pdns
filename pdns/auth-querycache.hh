@@ -91,17 +91,15 @@ private:
   struct MapCombo
   {
     MapCombo() {
-      pthread_rwlock_init(&d_mut, nullptr);
     }
     ~MapCombo() {
-      pthread_rwlock_destroy(&d_mut);
     }
     MapCombo(const MapCombo &) = delete; 
     MapCombo & operator=(const MapCombo &) = delete;
 
     void reserve(size_t numberOfEntries);
 
-    pthread_rwlock_t d_mut;
+    ReadWriteLock d_mut;
     cmap_t d_map;
   };
 

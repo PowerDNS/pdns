@@ -94,7 +94,7 @@ public:
 
 private:
   boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > d_ticketKeys;
-  pthread_rwlock_t d_lock;
+  ReadWriteLock d_lock;
 };
 
 void* libssl_get_ticket_key_callback_data(SSL* s);

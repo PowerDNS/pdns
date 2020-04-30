@@ -25,7 +25,6 @@
 #include "dolog.hh"
 #include "dnscrypt.hh"
 #include "dnswriter.hh"
-#include "lock.hh"
 
 DNSCryptPrivateKey::DNSCryptPrivateKey()
 {
@@ -125,20 +124,15 @@ DNSCryptQuery::~DNSCryptQuery()
 
 
 DNSCryptContext::~DNSCryptContext() {
-  pthread_rwlock_destroy(&d_lock);
 }
 
 DNSCryptContext::DNSCryptContext(const std::string& pName, const std::vector<CertKeyPaths>& certKeys): d_certKeyPaths(certKeys), providerName(pName)
 {
-  pthread_rwlock_init(&d_lock, 0);
-
   reloadCertificates();
 }
 
 DNSCryptContext::DNSCryptContext(const std::string& pName, const DNSCryptCert& certificate, const DNSCryptPrivateKey& pKey): providerName(pName)
 {
-  pthread_rwlock_init(&d_lock, 0);
-
   addNewCertificate(certificate, pKey);
 }
 

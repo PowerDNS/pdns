@@ -22,13 +22,15 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <mutex>
+
 #include "logger.hh"
 #include "misc.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 extern StatBag S;
 #endif
-#include "lock.hh"
 #include "namespaces.hh"
 
 thread_local Logger::PerThread Logger::t_perThread;
@@ -96,8 +98,8 @@ void Logger::log(const string &msg, Urgency u)
       }
     }
 
-    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-    Lock l(&m); // the C++-2011 spec says we need this, and OSX actually does
+    static std::mutex m;
+    std::lock_guard<std::mutex> l(m); // the C++-2011 spec says we need this, and OSX actually does
     clog << string(buffer) + prefix + msg <<endl;
 #ifndef RECURSOR
     mustAccount=true;

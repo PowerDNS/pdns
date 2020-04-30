@@ -65,7 +65,7 @@ private:
 static thread_local MySQLThreadCloser threadcloser;
 
 bool SMySQL::s_dolog;
-pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
+std::mutex SMySQL::s_myinitlock;
 
 class SMySQLStatement: public SSqlStatement
 {
@@ -440,7 +440,7 @@ void SMySQL::connect()
 {
   int retry=1;
 
-  Lock l(&s_myinitlock);
+  std::lock_guard<std::mutex> l(s_myinitlock);
   if (d_threadCleanup) {
     threadcloser.enable();
   }

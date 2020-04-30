@@ -32,7 +32,7 @@
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 
-pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
+ReadWriteLock GeoIPBackend::s_state_lock;
 
 struct GeoIPDNSResourceRecord: DNSResourceRecord {
   int weight;

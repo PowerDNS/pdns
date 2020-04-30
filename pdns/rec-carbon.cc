@@ -19,7 +19,7 @@ try
   vector<string> carbonServers;
 
   {
-    Lock l(&g_carbon_config_lock);
+    std::lock_guard<std::mutex> l(g_carbon_config_lock);
     stringtok(carbonServers, arg()["carbon-server"], ", ");
     namespace_name=arg()["carbon-namespace"];
     hostname=arg()["carbon-ourname"];

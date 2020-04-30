@@ -28,7 +28,6 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <dlfcn.h>
-#include <pthread.h>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>
 
@@ -43,6 +42,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp> 
+#include <thread>
+
 #include "misc.hh"
 #include "dns.hh"
 #include "arguments.hh"
@@ -203,16 +204,8 @@ DynListener::DynListener(const string &progname)
 void DynListener::go()
 {
   d_ppid=getpid();
-  pthread_create(&d_tid,0,&DynListener::theListenerHelper,this);
-}
-
-void *DynListener::theListenerHelper(void *p)
-{
-  setThreadName("pdns/ctrlListen");
-  DynListener *us=static_cast<DynListener *>(p);
-  us->theListener();
-  g_log<<Logger::Error<<"Control listener aborted, please file a bug!"<<endl;
-  return 0;
+  std::thread listener(std::bind(&DynListener::theListener,this));
+  listener.detach();
 }
 
 string DynListener::getLine()
@@ -331,6 +324,8 @@ void DynListener::registerRestFunc(g_funk_t *gf)
 
 void DynListener::theListener()
 {
+  setThreadName("pdns/ctrlListen");
+
   try {
     signal(SIGPIPE,SIG_IGN);
 

@@ -791,8 +791,6 @@ public:
       throw std::runtime_error("Error setting up TLS cipher preferences to '" + fe.d_tlsConfig.d_ciphers + "' (" + gnutls_strerror(rc) + ") on " + fe.d_addr.toStringWithPort());
     }
 
-    pthread_rwlock_init(&d_lock, nullptr);
-
     try {
       if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
@@ -802,15 +800,12 @@ public:
       }
     }
     catch(const std::runtime_error& e) {
-      pthread_rwlock_destroy(&d_lock);
       throw std::runtime_error("Error generating tickets key for TLS context on " + fe.d_addr.toStringWithPort() + ": " + e.what());
     }
   }
 
   virtual ~GnuTLSIOCtx() override
   {
-    pthread_rwlock_destroy(&d_lock);
-
     d_creds.reset();
 
     if (d_priorityCache) {
@@ -876,7 +871,7 @@ private:
   std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)> d_creds;
   gnutls_priority_t d_priorityCache{nullptr};
   std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey{nullptr};
-  pthread_rwlock_t d_lock;
+  ReadWriteLock d_lock;
   bool d_enableTickets{true};
 };
 

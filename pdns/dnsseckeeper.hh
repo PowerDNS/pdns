@@ -33,6 +33,7 @@
 #include "dnssecinfra.hh"
 #include "dnsrecords.hh"
 #include "ueberbackend.hh"
+#include "lock.hh"
 
 using namespace ::boost::multi_index;
 
@@ -298,8 +299,8 @@ private:
 
   static keycache_t s_keycache;
   static metacache_t s_metacache;
-  static pthread_rwlock_t s_metacachelock;
-  static pthread_rwlock_t s_keycachelock;
+  static ReadWriteLock s_metacachelock;
+  static ReadWriteLock s_keycachelock;
   static AtomicCounter s_ops;
   static time_t s_last_prune;
   static size_t s_maxEntries;

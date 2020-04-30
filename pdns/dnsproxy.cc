@@ -22,11 +22,14 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <sys/types.h>
+#include <thread>
+
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnsproxy.hh"
 #include "pdnsexception.hh"
-#include <sys/types.h>
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
@@ -39,7 +42,6 @@ extern StatBag S;
 
 DNSProxy::DNSProxy(const string &remote)
 {
-  pthread_mutex_init(&d_lock,0);
   d_resanswers=S.getPointer("recursing-answers");
   d_resquestions=S.getPointer("recursing-questions");
   d_udpanswers=S.getPointer("udp-answers");
@@ -83,8 +85,8 @@ DNSProxy::DNSProxy(const string &remote)
 
 void DNSProxy::go()
 {
-  pthread_t tid;
-  pthread_create(&tid,0,&launchhelper,this);
+  std::thread t(std::bind(&DNSProxy::mainloop, this));
+  t.detach();
 }
 
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
@@ -129,7 +131,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   uint16_t id;
   uint16_t qtype = r->qtype.getCode();
   {
-    Lock l(&d_lock);
+    std::lock_guard<std::mutex> l(d_lock);
     id=getID_locked();
 
     ConntrackEntry ce;
@@ -216,7 +218,7 @@ void DNSProxy::mainloop(void)
       dnsheader d;
       memcpy(&d,buffer,sizeof(d));
       {
-        Lock l(&d_lock);
+        std::lock_guard<std::mutex> l(d_lock);
 #if BYTE_ORDER == BIG_ENDIAN
         // this is needed because spoof ID down below does not respect the native byteorder
         d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
