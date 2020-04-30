@@ -161,7 +161,7 @@ static void checkRR(const signerParams& signer)
 
 BOOST_AUTO_TEST_CASE(test_generic_signers)
 {
-  for (const auto signer : signers) {
+  for (const auto& signer : signers) {
     DNSKEYRecordContent drc;
     auto dcke = DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap);
 

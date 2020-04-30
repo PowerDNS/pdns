@@ -135,7 +135,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         grouped[{x.d_name, x.d_type}].second.push_back(x);
 
       di.backend->startTransaction(domain, -1);
-      for(const auto g : grouped) {
+      for(const auto& g : grouped) {
         vector<DNSRecord> rrset;
         {
           DNSZoneRecord zrr;

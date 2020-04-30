@@ -139,7 +139,7 @@ void BackendMakerClass::launch(const string &instr)
   vector<string> parts;
   stringtok(parts,instr,", ");
 
-  for (const auto part : parts)
+  for (const auto& part : parts)
     if (count(parts.begin(), parts.end(), part) > 1)
       throw ArgException("Refusing to launch multiple backends with the same name '" + part + "', verify all 'launch' statements in your configuration");
 
