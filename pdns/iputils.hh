@@ -989,7 +989,7 @@ public:
 
     // we turn left on 0 and right on 1
     int bits = 0;
-    for(; node && bits < key.getBits(); bits++) {
+    for(; bits < key.getBits(); bits++) {
       bool vall = key.getBit(-1-bits);
 
       if (bits >= node->d_bits) {
