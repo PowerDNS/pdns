@@ -500,7 +500,7 @@ static void connectionThread(int sock, ComboAddress remote)
         }
 
         // Latency histogram buckets
-        output << "# HELP dnsdist_latency Histogram of responses by latency\n";
+        output << "# HELP dnsdist_latency Histogram of responses by latency (in miliseconds)\n";
         output << "# TYPE dnsdist_latency histogram\n";
         uint64_t latency_amounts = g_stats.latency0_1;
         output << "dnsdist_latency_bucket{le=\"1\"} " << latency_amounts << "\n";
