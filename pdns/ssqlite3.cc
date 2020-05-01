@@ -236,15 +236,15 @@ void SSQLite3::execute(const string& query) {
   char *errmsg;
   int rc;
   if (sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg) == SQLITE_BUSY) {
+    std::string errstr1(errmsg);
+    sqlite3_free(errmsg);
     if (m_in_transaction) {
-      std::string errstr(errmsg);
-      sqlite3_free(errmsg);
-      throw("Failed to execute query: " + errstr);
+      throw("Failed to execute query: " + errstr1);
     } else {
       if ((rc = sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg) != SQLITE_OK) && rc != SQLITE_DONE && rc != SQLITE_ROW) {
-        std::string errstr(errmsg);
+        std::string errstr2(errmsg);
         sqlite3_free(errmsg);
-        throw("Failed to execute query: " + errstr);
+        throw("Failed to execute query: " + errstr2);
       }
     }
   }
