@@ -50,7 +50,7 @@ Logger& getLogger()
   return log;
 }
 
-void Logger::log(const string &msg, Urgency u)
+void Logger::log(const string &msg, Urgency u) noexcept
 {
 #ifndef RECURSOR
   bool mustAccount(false);
@@ -113,8 +113,14 @@ void Logger::log(const string &msg, Urgency u)
   }
 
 #ifndef RECURSOR
-  if(mustAccount)
-    S.ringAccount("logmessages",msg);
+  if(mustAccount) {
+      try {
+        S.ringAccount("logmessages",msg);
+      }
+      catch (const runtime_error& e) {
+        cerr << e.what() << endl;
+      }
+  }
 #endif
 }
 

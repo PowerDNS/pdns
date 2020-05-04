@@ -45,7 +45,7 @@ public:
       \param msg Message you wish to log
       \param u Urgency of the message you wish to log
   */
-  void log(const string &msg, Urgency u=Notice);
+  void log(const string &msg, Urgency u=Notice) noexcept;
 
   void setFacility(int f){d_facility=f;open();} //!< Choose logging facility
   void setFlag(int f){flags|=f;open();} //!< set a syslog flag
