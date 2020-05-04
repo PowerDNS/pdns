@@ -1,0 +1,93 @@
+# our chosen base image
+FROM debian:10 AS builder
+
+# TODO: make sure /source looks roughly the same from git or tar
+
+# Reusable layer for base update
+RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
+
+# devscripts gives us mk-build-deps (and a lot of other stuff)
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs && apt-get clean
+
+# import everything - this could be pdns.git OR a dnsdist tarball!
+COPY . /source
+
+# TODO: control file is not in tarballs at all right now
+RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-buster/control && \
+    apt-get clean
+
+# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
+WORKDIR /source/pdns/dnsdistdist
+
+ARG MAKEFLAGS=
+ENV MAKEFLAGS ${MAKEFLAGS:--j2}
+
+RUN touch dnsdist.1 # avoid having to install pandoc and venv
+
+RUN autoreconf -vfi
+
+RUN mkdir /build && \
+    ./configure \
+      --with-lua=luajit \
+      LDFLAGS=-rdynamic \
+      --sysconfdir=/etc/dnsdist \
+      --enable-option-checking=fatal \
+      --enable-dnscrypt \
+      --enable-dns-over-tls \
+      --enable-dns-over-https \
+      --with-re2 && \
+    make clean && \
+    make $MAKEFLAGS install DESTDIR=/build && make clean && \
+    strip /build/usr/local/bin/*
+RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
+    echo 'Source: pdns' > debian/control && \
+    dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
+    sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
+    equivs-build debian/control && \
+    dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
+
+# Runtime
+
+FROM debian:10
+
+# Reusable layer for base update - Should be cached from builder
+RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
+
+# Ensure python3 is present (for startup script), and python3-atomicwrites (for backend management), and tini (for signal management)
+RUN apt-get install -y python3 python3-atomicwrites tini && apt-get clean
+
+# Output from builder
+COPY --from=builder /build /
+RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
+RUN setcap 'cap_net_bind_service=+eip' /usr/local/bin/dnsdist
+
+# Ensure dependencies are present
+RUN apt install -y /tmp/equivs-dummy_1.0_all.deb && apt clean
+
+# Config
+RUN mkdir -p /etc/dnsdist/conf.d
+RUN touch /etc/dnsdist-api.conf && chown 953 /etc/dnsdist-api.conf
+RUN ln -s /etc/dnsdist-api.conf /etc/dnsdist/conf.d/api.conf
+COPY --from=builder /source/dockerdata/dnsdist.conf /etc/dnsdist/
+
+# Start script
+COPY dockerdata/startup.py /usr/local/bin/dnsdist-startup
+
+# Work with pdns user - not root
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
+USER pdns
+
+# DNS ports
+EXPOSE 53/udp
+EXPOSE 53/tcp
+# console port
+EXPOSE 5199/tcp
+# webserver port
+EXPOSE 8083/tcp
+
+WORKDIR /etc/dnsdist
+
+COPY --from=builder /source/dockerdata/dnsdist-resolver.lua /etc/dnsdist/
+COPY --from=builder /source/dockerdata/dnsdist-resolver.py /usr/local/bin/dnsdist-resolver
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/dnsdist-startup"]

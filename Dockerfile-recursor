@@ -1,0 +1,97 @@
+# USAGE
+
+#   docker build --build-arg MAKEFLAGS=-j8 -t recursor -f docker/Dockerfile-recursor .
+#   docker run -p 1053:53 -p 1053:53/udp -ti --rm recursor
+#   dig a www.example.com @0 -p 1053
+
+# Builder
+FROM debian:10 AS builder
+
+# Reusable layer for base update
+RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
+
+# devscripts gives us mk-build-deps (and a lot of other stuff)
+RUN apt-get install -y --no-install-recommends devscripts equivs git curl && apt-get clean
+
+# import everything - this could be pdns.git OR a recursor tarball!
+COPY . /source
+
+# TODO: make sure /source looks roughly the same from git or tar
+
+# TODO: control file is not in tarballs at all right now
+RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
+    apt-get clean
+# RUN apt-get -y install protobuf-compiler && apt-get clean
+
+# build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
+WORKDIR /source/pdns/recursordist
+
+ARG MAKEFLAGS=
+ENV MAKEFLAGS ${MAKEFLAGS:--j2}
+
+# Manpage deps
+# RUN apt-get install -y virtualenv && apt-get clean
+
+# Manpage prevent
+RUN touch pdns_recursor.1 rec_control.1 # avoid installing pandoc
+
+RUN autoreconf -vfi
+
+RUN mkdir /build && \
+    ./configure \
+      --with-lua=luajit \
+      LDFLAGS=-rdynamic \
+      --sysconfdir=/etc/powerdns \
+      --enable-option-checking=fatal && \
+      make clean && \
+      make $MAKEFLAGS install DESTDIR=/build && make clean && \
+      strip /build/usr/local/bin/* /build/usr/local/sbin/*
+RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
+    echo 'Source: pdns' > debian/control && \
+    dpkg-shlibdeps /build/usr/local/bin/rec_control /build/usr/local/sbin/pdns_recursor && \
+    sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
+    equivs-build debian/control && \
+    dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
+
+# Runtime
+FROM debian:10
+
+# Reusable layer for base update - Should be cached from builder
+RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
+
+# Ensure python3 is present (for startup script), and tini for signal management
+RUN apt-get install -y python3 tini && apt-get clean
+
+# Executables from builder
+COPY --from=builder /build /
+RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
+RUN setcap 'cap_net_bind_service=+eip' /usr/local/sbin/pdns_recursor
+
+# Ensure dependencies are present
+RUN apt install -y /tmp/equivs-dummy_1.0_all.deb && apt clean
+
+# Start script
+COPY dockerdata/startup.py /usr/local/sbin/pdns_recursor-startup
+
+# Config file(s) from builder
+# Should not grab this from builder - since it isn't being built
+COPY --from=builder /source/dockerdata/recursor.conf /etc/powerdns/
+
+# Is recursor.d necessary if we copy the config into recursor.conf? (see above)
+RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor
+RUN touch /etc/powerdns-api.conf && chown 953 /etc/powerdns-api.conf
+RUN ln -s /etc/powerdns-api.conf /etc/powerdns/recursor.d/api.conf
+
+# Work with pdns user - not root
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
+RUN chown pdns:pdns /var/run/pdns-recursor
+USER pdns
+
+# DNS ports
+EXPOSE 53/udp
+EXPOSE 53/tcp
+
+# webserver port
+EXPOSE 8082/tcp
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_recursor-startup"]
