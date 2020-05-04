@@ -234,19 +234,26 @@ std::unique_ptr<SSqlStatement> SSQLite3::prepare(const string& query, int nparam
 
 void SSQLite3::execute(const string& query) {
   char *errmsg;
-  int rc;
-  if (sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg) == SQLITE_BUSY) {
+  std::string errstr1;
+  int rc = sqlite3_exec(m_pDB, query.c_str(), nullptr, nullptr, &errmsg);
+  if (rc != SQLITE_OK) {
+    errstr1 = errmsg;
+    sqlite3_free(errmsg);
+  }
+  if (rc == SQLITE_BUSY) {
     if (m_in_transaction) {
-      std::string errstr(errmsg);
-      sqlite3_free(errmsg);
-      throw("Failed to execute query: " + errstr);
+      throw SSqlException("Failed to execute query: " + errstr1);
     } else {
-      if ((rc = sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg) != SQLITE_OK) && rc != SQLITE_DONE && rc != SQLITE_ROW) {
-        std::string errstr(errmsg);
+      rc = sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg);
+      std::string errstr2;
+      if (rc != SQLITE_OK)  {
+        errstr2 = errmsg;
         sqlite3_free(errmsg);
-        throw("Failed to execute query: " + errstr);
+        throw SSqlException("Failed to execute query: " + errstr2);
       }
     }
+  } else if (rc != SQLITE_OK) {
+    throw SSqlException("Failed to execute query: " + errstr1);
   }
 }
 
