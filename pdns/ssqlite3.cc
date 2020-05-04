@@ -235,26 +235,26 @@ std::unique_ptr<SSqlStatement> SSQLite3::prepare(const string& query, int nparam
 void SSQLite3::execute(const string& query) {
   char *errmsg;
   std::string errstr1;
-  int rc = sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg);
-  if (rc != 0) {
+  int rc = sqlite3_exec(m_pDB, query.c_str(), nullptr, nullptr, &errmsg);
+  if (rc != SQLITE_OK) {
     errstr1 = errmsg;
     sqlite3_free(errmsg);
   }
   if (rc == SQLITE_BUSY) {
     if (m_in_transaction) {
-      throw("Failed to execute query: " + errstr1);
+      throw SSqlException("Failed to execute query: " + errstr1);
     } else {
       rc = sqlite3_exec(m_pDB, query.c_str(), NULL, NULL, &errmsg);
       std::string errstr2;
-      if (rc != 0)  {
+      if (rc != SQLITE_OK)  {
         errstr2 = errmsg;
         sqlite3_free(errmsg);
       }
       if (rc != SQLITE_OK && rc != SQLITE_DONE && rc != SQLITE_ROW) {
-        throw("Failed to execute query: " + errstr2);
+        throw SSqlException("Failed to execute query: " + errstr2);
       }
     }
-  } else if (rc != 0) {
+  } else if (rc != SQLITE_OK) {
     throw("Failed to execute query: " + errstr1);
   }
 }
