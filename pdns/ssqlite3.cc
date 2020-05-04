@@ -249,13 +249,11 @@ void SSQLite3::execute(const string& query) {
       if (rc != SQLITE_OK)  {
         errstr2 = errmsg;
         sqlite3_free(errmsg);
-      }
-      if (rc != SQLITE_OK && rc != SQLITE_DONE && rc != SQLITE_ROW) {
         throw SSqlException("Failed to execute query: " + errstr2);
       }
     }
   } else if (rc != SQLITE_OK) {
-    throw("Failed to execute query: " + errstr1);
+    throw SSqlException("Failed to execute query: " + errstr1);
   }
 }
 
