@@ -45,7 +45,6 @@ class LdapGssapiAuthenticator : public LdapAuthenticator
     std::string d_logPrefix;
     std::string d_keytabFile;
     std::string d_cCacheFile;
-    int d_timeout;
     std::string d_lastError;
 
     krb5_context d_context;

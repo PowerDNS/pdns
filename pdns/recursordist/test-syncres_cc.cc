@@ -279,7 +279,7 @@ bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const 
   const uint16_t type = records[recordsCount - 1].d_type;
 
   sortedRecords_t recordcontents;
-  for (const auto record : records) {
+  for (const auto& record : records) {
     if (record.d_name == name && record.d_type == type) {
       recordcontents.insert(record.d_content);
     }

@@ -82,7 +82,7 @@ static int ldapGssapiAuthenticatorSaslInteractCallback( LDAP *conn, unsigned fla
 }
 
 LdapGssapiAuthenticator::LdapGssapiAuthenticator( const std::string& kt, const std::string &ccache, int tmout )
-  : d_logPrefix( "[LDAP GSSAPI] " ), d_keytabFile( kt ), d_cCacheFile( ccache ), d_timeout( tmout )
+  : d_logPrefix( "[LDAP GSSAPI] " ), d_keytabFile( kt ), d_cCacheFile( ccache )
 {
   krb5_error_code code;
 

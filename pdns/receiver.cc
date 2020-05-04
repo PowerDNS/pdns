@@ -494,7 +494,7 @@ int main(int argc, char **argv)
       }
       cerr<<" (";
       bool first = true;
-      for (auto const c : ::arg().getCommands()) {
+      for (const auto& c : ::arg().getCommands()) {
         if (!first) {
           cerr<<", ";
         }

@@ -782,7 +782,7 @@ static int listKeys(const string &zname, DNSSECKeeper& dk){
     vector<DomainInfo> domainInfo;
     B.getAllDomains(&domainInfo);
     bool printHeader = true;
-    for (auto const di : domainInfo) {
+    for (const auto& di : domainInfo) {
       listKey(di, dk, printHeader);
       printHeader = false;
     }
@@ -1595,7 +1595,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       cout<<endl;
 
       for(const auto& m : metamap) {
-        for(const auto i : m.second)
+        for(const auto& i : m.second)
           cout << '\t' << m.first<<'\t' << i <<endl;
       }
     }
@@ -2133,7 +2133,7 @@ try
     cout<<"DNSKEY algorithms supported by this installation of PowerDNS:"<<endl;
 
     auto algosWithBackend = DNSCryptoKeyEngine::listAllAlgosWithBackend();
-    for (auto const algoWithBackend : algosWithBackend){
+    for (const auto& algoWithBackend : algosWithBackend){
       string algoName = DNSSECKeeper::algorithm2name(algoWithBackend.first);
       cout<<std::to_string(algoWithBackend.first)<<" - "<<algoName;
       if (cmds.size() == 2 && cmds[1] == "with-backend")
@@ -3089,7 +3089,7 @@ try
     if (cmds.size() > 2) {
       keys.assign(cmds.begin() + 2, cmds.end());
       std::cout << "Metadata for '" << zone << "'" << endl;
-      for(const string kind :  keys) {
+      for(const auto& kind :  keys) {
         vector<string> meta;
         meta.clear();
         if (B.getDomainMetadata(zone, kind, meta)) {

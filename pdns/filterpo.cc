@@ -626,15 +626,15 @@ void DNSFilterEngine::Zone::dump(FILE* fp) const
     dumpNamedPolicy(fp, pair.first + DNSName("rpz-nsdname.") + d_domain, pair.second);
   }
 
-  for (const auto pair : d_qpolAddr) {
+  for (const auto& pair : d_qpolAddr) {
     dumpAddrPolicy(fp, pair.first, DNSName("rpz-client-ip.") + d_domain, pair.second);
   }
 
-  for (const auto pair : d_propolNSAddr) {
+  for (const auto& pair : d_propolNSAddr) {
     dumpAddrPolicy(fp, pair.first, DNSName("rpz-nsip.") + d_domain, pair.second);
   }
 
-  for (const auto pair : d_postpolAddr) {
+  for (const auto& pair : d_postpolAddr) {
     dumpAddrPolicy(fp, pair.first, DNSName("rpz-ip.") + d_domain, pair.second);
   }
 }

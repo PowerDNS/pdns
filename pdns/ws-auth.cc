@@ -2184,7 +2184,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   B.getAllDomains(&domains, true);
 
-  for(const DomainInfo di: domains)
+  for(const DomainInfo& di: domains)
   {
     if ((objectType == ObjectType::ALL || objectType == ObjectType::ZONE) && ents < maxEnts && sm.match(di.zone)) {
       doc.push_back(Json::object {
