@@ -30,7 +30,7 @@ IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const Ne
 {
   d_ws->setACL(acl);
   d_ws->setLogLevel(loglevel);
-  d_ws->registerWebHandler("/metrics", boost::bind(&IXFRDistWebServer::getMetrics, this, _1, _2));
+  d_ws->registerWebHandler("/metrics", std::bind(&IXFRDistWebServer::getMetrics, this, std::placeholders::_1, std::placeholders::_2));
   d_ws->bind();
 }
 
