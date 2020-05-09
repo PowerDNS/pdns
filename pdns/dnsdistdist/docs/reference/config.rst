@@ -1337,7 +1337,7 @@ Other functions
 
 .. function:: maintenance()
 
-  If this function exists, it is called every second to so regular tasks.
+  If this function exists, it is called every second to do regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
 
 .. function:: setAllowEmptyResponse()
