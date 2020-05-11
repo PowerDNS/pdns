@@ -2,6 +2,78 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.5.0-rc2
+  :released: 13th of May 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9031
+    :tickets: 9025
+
+    Fix compilation of the ports event multiplexer
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9042
+
+    Avoid copies in for loops
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9054
+
+    Build with -Wmissing-declarations -Wredundant-decls
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9016
+    :tickets: 9004
+
+    Use std::shuffle instead of std::random_shuffle
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9053
+
+    Get rid of a naked pointer in the /dev/poll event multiplexer
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9059
+
+    A few warnings fixed, reported by clang on OpenBSD
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 9068
+
+    Fix duplicated HTTP/1 counter in 'showDOHFrontends()'
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9057
+
+    Gracefully handle a failure to remove FD on (re)-connection
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9067
+
+    Wrap pthread objects
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 9084
+
+    Add the unit to the help for latency buckets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9078
+
+    NetmaskTree: do not test node for null, the loop guarantees node is not null.
+
+.. changelog::
   :version: 1.5.0-rc1
   :released: 16th of April 2020
 
