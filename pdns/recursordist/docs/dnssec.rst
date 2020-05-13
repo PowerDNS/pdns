@@ -92,7 +92,7 @@ The PowerDNS Recursor ships with the DNSSEC Root key built-in.
 Configuring DNSSEC key material must be done in the :ref:`setting-lua-config-file`, using :func:`addTA`.
 This function takes 2 arguments: the node in the DNS-tree and the data of the corresponding DS record.
 
-To e.g. add a trust anchor for the root and powerdns.com, use the following config in the Lua file:
+To e.g. add a trust anchor for the root and example.com, use the following config in the Lua file:
 
 .. code:: Lua
 
