@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2020051501 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2020051903 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -206,8 +206,9 @@ recursor-4.2.0-alpha1.security-status                   60 IN TXT "2 Unsupported
 recursor-4.2.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.2.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.2.0-rc2.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
-recursor-4.2.0.security-status                          60 IN TXT "1 OK"
-recursor-4.2.1.security-status                          60 IN TXT "1 OK"
+recursor-4.2.0.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-01.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-02.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-03.html"
+recursor-4.2.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-01.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-02.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-03.html"
+recursor-4.2.2.security-status                          60 IN TXT "1 OK"
 recursor-4.3.0-alpha1.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.3.0-alpha2.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.3.0-alpha3.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
@@ -215,7 +216,8 @@ recursor-4.3.0-beta1.security-status                    60 IN TXT "2 Unsupported
 recursor-4.3.0-beta2.security-status                    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.3.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.3.0-rc2.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
-recursor-4.3.0.security-status                          60 IN TXT "1 OK"
+recursor-4.3.0.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-01.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-02.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2020-03.html"
+recursor-4.3.1.security-status                          60 IN TXT "1 OK"
 recursor-4.4.0-alpha1.security-status                   60 IN TXT "1 OK"
 
 ; Recursor Debian

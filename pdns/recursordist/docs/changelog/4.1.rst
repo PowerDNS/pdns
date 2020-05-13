@@ -2,7 +2,36 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
-  :version: 4.1.15
+  :version: 4.1.16
+  :released: 19th of May 2020
+
+  .. change::
+     :tags: Bug Fixes
+     :pullreq:
+
+     Backport of security fixes for CVE-2020-10995, CVE-2020-12244 and
+     CVE-2020-10030, plus avoid a crash when loading an invalid RPZ.
+
+  .. change::
+     :tags: Internals
+     :pullreq: 8809
+
+     Update python dependencies for docs generation.
+
+  .. change::
+     :tags: Improvements
+     :pullreq:  8868
+
+     Only log qname parsing errors when 'log-common-errors' is set.
+
+  .. change::
+     :tags: Internals
+     :pullreq: 8753
+
+     Update boost.m4.
+
+.. changelog::
+   :version: 4.1.15
   :released: 6th of December 2019
 
   .. change::

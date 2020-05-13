@@ -2,6 +2,72 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.2
+  :released: 19th of May 2020
+
+  .. change::
+     :tags: Bug Fixes
+     :pullreq:
+
+     Backport of security fixes for CVE-2020-10995, CVE-2020-12244 and
+     CVE-2020-10030, plus avoid a crash when loading an invalid RPZ.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9081
+
+    Add ubuntu focal target.
+
+  .. change::
+    :tags: Internals
+    :pullreq: 8988
+
+    Update gen-version to use latest tag for version number.
+
+  .. change::
+    :tags:  
+    :pullreq: 8964, 8752
+    :tickets: 8875
+
+    Update boost.m4.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8869
+
+    Only log qname parsing errors when 'log-common-errors' is set.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8832
+
+    Refuse NSEC records with a bitmap length > 32.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8802
+
+    Avoid startup race by setting the state of a tread before starting it.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8696
+
+    Better detection of Bogus zone cuts for DNSSEC validation.
+
+  .. change::
+    :tags: Bug Fixes.
+    :pullreq: 8674
+
+    Debian postinst / do not fail on user creation if it already exists.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8686
+
+    Fix parsing `dont-throttle-names` and `dont-throttle-netmasks` as comma separated lists.
+
+.. changelog::
   :version: 4.2.1
   :released: 9th of December 2019
 
