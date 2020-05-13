@@ -40,7 +40,7 @@ void processSecPoll(const int res, const std::vector<DNSRecord> &ret, int &secPo
   secPollMessage.clear();
   if (res != 0) { // not NOERROR
     setSecPollToUnknownOnOK(secPollStatus);
-    throw PDNSException("RCODE was not NOERROR but " + RCode::to_s(res));
+    throw PDNSException("RCODE was " + RCode::to_s(res));
   }
 
   if (ret.empty()) { // empty NOERROR... wat?

@@ -20,7 +20,7 @@ static bool checkBasicMessage1(const PDNSException& ex)
 
 static bool checkBasicMessage2(const PDNSException& ex)
 {
-  BOOST_CHECK_EQUAL(ex.reason, "RCODE was not NOERROR but " + RCode::to_s(1));
+  BOOST_CHECK_EQUAL(ex.reason, "RCODE was " + RCode::to_s(1));
   return true;
 }
 
