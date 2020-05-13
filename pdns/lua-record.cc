@@ -606,21 +606,47 @@ static void setupLuaRecords()
       return std::string("error");
     });
   lua.writeFunction("createForward", []() {
+      static string allZerosIP("0.0.0.0");
       DNSName rel=s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone);
+      // parts is something like ["1", "2", "3", "4", "static"] or
+      // ["1", "2", "3", "4"] or ["ip40414243", "ip-addresses", ...]
       auto parts = rel.getRawLabels();
-      if(parts.size()==4)
-        return parts[0]+"."+parts[1]+"."+parts[2]+"."+parts[3];
-      if(parts.size()==1) {
+      // Yes, this still breaks if an 1-2-3-4.XXXX is nested too deeply...
+      if(parts.size()>=4) {
+        try {
+          ComboAddress ca(parts[0]+"."+parts[1]+"."+parts[2]+"."+parts[3]);
+          return ca.toString();
+        } catch (const PDNSException &e) {
+          return allZerosIP;
+        }
+      } else if (parts.size() >= 1) {
         // either hex string, or 12-13-14-15
-        //        cout<<parts[0]<<endl;
+        vector<string> ip_parts;
+        stringtok(ip_parts, parts[0], "-");
         unsigned int x1, x2, x3, x4;
-        if(sscanf(parts[0].c_str()+2, "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
+        if (ip_parts.size() >= 4) {
+          // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
+          string ret;
+          for (size_t n=4; n > 0; n--) {
+            auto octet = ip_parts[ip_parts.size() - n];
+            try {
+              auto octetVal = std::stol(octet);
+              if (octetVal >= 0 && octetVal <= 255) {
+                ret += ip_parts.at(ip_parts.size() - n) + ".";
+              } else {
+                return allZerosIP;
+              }
+            } catch (const std::exception &e) {
+              return allZerosIP;
+            }
+          }
+          ret.resize(ret.size() - 1); // remove trailing dot after last octet
+          return ret;
+        } else if(parts[0].length() == 10 && sscanf(parts[0].c_str()+2, "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
           return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
         }
-
-
       }
-      return std::string("0.0.0.0");
+      return allZerosIP;
     });
 
   lua.writeFunction("createForward6", []() {
