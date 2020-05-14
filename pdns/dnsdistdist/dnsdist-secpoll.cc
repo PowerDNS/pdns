@@ -234,7 +234,7 @@ void doSecPoll(const std::string& suffix)
   }
 
   if (releaseVersion) {
-    warnlog("Could not retrieve security status update for '%s' on %s", pkgv, queriedName);
+    warnlog("Failed to retrieve security status update for '%s' on %s", pkgv, queriedName);
   }
   else if (!g_secPollDone) {
     infolog("Not validating response for security status update, this is a non-release version.");

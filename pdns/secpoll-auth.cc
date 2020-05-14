@@ -63,7 +63,7 @@ void doSecPoll(bool first)
     processSecPoll(res, ret, security_status, security_message);
   } catch(const PDNSException &pe) {
     S.set("security-status", security_status);
-    g_log<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+ query + "': "<<pe.reason<<endl;
+    g_log<<Logger::Warning<<"Failed to retrieve security status update for '" + pkgv + "' on '"+ query + "': "<<pe.reason<<endl;
     return;
   }
 

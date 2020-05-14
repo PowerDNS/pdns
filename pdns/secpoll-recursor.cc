@@ -56,7 +56,7 @@ void doSecPoll(time_t* last_secpoll)
   }
 
   if(state == Bogus) {
-    g_log<<Logger::Error<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', DNSSEC validation result was Bogus!"<<endl;
+    g_log<<Logger::Error<<"Failed to retrieve security status update for '" +pkgv+ "' on '"<<query<<"', DNSSEC validation result was Bogus!"<<endl;
     if(g_security_status == 1) // If we were OK, go to unknown
       g_security_status = 0;
     return;
@@ -74,7 +74,7 @@ void doSecPoll(time_t* last_secpoll)
     processSecPoll(res, ret, security_status, security_message);
   } catch(const PDNSException &pe) {
     g_security_status = security_status;
-    g_log<<Logger::Warning<<"Could not retrieve security status update for '" << pkgv << "' on '"<< query << "': "<<pe.reason<<endl;
+    g_log<<Logger::Warning<<"Failed to retrieve security status update for '" << pkgv << "' on '"<< query << "': "<<pe.reason<<endl;
     return;
   }
 
