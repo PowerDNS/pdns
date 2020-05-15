@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2020051301 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2020051501 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -34,8 +34,8 @@ auth-4.0.4.security-status                              60 IN TXT "3 Upgrade now
 auth-4.0.5.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2018-03.html"
 auth-4.0.6.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2019-03.html"
 auth-4.0.7.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2018-03.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2018-05.html"
-auth-4.0.8.security-status                              60 IN TXT "1 OK"
-auth-4.0.9.security-status                              60 IN TXT "1 OK"
+auth-4.0.8.security-status                              60 IN TXT "2 Unsupported release (EOL)"
+auth-4.0.9.security-status                              60 IN TXT "2 Unsupported release (EOL)"
 auth-4.1.0-rc1.security-status                          60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 auth-4.1.0-rc2.security-status                          60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 auth-4.1.0-rc3.security-status                          60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
@@ -92,7 +92,7 @@ auth-3.4.1-4_deb8u4.debian.security-status              60 IN TXT "3 Upgrade now
 auth-3.4.1-4_deb8u5.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-4_deb8u6.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-4_deb8u7.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2017-04.html"
-auth-3.4.1-4_deb8u8.debian.security-status              60 IN TXT "1 OK"
+auth-3.4.1-4_deb8u8.debian.security-status              60 IN TXT "2 Unsupported release (EOL)"
 
 auth-3.4.4-2_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.5-1_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
@@ -122,7 +122,7 @@ auth-4.0.1-6.debian.security-status                     60 IN TXT "3 Upgrade now
 auth-4.0.1-7.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-02.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-03.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-04.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-05.html"
 auth-4.0.2-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2017-04.html"
 auth-4.0.3-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2017-04.html"
-auth-4.0.3-1_deb9u2.debian.security-status              60 IN TXT "1 OK"
+auth-4.0.3-1_deb9u2.debian.security-status              60 IN TXT "2 Unsupported release (EOL)"
 ; From here on security polling has been disabled for this distribution.
 
 ; Auth Ubuntu
