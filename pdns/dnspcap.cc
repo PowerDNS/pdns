@@ -45,6 +45,9 @@ PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
   if( d_pfh.linktype==1) {
     d_skipMediaHeader=sizeof(struct ether_header);
   }
+  else if( d_pfh.linktype==12) { // LOOP
+    d_skipMediaHeader=4;
+  }
   else if(d_pfh.linktype==101) {
     d_skipMediaHeader=0;
   }
@@ -113,6 +116,16 @@ try
       }
       d_ether=reinterpret_cast<struct ether_header*>(d_buffer);
       contentCode=ntohs(d_ether->ether_type);
+    }
+    else if(d_pfh.linktype == 12) { // LOOP
+      if (d_pheader.caplen < (d_skipMediaHeader + sizeof(*d_ip))) {
+        d_runts++;
+        continue;
+      }
+      if(d_ip->ip_v == 4)
+	contentCode = 0x0800;
+      else
+	contentCode = 0x86dd;
     }
     else if(d_pfh.linktype==101) {
       if (d_pheader.caplen < (d_skipMediaHeader + sizeof(*d_ip))) {
