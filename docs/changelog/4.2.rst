@@ -13,7 +13,7 @@ Changelogs for 4.2.x
     fix records ending up in wrong packet section (Kees Monshouwer)
 
   .. change::
-    :tags: Improvents
+    :tags: Improvements
     :pullreq: 9003, 8736
 
     cache: strictly enforce maximum size, and improve cleanup routine
