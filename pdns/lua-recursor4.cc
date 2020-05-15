@@ -487,9 +487,9 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
       deviceName = *deviceNameret;
     }
 
-    const auto routingTagret = std::get<6>(ret);
-    if (routingTagret) {
-      routingTag = *routingTagret;
+    const auto routingTarget = std::get<6>(ret);
+    if (routingTarget) {
+      routingTag = *routingTarget;
     }
 
     return std::get<0>(ret);

@@ -454,7 +454,7 @@ Changelog
     :tags: Improvements
     :pullreq: 8440
 
-    Fix -WShadow warnings (Aki Tuomi)
+    Fix -Wshadow warnings (Aki Tuomi)
 
   .. change::
     :tags: Improvements

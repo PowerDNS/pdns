@@ -132,7 +132,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected1)
 
-        # Now check a cache hit withg the same routingTag (but no ECS)
+        # Now check a cache hit with the same routingTag (but no ECS)
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.checkECSQueryHit(query, expected1)
 
@@ -142,7 +142,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
 
-        # And see if a *no* tag does *not* hit the firts one
+        # And see if a *no* tag does *not* hit the first one
         expected3 = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '192.0.3.0/24')
         self.setRoutingTag(None)
         ecso = clientsubnetoption.ClientSubnetOption('192.0.3.1', 32)
@@ -214,7 +214,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected1)
 
-        # Now check a cache hit withg the same routingTag (but no ECS)
+        # Now check a cache hit with the same routingTag (but no ECS)
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.checkECSQueryHit(query, expected1)
 
@@ -224,7 +224,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
 
-        # And see if a *no* tag does *not* hit the firts one
+        # And see if a *no* tag does *not* hit the first one
         expected3 = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '192.0.3.0/24')
         self.setRoutingTag(None)
         ecso = clientsubnetoption.ClientSubnetOption('192.0.3.1', 32)

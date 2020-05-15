@@ -3,3 +3,4 @@ addNSECRecordToLW.*DNSName.*powerdnt.com.*QType::NS.*res->d_records
 data:[a-zA-Z=;,/0-9+]+
 BOOST_CHECK_EQUAL\(b64, "[a-zA-Z=;,/0-9+]+"
 \b([A-Za-z])\1{3,}\b
+C(?:XX|)FLAGS="[^"]*"

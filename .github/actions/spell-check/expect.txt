@@ -374,6 +374,7 @@ BASICRESP
 Bastiaan
 batchmode
 bayour
+baz
 bba
 bbb
 bbc
@@ -593,6 +594,7 @@ cachedifferentedns
 cachedir
 cachedoesntdecreasettl
 cachedqname
+cachedrtag
 cacheecsttl
 cacheentries
 cacheexpiration
@@ -685,7 +687,6 @@ Cerb
 cerr
 cerrno
 CERTID
-certs
 CERTSTATUS
 certusage
 Cexternal
@@ -1082,6 +1083,7 @@ decafsigners
 decerement
 declarearguments
 declarestats
+decls
 decltype
 deconfigure
 deconfigured's
@@ -2879,7 +2881,6 @@ latomic
 latsec
 lauch
 Launcheable
-launchhelper
 Laurient
 Laursen
 lauxlib
@@ -3049,7 +3050,7 @@ lld
 LLL
 lltemp
 llu
-LLVM
+llvm
 lmdb
 lmdbbackend
 LMDBKV
@@ -3501,6 +3502,7 @@ mysqladmin
 mysqlbackend
 mysqld
 mysqldiff
+mytag
 mytics
 mytsigkey
 myuser
@@ -4018,7 +4020,7 @@ opname
 opos
 optarg
 optcode
-opteron
+Opteron
 OPTIn
 optind
 OPTIONSTOK
@@ -4064,6 +4066,7 @@ otherpool
 otherprovider
 otherrcode
 othersize
+othertag
 Otkjt
 otype
 ou
@@ -4694,6 +4697,7 @@ RECCONTROL
 reccount
 receiveerrors
 recloc
+reconnections
 recordbuffer
 recordcomment
 recordcontent
@@ -4925,6 +4929,7 @@ rotxn
 roundrobin
 roundtrip
 roundtripped
+routingtag
 rowid
 roystgnr
 rp
@@ -4987,6 +4992,7 @@ rsakey
 rsamd
 rsasha
 rsautl
+rset
 RShr
 RSIG
 Rsjs
@@ -4995,6 +5001,7 @@ RSP
 rst
 rstrip
 rsync
+rtag
 rtf
 rthreads
 RTLD
@@ -5440,6 +5447,7 @@ SQLLEN
 SQLPOINTER
 SQLRETURN
 SQLSMALLINT
+sqlstate
 sqlstr
 SQLTCHAR
 SQLULEN
@@ -6488,6 +6496,7 @@ Wll
 wlocks
 wlon
 wmc
+Wmissing
 Wmpt
 Wmpx
 WNfpw
@@ -6510,6 +6519,8 @@ Wpv
 WQ
 wrand
 wrandom
+Wrange
+Wredundant
 wret
 Wri
 writeability
@@ -6520,7 +6531,7 @@ writev
 wrlock
 WRONLY
 Wsg
-wshadow
+Wshadow
 wshash
 WSIZE
 Wsqvx

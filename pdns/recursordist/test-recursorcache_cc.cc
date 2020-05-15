@@ -1087,7 +1087,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
-    // if no tag given and no-non-tagged entries matches nothing shoudl be returned
+    // if no tag given and no-non-tagged entries matches nothing should be returned
     BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
