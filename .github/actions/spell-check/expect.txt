@@ -6520,7 +6520,7 @@ writev
 wrlock
 WRONLY
 Wsg
-wshadow
+Wshadow
 wshash
 WSIZE
 Wsqvx
