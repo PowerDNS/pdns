@@ -1,6 +1,12 @@
 End of life statements
 ======================
 
+We aim to have a release every six months.
+The latest and previous release receive correctness, stability and security updates.
+The release before that gets critical security updates only.
+Older releases are marked end of life and receive no updates at all.
+Pre-releases do not receive immediate security updates.
+
 The currently supported release train of PowerDNS Authoritative Server is 4.3.
 
 PowerDNS Authoritative Server 4.2 will only receive correctness, stability and security updates and will be receiving security updates only after PowerDNS Authoritative Server 4.4 is released.
@@ -14,6 +20,30 @@ receive any updates, not even security fixes.
 Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
 can receive extended support for releases which are End Of Life. If you are
 such a user, these EOL statements do not apply to you.
+
+.. list-table:: PowerDNS Authoritative Server Release Life Cycle
+   :header-rows: 1
+
+   * - Version
+     - Release date
+     - Security-Only updates
+     - End of Life
+   * - 4.3
+     - April 7 2020
+     - ~ April 2021
+     - ~ October 2021
+   * - 4.2
+     - August 30 2019
+     - ~ October 2020
+     - ~ April 2021
+   * - 4.1
+     - November 30 2017
+     - April 7 2020
+     - ~ October 2020
+   * - 4.0 and older
+     - EOL
+     - EOL
+     - EOL
 
 PowerDNS Authoritative Server 3.x
 ---------------------------------
