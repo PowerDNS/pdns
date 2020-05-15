@@ -43,7 +43,7 @@ void pdns::shuffle(std::vector<DNSZoneRecord>& rrs)
       break;
     }
   }
-  // And then for one past the last ANSWER recordd
+  // And then for one past the last ANSWER record
   for (second = first; second != rrs.end(); ++second)
     if (second->dr.d_place != DNSResourceRecord::ANSWER)
       break;
