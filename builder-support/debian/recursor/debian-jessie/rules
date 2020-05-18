@@ -43,7 +43,7 @@ override_dh_auto_install:
 	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/lua-config debian/lua-config/rootkeys.lua
 	install -m 644 -t debian/pdns-recursor/etc/powerdns debian/recursor.lua
 	rm -f debian/tmp/etc/powerdns/recursor.conf-dist
-	./pdns_recursor --no-config --config | sed \
+	./pdns_recursor --no-config --config=default | sed \
 		-e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
 		-e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/recursor.d!' \
 		-e 's!# local-address=.*!local-address=127.0.0.1!' \
@@ -52,6 +52,7 @@ override_dh_auto_install:
 		-e 's!# setgid=.*!setgid=pdns!' \
 		-e 's!# setuid=.*!setuid=pdns!' \
 		-e 's!# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
+		-e '/^# version-string=.*/d' \
 		> debian/tmp/etc/powerdns/recursor.conf
 
 override_dh_strip:

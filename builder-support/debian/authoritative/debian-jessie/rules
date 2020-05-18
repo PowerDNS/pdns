@@ -52,7 +52,7 @@ override_dh_installinit:
 
 override_dh_install:
 	dh_install
-	./pdns/pdns_server --no-config --config | sed \
+	./pdns/pdns_server --no-config --config=default | sed \
 	  -e 's!# module-dir=.*!!' \
 	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
 	  -e 's!# launch=.*!&\nlaunch=!' \
