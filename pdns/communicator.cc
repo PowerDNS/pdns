@@ -33,7 +33,6 @@
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "packethandler.hh"
-#include "resolver.hh"
 #include "logger.hh"
 #include "dns.hh"
 #include "arguments.hh"

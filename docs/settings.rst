@@ -1270,21 +1270,33 @@ Seconds to store queries with an answer in the Query Cache. See :ref:`query-cach
 
 ``query-local-address``
 -----------------------
+.. versionchanged:: 4.4.0
+  Accepts both IPv4 and IPv6 addresses. Also accept more than one address per
+  address family.
 
--  IPv4 Address
--  Default: 0.0.0.0
+-  IP addresses, separated by spaces or commas
+-  Default: 0.0.0.0 ::
 
-The IP address to use as a source address for sending queries. Useful if
+The IP addresses to use as a source address for sending queries. Useful if
 you have multiple IPs and PowerDNS is not bound to the IP address your
 operating system uses by default for outgoing packets.
+
+PowerDNS will pick the correct address family based on the remote's address (v4
+for outgoing v4, v6 for outgoing v6). However, addresses are selected at random
+without taking into account ip subnet reachability. It is highly recommended to
+use the defaults in that case (the kernel will pick the right source address for
+the network).
 
 .. _setting-query-local-address6:
 
 ``query-local-address6``
 ------------------------
+.. deprecated:: 4.4.0
+  Use :ref:`setting-query-local-address`. The default has been changed
+  from '::' to unset.
 
 -  IPv6 Address
--  Default: '::'
+-  Default: unset
 
 Source IP address for sending IPv6 queries.
 

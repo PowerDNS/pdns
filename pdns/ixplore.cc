@@ -34,7 +34,7 @@
 #include "dns_random.hh"
 #include "gss_context.hh"
 #include <boost/multi_index_container.hpp>
-#include "resolver.hh"
+#include "axfr-retriever.hh"
 #include <fstream>
 #include "ixfr.hh"
 #include "ixfrutils.hh"

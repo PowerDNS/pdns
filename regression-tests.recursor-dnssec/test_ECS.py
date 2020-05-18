@@ -350,7 +350,7 @@ ecs-ipv6-bits=128
 ecs-ipv4-cache-bits=32
 ecs-ipv6-cache-bits=128
 forward-zones=ecs-echo.example=%s.21
-query-local-address6=::1
+query-local-address=::1
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -367,8 +367,7 @@ query-local-address6=::1
         self.sendECSQuery(query, expected, ttlECS)
 
     def testRequireNoECS(self):
-        # we should get ::1/128 because neither ecs-scope-zero-addr nor query-local-address are set,
-        # but query-local-address6 is set to ::1
+        # we should get ::1/128 because ecs-scope-zero-addr is unset and query-local-address is set to ::1
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', "::1/128")
 
         ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)

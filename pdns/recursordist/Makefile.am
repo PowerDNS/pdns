@@ -148,6 +148,7 @@ pdns_recursor_SOURCES = \
 	pubsuffix.hh pubsuffix.cc \
 	pubsuffixloader.cc \
 	qtype.hh qtype.cc \
+	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
@@ -160,6 +161,7 @@ pdns_recursor_SOURCES = \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
 	resolver.hh resolver.cc \
+	axfr-retriever.hh axfr-retriever.cc \
 	resolve-context.hh \
 	responsestats.hh responsestats.cc \
 	root-addresses.hh \
@@ -253,6 +255,7 @@ testrunner_SOURCES = \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
+	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
 	rec-protobuf.cc rec-protobuf.hh \
 	recpacketcache.cc recpacketcache.hh \
@@ -260,6 +263,7 @@ testrunner_SOURCES = \
 	responsestats.cc \
 	rpzloader.cc rpzloader.hh \
 	resolver.hh resolver.cc \
+	axfr-retriever.hh axfr-retriever.cc \
 	root-dnssec.hh \
 	secpoll.cc \
 	sillyrecords.cc \

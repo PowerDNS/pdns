@@ -47,6 +47,7 @@
 #include <boost/algorithm/string.hpp>
 #include "validate-recursor.hh"
 #include "ednssubnet.hh"
+#include "query-local-address.hh"
 
 #ifdef HAVE_PROTOBUF
 
@@ -55,6 +56,8 @@
 #ifdef HAVE_FSTRM
 #include "rec-dnstap.hh"
 #include "fstrm_logger.hh"
+
+
 bool g_syslog;
 
 static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
@@ -315,7 +318,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       Socket s(ip.sin4.sin_family, SOCK_STREAM);
 
       s.setNonBlocking();
-      ComboAddress local = getQueryLocalAddress(ip.sin4.sin_family, 0);
+      ComboAddress local = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
 
       s.bind(local);
         

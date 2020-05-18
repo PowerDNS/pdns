@@ -16,6 +16,7 @@
 #include "dns_random.hh"
 #include "backends/gsql/ssql.hh"
 #include "communicator.hh"
+#include "query-local-address.hh"
 
 extern StatBag S;
 extern CommunicatorClass Communicator;
@@ -597,14 +598,10 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
   for(const auto& remote : di.masters) {
     g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<remote<<endl;
 
-    ComboAddress local;
-    if (remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
-      local = ComboAddress(::arg()["query-local-address"]);
-    } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
-      local = ComboAddress(::arg()["query-local-address6"]);
-    } else {
+    if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
       continue;
     }
+    auto local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
     int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
     if(sock < 0) {
       g_log<<Logger::Error<<msgPrefix<<"Error creating socket: "<<stringerror()<<endl;

@@ -19,7 +19,7 @@ shards=$5
 
 if [ $IPv6 = 1 ]
 then
-	QLA6="::"
+	QLA6=" ::"
 else
 	QLA6=""
 fi
@@ -31,7 +31,7 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>system CPU seconds</name><value>%S</value></measurement>
 <measurement><name>wallclock seconds</name><value>%e</value></measurement>
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
-'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address6="${QLA6}" --threads=$threads --cache-shards=$shards --disable-packetcache > recursor.log 2>&1 &
+'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address="0.0.0.0${QLA6}" --threads=$threads --cache-shards=$shards --disable-packetcache > recursor.log 2>&1 &
 sleep 3
 
 # warm up the cache
