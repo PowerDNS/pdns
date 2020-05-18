@@ -549,6 +549,7 @@ endif
 pdns-recursor@.service: pdns-recursor.service
 	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --config-name=%i!' \
 	  -e 's!Recursor!& %i!' \
+	  -e 's!RuntimeDirectory=.*!&-%i!' \
 	  < $< > $@
 
 systemdsystemunitdir = $(SYSTEMD_DIR)
