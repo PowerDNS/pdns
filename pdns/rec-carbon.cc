@@ -9,6 +9,13 @@
 #include "arguments.hh"
 #include "lock.hh"
 
+#ifndef HOST_NAME_MAX
+#ifdef _SC_HOST_NAME_MAX
+#define HOST_NAME_MAX sysconf(_SC_HOST_NAME_MAX)
+#else
+#define HOST_NAME_MAX 1024
+#endif
+#endif
 
 void doCarbonDump(void*)
 try
@@ -17,10 +24,6 @@ try
   string instance_name;
   string namespace_name;
   vector<string> carbonServers;
-
-  long hostmax = sysconf(_SC_HOST_NAME_MAX);
-  if (hostmax < 0)
-    hostmax = _POSIX_HOST_NAME_MAX;
 
   {
     std::lock_guard<std::mutex> l(g_carbon_config_lock);
@@ -37,7 +40,7 @@ try
     namespace_name="pdns";
   }
   if(hostname.empty()) {
-    char tmp[hostmax+1];
+    char tmp[HOST_NAME_MAX+1];
     memset(tmp, 0, sizeof(tmp));
     if (gethostname(tmp, sizeof(tmp)) != 0) {
       throw std::runtime_error("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: " + stringerror());
