@@ -937,6 +937,26 @@ This is used to limit endlessly chasing CNAME redirections.
 If qname-minimization is enabled, the number will be forced to be 100
 at a minimum to allow for the extra queries qname-minimization generates when the cache is empty.
 
+.. _setting-max-ns-address-qperq:
+
+``max-ns-address-qperq``
+------------------------
+.. versionadded:: 4.1.16
+.. versionadded:: 4.2.2
+.. versionadded:: 4.3.1
+
+-  Integer
+-  Default: 10
+
+The maximum number of outgoing queries with empty replies for
+resolving nameserver names to addresses we allow during the resolution
+of a single client query. If IPv6 is enabled, an A and a AAAA query
+for a name counts as 1. If a zone publishes more than this number of
+NS records, the limit is further reduced for that zone by lowering
+it by the number of NS records found above the
+`max-ns-address-qperq`_ value. The limit wil not be reduced to a
+number lower than 5.
+
 .. _setting-max-negative-ttl:
 
 ``max-negative-ttl``
