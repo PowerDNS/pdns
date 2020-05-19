@@ -18,6 +18,10 @@ try
   string namespace_name;
   vector<string> carbonServers;
 
+  long hostmax = sysconf(_SC_HOST_NAME_MAX);
+  if (hostmax < 0)
+    hostmax = _POSIX_HOST_NAME_MAX;
+
   {
     std::lock_guard<std::mutex> l(g_carbon_config_lock);
     stringtok(carbonServers, arg()["carbon-server"], ", ");
@@ -33,7 +37,7 @@ try
     namespace_name="pdns";
   }
   if(hostname.empty()) {
-    char tmp[HOST_NAME_MAX+1];
+    char tmp[hostmax+1];
     memset(tmp, 0, sizeof(tmp));
     if (gethostname(tmp, sizeof(tmp)) != 0) {
       throw std::runtime_error("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: " + stringerror());
