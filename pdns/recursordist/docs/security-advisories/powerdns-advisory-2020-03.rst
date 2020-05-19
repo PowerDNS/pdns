@@ -33,6 +33,6 @@ Please note that at the time of writing, PowerDNS Authoritative 4.0 and
 below are no longer supported, as described in
 https://doc.powerdns.com/authoritative/appendices/EOL.html.
 
-We would like to thank Valеntei Sergey for finding and subsequently
+We would like to thank Valentei Sergey for finding and subsequently
 reporting this issue!
 
