@@ -1,5 +1,5 @@
-PowerDNS Security Advisory 2020-002: Insufficient validation of DNSSEC signatures
-=================================================================================
+PowerDNS Security Advisory 2020-02: Insufficient validation of DNSSEC signatures
+================================================================================
 
 -  CVE: CVE-2020-12244
 -  Date: May 19th 2020
