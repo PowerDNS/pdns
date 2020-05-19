@@ -1260,7 +1260,7 @@ BOOST_AUTO_TEST_CASE(test_completely_flawed_big_nsset)
     if (isRootServer(ip) && domain == target) {
       setLWResult(res, 0, false, false, true);
       // 20 NS records
-      for (int i = 0; i < 20; i++)  {
+      for (int i = 0; i < 20; i++) {
         string n = string("pdns-public-ns") + std::to_string(i) + string(".powerdns.com.");
         addRecordToLW(res, domain, QType::NS, n, DNSResourceRecord::AUTHORITY, 172800);
       }
@@ -1278,10 +1278,11 @@ BOOST_AUTO_TEST_CASE(test_completely_flawed_big_nsset)
   try {
     sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
     BOOST_CHECK(0);
-  } catch (const ImmediateServFailException& ex) {
-      BOOST_CHECK_EQUAL(ret.size(), 0U);
-      // one query to get NSs, then A and AAAA for each NS, 5th NS hits the limit
-      // limit is reduced to 5, because zone publishes many (20) NS
+  }
+  catch (const ImmediateServFailException& ex) {
+    BOOST_CHECK_EQUAL(ret.size(), 0U);
+    // one query to get NSs, then A and AAAA for each NS, 5th NS hits the limit
+    // limit is reduced to 5, because zone publishes many (20) NS
     BOOST_CHECK_EQUAL(queriesCount, 11);
   }
 }
