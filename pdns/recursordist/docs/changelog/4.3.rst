@@ -1,5 +1,35 @@
 Changelogs for 4.3.x
 ====================
+.. changelog::
+  :version: 4.3.1
+  :released: 19th of May 2020
+
+  .. change::
+     :tags: Bug Fixes
+     :pullreq:
+
+     Backport of security fixes for CVE-2020-10995, CVE-2020-12244 and
+     CVE-2020-10030, plus avoid a crash when loading an invalid RPZ.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9082
+
+    Add ubuntu focal target.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9048
+    :tickets: 8778
+
+    RPZ dumpFile/seedFile: store/get SOA refresh on dump/load.
+
+  .. change::
+    :tags: Internals
+    :pullreq: 8963
+    :tickets: 8875
+
+    Update boost.m4.
 
 .. changelog::
   :version: 4.3.0
