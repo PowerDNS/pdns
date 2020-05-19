@@ -40,16 +40,16 @@ try
     namespace_name="pdns";
   }
   if(hostname.empty()) {
-    char tmp[HOST_NAME_MAX+1];
-    memset(tmp, 0, sizeof(tmp));
-    if (gethostname(tmp, sizeof(tmp)) != 0) {
+    char *tmp = (char*) calloc(HOST_NAME_MAX+1, sizeof(char));
+    if (gethostname(tmp, HOST_NAME_MAX+1) != 0) {
       throw std::runtime_error("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: " + stringerror());
     }
     char *p = strchr(tmp, '.');
     if(p) *p=0;
 
     hostname=tmp;
-    boost::replace_all(hostname, ".", "_");    
+    boost::replace_all(hostname, ".", "_");
+    free(tmp);
   }
   if(instance_name.empty()) {
     instance_name="recursor";
