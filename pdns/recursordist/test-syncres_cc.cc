@@ -113,6 +113,7 @@ void initSR(bool debug)
   t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
   SyncRes::s_maxqperq = 50;
+  SyncRes::s_maxnsaddressqperq = 10;
   SyncRes::s_maxtotusec = 1000 * 7000;
   SyncRes::s_maxdepth = 40;
   SyncRes::s_maxnegttl = 3600;
