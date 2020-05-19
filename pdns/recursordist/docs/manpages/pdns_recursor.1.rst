@@ -77,7 +77,7 @@ at `<https://doc.powerdns.com/>`
 --local-address=<address>
     Listen on *address*, separated by spaces or commas.
     Addresses specified can include port numbers; any which do not
-    incude port numbers will listen on *--local-port*.
+    include port numbers will listen on *--local-port*.
 --local-port=<port>
     Listen on *port*.
 --log-common-errors
