@@ -85,6 +85,7 @@ aerique
 afc
 afdf
 afe
+Afek
 Affero
 afilias
 Afio
@@ -526,6 +527,7 @@ Brainspark
 Braunoeder
 breadcrumb
 BREHMDq
+Bremler
 brendangregg
 Briley
 Broens
@@ -2600,7 +2602,6 @@ isspace
 istream
 istreambuf
 istringstream
-isv
 isxdigit
 iteritems
 itf
@@ -3035,6 +3036,7 @@ linktype
 lintian
 linux
 linuxnetworks
+Lior
 LISi
 listenaddress
 listerner
@@ -3266,6 +3268,7 @@ maxlistdepth
 maxmind
 maxminddb
 maxnegttl
+maxnsaddressqperq
 maxobjects
 maxqperq
 maxqps
@@ -3838,6 +3841,7 @@ nstld
 NSTTL
 nsupdate
 nta
+ntei
 ntk
 ntlworld
 ntohl
@@ -5155,6 +5159,7 @@ sepa
 seqinit
 seqnext
 Sequanux
+Sergey
 serialtweaker
 servercmd
 serverdiff
@@ -5220,6 +5225,7 @@ SEv
 SEZ
 sformat
 Sgs
+Shafir
 shantikulkarni
 SHBt
 SHELTEK
@@ -5503,6 +5509,7 @@ standalone
 Starovoitov
 startdir
 startpos
+startqueries
 startrecord
 startrecordpos
 startswith
@@ -6674,6 +6681,7 @@ yc
 yday
 YDyzc
 Yegst
+Yehuda
 YEQRBVK
 yetanother
 Yf
