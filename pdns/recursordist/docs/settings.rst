@@ -17,7 +17,7 @@ As an example:
 ``allow-from``
 --------------
 -  IP ranges, separated by commas
--  Default: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+-  Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10
 
 Netmasks (both IPv4 and IPv6) that are allowed to use the server.
 The default allows access only from :rfc:`1918` private IP addresses.
