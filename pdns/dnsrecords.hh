@@ -794,7 +794,7 @@ public:
 private:
   uint16_t d_family;
   uint8_t d_prefix;
-  unsigned int d_n : 1;
+  bool d_n : 1;
   unsigned int d_afdlength : 7;
   uint8_t d_ip4[4];
   unsigned char d_ip6[16];
