@@ -60,7 +60,7 @@ records.
 APL
 -----
 
-.. versionadded:: tbd
+.. versionadded:: 4.4.0
 
 The APL record,
 specified in :rfc:`3123`, is used
