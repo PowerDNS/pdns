@@ -1486,7 +1486,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
         res = RCode::NoError;
       } else {
-        LOG(prefix<<qname<<": Entire name '"<<qname<<" is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
       }
     }
   } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot() && !wasForwardedOrAuthZone) {
