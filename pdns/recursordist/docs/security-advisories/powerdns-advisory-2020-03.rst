@@ -12,7 +12,7 @@ PowerDNS Security Advisory 2020-03: Information disclosure
 -  Solution: Upgrade to a non-affected version
 -  Workaround: None
 
-An issue has been found in PowerDNS Authoritative Server allowing an
+An issue has been found in PowerDNS Recursor allowing an
 attacker with enough privileges to change the system's hostname to
 cause disclosure of uninitialized memory content via a stack-based
 out-of-bounds read.
@@ -27,11 +27,11 @@ arbitrary code execution.
 
 This issue has been assigned CVE-2020-10030.
 
-PowPowerDNS Recursor from 4.1.0 up to and including 4.3.0 is affected.
+PowerDNS Recursor from 4.1.0 up to and including 4.3.0 is affected.
 
-Please note that at the time of writing, PowerDNS Authoritative 4.0 and
+Please note that at the time of writing, PowerDNS Recursor 4.0 and
 below are no longer supported, as described in
-https://doc.powerdns.com/authoritative/appendices/EOL.html.
+https://doc.powerdns.com/recursor/appendices/EOL.html.
 
 We would like to thank Valentei Sergey for finding and subsequently
 reporting this issue!
