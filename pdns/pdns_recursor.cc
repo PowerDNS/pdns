@@ -1038,8 +1038,6 @@ static bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLoc
 #ifdef NOD_ENABLED
 static bool nodCheckNewDomain(const DNSName& dname)
 {
-  static const QType qt(QType::A);
-  static const uint16_t qc(QClass::IN);
   bool ret = false;
   // First check the (sub)domain isn't whitelisted for NOD purposes
   if (!g_nodDomainWL.check(dname)) {
@@ -1049,17 +1047,22 @@ static bool nodCheckNewDomain(const DNSName& dname)
         // This should probably log to a dedicated log file
         g_log<<Logger::Notice<<"Newly observed domain nod="<<dname.toLogString()<<endl;
       }
-      if (!(g_nodLookupDomain.isRoot())) {
-        // Send a DNS A query to <domain>.g_nodLookupDomain
-        DNSName qname = dname;
-        vector<DNSRecord> dummy;
-        qname += g_nodLookupDomain;
-        directResolve(qname, qt, qc, dummy);
-      }
       ret = true;
     }
   }
   return ret;
+}
+
+static void sendNODLookup(const DNSName& dname)
+{
+  if (!(g_nodLookupDomain.isRoot())) {
+    // Send a DNS A query to <domain>.g_nodLookupDomain
+    static const QType qt(QType::A);
+    static const uint16_t qc(QClass::IN);
+    DNSName qname = dname + g_nodLookupDomain;
+    vector<DNSRecord> dummy;
+    directResolve(qname, qt, qc, dummy);
+  }
 }
 
 static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const DNSRecord& record)
@@ -1719,8 +1722,9 @@ static void startDoResolve(void *p)
 #ifdef NOD_ENABLED
     bool nod = false;
     if (g_nodEnabled) {
-      if (nodCheckNewDomain(dc->d_mdp.d_qname))
+      if (nodCheckNewDomain(dc->d_mdp.d_qname)) {
         nod = true;
+      }
     }
 #endif /* NOD_ENABLED */
 #ifdef HAVE_PROTOBUF
@@ -1870,8 +1874,9 @@ static void startDoResolve(void *p)
         }
       }
     }
+
     float spent=makeFloat(sr.getNow()-dc->d_now);
-    if(!g_quiet) {
+    if (!g_quiet) {
       g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       g_log<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_totUsec/1000.0<<" netw ms, "<< spent*1000.0<<" tot ms, "<<
@@ -1882,7 +1887,6 @@ static void startDoResolve(void *p)
       }
 	
       g_log<<endl;
-
     }
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
@@ -1929,6 +1933,13 @@ static void startDoResolve(void *p)
       newLat=ourtime*1000; // usec
       g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
     }
+
+#ifdef NOD_ENABLED
+    if (nod) {
+      sendNODLookup(dc->d_mdp.d_qname);
+    }
+#endif /* NOD_ENABLED */
+
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
   }
   catch(PDNSException &ae) {
