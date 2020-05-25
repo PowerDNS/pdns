@@ -348,10 +348,9 @@ install_recursor() {
   run "cd .."
   run "wget http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip"
   run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
-  run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu trusty-auth-master main" | sudo tee /etc/apt/sources.list.d/pdns.list'
-  run 'echo -e "Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 9001" | sudo tee /etc/apt/preferences.d/pdns'
-  run 'curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo apt-key add - '
-  run 'sudo apt-get update'
+  run 'wget https://downloads.powerdns.com/tmp/pdns-4.2.0-rc2.255.master.g2bee14438-ubuntu-trusty.tar.bz2'
+  run 'tar xf pdns-4.2.0-rc2.255.master.g2bee14438-ubuntu-trusty.tar.bz2'
+  run 'sudo dpkg -i pdns-4.2.0-rc2.255.master.g2bee14438-ubuntu-trusty/pdns-server_4.2.0~rc2+master.255.g2bee14438-1pdns.trusty_amd64.deb pdns-4.2.0-rc2.255.master.g2bee14438-ubuntu-trusty/pdns-tools_4.2.0~rc2+master.255.g2bee14438-1pdns.trusty_amd64.deb pdns-4.2.0-rc2.255.master.g2bee14438-ubuntu-trusty/pdns-backend-bind_4.2.0~rc2+master.255.g2bee14438-1pdns.trusty_amd64.deb ; sudo apt-get -y install -f'
   run 'sudo apt-get -y install pdns-server pdns-tools'
   run "sudo service pdns stop"
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
