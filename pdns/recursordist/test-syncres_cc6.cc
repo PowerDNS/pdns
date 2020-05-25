@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, ".", QType::SOA, "a.root-servers.net. nstld.verisign-grs.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
       addRRSIG(keys, res->d_records, DNSName("."), 300);
-      addNSECRecordToLW(domain, DNSName("aaa."), { QType::DNSKEY, QType::SOA, QType::NS, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+      addNSECRecordToLW(domain, DNSName("aaa."), {QType::DNSKEY, QType::SOA, QType::NS, QType::NSEC, QType::RRSIG}, 600, res->d_records);
       addRRSIG(keys, res->d_records, DNSName("."), 300);
       return 1;
     }
