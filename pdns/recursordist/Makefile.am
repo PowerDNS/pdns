@@ -224,6 +224,7 @@ endif
 
 testrunner_SOURCES = \
 	arguments.cc \
+	axfr-retriever.hh axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
 	circular_buffer.hh \
@@ -263,7 +264,6 @@ testrunner_SOURCES = \
 	responsestats.cc \
 	rpzloader.cc rpzloader.hh \
 	resolver.hh resolver.cc \
-	axfr-retriever.hh axfr-retriever.cc \
 	root-dnssec.hh \
 	secpoll.cc \
 	sillyrecords.cc \

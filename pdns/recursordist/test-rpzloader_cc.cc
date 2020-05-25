@@ -11,12 +11,6 @@
 
 // Provide stubs for some symbols
 bool g_logRPZChanges{false};
-ComboAddress getQueryLocalAddress(int family, uint16_t port)
-{
-  cerr << "getQueryLocalAddress() STUBBED IN TEST!" << endl;
-  BOOST_ASSERT(false);
-  return ComboAddress();
-}
 
 BOOST_AUTO_TEST_SUITE(rpzloader_cc)
 
