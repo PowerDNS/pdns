@@ -106,7 +106,7 @@ EOF
 FROM $OS:$VERSION
 
 RUN apt-get update
-RUN apt-get install -y curl gnupg dnsutils
+RUN apt-get install -y curl gnupg dnsutils apt-transport-https
 
 COPY dnsdist.debian-and-ubuntu /etc/apt/preferences.d/dnsdist
 COPY pdns.debian-and-ubuntu /etc/apt/preferences.d/pdns
