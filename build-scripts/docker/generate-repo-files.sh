@@ -57,7 +57,7 @@ EOF
 
     cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 RUN curl -o /etc/yum.repos.d/powerdns-$RELEASE.repo https://repo.powerdns.com/repo-files/$OS-$RELEASE.repo
-RUN yum install -y $PKG
+RUN yum install --assumeyes --nobest $PKG
 EOF
 
     if [ "$RELEASE" = "rec-43"  -o "$RELEASE" = "rec-44" ]; then
