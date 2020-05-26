@@ -2905,12 +2905,23 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET, fd);
 
-#ifdef SO_REUSEPORT
-    if(g_reusePort) {
-      if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &tmp, sizeof(tmp)) < 0)
-        throw PDNSException("SO_REUSEPORT: "+stringerror());
-    }
+    if (g_reusePort) {
+#if defined(SO_REUSEPORT_LB)
+      try {
+        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, 1);
+      }
+      catch (const std::exception& e) {
+        throw PDNSException(std::string("SO_REUSEPORT_LB: ") + e.what());
+      }
+#elif defined(SO_REUSEPORT)
+      try {
+        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
+      }
+      catch (const std::exception& e) {
+        throw PDNSException(std::string("SO_REUSEPORT: ") + e.what());
+      }
 #endif
+    }
 
     if (::arg().asNum("tcp-fast-open") > 0) {
 #ifdef TCP_FASTOPEN
@@ -2998,12 +3009,23 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
     sin.sin4.sin_port = htons(st.port);
 
   
-#ifdef SO_REUSEPORT
-    if(g_reusePort) {
-      if(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
-        throw PDNSException("SO_REUSEPORT: "+stringerror());
-    }
+    if (g_reusePort) {
+#if defined(SO_REUSEPORT_LB)
+      try {
+        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, 1);
+      }
+      catch (const std::exception& e) {
+        throw PDNSException(std::string("SO_REUSEPORT_LB: ") + e.what());
+      }
+#elif defined(SO_REUSEPORT)
+      try {
+        SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
+      }
+      catch (const std::exception& e) {
+        throw PDNSException(std::string("SO_REUSEPORT: ") + e.what());
+      }
 #endif
+    }
 
     if (sin.isIPv4()) {
       try {

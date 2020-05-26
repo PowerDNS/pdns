@@ -158,6 +158,28 @@ void setSocketIgnorePMTU(int sockfd)
 #endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
 }
 
+bool setReusePort(int sockfd)
+{
+#if defined(SO_REUSEPORT_LB)
+  try {
+    SSetsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT_LB, 1);
+    return true;
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
+#elif defined(SO_REUSEPORT)
+  try {
+    SSetsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, 1);
+    return true;
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
+#endif
+  return false;
+}
+
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
 {
 #ifdef SO_TIMESTAMP

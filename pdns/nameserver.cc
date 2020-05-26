@@ -141,11 +141,11 @@ void UDPNameserver::bindAddresses()
       }
     }
 
-#ifdef SO_REUSEPORT
-    if( d_can_reuseport )
-        if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
-          d_can_reuseport = false;
-#endif
+    if (d_can_reuseport) {
+      if (!setReusePort(s)) {
+        d_can_reuseport = false;
+      }
+    }
 
     if( ::arg().mustDo("non-local-bind") )
       Utility::setBindAny(locala.sin4.sin_family, s);
@@ -208,9 +208,7 @@ bool AddressIsUs(const ComboAddress& remote)
 
 UDPNameserver::UDPNameserver( bool additional_socket )
 {
-#ifdef SO_REUSEPORT
   d_can_reuseport = ::arg().mustDo("reuseport");
-#endif
   // Are we the main socket (false) or a rebinding using SO_REUSEPORT ?
   d_additional_socket = additional_socket;
 

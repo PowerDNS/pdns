@@ -105,12 +105,7 @@ catch(const std::exception& e) {
 static void tcpAcceptor(const ComboAddress local)
 {
   Socket tcpSocket(local.sin4.sin_family, SOCK_STREAM);
-#ifdef SO_REUSEPORT
-  int one=1;
-  if(setsockopt(tcpSocket.getHandle(), SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
-    unixDie("setsockopt for REUSEPORT");
-#endif
-
+  setReusePort(tcpSocket.getHandle());
   tcpSocket.bind(local);
   tcpSocket.listen(1024);
 
@@ -187,12 +182,7 @@ try
   }
 
   Socket s(local.sin4.sin_family, SOCK_DGRAM);
-#ifdef SO_REUSEPORT
-  int one=1;
-  if(setsockopt(s.getHandle(), SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
-    unixDie("setsockopt for REUSEPORT");
-#endif
-
+  setReusePort(s.getHandle());
   s.bind(local);
   cout<<"Bound to UDP "<<local.toStringWithPort()<<endl;
 

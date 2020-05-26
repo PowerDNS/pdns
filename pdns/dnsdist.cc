@@ -1839,14 +1839,12 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
   }
 
   if (cs->reuseport) {
-#ifdef SO_REUSEPORT
-    SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
-#else
-    if (warn) {
-      /* no need to warn again if configured but support is not available, we already did for UDP */
-      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+    if (!setReusePort(fd)) {
+      if (warn) {
+        /* no need to warn again if configured but support is not available, we already did for UDP */
+        warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+      }
     }
-#endif
   }
 
   /* Only set this on IPv4 UDP sockets.

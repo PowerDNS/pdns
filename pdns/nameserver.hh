@@ -82,18 +82,12 @@ public:
   bool receive(DNSPacket& packet, std::string& buffer); //!< call this in a while or for(;;) loop to get packets
   void send(DNSPacket&); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   inline bool canReusePort() {
-#ifdef SO_REUSEPORT
     return d_can_reuseport;
-#else
-    return false;
-#endif
   };
   
 private:
   bool d_additional_socket;
-#ifdef SO_REUSEPORT
-  bool d_can_reuseport;
-#endif
+  bool d_can_reuseport{false};
   vector<int> d_sockets;
   void bindAddresses();
   vector<pollfd> d_rfds;
