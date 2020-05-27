@@ -283,7 +283,7 @@ try
     try {
       set<DNSName> authSet;
       authSet.insert(d_signer);
-      addRRSigs(dk, db, authSet, *chunk);
+      addRRSigs(dk, authSet, *chunk);
       ++d_signed;
 
       writen2(fd, &chunk, sizeof(chunk));

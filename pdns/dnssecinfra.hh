@@ -27,8 +27,6 @@
 #include <map>
 #include "misc.hh"
 
-class UeberBackend;
-
 // rules of the road: Algorithm must be set in 'make' for each KeyEngine, and will NEVER change!
 
 class DNSCryptoKeyEngine
@@ -167,7 +165,7 @@ string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const
 void incrementHash(std::string& raw);
 void decrementHash(std::string& raw);
 
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSZoneRecord>& rrs);
+void addRRSigs(DNSSECKeeper& dk, const std::set<DNSName>& authMap, vector<DNSZoneRecord>& rrs);
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
 bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);

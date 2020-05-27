@@ -567,19 +567,20 @@ bool DNSSECKeeper::checkKeys(const DNSName& zone, vector<string>* errorMessages)
   return retval;
 }
 
-bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,
+// A fully functional UeberBackend is required.
+bool DNSSECKeeper::getPreRRSIGs(const DNSName& signer, const DNSName& qname,
         const DNSName& wildcardname, const QType& qtype,
         DNSResourceRecord::Place signPlace, vector<DNSZoneRecord>& rrsigs, uint32_t signTTL)
 {
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
         SOAData sd;
-        if(!db.getSOAUncached(signer, sd)) {
+        if(!d_keymetadb->getSOAUncached(signer, sd)) {
                 DLOG(g_log<<"Could not get SOA for domain"<<endl);
                 return false;
         }
-        db.lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, sd.domain_id);
+        d_keymetadb->lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, sd.domain_id);
         DNSZoneRecord rr;
-        while(db.get(rr)) {
+        while(d_keymetadb->get(rr)) {
           auto rrsig = getRR<RRSIGRecordContent>(rr.dr);
           if(rrsig->d_type == qtype.getCode() && rrsig->d_signer==signer) {
             if (wildcardname.countLabels())

@@ -615,7 +615,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(securedZone && !presignedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
-    addRRSigs(dk, db, authSet, outpacket->getRRS());
+    addRRSigs(dk, authSet, outpacket->getRRS());
   }
   
   if(haveTSIGDetails && !tsigkeyname.empty())
@@ -1134,7 +1134,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     if(securedZone && outpacket->d_dnssecOk) {
       set<DNSName> authSet;
       authSet.insert(target);
-      addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
+      addRRSigs(dk, authSet, outpacket->getRRS());
     }
 
     if(haveTSIGDetails && !tsigkeyname.empty())
