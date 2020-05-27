@@ -809,6 +809,147 @@ other update/remove functionality at a later stage.
   must be added to the zone. ``rrset`` can be empty in which case the
   method is used to remove a RRset.
 
+Domain metadata support
+-----------------------
+
+As described in :ref:`per-zone-settings-domain-metadata`, each served zone can have “metadata”. Such metadata determines how this zone behaves in certain circumstances.
+In order for a backend to support domain metadata, the following operations have to be implemented:
+
+.. code-block:: cpp
+
+    class DNSBackend {
+    public:
+      /* ... */
+      virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+      virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+      virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+      /* ... */
+    }
+
+.. cpp:function:: virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
+
+  Fills 'meta' with the value(s) of all kinds for zone 'name'. Returns true if the domain metadata operation are supported, regardless
+  of whether there is any data for this zone.
+
+.. cpp:function:: virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+
+  Fills 'meta' with the value(s) of the specified kind for zone 'name'. Returns true if the domain metadata operation are supported, regardless
+  of whether there is any data of this kind for this zone.
+
+.. cpp:function:: virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+
+  Store the values from 'meta' for the specified kind for zone 'name', discarding existing values if any. An empty meta is equivalent to a deletion request.
+  Returns true if the values have been correctly stored, and false otherwise.
+
+TSIG keys
+---------
+
+In order for a backend to support the storage of TSIG keys, the following operations have to be implemented:
+
+.. code-block:: cpp
+
+    class DNSBackend {
+    public:
+      /* ... */
+      virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+      virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+      virtual bool deleteTSIGKey(const DNSName& name);
+      virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+      /* ... */
+    }
+
+DNSSEC support
+--------------
+
+In order for a backend to support DNSSEC, quite a few number of additional operations have to be implemented:
+
+.. code-block:: cpp
+
+    struct KeyData {
+      std::string content;
+      unsigned int id;
+      unsigned int flags;
+      bool active;
+      bool published;
+    };
+
+    class DNSBackend {
+    public:
+      /* ... */
+      virtual bool doesDNSSEC();
+      virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+
+      /* update operations */
+      virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY);
+      virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove);
+      virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm);
+      virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
+
+      /* keys management */
+      virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
+      virtual bool removeDomainKey(const DNSName& name, unsigned int id);
+      virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
+      virtual bool activateDomainKey(const DNSName& name, unsigned int id);
+      virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
+      virtual bool publishDomainKey(const DNSName& name, unsigned int id);
+      virtual bool unpublishDomainKey(const DNSName& name, unsigned int id);
+
+      /* ... */
+    }
+
+.. cpp:function:: virtual bool doesDNSSEC()
+
+  Returns true if that backend supports DNSSEC.
+
+.. cpp:function:: virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+
+  Asks the names before and after qname for NSEC and NSEC3. The qname will be hashed when using NSEC3. Care must be taken to handle wrap-around when qname is the first or last in the ordered list of zone names.
+
+.. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
+
+  Updates the ordername and auth fields.
+
+.. cpp:function:: virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+
+  Updates ENT after a zone has been rectified. If 'remove' is false, 'erase' contains a list of ENTs to remove from the zone before adding any. Otherwise all ENTs should be removed from the zone before adding any. 'insert' contains the list of ENTs to add to the zone after the removals have been done.
+
+.. cpp:function:: virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm)
+
+  This method is used by ``pdnsutil rectify-zone`` to populate missing non-terminals. This is used when you have, say, record like _sip._upd.example.com, but no _udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one.
+
+.. cpp:function:: virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+
+  Same as feedEnts, but provides NSEC3 hashing parameters.
+
+.. cpp:function:: virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
+
+  Retrieves all DNSSEC keys. Content must be valid key record in format that PowerDNS understands.
+
+.. cpp:function:: virtual bool removeDomainKey(const DNSName& name, unsigned int id)
+
+  Removes this key.
+
+.. cpp:function:: virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+
+  Adds a new DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool activateDomainKey(const DNSName& name, unsigned int id)
+
+  Activates an inactive DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool deactivateDomainKey(const DNSName& name, unsigned int id)
+
+  Deactivates an active DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool publishDomainKey(const DNSName& name, unsigned int id)
+
+  Publishes a previously hidden DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool unpublishDomainKey(const DNSName& name, unsigned int id)
+
+  Hides a DNSSEC key for this domain. Hidden DNSSEC keys are used for signing but do not appear in the actual zone,
+  and are useful for rollover operations.
+
 Miscellaneous
 -------------
 
