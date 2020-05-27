@@ -2,8 +2,9 @@ Backend writers' guide
 ======================
 
 PowerDNS backends are implemented via a simple yet powerful C++
-interface. If your needs are not met by the PipeBackend, you may want to
-write your own. Before doing any PowerDNS development, please read `this blog
+interface. If your needs are not met by the regular backends, including
+the PipeBackend and the RemoteBackend, you may want to write your own.
+Before doing any PowerDNS development, please read `this blog
 post <https://blog.powerdns.com/2015/06/23/what-is-a-powerdns-backend-and-how-do-i-make-it-send-an-nxdomain/>`__
 which has a FAQ and several pictures that help explain what a backend
 is.
@@ -117,11 +118,25 @@ default ``getSOA()`` method performs a regular lookup on your backend to
 figure out the SOA, so if you have no special treatment for SOA records,
 where is no need to implement your own ``getSOA()``.
 
+Figuring out the Start of Authority can require an important number of
+call to ``getSOA()`` if the name has a lot of labels. For example,
+figuring out that the SOA for ``2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.``
+is ``d.0.1.0.0.2.ip6.arpa.`` might involve 26 calls, chopping off one label
+at a time. If your backend has an efficient way to figure out the
+best SOA it has for a given name, it is possible to override the
+default ``getSOA()`` implementation to immediately return the
+``d.0.1.0.0.2.ip6.arpa.`` SOA record to the first
+``2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.``
+``getSOA()`` call.
+
 Besides direct queries, PowerDNS also needs to be able to list a zone,
 to do zone transfers for example. Each zone has an id which should be
-unique within the backend. To list all records belonging to a zone id,
+unique within the backends. To list all records belonging to a zone id,
 the ``list()`` method is used. Conveniently, the domain_id is also
 available in the ``SOAData`` structure.
+
+.. warning::
+  Each zone should have a unique id, even across backends.
 
 The following lists the contents of a zone called "powerdns.com".
 
@@ -210,9 +225,27 @@ furthermore, only about its A record:
     static RandomLoader randomloader;
 
 This simple backend can be used as an 'overlay'. In other words, it only
-knows about a single record, another loaded backend would have to know
-about the SOA and NS records and such. But nothing prevents us from
-loading it without another backend.
+knows about a single name, ``random.powerdns.com``, another loaded backend
+would have to know about the SOA and NS records for the ``powerdns.com`` zone
+and such.
+
+.. warning::
+  Spreading the content of a zone across multiple backends, described above
+  as 'overlay', makes the zone incompatible with some operations that
+  assume that a single zone is always entirely stored in the same backend.
+  Such operations include zone transfers, listing and editing zone content via
+  the API or ``pdnsutil``.
+
+.. warning::
+  When the content of a zone is spread across multiple backends, all the types
+  for a given name should be delegated to the same backend.
+  For example a backend can know about all the types for ``random.powerdns.com``
+  while another backend knows about all the types for ``random2.powerdns.com``,
+  but it is not possible to let one backend handle only ``AAAA`` queries for
+  all names while another one handles only ``A`` queries, for example.
+  This limitation comes from the fact that PowerDNS uses ``ANY`` queries to fetch
+  all types from the backend in one go and that it assumes that once one backend
+  has returned records the other ones do not need to be called.
 
 The first part of the code contains the actual logic and should be
 pretty straightforward. The second part is a boilerplate 'factory' class
@@ -316,7 +349,7 @@ Classes
 Methods
 ~~~~~~~
 
-.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt=0, int zoneId=-1)
+.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt=nullptr, int zoneId=-1)
 
   This function is used to initiate a straight lookup for a record of name
   'qdomain' and type 'qtype'. A QType can be converted into an integer by
@@ -326,6 +359,11 @@ Methods
   The original question may or may not be passed in the pointer pkt. If it
   is, you can retrieve information about who asked the question with the
   ``pkt->getRemote()`` method.
+
+  .. note::
+    Since 4.1.0, 'SOA' lookups are not passed this pointer anymore because
+    PowerDNS doesn't support tailoring whether a whole zone exists or not based
+    on who is asking.
 
   Note that **qdomain** can be of any case and that your backend should
   make sure it is in effect case insensitive. Furthermore, the case of the
@@ -397,7 +435,7 @@ message won't be visible otherwise.
 To indicate the importance of an error, the standard syslog errorlevels
 are available. They can be set by outputting ``Logger::Critical``,
 ``Logger::Error``, ``Logger::Warning``, ``Logger::Notice``,
-``Logger::Info`` or ``Logger::Debug`` to ``L``, in descending order of
+``Logger::Info`` or ``Logger::Debug`` to ``g_log``, in descending order of
 graveness.
 
 Declaring and reading configuration details
@@ -630,7 +668,7 @@ The actual code in PowerDNS is currently:
 
         while(resolver.axfrChunk(recs)) {
           for(Resolver::res_t::const_iterator i=recs.begin();i!=recs.end();++i) {
-        db->feedRecord(*i);
+            db->feedRecord(*i);
           }
         }
         db->commitTransaction();
