@@ -1057,8 +1057,10 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
   g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
 
-  // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
+  // determine if zone exists, XFR is allowed, and if IXFR can proceed using existing backend before spawning a new backend.
   SOAData sd;
+  bool securedZone;
+  bool serialPermitsIXFR;
   {
     std::lock_guard<std::mutex> l(s_plock);
     DLOG(g_log<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
@@ -1074,38 +1076,33 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       sendPacket(outpacket,outsock);
       return 0;
     }
-  }
 
-  DNSSECKeeper dk;
-  NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-
-  DNSSECKeeper::clearCaches(q->qdomain);
-  bool securedZone = dk.isSecuredZone(q->qdomain);
-  if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
-    if(narrow) {
-      g_log<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
-      g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
-      outpacket->setRcode(RCode::Refused);
-      sendPacket(outpacket,outsock);
-      return 0;
+    DNSSECKeeper dk(s_P->getBackend());
+    DNSSECKeeper::clearCaches(q->qdomain);
+    bool narrow;
+    securedZone = dk.isSecuredZone(q->qdomain);
+    if(dk.getNSEC3PARAM(q->qdomain, nullptr, &narrow)) {
+      if(narrow) {
+        g_log<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
+        g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
+        outpacket->setRcode(RCode::Refused);
+        sendPacket(outpacket,outsock);
+        return 0;
+      }
     }
+
+    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.qname));
   }
 
-  DNSName target = q->qdomain;
-
-  UeberBackend db;
-  if(!db.getSOAUncached(target, sd)) {
-    g_log<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
-    outpacket->setRcode(RCode::NotAuth);
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
-
-  if (!rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.qname))) {
+  if (serialPermitsIXFR) {
+    DNSName target = q->qdomain;
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
+
+    UeberBackend db;
+    DNSSECKeeper dk(&db);
+    DNSSECKeeper::clearCaches(target);
 
     bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname);
 
@@ -1114,8 +1111,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       DNSName algorithm=trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
       if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
         algorithm = DNSName("hmac-md5");
-      std::lock_guard<std::mutex> l(s_plock);
-      if(!s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
+      if(!db.getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
         g_log<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"' not found"<<endl;
         return 0;
       }
@@ -1125,8 +1121,6 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       }
     }
 
-    UeberBackend signatureDB;
-
     // SOA *must* go out first, our signing pipe might reorder
     DLOG(g_log<<"Sending out SOA"<<endl);
     DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
@@ -1134,7 +1128,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     if(securedZone && outpacket->d_dnssecOk) {
       set<DNSName> authSet;
       authSet.insert(target);
-      addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
+      addRRSigs(dk, db, authSet, outpacket->getRRS());
     }
 
     if(haveTSIGDetails && !tsigkeyname.empty())
@@ -1147,7 +1141,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     return 1;
   }
 
-  g_log<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<target<<"' our serial "<<sd.serial<<endl;
+  g_log<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<q->qdomain<<"' our serial "<<sd.serial<<endl;
   return doAXFR(q->qdomain, q, outsock);
 }
 
