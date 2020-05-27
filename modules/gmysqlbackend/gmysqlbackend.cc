@@ -69,7 +69,7 @@ class gMySQLFactory : public BackendFactory
 public:
   gMySQLFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
 
-  void declareArguments(const string &suffix="")
+  void declareArguments(const string &suffix="") override
   {
     declare(suffix,"dbname","Database name to connect to","powerdns");
     declare(suffix,"user","Database backend user to connect as","powerdns");
@@ -159,7 +159,7 @@ public:
     declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE ? OR comment LIKE ? LIMIT ?");
   }
 
-  DNSBackend *make(const string &suffix="")
+  DNSBackend *make(const string &suffix="") override
   {
     return new gMySQLBackend(d_mode,suffix);
   }

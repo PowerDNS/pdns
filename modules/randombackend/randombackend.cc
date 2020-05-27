@@ -102,11 +102,11 @@ class RandomFactory : public BackendFactory
 {
 public:
   RandomFactory() : BackendFactory("random") {}
-  void declareArguments(const string &suffix="")
+  void declareArguments(const string &suffix="") override
   {
     declare(suffix,"hostname","Hostname which is to be random","random.example.com");
   }
-  DNSBackend *make(const string &suffix="")
+  DNSBackend *make(const string &suffix="") override
   {
     return new RandomBackend(suffix);
   }

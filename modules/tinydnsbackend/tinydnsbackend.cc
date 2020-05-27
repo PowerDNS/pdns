@@ -348,7 +348,7 @@ class TinyDNSFactory: public BackendFactory
 public:
   TinyDNSFactory() : BackendFactory("tinydns") {}
 
-  void declareArguments(const string &suffix="") {
+  void declareArguments(const string &suffix="") override {
     declare(suffix, "notify-on-startup", "Tell the TinyDNSBackend to notify all the slave nameservers on startup. Default is no.", "no");
     declare(suffix, "dbfile", "Location of the cdb data file", "data.cdb");
     declare(suffix, "tai-adjust", "This adjusts the TAI value if timestamps are used. These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The default is 11.", "11");
@@ -356,7 +356,7 @@ public:
     declare(suffix, "ignore-bogus-records", "The data.cdb file might have some incorrect record data, this causes PowerDNS to fail, where tinydns would send out truncated data. This option makes powerdns ignore that data!", "no");
   }
 
-  DNSBackend *make(const string &suffix="") {
+  DNSBackend *make(const string &suffix="") override {
     return new TinyDNSBackend(suffix);
   }
 };

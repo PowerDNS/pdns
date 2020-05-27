@@ -412,10 +412,11 @@ class BackendMakerClass
 public:
   void report(BackendFactory *bf);
   void launch(const string &instr);
-  vector<DNSBackend *>all(bool skipBIND=false);
+  vector<DNSBackend *> all(bool skipBIND=false);
   void load(const string &module);
-  int numLauncheable();
+  size_t numLauncheable() const;
   vector<string> getModules();
+  void clear();
 
 private:
   void load_all();

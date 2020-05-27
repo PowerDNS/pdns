@@ -929,13 +929,13 @@ class GeoIPFactory : public BackendFactory{
 public:
   GeoIPFactory() : BackendFactory("geoip") {}
 
-  void declareArguments(const string &suffix = "") {
+  void declareArguments(const string &suffix = "") override {
     declare(suffix, "zones-file", "YAML file to load zone(s) configuration", "");
     declare(suffix, "database-files", "File(s) to load geoip data from ([driver:]path[;opt=value]", "");
     declare(suffix, "dnssec-keydir", "Directory to hold dnssec keys (also turns DNSSEC on)", "");
   }
 
-  DNSBackend *make(const string &suffix) {
+  DNSBackend *make(const string &suffix) override {
     return new GeoIPBackend(suffix);
   }
 };

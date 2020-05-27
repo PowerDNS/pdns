@@ -85,6 +85,15 @@ void BackendMakerClass::report(BackendFactory *bf)
   d_repository[bf->getName()]=bf;
 }
 
+void BackendMakerClass::clear()
+{
+  d_instances.clear();
+  for (auto& repo : d_repository) {
+    delete repo.second;
+    repo.second = nullptr;
+  }
+  d_repository.clear();
+}
 
 vector<string> BackendMakerClass::getModules()
 {
@@ -164,41 +173,50 @@ void BackendMakerClass::launch(const string &instr)
   }
 }
 
-int BackendMakerClass::numLauncheable()
+size_t BackendMakerClass::numLauncheable() const
 {
   return d_instances.size();
 }
 
-vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
+vector<DNSBackend *> BackendMakerClass::all(bool metadataOnly)
 {
-  vector<DNSBackend *>ret;
+  vector<DNSBackend *> ret;
   if(d_instances.empty())
     throw PDNSException("No database backends configured for launch, unable to function");
 
+  ret.reserve(d_instances.size());
+
   try {
-    for(vector<pair<string,string> >::const_iterator i=d_instances.begin();i!=d_instances.end();++i) {
-      DNSBackend *made;
-      if(metadataOnly)
-        made = d_repository[i->first]->makeMetadataOnly(i->second);
-      else
-        made = d_repository[i->first]->make(i->second);
-      if(!made)
-        throw PDNSException("Unable to launch backend '"+i->first+"'");
+    for (const auto& instance : d_instances) {
+      DNSBackend *made = nullptr;
+
+      if (metadataOnly) {
+        made = d_repository[instance.first]->makeMetadataOnly(instance.second);
+      }
+      else {
+        made = d_repository[instance.first]->make(instance.second);
+      }
+
+      if (!made) {
+        throw PDNSException("Unable to launch backend '" + instance.first + "'");
+      }
 
       ret.push_back(made);
     }
   }
-  catch(PDNSException &ae) {
+  catch(const PDNSException &ae) {
     g_log<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
     g_log<<Logger::Error<<"Cleaning up"<<endl;
-    for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
-      delete *i;
+    for (auto i : ret) {
+      delete i;
+    }
     throw;
   } catch(...) {
     // and cleanup
     g_log<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
-    for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
-      delete *i;
+    for (auto i : ret) {
+      delete i;
+    }
     throw;
   }
 

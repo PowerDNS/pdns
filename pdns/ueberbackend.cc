@@ -476,7 +476,7 @@ UeberBackend::UeberBackend(const string &pname)
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
-  d_stale=false;
+  d_stale = false;
 
   backends=BackendMakers().all(pname=="key-only");
 }

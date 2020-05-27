@@ -61,7 +61,7 @@ public:
   }
 
   //! Declares all needed arguments.
-  void declareArguments( const std::string & suffix = "" )
+  void declareArguments( const std::string & suffix = "" ) override
   {
     declare( suffix, "datasource", "Datasource (DSN) to use","PowerDNS");
     declare( suffix, "username", "User to connect as","powerdns");
@@ -146,7 +146,7 @@ public:
   }
 
   //! Constructs a new gODBCBackend object.
-  DNSBackend *make(const string & suffix = "" )
+  DNSBackend *make(const string & suffix = "" ) override
   {
     return new gODBCBackend( d_mode, suffix );
   }

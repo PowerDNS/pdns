@@ -1343,11 +1343,12 @@ testrunner_SOURCES = \
 	test-sha_hh.cc \
 	test-statbag_cc.cc \
 	test-tsig.cc \
+	test-ueberbackend_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
-	ueberbackend.cc \
+	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
 
