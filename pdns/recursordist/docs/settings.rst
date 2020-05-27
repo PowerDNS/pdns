@@ -1356,7 +1356,7 @@ Don't log queries.
 
 If ``SO_REUSEPORT`` support is available, allows multiple threads and processes to open listening sockets for the same port.
 
-Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
+Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every worker-thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
 
 .. _setting-rng:
 
