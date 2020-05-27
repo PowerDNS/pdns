@@ -1246,10 +1246,10 @@ Maximum number of seconds to cache a 'server failure' answer in the packet cache
 -  Boolean
 -  Default: yes
 
-If set, PowerDNS will have only 1 thread listening on client sockets, and distribute work by itself over threads by using a hash of the query,
-maximizing the cache hit ratio. Starting with version 4.2.0, more than one distributing thread can be started using the `distributor-threads`_
-setting.
-Improves performance on Linux.
+If set, PowerDNS will use distinct threads to listen to client sockets and distribute that work to worker-threads using a hash of the query.
+This feature should maximize the cache hit ratio.
+To use more than one thread set `distributor-threads`_setting in version 4.2.0 or newer.
+Enabling should improve performance for medium sized resolvers.
 
 .. _setting-protobuf-use-kernel-timestamp:
 
