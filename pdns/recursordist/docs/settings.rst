@@ -1246,10 +1246,10 @@ Maximum number of seconds to cache a 'server failure' answer in the packet cache
 -  Boolean
 -  Default: yes
 
-If set, PowerDNS will have only 1 thread listening on client sockets, and distribute work by itself over threads by using a hash of the query,
-maximizing the cache hit ratio. Starting with version 4.2.0, more than one distributing thread can be started using the `distributor-threads`_
-setting.
-Improves performance on Linux.
+If set, PowerDNS will use distinct threads to listen to client sockets and distribute that work to worker-threads using a hash of the query.
+This feature should maximize the cache hit ratio.
+To use more than one thread set `distributor-threads`_setting in version 4.2.0 or newer.
+Enabling should improve performance for medium sized resolvers.
 
 .. _setting-protobuf-use-kernel-timestamp:
 
@@ -1354,9 +1354,9 @@ Don't log queries.
 -  Boolean
 -  Default: no
 
-If ``SO_REUSEPORT`` support is available, allows multiple processes to open a listening socket on the same port.
+If ``SO_REUSEPORT`` support is available, allows multiple threads and processes to open listening sockets for the same port.
 
-Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every thread will open a separate listening socket to let the kernel distribute the incoming queries, avoiding any thundering herd issue as well as the distributor thread being a bottleneck, thus leading to much higher performance on multi-core boxes.
+Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every worker-thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
 
 .. _setting-rng:
 
