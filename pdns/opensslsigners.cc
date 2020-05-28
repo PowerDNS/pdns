@@ -46,7 +46,7 @@
 static std::vector<std::mutex> openssllocks;
 
 extern "C" {
-void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
+static void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
 {
   if (mode & CRYPTO_LOCK) {
     openssllocks.at(type).lock();
@@ -56,7 +56,7 @@ void openssl_pthreads_locking_callback(int mode, int type, const char *file, int
   }
 }
 
-unsigned long openssl_pthreads_id_callback()
+static unsigned long openssl_pthreads_id_callback(void)
 {
   return (unsigned long)pthread_self();
 }
