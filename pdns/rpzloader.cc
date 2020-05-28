@@ -459,7 +459,8 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
       oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
       /* we need to make a _full copy_ of the zone we are going to work on */
       std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
-      std::shared_ptr<SOARecordContent> newSR{nullptr};
+      /* initialize the current serial to the last one */
+      std::shared_ptr<SOARecordContent> currentSR = sr;
 
       int totremove=0, totadd=0;
       bool fullUpdate = false;
@@ -476,11 +477,17 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
             continue;
           if(rr.d_type == QType::SOA) {
             auto oldsr = getRR<SOARecordContent>(rr);
-            if(oldsr && oldsr->d_st.serial == sr->d_st.serial) {
+            if (oldsr && oldsr->d_st.serial == currentSR->d_st.serial) {
               //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
             }
-            else
-              g_log<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
+            else {
+              if (!oldsr) {
+                throw std::runtime_error("Unable to extract serial from SOA record while processing the removal part of an update");
+              }
+              else {
+                throw std::runtime_error("Received an unexpected serial (" + std::to_string(oldsr->d_st.serial) + ", expecting " + std::to_string(currentSR->d_st.serial) + ") from SOA record while processing the removal part of an update");
+              }
+            }
           }
           else {
             totremove++;
@@ -494,9 +501,9 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
             continue;
           if(rr.d_type == QType::SOA) {
             auto tempSR = getRR<SOARecordContent>(rr);
-            //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
+            //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<currentSR->d_st.serial<<endl;
             if (tempSR) {
-              newSR = tempSR;
+              currentSR = tempSR;
             }
           }
           else {
@@ -508,8 +515,8 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
       }
 
       /* only update sr now that all changes have been converted */
-      if (newSR) {
-        sr = newSR;
+      if (currentSR) {
+        sr = currentSR;
       }
       g_log<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<sr->d_st.serial<<endl;
       newZone->setSerial(sr->d_st.serial);
