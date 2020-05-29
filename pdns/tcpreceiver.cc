@@ -1102,7 +1102,6 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
     UeberBackend db;
     DNSSECKeeper dk(&db);
-    DNSSECKeeper::clearCaches(target);
 
     bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname);
 
