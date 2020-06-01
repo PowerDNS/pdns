@@ -2253,6 +2253,35 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   });
 }
 
+static std::ostream& operator<<(std::ostream& os, StatType statType)
+{
+  switch (statType)
+  {
+    case StatType::counter: return os << "counter";
+    case StatType::gauge: return os << "gauge";
+  };
+  return os << static_cast<uint16_t>(statType);
+}
+
+static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
+  if (req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  std::ostringstream output;
+  for (const auto &metricName : S.getEntries()) {
+    // Prometheus suggest using '_' instead of '-'
+    std::string prometheusMetricName = "pdns_auth_" + boost::replace_all_copy(metricName, "-", "_");
+
+    output << "# HELP " << prometheusMetricName << " " << S.getDescrip(metricName) << "\n";
+    output << "# TYPE " << prometheusMetricName << " " << S.getStatType(metricName) << "\n";
+    output << prometheusMetricName << " " << S.read(metricName) << "\n";
+  }
+
+  resp->body = output.str();
+  resp->headers["Content-Type"] = "text/plain";
+  resp->status = 200;
+}
+
 void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
@@ -2317,6 +2346,7 @@ void AuthWebServer::webThread()
     if (::arg().mustDo("webserver")) {
       d_ws->registerWebHandler("/style.css", std::bind(&AuthWebServer::cssfunction, this, std::placeholders::_1, std::placeholders::_2));
       d_ws->registerWebHandler("/", std::bind(&AuthWebServer::indexfunction, this, std::placeholders::_1, std::placeholders::_2));
+      d_ws->registerWebHandler("/metrics", prometheusMetrics);
     }
     d_ws->go();
   }
