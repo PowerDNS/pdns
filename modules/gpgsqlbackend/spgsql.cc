@@ -77,7 +77,19 @@ public:
   SSqlStatement* execute() {
     prepareStatement();
     if (d_dolog) {
-      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": " << d_query << endl;
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": Statement: " << d_query << endl;
+      if (d_paridx) {
+        // Log message is similar, bot not exactly the same as the postgres server log.
+        std::stringstream log_message;
+        log_message<< "Query "<<((long)(void*)this)<<": Parameters: ";
+        for (int i = 0; i < d_paridx; i++) {
+          if (i != 0) {
+            log_message << ", ";
+          }
+          log_message << "$" << (i + 1) << " = '" << paramValues[i] << "'";
+        }
+        g_log<<Logger::Warning<< log_message.str() << endl;
+      }
       d_dtime.set();
     }
     d_res_set = PQexecParams(d_db(), d_query.c_str(), d_nparams, NULL, paramValues, paramLengths, NULL, 0);
