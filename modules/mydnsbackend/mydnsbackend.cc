@@ -182,6 +182,12 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
     g_log<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
   };
 
+  if (!getSOA(target, d_SOA_for_list)) {
+    throw PDNSException("MyDNSBackend unable to get SOA during list for zone "+target.toLogString());
+  }
+
+  d_send_SOA_first = true;
+
   try {
     d_query_stmt = &d_listQuery_stmt;
     (*d_query_stmt)->
@@ -366,6 +372,25 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
 
   SSqlStatement::row_t rrow;
 
+  if(d_send_SOA_first) {
+    rr.qname = d_SOA_for_list.qname;
+    rr.qtype = QType::SOA;
+    rr.content =
+      d_SOA_for_list.nameserver.toString() + " " +
+      d_SOA_for_list.hostmaster.toString() + " " +
+      uitoa(d_SOA_for_list.serial) + " " +
+      uitoa(d_SOA_for_list.refresh) + " " +
+      uitoa(d_SOA_for_list.retry) + " " +
+      uitoa(d_SOA_for_list.expire) + " " +
+      uitoa(d_SOA_for_list.default_ttl);
+    rr.ttl = d_SOA_for_list.ttl;
+    rr.domain_id = d_SOA_for_list.domain_id;
+    rr.last_modified = 0;
+
+    d_send_SOA_first = false;
+    return true;
+  }
+  
   if ((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(rrow);
