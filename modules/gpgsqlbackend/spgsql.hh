@@ -29,7 +29,7 @@ class SPgSQL : public SSql
 public:
   SPgSQL(const string &database, const string &host="", const string& port="",
          const string &user="", const string &password="",
-         const string &extra_connection_parameters="");
+         const string &extra_connection_parameters="", const bool use_prepared = true);
 
   ~SPgSQL();
   
@@ -47,6 +47,7 @@ public:
 
   PGconn* db() { return d_db; }
   bool in_trx() const { return d_in_trx; }
+  bool usePrepared() { return d_use_prepared; }
 
 private:
   PGconn* d_db;
@@ -54,4 +55,6 @@ private:
   string d_connectlogstr;
   static bool s_dolog;
   bool d_in_trx;
+  bool d_use_prepared;
+  unsigned int d_nstatements;
 };

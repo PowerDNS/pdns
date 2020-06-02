@@ -35,7 +35,7 @@
 class SPgSQLStatement: public SSqlStatement
 {
 public:
-  SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db) {
+  SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db, unsigned int nstatement) {
     d_query = query;
     d_dolog = dolog;
     d_parent = db;
@@ -45,6 +45,7 @@ public:
     d_res_set = NULL;
     paramValues = NULL;
     paramLengths = NULL;
+    d_nstatement = nstatement;
     d_paridx = 0;
     d_residx = 0;
     d_resnum = 0;
@@ -80,7 +81,11 @@ public:
       g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": " << d_query << endl;
       d_dtime.set();
     }
-    d_res_set = PQexecParams(d_db(), d_query.c_str(), d_nparams, NULL, paramValues, paramLengths, NULL, 0);
+    if (!d_stmt.empty()) {
+      d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
+    } else {
+      d_res_set = PQexecParams(d_db(), d_query.c_str(), d_nparams, NULL, paramValues, paramLengths, NULL, 0);
+    }
     ExecStatusType status = PQresultStatus(d_res_set);
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
       string errmsg(PQresultErrorMessage(d_res_set));
@@ -207,10 +212,28 @@ private:
   void releaseStatement() {
     d_prepared = false;
     reset();
+    if (!d_stmt.empty()) {
+      string cmd = string("DEALLOCATE " + d_stmt);
+      PGresult *res = PQexec(d_db(), cmd.c_str());
+      PQclear(res);
+      d_stmt.clear();
+    }
   }
 
   void prepareStatement() {
     if (d_prepared) return;
+    if (d_parent->usePrepared()) {
+      // prepare a statement; name must be unique per session (using d_nstatement to ensure this).
+      this->d_stmt = string("stmt") + std::to_string(d_nstatement);
+      PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
+      ExecStatusType status = PQresultStatus(res);
+      string errmsg(PQresultErrorMessage(res));
+      PQclear(res);
+      if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
+        releaseStatement();
+        throw SSqlException("Fatal error during prePQpreparepare: " + d_query + string(": ") + errmsg);
+      }
+    }
     paramValues=NULL;
     d_cur_set=d_paridx=d_residx=d_resnum=d_fnum=0;
     paramLengths=NULL;
@@ -228,6 +251,7 @@ private:
   }
 
   string d_query;
+  string d_stmt;
   SPgSQL *d_parent;
   PGresult *d_res_set;
   PGresult *d_res;
@@ -242,16 +266,18 @@ private:
   int d_resnum;
   int d_fnum;
   int d_cur_set;
+  unsigned int d_nstatement;
 };
 
 bool SPgSQL::s_dolog;
 
 SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user,
-               const string &password, const string &extra_connection_parameters)
+               const string &password, const string &extra_connection_parameters, const bool use_prepared)
 {
-  d_db=0;
+  d_db = nullptr;
   d_in_trx = false;
-  d_connectstr="";
+  d_connectstr = "";
+  d_nstatements = 0;
 
   if (!database.empty())
     d_connectstr+="dbname="+database;
@@ -274,6 +300,8 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
     d_connectlogstr+=" password=<HIDDEN>";
     d_connectstr+=" password="+password;
   }
+
+  d_use_prepared = use_prepared;
 
   d_db=PQconnectdb(d_connectstr.c_str());
 
@@ -318,7 +346,8 @@ void SPgSQL::execute(const string& query)
 
 std::unique_ptr<SSqlStatement> SPgSQL::prepare(const string& query, int nparams)
 {
-  return std::unique_ptr<SSqlStatement>(new SPgSQLStatement(query, s_dolog, nparams, this));
+  d_nstatements++;
+  return std::unique_ptr<SSqlStatement>(new SPgSQLStatement(query, s_dolog, nparams, this, d_nstatements));
 }
 
 void SPgSQL::startTransaction() {
