@@ -1860,8 +1860,8 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
 
   DNSSECKeeper dk(&B);
 
-  if (!dk.isSecuredZone(zonename))
-    throw ApiException("Zone '" + zonename.toString() + "' is not DNSSEC signed, not rectifying.");
+  if (dk.isPresigned(zonename))
+    throw ApiException("Zone '" + zonename.toString() + "' is pre-signed, not rectifying.");
 
   string error_msg = "";
   string info;

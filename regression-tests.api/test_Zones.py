@@ -1925,11 +1925,6 @@ $ORIGIN %NAME%
         dbrecs = get_db_records(name, 'SOA')
         self.assertIsNotNone(dbrecs[0]['ordername'])
 
-    def test_explicit_rectify_no_dnssec(self):
-        _, _, data = self.create_zone = self.create_zone(api_rectify=False, dnssec=False)
-        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/rectify"))
-        self.assertEquals(r.status_code, 422)
-
     def test_explicit_rectify_slave(self):
         # Some users want to move a zone to kind=Slave and then rectify, without a re-transfer.
         name, _, data = self.create_zone = self.create_zone(api_rectify=False, dnssec=True, nsec3param='1 0 1 ab')
