@@ -7,6 +7,7 @@ After=network-online.target mysqld.service postgresql.service slapd.service mari
 
 [Service]
 ExecStart=@sbindir@/pdns_server --guardian=no --daemon=no --disable-syslog --log-timestamp=no --write-pid=no
+SyslogIdentifier=pdns_server
 User=@service_user@
 Group=@service_group@
 Type=notify
