@@ -306,6 +306,7 @@ testrunner_SOURCES = \
 	test-syncres_cc7.cc \
 	test-syncres_cc8.cc \
 	test-syncres_cc9.cc \
+	test-syncres_cc10.cc \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \

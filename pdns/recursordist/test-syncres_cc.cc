@@ -118,6 +118,7 @@ void initSR(bool debug)
   SyncRes::s_packetcacheservfailttl = 60;
   SyncRes::s_serverdownmaxfails = 64;
   SyncRes::s_serverdownthrottletime = 60;
+  SyncRes::s_doIPv4 = true;
   SyncRes::s_doIPv6 = true;
   SyncRes::s_ecsipv4limit = 24;
   SyncRes::s_ecsipv6limit = 56;

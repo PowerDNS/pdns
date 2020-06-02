@@ -4158,6 +4158,15 @@ static int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
+  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
+    SyncRes::s_doIPv4=true;
+    g_log<<Logger::Warning<<"Enabling IPv4 transport for outgoing queries"<<endl;
+  }
+  else {
+    g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable"<<endl;
+  }
+
+
   if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
     SyncRes::s_doIPv6=true;
     g_log<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
