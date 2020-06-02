@@ -25,17 +25,13 @@ try
   if(carbonServers.empty())
     return;
 
-  if(hostname.empty()) {
-    char tmp[HOST_NAME_MAX+1];
-    memset(tmp, 0, sizeof(tmp));
-    if (gethostname(tmp, sizeof(tmp)) != 0) {
-      throw std::runtime_error("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: " + stringerror());
+  if (hostname.empty()) {
+    try {
+      hostname = getCarbonHostName();
     }
-    char *p = strchr(tmp, '.');
-    if(p) *p=0;
-
-    hostname=tmp;
-    boost::replace_all(hostname, ".", "_");    
+    catch(const std::exception& e) {
+      throw std::runtime_error(std::string("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: ") + e.what());
+    }
   }
 
   registerAllStats();

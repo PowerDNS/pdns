@@ -57,6 +57,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
+#include <limits.h>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
@@ -1336,4 +1337,40 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
                                 &cpuset);
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
   return ENOSYS;
+}
+
+static size_t getMaxHostNameSize()
+{
+#if defined(HOST_NAME_MAX)
+  return HOST_NAME_MAX;
+#endif
+
+#if defined(_SC_HOST_NAME_MAX)
+  auto tmp = sysconf(_SC_HOST_NAME_MAX);
+  if (tmp != -1) {
+    return tmp;
+  }
+#endif
+
+  /* _POSIX_HOST_NAME_MAX */
+  return 255;
+}
+
+std::string getCarbonHostName()
+{
+  std::string hostname;
+  hostname.resize(getMaxHostNameSize() + 1, 0);
+
+  if (gethostname(const_cast<char*>(hostname.c_str()), hostname.size()) != 0) {
+    throw std::runtime_error(stringerror());
+  }
+
+  auto pos = hostname.find(".");
+  if (pos != std::string::npos) {
+    hostname.resize(pos);
+  }
+
+  boost::replace_all(hostname, ".", "_");
+
+  return hostname;
 }

@@ -37,14 +37,13 @@ try
   extern StatBag S;
 
   string hostname=arg()["carbon-ourname"];
-  if(hostname.empty()) {
-    char tmp[80];
-    memset(tmp, 0, sizeof(tmp));
-    gethostname(tmp, sizeof(tmp));
-    char *p = strchr(tmp, '.');
-    if(p) *p=0;
-    hostname=tmp;
-    boost::replace_all(hostname, ".", "_");
+  if (hostname.empty()) {
+    try {
+      hostname = getCarbonHostName();
+    }
+    catch(const std::exception& e) {
+      throw std::runtime_error(std::string("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: ") + e.what());
+    }
   }
 
   vector<string> carbonServers;
