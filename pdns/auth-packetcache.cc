@@ -34,7 +34,7 @@ AuthPacketCache::AuthPacketCache(size_t mapsCount): d_maps(mapsCount), d_lastcle
 {
   S.declare("packetcache-hit", "Number of hits on the packet cache");
   S.declare("packetcache-miss", "Number of misses on the packet cache");
-  S.declare("packetcache-size", "Number of entries in the packet cache");
+  S.declare("packetcache-size", "Number of entries in the packet cache", StatType::gauge);
   S.declare("deferred-packetcache-inserts","Amount of packet cache inserts that were deferred because of maintenance");
   S.declare("deferred-packetcache-lookup","Amount of packet cache lookups that were deferred because of maintenance");
 

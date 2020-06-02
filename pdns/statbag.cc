@@ -103,12 +103,12 @@ StatType StatBag::getStatType(const string &item)
   return d_statTypes[item];
 }
 
-void StatBag::declare(const string &key, const string &descrip)
+void StatBag::declare(const string &key, const string &descrip, StatType statType)
 {
   auto i=make_unique<AtomicCounter>(0);
   d_stats[key]=std::move(i);
   d_keyDescrips[key]=descrip;
-  d_statTypes[key]=StatType::counter;
+  d_statTypes[key]=statType;
 }
 
 void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func, StatType statType)

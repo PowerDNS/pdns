@@ -87,7 +87,7 @@ class StatBag
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
   ~StatBag();
-  void declare(const string &key, const string &descrip=""); //!< Before you can store or access a key, you need to declare it
+  void declare(const string &key, const string &descrip="", StatType statType=StatType::counter); //!< Before you can store or access a key, you need to declare it
   void declare(const string &key, const string &descrip, func_t func, StatType statType); //!< Before you can store or access a key, you need to declare it
 
   void declareRing(const string &name, const string &title, unsigned int size=10000);

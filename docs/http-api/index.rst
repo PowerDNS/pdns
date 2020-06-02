@@ -79,7 +79,7 @@ A simple ``GET`` request will return a response similar to the following:
   # TYPE pdns_auth_packetcache_miss counter
   pdns_auth_packetcache_miss 0
   # HELP pdns_auth_packetcache_size Number of entries in the packet cache
-  # TYPE pdns_auth_packetcache_size counter
+  # TYPE pdns_auth_packetcache_size gauge
   pdns_auth_packetcache_size 0
   # HELP pdns_auth_query_cache_hit Number of hits on the query cache
   # TYPE pdns_auth_query_cache_hit counter
@@ -88,7 +88,7 @@ A simple ``GET`` request will return a response similar to the following:
   # TYPE pdns_auth_query_cache_miss counter
   pdns_auth_query_cache_miss 0
   # HELP pdns_auth_query_cache_size Number of entries in the query cache
-  # TYPE pdns_auth_query_cache_size counter
+  # TYPE pdns_auth_query_cache_size gauge
   pdns_auth_query_cache_size 0
   # HELP pdns_auth_rd_queries Number of recursion desired questions
   # TYPE pdns_auth_rd_queries counter
@@ -103,7 +103,7 @@ A simple ``GET`` request will return a response similar to the following:
   # TYPE pdns_auth_recursion_unanswered counter
   pdns_auth_recursion_unanswered 0
   # HELP pdns_auth_security_status Security status based on regular polling
-  # TYPE pdns_auth_security_status counter
+  # TYPE pdns_auth_security_status gauge
   pdns_auth_security_status 0
   # HELP pdns_auth_servfail_packets Number of times a server-failed packet was sent out
   # TYPE pdns_auth_servfail_packets counter
