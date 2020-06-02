@@ -1916,6 +1916,32 @@ $ORIGIN %NAME%
         dbrecs = get_db_records(name, 'AAAA')
         self.assertIsNone(dbrecs[0]['ordername'])
 
+    def test_explicit_rectify_success(self):
+        name, _, data = self.create_zone = self.create_zone(api_rectify=False, dnssec=True, nsec3param='1 0 1 ab')
+        dbrecs = get_db_records(name, 'SOA')
+        self.assertIsNone(dbrecs[0]['ordername'])
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/rectify"))
+        self.assertEquals(r.status_code, 200)
+        dbrecs = get_db_records(name, 'SOA')
+        self.assertIsNotNone(dbrecs[0]['ordername'])
+
+    def test_explicit_rectify_no_dnssec(self):
+        _, _, data = self.create_zone = self.create_zone(api_rectify=False, dnssec=False)
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/rectify"))
+        self.assertEquals(r.status_code, 422)
+
+    def test_explicit_rectify_slave(self):
+        # Some users want to move a zone to kind=Slave and then rectify, without a re-transfer.
+        name, _, data = self.create_zone = self.create_zone(api_rectify=False, dnssec=True, nsec3param='1 0 1 ab')
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id']),
+            data=json.dumps({'kind': 'Slave'}),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+        r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/rectify"))
+        self.assertEquals(r.status_code, 200)
+        dbrecs = get_db_records(name, 'SOA')
+        self.assertIsNotNone(dbrecs[0]['ordername'])
+
     def test_cname_at_ent_place(self):
         name, payload, zone = self.create_zone(dnssec=True, api_rectify=True)
         rrset = {

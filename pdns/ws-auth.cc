@@ -1863,9 +1863,6 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   if (!dk.isSecuredZone(zonename))
     throw ApiException("Zone '" + zonename.toString() + "' is not DNSSEC signed, not rectifying.");
 
-  if (di.kind == DomainInfo::Slave)
-    throw ApiException("Zone '" + zonename.toString() + "' is a slave zone, not rectifying.");
-
   string error_msg = "";
   string info;
   if (!dk.rectifyZone(zonename, error_msg, info, true))
