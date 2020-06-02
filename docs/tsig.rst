@@ -35,7 +35,7 @@ with the key name in the content field. For example::
 
 .. warning::
   Any host with the correct TSIG key will be able to perform the AXFR, even
-  if the host is not within the define ``allow-axfr-ips`` ranges.
+  if the host is not within the defined ``allow-axfr-ips`` ranges.
 
 Another way of importing and activating TSIG keys into the database is using
 :doc:`pdnsutil <manpages/pdnsutil.1>`:
