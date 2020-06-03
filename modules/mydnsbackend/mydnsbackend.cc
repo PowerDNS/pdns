@@ -372,7 +372,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
 
   SSqlStatement::row_t rrow;
 
-  if(d_send_SOA_first) {
+  if (d_send_SOA_first) {
     rr.qname = d_SOA_for_list.qname;
     rr.qtype = QType::SOA;
     rr.content =
