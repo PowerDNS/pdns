@@ -1331,9 +1331,20 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       }
 
       if (qname == newTarget) {
-        LOG(prefix<<qname<<": Got a CNAME referral (from cache) to self, returning SERVFAIL"<<endl);
-        res = RCode::ServFail;
-        return true;
+        string msg = "got a CNAME referral (from cache) to self";
+        LOG(prefix<<qname<<": "<<msg<<endl);
+        throw ImmediateServFailException(msg);
+      }
+
+      // Check to see if we already have seen the new target as a previous target
+      for (const auto &rec: ret) {
+        if (rec.d_type == QType::CNAME && rec.d_place == DNSResourceRecord::ANSWER) {
+          if (newTarget == rec.d_name) {
+            string msg = "got a CNAME referral (from cache) that causes a loop";
+            LOG(prefix<<qname<<": status="<<msg<<endl);
+            throw ImmediateServFailException(msg);
+          }
+        }
       }
 
       set<GetBestNSAnswer>beenthere;
@@ -3377,6 +3388,17 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
       LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
       *rcode = RCode::ServFail;
       return true;
+    }
+
+    // Check to see if we already have seen the new target as a previous target
+    for (const auto &record: ret) {
+      if (record.d_type == QType::CNAME && record.d_place == DNSResourceRecord::ANSWER) {
+        if (newtarget == record.d_name) {
+          LOG(prefix<<qname<<": status=got a CNAME referral that causes a loop, returning SERVFAIL"<<endl);
+          *rcode = RCode::ServFail;
+          return true;
+        }
+      }
     }
 
     if (qtype == QType::DS) {
