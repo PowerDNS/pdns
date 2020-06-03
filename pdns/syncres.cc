@@ -852,6 +852,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
     if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
+      // Do not set *fromCache; res does not reflect the final result in all cases
       return res;
     }
 
@@ -1327,6 +1328,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|CNAME cache entry");
         }
         newTarget = cnameContent->getTarget();
+      }
+
+      if (qname == newTarget) {
+        LOG(prefix<<qname<<": Got a CNAME referral (from cache) to self, returning SERVFAIL"<<endl);
+        res = RCode::ServFail;
+        return true;
       }
 
       set<GetBestNSAnswer>beenthere;
