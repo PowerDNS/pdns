@@ -671,7 +671,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   vector<DNSRecord> retq;
   bool old = setCacheOnly(true);
   bool fromCache = false;
-  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth + 1, beenthere, state, &fromCache);
+  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, &fromCache);
   setCacheOnly(old);
   if (fromCache) {
     QLOG("Step0 Found in cache");
@@ -695,7 +695,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
       bool flawedNSSet = false;
       set<GetBestNSAnswer> beenthereIgnored;
-      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth + 1, beenthereIgnored);
+      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored);
     }
 
     if (bestns.size() == 0) {
@@ -723,7 +723,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       // Step 3 resolve
       if (child == qname) {
         QLOG("Step3 Going to do final resolve");
-        res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
         QLOG("Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size());
         return res;
       }
@@ -732,7 +732,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       QLOG("Step4 Resolve A for child");
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
-      res = doResolveNoQNameMinimization(child, QType::A, retq, depth + 1, beenthere, state, NULL, &stopAtDelegation);
+      res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, state, NULL, &stopAtDelegation);
       QLOG("Step4 Resolve A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation);
       if (stopAtDelegation == Stopped) {
         QLOG("Delegation seen, continue at step 1");
@@ -743,7 +743,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         // Case 5: unexpected answer
         QLOG("Step5: other rcode, last effort final resolve");
         setQNameMinimization(false);
-        res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
 
         if(res == RCode::NoError) {
           s_qnameminfallbacksuccess++;
@@ -1866,7 +1866,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
   if(!tns->first.empty()) {
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-    result = getAddrs(tns->first, depth+2, beenthere, cacheOnly, retrieveAddressesForNS);
+    result = getAddrs(tns->first, depth, beenthere, cacheOnly, retrieveAddressesForNS);
     pierceDontQuery=false;
   }
   else {
@@ -2228,7 +2228,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     /* temporarily mark as Indeterminate, so that we won't enter an endless loop
        trying to determine that zone cut again. */
     d_cutStates[qname] = newState;
-    bool foundCut = lookForCut(qname, depth + 1, cutState, newState);
+    bool foundCut = lookForCut(qname, depth, cutState, newState);
     if (foundCut) {
       LOG(d_prefix<<": - Found cut at "<<qname<<endl);
       if (newState != Indeterminate) {

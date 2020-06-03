@@ -56,7 +56,7 @@ static void do_test_referral_depth(bool limited)
 
   if (limited) {
     /* Set the maximum depth low */
-    SyncRes::s_maxdepth = 10;
+    SyncRes::s_maxdepth = 4;
     try {
       vector<DNSRecord> ret;
       sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
