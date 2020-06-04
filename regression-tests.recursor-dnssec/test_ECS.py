@@ -350,7 +350,6 @@ ecs-ipv6-bits=128
 ecs-ipv4-cache-bits=32
 ecs-ipv6-cache-bits=128
 forward-zones=ecs-echo.example=%s.21
-query-local-address=::1
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
