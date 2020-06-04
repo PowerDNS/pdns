@@ -245,7 +245,7 @@ vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 void StatBag::registerRingStats(const string& name)
 {
   declare("ring-" + name + "-size", "Number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingEntriesCount(name)); }, StatType::counter);
-  declare("ring-" + name + "-capacity", "Maximum number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingSize(name)); }, StatType::counter);
+  declare("ring-" + name + "-capacity", "Maximum number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingSize(name)); }, StatType::gauge);
 }
 
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)

@@ -199,34 +199,34 @@ A simple ``GET`` request will return a response similar to the following:
   # TYPE pdns_auth_real_memory_usage gauge
   pdns_auth_real_memory_usage 133189632
   # HELP pdns_auth_ring_logmessages_capacity Maximum number of entries in the logmessages ring
-  # TYPE pdns_auth_ring_logmessages_capacity counter
+  # TYPE pdns_auth_ring_logmessages_capacity gauge
   pdns_auth_ring_logmessages_capacity 10000
   # HELP pdns_auth_ring_logmessages_size Number of entries in the logmessages ring
   # TYPE pdns_auth_ring_logmessages_size counter
   pdns_auth_ring_logmessages_size 7
   # HELP pdns_auth_ring_noerror_queries_capacity Maximum number of entries in the noerror-queries ring
-  # TYPE pdns_auth_ring_noerror_queries_capacity counter
+  # TYPE pdns_auth_ring_noerror_queries_capacity gauge
   pdns_auth_ring_noerror_queries_capacity 10000
   # HELP pdns_auth_ring_noerror_queries_size Number of entries in the noerror-queries ring
   # TYPE pdns_auth_ring_noerror_queries_size counter
   pdns_auth_ring_noerror_queries_size 0
   # HELP pdns_auth_ring_nxdomain_queries_capacity Maximum number of entries in the nxdomain-queries ring
-  # TYPE pdns_auth_ring_nxdomain_queries_capacity counter
+  # TYPE pdns_auth_ring_nxdomain_queries_capacity gauge
   pdns_auth_ring_nxdomain_queries_capacity 10000
   # HELP pdns_auth_ring_nxdomain_queries_size Number of entries in the nxdomain-queries ring
   # TYPE pdns_auth_ring_nxdomain_queries_size counter
   pdns_auth_ring_nxdomain_queries_size 0
   # HELP pdns_auth_ring_queries_capacity Maximum number of entries in the queries ring
-  # TYPE pdns_auth_ring_queries_capacity counter
+  # TYPE pdns_auth_ring_queries_capacity gauge
   pdns_auth_ring_queries_capacity 10000
   # HELP pdns_auth_ring_queries_size Number of entries in the queries ring
   # TYPE pdns_auth_ring_queries_size counter
   pdns_auth_ring_queries_size 0
   # HELP pdns_auth_ring_remotes_capacity Maximum number of entries in the remotes ring
-  # TYPE pdns_auth_ring_remotes_capacity counter
+  # TYPE pdns_auth_ring_remotes_capacity gauge
   pdns_auth_ring_remotes_capacity 10000
   # HELP pdns_auth_ring_remotes_corrupt_capacity Maximum number of entries in the remotes-corrupt ring
-  # TYPE pdns_auth_ring_remotes_corrupt_capacity counter
+  # TYPE pdns_auth_ring_remotes_corrupt_capacity gauge
   pdns_auth_ring_remotes_corrupt_capacity 10000
   # HELP pdns_auth_ring_remotes_corrupt_size Number of entries in the remotes-corrupt ring
   # TYPE pdns_auth_ring_remotes_corrupt_size counter
@@ -235,19 +235,19 @@ A simple ``GET`` request will return a response similar to the following:
   # TYPE pdns_auth_ring_remotes_size counter
   pdns_auth_ring_remotes_size 0
   # HELP pdns_auth_ring_remotes_unauth_capacity Maximum number of entries in the remotes-unauth ring
-  # TYPE pdns_auth_ring_remotes_unauth_capacity counter
+  # TYPE pdns_auth_ring_remotes_unauth_capacity gauge
   pdns_auth_ring_remotes_unauth_capacity 10000
   # HELP pdns_auth_ring_remotes_unauth_size Number of entries in the remotes-unauth ring
   # TYPE pdns_auth_ring_remotes_unauth_size counter
   pdns_auth_ring_remotes_unauth_size 0
   # HELP pdns_auth_ring_servfail_queries_capacity Maximum number of entries in the servfail-queries ring
-  # TYPE pdns_auth_ring_servfail_queries_capacity counter
+  # TYPE pdns_auth_ring_servfail_queries_capacity gauge
   pdns_auth_ring_servfail_queries_capacity 10000
   # HELP pdns_auth_ring_servfail_queries_size Number of entries in the servfail-queries ring
   # TYPE pdns_auth_ring_servfail_queries_size counter
   pdns_auth_ring_servfail_queries_size 0
   # HELP pdns_auth_ring_unauth_queries_capacity Maximum number of entries in the unauth-queries ring
-  # TYPE pdns_auth_ring_unauth_queries_capacity counter
+  # TYPE pdns_auth_ring_unauth_queries_capacity gauge
   pdns_auth_ring_unauth_queries_capacity 10000
   # HELP pdns_auth_ring_unauth_queries_size Number of entries in the unauth-queries ring
   # TYPE pdns_auth_ring_unauth_queries_size counter
