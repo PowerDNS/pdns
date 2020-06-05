@@ -35,7 +35,12 @@ Allow 8 bit DNS queries.
 -  Default: 127.0.0.0/8,::1
 
 If set, only these IP addresses or netmasks will be able to perform
-AXFR.
+AXFR without TSIG.
+
+.. warning::
+   This setting only applies to AXFR without TSIG keys. If you allow a TSIG key to perform an AXFR,
+   this setting will not be checked for that transfer, and the client will be able to perform the AXFR
+   from everywhere.
 
 .. _setting-allow-dnsupdate-from:
 
