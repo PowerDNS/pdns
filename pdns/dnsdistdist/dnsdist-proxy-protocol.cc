@@ -22,9 +22,13 @@
 
 #include "dnsdist-proxy-protocol.hh"
 
-bool addProxyProtocol(DNSQuestion& dq)
+std::string getProxyProtocolPayload(const DNSQuestion& dq)
 {
-  auto payload = makeProxyHeader(dq.tcp, *dq.remote, *dq.local, dq.proxyProtocolValues ? *dq.proxyProtocolValues : std::vector<ProxyProtocolValue>());
+  return makeProxyHeader(dq.tcp, *dq.remote, *dq.local, dq.proxyProtocolValues ? *dq.proxyProtocolValues : std::vector<ProxyProtocolValue>());
+}
+
+bool addProxyProtocol(DNSQuestion& dq, const std::string& payload)
+{
   if ((dq.size - dq.len) < payload.size()) {
     return false;
   }
@@ -36,10 +40,14 @@ bool addProxyProtocol(DNSQuestion& dq)
   return true;
 }
 
-bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
+bool addProxyProtocol(DNSQuestion& dq)
 {
-  auto payload = makeProxyHeader(tcp, source, destination, values);
+  auto payload = getProxyProtocolPayload(dq);
+  return addProxyProtocol(dq, payload);
+}
 
+bool addProxyProtocol(std::vector<uint8_t>& buffer, const std::string& payload)
+{
   auto previousSize = buffer.size();
   if (payload.size() > (std::numeric_limits<size_t>::max() - previousSize)) {
     return false;
@@ -50,4 +58,10 @@ bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress
   std::copy(payload.begin(), payload.end(), buffer.begin());
 
   return true;
+}
+
+bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
+{
+  auto payload = makeProxyHeader(tcp, source, destination, values);
+  return addProxyProtocol(buffer, payload);
 }

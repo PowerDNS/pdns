@@ -150,7 +150,7 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect=true): sourceItfName(sourceItfName_), remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort())
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect=true): sourceItfName(sourceItfName_), remote(remote_), idStates(g_maxOutstanding), sourceAddr(sourceAddr_), sourceItf(sourceItf_), name(remote_.toStringWithPort()), nameWithAddr(remote_.toStringWithPort())
 {
   id = getUniqueID();
   threadStarted.clear();
@@ -164,7 +164,6 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
 
   if (connect && !IsAnyAddress(remote)) {
     reconnect();
-    idStates.resize(g_maxOutstanding);
     sw.start();
   }
 }

@@ -23,5 +23,9 @@
 
 #include "dnsdist.hh"
 
+std::string getProxyProtocolPayload(const DNSQuestion& dq);
+
 bool addProxyProtocol(DNSQuestion& dq);
+bool addProxyProtocol(DNSQuestion& dq, const std::string& payload);
+bool addProxyProtocol(std::vector<uint8_t>& buffer, const std::string& payload);
 bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);

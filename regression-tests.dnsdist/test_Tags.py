@@ -3,7 +3,7 @@ import dns
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
-class TestBasics(DNSDistTest):
+class TestTags(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}

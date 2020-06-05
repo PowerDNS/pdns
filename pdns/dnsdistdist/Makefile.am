@@ -159,6 +159,8 @@ dnsdist_SOURCES = \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-systemd.cc dnsdist-systemd.hh \
 	dnsdist-tcp.cc \
+	dnsdist-tcp-downstream.cc dnsdist-tcp-downstream.hh \
+	dnsdist-tcp-upstream.hh \
 	dnsdist-web.cc dnsdist-web.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.cc dnsdist.hh \
@@ -200,6 +202,7 @@ dnsdist_SOURCES = \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	tcpiohandler.cc tcpiohandler.hh \
+	tcpiohandler-mplexer.hh \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
 	views.hh \
