@@ -6,6 +6,7 @@ Please find it `here <https://github.com/PowerDNS/pdns/blob/master/pdns/recursor
 Queries can be intercepted in many places:
 
 -  before any packet parsing begins (:func:`ipfilter`)
+-  before the packet cache has been looked up (:func:`gettag` and its FFI counterpart, :func:`gettag_ffi`)
 -  before any filtering policy have been applied (:func:`prerpz`)
 -  before the resolving logic starts to work (:func:`preresolve`)
 -  after the resolving process failed to find a correct answer for a domain (:func:`nodata`, :func:`nxdomain`)
@@ -99,6 +100,18 @@ Interception Functions
     :param proxyprotocolvalues: Added in 4.4.0, a table of :class:`ProxyProtocolValue` objects representing the Type-Length Values received via the Proxy Protocol, if any.
 
     :return: ``tag`` [``, policyTags`` [``, data`` [``, reqId`` [``, deviceId`` [``, deviceName`` [``, routingTag`` ]]]]]]
+
+.. function:: gettag_ffi(param) -> optional Lua object
+
+    .. versionadded:: 4.1.2
+
+    .. versionchanged:: 4.3.0
+
+      The ability to craft answers was added.
+
+    This function is the FFI counterpart of the :func:`gettag` function, and offers the same functionality.
+    It accepts a single, scalable parameter which can be accessed using FFI accessors.
+    Like the non-FFI version, it has the ability to set a tag for the packetcache, policy tags, a routing tag, the :attr:`DNSQuestion.requestorId` and :attr:`DNSQuestion.deviceId`values and to fill the :attr:`DNSQuestion.data` table. It also offers ways to mark the answer as variable so it's not inserted into the packetcache, to set a cap on the TTL of the returned records, and to generate a response by adding records and setting the RCode. It can also instruct the recursor to do a proper resolution in order to follow any `CNAME` records added in this step.
 
 .. function:: prerpz(dq)
 
