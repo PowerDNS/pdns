@@ -53,7 +53,7 @@ private:
   SSqlStatement::result_t d_result;
 
   SOAData d_SOA_for_list;
-  bool d_send_SOA_first;
+  bool d_send_SOA_first{false};
 
   std::unique_ptr<SSqlStatement>* d_query_stmt;
   std::unique_ptr<SSqlStatement> d_domainIdQuery_stmt;
