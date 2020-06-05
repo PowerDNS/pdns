@@ -42,18 +42,27 @@ bool Connector::send(Json& value) {
  * result. Logging is performed here, too.
  */
 bool Connector::recv(Json& value) {
-    if (recv_message(value)>0) {
-       bool rv = true;
-       // check for error
-       if (value["result"] == Json())
-         return false;
-       if (value["result"].is_bool() && boolFromJson(value, "result", false) == false)
-         rv = false;
-       for(const auto& message: value["log"].array_items())
-         g_log<<Logger::Info<<"[remotebackend]: "<< message.string_value() <<std::endl;
-       return rv;
+  if (recv_message(value) > 0) {
+    bool retval = true;
+    if (value["result"] == Json()) {
+      throw PDNSException("No 'result' field in response from remote process");
+    } else if (value["result"].is_bool() && boolFromJson(value, "result", false) == false) {
+      retval = false;
     }
-    return false;
+    for(const auto& message: value["log"].array_items()) {
+      g_log<<Logger::Info<<"[remotebackend]: "<< message.string_value() <<std::endl;
+    }
+    return retval;
+  }
+  throw PDNSException("Unknown error while receiving data");
+}
+
+void RemoteBackend::makeErrorAndThrow(Json &value) {
+  std::string msg = "Remote process indicated a failure";
+  for(const auto& message: value["log"].array_items()) {
+    msg += " '" + message.string_value() + "'";
+  }
+  throw PDNSException(msg);
 }
 
 /**
@@ -74,29 +83,31 @@ RemoteBackend::RemoteBackend(const std::string &suffix)
 RemoteBackend::~RemoteBackend() { }
 
 bool RemoteBackend::send(Json& value) {
-   try {
-     return connector->send(value);
-   } catch (PDNSException &ex) {
-     g_log<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
-   }
-
-   this->connector.reset();
-   build();
-   return false;
+  try {
+    if (!connector->send(value)) {
+      // XXX does this work work even though we throw?
+      this->connector.reset();
+      build();
+      throw DBException("Could not send a message to remote process");
+    }
+  } catch (const PDNSException &ex) {
+    throw DBException("Exception caught when sending: " + ex.reason);
+  }
+  return true;
 }
 
 bool RemoteBackend::recv(Json& value) {
-   try {
-     return connector->recv(value);
-   } catch (PDNSException &ex) {
-     g_log<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
-   } catch (...) {
-     g_log<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
-   }
-
-   this->connector.reset();
-   build();
-   return false;
+  try {
+    return connector->recv(value);
+  } catch (const PDNSException &ex) {
+    this->connector.reset();
+    build();
+    throw DBException("Exception caught when receiving: " + ex.reason);
+  } catch (const std::exception &e) {
+    this->connector.reset();
+    build();
+    throw DBException("Exception caught when receiving: " + std::string(e.what()));
+  }
 }
 
 
