@@ -2342,7 +2342,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
       if ((qtype == QType::DNSKEY || qtype == QType::DS) && signer == qname) {
         /* we are already retrieving those keys, sorry */
         if (qtype == QType::DS && !signer.isRoot()) {
-          /* Unless we are getting the DS of the root zone, we should never see a 
+          /* Unless we are getting the DS of the root zone, we should never see a
              DS (or a denial of a DS) signed by the DS itself, since we should be
              requesting it from the parent zone. Something is very wrong */
           LOG(d_prefix<<"The DS for "<<qname<<" is signed by itself, going Bogus"<<endl);
