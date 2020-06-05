@@ -1682,7 +1682,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
       }
       if (value.first.getKey()->getBits() < 1) {
-        cerr<<" <key missing or defunct>" <<endl;
+        cout<<" <key missing or defunct>" <<endl;
         continue;
       }
       if (!exportDS) {
@@ -3264,7 +3264,7 @@ try
          return 1;
       }
 
-      cerr << "Key of size " << bits << " created" << std::endl;
+      cerr << "Key of size " << dke->getBits() << " created" << std::endl;
       return 0;
     }
 #else

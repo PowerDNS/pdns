@@ -129,22 +129,23 @@ securezone ()
 	else
 		# check if PKCS#11 should be used
 		if [ "$pkcs11" -eq 1 ]; then
-                  if [ "$slot" == "" ]; then
-                    slot=0
-                  else
-                    slot=$((slot+1))
-                  fi
-                  sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot
-                  kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone ecdsa256 zsk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
-                  kid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
-                  $PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
-                else
-                  $PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
-                  if [ "${zone: 0:20}" = "cdnskey-cds-test.com" ]; then
-                    $PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
-                    $PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
-                  fi
-                fi
+			if [ "$slot" == "" ]; then
+				slot=0
+			else
+				slot=$((slot+1))
+			fi
+			label=pdnstest-${EPOCHSECONDS}-${slot}
+			softhsm2-util --delete-token --label $label 2> /dev/null || true
+			softhsm2-util --init-token --label $label --free --pin 1234 --so-pin 1234
+			kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone ecdsa256 ksk softhsm $label 1234 $label 2>&1 | grep softhsm | awk '{ print $NF }'`
+			$PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
+		else
+			$PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
+		fi
+		if [ "${zone: 0:20}" = "cdnskey-cds-test.com" ]; then
+			$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
+			$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
+		fi
 	fi
 }
 
