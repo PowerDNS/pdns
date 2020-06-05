@@ -82,6 +82,14 @@ Changelogs for 4.2.x
     API: reduce number of database connections (Kees Monshouwer)
 
   .. change::
+    :tags: Bug Fixes
+    :pullreq: 8497
+
+    Clear the caches for the entire zone after a patch operation (was apex only).
+    The default default-api-rectify setting was ignored in patchZone(), rectify only took place when the API-RECTIFY metadata was set to "1".
+    (Kees Monshouwer)
+
+  .. change::
     :tags: Improvements
     :pullreq: 8546
 
