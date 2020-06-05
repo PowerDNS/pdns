@@ -1166,6 +1166,18 @@ void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& q
   }
 }
 
+static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& records)
+{
+  for (const auto record: records) {
+    if (record.d_type == QType::CNAME && record.d_place == DNSResourceRecord::ANSWER) {
+      if (name == record.d_name) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
 {
   string prefix;
@@ -1331,14 +1343,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       }
 
       // Check to see if we already have seen the new target as a previous target
-      for (const auto &rec: ret) {
-        if (rec.d_type == QType::CNAME && rec.d_place == DNSResourceRecord::ANSWER) {
-          if (newTarget == rec.d_name) {
-            string msg = "got a CNAME referral (from cache) that causes a loop";
-            LOG(prefix<<qname<<": status="<<msg<<endl);
-            throw ImmediateServFailException(msg);
-          }
-        }
+      if (scanForCNAMELoop(newTarget, ret)) {
+        string msg = "got a CNAME referral (from cache) that causes a loop";
+        LOG(prefix<<qname<<": status="<<msg<<endl);
+        throw ImmediateServFailException(msg);
       }
 
       set<GetBestNSAnswer>beenthere;
@@ -3365,6 +3373,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if(!newtarget.empty()) {
     if(newtarget == qname) {
       LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
+      ret.clear();
       *rcode = RCode::ServFail;
       return true;
     }
@@ -3376,14 +3385,11 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     }
 
     // Check to see if we already have seen the new target as a previous target
-    for (const auto &record: ret) {
-      if (record.d_type == QType::CNAME && record.d_place == DNSResourceRecord::ANSWER) {
-        if (newtarget == record.d_name) {
-          LOG(prefix<<qname<<": status=got a CNAME referral that causes a loop, returning SERVFAIL"<<endl);
-          *rcode = RCode::ServFail;
-          return true;
-        }
-      }
+    if (scanForCNAMELoop(newtarget, ret)) {
+      LOG(prefix<<qname<<": status=got a CNAME referral that causes a loop, returning SERVFAIL"<<endl);
+      ret.clear();
+      *rcode = RCode::ServFail;
+      return true;
     }
 
     if (qtype == QType::DS) {
