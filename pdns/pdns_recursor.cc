@@ -1431,16 +1431,6 @@ static void startDoResolve(void *p)
       sr.setCacheOnly();
     }
 
-    if (dc->d_rcode != boost::none) {
-      /* we have a response ready to go, most likely from gettag_ffi */
-      ret = std::move(dc->d_records);
-      res = *dc->d_rcode;
-      if (res == RCode::NoError && dc->d_followCNAMERecords) {
-        res = followCNAMERecords(ret, QType(dc->d_mdp.d_qtype));
-      }
-      goto haveAnswer;
-    }
-
     if (t_pdl) {
       t_pdl->prerpz(dq, res);
     }
@@ -1449,6 +1439,21 @@ static void startDoResolve(void *p)
     if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
       if (luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
         mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
+      }
+    }
+
+    // If we are doing RPZ and a policy was matched, it takes precedence over an answer from gettag_ffi
+    // So process the gettag_ffi answer only if no RPZ action was done or matched
+    // This might need more sophistication for the type != None && kind == NoAction case...
+    if (!wantsRPZ || appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
+      if (dc->d_rcode != boost::none) {
+        /* we have a response ready to go, most likely from gettag_ffi */
+        ret = std::move(dc->d_records);
+        res = *dc->d_rcode;
+        if (res == RCode::NoError && dc->d_followCNAMERecords) {
+          res = followCNAMERecords(ret, QType(dc->d_mdp.d_qtype));
+        }
+        goto haveAnswer;
       }
     }
 
