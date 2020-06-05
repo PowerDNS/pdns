@@ -1125,7 +1125,7 @@ BOOST_AUTO_TEST_CASE(test_cname_loop)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_GT(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(count, 2U);
 }
 
