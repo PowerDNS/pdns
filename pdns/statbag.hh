@@ -62,12 +62,17 @@ private:
   string d_help;
 };
 
+enum class StatType : uint8_t {
+  counter = 1,
+  gauge = 2,
+};
 
 //! use this to gather and query statistics
 class StatBag
 {
   map<string, std::unique_ptr<AtomicCounter>> d_stats;
   map<string, string> d_keyDescrips;
+  map<string, StatType> d_statTypes;
   map<string,StatRing<string, CIStringCompare> >d_rings;
   map<string,StatRing<SComboAddress> >d_comboRings;
   map<string,StatRing<std::tuple<DNSName, QType> > >d_dnsnameqtyperings;
@@ -82,8 +87,8 @@ class StatBag
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
   ~StatBag();
-  void declare(const string &key, const string &descrip=""); //!< Before you can store or access a key, you need to declare it
-  void declare(const string &key, const string &descrip, func_t func); //!< Before you can store or access a key, you need to declare it
+  void declare(const string &key, const string &descrip="", StatType statType=StatType::counter); //!< Before you can store or access a key, you need to declare it
+  void declare(const string &key, const string &descrip, func_t func, StatType statType); //!< Before you can store or access a key, you need to declare it
 
   void declareRing(const string &name, const string &title, unsigned int size=10000);
   void declareComboRing(const string &name, const string &help, unsigned int size=10000);
@@ -131,6 +136,7 @@ public:
   string directory(); //!< Returns a list of all data stored
   vector<string> getEntries(); //!< returns a vector with datums (items)
   string getDescrip(const string &item); //!< Returns the description of this datum/item
+  StatType getStatType(const string &item); //!< Returns the stats type for the metrics endpoint
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
   inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one

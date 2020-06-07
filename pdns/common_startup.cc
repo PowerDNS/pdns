@@ -333,9 +333,9 @@ void declareStats(void)
   S.declare("tcp6-queries","Number of IPv6 TCP queries received");
   S.declare("tcp6-answers","Number of IPv6 answers sent out over TCP");
 
-  S.declare("open-tcp-connections","Number of currently open TCP connections", getTCPConnectionCount);;
+  S.declare("open-tcp-connections","Number of currently open TCP connections", getTCPConnectionCount, StatType::gauge);
 
-  S.declare("qsize-q","Number of questions waiting for database attention", getQCount);
+  S.declare("qsize-q","Number of questions waiting for database attention", getQCount, StatType::gauge);
 
   S.declare("dnsupdate-queries", "DNS update packets received.");
   S.declare("dnsupdate-answers", "DNS update packets successfully answered.");
@@ -344,33 +344,33 @@ void declareStats(void)
 
   S.declare("incoming-notifications", "NOTIFY packets received.");
 
-  S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
-  S.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage);
-  S.declare("special-memory-usage", "Actual unique use of memory in bytes (approx)", getSpecialMemoryUsage);
-  S.declare("fd-usage", "Number of open filedescriptors", getOpenFileDescriptors);
+  S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess, StatType::counter);
+  S.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage, StatType::gauge);
+  S.declare("special-memory-usage", "Actual unique use of memory in bytes (approx)", getSpecialMemoryUsage, StatType::gauge);
+  S.declare("fd-usage", "Number of open filedescriptors", getOpenFileDescriptors, StatType::gauge);
 #ifdef __linux__
-  S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats);
-  S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats);
-  S.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats);
-  S.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats);
+  S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats, StatType::counter);
+  S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats, StatType::counter);
+  S.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats, StatType::counter);
+  S.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats, StatType::counter);
 #endif
 
-  S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
-  S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
+  S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec, StatType::counter);
+  S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec, StatType::counter);
 
 #ifdef __linux__
-  S.declare("cpu-iowait", "Time spent waiting for I/O to complete by the whole system, in units of USER_HZ", getCPUIOWait);
-  S.declare("cpu-steal", "Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ", getCPUSteal);
+  S.declare("cpu-iowait", "Time spent waiting for I/O to complete by the whole system, in units of USER_HZ", getCPUIOWait, StatType::counter);
+  S.declare("cpu-steal", "Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ", getCPUSteal, StatType::counter);
 #endif
 
-  S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes);
-  S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes);
-  S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize);
+  S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
+  S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
+  S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize, StatType::gauge);
 
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("latency","Average number of microseconds needed to answer a question", getLatency);
+  S.declare("latency","Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
-  S.declare("security-status", "Security status based on regular polling");
+  S.declare("security-status", "Security status based on regular polling", StatType::gauge);
   S.declareDNSNameQTypeRing("queries","UDP Queries Received");
   S.declareDNSNameQTypeRing("nxdomain-queries","Queries for non-existent records within existent domains");
   S.declareDNSNameQTypeRing("noerror-queries","Queries for existing records, but for type we don't have");

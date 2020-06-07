@@ -97,18 +97,25 @@ string StatBag::getDescrip(const string &item)
   return d_keyDescrips[item];
 }
 
-void StatBag::declare(const string &key, const string &descrip)
+StatType StatBag::getStatType(const string &item)
+{
+  exists(item);
+  return d_statTypes[item];
+}
+
+void StatBag::declare(const string &key, const string &descrip, StatType statType)
 {
   auto i=make_unique<AtomicCounter>(0);
   d_stats[key]=std::move(i);
   d_keyDescrips[key]=descrip;
+  d_statTypes[key]=statType;
 }
 
-void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func)
+void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func, StatType statType)
 {
-
   d_funcstats[key]=func;
   d_keyDescrips[key]=descrip;
+  d_statTypes[key]=statType;
 }
 
           
@@ -237,8 +244,8 @@ vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 
 void StatBag::registerRingStats(const string& name)
 {
-  declare("ring-" + name + "-size", "Number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingEntriesCount(name)); });
-  declare("ring-" + name + "-capacity", "Maximum number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingSize(name)); });
+  declare("ring-" + name + "-size", "Number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingEntriesCount(name)); }, StatType::gauge);
+  declare("ring-" + name + "-capacity", "Maximum number of entries in the " + name + " ring", [this,name](const std::string&) { return static_cast<uint64_t>(getRingSize(name)); }, StatType::gauge);
 }
 
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)

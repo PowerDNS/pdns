@@ -35,7 +35,7 @@ AuthQueryCache::AuthQueryCache(size_t mapsCount): d_maps(mapsCount), d_lastclean
 {
   S.declare("query-cache-hit","Number of hits on the query cache");
   S.declare("query-cache-miss","Number of misses on the query cache");
-  S.declare("query-cache-size", "Number of entries in the query cache");
+  S.declare("query-cache-size", "Number of entries in the query cache", StatType::gauge);
   S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
   S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
 
