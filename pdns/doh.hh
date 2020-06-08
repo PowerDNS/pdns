@@ -97,6 +97,7 @@ struct DOHFrontend
 
   HTTPVersionStats d_http1Stats;
   HTTPVersionStats d_http2Stats;
+  uint32_t d_internalPipeBufferSize{0};
   bool d_sendCacheControlHeaders{true};
   bool d_trustForwardedForHeader{false};
 

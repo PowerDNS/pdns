@@ -638,7 +638,12 @@ try {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
             du->response = std::string(response, responseLen);
-            if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
+            ssize_t sent = write(du->rsock, &du, sizeof(du));
+            if (sent != sizeof(du)) {
+              if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                ++g_stats.dohResponsePipeFull;
+              }
+
               /* at this point we have the only remaining pointer on this
                  DOHUnit object since we did set ids->du to nullptr earlier,
                  except if we got the response before the pointer could be

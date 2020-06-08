@@ -263,6 +263,8 @@ struct DNSDistStats
   stat_t cacheMisses{0};
   stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0}, latencySum{0};
   stat_t securityStatus{0};
+  stat_t dohQueryPipeFull{0};
+  stat_t dohResponsePipeFull{0};
 
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
@@ -315,6 +317,8 @@ struct DNSDistStats
     {"dyn-blocked", &dynBlocked},
     {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }},
     {"security-status", &securityStatus},
+    {"doh-query-pipe-full", &dohQueryPipeFull},
+    {"doh-response-pipe-full", &dohResponsePipeFull},
     // Latency histogram
     {"latency-sum", &latencySum},
     {"latency-count", getLatencyCount},
