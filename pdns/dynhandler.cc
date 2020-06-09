@@ -133,6 +133,7 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   if(parts.size()>1) {
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
+      g_log<<Logger::Warning<<"Cache clear request for '"<<*i<<"' received from operator"<<endl;
       ret+=purgeAuthCaches(*i);
       if(!boost::ends_with(*i, "$"))
         DNSSECKeeper::clearCaches(DNSName(*i));
@@ -141,6 +142,7 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
     }
   }
   else {
+    g_log<<Logger::Warning<<"Cache clear request received from operator"<<endl;
     ret = purgeAuthCaches();
     DNSSECKeeper::clearAllCaches();
   }
@@ -220,6 +222,7 @@ string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
       break;
   if(*p) {
     ::arg().set(parts[1])=parts[2];
+    g_log<<Logger::Warning<<"Configuration change for setting '"<<parts[1]<<"' to value '"<<parts[2]<<"' received from operator"<<endl;
     return "done";
   }
   else
@@ -255,8 +258,10 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
     return "Domain '"+domain.toString()+"' is not a slave domain (or has no master defined)";
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  Communicator.addSuckRequest(domain, di.masters.front()); 
-  return "Added retrieval request for '"+domain.toString()+"' from master "+di.masters.front().toLogString();
+  auto master = di.masters.front();
+  Communicator.addSuckRequest(domain, master);
+  g_log<<Logger::Warning<<"Retrieval request for domain '"<<domain<<"' from master '"<<master<<"' received from operator"<<endl;
+  return "Added retrieval request for '"+domain.toLogString()+"' from master "+master.toLogString();
 }
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
