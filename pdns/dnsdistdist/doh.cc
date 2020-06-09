@@ -31,8 +31,6 @@
 #include "threadname.hh"
 #include "views.hh"
 
-using namespace std;
-
 /* So, how does this work. We use h2o for our http2 and TLS needs.
    If the operator has configured multiple IP addresses to listen on,
    we launch multiple h2o listener threads. We can hook in to multiple
@@ -837,7 +835,7 @@ try
   }
   return 0;
 }
-catch(const exception& e)
+ catch(const std::exception& e)
 {
   errlog("DOH Handler function failed with error %s", e.what());
   return 0;
