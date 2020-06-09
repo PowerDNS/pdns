@@ -98,7 +98,7 @@ Default: "".
 
 Prepare statements for better performance, instead of sending parameterized queries.
 Might not work with connection poolers.
-Default: yes.
+Default: no (in 4.3.x; defaults to yes in 4.4.0 and newer)
 
 .. versionadded:: 4.3.1
 

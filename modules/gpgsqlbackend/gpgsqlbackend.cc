@@ -88,7 +88,7 @@ public:
     declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"password","Database backend password to connect with","");
     declare(suffix,"extra-connection-parameters", "Extra parameters to add to connection string","");
-    declare(suffix,"prepared-statements", "Use prepared statements instead of parameterized queries", "yes");
+    declare(suffix,"prepared-statements", "Use prepared statements instead of parameterized queries", "no");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 
