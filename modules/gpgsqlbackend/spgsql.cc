@@ -82,9 +82,9 @@ public:
       d_dtime.set();
     }
     if (!d_stmt.empty()) {
-      d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
+      d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, nullptr, 0);
     } else {
-      d_res_set = PQexecParams(d_db(), d_query.c_str(), d_nparams, NULL, paramValues, paramLengths, NULL, 0);
+      d_res_set = PQexecParams(d_db(), d_query.c_str(), d_nparams, nullptr, paramValues, paramLengths, nullptr, 0);
     }
     ExecStatusType status = PQresultStatus(d_res_set);
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
@@ -225,7 +225,7 @@ private:
     if (d_parent->usePrepared()) {
       // prepare a statement; name must be unique per session (using d_nstatement to ensure this).
       this->d_stmt = string("stmt") + std::to_string(d_nstatement);
-      PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
+      PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, nullptr);
       ExecStatusType status = PQresultStatus(res);
       string errmsg(PQresultErrorMessage(res));
       PQclear(res);
