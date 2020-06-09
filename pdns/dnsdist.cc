@@ -638,6 +638,7 @@ try {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
             du->response = std::string(response, responseLen);
+            static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
             ssize_t sent = write(du->rsock, &du, sizeof(du));
             if (sent != sizeof(du)) {
               if (errno == EAGAIN || errno == EWOULDBLOCK) {

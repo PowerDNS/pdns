@@ -241,6 +241,7 @@ void handleDOHTimeout(DOHUnit* oldDU)
   /* increase the ref counter before sending the pointer */
   oldDU->get();
 
+  static_assert(sizeof(oldDU) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
   ssize_t sent = write(oldDU->rsock, &oldDU, sizeof(oldDU));
   if (sent != sizeof(oldDU)) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -458,6 +459,7 @@ static int processDOHQuery(DOHUnit* du)
       /* increase the ref counter before sending the pointer */
       du->get();
 
+      static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
       ssize_t sent = write(du->rsock, &du, sizeof(du));
       if (sent != sizeof(du)) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -670,6 +672,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     auto ptr = du.release();
     *(ptr->self) = ptr;
     try  {
+      static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
       ssize_t sent = write(dsc->dohquerypair[0], &ptr, sizeof(ptr));
       if (sent != sizeof(ptr)) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -1047,6 +1050,8 @@ static void dnsdistclient(int qsock)
         du->status_code = 500;
         /* increase the ref count before sending the pointer */
         du->get();
+
+        static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
         ssize_t sent = write(du->rsock, &du, sizeof(du));
         if (sent != sizeof(du)) {
           if (errno == EAGAIN || errno == EWOULDBLOCK) {
