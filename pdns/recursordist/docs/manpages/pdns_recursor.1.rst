@@ -90,7 +90,7 @@ at `<https://doc.powerdns.com/>`
     Maximum number of simultaneous TCP clients.
 --max-tcp-per-client=<num>
     If set, maximum number of TCP sessions per client (IP address).
---query-local-address=<address>[,address...]
+--query-local-address=<address[,address...]>
     Use *address* as Source IP address when sending queries.
 --quiet
     Suppress logging of questions and answers.
