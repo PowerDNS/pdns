@@ -137,7 +137,7 @@ securezone ()
 			label=pdnstest-${EPOCHSECONDS}-${slot}
 			softhsm2-util --delete-token --label $label 2> /dev/null || true
 			softhsm2-util --init-token --label $label --free --pin 1234 --so-pin 1234
-			kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone ecdsa256 ksk softhsm $label 1234 $label 2>&1 | grep softhsm | awk '{ print $NF }'`
+			kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone ecdsa256 ksk softhsm2 $label 1234 $label 2>&1 | grep softhsm | awk '{ print $NF }'`
 			$PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
 		else
 			$PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
