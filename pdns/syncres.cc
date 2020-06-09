@@ -1168,7 +1168,7 @@ void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& q
 
 static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& records)
 {
-  for (const auto record: records) {
+  for (const auto& record: records) {
     if (record.d_type == QType::CNAME && record.d_place == DNSResourceRecord::ANSWER) {
       if (name == record.d_name) {
         return true;
