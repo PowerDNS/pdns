@@ -33,6 +33,8 @@ A simple ``GET`` request will return a response similar to the following:
 
 .. http:get:: /metrics
 
+::
+
   HTTP/1.1 200 OK
   Connection: close
   Content-Length: 12044
