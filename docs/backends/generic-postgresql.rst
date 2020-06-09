@@ -91,6 +91,17 @@ parameters are documented `in the PostgreSQL
 documentation <https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-PARAMKEYWORDS>`__.
 Default: "".
 
+.. _setting-gpgsql-prepared-statements:
+
+``gpgsql-prepared-statements``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Prepare statements for better performance, instead of sending parameterized queries.
+Might not work with connection poolers.
+Default: yes.
+
+.. versionadded:: 4.4.0
+
 Default schema
 --------------
 

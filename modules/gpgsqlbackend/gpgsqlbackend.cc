@@ -40,11 +40,12 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
 {
   try {
     setDB(new SPgSQL(getArg("dbname"),
-        	  getArg("host"),
-        	  getArg("port"),
-        	  getArg("user"),
-        	  getArg("password"),
-        	  getArg("extra-connection-parameters")));
+                     getArg("host"),
+                     getArg("port"),
+                     getArg("user"),
+                     getArg("password"),
+                     getArg("extra-connection-parameters"),
+                     mustDo("prepared-statements")));
   }
 
   catch(SSqlException &e) {
@@ -87,6 +88,7 @@ public:
     declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"password","Database backend password to connect with","");
     declare(suffix,"extra-connection-parameters", "Extra parameters to add to connection string","");
+    declare(suffix,"prepared-statements", "Use prepared statements instead of parameterized queries", "yes");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 

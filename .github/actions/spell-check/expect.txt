@@ -1468,6 +1468,7 @@ policykinds
 policyname
 pollmplexer
 Ponomarev
+poolers
 poolname
 portnum
 portnumber
