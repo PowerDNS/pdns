@@ -1443,9 +1443,9 @@ static void startDoResolve(void *p)
     }
 
     // If we are doing RPZ and a policy was matched, it normally takes precedence over an answer from gettag.
-    // So process the gettag_ffi answer only if no RPZ action was done or matched or the policy indicates gettag should
+    // So process the gettag_ffi answer only if no RPZ action was matched or the policy indicates gettag should
     // have precedence.
-    if (!wantsRPZ || !appliedPolicy.policyOverridesGettag() || appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
+    if (!wantsRPZ || !appliedPolicy.policyOverridesGettag() || appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
       if (dc->d_rcode != boost::none) {
         /* we have a response ready to go, most likely from gettag_ffi */
         ret = std::move(dc->d_records);

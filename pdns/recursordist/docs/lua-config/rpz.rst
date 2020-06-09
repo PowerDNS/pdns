@@ -117,7 +117,7 @@ overridesGettag
 .. versionadded:: 4.4.0
 
 `gettag_ffi` can set an answer to a query.
-By default an RPZ hit overrides this answer, unless the policy is `rpz-passthru` or this option is set to `false`.
+By default an RPZ hit overrides this answer, unless this option is set to `false`.
 The default is `true`.
 
 zoneSizeHint
