@@ -2555,10 +2555,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
-  for(const auto& rec : lwr.d_records) {
-    if (rec.d_class != QClass::IN) {
+  for (auto& rec : lwr.d_records) {
+    if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
       continue;
     }
+
+    rec.d_ttl = min(s_maxcachettl, rec.d_ttl);
 
     if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname && !isDNAMEAnswer) {
       isCNAMEAnswer = true;
@@ -2582,7 +2584,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         }
       }
     }
-    if(rec.d_type == QType::RRSIG) {
+    if (rec.d_type == QType::RRSIG) {
       auto rrsig = getRR<RRSIGRecordContent>(rec);
       if (rrsig) {
         /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
