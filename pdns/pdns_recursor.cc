@@ -179,6 +179,7 @@ struct RecThreadInfo
   bool isListener{false};
   /* process queries */
   bool isWorker{false};
+  int exitCode{0};
 };
 
 /* first we have the handler thread, t_id == 0 (some other
@@ -4128,6 +4129,8 @@ static void checkSocketDir(void)
 
 static int serviceMain(int argc, char*argv[])
 {
+  int ret = EXIT_SUCCESS;
+
   g_log.setName(s_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
@@ -4644,6 +4647,9 @@ static int serviceMain(int argc, char*argv[])
     recursorThread(currentThreadId++, "worker");
     
     handlerInfos.thread.join();
+    if (handlerInfos.exitCode != 0) {
+      ret = handlerInfos.exitCode;
+    }
   }
   else {
 
@@ -4688,13 +4694,16 @@ static int serviceMain(int argc, char*argv[])
 
     for (auto & ti : s_threadInfos) {
       ti.thread.join();
+      if (ti.exitCode != 0) {
+        ret = ti.exitCode;
+      }
     }
   }
 
 #ifdef HAVE_PROTOBUF
   google::protobuf::ShutdownProtobufLibrary();
 #endif /* HAVE_PROTOBUF */
-  return 0;
+  return ret;
 }
 
 static void* recursorThread(unsigned int n, const string& threadName)
@@ -4714,7 +4723,9 @@ try
 
   if (threadInfo.isHandler) {
     if (!primeHints()) {
-      throw PDNSException("Priming cache failed, stopping");
+      threadInfo.exitCode = EXIT_FAILURE;
+      g_log<<Logger::Critical<<"Priming cache failed, stopping"<<endl;
+      return nullptr;
     }
     g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
   }
@@ -5228,7 +5239,7 @@ int main(int argc, char **argv)
     g_log.setLoglevel(logUrgency);
     g_log.toConsole(logUrgency);
 
-    serviceMain(argc, argv);
+    ret = serviceMain(argc, argv);
   }
   catch(PDNSException &ae) {
     g_log<<Logger::Error<<"Exception: "<<ae.reason<<endl;
