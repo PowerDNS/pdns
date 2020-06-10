@@ -64,7 +64,7 @@ try {
 
   PcapPacketReader pr(argv[1]);
 
-  FILE* fp = fopen(argv[2], "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(argv[2], "w"), fclose);
   if (!fp) {
     cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror()<<endl;
     exit(EXIT_FAILURE);
@@ -149,17 +149,14 @@ try {
       message.serialize(str);
 
       uint16_t mlen = htons(str.length());
-      fwrite(&mlen, 1, sizeof(mlen), fp);
-      fwrite(str.c_str(), 1, str.length(), fp);
+      fwrite(&mlen, 1, sizeof(mlen), fp.get());
+      fwrite(str.c_str(), 1, str.length(), fp.get());
     }
   }
   catch (const std::exception& e) {
     cerr<<"Error while parsing the PCAP file: "<<e.what()<<endl;
-    fclose(fp);
     exit(EXIT_FAILURE);
   }
-
-  fclose(fp);
 }
 catch(const std::exception& e) {
   cerr<<"Error opening PCAP file: "<<e.what()<<endl;
