@@ -638,7 +638,17 @@ try {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
             du->response = std::string(response, responseLen);
-            if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
+            static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+            ssize_t sent = write(du->rsock, &du, sizeof(du));
+            if (sent != sizeof(du)) {
+              if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                ++g_stats.dohResponsePipeFull;
+                vinfolog("Unable to pass a DoH response to the DoH worker thread because the pipe is full");
+              }
+              else {
+                vinfolog("Unable to pass a DoH response to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+              }
+
               /* at this point we have the only remaining pointer on this
                  DOHUnit object since we did set ids->du to nullptr earlier,
                  except if we got the response before the pointer could be

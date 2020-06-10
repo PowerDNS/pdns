@@ -88,6 +88,8 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "dyn-blocked",            MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a dynamic block")},
   { "dyn-block-nmg-size",     MetricDefinition(PrometheusMetricType::gauge,   "Number of dynamic blocks entries") },
   { "security-status",        MetricDefinition(PrometheusMetricType::gauge,   "Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory") },
+  { "doh-query-pipe-full",    MetricDefinition(PrometheusMetricType::counter, "Number of DoH queries dropped because the internal pipe used to distribute queries was full") },
+  { "doh-response-pipe-full", MetricDefinition(PrometheusMetricType::counter, "Number of DoH responses dropped because the internal pipe used to distribute responses was full") },
   { "udp-in-errors",          MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp InErrors") },
   { "udp-noport-errors",      MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp NoPorts") },
   { "udp-recvbuf-errors",     MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp RcvbufErrors") },

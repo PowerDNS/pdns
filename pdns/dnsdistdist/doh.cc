@@ -41,11 +41,11 @@
    dnsdist worker thread which we also launched.
 
    This dnsdist worker thread injects the query into the normal dnsdist flow
-   (as a datagram over a socketpair). The response also goes back over a
-   (different) socketpair, where we pick it up and deliver it back to h2o.
+   (over a pipe). The response also goes back over a (different) pipe,
+   where we pick it up and deliver it back to h2o.
 
    For coordination, we use the h2o socket multiplexer, which is sensitive to our
-   socketpair too.
+   pipe too.
 */
 
 /* h2o notes.
@@ -173,17 +173,35 @@ private:
 // through the bowels of h2o
 struct DOHServerConfig
 {
-  DOHServerConfig(uint32_t idleTimeout): accept_ctx(new DOHAcceptContext)
+  DOHServerConfig(uint32_t idleTimeout, uint32_t internalPipeBufferSize): accept_ctx(new DOHAcceptContext)
   {
-    if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, dohquerypair) < 0) {
-      unixDie("Creating a socket pair for DNS over HTTPS");
+    int fd[2];
+    if (pipe(fd) < 0) {
+      unixDie("Creating a pipe for DNS over HTTPS");
     }
+    dohquerypair[0] = fd[1];
+    dohquerypair[1] = fd[0];
 
-    if (socketpair(AF_LOCAL, SOCK_DGRAM, 0, dohresponsepair) < 0) {
+    if (pipe(fd) < 0) {
       close(dohquerypair[0]);
       close(dohquerypair[1]);
-      unixDie("Creating a socket pair for DNS over HTTPS");
+      unixDie("Creating a pipe for DNS over HTTPS");
     }
+
+    dohresponsepair[0] = fd[1];
+    dohresponsepair[1] = fd[0];
+
+    setNonBlocking(dohquerypair[0]);
+    if (internalPipeBufferSize > 0) {
+      setPipeBufferSize(dohquerypair[0], internalPipeBufferSize);
+    }
+
+    setNonBlocking(dohresponsepair[0]);
+    if (internalPipeBufferSize > 0) {
+      setPipeBufferSize(dohresponsepair[0], internalPipeBufferSize);
+    }
+
+    setNonBlocking(dohresponsepair[1]);
 
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
@@ -220,9 +238,21 @@ void handleDOHTimeout(DOHUnit* oldDU)
 
   /* increase the ref counter before sending the pointer */
   oldDU->get();
-  if (send(oldDU->rsock, &oldDU, sizeof(oldDU), 0) != sizeof(oldDU)) {
+
+  static_assert(sizeof(oldDU) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+  ssize_t sent = write(oldDU->rsock, &oldDU, sizeof(oldDU));
+  if (sent != sizeof(oldDU)) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      ++g_stats.dohResponsePipeFull;
+      vinfolog("Unable to pass a DoH timeout to the DoH worker thread because the pipe is full");
+    }
+    else {
+      vinfolog("Unable to pass a DoH timeout to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+    }
+
     oldDU->release();
   }
+
   oldDU->release();
   oldDU = nullptr;
 }
@@ -430,7 +460,18 @@ static int processDOHQuery(DOHUnit* du)
       }
       /* increase the ref counter before sending the pointer */
       du->get();
-      if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
+
+      static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+      ssize_t sent = write(du->rsock, &du, sizeof(du));
+      if (sent != sizeof(du)) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          ++g_stats.dohResponsePipeFull;
+          vinfolog("Unable to pass a DoH self-answered response to the DoH worker thread because the pipe is full");
+        }
+        else {
+          vinfolog("Unable to pass a DoH self-answered to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+        }
+
         du->release();
       }
       return 0;
@@ -637,7 +678,16 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     auto ptr = du.release();
     *(ptr->self) = ptr;
     try  {
-      if(send(dsc->dohquerypair[0], &ptr, sizeof(ptr), 0) != sizeof(ptr)) {
+      static_assert(sizeof(ptr) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+      ssize_t sent = write(dsc->dohquerypair[0], &ptr, sizeof(ptr));
+      if (sent != sizeof(ptr)) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          ++g_stats.dohQueryPipeFull;
+          vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
+        }
+        else {
+          vinfolog("Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+        }
         ptr->release();
         ptr = nullptr;
         h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
@@ -715,7 +765,14 @@ try
   h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
   ComboAddress remote;
   ComboAddress local;
-  h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
+
+  if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
+    /* getpeername failed, likely because the connection has already been closed,
+       but anyway that means we can't get the remote address, which could allow an ACL bypass */
+    h2o_send_error_500(req, getReasonFromStatusCode(500).c_str(), "Internal Server Error - Unable to get remote address", 0);
+    return 0;
+  }
+
   h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
 
@@ -966,14 +1023,14 @@ void DOHUnit::setHTTPResponse(uint16_t statusCode, const std::string& body_, con
 /* query has been parsed by h2o, which called doh_handler() in the main DoH thread.
    In order not to blockfor long, doh_handler() called doh_dispatch_query() which allocated
    a DOHUnit object and passed it to us */
-static void dnsdistclient(int qsock, int rsock)
+static void dnsdistclient(int qsock)
 {
   setThreadName("dnsdist/doh-cli");
 
   for(;;) {
     try {
       DOHUnit* du = nullptr;
-      ssize_t got = recv(qsock, &du, sizeof(du), 0);
+      ssize_t got = read(qsock, &du, sizeof(du));
       if (got < 0) {
         warnlog("Error receiving internal DoH query: %s", strerror(errno));
         continue;
@@ -986,7 +1043,7 @@ static void dnsdistclient(int qsock, int rsock)
       // so we can use UDP to talk to the backend.
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.c_str()));
 
-      if(!dh->arcount) {
+      if (!dh->arcount) {
         std::string res;
         generateOptRR(std::string(), res, 4096, 0, false);
 
@@ -999,12 +1056,24 @@ static void dnsdistclient(int qsock, int rsock)
         // we leave existing EDNS in place
       }
 
-      if(processDOHQuery(du) < 0) {
+      if (processDOHQuery(du) < 0) {
         du->status_code = 500;
         /* increase the ref count before sending the pointer */
         du->get();
-        if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
-          du->release();     // XXX but now what - will h2o time this out for us?
+
+        static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+        ssize_t sent = write(du->rsock, &du, sizeof(du));
+        if (sent != sizeof(du)) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            ++g_stats.dohResponsePipeFull;
+            vinfolog("Unable to pass a DoH internal error to the DoH worker thread because the pipe is full");
+          }
+          else {
+            vinfolog("Unable to pass a DoH internal error to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+          }
+
+          // XXX but now what - will h2o time this out for us?
+          du->release();
         }
       }
       du->release();
@@ -1029,7 +1098,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
   DOHUnit *du = nullptr;
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
-  ssize_t got = recv(dsc->dohresponsepair[1], &du, sizeof(du), 0);
+  ssize_t got = read(dsc->dohresponsepair[1], &du, sizeof(du));
 
   if (got < 0) {
     warnlog("Error reading a DOH internal response: %s", strerror(errno));
@@ -1039,7 +1108,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if(!du->req) { // it got killed in flight
+  if (!du->req) { // it got killed in flight
 //    cout << "du "<<(void*)du<<" came back from dnsdist, but it was killed"<<endl;
     du->release();
     return;
@@ -1233,7 +1302,7 @@ void DOHFrontend::setup()
 {
   registerOpenSSLUser();
 
-  d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
+  d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout, d_internalPipeBufferSize);
 
   if  (!d_tlsConfig.d_certKeyPairs.empty()) {
     try {
@@ -1258,7 +1327,7 @@ try
   dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
 
 
-  std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
+  std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1]);
   dnsdistThread.detach(); // gets us better error reporting
 
   setThreadName("dnsdist/doh");

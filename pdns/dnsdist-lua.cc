@@ -1936,6 +1936,10 @@ static void setupLuaConfig(bool client, bool configCheck)
         frontend->d_trustForwardedForHeader = boost::get<bool>((*vars)["trustForwardedForHeader"]);
       }
 
+      if (vars->count("internalPipeBufferSize")) {
+        frontend->d_internalPipeBufferSize = boost::get<int>((*vars)["internalPipeBufferSize"]);
+      }
+
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);

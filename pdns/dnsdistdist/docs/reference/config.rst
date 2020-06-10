@@ -113,7 +113,7 @@ Listen Sockets
   .. versionadded:: 1.4.0
 
   .. versionchanged:: 1.5.0
-    ``sendCacheControlHeaders``, ``sessionTimeout``, ``trustForwardedForHeader`` options added.
+    ``internalPipeBufferSize``, ``sendCacheControlHeaders``, ``sessionTimeout``, ``trustForwardedForHeader`` options added.
     ``url`` now defaults to ``/dns-query`` instead of ``/``. Added ``tcpListenQueueSize`` parameter.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
@@ -150,6 +150,7 @@ Listen Sockets
   * ``sendCacheControlHeaders``: bool - Whether to parse the response to find the lowest TTL and set a HTTP Cache-Control header accordingly. Default is true.
   * ``trustForwardedForHeader``: bool - Whether to parse any existing X-Forwarded-For header in the HTTP query and use the right-most value as the client source address and port, for ACL checks, rules, logging and so on. Default is false.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
+  * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 

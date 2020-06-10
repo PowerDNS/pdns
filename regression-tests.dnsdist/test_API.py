@@ -236,7 +236,8 @@ class TestAPIBasics(DNSDistTest):
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
                     'dyn-block-nmg-size', 'rule-servfail', 'security-status',
-                    'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors']
+                    'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
+                    'doh-query-pipe-full', 'doh-response-pipe-full']
 
         for key in expected:
             self.assertIn(key, values)
