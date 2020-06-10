@@ -59,7 +59,10 @@ Should Carbon not be the preferred way of receiving metric, several other techni
 
 Using the Webserver
 ^^^^^^^^^^^^^^^^^^^
-The :doc:`API <http-api/index>` exposes a statistics endpoint at :http:get:`/api/v1/servers/:server_id/statistics`.
+The :doc:`API <http-api/index>` exposes a statistics endpoint at
+
+.. http:get:: /api/v1/servers/:server_id/statistics
+              
 This endpoint exports all statistics in a single JSON document.
 
 Using ``rec_control``
@@ -252,7 +255,8 @@ number of outgoing queries dropped because of   :ref:`setting-dont-query` settin
 qname-min-fallback-success
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.3.0
-number of successful queries due to fallback mechanism within :ref:`qname-minimization` setting.
+
+number of successful queries due to fallback mechanism within :ref:`setting-qname-minimization` setting.
 
 ecs-queries
 ^^^^^^^^^^^
