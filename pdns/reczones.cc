@@ -42,7 +42,7 @@ static void insertIntoRootNSZones(const DNSName &name) {
   }
 }
 
-void primeHints(void)
+bool primeHints(void)
 {
   // prime root cache
   const vState validationState = Insecure;
@@ -121,22 +121,22 @@ void primeHints(void)
       }
     }
     if (SyncRes::s_doIPv4 && !SyncRes::s_doIPv6 && !reachableA) {
-      g_log<<Logger::Critical<<"Running IPv4 only but no IPv4 root hints, stopping"<<endl;
-      // XXX exit() trips an exception in ~ThreadInfo, to be investigated
-      _exit(99);
+      g_log<<Logger::Error<<"Running IPv4 only but no IPv4 root hints"<<endl;
+      return false;
     }
     if (!SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableAAAA) {
-      g_log<<Logger::Critical<<"Running IPv6 only but no IPv6 root hints, stopping"<<endl;
-      _exit(99);
+      g_log<<Logger::Error<<"Running IPv6 only but no IPv6 root hints"<<endl;
+      return false;
     }
     if (SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableA && !reachableAAAA) {
-      g_log<<Logger::Critical<<"No valid root hints, stopping"<<endl;
-      _exit(99);
+      g_log<<Logger::Error<<"No valid root hints"<<endl;
+      return false;
     }
   }
 
   s_RC->doWipeCache(g_rootdnsname, false, QType::NS);
   s_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, boost::none, boost::none, validationState); // and stuff in the cache
+  return true;
 }
 
 

@@ -1108,7 +1108,7 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false, uint16_t qty
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype=0xffff);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-void primeHints(void);
+bool primeHints(void);
 void primeRootNSZones(bool, unsigned int depth);
 
 extern __thread struct timeval g_now;

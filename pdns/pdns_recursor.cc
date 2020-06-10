@@ -4711,8 +4711,11 @@ try
   t_allowFrom = g_initialAllowFrom;
   t_udpclientsocks = std::unique_ptr<UDPClientSocks>(new UDPClientSocks());
   t_tcpClientCounts = std::unique_ptr<tcpClientCounts_t>(new tcpClientCounts_t());
+
   if (threadInfo.isHandler) {
-    primeHints();
+    if (!primeHints()) {
+      throw PDNSException("Priming cache failed, stopping");
+    }
     g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
   }
 
