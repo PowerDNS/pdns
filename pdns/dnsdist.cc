@@ -643,6 +643,10 @@ try {
             if (sent != sizeof(du)) {
               if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 ++g_stats.dohResponsePipeFull;
+                vinfolog("Unable to pass a DoH response to the DoH worker thread because the pipe is full");
+              }
+              else {
+                vinfolog("Unable to pass a DoH response to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
               }
 
               /* at this point we have the only remaining pointer on this

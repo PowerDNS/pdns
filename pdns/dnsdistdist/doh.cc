@@ -246,6 +246,10 @@ void handleDOHTimeout(DOHUnit* oldDU)
   if (sent != sizeof(oldDU)) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       ++g_stats.dohResponsePipeFull;
+      vinfolog("Unable to pass a DoH timeout to the DoH worker thread because the pipe is full");
+    }
+    else {
+      vinfolog("Unable to pass a DoH timeout to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
     }
 
     oldDU->release();
@@ -464,6 +468,10 @@ static int processDOHQuery(DOHUnit* du)
       if (sent != sizeof(du)) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
           ++g_stats.dohResponsePipeFull;
+          vinfolog("Unable to pass a DoH self-answered response to the DoH worker thread because the pipe is full");
+        }
+        else {
+          vinfolog("Unable to pass a DoH self-answered to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
         }
 
         du->release();
@@ -677,6 +685,10 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
       if (sent != sizeof(ptr)) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
           ++g_stats.dohQueryPipeFull;
+          vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
+        }
+        else {
+          vinfolog("Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
         }
         ptr->release();
         ptr = nullptr;
@@ -1056,6 +1068,10 @@ static void dnsdistclient(int qsock)
         if (sent != sizeof(du)) {
           if (errno == EAGAIN || errno == EWOULDBLOCK) {
             ++g_stats.dohResponsePipeFull;
+            vinfolog("Unable to pass a DoH internal error to the DoH worker thread because the pipe is full");
+          }
+          else {
+            vinfolog("Unable to pass a DoH internal error to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
           }
 
           // XXX but now what - will h2o time this out for us?
