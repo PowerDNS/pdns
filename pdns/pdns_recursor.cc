@@ -4166,7 +4166,7 @@ static int serviceMain(int argc, char*argv[])
     g_log<<Logger::Warning<<"Enabling IPv4 transport for outgoing queries"<<endl;
   }
   else {
-    g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable"<<endl;
+    g_log<<Logger::Warning<<"NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable"<<endl;
   }
 
 
@@ -4176,6 +4176,11 @@ static int serviceMain(int argc, char*argv[])
   }
   else {
     g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable"<<endl;
+  }
+
+  if (!(SyncRes::s_doIPv6 && SyncRes::s_doIPv4)) {
+    g_log<<Logger::Error<<"No outgoing addresses specified! Can not continue"<<endl;
+    exit(99);
   }
 
   // keep this ABOVE loadRecursorLuaConfig!

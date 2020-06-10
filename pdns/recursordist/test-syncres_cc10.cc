@@ -106,8 +106,6 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v6_only_no_AAAA_in_delegation)
 
   const DNSName target("powerdns.com.");
   sr->setAsyncCallback([target, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-    cout<<ip.toString()<<endl;
-    cout<<domain<<"|"<<type<<endl;
     queries++;
     if (isRootServer(ip)) {
       setLWResult(res, 0, false, false, true);
