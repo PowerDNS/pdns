@@ -19,6 +19,8 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
     queries++;
     if (isRootServer(ip)) {
       setLWResult(res, 0, false, false, true);
+      v4Hit |= ip.isIPv4();
+      v6Hit |= ip.isIPv6();
 
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
@@ -29,7 +31,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
     }
     else if (ip == ComboAddress("192.0.2.1:53")) {
       setLWResult(res, 0, true, false, false);
-      v4Hit = true;
+      v4Hit |= true;
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::A, "192.0.2.2");
       }
@@ -37,7 +39,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
     }
     else if (ip == ComboAddress("[2001:DB8:1::53]:53")) {
       setLWResult(res, 0, true, false, false);
-      v6Hit = true;
+      v6Hit |= true;
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::A, "192.0.2.2");
       }

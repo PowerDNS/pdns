@@ -4178,8 +4178,8 @@ static int serviceMain(int argc, char*argv[])
     g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable"<<endl;
   }
 
-  if (!(SyncRes::s_doIPv6 && SyncRes::s_doIPv4)) {
-    g_log<<Logger::Error<<"No outgoing addresses specified! Can not continue"<<endl;
+  if (!SyncRes::s_doIPv6 && !SyncRes::s_doIPv4) {
+    g_log<<Logger::Error<<"No outgoing addresses configured! Can not continue"<<endl;
     exit(99);
   }
 
