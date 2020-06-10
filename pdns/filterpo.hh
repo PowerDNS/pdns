@@ -80,6 +80,7 @@ public:
     std::unordered_set<std::string> d_tags;
     std::string d_name;
     Priority d_priority{maximumPriority};
+    bool d_policyOverridesGettag{true};
   };
 
   struct Policy
@@ -139,6 +140,13 @@ public:
       return notSet;
     }
 
+    bool policyOverridesGettag() const {
+      if (d_zoneData) {
+        return d_zoneData->d_policyOverridesGettag;
+      }
+      return true;
+    }
+
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
@@ -190,6 +198,10 @@ public:
     void setTags(std::unordered_set<std::string>&& tags)
     {
       d_zoneData->d_tags = std::move(tags);
+    }
+    void setPolicyOverridesGettag(bool flag)
+    {
+      d_zoneData->d_policyOverridesGettag = flag;
     }
     const std::string& getName() const
     {
@@ -262,6 +274,7 @@ public:
     void setPriority(Priority p) {
       d_zoneData->d_priority = p;
     }
+    
   private:
     static DNSName maskToRPZ(const Netmask& nm);
     static bool findExactNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol);
