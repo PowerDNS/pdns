@@ -19,26 +19,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include <boost/format.hpp>
+#include <sstream>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <thread>
+
+#include "ext/incbin/incbin.h"
+#include "ext/json11/json11.hpp"
+#include <yahttp/yahttp.hpp>
+
+#include "base64.hh"
 #include "dnsdist.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-prometheus.hh"
-
-#include "sstuff.hh"
-#include "ext/json11/json11.hpp"
-#include "ext/incbin/incbin.h"
+#include "dnsdist-web.hh"
 #include "dolog.hh"
-#include <thread>
-#include "threadname.hh"
-#include <sstream>
-#include <yahttp/yahttp.hpp>
-#include "namespaces.hh"
-#include <sys/time.h>
-#include <sys/resource.h>
-#include "ext/incbin/incbin.h"
-#include "htmlfiles.h"
-#include "base64.hh"
 #include "gettime.hh"
-#include  <boost/format.hpp>
+#include "htmlfiles.h"
+#include "threadname.hh"
+#include "sstuff.hh"
 
 bool g_apiReadWrite{false};
 WebserverConfig g_webserverConfig;
@@ -219,6 +220,12 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
     }
   }
   return false;
+}
+
+static bool isClientAllowedByACL(const ComboAddress& remote)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+  return g_webserverConfig.acl.match(remote);
 }
 
 static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -1226,6 +1233,14 @@ void setWebserverPassword(const std::string& password)
   g_webserverConfig.password = password;
 }
 
+void setWebserverACL(const std::string& acl)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.acl.clear();
+  g_webserverConfig.acl.toMasks(acl);
+}
+
 void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
 {
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
@@ -1237,15 +1252,21 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
   setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
+
   for(;;) {
     try {
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);
-      vinfolog("Got connection from %s", remote.toStringWithPort());
+      if (!isClientAllowedByACL(remote)) {
+        vinfolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort());
+        close(fd);
+        continue;
+      }
+      vinfolog("Got a connection to the webserver from %s", remote.toStringWithPort());
       std::thread t(connectionThread, fd, remote);
       t.detach();
     }
-    catch(std::exception& e) {
+    catch (const std::exception& e) {
       errlog("Had an error accepting new webserver connection: %s", e.what());
     }
   }

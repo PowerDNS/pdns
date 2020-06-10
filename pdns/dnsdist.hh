@@ -1094,19 +1094,6 @@ struct dnsheader;
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
-struct WebserverConfig
-{
-  std::string password;
-  std::string apiKey;
-  boost::optional<std::map<std::string, std::string> > customHeaders;
-  std::mutex lock;
-};
-
-void setWebserverAPIKey(const boost::optional<std::string> apiKey);
-void setWebserverPassword(const std::string& password);
-void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders);
-
-void dnsdistWebserverThread(int sock, const ComboAddress& local);
 void tcpAcceptorThread(void* p);
 #ifdef HAVE_DNS_OVER_HTTPS
 void dohThread(ClientState* cs);

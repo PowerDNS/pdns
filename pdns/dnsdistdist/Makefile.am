@@ -159,7 +159,7 @@ dnsdist_SOURCES = \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-systemd.cc dnsdist-systemd.hh \
 	dnsdist-tcp.cc \
-	dnsdist-web.cc \
+	dnsdist-web.cc dnsdist-web.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
