@@ -5,7 +5,8 @@ import struct
 import threading
 import time
 import clientsubnetoption
-from recursortests import RecursorTest
+import unittest
+from recursortests import RecursorTest, have_ipv6
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
@@ -73,7 +74,7 @@ disable-syslog=yes
             reactor.listenUDP(port, UDPECSResponder(), interface=address)
             ecsReactorRunning = True
 
-        if not ecsReactorv6Running:
+        if not ecsReactorv6Running and have_ipv6():
             reactor.listenUDP(53000, UDPECSResponder(), interface='::1')
             ecsReactorv6Running = True
 
@@ -347,6 +348,7 @@ ecs-ipv6-cache-bits=128
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, ttlECS)
 
+@unittest.skipIf(not have_ipv6(), "No IPv6")
 class testIncomingECSByNameV6(ECSTest):
     _confdir = 'ECSIncomingByNameV6'
 

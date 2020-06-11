@@ -15,6 +15,21 @@ import dns.message
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
 
+
+def have_ipv6():
+    """
+    Try to make an IPv6 socket and bind it, if it fails, no ipv6...
+    """
+    try:
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        sock.bind(('::1', 56581))
+        sock.close()
+        return True
+    except:
+        return False
+    return False
+
+
 class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Setup all recursors and auths required for the tests
@@ -499,7 +514,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         authcmd = list(cls._auth_cmd)
         authcmd.append('--config-dir=%s' % confdir)
         authcmd.append('--local-address=%s' % ipaddress)
-        if (confdir[-4:] == "ROOT"):
+        if (confdir[-4:] == "ROOT") and have_ipv6():
             authcmd.append('--local-ipv6=::1')
         else:
             authcmd.append('--local-ipv6=')
