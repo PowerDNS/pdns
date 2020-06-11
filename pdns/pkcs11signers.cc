@@ -841,6 +841,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
     pubAttr.push_back(P11KitAttribute(CKA_TOKEN, (char)CK_TRUE));
     pubAttr.push_back(P11KitAttribute(CKA_ENCRYPT, (char)CK_TRUE));
     pubAttr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
+    pubAttr.push_back(P11KitAttribute(CKA_WRAP, (char)CK_TRUE));
     pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
     if (d_algorithm == 13) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ECDSA256_PARAMS));
     else if (d_algorithm == 14) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ECDSA384_PARAMS));
