@@ -804,7 +804,12 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
 
   std::string pubExp("\000\001\000\001", 4); // 65537
 
-  mech.mechanism = dnssec2cmech[d_algorithm];
+  try {
+    mech.mechanism = dnssec2cmech.at(d_algorithm);
+  } catch (std::out_of_range& e) {
+    throw PDNSException("pkcs11: unsupported algorithm "+std::to_string(d_algorithm)+ " for key pair generation");
+  }
+
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
 
@@ -839,7 +844,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
     pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
     if (d_algorithm == 13) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ECDSA256_PARAMS));
     else if (d_algorithm == 14) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ECDSA384_PARAMS));
-    else throw PDNSException("pkcs11: unknown algorithm "+std::to_string(d_algorithm)+" for ECDSA key pair gen");
+    else throw PDNSException("pkcs11: unknown algorithm "+std::to_string(d_algorithm)+" for ECDSA key pair generation");
 
     privAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
     privAttr.push_back(P11KitAttribute(CKA_KEY_TYPE, (unsigned long)CKK_ECDSA));
