@@ -45,6 +45,9 @@ in it. you need to use softhsm tools to manage this all.
 static CK_FUNCTION_LIST** p11_modules;
 #endif
 
+#define ECDSA256_PARAMS "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"
+#define ECDSA384_PARAMS "\x06\x05\x2b\x81\x04\x00\x22"
+
 // map for signing algorithms
 static std::map<unsigned int,CK_MECHANISM_TYPE> dnssec2smech = boost::assign::map_list_of
 (5, CKM_SHA1_RSA_PKCS)
@@ -324,8 +327,8 @@ class Pkcs11Token {
 
       return bits;
 #else
-      if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") return 256;
-      else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") return 384;
+      if (d_ecdsa_params == ECDSA256_PARAMS) return 256;
+      else if (d_ecdsa_params == ECDSA384_PARAMS) return 384;
       else throw PDNSException("Unsupported EC key");
 #endif
     }
@@ -834,8 +837,8 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
     pubAttr.push_back(P11KitAttribute(CKA_ENCRYPT, (char)CK_TRUE));
     pubAttr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
     pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
-    if (d_algorithm == 13) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"));
-    else if (d_algorithm == 14) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, "\x06\x05\x2b\x81\x04\x00\x22"));
+    if (d_algorithm == 13) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ECDSA256_PARAMS));
+    else if (d_algorithm == 14) pubAttr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ECDSA384_PARAMS));
     else throw PDNSException("pkcs11: unknown algorithm "+std::to_string(d_algorithm)+" for ECDSA key pair gen");
 
     privAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
