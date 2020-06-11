@@ -4,57 +4,41 @@ PKCS#11 support
 .. note::
   This feature is experimental, use at your own risk!
 
-.. deprecated:: 4.0.0
-  slot IDs are deprecated, and you are expected to use slot label instead
+To enable it, compile PowerDNS Authoritative Server using ``--enable-experimental-pkcs11`` flag on configure.
+This requires you to have the p11-kit libraries and headers.
 
-To enable it, compile PowerDNS Authoritative Server using
-``--enable-experimental-pkcs11`` flag on configure. This requires you to
-have p11-kit libraries and headers.
+You can also log on to the tokens after starting the server, in this case you need to edit your PKCS#11 cryptokey record and remove PIN or set it empty.
+Do this after assigning/creating a key, as the PIN is required for assigning keys to zone.
 
-You can also log on to the tokens after starting server, in this case
-you need to edit your PKCS#11 cryptokey record and remove PIN or set it
-empty. PIN is required for assigning keys to zone.
-
-Using with SoftHSM
-------------------
+Using PKCS#11 with SoftHSM
+--------------------------
 
 .. warning::
-  Due to an interaction between `SoftHSM and Botan <https://github.com/PowerDNS/pdns/issues/2496>`__,
-  the PowerDNS Authoritative Server **will most likely** crash on exit when built with ``--enable-botan1.10 --enable-experimental-pkcs11``.
+  Due to an interaction between `SoftHSM and Botan <https://github.com/PowerDNS/pdns/issues/2496>`__, the PowerDNS Authoritative Server **will most likely** crash on exit when built with ``--enable-botan1.10 --enable-experimental-pkcs11``.
   In 4.2.0, Botan support has been removed and this is no longer an issue.
 
-To test this feature, a software HSM can be used. It is **not
-recommended** to use this in production.
+To test this feature, a software HSM can be used.
+It is **not recommended** to do this in production.
 
-Instructions on how to setup SoftHSM to work with the feature after
-compilation on Ubuntu/Debian (tested with Ubuntu 12.04 and 14.04).
+These instructions have been tested on Debian 10 (Buster).
 
-- ``apt-get install softhsm p11-kit opensc``
-- create directory ``/etc/pkcs11/modules``
-- create a file ``softhsm`` (``softhsm.module`` on newer versions),
-  with contents:::
+- ``apt-get install softhsm p11-kit``
+- Verify that it works: ``p11-kit -l``, you should see ``softhsm2: .....``
+- Create a token::
 
-    module: /home/cmouse/softhsm/lib/softhsm/libsofthsm.so     managed: yes
+    softhsm2-util --init-token --label my-pkcs11-dnskey --free --pin 1234 --so-pin 1234
 
-- Verify that it works: ``p11-kit -l``
-- Create at least two tokens (ksk and zsk) with (slot-number starts from 0)::
+- Assign the token to a zone (it says KSK, but because there is no ZSK, this will become a CSK)::
 
-    sudo softhsm --init-token --slot slot-number --label zone-ksk|zone-zsk --pin some-pin --so-pin another-pin
+    pdnsutil hsm assign example.com ecdsa256 ksk softhsm2 my-pkcs11-dnskey 1234 'my key' 'my pub key'
 
--  Using pkcs11-tool, initialize your new keys.::
+- Create the key (for 25, use the ID shown by the previous command)::
 
-    sudo pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk|zone-zsk --slot-index slot-number
-
--  Assign the keys using (note that token label is not necessarily same
-   as object label, see p11-kit -l)::
-
-    pdnsutil hsm assign zone rsasha256 ksk|zsk softhsm token-label pin zone-ksk|zsk
+    pdnsutil hsm create-key example.com 25
 
 -  Verify that everything worked, you should see valid data there::
 
-    pdnsutil show-zone zone
-
--  SoftHSM signatures are fast enough to be used in live environment.
+    pdnsutil show-zone example.com
 
 Using CryptAS
 -------------
