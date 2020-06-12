@@ -4662,11 +4662,13 @@ try
   t_allowFrom = g_initialAllowFrom;
   t_udpclientsocks = std::unique_ptr<UDPClientSocks>(new UDPClientSocks());
   t_tcpClientCounts = std::unique_ptr<tcpClientCounts_t>(new tcpClientCounts_t());
-  primeHints();
+  if (threadInfo.isHandler) {
+    primeHints();
+    g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
+  }
 
   t_packetCache = std::unique_ptr<RecursorPacketCache>(new RecursorPacketCache());
 
-  g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
 #ifdef NOD_ENABLED
   if (threadInfo.isWorker)
@@ -4784,7 +4786,9 @@ try
   while (!RecursorControlChannel::stop) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
 
-    if(!(counter%500)) {
+    // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
+    // We want to call handler thread often, it gets scheduled about 2 times per second
+    if ((threadInfo.isHandler && counter % 11 == 0) || counter % 499 == 0) {
       MT->makeThread(houseKeeping, 0);
     }
 
