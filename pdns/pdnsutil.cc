@@ -1682,7 +1682,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
       }
       if (value.first.getKey()->getBits() < 1) {
-        cout<<" <key missing or defunct>" <<endl;
+        cout<<" <key missing or defunct, perhaps you should run pdnsutil hsm create-key>" <<endl;
         continue;
       }
       if (!exportDS) {
