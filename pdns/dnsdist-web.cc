@@ -1235,10 +1235,13 @@ void setWebserverPassword(const std::string& password)
 
 void setWebserverACL(const std::string& acl)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+  NetmaskGroup newACL;
+  newACL.toMasks(acl);
 
-  g_webserverConfig.acl.clear();
-  g_webserverConfig.acl.toMasks(acl);
+  {
+    std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+    g_webserverConfig.acl = std::move(newACL);
+  }
 }
 
 void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
