@@ -190,7 +190,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
   toTrim -= totErased;
 
-  while (toTrim > 0) {
+    while (true) {
     size_t pershard = toTrim / maps_size + 1;
     for (auto& mc : maps) {
       const typename C::lock l(mc);
@@ -204,11 +204,12 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
         totErased++;
         toTrim--;
         if (toTrim == 0) {
-          break;
+          return totErased;
         }
       }
     }
   }
+  // Not reached
   return totErased;
 }
 
