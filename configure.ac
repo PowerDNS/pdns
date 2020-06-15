@@ -48,7 +48,7 @@ PTHREAD_SET_NAME
 PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
 
-AX_CXX_COMPILE_STDCXX_11
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],

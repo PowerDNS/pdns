@@ -101,7 +101,7 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
 PDNS_CHECK_CDB
 PDNS_CHECK_LMDB
 
-AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],

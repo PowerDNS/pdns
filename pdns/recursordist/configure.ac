@@ -33,7 +33,7 @@ AC_DEFINE([RECURSOR], [1],
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
-AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
