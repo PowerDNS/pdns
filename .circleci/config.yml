@@ -191,12 +191,14 @@ commands:
             libldap-2.4-2 \
             liblmdb0 \
             libluajit-5.1-2 \
+            libp11-kit0 \
             libpq5 \
             libssl1.1 \
             libsodium23 \
             libsystemd0 \
             default-libmysqlclient-dev \
-            unixodbc
+            unixodbc \
+            softhsm2
 
   install-dnsdist-deps:
     description: "Install all libraries needed for testing dnsdist"
@@ -257,6 +259,7 @@ commands:
               libldap2-dev \
               liblmdb-dev \
               libluajit-5.1-dev \
+              libp11-kit-dev \
               libpq-dev \
               libsodium-dev \
               libsqlite3-dev \
@@ -541,6 +544,7 @@ jobs:
               --enable-unit-tests \
               --enable-backend-unit-tests \
               --enable-fuzz-targets \
+              --enable-experimental-pkcs11 \
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
@@ -682,7 +686,7 @@ jobs:
     steps:
       - auth-regress-setup
       - run:
-          command: apt-get install -qq -y sqlite3
+          command: apt-get install -qq -y sqlite3 p11-kit softhsm2
       - auth-regress:
           context: bind-both
       - auth-regress:
@@ -693,6 +697,8 @@ jobs:
           context: bind-dnssec-nsec3-optout-both
       - auth-regress:
           context: bind-dnssec-nsec3-narrow
+      - auth-regress:
+          context: bind-dnssec-pkcs11
       - run:
           command: apt-get install -qq -y default-mysql-client
       - run:
