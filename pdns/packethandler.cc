@@ -853,7 +853,7 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& 
     return RCode::Refused;
   }
   try {
-    db->createSlaveDomain(p.getRemote().toString(), p.qdomain, nameserver, account);
+    db->createSlaveDomain(remote.toString(), p.qdomain, nameserver, account);
     if (tsigkeyname.empty() == false) {
       vector<string> meta;
       meta.push_back(tsigkeyname.toStringNoDot());
