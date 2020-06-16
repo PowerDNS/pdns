@@ -436,7 +436,7 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   cache.add(genNegCacheEntry(DNSName("www1.powerdns.com"), DNSName("powerdns.com"), now));
   cache.add(genNegCacheEntry(DNSName("www2.powerdns.com"), DNSName("powerdns.com"), now));
 
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(tmpfile(), fclose);
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
   if (!fp)
     BOOST_FAIL("Temporary file could not be opened");
 
