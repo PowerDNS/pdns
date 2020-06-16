@@ -212,7 +212,7 @@ uint64_t RecursorPacketCache::bytes()
   return sum;
 }
 
-void RecursorPacketCache::doPruneTo(unsigned int maxCached)
+void RecursorPacketCache::doPruneTo(size_t maxCached)
 {
   pruneCollection<SequencedTag>(*this, d_packetCache, maxCached);
 }
