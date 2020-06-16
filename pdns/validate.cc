@@ -419,13 +419,21 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         }
 
         /* check if the whole NAME is denied existing */
-        if(isCoveredByNSEC(qname, owner, nsec->d_next)) {
+        if (isCoveredByNSEC(qname, owner, nsec->d_next)) {
           LOG(qname<<" is covered ");
-          /* if the name is an ENT and we received a NODATA answer,
-             we are fine with a NSEC proving that the name does not exist. */
-          if (wantsNoDataProof && nsecProvesENT(qname, owner, nsec->d_next)) {
-            LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
-            return NXQTYPE;
+
+          if (nsecProvesENT(qname, owner, nsec->d_next)) {
+            if (wantsNoDataProof) {
+              /* if the name is an ENT and we received a NODATA answer,
+                 we are fine with a NSEC proving that the name does not exist. */
+              LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
+              return NXQTYPE;
+            }
+            else {
+              /* but for a NXDOMAIN proof, this doesn't make sense! */
+              LOG("but it tries to deny the existence of "<<qname<<" by proving that "<<qname<<" is an ENT, this does not make sense!"<<endl);
+              return NODATA;
+            }
           }
 
           if (!needWildcardProof) {
