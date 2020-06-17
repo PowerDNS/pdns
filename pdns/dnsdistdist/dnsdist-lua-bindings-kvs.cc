@@ -26,8 +26,8 @@
 void setupLuaBindingsKVS(bool client)
 {
   /* Key Value Store objects */
-  g_lua.writeFunction("KeyValueLookupKeySourceIP", []() {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP());
+  g_lua.writeFunction("KeyValueLookupKeySourceIP", [](boost::optional<uint8_t> v4Mask, boost::optional<uint8_t> v6Mask) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask.get_value_or(32), v6Mask.get_value_or(128)));
   });
   g_lua.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName(wireFormat ? *wireFormat : true));
@@ -65,7 +65,7 @@ void setupLuaBindingsKVS(bool client)
 
     if (keyVar.type() == typeid(ComboAddress)) {
       const auto ca = boost::get<ComboAddress>(&keyVar);
-      KeyValueLookupKeySourceIP lookup;
+      KeyValueLookupKeySourceIP lookup(32, 128);
       for (const auto& key : lookup.getKeys(*ca)) {
         if (kvs->getValue(key, result)) {
           return result;

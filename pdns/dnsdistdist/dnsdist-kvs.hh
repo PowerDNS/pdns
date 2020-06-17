@@ -36,6 +36,10 @@ public:
 class KeyValueLookupKeySourceIP: public KeyValueLookupKey
 {
 public:
+  KeyValueLookupKeySourceIP(uint8_t v4Mask, uint8_t v6Mask): d_v4Mask(v4Mask), d_v6Mask(v6Mask)
+  {
+  }
+
   std::vector<std::string> getKeys(const ComboAddress& addr);
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
@@ -45,8 +49,11 @@ public:
 
   std::string toString() const override
   {
-    return "source IP";
+    return "source IP (masked to " + std::to_string(d_v4Mask) + " (v4) / " + std::to_string(d_v6Mask) + " (v6) bits)";
   }
+private:
+  uint8_t d_v4Mask;
+  uint8_t d_v6Mask;
 };
 
 class KeyValueLookupKeyQName: public KeyValueLookupKey

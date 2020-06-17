@@ -3,8 +3,6 @@ Key Value Store functions and objects
 
 These are all the functions, objects and methods related to the CDB and LMDB key value stores.
 
-As of 1.4.0, the CDB and LMDB code is considered experimental.
-
 A lookup into a key value store can be done via the :func:`KeyValueStoreLookupRule` rule or
 the :func:`KeyValueStoreLookupAction` action, using the usual selectors to match the incoming
 queries for which the lookup should be done.
@@ -81,11 +79,17 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
 
   :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
 
-.. function:: KeyValueLookupKeySourceIP() -> KeyValueLookupKey
+.. function:: KeyValueLookupKeySourceIP([v4mask [, v6mask]]) -> KeyValueLookupKey
 
   .. versionadded:: 1.4.0
 
+  .. versionchanged:: 1.5.0
+    Optional parameters ``v4mask`` and ``v6mask`` added.
+
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return the source IP of the client in network byte-order.
+
+  :param int v4mask: Mask applied to IPv4 addresses. Default is 32 (the whole address)
+  :param int v6mask: Mask applied to IPv6 addresses. Default is 128 (the whole address)
 
 .. function:: KeyValueLookupKeySuffix([minLabels [, wireFormat]]) -> KeyValueLookupKey
 
