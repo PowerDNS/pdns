@@ -458,6 +458,10 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
         output << prometheusMetricName << " " << tup.second << "\n";
     }
 
+    output << "# HELP pdns_recursor_info " << "Info from pdns_recursor, value is always 1" << "\n";
+    output << "# TYPE pdns_recursor_info " << "gauge" << "\n";
+    output << "pdns_recursor_info{version=\"" << VERSION << "\"} " << "1" << "\n";
+
     resp->body = output.str();
     resp->headers["Content-Type"] = "text/plain";
     resp->status = 200;
