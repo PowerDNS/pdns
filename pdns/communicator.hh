@@ -170,6 +170,7 @@ public:
   void sendNotification(int sock, const DNSName &domain, const ComboAddress& remote, uint16_t id, UeberBackend* B);
   bool notifyDomain(const DNSName &domain, UeberBackend* B);
   vector<pair<DNSName, ComboAddress> > getSuckRequests();
+  size_t getSuckRequestsWaiting();
 private:
   void loadArgsIntoSet(const char *listname, set<string> &listset);
   void makeNotifySockets();

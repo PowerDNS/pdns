@@ -371,6 +371,7 @@ void declareStats(void)
   S.declare("latency","Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling", StatType::gauge);
+  S.declare("xfr-queue", "Size of the queue of domains to be XFRd", [](const string&) { return Communicator.getSuckRequestsWaiting(); }, StatType::gauge);
   S.declareDNSNameQTypeRing("queries","UDP Queries Received");
   S.declareDNSNameQTypeRing("nxdomain-queries","Queries for non-existent records within existent domains");
   S.declareDNSNameQTypeRing("noerror-queries","Queries for existing records, but for type we don't have");

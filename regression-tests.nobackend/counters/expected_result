@@ -62,3 +62,4 @@ udp4-queries=2
 udp6-answers-bytes=132
 udp6-answers=2
 udp6-queries=2
+xfr-queue=0

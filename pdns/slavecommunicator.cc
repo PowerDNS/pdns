@@ -1013,3 +1013,8 @@ vector<pair<DNSName, ComboAddress> > CommunicatorClass::getSuckRequests() {
   }
   return ret;
 }
+
+size_t CommunicatorClass::getSuckRequestsWaiting() {
+  std::lock_guard<std::mutex> l(d_lock);
+  return d_suckdomains.size();
+}
