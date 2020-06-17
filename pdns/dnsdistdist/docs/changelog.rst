@@ -2,6 +2,55 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.5.0-rc3
+  :released: 18th of June 2020
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9100
+
+    Less negatives in secpoll error messages improves readability.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9127
+    :tickets: 9125
+
+    Fix compilation on systems that do not define HOST_NAME_MAX
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9207
+
+    Use std::string_view when available (Rosen Penev)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 9211
+    :tickets: 9206
+
+    Use non-blocking pipes to pass DoH queries/responses around
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9213
+
+    Do not use `using namespace std;`
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9229
+
+    Implement an ACL in the internal web server
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9238
+    :tickets: 8038
+
+    Clean up dnsdistconf.lua as a default configuration file
+
+.. changelog::
   :version: 1.5.0-rc2
   :released: 13th of May 2020
 
