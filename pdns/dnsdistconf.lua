@@ -1,208 +1,113 @@
+-- == Generic Configuration ==
+
+-- only accept queries (Do53, DNSCrypt,  DoT or DoH) from a few subnets
+-- see https://dnsdist.org/advanced/acl.html for more details
+-- please be careful when dnsdist is deployed in front of a server
+-- server granting access based on the source IP, as all queries will
+-- seem to originate from dnsdist, which might be especially relevant for
+-- AXFR, IXFR, NOTIFY and UPDATE
+-- https://dnsdist.org/advanced/axfr.html
+-- setACL({'192.0.2.0/28', '2001:DB8:1::/56'})
+
 -- listen for console connection with the given secret key
--- controlSocket("0.0.0.0")
--- setKey(please generate a fresh private key with makeKey())
+-- https://dnsdist.org/guides/console.html
+-- controlSocket("127.0.0.1:5900")
+-- setKey("please generate a fresh private key with makeKey()")
 
 -- start the web server on port 8083, using password 'set a random password here'
--- webserver("0.0.0.0:8083", "set a random password here")
+-- https://dnsdist.org/guides/webserver.html
+-- webserver("127.0.0.1:8083", "set a random password here")
 
--- accept DNS queries on UDP/5200 and TCP/5200
-addLocal("0.0.0.0:5200")
+-- send statistics to PowerDNS metronome server https://metronome1.powerdns.com/
+-- https://dnsdist.org/guides/carbon.html
+-- carbonServer("37.252.122.50", 'unique-name')
 
--- send statistics to PowerDNS metronome server
--- carbonServer("2001:888:2000:1d::2")
+-- accept plain DNS (Do53) queries on UDP/5200 and TCP/5200
+-- addLocal("127.0.0.1:5200")
 
--- fix up possibly badly truncated answers from pdns 2.9.22
-truncateTC(true)
+-- accept DNSCrypt queries on UDP/8443 and TCP/8443
+-- https://dnsdist.org/guides/dnscrypt.html
+-- addDNSCryptBind("127.0.0.1:8443", "2.provider.name", "DNSCryptResolver.cert", "DNSCryptResolver.key")
 
-warnlog(string.format("Script starting %s", "up!"))
+-- accept DNS over TLS (DoT) queries on TCP/9443
+-- https://dnsdist.org/guides/dns-over-tls.html
+-- addTLSLocal("127.0.0.1:9443", {"server.crt"}, {"server.key"}, { provider="openssl" })
 
--- define the good servers
-newServer("8.8.8.8", 2)  -- 2 qps
-newServer("8.8.4.4", 2)
-newServer("208.67.222.222", 1)
-newServer("208.67.220.220", 1)
-newServer("2001:4860:4860::8888", 1)
-newServer("2001:4860:4860::8844",1)
-newServer("2620:0:ccc::2", 10)
-newServer("2620:0:ccd::2", 10)
-newServer({address="192.168.1.2", qps=1000, order=2})
-newServer({address="192.168.1.79:5300", order=2})
-newServer({address="127.0.0.1:5300", order=3})
-newServer({address="192.168.1.30:5300", pool="abuse"})
+-- accept DNS over HTTPS (DoH) queries on TCP/443
+-- https://dnsdist.org/guides/dns-over-https.html
+-- addDOHLocal("127.0.0.1:443", {"server.crt"}, {"server.key"})
 
--- switch the server balancing policy to round robin,
--- the default being least outstanding queries
--- setServerPolicy(roundrobin)
+-- define downstream servers, aka backends
+-- https://dnsdist.org/guides/downstreams.html
+-- https://dnsdist.org/guides/serverpools.html
+-- https://dnsdist.org/guides/serverselection.html
+-- newServer("192.0.2.1")
+-- newServer({address="192.0.2.1:5300", pool="abuse"})
 
--- send the queries for selected domain suffixes to the server
+-- == Tuning ==
+
+-- Increase the in-memory rings size (the default, 10000, is only one second at 10k qps) used by
+-- live-traffic inspection features like grepq, and use 100 shards to improve performance
+-- setRingBuffersSize(1000000, 100)
+
+-- increase the number of TCP workers, each one being capable of handling a large number
+-- of TCP connections since 1.4.0
+-- setMaxTCPClientThreads(20)
+
+-- == Sample Actions ==
+
+-- https://dnsdist.org/rules-actions.html
+
+-- send the queries for selected domain suffixes to the servers
 -- in the 'abuse' pool
-addAction({"ezdns.it.", "xxx."}, PoolAction("abuse"))
+-- addAction({"abuse.example.org.", "xxx."}, PoolAction("abuse"))
+
+-- drop queries for this exact qname
+-- addAction(QNameRule("drop-me.example.org."), DropAction())
 
 -- send the queries from a selected subnet to the
 -- abuse pool
-addAction("192.168.1.0/24", PoolAction("abuse"))
+-- addAction("192.0.2.0/24", PoolAction("abuse"))
 
--- send the queries for the "com" suffix to the "abuse"
--- pool, but only up to 100 qps
-addAction("com.", QPSPoolAction(100, "abuse"))
+-- Refuse incoming AXFR, IXFR, NOTIFY and UPDATE
+-- Add trusted sources (slaves, masters) explicitely in front of this rule
+-- addAction(OrRule({OpcodeRule(DNSOpcode.Notify), OpcodeRule(DNSOpcode.Update), QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), RCodeAction(DNSRCode.REFUSED))
 
--- declare a Lua action function, routing NAPTR queries
--- to the abuse pool
-function luarule(dq)
-	if(dq.qtype==DNSQType.NAPTR)
-	then
-		return DNSAction.Pool, "abuse" -- send to abuse pool
-	else
-		return DNSAction.None, ""      -- no action
-	end
-end
--- send only queries from the selected subnet to
--- the luarule function
-addAction("192.168.1.0/24", LuaAction(luarule))
+-- == Dynamic Blocks ==
 
--- drop queries exceeding 5 qps, grouped by /24 for IPv4
--- and /64 for IPv6
-addAction(MaxQPSIPRule(5, 24, 64), DropAction())
+-- define a dynamic block rules group object, set a few limits and apply it
+-- see https://dnsdist.org/guides/dynblocks.html for more details
 
--- move the last rule to the first position
-topRule()
+-- local dbr = dynBlockRulesGroup()
+-- dbr:setQueryRate(30, 10, "Exceeded query rate", 60)
+-- dbr:setRCodeRate(dnsdist.NXDOMAIN, 20, 10, "Exceeded NXD rate", 60)
+-- dbr:setRCodeRate(dnsdist.SERVFAIL, 20, 10, "Exceeded ServFail rate", 60)
+-- dbr:setQTypeRate(dnsdist.ANY, 5, 10, "Exceeded ANY rate", 60)
+-- dbr:setResponseByteRate(10000, 10, "Exceeded resp BW rate", 60)
+-- function maintenance()
+--  dbr:apply()
+-- end
 
--- drop queries for the following suffixes:
-addAction("powerdns.org.", DropAction())
-addAction("spectre.", DropAction())
+-- == Logging ==
 
--- called before we distribute a question
-block=newDNSName("powerdns.org.")
-truncateNMG = newNMG()
-truncateNMG:addMask("213.244.0.0/16")
-truncateNMG:addMask("2001:503:ba3e::2:30")
-truncateNMG:addMask("fe80::/16")
+-- connect to a remote protobuf logger and export queries and responses
+-- https://dnsdist.org/reference/protobuf.html
+-- rl = newRemoteLogger('127.0.0.1:4242')
+-- addAction(AllRule(), RemoteLogAction(rl))
+-- addResponseAction(AllRule(), RemoteLogResponseAction(rl))
 
-print(string.format("Have %d entries in truncate NMG", truncateNMG:size()))
+-- DNSTAP is also supported
+-- https://dnsdist.org/reference/dnstap.html
+-- fstr = newFrameStreamUnixLogger(/path/to/unix/socket)
+-- or
+-- fstr = newFrameStreamTcpLogger('192.0.2.1:4242')
+-- addAction(AllRule(), DnstapLogAction(fstr))
+-- addResponseAction(AllRule(), DnstapLogResponseAction(fstr))
 
--- called to pick a downstream server, ignores 'up' status
-counter=0
-function luaroundrobin(servers, dq)
-	 counter=counter+1;
-	 return servers[1+(counter % #servers)]
-end
--- setServerPolicyLua("luaroundrobin", luaroundrobin)
+-- == Caching ==
 
-newServer({address="2001:888:2000:1d::2", pool={"auth", "dnssec"}})
-newServer({address="2a01:4f8:110:4389::2", pool={"auth", "dnssec"}})
---addAction(DNSSECRule(), PoolAction("dnssec"))
---topRule()
-
--- split queries between the 'auth' pool and the regular one,
--- based on the RD flag
-function splitSetup(servers, dq)
-	 if(dq.dh:getRD() == false)
-	 then
-		return firstAvailable.policy(getPoolServers("auth"), dq)
-	 else
-		return firstAvailable.policy(servers, dq)
-	 end
-end
--- setServerPolicyLua("splitSetup", splitSetup)
-
--- the 'maintenance' function is called every second
-function maintenance()
-	 -- block all hosts that exceeded 20 qps over the past 10s,
-	 -- for 60s
-	 addDynBlocks(exceedQRate(20, 10), "Exceeded query rate", 60)
-end
-
--- allow queries for the domain powerdns.com., drop everything else
--- addAction(makeRule("powerdns.com."), AllowAction())
--- addAction(AllRule(), DropAction())
-
--- clear the RD flag in queries for powerdns.com.
--- addAction("powerdns.com.", NoRecurseAction())
-
--- set the CD flag in queries for powerdns.com.
--- addAction("powerdns.com.", DisableValidationAction())
-
--- delay all responses for 1000ms
--- addAction(AllRule(), DelayAction(1000))
-
--- truncate ANY queries over UDP only
--- addAction(AndRule{QTypeRule(DNSQType.ANY), TCPRule(false)}, TCAction())
-
--- truncate ANY queries over TCP only
--- addAction(AndRule({QTypeRule(DNSQType.ANY), TCPRule(true)}), TCAction())
--- can also be written as:
--- addAction(AndRule({QTypeRule("ANY"), TCPRule(true)}), TCAction())
-
--- return 'not implemented' for qtype != A over UDP
--- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
-
--- return 'not implemented' for qtype == A OR received over UDP
--- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
-
--- log all queries to a 'dndist.log' file, in text-mode (not binary) appending and unbuffered
--- addAction(AllRule(), LogAction("dnsdist.log", false, true, false))
-
--- drop all queries with the DO flag set
--- addAction(DNSSECRule(), DropAction())
-
--- drop all queries for the CHAOS class
--- addAction(QClassRule(3), DropAction())
--- addAction(QClassRule(DNSClass.CHAOS), DropAction())
-
--- drop all queries with the UPDATE opcode
--- addAction(OpcodeRule(DNSOpcode.Update), DropAction())
-
--- refuse all queries not having exactly one question
--- addAction(NotRule(RecordsCountRule(DNSSection.Question, 1, 1)), RCodeAction(DNSRCode.REFUSED))
-
--- return 'refused' for domains matching the regex evil[0-9]{4,}.powerdns.com$
--- addAction(RegexRule("evil[0-9]{4,}\\.powerdns\\.com$"), RCodeAction(DNSRCode.REFUSED))
-
--- spoof responses for A, AAAA and ANY for spoof.powerdns.com.
--- A queries will get 192.0.2.1, AAAA 2001:DB8::1 and ANY both
--- addAction("spoof.powerdns.com.", SpoofAction({"192.0.2.1", "2001:DB8::1"}))
-
--- spoof responses will multiple records
--- A will get 192.0.2.1 and 192.0.2.2, AAAA 20B8::1 and 2001:DB8::2
--- ANY all of that
--- addAction("spoof.powerdns.com", SpoofAction({"192.0.2.1", "192.0.2.2", "20B8::1", "2001:DB8::2"}))
-
--- spoof responses with a CNAME
--- addAction("cnamespoof.powerdns.com.", SpoofCNAMEAction("cname.powerdns.com."))
-
--- spoof responses in Lua
---[[
-    function spoof1rule(dq)
-        if(dq.qtype==1) -- A
-        then
-                return DNSAction.Spoof, "192.0.2.1"
-        elseif(dq.qtype == 28) -- AAAA
-        then
-                return DNSAction.Spoof, "2001:DB8::1"
-        else
-                return DNSAction.None, ""
-        end
-    end
-    function spoof2rule(dq)
-        return DNSAction.Spoof, "spoofed.powerdns.com."
-    end
-    addAction("luaspoof1.powerdns.com.", LuaAction(spoof1rule))
-    addAction("luaspoof2.powerdns.com.", LuaAction(spoof2rule))
-
---]]
-
--- alter a protobuf response for anonymization purposes
---[[
-function alterProtobuf(dq, protobuf)
-    requestor = newCA(dq.remoteaddr:toString())
-    if requestor:isIPv4() then
-        requestor:truncate(24)
-    else
-        requestor:truncate(56)
-    end
-    protobuf:setRequestor(requestor)
-end
-
-rl = newRemoteLogger("127.0.0.1:4242")
-addAction(AllRule(), RemoteLogAction(rl, alterProtobuf))
---]]
+-- https://dnsdist.org/guides/cache.html
+-- create a packet cache of at most 100k entries,
+-- and apply it to the default pool
+-- pc = newPacketCache(100000)
+-- getPool(""):setCache(pc)
