@@ -63,7 +63,7 @@
 -- addAction({"abuse.example.org.", "xxx."}, PoolAction("abuse"))
 
 -- drop queries for this exact qname
--- addAction(QNameRule("drop-me.powerdns.com."), DropAction())
+-- addAction(QNameRule("drop-me.example.org."), DropAction())
 
 -- send the queries from a selected subnet to the
 -- abuse pool
