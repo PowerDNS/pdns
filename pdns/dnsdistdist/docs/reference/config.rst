@@ -297,7 +297,10 @@ Control Socket, Console and Webserver
 Webserver configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: webserver(listen_address, password[, apikey[, custom_headers]])
+.. function:: webserver(listen_address, password[, apikey[, custom_headers[, acl]]])
+
+  .. versionchanged:: 1.5.0
+    ``acl`` optional parameter added.
 
   Launch the :doc:`../guides/webserver` with statistics and the API.
 
@@ -305,6 +308,7 @@ Webserver configuration
   :param str password: The password required to access the webserver
   :param str apikey: The key required to access the API
   :param {[str]=str,...} custom_headers: Allows setting custom headers and removing the defaults
+  :param str acl: List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
 
 .. function:: setAPIWritable(allow [,dir])
 
@@ -319,6 +323,9 @@ Webserver configuration
 
   .. versionadded:: 1.3.3
 
+  .. versionchanged:: 1.5.0
+    ``acl`` optional parameter added.
+
   Setup webserver configuration. See :func:`webserver`.
 
   :param table options: A table with key: value pairs with webserver options.
@@ -328,7 +335,8 @@ Webserver configuration
   * ``password=newPassword``: string - Changes the API password
   * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it)
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
-                 
+  * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
+
 Access Control Lists
 ~~~~~~~~~~~~~~~~~~~~
 
