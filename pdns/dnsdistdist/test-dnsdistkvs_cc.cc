@@ -7,11 +7,14 @@
 #include "dnsdist-kvs.hh"
 
 #if defined(HAVE_LMDB) || defined(HAVE_CDB)
+static const ComboAddress v4ToMask("203.0.113.255");
+static const ComboAddress v6ToMask("2001:db8:ff:ff:ff:ff:ff:ff");
+
 static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress& lc, const ComboAddress& rem, const DNSQuestion& dq, const DNSName& plaintextDomain)
 {
   /* source IP */
   {
-    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
+    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(32, 128);
     std::string value;
     /* local address is not in the db, remote is */
     BOOST_CHECK_EQUAL(kvs->getValue(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr)), value), false);
@@ -24,6 +27,27 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
       BOOST_CHECK_EQUAL(value, "this is the value for the remote addr");
+    }
+  }
+
+  /* masked source IP */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>(25, 65);
+
+    auto keys = lookupKey->getKeys(v4ToMask);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
+    for (const auto& key : keys) {
+      std::string value;
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value for the masked v4 addr");
+    }
+
+    keys = lookupKey->getKeys(v6ToMask);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
+    for (const auto& key : keys) {
+      std::string value;
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value for the masked v6 addr");
     }
   }
 
@@ -221,6 +245,10 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   gettime(&expiredTime);
 
   DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  ComboAddress v4Masked(v4ToMask);
+  ComboAddress v6Masked(v6ToMask);
+  v4Masked.truncate(25);
+  v6Masked.truncate(65);
 
   const string dbPath("/tmp/test_lmdb.XXXXXX");
   {
@@ -228,6 +256,8 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     auto transaction = env.getRWTransaction();
     auto dbi = transaction->openDB("db-name", MDB_CREATE);
     transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&v4Masked.sin4.sin_addr.s_addr), sizeof(v4Masked.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the masked v4 addr"));
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&v6Masked.sin6.sin6_addr.s6_addr), sizeof(v6Masked.sin6.sin6_addr.s6_addr))), MDBInVal("this is the value for the masked v6 addr"));
     transaction->put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
     transaction->put(dbi, MDBInVal(plaintextDomain.toStringRootDot()), MDBInVal("this is the value for the plaintext domain"));
     transaction->commit();
@@ -273,6 +303,10 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   gettime(&expiredTime);
 
   DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  ComboAddress v4Masked(v4ToMask);
+  ComboAddress v6Masked(v6ToMask);
+  v4Masked.truncate(25);
+  v6Masked.truncate(65);
 
   char db[] = "/tmp/test_cdb.XXXXXX";
   {
@@ -280,6 +314,8 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     BOOST_REQUIRE(fd >= 0);
     CDBWriter writer(fd);
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&v4Masked.sin4.sin_addr.s_addr), sizeof(v4Masked.sin4.sin_addr.s_addr)), "this is the value for the masked v4 addr"));
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&v6Masked.sin6.sin6_addr.s6_addr), sizeof(v6Masked.sin6.sin6_addr.s6_addr)), "this is the value for the masked v6 addr"));
     BOOST_REQUIRE(writer.addEntry(qname.toDNSStringLC(), "this is the value for the qname"));
     BOOST_REQUIRE(writer.addEntry(plaintextDomain.toStringRootDot(), "this is the value for the plaintext domain"));
     writer.close();
