@@ -50,6 +50,12 @@ Changelog
 
     Clean up dnsdistconf.lua as a default configuration file
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 9244
+
+    Add optional masks to KeyValueLookupKeySourceIP
+
 .. changelog::
   :version: 1.5.0-rc2
   :released: 13th of May 2020
