@@ -60,7 +60,7 @@
 
 -- send the queries for selected domain suffixes to the servers
 -- in the 'abuse' pool
--- addAction({"powerdns.org.", "xxx."}, PoolAction("abuse"))
+-- addAction({"abuse.example.org.", "xxx."}, PoolAction("abuse"))
 
 -- drop queries for this exact qname
 -- addAction(QNameRule("drop-me.powerdns.com."), DropAction())
