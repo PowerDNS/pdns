@@ -1810,7 +1810,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   return true;
 }
 
-static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
+static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
 {
   cout<<"Note: test-schema will try to create the zone, but it will not remove it."<<endl;
   cout<<"Please clean up after this."<<endl;
@@ -1827,7 +1827,7 @@ static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   DomainInfo di;
   if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
     cout<<"Can't find domain we just created, aborting"<<endl;
-    return;
+    return EXIT_FAILURE;
   }
   db=di.backend;
   DNSResourceRecord rr, rrget;
@@ -1857,13 +1857,13 @@ static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
     if(db->get(rrthrowaway)) // should not touch rr but don't assume anything
     {
       cout<<"Expected one record, got multiple, aborting"<<endl;
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
     int size=rrget.content.size();
     if(size != 302)
     {
       cout<<"Expected 302 bytes, got "<<size<<", aborting"<<endl;
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
   }
   cout<<"[+] content field is over 255 bytes"<<endl;
@@ -1900,12 +1900,12 @@ static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   if(before != DNSName("_underscore")+zone)
   {
     cout<<"before is wrong, got '"<<before.toString()<<"', expected '_underscore."<<zone.toString()<<"', aborting"<<endl;
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   if(after != zone)
   {
     cout<<"after is wrong, got '"<<after.toString()<<"', expected '"<<zone.toString()<<"', aborting"<<endl;
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   cout<<"[+] ordername sorting is correct for names starting with _"<<endl;
   cout<<"Setting low notified serial"<<endl;
@@ -1913,7 +1913,7 @@ static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   db->getDomainInfo(zone, di);
   if(di.notified_serial != 500) {
     cout<<"[-] Set serial 500, got back "<<di.notified_serial<<", aborting"<<endl;
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   cout<<"Setting serial that needs 32 bits"<<endl;
   try {
@@ -1921,17 +1921,19 @@ static void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   } catch(const PDNSException &pe) {
     cout<<"While setting serial, got error: "<<pe.reason<<endl;
     cout<<"aborting"<<endl;
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   db->getDomainInfo(zone, di);
   if(di.notified_serial != 2147484148) {
     cout<<"[-] Set serial 2147484148, got back "<<di.notified_serial<<", aborting"<<endl;
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   } else {
     cout<<"[+] Big serials work correctly"<<endl;
   }
   cout<<endl;
   cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
+
+  return EXIT_SUCCESS;
 }
 
 static int addOrSetMeta(const DNSName& zone, const string& kind, const vector<string>& values, bool clobber) {
@@ -2176,8 +2178,7 @@ try
       cerr << "Syntax: pdnsutil test-schema ZONE"<<endl;
       return 0;
     }
-    testSchema(dk, DNSName(cmds[1]));
-    return 0;
+    return testSchema(dk, DNSName(cmds[1]));
   }
   if(cmds[0] == "rectify-zone") {
     if(cmds.size() < 2) {
@@ -2202,14 +2203,14 @@ try
       return 0;
     }
     UeberBackend B("default");
-    exit(checkZone(dk, B, DNSName(cmds[1])));
+    return checkZone(dk, B, DNSName(cmds[1]));
   }
   else if(cmds[0] == "bench-db") {
     dbBench(cmds.size() > 1 ? cmds[1] : "");
   }
   else if (cmds[0] == "check-all-zones") {
     bool exitOnError = ((cmds.size() >= 2 ? cmds[1] : "") == "exit-on-error");
-    exit(checkAllZones(dk, exitOnError));
+    return checkAllZones(dk, exitOnError);
   }
   else if (cmds[0] == "list-all-zones") {
     if (cmds.size() > 2) {
@@ -2398,13 +2399,13 @@ try
         bits = pdns_stou(cmds[n]);
       } else {
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
-        exit(EXIT_FAILURE);;
+        return EXIT_FAILURE;
       }
     }
     int64_t id;
     if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
-      exit(1);
+      return 1;
     } else {
       cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
       if (bits)
@@ -2436,49 +2437,49 @@ try
       cerr<<"Syntax: pdnsutil delete-zone ZONE"<<endl;
       return 0;
     }
-    exit(deleteZone(DNSName(cmds[1])));
+    return deleteZone(DNSName(cmds[1]));
   }
   else if(cmds[0] == "create-zone") {
     if(cmds.size() != 2 && cmds.size()!=3 ) {
       cerr<<"Syntax: pdnsutil create-zone ZONE [nsname]"<<endl;
       return 0;
     }
-    exit(createZone(DNSName(cmds[1]), cmds.size() > 2 ? DNSName(cmds[2]): DNSName()));
+    return createZone(DNSName(cmds[1]), cmds.size() > 2 ? DNSName(cmds[2]): DNSName());
   }
   else if(cmds[0] == "create-slave-zone") {
     if(cmds.size() < 3 ) {
       cerr<<"Syntax: pdnsutil create-slave-zone ZONE master-ip [master-ip..]"<<endl;
       return 0;
     }
-    exit(createSlaveZone(cmds));
+    return createSlaveZone(cmds);
   }
   else if(cmds[0] == "change-slave-zone-master") {
     if(cmds.size() < 3 ) {
       cerr<<"Syntax: pdnsutil change-slave-zone-master ZONE master-ip [master-ip..]"<<endl;
       return 0;
     }
-    exit(changeSlaveZoneMaster(cmds));
+    return changeSlaveZoneMaster(cmds);
   }
   else if(cmds[0] == "add-record") {
     if(cmds.size() < 5) {
       cerr<<"Syntax: pdnsutil add-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
       return 0;
     }
-    exit(addOrReplaceRecord(true, cmds));
+    return addOrReplaceRecord(true, cmds);
   }
   else if(cmds[0] == "replace-rrset") {
     if(cmds.size() < 5) {
       cerr<<"Syntax: pdnsutil replace-rrset ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
       return 0;
     }
-    exit(addOrReplaceRecord(false , cmds));
+    return addOrReplaceRecord(false , cmds);
   }
   else if(cmds[0] == "delete-rrset") {
     if(cmds.size() != 4) {
       cerr<<"Syntax: pdnsutil delete-rrset ZONE name type"<<endl;
       return 0;
     }
-    exit(deleteRRSet(cmds[1], cmds[2], cmds[3]));
+    return deleteRRSet(cmds[1], cmds[2], cmds[3]);
   }
   else if(cmds[0] == "list-zone") {
     if(cmds.size() != 2) {
@@ -2488,7 +2489,7 @@ try
     if(cmds[1]==".")
       cmds[1].clear();
 
-    exit(listZone(DNSName(cmds[1])));
+    return listZone(DNSName(cmds[1]));
   }
   else if(cmds[0] == "edit-zone") {
     if(cmds.size() != 2) {
@@ -2498,7 +2499,7 @@ try
     if(cmds[1]==".")
       cmds[1].clear();
 
-    exit(editZone(DNSName(cmds[1])));
+    return editZone(DNSName(cmds[1]));
   }
   else if(cmds[0] == "clear-zone") {
     if(cmds.size() != 2) {
@@ -2508,7 +2509,7 @@ try
     if(cmds[1]==".")
       cmds[1].clear();
 
-    exit(clearZone(dk, DNSName(cmds[1])));
+    return clearZone(dk, DNSName(cmds[1]));
   }
   else if(cmds[0] == "list-keys") {
     if(cmds.size() > 2) {
@@ -2516,7 +2517,7 @@ try
       return 0;
     }
     string zname = (cmds.size() == 2) ? cmds[1] : "all";
-    exit(listKeys(zname, dk));
+    return listKeys(zname, dk);
   }
   else if(cmds[0] == "load-zone") {
     if(cmds.size() < 3) {
@@ -2597,7 +2598,7 @@ try
     }
     DNSName zone(cmds[1]);
     auto kind=DomainInfo::stringToKind(cmds[2]);
-    exit(setZoneKind(zone, kind));
+    return setZoneKind(zone, kind);
   }
   else if(cmds[0]=="set-account") {
     if(cmds.size() != 3) {
@@ -2605,7 +2606,7 @@ try
       return 0;
     }
     DNSName zone(cmds[1]);
-    exit(setZoneAccount(zone, cmds[2]));
+    return setZoneAccount(zone, cmds[2]);
   }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {
@@ -2746,7 +2747,7 @@ try
   else if(cmds[0]=="export-zone-key") {
     if(cmds.size() < 3) {
       cerr<<"Syntax: pdnsutil export-zone-key ZONE KEY-ID"<<endl;
-      return 0;
+      return 1;
     }
 
     string zone=cmds[1];
@@ -2757,14 +2758,14 @@ try
   else if(cmds[0]=="increase-serial") {
     if (cmds.size() < 2) {
       cerr<<"Syntax: pdnsutil increase-serial ZONE"<<endl;
-      return 0;
+      return 1;
     }
     return increaseSerial(DNSName(cmds[1]), dk);
   }
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
       cerr<<"Syntax: pdnsutil import-zone-key-pem ZONE FILE ALGORITHM {ksk|zsk}"<<endl;
-      exit(1);
+      return 1;
     }
     string zone=cmds[1];
     string fname=cmds[2];
@@ -2797,7 +2798,7 @@ try
         dpk.d_flags = 257;
       else {
         cerr<<"Unknown key flag '"<<cmds[4]<<"'"<<endl;
-        exit(1);
+        return 1;
       }
     }
     else
@@ -2806,7 +2807,7 @@ try
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
-      exit(1);
+      return 1;
     }
     if (id == -1) {
       cerr<<std::to_string(id)<<"Key was added, but backend does not support returning of key id"<<endl;
@@ -2820,7 +2821,7 @@ try
   else if(cmds[0]=="import-zone-key") {
     if(cmds.size() < 3) {
       cerr<<"Syntax: pdnsutil import-zone-key ZONE FILE [ksk|zsk] [active|inactive]"<<endl;
-      exit(1);
+      return 1;
     }
     string zone=cmds[1];
     string fname=cmds[2];
@@ -2852,13 +2853,13 @@ try
         published = 0;
       else {
         cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
-        exit(1);
+        return 1;
       }
     }
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
-      exit(1);
+      return 1;
     }
     if (id == -1) {
       cerr<<std::to_string(id)<<"Key was added, but backend does not support returning of key id"<<endl;
@@ -2871,7 +2872,7 @@ try
   else if(cmds[0]=="export-zone-dnskey") {
     if(cmds.size() < 3) {
       cerr<<"Syntax: pdnsutil export-zone-dnskey ZONE KEY-ID"<<endl;
-      exit(1);
+      return 1;
     }
 
     DNSName zone(cmds[1]);
