@@ -387,14 +387,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
   /* check that the entry has been negatively cached */
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Indeterminate);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 1U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Indeterminate);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 1U);
 
   ret.clear();
   /* second one _does_ require validation */
@@ -405,12 +405,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Secure);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 1U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Secure);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure_ds)
@@ -525,14 +525,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_insecure)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
   /* check that the entry has not been negatively cached */
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Indeterminate);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Indeterminate);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 0U);
 
   ret.clear();
   /* second one _does_ require validation */
@@ -542,12 +542,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_insecure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Insecure);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Insecure);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus)
@@ -612,15 +612,15 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus)
     }
   }
   BOOST_CHECK_EQUAL(queriesCount, 1U);
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Indeterminate);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->d_ttd, now + SyncRes::s_maxnegttl);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Indeterminate);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.d_ttd, now + SyncRes::s_maxnegttl);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 0U);
 
   ret.clear();
   /* second one _does_ require validation */
@@ -633,13 +633,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus)
     BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
   }
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Bogus);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->d_ttd, now + SyncRes::s_maxbogusttl);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Bogus);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.d_ttd, now + SyncRes::s_maxbogusttl);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 0U);
 
   ret.clear();
   /* third one _does_ not require validation, we just check that
@@ -653,13 +653,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus)
     BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
   }
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Bogus);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->d_ttd, now + SyncRes::s_maxbogusttl);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Bogus);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.d_ttd, now + SyncRes::s_maxbogusttl);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 0U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_lowercase_outgoing)

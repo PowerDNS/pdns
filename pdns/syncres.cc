@@ -1486,32 +1486,32 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
   vState cachedState;
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
-      t_sstorage.negcache.getRootNXTrust(qname, d_now, &ne) &&
-      ne->d_auth.isRoot() &&
+      t_sstorage.negcache.getRootNXTrust(qname, d_now, ne) &&
+      ne.d_auth.isRoot() &&
       !(wasForwardedOrAuthZone && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
-    sttl = ne->d_ttd - d_now.tv_sec;
-    LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne->d_auth<<"' & '"<<ne->d_name<<"' for another "<<sttl<<" seconds"<<endl);
+    sttl = ne.d_ttd - d_now.tv_sec;
+    LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne.d_auth<<"' & '"<<ne.d_name<<"' for another "<<sttl<<" seconds"<<endl);
     res = RCode::NXDomain;
     giveNegative = true;
-    cachedState = ne->d_validationState;
-  } else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne)) {
+    cachedState = ne.d_validationState;
+  } else if (t_sstorage.negcache.get(qname, qtype, d_now, ne)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
-    if (qtype != QType::DS || ne->d_qtype.getCode() || ne->d_auth != qname ||
-        t_sstorage.negcache.get(qname, qtype, d_now, &ne, true))
+    if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
+        t_sstorage.negcache.get(qname, qtype, d_now, ne, true))
     {
       res = RCode::NXDomain;
-      sttl = ne->d_ttd - d_now.tv_sec;
+      sttl = ne.d_ttd - d_now.tv_sec;
       giveNegative = true;
-      cachedState = ne->d_validationState;
-      if (ne->d_qtype.getCode()) {
-        LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+      cachedState = ne.d_validationState;
+      if (ne.d_qtype.getCode()) {
+        LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
         res = RCode::NoError;
       } else {
-        LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
       }
     }
   } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot() && !wasForwardedOrAuthZone) {
@@ -1520,19 +1520,19 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     negCacheName.prependRawLabel(labels.back());
     labels.pop_back();
     while(!labels.empty()) {
-      if (t_sstorage.negcache.get(negCacheName, QType(0), d_now, &ne, true)) {
-        if (ne->d_validationState == Indeterminate && validationEnabled()) {
+      if (t_sstorage.negcache.get(negCacheName, QType(0), d_now, ne, true)) {
+        if (ne.d_validationState == Indeterminate && validationEnabled()) {
           // LOG(prefix << negCacheName <<  " negatively cached and Indeterminate, trying to validate NXDOMAIN" << endl);
           // ...
           // And get the updated ne struct
-          //t_sstorage.negcache.get(negCacheName, QType(0), d_now, &ne, true);
+          //t_sstorage.negcache.get(negCacheName, QType(0), d_now, ne, true);
         }
-        if ((s_hardenNXD == HardenNXD::Yes && ne->d_validationState != Bogus) || ne->d_validationState == Secure) {
+        if ((s_hardenNXD == HardenNXD::Yes && ne.d_validationState != Bogus) || ne.d_validationState == Secure) {
           res = RCode::NXDomain;
-          sttl = ne->d_ttd - d_now.tv_sec;
+          sttl = ne.d_ttd - d_now.tv_sec;
           giveNegative = true;
-          cachedState = ne->d_validationState;
-          LOG(prefix<<qname<<": Name '"<<negCacheName<<"' and below, is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+          cachedState = ne.d_validationState;
+          LOG(prefix<<qname<<": Name '"<<negCacheName<<"' and below, is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
           break;
         }
       }
@@ -1545,17 +1545,9 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
     state = cachedState;
 
-    /* let's do a full copy now, since:
-       - we know we are going to use the records ;
-       - we might have to go to the network in computeNegCacheValidationStatus(),
-       and our pointer might get invalidated during that time.
-    */
-    NegCache::NegCacheEntry negativeEntry = *ne;
-    ne = nullptr;
-
     if (!wasAuthZone && shouldValidate() && state == Indeterminate) {
       LOG(prefix<<qname<<": got Indeterminate state for records retrieved from the negative cache, validating.."<<endl);
-      computeNegCacheValidationStatus(negativeEntry, qname, qtype, res, state, depth);
+      computeNegCacheValidationStatus(ne, qname, qtype, res, state, depth);
 
       if (state != cachedState && state == Bogus) {
         sttl = std::min(sttl, s_maxbogusttl);
@@ -1563,11 +1555,11 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     }
 
     // Transplant SOA to the returned packet
-    addTTLModifiedRecords(negativeEntry.authoritySOA.records, sttl, ret);
+    addTTLModifiedRecords(ne.authoritySOA.records, sttl, ret);
     if(d_doDNSSEC) {
-      addTTLModifiedRecords(negativeEntry.authoritySOA.signatures, sttl, ret);
-      addTTLModifiedRecords(negativeEntry.DNSSECRecords.records, sttl, ret);
-      addTTLModifiedRecords(negativeEntry.DNSSECRecords.signatures, sttl, ret);
+      addTTLModifiedRecords(ne.authoritySOA.signatures, sttl, ret);
+      addTTLModifiedRecords(ne.DNSSECRecords.records, sttl, ret);
+      addTTLModifiedRecords(ne.DNSSECRecords.signatures, sttl, ret);
     }
 
     LOG(prefix<<qname<<": updating validation state with negative cache content for "<<qname<<" to "<<vStates[state]<<endl);

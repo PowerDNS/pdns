@@ -60,13 +60,13 @@ BOOST_AUTO_TEST_CASE(test_get_entry)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.get(qname, QType(1), now, &ne);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne);
 
   BOOST_CHECK(ret);
-  BOOST_CHECK_EQUAL(ne->d_name, qname);
-  BOOST_CHECK_EQUAL(ne->d_qtype.getName(), QType(0).getName());
-  BOOST_CHECK_EQUAL(ne->d_auth, auth);
+  BOOST_CHECK_EQUAL(ne.d_name, qname);
+  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(0).getName());
+  BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
 BOOST_AUTO_TEST_CASE(test_get_entry_exact_type)
@@ -85,11 +85,10 @@ BOOST_AUTO_TEST_CASE(test_get_entry_exact_type)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.get(qname, QType(1), now, &ne, true);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne, true);
 
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(test_get_NODATA_entry)
@@ -105,18 +104,17 @@ BOOST_AUTO_TEST_CASE(test_get_NODATA_entry)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.get(qname, QType(1), now, &ne);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne);
 
   BOOST_CHECK(ret);
-  BOOST_CHECK_EQUAL(ne->d_name, qname);
-  BOOST_CHECK_EQUAL(ne->d_qtype.getName(), QType(1).getName());
-  BOOST_CHECK_EQUAL(ne->d_auth, auth);
+  BOOST_CHECK_EQUAL(ne.d_name, qname);
+  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(1).getName());
+  BOOST_CHECK_EQUAL(ne.d_auth, auth);
 
-  const NegCache::NegCacheEntry* ne2 = nullptr;
-  ret = cache.get(qname, QType(16), now, &ne2);
+  NegCache::NegCacheEntry ne2;
+  ret = cache.get(qname, QType(16), now, ne2);
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne2 == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(test_getRootNXTrust_entry)
@@ -132,13 +130,13 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_entry)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.getRootNXTrust(qname, now, &ne);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.getRootNXTrust(qname, now, ne);
 
   BOOST_CHECK(ret);
-  BOOST_CHECK_EQUAL(ne->d_name, qname);
-  BOOST_CHECK_EQUAL(ne->d_qtype.getName(), QType(0).getName());
-  BOOST_CHECK_EQUAL(ne->d_auth, auth);
+  BOOST_CHECK_EQUAL(ne.d_name, qname);
+  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(0).getName());
+  BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
 BOOST_AUTO_TEST_CASE(test_add_and_get_expired_entry)
@@ -155,13 +153,12 @@ BOOST_AUTO_TEST_CASE(test_add_and_get_expired_entry)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
 
   now.tv_sec += 1000;
-  bool ret = cache.get(qname, QType(1), now, &ne);
+  bool ret = cache.get(qname, QType(1), now, ne);
 
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(test_getRootNXTrust_expired_entry)
@@ -178,13 +175,12 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_expired_entry)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
 
   now.tv_sec += 1000;
-  bool ret = cache.getRootNXTrust(qname, now, &ne);
+  bool ret = cache.getRootNXTrust(qname, now, ne);
 
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(test_add_updated_entry)
@@ -203,12 +199,12 @@ BOOST_AUTO_TEST_CASE(test_add_updated_entry)
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.get(qname, QType(1), now, &ne);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne);
 
   BOOST_CHECK(ret);
-  BOOST_CHECK_EQUAL(ne->d_name, qname);
-  BOOST_CHECK_EQUAL(ne->d_auth, auth2);
+  BOOST_CHECK_EQUAL(ne.d_name, qname);
+  BOOST_CHECK_EQUAL(ne.d_auth, auth2);
 }
 
 BOOST_AUTO_TEST_CASE(test_getRootNXTrust)
@@ -225,12 +221,12 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust)
   cache.add(genNegCacheEntry(qname, auth, now));
   cache.add(genNegCacheEntry(qname2, auth2, now));
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.getRootNXTrust(qname, now, &ne);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.getRootNXTrust(qname, now, ne);
 
   BOOST_CHECK(ret);
-  BOOST_CHECK_EQUAL(ne->d_name, qname2);
-  BOOST_CHECK_EQUAL(ne->d_auth, auth2);
+  BOOST_CHECK_EQUAL(ne.d_name, qname2);
+  BOOST_CHECK_EQUAL(ne.d_auth, auth2);
 }
 
 BOOST_AUTO_TEST_CASE(test_getRootNXTrust_full_domain_only)
@@ -247,11 +243,10 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_full_domain_only)
   cache.add(genNegCacheEntry(qname, auth, now));
   cache.add(genNegCacheEntry(qname2, auth2, now, 1)); // Add the denial for COM|A
 
-  const NegCache::NegCacheEntry* ne = nullptr;
-  bool ret = cache.getRootNXTrust(qname, now, &ne);
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.getRootNXTrust(qname, now, ne);
 
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(test_prune)
@@ -301,11 +296,11 @@ BOOST_AUTO_TEST_CASE(test_prune_valid_entries)
   cache.prune(1);
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
-  const NegCache::NegCacheEntry* got = nullptr;
-  bool ret = cache.get(power2, QType(1), now, &got);
+  NegCache::NegCacheEntry got;
+  bool ret = cache.get(power2, QType(1), now, got);
   BOOST_REQUIRE(ret);
-  BOOST_CHECK_EQUAL(got->d_name, power2);
-  BOOST_CHECK_EQUAL(got->d_auth, auth);
+  BOOST_CHECK_EQUAL(got.d_name, power2);
+  BOOST_CHECK_EQUAL(got.d_auth, auth);
 
   /* insert power1 back */
   ne = genNegCacheEntry(power1, auth, now);
@@ -323,11 +318,11 @@ BOOST_AUTO_TEST_CASE(test_prune_valid_entries)
   cache.prune(1);
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
-  got = nullptr;
-  ret = cache.get(power2, QType(1), now, &got);
+  got = NegCache::NegCacheEntry();
+  ret = cache.get(power2, QType(1), now, got);
   BOOST_REQUIRE(ret);
-  BOOST_CHECK_EQUAL(got->d_name, power2);
-  BOOST_CHECK_EQUAL(got->d_auth, auth);
+  BOOST_CHECK_EQUAL(got.d_name, power2);
+  BOOST_CHECK_EQUAL(got.d_auth, auth);
 }
 
 BOOST_AUTO_TEST_CASE(test_wipe_single)
@@ -354,20 +349,18 @@ BOOST_AUTO_TEST_CASE(test_wipe_single)
   cache.wipe(auth);
   BOOST_CHECK_EQUAL(cache.size(), 400U);
 
-  const NegCache::NegCacheEntry* ne2 = nullptr;
-  bool ret = cache.get(auth, QType(1), now, &ne2);
+  NegCache::NegCacheEntry ne2;
+  bool ret = cache.get(auth, QType(1), now, ne2);
 
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne2 == nullptr);
 
   cache.wipe(DNSName("1.powerdns.com"));
   BOOST_CHECK_EQUAL(cache.size(), 399U);
 
-  const NegCache::NegCacheEntry* ne3 = nullptr;
-  ret = cache.get(auth, QType(1), now, &ne3);
+  NegCache::NegCacheEntry ne3;
+  ret = cache.get(auth, QType(1), now, ne3);
 
   BOOST_CHECK_EQUAL(ret, false);
-  BOOST_CHECK(ne3 == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(test_wipe_subtree)

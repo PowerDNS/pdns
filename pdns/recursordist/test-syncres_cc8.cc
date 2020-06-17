@@ -676,15 +676,15 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* check that the entry has not been negatively cached for longer than the RRSIG validity */
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_ttd, fixedNow + 1);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Secure);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 1U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_ttd, fixedNow + 1);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Secure);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 1U);
 
   /* again, to test the cache */
   ret.clear();
@@ -747,15 +747,15 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* check that the entry has been negatively cached but not longer than s_maxbogusttl */
-  const NegCache::NegCacheEntry* ne = nullptr;
+  NegCache::NegCacheEntry ne;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
-  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
-  BOOST_CHECK_EQUAL(ne->d_ttd, fixedNow + SyncRes::s_maxbogusttl);
-  BOOST_CHECK_EQUAL(ne->d_validationState, Bogus);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 1U);
-  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0U);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
+  BOOST_CHECK_EQUAL(ne.d_ttd, fixedNow + SyncRes::s_maxbogusttl);
+  BOOST_CHECK_EQUAL(ne.d_validationState, Bogus);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
+  BOOST_CHECK_EQUAL(ne.DNSSECRecords.signatures.size(), 0U);
 
   /* again, to test the cache */
   ret.clear();
