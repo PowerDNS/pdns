@@ -518,3 +518,6 @@ Simple example script:
 
       return false
     end
+
+Additional updatepolicy example scripts can be found in our
+`Wiki <https://github.com/PowerDNS/pdns/wiki/Lua-Examples-(Authoritative)>`__.
