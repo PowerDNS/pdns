@@ -183,7 +183,7 @@ void NegCache::clear()
  *
  * \param maxEntries The maximum number of entries that may exist in the cache.
  */
-void NegCache::prune(unsigned int maxEntries)
+void NegCache::prune(size_t maxEntries)
 {
   pruneCollection<SequenceTag>(*this, d_negcache, maxEntries, 200);
 }

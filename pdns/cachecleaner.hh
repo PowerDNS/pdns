@@ -27,66 +27,50 @@
 // this function can clean any cache that has a getTTD() method on its entries, a preRemoval() method and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // on a miss, move it to the beginning
-template <typename S, typename C, typename T> void pruneCollection(C& container, T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
+template <typename S, typename C, typename T> void pruneCollection(C& container, T& collection, size_t maxCached, size_t scanFraction = 1000)
 {
-  time_t now=time(0);
-  unsigned int toTrim=0;
-  
-  unsigned int cacheSize=collection.size();
+  const time_t now = time(0);
+  size_t toTrim = 0;
+  const size_t cacheSize = collection.size();
 
-  if(cacheSize > maxCached) {
+  if (cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
   }
 
-//  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
-
-  typedef typename T::template index<S>::type sequence_t;
-  sequence_t& sidx=collection.template get<S>();
-
-  unsigned int tried=0, lookAt, erased=0;
+  auto& sidx = collection.template get<S>();
 
   // two modes - if toTrim is 0, just look through 1/scanFraction of all records 
   // and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
-  else
-    lookAt=cacheSize/scanFraction;
+  const size_t lookAt = toTrim ? 5 * toTrim : cacheSize / scanFraction;
+  size_t tried = 0, erased = 0;
 
-  typename sequence_t::iterator iter=sidx.begin(), eiter;
-  for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    if(iter->getTTD() < now) {
+  for (auto iter = sidx.begin(); iter != sidx.end() && tried < lookAt ; ++tried) {
+    if (iter->getTTD() < now) {
       container.preRemoval(*iter);
       iter = sidx.erase(iter);
       erased++;
     }
-    else
+    else {
       ++iter;
+    }
 
-    if(toTrim && erased >= toTrim)
+    if (toTrim && erased >= toTrim) {
       break;
+    }
   }
 
-  //cout<<"erased "<<erased<<" records based on ttd\n";
-  
-  if(erased >= toTrim) // done
+  if (erased >= toTrim) { // done
     return;
+  }
 
   toTrim -= erased;
 
-  //if(toTrim)
-    // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n"; 
-
-  eiter=iter=sidx.begin();
-  std::advance(eiter, toTrim);
   // just lob it off from the beginning
-  for (auto i = iter; ; ) {
-    if (i == eiter) {
-      break;
-    }
-
-    container.preRemoval(*i);
-    sidx.erase(i++);
+  auto iter = sidx.begin();
+  for (size_t i = 0; i < toTrim && iter != sidx.end(); i++) {
+    container.preRemoval(*iter);
+    iter = sidx.erase(iter);
   }
 }
 
