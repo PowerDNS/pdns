@@ -308,7 +308,7 @@ Webserver configuration
   :param str password: The password required to access the webserver
   :param str apikey: The key required to access the API
   :param {[str]=str,...} custom_headers: Allows setting custom headers and removing the defaults
-  :param str acl: List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
+  :param str acl: List of netmasks, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1". It accepts the same syntax that :func:`NetmaskGroup:addMask` does
 
 .. function:: setAPIWritable(allow [,dir])
 

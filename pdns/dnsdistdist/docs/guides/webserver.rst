@@ -9,11 +9,11 @@ To visually interact with dnsdist, try add :func:`webserver` to the configuratio
 
 Now point your browser at http://127.0.0.1:8083 and log in with any username, and that password. Enjoy!
 
-Since 1.5.0, only connections from 127.0.0.1 and ::1 are allowed by default. To allow connections from 192.0.2.1, instead:
+Since 1.5.0, only connections from 127.0.0.1 and ::1 are allowed by default. To allow connections from 192.0.2.0/24 but not from 192.0.2.1, instead:
 
 .. code-block:: lua
 
-  webserver("127.0.0.1:8083", "supersecretpassword", "supersecretAPIkey", {}, "192.0.2.1")
+  webserver("127.0.0.1:8083", "supersecretpassword", "supersecretAPIkey", {}, "192.0.2.0/24, !192.0.2.1")
 
 
 Security of the Webserver
