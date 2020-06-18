@@ -152,7 +152,11 @@ Given the normal pgsql schema, change the following:
   );
 
 
-3. Do not add the recordorder INDEX to the records table, the text_pattern_ops operator class is not supported.
+3. Do **not** add the following index to the records table, the text_pattern_ops operator class is not supported:
+
+.. code-block:: SQL
+
+  CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
 
 
 Configuration changes
