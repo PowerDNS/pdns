@@ -846,6 +846,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
     if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
+      // Do not set *fromCache; res does not reflect the final result in all cases
       return res;
     }
 
@@ -1165,6 +1166,18 @@ void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& q
   }
 }
 
+static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& records)
+{
+  for (const auto& record: records) {
+    if (record.d_type == QType::CNAME && record.d_place == DNSResourceRecord::ANSWER) {
+      if (name == record.d_name) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
 {
   string prefix;
@@ -1321,6 +1334,19 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|CNAME cache entry");
         }
         newTarget = cnameContent->getTarget();
+      }
+
+      if (qname == newTarget) {
+        string msg = "got a CNAME referral (from cache) to self";
+        LOG(prefix<<qname<<": "<<msg<<endl);
+        throw ImmediateServFailException(msg);
+      }
+
+      // Check to see if we already have seen the new target as a previous target
+      if (scanForCNAMELoop(newTarget, ret)) {
+        string msg = "got a CNAME referral (from cache) that causes a loop";
+        LOG(prefix<<qname<<": status="<<msg<<endl);
+        throw ImmediateServFailException(msg);
       }
 
       set<GetBestNSAnswer>beenthere;
@@ -3349,12 +3375,21 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if(!newtarget.empty()) {
     if(newtarget == qname) {
       LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
+      ret.clear();
       *rcode = RCode::ServFail;
       return true;
     }
 
     if(depth > 10) {
       LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
+      *rcode = RCode::ServFail;
+      return true;
+    }
+
+    // Check to see if we already have seen the new target as a previous target
+    if (scanForCNAMELoop(newtarget, ret)) {
+      LOG(prefix<<qname<<": status=got a CNAME referral that causes a loop, returning SERVFAIL"<<endl);
+      ret.clear();
       *rcode = RCode::ServFail;
       return true;
     }

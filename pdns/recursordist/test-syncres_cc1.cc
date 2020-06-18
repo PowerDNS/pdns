@@ -1125,8 +1125,85 @@ BOOST_AUTO_TEST_CASE(test_cname_loop)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_GT(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(count, 2U);
+
+  // Again to check cache
+  try {
+    res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK(false);
+  }
+  catch (const ImmediateServFailException& ex) {
+    BOOST_CHECK(true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_cname_long_loop)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  size_t count = 0;
+  const DNSName target1("cname1.powerdns.com.");
+  const DNSName target2("cname2.powerdns.com.");
+  const DNSName target3("cname3.powerdns.com.");
+  const DNSName target4("cname4.powerdns.com.");
+
+  sr->setAsyncCallback([target1, target2, target3, target4, &count](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    count++;
+
+    if (isRootServer(ip)) {
+
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return 1;
+    }
+    else if (ip == ComboAddress("192.0.2.1:53")) {
+
+      if (domain == target1) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target2.toString());
+        return 1;
+      }
+      else if (domain == target2) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target3.toString());
+        return 1;
+      }
+      else if (domain == target3) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target4.toString());
+        return 1;
+      }
+      else if (domain == target4) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target1.toString());
+        return 1;
+      }
+
+      return 1;
+    }
+
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(count, 8U);
+
+  // And again to check cache
+  try {
+    res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK(false);
+  }
+  catch (const ImmediateServFailException& ex) {
+    BOOST_CHECK(true);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_depth)
