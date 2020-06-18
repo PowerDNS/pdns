@@ -141,14 +141,14 @@ Given the normal pgsql schema, change the following:
 
   -- Before
   CREATE TABLE domains (
-    id                    SERIAL PRIMARY KEY,
-    ...
+    id SERIAL PRIMARY KEY,
+    --
   }
 
   -- After
   CREATE TABLE domains (
-    id                    INT PRIMARY KEY DEFAULT nextval('domain_id') PRIMARY KEY,
-    ...
+    id INT DEFAULT nextval('domain_id') PRIMARY KEY,
+    --
   );
 
 
