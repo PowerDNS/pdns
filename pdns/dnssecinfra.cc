@@ -541,55 +541,6 @@ DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
   return makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);
 }
 
-class DEREater
-{
-public:
-  DEREater(const std::string& str) : d_str(str), d_pos(0)
-  {}
-  
-  struct eof{};
-  
-  uint8_t getByte()
-  {
-    if(d_pos >= d_str.length()) {
-      throw eof();
-    }
-    return (uint8_t) d_str[d_pos++];
-  }
-  
-  uint32_t getLength()
-  {
-    uint8_t first = getByte();
-    if(first < 0x80) {
-      return first;
-    }
-    first &= ~0x80;
-    
-    uint32_t len=0;
-    for(int n=0; n < first; ++n) {
-      len *= 0x100;
-      len += getByte();
-    }
-    return len;
-  }
-  
-  std::string getBytes(unsigned int len)
-  {
-    std::string ret;
-    for(unsigned int n=0; n < len; ++n)
-      ret.append(1, (char)getByte());
-    return ret;
-  }
-  
-  std::string::size_type getOffset() 
-  {
-    return d_pos;
-  }
-private:
-  const std::string& d_str;
-  std::string::size_type d_pos;
-};
-
 static string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
 
   const EVP_MD* md_type;
