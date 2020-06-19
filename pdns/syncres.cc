@@ -1168,15 +1168,14 @@ static void reapRecordsFromNegCacheEntryForValidation(tcache_t& tcache, const ve
  * \param ttl     The new TTL for these records
  * \param ret     The vector of DNSRecords that should contian the records with the modified TTL
  */
-static void addTTLModifiedRecords(const vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
-  for (const auto& rec : records) {
-    DNSRecord r(rec);
-    r.d_ttl = ttl;
-    ret.push_back(r);
+static void addTTLModifiedRecords(vector<DNSRecord>& records, const uint32_t ttl, vector<DNSRecord>& ret) {
+  for (auto& rec : records) {
+    rec.d_ttl = ttl;
+    ret.push_back(std::move(rec));
   }
 }
 
-void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth)
+void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth)
 {
   DNSName subdomain(qname);
   /* if we are retrieving a DS, we only care about the state of the parent zone */
@@ -1186,10 +1185,10 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
   computeZoneCuts(subdomain, g_rootdnsname, depth);
 
   tcache_t tcache;
-  reapRecordsFromNegCacheEntryForValidation(tcache, ne->authoritySOA.records);
-  reapRecordsFromNegCacheEntryForValidation(tcache, ne->authoritySOA.signatures);
-  reapRecordsFromNegCacheEntryForValidation(tcache, ne->DNSSECRecords.records);
-  reapRecordsFromNegCacheEntryForValidation(tcache, ne->DNSSECRecords.signatures);
+  reapRecordsFromNegCacheEntryForValidation(tcache, ne.authoritySOA.records);
+  reapRecordsFromNegCacheEntryForValidation(tcache, ne.authoritySOA.signatures);
+  reapRecordsFromNegCacheEntryForValidation(tcache, ne.DNSSECRecords.records);
+  reapRecordsFromNegCacheEntryForValidation(tcache, ne.DNSSECRecords.signatures);
 
   for (const auto& entry : tcache) {
     // this happens when we did store signatures, but passed on the records themselves
@@ -1217,10 +1216,10 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
   }
 
   if (state == Secure) {
-    vState neValidationState = ne->d_validationState;
+    vState neValidationState = ne.d_validationState;
     dState expectedState = res == RCode::NXDomain ? NXDOMAIN : NXQTYPE;
-    dState denialState = getDenialValidationState(*ne, state, expectedState, false);
-    updateDenialValidationState(neValidationState, ne->d_name, state, denialState, expectedState, qtype == QType::DS || expectedState == NXDOMAIN);
+    dState denialState = getDenialValidationState(ne, state, expectedState, false);
+    updateDenialValidationState(neValidationState, ne.d_name, state, denialState, expectedState, qtype == QType::DS || expectedState == NXDOMAIN);
   }
   if (state != Indeterminate) {
     /* validation succeeded, let's update the cache entry so we don't have to validate again */
@@ -1228,7 +1227,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
     if (state == Bogus) {
       capTTD = d_now.tv_sec + s_maxbogusttl;
     }
-    t_sstorage.negcache.updateValidationStatus(ne->d_name, ne->d_qtype, state, capTTD);
+    t_sstorage.negcache.updateValidationStatus(ne.d_name, ne.d_qtype, state, capTTD);
   }
 }
 
@@ -1285,9 +1284,17 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
     state = cachedState;
 
+    /* let's do a full copy now, since:
+       - we know we are going to use the records ;
+       - we might have to go to the network in computeNegCacheValidationStatus(),
+       and our pointer might get invalidated during that time.
+    */
+    NegCache::NegCacheEntry negativeEntry = *ne;
+    ne = nullptr;
+
     if (!wasAuthZone && shouldValidate() && state == Indeterminate) {
       LOG(prefix<<qname<<": got Indeterminate state for records retrieved from the negative cache, validating.."<<endl);
-      computeNegCacheValidationStatus(ne, qname, qtype, res, state, depth);
+      computeNegCacheValidationStatus(negativeEntry, qname, qtype, res, state, depth);
 
       if (state != cachedState && state == Bogus) {
         sttl = std::min(sttl, s_maxbogusttl);
@@ -1295,11 +1302,11 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     }
 
     // Transplant SOA to the returned packet
-    addTTLModifiedRecords(ne->authoritySOA.records, sttl, ret);
+    addTTLModifiedRecords(negativeEntry.authoritySOA.records, sttl, ret);
     if(d_doDNSSEC) {
-      addTTLModifiedRecords(ne->authoritySOA.signatures, sttl, ret);
-      addTTLModifiedRecords(ne->DNSSECRecords.records, sttl, ret);
-      addTTLModifiedRecords(ne->DNSSECRecords.signatures, sttl, ret);
+      addTTLModifiedRecords(negativeEntry.authoritySOA.signatures, sttl, ret);
+      addTTLModifiedRecords(negativeEntry.DNSSECRecords.records, sttl, ret);
+      addTTLModifiedRecords(negativeEntry.DNSSECRecords.signatures, sttl, ret);
     }
 
     LOG(prefix<<qname<<": updating validation state with negative cache content for "<<qname<<" to "<<vStates[state]<<endl);
