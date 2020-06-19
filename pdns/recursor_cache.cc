@@ -440,7 +440,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType qt,
   time_t maxTTD=std::numeric_limits<time_t>::max();
   CacheEntry ce=*stored; // this is a COPY
   ce.d_qtype=qt.getCode();
-  
+
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
       return;

@@ -72,7 +72,9 @@ struct sharedDNSKeyRecordContentCompare
 
 typedef set<shared_ptr<DNSKEYRecordContent>, sharedDNSKeyRecordContentCompare > skeyset_t;
 
+
 vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& records, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, bool validateAllSigs=true);
+bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next);
 void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const skeyset_t& keys);
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs);
 vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset);
@@ -88,3 +90,6 @@ bool isRRSIGIncepted(const time_t now, const shared_ptr<RRSIGRecordContent>& sig
 bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
 bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
 void updateDNSSECValidationState(vState& state, const vState stateUpdate);
+
+dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<NSECRecordContent>& nsecRecord, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures);
+

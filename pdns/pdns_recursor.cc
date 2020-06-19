@@ -68,6 +68,7 @@
 #include "malloctrace.hh"
 #endif
 #include <netinet/tcp.h>
+#include "aggressive_nsec.hh"
 #include "capabilities.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
@@ -4740,6 +4741,15 @@ static int serviceMain(int argc, char*argv[])
 
   s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
+  if (::arg().mustDo("aggressive-nsec")) {
+    if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog) {
+      g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+    }
+    else {
+      g_log<<Logger::Warning<<"Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate' or 'log-fail', ignoring"<<endl;
+    }
+  }
+
   {
     SuffixMatchNode dontThrottleNames;
     vector<string> parts;
@@ -5505,6 +5515,8 @@ int main(int argc, char **argv)
 #endif /* NOD_ENABLED */
 
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
+
+    ::arg().setSwitch("aggressive-nsec", "If set, and DNSSEC validation is enabled, the recursor will look at cached NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

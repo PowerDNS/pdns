@@ -94,6 +94,7 @@ check-local:
 endif
 
 pdns_recursor_SOURCES = \
+	aggressive_nsec.cc aggressive_nsec.hh \
 	arguments.cc \
 	ascii.hh \
 	axfr-retriever.hh axfr-retriever.cc \
@@ -226,6 +227,7 @@ pdns_recursor_LDFLAGS += \
 endif
 
 testrunner_SOURCES = \
+	aggressive_nsec.cc aggressive_nsec.hh \
 	arguments.cc \
 	axfr-retriever.hh axfr-retriever.cc \
 	base32.cc \

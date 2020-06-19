@@ -63,7 +63,7 @@ static bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginH
           (beginHash == nextHash && h != beginHash));   // "we have only 1 NSEC3 record, LOL!"
 }
 
-static bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next)
+bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next)
 {
   return ((begin.canonCompare(name) && name.canonCompare(next)) ||  // no wrap          BEGINNING --- NAME --- NEXT
           (name.canonCompare(next) && next.canonCompare(begin)) ||  // wrap             NAME --- NEXT --- BEGINNING
@@ -376,6 +376,51 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
   return false;
 }
 
+dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<NSECRecordContent>& nsec, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures)
+{
+  const DNSName signer = getSigner(signatures);
+  if (!name.isPartOf(signer) || !nsecOwner.isPartOf(signer)) {
+    return dState::NODENIAL;
+  }
+
+  const DNSName owner = getNSECOwnerName(nsecOwner, signatures);
+  /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+     Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+     nonexistence of any RRs below that zone cut, which include all RRs at
+     that (original) owner name other than DS RRs, and all RRs below that
+     owner name regardless of type.
+  */
+  if (qtype != QType::DS && (name == owner || name.isPartOf(owner)) && isNSECAncestorDelegation(signer, owner, nsec)) {
+    /* this is an "ancestor delegation" NSEC RR */
+    return dState::NODENIAL;
+  }
+
+  /* check if the type is denied */
+  if (name == owner) {
+    if (nsec->isSet(qtype)) {
+      return dState::NODENIAL;
+    }
+
+    /* RFC 6840 section 4.3 */
+    if (nsec->isSet(QType::CNAME)) {
+      return dState::NODENIAL;
+    }
+
+    return dState::NXQTYPE;
+  }
+
+  if (isCoveredByNSEC(name, owner, nsec->d_next)) {
+
+    if (nsecProvesENT(name, owner, nsec->d_next)) {
+      return dState::NXQTYPE;
+    }
+
+    return dState::NXDOMAIN;
+  }
+
+  return dState::NODENIAL;
+}
+
 /*
   This function checks whether the existence of qname|qtype is denied by the NSEC and NSEC3
   in validrrsets.
@@ -402,6 +447,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     if(v.first.second==QType::NSEC) {
       for(const auto& r : v.second.records) {
         LOG("\t"<<r->getZoneRepresentation()<<endl);
+
         auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
         if(!nsec)
           continue;
@@ -425,7 +471,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         }
 
         /* check if the type is denied */
-        if(qname == owner) {
+        if (qname == owner) {
           if (nsec->isSet(qtype)) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
             return dState::NODENIAL;

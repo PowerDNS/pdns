@@ -24,6 +24,7 @@
 #endif
 
 #include "arguments.hh"
+#include "aggressive_nsec.hh"
 #include "cachecleaner.hh"
 #include "dns_random.hh"
 #include "dnsparser.hh"
@@ -1942,6 +1943,18 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       LOG(prefix<<qname<<": cache had only stale entries"<<endl);
   }
 
+  /* let's check if we have a NSEC covering that record */
+  if (g_aggressiveNSECCache) {
+    cerr<<"calling get denial"<<endl;
+    if (g_aggressiveNSECCache->getDenial(d_now.tv_sec, qname, qtype, ret, res, d_cacheRemote, d_routingTag, d_doDNSSEC)) {
+      state = vState::Secure;
+      return true;
+    }
+  }
+  else {
+    cerr<<"no cache"<<endl;
+  }
+
   return false;
 }
 
@@ -3015,6 +3028,8 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
+  DNSName seenAuth;
+
   for (auto& rec : lwr.d_records) {
     if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
       continue;
@@ -3022,12 +3037,16 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
     rec.d_ttl = min(s_maxcachettl, rec.d_ttl);
 
-    if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType::CNAME)) && rec.d_name == qname && !isDNAMEAnswer) {
+    if (!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType::CNAME)) && rec.d_name == qname && !isDNAMEAnswer) {
       isCNAMEAnswer = true;
     }
-    if(!isDNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::DNAME && qtype != QType::DNAME && qname.isPartOf(rec.d_name)) {
+    if (!isDNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::DNAME && qtype != QType::DNAME && qname.isPartOf(rec.d_name)) {
       isDNAMEAnswer = true;
       isCNAMEAnswer = false;
+    }
+
+    if (rec.d_type == QType::SOA && rec.d_place == DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name)) {
+      seenAuth = rec.d_name;
     }
 
     if (rec.d_type == QType::RRSIG) {
@@ -3333,13 +3352,21 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           }
         }
       }
+
       if (doCache) {
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP);
       }
     }
 
-    if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
+    if ((i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty() && g_aggressiveNSECCache) {
+      cerr<<"Good candidate for aggressive NSEC caching"<<endl;
+
+      g_aggressiveNSECCache->insertNSEC(seenAuth, i->first.name, i->second.records.at(0), i->second.signatures, i->first.type == QType::NSEC3);
+    }
+
+    if (i->first.place == DNSResourceRecord::ANSWER && ednsmask) {
       d_wasVariable=true;
+    }
   }
 
   return RCode::NoError;
