@@ -804,6 +804,10 @@ static void connectionThread(int sock, ComboAddress remote)
           }
         }
 
+        output << "# HELP dnsdist_info " << "Info from dnsdist, value is always 1" << "\n";
+        output << "# TYPE dnsdist_info " << "gauge" << "\n";
+        output << "dnsdist_info{version=\"" << VERSION << "\"} " << "1" << "\n";
+
         resp.body = output.str();
         resp.headers["Content-Type"] = "text/plain";
     }

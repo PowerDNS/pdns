@@ -2274,6 +2274,10 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
     output << prometheusMetricName << " " << S.read(metricName) << "\n";
   }
 
+  output << "# HELP pdns_auth_info " << "Info from PowerDNS, value is always 1" << "\n";
+  output << "# TYPE pdns_auth_info " << "gauge" << "\n";
+  output << "pdns_auth_info{version=\"" << VERSION << "\"} " << "1" << "\n";
+
   resp->body = output.str();
   resp->headers["Content-Type"] = "text/plain";
   resp->status = 200;
