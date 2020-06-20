@@ -40,6 +40,71 @@ These instructions have been tested on Debian 10 (Buster).
 
     pdnsutil show-zone example.com
 
+SoftHSM2 with forwarding
+------------------------
+
+Based on https://p11-glue.github.io/p11-glue/p11-kit/manual/remoting.html.
+
+You need to install ``gnutls-bin`` to get token URLs.
+
+You cannot run ``p11-kit server`` as root, so you will need some user for running it. This user must be in the ``softhsm`` group.
+
+These commands need to be run as the non-root user (we shall call it ``tokenuser``).
+
+First, set up your token::
+
+   softhsm2-util --init-token --label "ecdsa#1" --pin 1234 --so-pin 1234 --free
+   pkcs11-tool --module /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so --keypairgen --key-type EC:prime256v1 --pin 1234 -a 'my key' --token-label "ecdsa#1"
+
+Ensure it's there::
+
+   pkcs11-tool --module /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so -l -O -p 1234
+
+Get the URL for ``p11-kit server``, which is needed for the server::
+
+   p11tool --provider /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-client.so --list-tokens
+
+Set up forwarding::
+
+  cat <<EOF > /etc/pkcs11/modules/p11-kit-client.module
+  module: /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-client.so
+  EOF
+
+  p11-kit server -u pdns --provider /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so "pkcs11:model=SoftHSM%20v2;manufacturer=SoftHSM%20project;serial=29fdc44dc0d61539;token=ecdsa%231"
+  P11_KIT_SERVER_ADDRESS=unix:path=/run/user/1000/p11-kit/pkcs11-5198; export P11_KIT_SERVER_ADDRESS;
+  P11_KIT_SERVER_PID=5199; export P11_KIT_SERVER_PID;
+
+You will need those values in PowerDNS running environment. Now you can verify that the token is reachable as ``pdns`` user with::
+
+  pkcs11-tool --module /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-client.so -T
+  Available slots:
+  Slot 0 (0x10): SoftHSM slot ID 0x40d61539
+    token label        : ecdsa#1
+    token manufacturer : SoftHSM project
+    token model        : SoftHSM v2
+    token flags        : login required, rng, token initialized, PIN initialized, other flags=0x20
+    hardware version   : 2.5
+    firmware version   : 2.5
+    serial num         : 29fdc44dc0d61539
+    pin min/max        : 4/255
+
+Then assign the HSM token to your zone with::
+
+  pdnsutil hsm assign example.com ecdsa256 ksk p11-kit-client 'ecdsa#1' 1234 'my key'
+
+And then verify with ``show-zone`` that the zone now has a valid key.
+
+You can do this over SSH as well (note that the example connects from token server to DNS server)::
+
+    ssh -R /var/run/pdns/pkcs11:${P11_KIT_SERVER_ADDRESS#*=} pdns@server
+    export P11_KIT_SERVER_ADDRESS=/var/run/pdns/pkcs11
+
+Verify that the token is visible::
+
+   pkcs11-tool --module /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-client.so -T
+
+Then use the ``pdnsutil hsm assign`` command like before to assign the key to your zone; now you have DNSSEC over SSH.
+
 Using CryptAS
 -------------
 
