@@ -712,13 +712,10 @@ struct SlaveSenderReceiver
 
   bool receive(Identifier& id, Answer& a)
   {
-    if(d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)))) {
-      return 1;
-    }
-    return 0;
+    return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
   }
 
-  void deliverAnswer(DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
+  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
   {
     d_freshness[dni.di.id]=a;
   }
@@ -899,14 +896,14 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
   g_log<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zone"<<addS(ssr.d_freshness.size())<<", had "<<ifl.getTimeouts()<<" timeout"<<addS(ifl.getTimeouts())<<endl;
 
-  typedef DomainNotificationInfo val_t;
   time_t now = time(0);
-  for(val_t& val :  sdomains) {
+  for(auto& val : sdomains) {
     DomainInfo& di(val.di);
-    DomainInfo tempdi;
     // might've come from the packethandler
-    // Please do not overwrite received DI just to make sure it exists in backend.
     if(!di.backend) {
+      // Do not overwrite received DI just to make sure it exists in backend:
+      // di.masters should contain the picked master (as first entry)!
+      DomainInfo tempdi;
       if (!B->getDomainInfo(di.zone, tempdi)) {
         g_log<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
         continue;
@@ -948,10 +945,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
     catch(...) {}
 
-    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = sd.serial;
+    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
+    uint32_t ourserial = sd.serial;
+    const ComboAddress remote = *di.masters.begin();
 
     if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0 && !::arg().mustDo("axfr-lower-serial"))  {
-      g_log<<Logger::Error<<"Domain '"<<di.zone<<"' more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
+      g_log<<Logger::Error<<"Domain '" << di.zone << "' more recent than master " << remote.toStringWithPortExcept(53) << ", our serial "<< ourserial<< " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
     else if(hasSOA && theirserial == ourserial) {
@@ -968,38 +967,38 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         }
       }
       if(! maxInception && ! ssr.d_freshness[di.id].theirInception) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (no DNSSEC), serial is "<<ourserial<<endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked master " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and SOA RRSIGs match, serial is "<<ourserial<<endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked master " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxExpire >= now && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh, master is no longer signed but (some) signatures are still vallid, serial is "<<ourserial<<endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh, master " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still vallid, serial is " << ourserial << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master is no longer signed and all signatures have expired, serial is "<<ourserial<<endl;
-        addSuckRequest(di.zone, *di.masters.begin());
+        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
+        addSuckRequest(di.zone, remote);
       }
       else if(dk.doesDNSSEC() && ! maxInception && ssr.d_freshness[di.id].theirInception) {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master has signed, serial is "<<ourserial<<endl;
-        addSuckRequest(di.zone, *di.masters.begin());
+        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
+        addSuckRequest(di.zone, remote);
       }
       else {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGs differ, so DNSSEC is stale, serial is "<<ourserial<<endl;
-        addSuckRequest(di.zone, *di.masters.begin());
+        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is fresh, but RRSIGs differ on master" << remote.toStringWithPortExcept(53)<<", so DNSSEC is stale, serial is " << ourserial << endl;
+        addSuckRequest(di.zone, remote);
       }
     }
     else {
       if(hasSOA) {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
+        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
       }
       else {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is empty, master serial "<<theirserial<<endl;
+        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is empty, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
       }
-      addSuckRequest(di.zone, *di.masters.begin());
+      addSuckRequest(di.zone, remote);
     }
   }
 }
