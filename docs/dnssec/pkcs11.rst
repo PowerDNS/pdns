@@ -80,8 +80,8 @@ Smart Card token on Ubuntu 14.04.
   Manager no longer can show your token certificates and keys, at least
   on version v6.23.04. ::
 
-    pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk
-    pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-zsk
+    pkcs11-tool --module=/lib64/libASEP11.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk
+    pkcs11-tool --module=/lib64/libASEP11.so -l -p some-pin -k --key-type RSA:2048 -a zone-zsk
 
 - Verify that keys are there::
 
