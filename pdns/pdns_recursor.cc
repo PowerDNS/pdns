@@ -1237,7 +1237,23 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
       auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
       for (auto& dr : spoofed) {
         ret.push_back(dr);
-        handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+        try {
+          handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+        }
+        catch (const ImmediateServFailException& e) {
+          if (g_logCommonErrors) {
+            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+          }
+          res = RCode::ServFail;
+          break;
+        }
+        catch (const PolicyHitException& e) {
+          if (g_logCommonErrors) {
+            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '"<<dc->d_mdp.d_qname<<"' because another RPZ policy was hit"<<endl;
+          }
+          res = RCode::ServFail;
+          break;
+        }
       }
     }
     return PolicyResult::HaveAnswer;
