@@ -66,7 +66,7 @@ Create a named.conf with all the domains as slave domains, e.g.:
 
 Make sure the directory is writable for the ``pdns_server`` process and
 that :ref:`setting-bind-config` parameter
-references this file. Now start PowerDNS and wait untill all zones are
+references this file. Now start PowerDNS and wait until all zones are
 transferred. Now you can change the zone type to master:
 
 ::
