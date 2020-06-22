@@ -8,6 +8,15 @@ on:
     paths:
       - "docs/**"
       - "**/docs/**"
+  pull_request:
+    branches:
+      - "**"
+    tags-ignore:
+      - "**"
+    paths:
+      - "docs/**"
+      - "**/docs/**"
+    types: ['opened', 'reopened', 'synchronize']
 
 jobs:
   build:
