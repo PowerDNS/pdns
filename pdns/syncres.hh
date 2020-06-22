@@ -416,7 +416,7 @@ public:
   static uint64_t doDumpNSSpeeds(int fd);
   static uint64_t doDumpThrottleMap(int fd);
   static uint64_t doDumpFailedServers(int fd);
-  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
   static void clearDelegationOnly()
   {
     s_delegationOnly.clear();
@@ -604,7 +604,8 @@ public:
 
   explicit SyncRes(const struct timeval& now);
 
-  int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
+  int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret, unsigned int depth = 0);
+
   void setId(int id)
   {
     if(doLog())
@@ -1113,7 +1114,7 @@ uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qty
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
 void primeHints(void);
-void primeRootNSZones(bool);
+void primeRootNSZones(bool, unsigned int depth);
 
 extern __thread struct timeval g_now;
 
