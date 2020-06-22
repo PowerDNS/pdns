@@ -22,7 +22,7 @@ ArgvMap& arg()
   return theArg;
 }
 
-void primeRootNSZones(bool)
+void primeRootNSZones(bool, unsigned int)
 {
 }
 

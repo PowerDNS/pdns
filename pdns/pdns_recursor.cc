@@ -3183,11 +3183,11 @@ static void houseKeeping(void *)
         last_RC_prune = now.tv_sec;
       }
       // XXX !!! global
-      if(now.tv_sec - last_rootupdate > 7200) {
-        int res = SyncRes::getRootNS(g_now, nullptr);
+      if (now.tv_sec - last_rootupdate > 7200) {
+        int res = SyncRes::getRootNS(g_now, nullptr, 0);
         if (!res) {
           last_rootupdate=now.tv_sec;
-          primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
+          primeRootNSZones(g_dnssecmode != DNSSECMode::Off, 0);
         }
       }
 

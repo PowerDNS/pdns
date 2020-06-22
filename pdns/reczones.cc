@@ -115,7 +115,7 @@ void primeHints(void)
 // servers are authoritative for root-servers.net, and some
 // implementations reply not with a delegation on a root-servers.net
 // DS query, but with a NODATA response (the domain is unsigned).
-void primeRootNSZones(bool dnssecmode)
+void primeRootNSZones(bool dnssecmode, unsigned int depth)
 {
   struct timeval now;
   gettimeofday(&now, 0);
@@ -132,7 +132,7 @@ void primeRootNSZones(bool dnssecmode)
   for (const auto & qname: copy) {
     s_RC->doWipeCache(qname, false, QType::NS);
     vector<DNSRecord> ret;
-    sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret);
+    sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret, depth + 1);
   }
 }
 

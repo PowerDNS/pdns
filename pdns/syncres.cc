@@ -131,7 +131,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
-int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)
+int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret, unsigned int depth)
 {
   vState state = Indeterminate;
   s_queries++;
@@ -155,7 +155,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     return -1;
 
   set<GetBestNSAnswer> beenthere;
-  int res=doResolve(qname, qtype, ret, 0, beenthere, state);
+  int res=doResolve(qname, qtype, ret, depth, beenthere, state);
   d_queryValidationState = state;
 
   if (shouldValidate()) {
@@ -1101,11 +1101,11 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     if(subdomain.isRoot() && !brokeloop) {
       // We lost the root NS records
       primeHints();
-      primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
+      primeRootNSZones(g_dnssecmode != DNSSECMode::Off, depth);
       LOG(prefix<<qname<<": reprimed the root"<<endl);
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
-        getRootNS(d_now, d_asyncResolve);
+        getRootNS(d_now, d_asyncResolve, depth);
       }
     }
   } while(subdomain.chopOff());
@@ -3750,7 +3750,7 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
   SyncRes sr(now);
   int res = -1;
   try {
-    res = sr.beginResolve(qname, QType(qtype), qclass, ret);
+    res = sr.beginResolve(qname, QType(qtype), qclass, ret, 0);
   }
   catch(const PDNSException& e) {
     g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got pdns exception: "<<e.reason<<endl;
@@ -3776,7 +3776,7 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
   return res;
 }
 
-int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
+int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth) {
   SyncRes sr(now);
   sr.setDoEDNS0(true);
   sr.setUpdatingRootNS();
@@ -3787,7 +3787,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
   vector<DNSRecord> ret;
   int res=-1;
   try {
-    res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret);
+    res=sr.beginResolve(g_rootdnsname, QType(QType::NS), 1, ret, depth + 1);
     if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate) {
       auto state = sr.getValidationState();
       if (state == Bogus)
