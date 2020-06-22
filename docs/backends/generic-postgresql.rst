@@ -109,3 +109,70 @@ This is the 4.3 schema. Please find `the 4.2 schema <https://github.com/PowerDNS
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
    :language: SQL
+
+CockroachDB
+-----------
+
+`CockroachDB <https://www.cockroachlabs.com/docs/stable/architecture/overview.html>`__ is a highly available, resilient database that focuses on scaling and consistency. Specifically: it offers a PostgreSQL like database interface,
+which means that most tools that talk the PostgreSQL protocol can use it.
+
+A few changes are needed on top of the generic PostgreSQL settings. CockroachDB does not natively support the range operators that some PowerDNS database queries use,
+and care must be taken that table index columns do not exceed the internal maximum integer size that PowerDNS uses.
+
+Schema differences
+^^^^^^^^^^^^^^^^^^
+
+Given the normal pgsql schema, change the following:
+
+1. Add explicit SEQUENCEs for all SERIAL columns:
+
+.. code-block:: SQL
+
+  CREATE SEQUENCE domain_id MAXVALUE 2147483648;
+  CREATE SEQUENCE record_id MAXVALUE 2147483648;
+  CREATE SEQUENCE comment_id MAXVALUE 2147483648;
+  CREATE SEQUENCE meta_id MAXVALUE 2147483648;
+  CREATE SEQUENCE key_id MAXVALUE 2147483648;
+  CREATE SEQUENCE tsig_id MAXVALUE 2147483648;
+
+2. Change all SERIAL / BIGSERIAL columns to use the SEQUENCEs. For instance:
+
+.. code-block:: SQL
+
+  -- Before
+  CREATE TABLE domains (
+    id SERIAL PRIMARY KEY,
+    --
+  }
+
+  -- After
+  CREATE TABLE domains (
+    id INT DEFAULT nextval('domain_id') PRIMARY KEY,
+    --
+  );
+
+
+3. Do **not** add the following index to the records table, the text_pattern_ops operator class is not supported:
+
+.. code-block:: SQL
+
+  CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
+
+
+Configuration changes
+^^^^^^^^^^^^^^^^^^^^^
+
+Four queries must be overridden in the PowerDNS config, because by default they use a range operator that is not supported. These modified queries are actually
+taken from the generic MySQL backend, and modified for syntax:
+
+.. code-block:: ini
+
+  gpgsql-get-order-first-query=select ordername from records where domain_id = $1 and disabled = false and ordername is not null order by 1 asc limit 1
+  gpgsql-get-order-before-query=select ordername, name from records where ordername <= $1 and domain_id = $2 and disabled = false and ordername is not null order by 1 desc limit 1
+  gpgsql-get-order-after-query=select ordername from records where ordername > $1 and domain_id = $2 and disabled = false and ordername is not null order by 1 asc limit 1
+  gpgsql-get-order-last-query=select ordername, name from records where ordername != '' and domain_id = $1 and disabled = false and ordername is not null order by 1 desc limit 1
+
+References
+^^^^^^^^^^
+
+See `this Github issue <https://github.com/PowerDNS/pdns/issues/5375#issuecomment-644771800>`__ for the original tests and a full working schema.
