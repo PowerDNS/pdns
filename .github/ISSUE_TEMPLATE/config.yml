@@ -1,1 +1,6 @@
 blank_issues_enabled: false
+
+contact_links:
+- name: Get help with a question or a problem
+  url: https://www.powerdns.com/opensource.html
+  about: Find us on IRC or our mailing lists to get the answers or help you need!
