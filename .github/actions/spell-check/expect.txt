@@ -324,6 +324,7 @@ cnamerecord
 cnf
 Cnma
 cnn
+cockroachlabs
 Cockroft
 codebgcolor
 codeninja
@@ -929,6 +930,7 @@ isp
 ispell
 isql
 isse
+issuecomment
 ixfr
 ixfrdist
 ixplore
@@ -1155,6 +1157,7 @@ MAXINT
 maxlistdepth
 maxmind
 maxqps
+MAXVALUE
 mbed
 mbedtls
 MBOXFW
@@ -1273,6 +1276,7 @@ NETWORKMASK
 Neue
 Neuf
 newcontent
+nextval
 nf
 nic
 nimber
