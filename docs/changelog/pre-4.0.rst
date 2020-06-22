@@ -3990,7 +3990,7 @@ Miscellaneous
    `commit
    569 <http://wiki.powerdns.com/projects/trac/changeset/569>`__.
 -  PowerDNS now reports if it is running in 32 or 64 bit mode, useful
-   for bi-arch users that need to know if they are benefitting from
+   for bi-arch users that need to know if they are benefiting from
    `AMD's great processor <http://www.amd.com>`__. `commit
    571 <http://wiki.powerdns.com/projects/trac/changeset/571>`__.
 -  **dnsscope** compiles again, `commit
