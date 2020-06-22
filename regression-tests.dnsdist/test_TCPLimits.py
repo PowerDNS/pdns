@@ -28,6 +28,7 @@ class TestTCPLimits(DNSDistTest):
     setMaxTCPConnectionDuration(%s)
     """
     _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
+    _verboseMode = True
 
     def testTCPQueriesPerConn(self):
         """
@@ -90,6 +91,11 @@ class TestTCPLimits(DNSDistTest):
 
         for conn in conns:
             conn.close()
+
+        # wait a bit to be sure that dnsdist closed the connections
+        # and decremented the counters on its side, otherwise subsequent
+        # connections will be dropped
+        time.sleep(1)
 
         self.assertEqual(count, self._maxTCPConnsPerClient)
         self.assertEqual(failed, 1)

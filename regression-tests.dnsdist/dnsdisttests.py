@@ -58,6 +58,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _healthCheckCounter = 0
     _answerUnexpected = True
     _checkConfigExpectedOutput = None
+    _verboseMode = False
 
     @classmethod
     def startResponders(cls):
@@ -82,6 +83,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         dnsdistcmd = [os.environ['DNSDISTBIN'], '--supervised', '-C', confFile,
                       '-l', '%s:%d' % (cls._dnsDistListeningAddr, cls._dnsDistPort) ]
+        if cls._verboseMode:
+            dnsdistcmd.append('-v')
+
         for acl in cls._acl:
             dnsdistcmd.extend(['--acl', acl])
         print(' '.join(dnsdistcmd))
@@ -96,7 +100,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
           expectedOutput = cls._checkConfigExpectedOutput
         else:
           expectedOutput = ('Configuration \'%s\' OK!\n' % (confFile)).encode()
-        if output != expectedOutput:
+        if not cls._verboseMode and output != expectedOutput:
             raise AssertionError('dnsdist --check-config failed: %s' % output)
 
         logFile = os.path.join('configs', 'dnsdist_%s.log' % (cls.__name__))
