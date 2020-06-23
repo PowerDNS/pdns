@@ -699,11 +699,6 @@ public:
     return d_now;
   }
 
-  void setSkipCNAMECheck(bool skip = false)
-  {
-    d_skipCNAMECheck = skip;
-  }
-
   void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS);
 
 #ifdef HAVE_PROTOBUF
@@ -903,7 +898,6 @@ private:
   bool d_DNSSECValidationRequested{false};
   bool d_doEDNS0{true};
   bool d_requireAuthData{true};
-  bool d_skipCNAMECheck{false};
   bool d_updatingRootNS{false};
   bool d_wantsRPZ{true};
   bool d_wasOutOfBand{false};
