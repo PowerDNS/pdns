@@ -407,6 +407,7 @@ fi
 %doc modules/gsqlite3backend/3.4.0_to_4.0.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/4.0.0_to_4.2.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/4.2.0_to_4.3.0_schema.sqlite3.sql
+%doc modules/gsqlite3backend/4.3.0_to_4.3.1_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
 
 %if 0%{?rhel} >= 7
