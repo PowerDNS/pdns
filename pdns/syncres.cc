@@ -1237,10 +1237,6 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
     LOG(prefix<<qname<<": No CNAME or DNAME cache hit of '"<< qname <<"' found"<<endl);
     return false;
   }
-
-  if (qtype == QType::DS || qtype == QType::DNSKEY) {
-    return true;
-  }
   
   for(auto const &record : cset) {
     if (record.d_class != QClass::IN) {
@@ -1332,6 +1328,11 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       }
 
       if(qtype == QType::CNAME) { // perhaps they really wanted a CNAME!
+        res = 0;
+        return true;
+      }
+
+      if (qtype == QType::DS || qtype == QType::DNSKEY) {
         res = 0;
         return true;
       }
@@ -3402,8 +3403,8 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
       return true;
     }
 
-    if (qtype == QType::DS) {
-      LOG(prefix<<qname<<": status=got a CNAME referral, but we are looking for a DS"<<endl);
+    if (qtype == QType::DS || qtype == QType::DNSKEY) {
+      LOG(prefix<<qname<<": status=got a CNAME referral, but we are looking for a DS or DNSKEY"<<endl);
 
       if(d_doDNSSEC)
         addNXNSECS(ret, lwr.d_records);
