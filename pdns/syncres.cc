@@ -850,7 +850,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
       }
     }
 
-    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
+    if(doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
       // Do not set *fromCache; res does not reflect the final result in all cases
       return res;
@@ -1238,6 +1238,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
     return false;
   }
 
+  if (qtype == QType::DS || qtype == QType::DNSKEY) {
+    return true;
+  }
+  
   for(auto const &record : cset) {
     if (record.d_class != QClass::IN) {
       continue;
@@ -1573,6 +1577,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   uint32_t ttl=0;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth;
+
   if(s_RC->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
@@ -2052,15 +2057,11 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
     return result;
   }
 
-  bool oldSkipCNAME = d_skipCNAMECheck;
-  d_skipCNAMECheck = true;
-
   std::set<GetBestNSAnswer> beenthere;
   std::vector<DNSRecord> dsrecords;
 
   vState state = Indeterminate;
   int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth + 1, beenthere, state);
-  d_skipCNAMECheck = oldSkipCNAME;
 
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
     uint8_t bestDigestType = 0;
@@ -2211,9 +2212,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   DNSName qname(end);
   std::vector<string> labelsToAdd = begin.makeRelative(end).getRawLabels();
 
-  bool oldSkipCNAME = d_skipCNAMECheck;
-  d_skipCNAMECheck = true;
-
   while(qname != begin) {
     if (labelsToAdd.empty())
       break;
@@ -2268,8 +2266,6 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
       d_cutStates.erase(qname);
     }
   }
-
-  d_skipCNAMECheck = oldSkipCNAME;
 
   LOG(d_prefix<<": list of cuts from "<<begin<<" to "<<end<<endl);
   for (const auto& cut : d_cutStates) {
@@ -2333,11 +2329,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   LOG(d_prefix<<"Retrieving DNSKeys for "<<signer<<endl);
 
   vState state = Indeterminate;
-  /* following CNAME might lead to us to the wrong DNSKEY */
-  bool oldSkipCNAME = d_skipCNAMECheck;
-  d_skipCNAMECheck = true;
   int rcode = doResolve(signer, QType(QType::DNSKEY), records, depth + 1, beenthere, state);
-  d_skipCNAMECheck = oldSkipCNAME;
 
   if (rcode == RCode::NoError) {
     if (state == Secure) {
