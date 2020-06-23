@@ -468,6 +468,11 @@ int dnsdist_ffi_server_get_order(const dnsdist_ffi_server_t* server)
   return server->server->order;
 }
 
+double dnsdist_ffi_server_get_latency(const dnsdist_ffi_server_t* server)
+{
+  return server->server->latencyUsec;
+}
+
 bool dnsdist_ffi_server_is_up(const dnsdist_ffi_server_t* server)
 {
   return server->server->isUp();

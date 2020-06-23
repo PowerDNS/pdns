@@ -112,3 +112,4 @@ const char* dnsdist_ffi_server_get_name(const dnsdist_ffi_server_t* server) __at
 const char* dnsdist_ffi_server_get_name_with_addr(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));
 int dnsdist_ffi_server_get_weight(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));
 int dnsdist_ffi_server_get_order(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));
+double dnsdist_ffi_server_get_latency(const dnsdist_ffi_server_t* server) __attribute__ ((visibility ("default")));

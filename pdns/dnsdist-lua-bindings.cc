@@ -102,6 +102,7 @@ void setupLuaBindings(bool client)
       s->pools.erase(pool);
     });
   g_lua.registerFunction<uint64_t(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
+  g_lua.registerFunction<double(DownstreamState::*)()>("getLatency", [](const DownstreamState& s) { return s.latencyUsec; });
   g_lua.registerFunction("isUp", &DownstreamState::isUp);
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
