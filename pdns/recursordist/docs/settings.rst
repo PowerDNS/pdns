@@ -121,7 +121,7 @@ Not recommended unless you have to tick an 'RFC 2181 compliant' box.
 --------------
 -  Comma separated list of 'zonename=filename' pairs
 
-Zones read from these files (in BIND format) are served authoritatively.
+Zones read from these files (in BIND format) are served authoritatively (but without the AA bit set in responses).
 DNSSEC is not supported. Example:
 
 .. code-block:: none
