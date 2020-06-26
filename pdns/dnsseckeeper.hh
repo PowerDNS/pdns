@@ -239,6 +239,7 @@ public:
 
   static void setMaxEntries(size_t maxEntries);
 
+  typedef std::map<std::string, std::vector<std::string> > METAValues;
 private:
 
 
@@ -258,16 +259,14 @@ private:
   
   struct METACacheEntry
   {
-    uint32_t getTTD() const
+    time_t getTTD() const
     {
       return d_ttd;
     }
-  
+
     DNSName d_domain;
-    mutable std::string d_key, d_value;
-    mutable bool d_isset;
-    unsigned int d_ttd;
-  
+    mutable METAValues d_value;
+    time_t d_ttd;
   };
   
   struct KeyCacheTag{};
@@ -285,12 +284,7 @@ private:
   typedef multi_index_container<
     METACacheEntry,
     indexed_by<
-      ordered_unique<tag<CompositeTag>,
-        composite_key< 
-          METACacheEntry, 
-          member<METACacheEntry, DNSName, &METACacheEntry::d_domain> ,
-          member<METACacheEntry, std::string, &METACacheEntry::d_key>
-        >, composite_key_compare<std::less<DNSName>, CIStringCompare> >,
+      ordered_unique<member<METACacheEntry, DNSName, &METACacheEntry::d_domain> >,
       sequenced<tag<SequencedTag>>
     >
   > metacache_t;

@@ -126,9 +126,7 @@ void DNSSECKeeper::clearCaches(const DNSName& name)
     s_keycache.erase(name); 
   }
   WriteLock l(&s_metacachelock);
-  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(tie(name));
-  while(range.first != range.second)
-    s_metacache.erase(range.first++);
+  s_metacache.erase(name);
 }
 
 
@@ -212,43 +210,51 @@ void DNSSECKeeper::getFromMetaOrDefault(const DNSName& zname, const std::string&
 bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std::string& value)
 {
   static int ttl = ::arg().asNum("domain-metadata-cache-ttl");
-  bool isset = false;
-  value.clear();
-  unsigned int now = time(0);
 
   if(!((++s_ops) % 100000)) {
     cleanup();
   }
 
-  if (ttl > 0) {
-    ReadLock l(&s_metacachelock);
+  value.clear();
+  time_t now = time(nullptr);
 
-    metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
+  bool ret = false;
+  bool fromCache = false;
+  METAValues meta;
+
+  if (ttl) {
+    ReadLock l(&s_metacachelock);
+    auto iter = s_metacache.find(zname);
     if(iter != s_metacache.end() && iter->d_ttd > now) {
-      value = iter->d_value;
-      return iter->d_isset;
+      meta = iter->d_value;
+      fromCache = true;
     }
   }
-  vector<string> meta;
-  d_keymetadb->getDomainMetadata(zname, key, meta);
-  if(!meta.empty()) {
-    value=std::move(*meta.begin());
-    isset = true;
+
+  if (!fromCache) {
+    d_keymetadb->getAllDomainMetadata(zname, meta);
   }
 
-  if (ttl > 0) {
+  auto iter = meta.find(key);
+  if (iter != meta.end()) {
+    if (!iter->second.empty()) {
+      value = *iter->second.begin();
+    }
+    ret = true;
+  }
+
+  if (ttl && !fromCache) {
     METACacheEntry nce;
     nce.d_domain=zname;
     nce.d_ttd = now + ttl;
-    nce.d_key= key;
-    nce.d_value = value;
-    nce.d_isset = isset;
+    nce.d_value = std::move(meta);
     {
       WriteLock l(&s_metacachelock);
       lruReplacingInsert<SequencedTag>(s_metacache, nce);
     }
   }
-  return isset;
+
+  return ret;
 }
 
 void DNSSECKeeper::getSoaEdit(const DNSName& zname, std::string& value)
