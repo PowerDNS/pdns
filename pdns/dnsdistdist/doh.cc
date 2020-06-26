@@ -652,9 +652,9 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
    We use this to signal to the 'du' that this req is no longer alive */
 static void on_generator_dispose(void *_self)
 {
-  DOHUnit** du = (DOHUnit**)_self;
-  if(*du) { // if 0, on_dnsdist cleaned up du already
-//    cout << "du "<<(void*)*du<<" containing req "<<(*du)->req<<" got killed"<<endl;
+  DOHUnit** du = reinterpret_cast<DOHUnit**>(_self);
+  if (*du) { // if 0, on_dnsdist cleaned up du already
+    (*du)->self = nullptr;
     (*du)->req = nullptr;
   }
 }
@@ -1039,6 +1039,13 @@ static void dnsdistclient(int qsock)
         continue;
       }
 
+      if (!du->req) {
+        // it got killed in flight already
+        du->self = nullptr;
+        du->release();
+        continue;
+      }
+
       // if there was no EDNS, we add it with a large buffer size
       // so we can use UDP to talk to the backend.
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.c_str()));
@@ -1109,12 +1116,15 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
 
   if (!du->req) { // it got killed in flight
-//    cout << "du "<<(void*)du<<" came back from dnsdist, but it was killed"<<endl;
+    du->self = nullptr;
     du->release();
     return;
   }
 
-  *du->self = nullptr; // so we don't clean up again in on_generator_dispose
+  if (du->self) {
+    *du->self = nullptr; // so we don't clean up again in on_generator_dispose
+    du->self = nullptr;
+  }
 
   handleResponse(*dsc->df, du->req, du->status_code, du->response, dsc->df->d_customResponseHeaders, du->contentType, true);
 

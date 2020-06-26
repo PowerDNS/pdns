@@ -176,6 +176,10 @@ struct DOHUnit
   void release()
   {
     if (--d_refcnt == 0) {
+      if (self) {
+        *self = nullptr;
+      }
+
       delete this;
     }
   }
