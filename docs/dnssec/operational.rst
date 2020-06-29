@@ -248,3 +248,8 @@ Note that the NSEC/NSEC3 records proving those negatives will get the high TTL i
 
   NSEC(3) records now get the negative TTL (which is the lowest of the SOA TTL and the SOA minimum), which means their TTL matches that of an error such as NXDOMAIN.
   The warning about RFC8198 no longer applies.
+
+.. note::
+
+  Since 4.4.0, the DNSKEY TTL can be overridden using :ref:`setting-dnskey-minimum-ttl-override` if the SOA minimum TTL is too low.
+  This is a per server setting, mostly useful for secondary operators.

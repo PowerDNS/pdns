@@ -583,6 +583,20 @@ See :doc:`performance`.
 Synthesise CNAME records from DNAME records as required. This
 approximately doubles query load. **Do not combine with DNSSEC!**
 
+.. _setting-dnskey-minimum-ttl-override:
+
+``dnskey-minimum-ttl-override``
+-------------------------------
+
+.. versionadded:: 4.4.0
+
+-  Integer
+-  Default: 0
+
+Lower bound TTL for DNSKEY records.
+The default of `0` implies no lower bound, and the SOA minimum value is used.
+Mostly useful for secondary nameserver operators.
+
 .. _setting-dnssec-key-cache-ttl:
 
 ``dnssec-key-cache-ttl``

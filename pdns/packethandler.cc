@@ -152,29 +152,31 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
 bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd)
 {
   DNSZoneRecord rr;
-  bool haveOne=false;
+  bool haveOne = false;
+
+  uint32_t ttl = std::max(sd.minimum, static_cast<uint32_t>(::arg().asNum("dnskey-minimum-ttl-override")));
 
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p.qdomain);
   for(const auto& value: keyset) {
     if (!value.second.published) {
       continue;
     }
-    rr.dr.d_type=QType::DNSKEY;
-    rr.dr.d_ttl=sd.minimum;
-    rr.dr.d_name=p.qdomain;
-    rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-    rr.auth=true;
+    rr.dr.d_type = QType::DNSKEY;
+    rr.dr.d_ttl = ttl;
+    rr.dr.d_name = p.qdomain;
+    rr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
+    rr.auth = true;
     r->addRecord(std::move(rr));
-    haveOne=true;
+    haveOne = true;
   }
 
   if(::arg().mustDo("direct-dnskey")) {
     B.lookup(QType(QType::DNSKEY), p.qdomain, sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=sd.minimum;
+      rr.dr.d_ttl = ttl;
       r->addRecord(std::move(rr));
-      haveOne=true;
+      haveOne = true;
     }
   }
 
