@@ -2,6 +2,24 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.17
+  :released: 1st of July 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 
+
+    Backport of CVE-2020-14196: Enforce webserver ACL.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9129
+    :tickets: 9127, 8640
+
+    Fix compilation on systems that do not define HOST_NAME_MAX.
+
+
+.. changelog::
   :version: 4.1.16
   :released: 19th of May 2020
 

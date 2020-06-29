@@ -1,5 +1,35 @@
 Changelogs for 4.2.x
 ====================
+.. changelog::
+  :version: 4.2.3
+  :released: 1st of July 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 
+
+    Backport of CVE-2020-14196: Enforce webserver ACL.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9261
+    :tickets: 9251
+
+    Copy the negative cache entry before validating it.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9133
+    :tickets: 9127
+
+    Fix compilation on systems that do not define HOST_NAME_MAX.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9123
+    :tickets: 8640
+
+    Fix build with gcc-10
 
 .. changelog::
   :version: 4.2.2
