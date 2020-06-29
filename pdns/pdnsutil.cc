@@ -51,6 +51,14 @@ ArgvMap &arg()
   return arg;
 }
 
+static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec) {
+  vector<string> strs;
+  for (const auto& ca : vec) {
+    strs.push_back(ca.toStringWithPortExcept(53));
+  }
+  return boost::join(strs, ",");
+}
+
 static void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
@@ -1085,7 +1093,7 @@ static int loadZone(DNSName zone, const string& fname) {
   }
   else {
     cerr<<"Creating '"<<zone<<"'"<<endl;
-    B.createDomain(zone, DomainInfo::Native, "", "");
+    B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
 
     if(!B.getDomainInfo(zone, di)) {
       cerr<<"Domain '"<<zone<<"' was not created - perhaps backend ("<<::arg()["launch"]<<") does not support storing new zones."<<endl;
@@ -1128,7 +1136,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
     return EXIT_FAILURE;
   }
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
-  B.createDomain(zone, DomainInfo::Native, "", "");
+  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
     return EXIT_FAILURE;
@@ -1170,13 +1178,12 @@ static int createSlaveZone(const vector<string>& cmds) {
     cerr<<"Domain '"<<zone<<"' exists already"<<endl;
     return EXIT_FAILURE;
   }
-  vector<string> masters;
+  vector<ComboAddress> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
-    ComboAddress master(cmds[i], 53);
-    masters.push_back(master.toStringWithPortExcept(53));
+    masters.emplace_back(cmds[i], 53);
   }
-  cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<boost::join(masters, ",")<<"'"<<endl;
-  B.createDomain(zone, DomainInfo::Slave, boost::join(masters, ","), "");
+  cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<comboAddressVecToString(masters)<<"'"<<endl;
+  B.createDomain(zone, DomainInfo::Slave, masters, "");
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
     return EXIT_FAILURE;
@@ -1192,14 +1199,13 @@ static int changeSlaveZoneMaster(const vector<string>& cmds) {
     cerr<<"Domain '"<<zone<<"' doesn't exist"<<endl;
     return EXIT_FAILURE;
   }
-  vector<string> masters;
+  vector<ComboAddress> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
-    ComboAddress master(cmds[i], 53);
-    masters.push_back(master.toStringWithPortExcept(53));
+    masters.emplace_back(cmds[i], 53);
   }
-  cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<boost::join(masters, ",")<<"'"<<endl;
+  cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<comboAddressVecToString(masters)<<"'"<<endl;
   try {
-    di.backend->setMaster(zone, boost::join(masters, ","));
+    di.backend->setMasters(zone, masters);
     return EXIT_SUCCESS;
   }
   catch (PDNSException& e) {
@@ -3307,16 +3313,8 @@ try
       DomainInfo di_new;
       DNSResourceRecord rr;
       cout<<"Processing '"<<di.zone<<"'"<<endl;
-      string masters="";
-      bool first = true;
-      for(const auto& master: di.masters) {
-        if (!first)
-          masters += ", ";
-        first = false;
-        masters += master.toStringWithPortExcept(53);
-      }
       // create zone
-      if (!tgt->createDomain(di.zone, di.kind, masters, di.account)) throw PDNSException("Failed to create zone");
+      if (!tgt->createDomain(di.zone, di.kind, di.masters, di.account)) throw PDNSException("Failed to create zone");
       if (!tgt->getDomainInfo(di.zone, di_new)) throw PDNSException("Failed to create zone");
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");

@@ -758,20 +758,14 @@ void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 }
 
 
-bool LMDBBackend::setMaster(const DNSName &domain, const std::string& ips)
+bool LMDBBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &masters)
 {
-  vector<ComboAddress> masters;
-  vector<string> parts;
-  stringtok(parts, ips, " \t;,");
-  for(const auto& ip : parts) 
-    masters.push_back(ComboAddress(ip, 53));
-  
   return genChangeDomain(domain, [&masters](DomainInfo& di) {
       di.masters = masters;
     });
 }
 
-bool LMDBBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const string &masters, const string &account)
+bool LMDBBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
   DomainInfo di;
 
@@ -779,9 +773,10 @@ bool LMDBBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
   if(txn.get<0>(domain, di)) {
     throw DBException("Domain '"+domain.toLogString()+"' exists already");
   }
-  
+
   di.zone = domain;
   di.kind = kind;
+  di.masters = masters;
   di.account = account;
 
   txn.put(di);

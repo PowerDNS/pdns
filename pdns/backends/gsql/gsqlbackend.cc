@@ -216,19 +216,26 @@ void GSQLBackend::setFresh(uint32_t domain_id)
   }
 }
 
-bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
+bool GSQLBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &masters)
 {
+  vector<string> masters_s;
+  for (const auto& master : masters) {
+    masters_s.push_back(master.toStringWithPortExcept(53));
+  }
+
+  auto tmp = boost::join(masters_s, ", ");
+
   try {
     reconnectIfNeeded();
 
     d_UpdateMasterOfZoneQuery_stmt->
-      bind("master", ip)->
+      bind("master", tmp)->
       bind("domain", domain)->
       execute()->
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set master of domain '"+domain.toLogString()+"' to IP address " + ip + ": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set masters of domain '"+domain.toLogString()+"' to " + tmp + ": "+e.txtReason());
   }
   return true;
 }
@@ -1234,15 +1241,20 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const string &masters, const string &account)
+bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
+  vector<string> masters_s;
+  for (const auto& master : masters) {
+    masters_s.push_back(master.toStringWithPortExcept(53));
+  }
+
   try {
     reconnectIfNeeded();
 
     d_InsertZoneQuery_stmt->
       bind("type", toUpper(DomainInfo::getKindString(kind)))->
       bind("domain", domain)->
-      bind("masters", masters)->
+      bind("masters", boost::join(masters_s, ", "))->
       bind("account", account)->
       execute()->
       reset();
@@ -1256,7 +1268,7 @@ bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
 bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account)
 {
   string name;
-  string masters(ip);
+  vector<ComboAddress> masters({ComboAddress(ip, 53)});
   try {
     if (!nameserver.empty()) {
       // figure out all IP addresses for the master
@@ -1270,13 +1282,13 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
         reset();
       if (!d_result.empty()) {
         // collect all IP addresses
-        vector<string> tmp;
+        vector<ComboAddress> tmp;
         for(const auto& row: d_result) {
           if (account == row[1])
-            tmp.push_back(row[0]);
+            tmp.emplace_back(row[0], 53);
         }
         // set them as domain's masters, comma separated
-        masters = boost::join(tmp, ", ");
+        masters = tmp;
       }
     }
     createDomain(domain, DomainInfo::Slave, masters, account);

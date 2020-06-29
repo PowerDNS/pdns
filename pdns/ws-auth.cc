@@ -616,28 +616,25 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 
-static void extractDomainInfoFromDocument(const Json document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<string>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
     kind = boost::none;
   }
 
-  vector<string> zonemaster;
-  for(auto value : document["masters"].array_items()) {
-    string master = value.string_value();
-    if (master.empty())
-      throw ApiException("Master can not be an empty string");
-    try {
-      ComboAddress m(master, 53);
-      zonemaster.push_back(m.toStringWithPortExcept(53));
-    } catch (const PDNSException &e) {
-      throw ApiException("Master (" + master + ") is not an IP address: " + e.reason);
+  if (document["masters"].is_array()) {
+    masters = vector<ComboAddress>();
+    for(auto value : document["masters"].array_items()) {
+      string master = value.string_value();
+      if (master.empty())
+        throw ApiException("Master can not be an empty string");
+      try {
+        masters->emplace_back(master, 53);
+      } catch (const PDNSException &e) {
+        throw ApiException("Master (" + master + ") is not an IP address: " + e.reason);
+      }
     }
-  }
-
-  if (zonemaster.size()) {
-    masters = boost::join(zonemaster, ",");
   } else {
     masters = boost::none;
   }
@@ -651,7 +648,8 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
 
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
   boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<string> masters, account;
+  boost::optional<vector<ComboAddress>> masters;
+  boost::optional<string> account;
 
   extractDomainInfoFromDocument(document, kind, masters, account);
 
@@ -659,7 +657,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     di.backend->setKind(zonename, *kind);
   }
   if (masters) {
-    di.backend->setMaster(zonename, *masters);
+    di.backend->setMasters(zonename, *masters);
   }
   if (account) {
     di.backend->setAccount(zonename, *account);
@@ -1678,11 +1676,12 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     boost::optional<DomainInfo::DomainKind> kind;
-    boost::optional<string> masters, account;
+    boost::optional<vector<ComboAddress>> masters;
+    boost::optional<string> account;
     extractDomainInfoFromDocument(document, kind, masters, account);
 
     // no going back after this
-    if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(""), account.get_value_or("")))
+    if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed");
 
     if(!B.getDomainInfo(zonename, di))
