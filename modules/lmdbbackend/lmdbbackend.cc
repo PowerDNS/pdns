@@ -771,12 +771,7 @@ bool LMDBBackend::setMaster(const DNSName &domain, const std::string& ips)
     });
 }
 
-bool LMDBBackend::createDomain(const DNSName &domain)
-{
-  return createDomain(domain, "NATIVE", "", "");
-}
-          
-bool LMDBBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
+bool LMDBBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const string &masters, const string &account)
 {
   DomainInfo di;
 
@@ -786,14 +781,7 @@ bool LMDBBackend::createDomain(const DNSName &domain, const string &type, const 
   }
   
   di.zone = domain;
-  if(pdns_iequals(type, "master"))
-    di.kind = DomainInfo::Master;
-  else if(pdns_iequals(type, "slave"))
-    di.kind = DomainInfo::Slave;
-  else if(pdns_iequals(type, "native"))
-    di.kind = DomainInfo::Native;
-  else
-    throw DBException("Unable to create domain of unknown type '"+type+"'");
+  di.kind = kind;
   di.account = account;
 
   txn.put(di);

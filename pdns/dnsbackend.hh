@@ -343,7 +343,7 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName &domain)
+  virtual bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const string &masters, const string &account)
   {
     return false;
   }

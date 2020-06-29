@@ -1085,7 +1085,7 @@ static int loadZone(DNSName zone, const string& fname) {
   }
   else {
     cerr<<"Creating '"<<zone<<"'"<<endl;
-    B.createDomain(zone);
+    B.createDomain(zone, DomainInfo::Native, "", "");
 
     if(!B.getDomainInfo(zone, di)) {
       cerr<<"Domain '"<<zone<<"' was not created - perhaps backend ("<<::arg()["launch"]<<") does not support storing new zones."<<endl;
@@ -1128,7 +1128,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
     return EXIT_FAILURE;
   }
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
-  B.createDomain(zone);
+  B.createDomain(zone, DomainInfo::Native, "", "");
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
     return EXIT_FAILURE;
@@ -1173,16 +1173,14 @@ static int createSlaveZone(const vector<string>& cmds) {
   vector<string> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
     ComboAddress master(cmds[i], 53);
-    masters.push_back(master.toStringWithPort());
+    masters.push_back(master.toStringWithPortExcept(53));
   }
   cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<boost::join(masters, ",")<<"'"<<endl;
-  B.createDomain(zone);
+  B.createDomain(zone, DomainInfo::Slave, boost::join(masters, ","), "");
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
     return EXIT_FAILURE;
   }
-  di.backend->setKind(zone, DomainInfo::Slave);
-  di.backend->setMaster(zone, boost::join(masters, ","));
   return EXIT_SUCCESS;
 }
 
@@ -1197,7 +1195,7 @@ static int changeSlaveZoneMaster(const vector<string>& cmds) {
   vector<string> masters;
   for (unsigned i=2; i < cmds.size(); i++) {
     ComboAddress master(cmds[i], 53);
-    masters.push_back(master.toStringWithPort());
+    masters.push_back(master.toStringWithPortExcept(53));
   }
   cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<boost::join(masters, ",")<<"'"<<endl;
   try {
@@ -3309,11 +3307,6 @@ try
       DomainInfo di_new;
       DNSResourceRecord rr;
       cout<<"Processing '"<<di.zone<<"'"<<endl;
-      // create zone
-      if (!tgt->createDomain(di.zone)) throw PDNSException("Failed to create zone");
-      if (!tgt->getDomainInfo(di.zone, di_new)) throw PDNSException("Failed to create zone");
-      tgt->setKind(di_new.zone, di.kind);
-      tgt->setAccount(di_new.zone,di.account);
       string masters="";
       bool first = true;
       for(const auto& master: di.masters) {
@@ -3322,7 +3315,9 @@ try
         first = false;
         masters += master.toStringWithPortExcept(53);
       }
-      tgt->setMaster(di_new.zone, masters);
+      // create zone
+      if (!tgt->createDomain(di.zone, di.kind, masters, di.account)) throw PDNSException("Failed to create zone");
+      if (!tgt->getDomainInfo(di.zone, di_new)) throw PDNSException("Failed to create zone");
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
       nr=0;

@@ -1234,13 +1234,13 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
+bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const string &masters, const string &account)
 {
   try {
     reconnectIfNeeded();
 
     d_InsertZoneQuery_stmt->
-      bind("type", type)->
+      bind("type", toUpper(DomainInfo::getKindString(kind)))->
       bind("domain", domain)->
       bind("masters", masters)->
       bind("account", account)->
@@ -1279,7 +1279,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
         masters = boost::join(tmp, ", ");
       }
     }
-    createDomain(domain, "SLAVE", masters, account);
+    createDomain(domain, DomainInfo::Slave, masters, account);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());

@@ -615,27 +615,56 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
+
+static void extractDomainInfoFromDocument(const Json document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<string>& masters, boost::optional<string>& account) {
+  if (document["kind"].is_string()) {
+    kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+  } else {
+    kind = boost::none;
+  }
+
   vector<string> zonemaster;
-  bool shouldRectify = false;
   for(auto value : document["masters"].array_items()) {
     string master = value.string_value();
     if (master.empty())
       throw ApiException("Master can not be an empty string");
     try {
-      ComboAddress m(master);
+      ComboAddress m(master, 53);
+      zonemaster.push_back(m.toStringWithPortExcept(53));
     } catch (const PDNSException &e) {
       throw ApiException("Master (" + master + ") is not an IP address: " + e.reason);
     }
-    zonemaster.push_back(master);
   }
 
   if (zonemaster.size()) {
-    di.backend->setMaster(zonename, boost::join(zonemaster, ","));
+    masters = boost::join(zonemaster, ",");
+  } else {
+    masters = boost::none;
   }
-  if (document["kind"].is_string()) {
-    di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
+
+  if (document["account"].is_string()) {
+    account = document["account"].string_value();
+  } else {
+    account = boost::none;
   }
+}
+
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
+  boost::optional<DomainInfo::DomainKind> kind;
+  boost::optional<string> masters, account;
+
+  extractDomainInfoFromDocument(document, kind, masters, account);
+
+  if (kind) {
+    di.backend->setKind(zonename, *kind);
+  }
+  if (masters) {
+    di.backend->setMaster(zonename, *masters);
+  }
+  if (account) {
+    di.backend->setAccount(zonename, *account);
+  }
+
   if (document["soa_edit_api"].is_string()) {
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", document["soa_edit_api"].string_value());
   }
@@ -648,11 +677,9 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
   catch (const JsonException&) {}
 
-  if (document["account"].is_string()) {
-    di.backend->setAccount(zonename, document["account"].string_value());
-  }
 
   DNSSECKeeper dk(&B);
+  bool shouldRectify = false;
   bool dnssecInJSON = false;
   bool dnssecDocVal = false;
 
@@ -1650,8 +1677,12 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       }
     }
 
+    boost::optional<DomainInfo::DomainKind> kind;
+    boost::optional<string> masters, account;
+    extractDomainInfoFromDocument(document, kind, masters, account);
+
     // no going back after this
-    if(!B.createDomain(zonename))
+    if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(""), account.get_value_or("")))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed");
 
     if(!B.getDomainInfo(zonename, di))

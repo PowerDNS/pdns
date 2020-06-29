@@ -38,9 +38,7 @@ public:
   bool list(const DNSName &target, int id, bool include_disabled) override;
 
   bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
-  bool createDomain(const DNSName &domain, const string &type, const string &masters, const string &account);
-
-  bool createDomain(const DNSName &domain) override;
+  bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const string &masters, const string &account) override;
   
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;
