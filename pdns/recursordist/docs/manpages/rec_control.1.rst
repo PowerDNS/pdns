@@ -41,7 +41,7 @@ Options
 --socket-pid=<pid>    When running in SMP mode, pid of **pdns_recursor** to
                       control.
 --timeout=<num>       Number of seconds to wait for the remote PowerDNS
-                      Recursor to respond. Set to 0 for infinite.
+                      Recursor to respond.
 
 Commands
 --------
