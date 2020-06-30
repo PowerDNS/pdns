@@ -32,7 +32,10 @@ class HttpResponse;
 
 class AsyncServer : public Server {
 public:
-  AsyncServer(const string &localaddress, int port) : Server(localaddress, port) { };
+  AsyncServer(const string &localaddress, int port) : Server(localaddress, port)
+  {
+    d_server_socket.setNonBlocking();
+  };
 
   friend void AsyncServerNewConnectionMT(void *p);
 
