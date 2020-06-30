@@ -450,6 +450,11 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   registerAllStats();
 
   d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
+
+  NetmaskGroup acl;
+  acl.toMasks(::arg()["webserver-allow-from"]);
+  d_ws->setACL(acl);
+
   d_ws->bind();
 
   // legacy dispatch
@@ -610,6 +615,10 @@ void AsyncServer::newConnection()
 // This is an entry point from FDM, so it needs to catch everything.
 void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
 try {
+  if (!client->acl(d_acl)) {
+    return;
+  }
+
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl;
   yarl.initialize(&req);

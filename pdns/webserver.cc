@@ -344,16 +344,13 @@ void WebServer::go()
   if(!d_server)
     return;
   try {
-    NetmaskGroup acl;
-    acl.toMasks(::arg()["webserver-allow-from"]);
-
     while(true) {
       try {
         auto client = d_server->accept();
         if (!client) {
           continue;
         }
-        if (client->acl(acl)) {
+        if (client->acl(d_acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
         } else {
