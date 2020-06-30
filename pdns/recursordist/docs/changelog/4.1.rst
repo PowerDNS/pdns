@@ -7,7 +7,7 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: 
+    :pullreq: 9283
 
     Backport of CVE-2020-14196: Enforce webserver ACL.
 
@@ -25,7 +25,7 @@ Changelogs for 4.1.x
 
   .. change::
      :tags: Bug Fixes
-     :pullreq:
+     :pullreq: 9117
 
      Backport of security fixes for CVE-2020-10995, CVE-2020-12244 and
      CVE-2020-10030, plus avoid a crash when loading an invalid RPZ.
