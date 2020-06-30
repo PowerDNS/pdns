@@ -139,6 +139,11 @@ class WebServer : public boost::noncopyable
 public:
   WebServer(const string &listenaddress, int port);
   virtual ~WebServer() { };
+
+  void setACL(const NetmaskGroup &nmg) {
+    d_acl = nmg;
+  }
+
   void bind();
   void go();
 
@@ -160,6 +165,8 @@ protected:
   int d_port;
   string d_password;
   std::shared_ptr<Server> d_server;
+
+  NetmaskGroup d_acl;
 };
 
 #endif /* WEBSERVER_HH */

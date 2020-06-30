@@ -111,7 +111,7 @@ public:
   }
 
   //! Check remote address against netmaskgroup ng
-  bool acl(NetmaskGroup &ng)
+  bool acl(const NetmaskGroup &ng)
   {
     ComboAddress remote;
     if (getRemote(remote))
