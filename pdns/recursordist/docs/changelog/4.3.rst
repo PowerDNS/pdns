@@ -1,12 +1,92 @@
 Changelogs for 4.3.x
 ====================
 .. changelog::
+  :version: 4.3.2
+  :released: 1st of July 2020
+
+   .. change::
+     :tags: Bug Fixes
+     :pullreq: 9285
+
+     Backport of CVE-2020-14196: Enforce webserver ACL.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9262
+    :tickets: 9251
+
+    Copy the negative cache entry before validating it.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9242
+    :tickets: 9031
+
+    Fix compilation of the ports event multiplexer.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9243
+    :tickets: 9142
+
+    Defer the NOD lookup until after the response has been sent.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9245
+    :tickets: 9151
+
+    Fix the handling of DS queries for the root.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9246
+    :tickets: 9172
+
+    Fix RPZ removals when an update has several deltas.
+
+  .. change::
+    :tags: Bug Fixes.
+    :pullreq: 9247
+    :tickets: 9192, 9184
+
+    Correct depth increments.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9248
+    :tickets: 9194, 9202, 9216
+
+    CNAME loop detection.
+
+  .. change::
+    :tags: Bug Fixes.
+    :pullreq: 9249
+    :tickets: 9205
+
+    Limit the TTL of RRSIG records as well
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9128
+    :tickets: 9127
+
+    Fix compilation on systems that do not define HOST_NAME_MAX.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9122
+    :tickets: 8640
+
+    Fix build with gcc-10.
+
+.. changelog::
   :version: 4.3.1
   :released: 19th of May 2020
 
   .. change::
      :tags: Bug Fixes
-     :pullreq:
+     :pullreq: 9115
 
      Backport of security fixes for CVE-2020-10995, CVE-2020-12244 and
      CVE-2020-10030, plus avoid a crash when loading an invalid RPZ.
