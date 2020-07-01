@@ -1837,16 +1837,16 @@ static void startDoResolve(void *p)
       int wret=Utility::writev(dc->d_socket, iov, 2);
       bool hadError=true;
 
-      if(wret == 0)
-        g_log<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-      else if(wret < 0 ) {
+      if (wret == 0) {
+        g_log<<Logger::Warning<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
+      } else if (wret < 0 ) {
         int err = errno;
-        g_log << Logger::Error << "Error writing TCP answer to " << dc->getRemote() << ": " << strerror(err) << endl;
-      } else if((unsigned int)wret != 2 + packet.size())
-        g_log<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
-      else
+        g_log << Logger::Warning << "Error writing TCP answer to " << dc->getRemote() << ": " << strerror(err) << endl;
+      } else if ((unsigned int)wret != 2 + packet.size()) {
+        g_log<<Logger::Warning<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
+      } else {
         hadError=false;
-
+      }
       // update tcp connection status, closing if needed and doing the fd multiplexer accounting
       if  (dc->d_tcpConnection->d_requestsInFlight > 0) {
         dc->d_tcpConnection->d_requestsInFlight--;
