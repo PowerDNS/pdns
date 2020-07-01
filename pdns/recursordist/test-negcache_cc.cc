@@ -417,15 +417,15 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   NegCache cache;
   vector<string> expected;
   expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
-  expected.push_back("www1.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
-  expected.push_back("www1.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
-  expected.push_back("www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
+  expected.push_back("powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
+  expected.push_back("powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
+  expected.push_back("powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
+  expected.push_back("powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
   expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
-  expected.push_back("www2.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
-  expected.push_back("www2.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
-  expected.push_back("www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
+  expected.push_back("powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
+  expected.push_back("powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
+  expected.push_back("powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
+  expected.push_back("powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
 
   struct timeval now;
   Utility::gettimeofday(&now, 0);
