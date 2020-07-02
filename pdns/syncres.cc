@@ -2064,6 +2064,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   vState state = Indeterminate;
   int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth + 1, beenthere, state);
 
+  if (rcode == RCode::ServFail) {
+    throw ImmediateServFailException("Server Failure while retrieving DS records for " + zone.toLogString());
+  }
+
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
     uint8_t bestDigestType = 0;
 
@@ -2331,6 +2335,10 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
 
   vState state = Indeterminate;
   int rcode = doResolve(signer, QType(QType::DNSKEY), records, depth + 1, beenthere, state);
+
+  if (rcode == RCode::ServFail) {
+    throw ImmediateServFailException("Server Failure while retrieving DNSKEY records for " + signer.toLogString());
+  }
 
   if (rcode == RCode::NoError) {
     if (state == Secure) {
