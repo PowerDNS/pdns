@@ -227,6 +227,8 @@ struct DOHServerConfig
   int dohresponsepair[2]{-1,-1};
 };
 
+/* This function is called from other threads than the main DoH one,
+   instructing it to send a 502 error to the client */
 void handleDOHTimeout(DOHUnit* oldDU)
 {
   if (oldDU == nullptr) {
@@ -315,6 +317,7 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
   }
 }
 
+/* Always called from the main DoH thread */
 static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::vector<std::pair<std::string, std::string>>& customResponseHeaders, const std::string& contentType, bool addContentType)
 {
   constexpr int overwrite_if_exists = 1;
@@ -388,6 +391,7 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
 /*
    this function calls 'return -1' to drop a query without sending it
    caller should make sure HTTPS thread hears of that
+   We are not in the main DoH thread but in the DoH 'client' thread.
 */
 static int processDOHQuery(DOHUnit* du)
 {
@@ -395,12 +399,14 @@ static int processDOHQuery(DOHUnit* du)
   ComboAddress remote;
   bool duRefCountIncremented = false;
   try {
-    if(!du->req) {
+    if (!du->req) {
       // we got closed meanwhile. XXX small race condition here
+      // but we should be fine as long as we don't touch du->req
+      // outside of the main DoH thread
       return -1;
     }
     remote = du->remote;
-    DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(du->req->conn->ctx->storage.entries[0].data);
+    DOHServerConfig* dsc = du->dsc;
     auto& holders = dsc->holders;
     ClientState& cs = *dsc->cs;
 
@@ -438,13 +444,7 @@ static int processDOHQuery(DOHUnit* du)
     dq.ednsAdded = du->ednsAdded;
     dq.du = du;
     queryId = ntohs(dh->id);
-#ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
-    h2o_socket_t* sock = du->req->conn->callbacks->get_socket(du->req->conn);
-    const char * sni = h2o_socket_get_ssl_server_name(sock);
-    if (sni != nullptr) {
-      dq.sni = sni;
-    }
-#endif /* HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME */
+    dq.sni = std::move(du->sni);
 
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
@@ -586,7 +586,7 @@ static int processDOHQuery(DOHUnit* du)
   return 0;
 }
 
-/* called when a HTTP response is about to be sent */
+/* called when a HTTP response is about to be sent, from the main DoH thread */
 static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h2o_ostream_t **slot)
 {
   if (req == nullptr) {
@@ -629,51 +629,57 @@ static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h
   h2o_setup_next_ostream(req, slot);
 }
 
-static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *path, int (*on_req)(h2o_handler_t *, h2o_req_t *))
-{
-  h2o_pathconf_t *pathconf = h2o_config_register_path(hostconf, path, 0);
-  if (pathconf == nullptr) {
-    return pathconf;
-  }
-  h2o_filter_t *filter = h2o_create_filter(pathconf, sizeof(*filter));
-  if (filter) {
-    filter->on_setup_ostream = on_response_ready_cb;
-  }
-
-  h2o_handler_t *handler = h2o_create_handler(pathconf, sizeof(*handler));
-  if (handler != nullptr) {
-    handler->on_req = on_req;
-  }
-
-  return pathconf;
-}
-
 /* this is called by h2o when our request dies.
    We use this to signal to the 'du' that this req is no longer alive */
 static void on_generator_dispose(void *_self)
 {
-  DOHUnit** du = (DOHUnit**)_self;
-  if(*du) { // if 0, on_dnsdist cleaned up du already
-//    cout << "du "<<(void*)*du<<" containing req "<<(*du)->req<<" got killed"<<endl;
+  DOHUnit** du = reinterpret_cast<DOHUnit**>(_self);
+  if (*du) { // if 0, on_dnsdist cleaned up du already
+    (*du)->self = nullptr;
     (*du)->req = nullptr;
   }
 }
 
-/* We allocate a DOHUnit and send it to dnsdistclient() function in the doh client thread
+/* This executes in the main DoH thread.
+   We allocate a DOHUnit and send it to dnsdistclient() function in the doh client thread
    via a pipe */
-static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::string&& query, const ComboAddress& local, const ComboAddress& remote)
+static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::string&& query, const ComboAddress& local, const ComboAddress& remote, std::string&& path)
 {
   try {
+    /* we only parse it there as a sanity check, we will parse it again later */
     uint16_t qtype;
     DNSName qname(query.c_str(), query.size(), sizeof(dnsheader), false, &qtype);
 
     auto du = std::unique_ptr<DOHUnit>(new DOHUnit);
+    du->dsc = dsc;
     du->req = req;
     du->dest = local;
     du->remote = remote;
     du->rsock = dsc->dohresponsepair[0];
     du->query = std::move(query);
-    du->qtype = qtype;
+    du->path = std::move(path);
+    /* we are doing quite some copies here, sorry about that,
+       but we can't keep accessing the req object once we are in a different thread
+       because the request might get killed by h2o at pretty much any time */
+    if (req->scheme != nullptr) {
+      du->scheme = std::string(req->scheme->name.base, req->scheme->name.len);
+    }
+    du->host = std::string(req->authority.base, req->authority.len);
+    du->query_at = req->query_at;
+    du->headers.reserve(req->headers.size);
+    for (size_t i = 0; i < req->headers.size; ++i) {
+      du->headers.push_back(std::make_pair(std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
+                                           std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)));
+    }
+
+#ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
+    h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
+    const char * sni = = h2o_socket_get_ssl_server_name(sock);
+    if (sni != nullptr) {
+      du->sni = sni;
+    }
+#endif /* HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME */
+
     du->self = reinterpret_cast<DOHUnit**>(h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose));
     auto ptr = du.release();
     *(ptr->self) = ptr;
@@ -703,6 +709,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
   }
 }
 
+/* can only be called from the main DoH thread */
 static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, string_view& value)
 {
   bool found = false;
@@ -720,6 +727,7 @@ static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerNa
   return found;
 }
 
+/* can only be called from the main DoH thread */
 static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote)
 {
   static const std::string headerName = "x-forwarded-for";
@@ -751,7 +759,7 @@ static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote
 }
 
 /*
-  A query has been parsed by h2o.
+  A query has been parsed by h2o, this executes in the main DoH thread.
   For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
   For POST, the payload is the payload.
  */
@@ -836,7 +844,7 @@ try
        at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
     query.reserve(std::max(req->entity.len + 512, s_maxPacketCacheEntrySize));
     query.assign(req->entity.base, req->entity.len);
-    doh_dispatch_query(dsc, self, req, std::move(query), local, remote);
+    doh_dispatch_query(dsc, self, req, std::move(query), local, remote, std::move(path));
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
     auto pos = path.find("?dns=");
@@ -875,7 +883,7 @@ try
         else
           ++dsc->df->d_http1Stats.d_nbQueries;
 
-        doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote);
+        doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote, std::move(path));
       }
     }
     else
@@ -909,10 +917,9 @@ bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
     return false;
   }
 
-  for (size_t i = 0; i < dq->du->req->headers.size; ++i) {
-    if(std::string(dq->du->req->headers.entries[i].name->base, dq->du->req->headers.entries[i].name->len) == d_header &&
-       d_regex.match(std::string(dq->du->req->headers.entries[i].value.base, dq->du->req->headers.entries[i].value.len))) {
-      return true;
+  for (const auto& header : dq->du->headers) {
+    if (header.first == d_header) {
+      return d_regex.match(header.second);
     }
   }
   return false;
@@ -931,15 +938,15 @@ HTTPPathRule::HTTPPathRule(const std::string& path)
 
 bool HTTPPathRule::matches(const DNSQuestion* dq) const
 {
-  if(!dq->du) {
+  if (!dq->du) {
     return false;
   }
 
-  if(dq->du->req->query_at == SIZE_MAX) {
-    return dq->du->req->path.base == d_path;
+  if (dq->du->query_at == SIZE_MAX) {
+    return dq->du->path == d_path;
   }
   else {
-    return d_path.compare(0, d_path.size(), dq->du->req->path.base, dq->du->req->query_at) == 0;
+    return d_path.compare(0, d_path.size(), dq->du->path, 0, dq->du->query_at) == 0;
   }
 }
 
@@ -969,11 +976,10 @@ string HTTPPathRegexRule::toString() const
 std::unordered_map<std::string, std::string> DOHUnit::getHTTPHeaders() const
 {
   std::unordered_map<std::string, std::string> results;
-  results.reserve(req->headers.size);
+  results.reserve(headers.size());
 
-  for (size_t i = 0; i < req->headers.size; ++i) {
-    results.insert({std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
-                    std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)});
+  for (const auto& header : headers) {
+    results.insert(header);
   }
 
   return results;
@@ -981,35 +987,31 @@ std::unordered_map<std::string, std::string> DOHUnit::getHTTPHeaders() const
 
 std::string DOHUnit::getHTTPPath() const
 {
-  if (req->query_at == SIZE_MAX) {
-    return std::string(req->path.base, req->path.len);
+  if (query_at == SIZE_MAX) {
+    return path;
   }
   else {
-    return std::string(req->path.base, req->query_at);
+    return std::string(path, 0, query_at);
   }
 }
 
 std::string DOHUnit::getHTTPHost() const
 {
-  return std::string(req->authority.base, req->authority.len);
+  return host;
 }
 
 std::string DOHUnit::getHTTPScheme() const
 {
-  if (req->scheme == nullptr) {
-    return std::string();
-  }
-
-  return std::string(req->scheme->name.base, req->scheme->name.len);
+  return scheme;
 }
 
 std::string DOHUnit::getHTTPQueryString() const
 {
-  if (req->query_at == SIZE_MAX) {
+  if (query_at == SIZE_MAX) {
     return std::string();
   }
   else {
-    return std::string(req->path.base + req->query_at, req->path.len - req->query_at);
+    return path.substr(query_at);
   }
 }
 
@@ -1036,6 +1038,17 @@ static void dnsdistclient(int qsock)
         continue;
       }
       else if (static_cast<size_t>(got) < sizeof(du)) {
+        continue;
+      }
+
+      /* we are not in the main DoH thread anymore, so there is a real risk of
+         a race condition where h2o kills the query while we are processing it,
+         so we can't touch the content of du->req until we are back into the
+         main DoH thread */
+      if (!du->req) {
+        // it got killed in flight already
+        du->self = nullptr;
+        du->release();
         continue;
       }
 
@@ -1087,7 +1100,7 @@ static void dnsdistclient(int qsock)
   }
 }
 
-/* called if h2o finds that dnsdist gave us an answer by writing into
+/* Called in the main DoH thread if h2o finds that dnsdist gave us an answer by writing into
    the dohresponsepair[0] side of the pipe so from:
    - handleDOHTimeout() when we did not get a response fast enough (called
      either from the health check thread (active) or from the frontend ones (reused))
@@ -1109,12 +1122,17 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
 
   if (!du->req) { // it got killed in flight
-//    cout << "du "<<(void*)du<<" came back from dnsdist, but it was killed"<<endl;
+    du->self = nullptr;
     du->release();
     return;
   }
 
-  *du->self = nullptr; // so we don't clean up again in on_generator_dispose
+  if (du->self) {
+    // we are back in the h2o main thread now, so we don't risk
+    // a race (h2o killing the query) when accessing du->req anymore
+    *du->self = nullptr; // so we don't clean up again in on_generator_dispose
+    du->self = nullptr;
+  }
 
   handleResponse(*dsc->df, du->req, du->status_code, du->response, dsc->df->d_customResponseHeaders, du->contentType, true);
 
@@ -1314,6 +1332,25 @@ void DOHFrontend::setup()
       throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_local.toStringWithPort() + "': " + e.what());
     }
   }
+}
+
+static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *path, int (*on_req)(h2o_handler_t *, h2o_req_t *))
+{
+  h2o_pathconf_t *pathconf = h2o_config_register_path(hostconf, path, 0);
+  if (pathconf == nullptr) {
+    return pathconf;
+  }
+  h2o_filter_t *filter = h2o_create_filter(pathconf, sizeof(*filter));
+  if (filter) {
+    filter->on_setup_ostream = on_response_ready_cb;
+  }
+
+  h2o_handler_t *handler = h2o_create_handler(pathconf, sizeof(*handler));
+  if (handler != nullptr) {
+    handler->on_req = on_req;
+  }
+
+  return pathconf;
 }
 
 // this is the entrypoint from dnsdist.cc
