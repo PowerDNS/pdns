@@ -36,7 +36,7 @@ sleep 5
 cd $startdir
 [ -e data ] && rm data
 
-for zone in $(grep 'zone ' ../../regression-tests/named.conf | cut -f2 -d\")
+for zone in $(grep 'zone ' ../../regression-tests/named.conf | cut -f2 -d\" | grep -v secpoll.powerdns.com)
 do
   $TCPCLIENT 127.0.0.1 5300 $AXFRGET $zone $zone.out $zone.out.tmp
   LC_ALL=C sort $zone.out >> data

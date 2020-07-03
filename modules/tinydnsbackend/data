@@ -20304,3 +20304,25 @@ Zcdnskey-cds-test.com:ns1.cdnskey-cds-test.:ahu.example.com.:2005092501:28800:72
 &2.0.192.in-addr.arpa::ns1.example.com.:120
 &2.0.192.in-addr.arpa::ns2.example.com.:120
 Z2.0.192.in-addr.arpa:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
+#2009071301 auto axfr-get
+&cryptokeys.org::cryptokeys.ds9a.nl.:3600
+&delegated.cryptokeys.org::ns1.delegated.cryptokeys.org.:3600
+&delegated.cryptokeys.org::ns2.delegated.cryptokeys.org.:3600
++cryptokeys.org:212.123.148.70:3600
++localhost.cryptokeys.org:127.0.0.1:3600
++ns1.delegated.cryptokeys.org:1.2.3.4:3600
++ns2.delegated.cryptokeys.org:4.3.2.1:3600
++smtp.cryptokeys.org:4.3.2.1:3600
++webserver.cryptokeys.org:1.2.3.4:3600
+:after.cryptokeys.org:16:\005after:3600
+:ipv6.cryptokeys.org:28:\040\001\010\210\0206\000\000\002\010\241\377\376\031\360\000:3600
+:localhost.cryptokeys.org:28:\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\001:3600
+:zbefore.a.cryptokeys.org:16:\006before:3600
+:zzz.cryptokeys.org:16:\021this\040is\040the\040end..:3600
+@cryptokeys.org::cryptokeys.easy-server.com.:10:3600
+Cwww.cryptokeys.org:cryptokeys.org.:3600
+Zcryptokeys.org:cryptokeys.ds9a.nl.:ahu.ds9a.nl.:2009071301:14400:3600:604800:3600:3600
+#2009071301 auto axfr-get
+&hiddencryptokeys.org::cryptokeys.ds9a.nl.:3600
++hiddencryptokeys.org:212.123.148.70:3600
+Zhiddencryptokeys.org:cryptokeys.ds9a.nl.:ahu.ds9a.nl.:2009071301:14400:3600:604800:3600:3600
