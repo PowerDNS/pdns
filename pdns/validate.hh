@@ -33,12 +33,15 @@ extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5
-enum vState { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
+enum vState : uint8_t { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
 extern const char *vStates[];
 
 // NSEC(3) results
-enum dState { NODATA, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
+enum dState : uint8_t { NODATA, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
 extern const char *dStates[];
+
+std::ostream& operator<<(std::ostream &os, const vState d);
+std::ostream& operator<<(std::ostream &os, const dState d);
 
 class DNSRecordOracle
 {

@@ -1106,3 +1106,15 @@ DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signa
 
   return DNSName();
 }
+
+std::ostream& operator<<(std::ostream &os, const vState d)
+{
+  os<<vStates[d];
+  return os;
+}
+
+std::ostream& operator<<(std::ostream &os, const dState d)
+{
+  os<<dStates[d];
+  return os;
+}
