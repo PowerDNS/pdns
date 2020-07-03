@@ -4729,6 +4729,7 @@ try
   if (threadInfo.isHandler) {
     if (!primeHints()) {
       threadInfo.exitCode = EXIT_FAILURE;
+      RecursorControlChannel::stop = 1;
       g_log<<Logger::Critical<<"Priming cache failed, stopping"<<endl;
       return nullptr;
     }
