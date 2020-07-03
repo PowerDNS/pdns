@@ -2330,7 +2330,9 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   LOG(d_prefix<<"Retrieving DNSKeys for "<<signer<<endl);
 
   vState state = Indeterminate;
+  const bool oldCacheOnly = setCacheOnly(false);
   int rcode = doResolve(signer, QType(QType::DNSKEY), records, depth + 1, beenthere, state);
+  setCacheOnly(oldCacheOnly);
 
   if (rcode == RCode::NoError) {
     if (state == Secure) {
