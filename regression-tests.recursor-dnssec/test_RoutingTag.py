@@ -170,7 +170,7 @@ end
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache x']
         try:
-            expected = 'dumped 6 records\n'
+            expected = 'dumped 7 records\n'
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertEqual(ret, expected)
 
