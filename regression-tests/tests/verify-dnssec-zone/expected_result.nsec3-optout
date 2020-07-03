@@ -181,3 +181,18 @@ zone 2.0.192.in-addr.arpa/IN: loaded serial 2000081501 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 secpoll.powerdns.com
+RETVAL: 0
+
+--- validns secpoll.powerdns.com
+RETVAL: 0
+
+--- jdnssec-verifyzone secpoll.powerdns.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone secpoll.powerdns.com
+zone secpoll.powerdns.com/IN: loaded serial 2020070102 (DNSSEC signed)
+OK
+RETVAL: 0
+
