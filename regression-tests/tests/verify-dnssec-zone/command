@@ -12,7 +12,7 @@ do
 		echo --- $validator $zone
 		if [ "$validator" = "named-checkzone" ]
 		then
-			named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists'
+			named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists' | perl -pe 's!zone secpoll.powerdns.com\/IN: loaded serial \d+ \(DNSSEC signed\)!zone secpoll.powerdns.com/IN: loaded serial X (DNSSEC signed)!'
 		else
 			if [ ! -e ${testsdir}/${testname}/allow-missing ] || [[ $(type -P "$validator") ]]
 			then

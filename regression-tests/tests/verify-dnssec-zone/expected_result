@@ -192,7 +192,7 @@ zone verified.
 RETVAL: 0
 
 --- named-checkzone secpoll.powerdns.com
-zone secpoll.powerdns.com/IN: loaded serial 2020070102 (DNSSEC signed)
+zone secpoll.powerdns.com/IN: loaded serial X (DNSSEC signed)
 OK
 RETVAL: 0
 
