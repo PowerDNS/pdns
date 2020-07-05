@@ -259,11 +259,7 @@ string DynListener::getLine()
         continue;
       }
       
-      if(strlen(&mesg[0]) == mesg.size()) {
-        g_log<<Logger::Error<<"Line on controlsocket ("<<d_client<<") was too long"<<endl;
-        close(d_client);
-        continue;
-      }
+
       break;
     }
   }
