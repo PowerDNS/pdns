@@ -1692,14 +1692,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_incomplete_cache_zonecut_qm)
       if (domain == hero && type == QType::NS) {
         setLWResult(res, 0, false, false, true);
         addRecordToLW(res, hero, QType::NS, "dns1.p03.nsone.net.", DNSResourceRecord::AUTHORITY, 3600);
-        addDS(DNSName(hero), 300, res->d_records, keys);
-        addRRSIG(keys, res->d_records, DNSName(hero), 300);
+        addDS(hero, 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, com, 300);
       }
       else if (domain == nsone && type == QType::A) {
         setLWResult(res, 0, false, false, true);
         addRecordToLW(res, nsone, QType::NS, "dns1.p01.nsone.net.", DNSResourceRecord::AUTHORITY, 3600);
         addNSECRecordToLW(nsone, DNSName("zzz.nsone.net."), {QType::NS, QType::SOA, QType::RRSIG, QType::DNSKEY}, 600, res->d_records);
-        addRRSIG(keys, res->d_records, nsone, 300);
+        addRRSIG(keys, res->d_records, net, 300);
         addRecordToLW(res, "dns1.p01.nsone.net", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
       }
       else {
