@@ -1598,7 +1598,12 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       vState recordState = getValidationStatus(qname, false);
       if (recordState == Secure) {
         LOG(prefix<<sqname<<": got Indeterminate state from the cache, validating.."<<endl);
-        cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
+        if (sqt == QType::DNSKEY) {
+          cachedState = validateDNSKeys(sqname, cset, signatures, depth);
+        }
+        else {
+          cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
+        }
       }
       else {
         cachedState = recordState;
