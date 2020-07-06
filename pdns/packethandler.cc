@@ -1261,6 +1261,11 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(p.qclass==QClass::ANY)
       r->setA(false);
 
+    /* rfc6895 section 3.1 */
+    if (p.qtype.getCode() == 0 || p.qtype.getCode() == QType::OPT) {
+      r->setRcode(RCode::Refused);
+      return r;
+    }
 
   retargeted:;
     if(retargetcount > 10) {    // XXX FIXME, retargetcount++?
