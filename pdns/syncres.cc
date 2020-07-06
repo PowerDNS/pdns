@@ -887,7 +887,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
   state = getValidationStatus(qname, false);
 
-  LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<vStates[state]<<endl);
+  LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<state<<endl);
 
   if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation)))
     return 0;
@@ -1261,7 +1261,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           LOG(prefix<<qname<<": got Indeterminate state from the "<<foundQT.getName()<<" cache, validating.."<<endl);
           state = SyncRes::validateRecordsWithSigs(depth, foundName, foundQT, foundName, cset, signatures);
           if (state != Indeterminate) {
-            LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, new validation result is "<<vStates[state]<<endl);
+            LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, new validation result is "<<state<<endl);
             if (state == Bogus) {
               capTTL = s_maxbogusttl;
             }
@@ -1270,7 +1270,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         }
       }
 
-      LOG(prefix<<qname<<": Found cache "<<foundQT.getName()<<" hit for '"<< foundName << "|"<<foundQT.getName()<<"' to '"<<record.d_content->getZoneRepresentation()<<"', validation state is "<<vStates[state]<<endl);
+      LOG(prefix<<qname<<": Found cache "<<foundQT.getName()<<" hit for '"<< foundName << "|"<<foundQT.getName()<<"' to '"<<record.d_content->getZoneRepresentation()<<"', validation state is "<<state<<endl);
 
       DNSRecord dr = record;
       dr.d_ttl -= d_now.tv_sec;
@@ -1363,7 +1363,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       set<GetBestNSAnswer>beenthere;
       vState cnameState = Indeterminate;
       res = doResolve(newTarget, qtype, ret, depth+1, beenthere, cnameState);
-      LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the DNAME/CNAME quest: "<<vStates[cnameState]<<endl);
+      LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<state<<" with the state from the DNAME/CNAME quest: "<<cnameState<<endl);
       updateValidationState(state, cnameState);
 
       return true;
@@ -1567,7 +1567,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       addTTLModifiedRecords(ne.DNSSECRecords.signatures, sttl, ret);
     }
 
-    LOG(prefix<<qname<<": updating validation state with negative cache content for "<<qname<<" to "<<vStates[state]<<endl);
+    LOG(prefix<<qname<<": updating validation state with negative cache content for "<<qname<<" to "<<state<<endl);
     return true;
   }
 
@@ -1605,7 +1605,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       }
 
       if (cachedState != Indeterminate) {
-        LOG(prefix<<qname<<": got Indeterminate state from the cache, validation result is "<<vStates[cachedState]<<endl);
+        LOG(prefix<<qname<<": got Indeterminate state from the cache, validation result is "<<cachedState<<endl);
         if (cachedState == Bogus) {
           capTTL = s_maxbogusttl;
         }
@@ -1659,7 +1659,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     if(found && !expired) {
       if (!giveNegative)
         res=0;
-      LOG(prefix<<qname<<": updating validation state with cache content for "<<qname<<" to "<<vStates[cachedState]<<endl);
+      LOG(prefix<<qname<<": updating validation state with cache content for "<<qname<<" to "<<cachedState<<endl);
       state = cachedState;
       return true;
     }
@@ -1966,7 +1966,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
 
 void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
 {
-  LOG(d_prefix<<"validation state was "<<std::string(vStates[state])<<", state update is "<<std::string(vStates[stateUpdate]));
+  LOG(d_prefix<<"validation state was "<<state<<", state update is "<<stateUpdate);
 
   if (stateUpdate == TA) {
     state = Secure;
@@ -1985,7 +1985,7 @@ void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
       state = Insecure;
     }
   }
-  LOG(", validation state is now "<<std::string(vStates[state])<<endl);
+  LOG(", validation state is now "<<state<<endl);
 }
 
 vState SyncRes::getTA(const DNSName& zone, dsmap_t& ds)
@@ -2168,7 +2168,7 @@ vState SyncRes::getValidationStatus(const DNSName& subdomain, bool allowIndeterm
     const auto& it = d_cutStates.find(name);
     if (it != d_cutStates.cend()) {
       if (allowIndeterminate || it->second != Indeterminate) {
-        LOG(d_prefix<<": got status "<<vStates[it->second]<<" for name "<<subdomain<<" (from "<<name<<")"<<endl);
+        LOG(d_prefix<<": got status "<<it->second<<" for name "<<subdomain<<" (from "<<name<<")"<<endl);
         return it->second;
       }
     }
@@ -2206,7 +2206,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
 
   dsmap_t ds;
   vState cutState = getDSRecords(end, ds, false, depth);
-  LOG(d_prefix<<": setting cut state for "<<end<<" to "<<vStates[cutState]<<endl);
+  LOG(d_prefix<<": setting cut state for "<<end<<" to "<<cutState<<endl);
   d_cutStates[end] = cutState;
 
   if (!shouldValidate()) {
@@ -2244,7 +2244,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
         continue;
       }
 
-      LOG(d_prefix<<": New state for "<<qname<<" is "<<vStates[newState]<<endl);
+      LOG(d_prefix<<": New state for "<<qname<<" is "<<newState<<endl);
       cutState = newState;
 
       d_cutStates[qname] = cutState;
@@ -2262,7 +2262,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
       if (newState != Indeterminate) {
         cutState = newState;
       }
-      LOG(d_prefix<<": New state for "<<qname<<" is "<<vStates[cutState]<<endl);
+      LOG(d_prefix<<": New state for "<<qname<<" is "<<cutState<<endl);
       d_cutStates[qname] = cutState;
     }
     else {
@@ -2275,7 +2275,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   LOG(d_prefix<<": list of cuts from "<<begin<<" to "<<end<<endl);
   for (const auto& cut : d_cutStates) {
     if (cut.first.isRoot() || (begin.isPartOf(cut.first) && cut.first.isPartOf(end))) {
-      LOG(" - "<<cut.first<<": "<<vStates[cut.second]<<endl);
+      LOG(" - "<<cut.first<<": "<<cut.second<<endl);
     }
   }
   setCacheOnly(oldCacheOnly);
@@ -2351,7 +2351,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
         }
       }
     }
-    LOG(d_prefix<<"Retrieved "<<keys.size()<<" DNSKeys for "<<signer<<", state is "<<vStates[state]<<endl);
+    LOG(d_prefix<<"Retrieved "<<keys.size()<<" DNSKeys for "<<signer<<", state is "<<state<<endl);
     return state;
   }
 
@@ -2775,7 +2775,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
 
     vState recordState = getValidationStatus(i->first.name, false);
-    LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
+    LOG(d_prefix<<": got initial zone status "<<recordState<<" for record "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
 
     if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;
@@ -2830,7 +2830,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
     else {
       if (shouldValidate()) {
-        LOG(d_prefix<<"Skipping validation because the current state is "<<vStates[recordState]<<endl);
+        LOG(d_prefix<<"Skipping validation because the current state is "<<recordState<<endl);
       }
     }
 
@@ -3384,7 +3384,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
   if(done){
     LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);
-    LOG(prefix<<qname<<": validation status is "<<vStates[state]<<endl);
+    LOG(prefix<<qname<<": validation status is "<<state<<endl);
     *rcode = RCode::NoError;
     return true;
   }
@@ -3426,7 +3426,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
       set<GetBestNSAnswer> beenthere2;
       vState cnameState = Indeterminate;
       *rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere2, cnameState);
-      LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the CNAME quest: "<<vStates[cnameState]<<endl);
+      LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<state<<" with the state from the CNAME quest: "<<cnameState<<endl);
       updateValidationState(state, cnameState);
       return true;
     }

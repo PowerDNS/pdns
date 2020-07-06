@@ -1904,9 +1904,8 @@ static void startDoResolve(void *p)
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<< res;
 
       if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
-	g_log<< ", dnssec="<<vStates[sr.getValidationState()];
+	g_log<< ", dnssec="<<sr.getValidationState();
       }
-	
       g_log<<endl;
     }
 
