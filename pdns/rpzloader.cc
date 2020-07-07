@@ -377,6 +377,8 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
         sr = loadRPZFromServer(master, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
         newZone->setSerial(sr->d_st.serial);
         newZone->setRefresh(sr->d_st.refresh);
+        // This period gets used below this loop
+        oldZone->setRefresh(sr->d_st.refresh);
         setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
 
         g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
