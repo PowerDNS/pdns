@@ -116,6 +116,22 @@ When notifying a domain, also notify these nameservers. Example:
 ``also-notify`` always receive a notification. Even if they do not match
 the list in :ref:`setting-only-notify`.
 
+.. _setting-any-lookups-only:
+
+``any-lookups-only``
+--------------------
+
+-  Boolean
+-  Default: yes
+
+.. versionadded:: 4.4.0
+
+Whether PowerDNS will only send ANY lookups to its backends, instead of sometimes requesting the exact needed type.
+This reduces the load on backends by retrieving all the types for a given name at once, adding all of them to the cache.
+It improves performance significantly for latency-sensitive backends, like SQL ones, where a round-trip takes serious time.
+This behaviour is enabled by default but can be disabled by setting this option to "no" for the few multi-backends setups
+that do not support it.
+
 .. _setting-any-to-tcp:
 
 ``any-to-tcp``

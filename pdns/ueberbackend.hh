@@ -157,6 +157,7 @@ private:
 
   static AtomicCounter* s_backendQueries;
   static bool d_go;
+  static bool s_doANYLookupsOnly;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q, const QType& qtype);

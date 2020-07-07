@@ -54,6 +54,7 @@ std::mutex UeberBackend::instances_lock;
 
 // initially we are blocked
 bool UeberBackend::d_go = false;
+bool UeberBackend::s_doANYLookupsOnly = false;
 std::mutex UeberBackend::d_mut;
 std::condition_variable UeberBackend::d_cond;
 AtomicCounter* UeberBackend::s_backendQueries = nullptr;
@@ -97,6 +98,11 @@ void UeberBackend::go(void)
 {
   S.declare("backend-queries", "Number of queries sent to the backend(s)");
   s_backendQueries = S.getPointer("backend-queries");
+
+  if (::arg().mustDo("any-lookups-only")) {
+    s_doANYLookupsOnly = true;
+  }
+
   {
     std::unique_lock<std::mutex> l(d_mut);
     d_go = true;
@@ -518,31 +524,34 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSZoneRecord> &rrs)
   rrs.clear();
   //  g_log<<Logger::Warning<<"looking up: '"<<q.qname<<"'|N|"<<q.qtype.getName()<<"|"<<q.zoneId<<endl;
 
-  std::vector<DNSZoneRecord> anyRecs;
-  bool ret = QC.getEntry(q.qname, QType::ANY, anyRecs, q.zoneId);
+  bool ret = false;
+  if (s_doANYLookupsOnly) {
+    std::vector<DNSZoneRecord> anyRecs;
+    ret = QC.getEntry(q.qname, QType::ANY, anyRecs, q.zoneId);
 
-  if (ret) {
-    if (anyRecs.empty()) {// negatively cached
-      return 0;
-    }
-
-    for (auto& rec : anyRecs) {
-      if (q.qtype.getCode() == QType::ANY || rec.dr.d_type == q.qtype.getCode()) {
-        rrs.push_back(std::move(rec));
+    if (ret) {
+      if (anyRecs.empty()) {// negatively cached
+        return 0;
       }
-    }
 
-    if (rrs.empty()) {
-      // we know there is no record of this type */
-      return 0;
-    }
+      for (auto& rec : anyRecs) {
+        if (q.qtype.getCode() == QType::ANY || rec.dr.d_type == q.qtype.getCode()) {
+          rrs.push_back(std::move(rec));
+        }
+      }
 
-    return 1;
+      if (rrs.empty()) {
+        // we know there is no record of this type */
+        return 0;
+      }
+
+      return 1;
+    }
   }
 
   // miss for ANY, see if by any chance we have a cached entry for the exact type (mostly SOA)
   // or a negative cache entry (all types)
-  if (q.qtype != QType::ANY) {
+  if (!s_doANYLookupsOnly || q.qtype != QType::ANY) {
     ret = QC.getEntry(q.qname, q.qtype, rrs, q.zoneId);
     if (ret) {
       if (rrs.empty()) {
@@ -619,7 +628,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
   d_domain_id = zoneId;
 
   d_handle.i = 0;
-  d_handle.qtype = QType::ANY;
+  d_handle.qtype = s_doANYLookupsOnly ? QType::ANY : qtype;
   d_handle.qname = qname;
   d_handle.pkt_p = pkt_p;
   d_ancount = 0;
@@ -640,7 +649,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       d_negcached = d_cached = false;
       d_answers.clear();
       d_handle.d_hinterBackend = backends.at(d_handle.i++);
-      d_handle.d_hinterBackend->lookup(QType::ANY, qname, zoneId, pkt_p);
+      d_handle.d_hinterBackend->lookup(d_handle.qtype, qname, zoneId, pkt_p);
       ++(*s_backendQueries);
     } 
     else if (cstat == 0) {
@@ -698,12 +707,13 @@ bool UeberBackend::get(DNSZoneRecord &rr)
     }
 
     ++d_anyCount;
+
     d_answers.push_back(std::move(anyRecord));
   }
 
   if (!gotRecord) {
     // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-    if (d_anyCount == 0 && d_handle.qname.countLabels()) {
+    if (s_doANYLookupsOnly && d_anyCount == 0 && d_handle.qname.countLabels()) {
       /* we can negcache the whole name */
       // cerr<<"we can negcache the whole name"<<endl;
       addNegCache(d_question, QType::ANY);
@@ -714,8 +724,13 @@ bool UeberBackend::get(DNSZoneRecord &rr)
       addNegCache(d_question, d_question.qtype);
     }
 
-    if (d_anyCount) {
-      addCache(d_question, QType::ANY, std::move(d_answers));
+    if (s_doANYLookupsOnly) {
+      if (d_anyCount) {
+        addCache(d_question, QType::ANY, std::move(d_answers));
+      }
+    }
+    else if (d_ancount > 0) {
+      addCache(d_question, d_question.qtype, std::move(d_answers));
     }
 
     d_answers.clear();
