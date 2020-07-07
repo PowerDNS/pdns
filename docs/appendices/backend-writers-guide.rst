@@ -246,6 +246,10 @@ and such.
   This limitation comes from the fact that PowerDNS uses ``ANY`` queries to fetch
   all types from the backend in one go and that it assumes that once one backend
   has returned records the other ones do not need to be called.
+  It is also possible to have two backends providing records for the same name
+  and types, for example if the first one does not support DNSSEC and the second
+  does, but that requires some mechanism outside of PowerDNS to keep records in
+  sync between the two backends.
 
 The first part of the code contains the actual logic and should be
 pretty straightforward. The second part is a boilerplate 'factory' class
