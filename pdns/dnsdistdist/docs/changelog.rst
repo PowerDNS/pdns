@@ -2,6 +2,16 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.5.0-rc4
+  :released: 7th of July 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9278
+
+    Prevent a race between the DoH handling threads
+
+.. changelog::
   :version: 1.5.0-rc3
   :released: 18th of June 2020
 
