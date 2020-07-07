@@ -54,6 +54,7 @@ std::mutex UeberBackend::instances_lock;
 
 // initially we are blocked
 bool UeberBackend::d_go=false;
+bool UeberBackend::s_doANYLookupsOnly=false;
 std::mutex UeberBackend::d_mut;
 std::condition_variable UeberBackend::d_cond;
 
@@ -94,6 +95,10 @@ bool UeberBackend::loadModules(const vector<string>& modules, const string& path
 
 void UeberBackend::go(void)
 {
+  if (::arg().mustDo("any-lookups-only")) {
+    s_doANYLookupsOnly = true;
+  }
+
   {
     std::unique_lock<std::mutex> l(d_mut);
     d_go = true;
@@ -585,9 +590,9 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
   d_domain_id=zoneId;
 
   d_handle.i=0;
-  d_handle.qtype=false ? QType::ANY : qtype;
+  d_handle.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
   d_handle.qname=qname;
-  d_handle.zoneId=false ? -1 : zoneId;
+  d_handle.zoneId=s_doANYLookupsOnly? -1 : zoneId;
   d_handle.pkt_p=pkt_p;
 
   if(!backends.size()) {

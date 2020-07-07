@@ -240,6 +240,8 @@ void declareArguments()
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
 
+  ::arg().set("any-lookups-only", "Send only ANY lookup operations to the backend to reduce the number of lookups.")="yes";
+
   ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().setDefaults();
 }
