@@ -2062,7 +2062,9 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   std::vector<DNSRecord> dsrecords;
 
   vState state = Indeterminate;
+  const bool oldCacheOnly = setCacheOnly(false);
   int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth + 1, beenthere, state);
+  setCacheOnly(oldCacheOnly);
 
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
     uint8_t bestDigestType = 0;
