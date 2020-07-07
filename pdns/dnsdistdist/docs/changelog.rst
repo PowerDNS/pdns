@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.5.0-rc4
-  :released: 6th of July 2020
+  :released: 7th of July 2020
 
   .. change::
     :tags: Bug Fixes
