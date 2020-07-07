@@ -2815,18 +2815,16 @@ static void houseKeeping(void *)
     }
     s_running=false;
   }
-  catch(PDNSException& ae)
-    {
-      s_running=false;
-      g_log<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
-      throw;
-    }
-  catch(...)
-    {
-      s_running=false;
-      g_log<<Logger::Error<<"Uncaught exception in housekeeping thread"<<endl;
-      throw;
-    }
+  catch(PDNSException& ae) {
+    s_running=false;
+    g_log<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
+    throw;
+  }
+  catch(...) {
+    s_running=false;
+    g_log<<Logger::Error<<"Uncaught exception in housekeeping thread"<<endl;
+    throw;
+  }
 }
 
 static void makeThreadPipes()
