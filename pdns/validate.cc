@@ -748,17 +748,26 @@ bool validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& 
       LOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
     }
 
-    auto r = getByTag(keys, signature->d_tag, signature->d_algorithm);
+    auto keysMatchingTag = getByTag(keys, signature->d_tag, signature->d_algorithm);
 
-    if(r.empty()) {
+    if (keysMatchingTag.empty()) {
       LOG("No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
       continue;
     }
 
-    string msg=getMessageForRRSET(name, *signature, toSign, true);
-    for(const auto& l : r) {
-      bool signIsValid = checkSignatureWithKey(now, signature, l, msg);
-      if(signIsValid) {
+    string msg = getMessageForRRSET(name, *signature, toSign, true);
+    for(const auto& key : keysMatchingTag) {
+      /* rfc4034 Section 5.2:
+         "The DNSKEY RR Flags MUST have Flags bit 7 set."
+         Let's check that this is a ZONE key, even though there is no other
+         types of DNSKEYs at the moment.
+      */
+      if (!(key->d_flags & 256)) {
+        continue;
+      }
+
+      bool signIsValid = checkSignatureWithKey(now, signature, key, msg);
+      if (signIsValid) {
         isValid = true;
         LOG("Validated "<<name<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl);
         //	  cerr<<"valid"<<endl;
