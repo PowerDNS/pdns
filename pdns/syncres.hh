@@ -730,6 +730,15 @@ public:
     return d_queryValidationState;
   }
 
+  static void addToValidationFilter(const DNSName& name, bool exact)
+  {
+    ValidationLogFilterEntry entry;
+    entry.name = name;
+    entry.exact = exact;
+
+    s_validationLogFilter.add(name, std::move(entry));
+  }
+
   static thread_local ThreadLocalStorage t_sstorage;
 
   static std::atomic<uint64_t> s_queries;
@@ -801,6 +810,13 @@ private:
   static LogMode s_lm;
   static std::unique_ptr<NetmaskGroup> s_dontQuery;
   const static std::unordered_set<uint16_t> s_redirectionQTypes;
+  struct ValidationLogFilterEntry
+  {
+    DNSName name;
+    bool exact{false};
+  };
+
+  static SuffixMatchTree<ValidationLogFilterEntry> s_validationLogFilter;
 
   struct GetBestNSAnswer
   {
@@ -870,6 +886,8 @@ private:
 
   bool lookForCut(const DNSName& qname, unsigned int depth, const vState existingState, vState& newState);
   void computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth);
+
+  void logFailedDNSSECValidation(const std::string& prefix, const DNSName& name, const char* function, int lineNumber, const std::string& reason) const;
 
   void setUpdatingRootNS()
   {

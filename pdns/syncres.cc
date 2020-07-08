@@ -48,6 +48,7 @@ EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 const std::unordered_set<uint16_t> SyncRes::s_redirectionQTypes = {QType::CNAME, QType::DNAME};
+SuffixMatchTree<SyncRes::ValidationLogFilterEntry> SyncRes::s_validationLogFilter;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -2147,6 +2148,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
     return state;
   }
 
+  logFailedDNSSECValidation(d_prefix, zone, __func__, __LINE__, "Unexpected rcode while retrieving the DS records: " + std::to_string(rcode));
   LOG(d_prefix<<": returning Bogus state from "<<__func__<<"("<<zone<<")"<<endl);
   return Bogus;
 }
@@ -2327,7 +2329,9 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
      we haven't found at least one DNSKEY and a matching RRSIG
      covering this set, this looks Bogus. */
   if (validatedKeys.size() != tentativeKeys.size()) {
+    logFailedDNSSECValidation(d_prefix, zone, __func__, __LINE__, "Unable to validate the DNSKeys (" + std::to_string(validatedKeys.size()) + " out of " + std::to_string(tentativeKeys.size()) + ") against the DSs (" + std::to_string(ds.size()) + ")");
     LOG(d_prefix<<": returning Bogus state from "<<__func__<<"("<<zone<<")"<<endl);
+
     return Bogus;
   }
 
@@ -2364,6 +2368,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
     return state;
   }
 
+  logFailedDNSSECValidation(d_prefix, signer, __func__, __LINE__, "Unexpected rcode while retrieving the DNSKeys: " + std::to_string(rcode));
   LOG(d_prefix<<"Returning Bogus state from "<<__func__<<"("<<signer<<")"<<endl);
   return Bogus;
 }
@@ -2381,6 +2386,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
              DS (or a denial of a DS) signed by the DS itself, since we should be
              requesting it from the parent zone. Something is very wrong */
           LOG(d_prefix<<"The DS for "<<qname<<" is signed by itself, going Bogus"<<endl);
+          logFailedDNSSECValidation(d_prefix, qname, __func__, __LINE__, "The DS is signed by itself");
           return Bogus;
         }
         return Indeterminate;
@@ -2391,6 +2397,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
       }
     }
   } else {
+    logFailedDNSSECValidation(d_prefix, qname, __func__, __LINE__, "No signature found for: " + name.toLogString() + "/" + QType(qtype).getName());
     LOG(d_prefix<<"Bogus!"<<endl);
     return Bogus;
   }
@@ -2406,6 +2413,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     return Secure;
   }
 
+  logFailedDNSSECValidation(d_prefix, qname, __func__, __LINE__, "Invalid signature found for: " + name.toLogString() + "/" + QType(qtype).getName());
   LOG(d_prefix<<"Bogus!"<<endl);
   return Bogus;
 }
@@ -2927,6 +2935,7 @@ void SyncRes::updateDenialValidationState(vState& neValidationState, const DNSNa
     }
     else {
       LOG(d_prefix<<"Invalid denial found for "<<neName<<", returning Bogus, res="<<denialState<<", expectedState="<<expectedState<<endl);
+      logFailedDNSSECValidation(d_prefix, neName, __func__, __LINE__, std::string("Invalid denial ") + dStates[denialState] + " found, expecting " + dStates[expectedState]);
       neValidationState = Bogus;
     }
     updateValidationState(state, neValidationState);
@@ -3082,6 +3091,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           }
           else {
             LOG(d_prefix<<"Invalid denial in wildcard expanded positive response found for "<<qname<<", returning Bogus, res="<<res<<endl);
+            logFailedDNSSECValidation(d_prefix, qname, __func__, __LINE__, "Invalid denial in wildcard expanded positive response");
             rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
           }
 
@@ -3448,6 +3458,8 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
 
     if (state == Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
+      logFailedDNSSECValidation(prefix, qname, __func__, __LINE__, "NXDomain result in a Secure zone without a proper denial");
+      LOG(prefix<<qname<<": NXDomain result in a Secure zone without a proper denial, going Bogus");
       updateValidationState(state, Bogus);
     }
 
@@ -3462,6 +3474,8 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 
     if(state == Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
+      logFailedDNSSECValidation(prefix, qname, __func__, __LINE__, "No Data result in a Secure zone without a proper denial for type " + QType(qtype).getName());
+      LOG(prefix<<qname<<": No Data result in a Secure zone without a proper denial, going Bogus");
       updateValidationState(state, Bogus);
     }
 
@@ -3832,4 +3846,20 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     g_log<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
 
   return res;
+}
+
+void SyncRes::logFailedDNSSECValidation(const std::string& prefix, const DNSName& name, const char* function, int lineNumber, const std::string& reason) const
+{
+  const auto& match = s_validationLogFilter.lookup(name);
+  if (match == nullptr) {
+    return;
+  }
+
+  /* we only log if suffix matching was requested or
+     we have an exact match */
+  if (match->exact && match->name != name) {
+    return;
+  }
+
+  g_log<<Logger::Error<<"[DNSSEC validation failure from "<<function<<":"<<lineNumber<<"] "<<prefix<<" "<<name<<": "<<reason<<endl;
 }

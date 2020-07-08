@@ -431,6 +431,19 @@ Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
 Log every DNSSEC validation failure.
 **Note**: This is not logged per-query but every time records are validated as Bogus.
 
+.. _setting-dnssec-validation-failures-log-filter:
+
+``dnssec-validation-failures-log-filter``
+-----------------------------------------
+.. versionadded:: 4.4.0
+
+-  List of DNS names
+-  Default: empty
+
+List of DNS names, suffixes or exact matches (when followed by a '$') for which a short summary will be logged in case of DNSSEC validation failures.
+For example, passing "powerdns.com$, dnssec.powerdns.com" will log a short summary if the DNSSEC validation ever fails for powerdns.com, dnssec.powerdns.com
+or every names below dnssec.powerdns.com.
+
 .. _setting-dont-query:
 
 ``dont-query``

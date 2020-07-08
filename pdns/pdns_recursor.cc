@@ -4181,6 +4181,22 @@ static int serviceMain(int argc, char*argv[])
     exit(1);
   }
 
+  if (!::arg()["dnssec-validation-failures-log-filter"].empty()) {
+    std::vector<string> names;
+    stringtok(names, ::arg()["dnssec-validation-failures-log-filter"], ", ");
+    for (auto& name : names) {
+      if (name.empty()) {
+        continue;
+      }
+      bool exact = false;
+      if (name.at(name.size()-1) == '$') {
+        name = name.substr(0, name.size()-1);
+        exact = true;
+      }
+      SyncRes::addToValidationFilter(DNSName(name), exact);
+    }
+  }
+
   g_signatureInceptionSkew = ::arg().asNum("signature-inception-skew");
   if (g_signatureInceptionSkew < 0) {
     g_log<<Logger::Error<<"A negative value for 'signature-inception-skew' is not allowed"<<endl;
@@ -4932,6 +4948,7 @@ int main(int argc, char **argv)
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate (default)/process/log-fail/validate")="process-no-validate";
     ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations")="no";
+    ::arg().set("dnssec-validation-failures-log-filter", "List of suffixes or exact names (ending with a '$') for which a summary will be logged in case of DNSSEC validation failures")="";
     ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds")="60";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
