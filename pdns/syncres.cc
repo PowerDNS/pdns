@@ -2670,10 +2670,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
 
     if(rec.d_name.isPartOf(auth)) {
-      if(rec.d_type == QType::RRSIG) {
+      if (rec.d_type == QType::RRSIG) {
         LOG("RRSIG - separate"<<endl);
       }
-      else if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && ((rec.d_type != QType::DNSKEY && rec.d_type != QType::DS) || rec.d_name != auth) && s_delegationOnly.count(auth)) {
+      else if (rec.d_type == QType::DS && rec.d_name == auth) {
+        LOG("NO - DS provided by child zone"<<endl);
+      }
+      else if (lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && ((rec.d_type != QType::DNSKEY && rec.d_type != QType::DS) || rec.d_name != auth) && s_delegationOnly.count(auth)) {
         LOG("NO! Is from delegation-only zone"<<endl);
         s_nodelegated++;
         return RCode::NXDomain;
