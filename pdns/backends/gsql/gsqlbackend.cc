@@ -41,7 +41,7 @@
 GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
   setArgPrefix(mode+suffix);
-  d_db=0;
+  d_db = nullptr;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
 
   try

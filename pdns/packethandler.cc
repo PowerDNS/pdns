@@ -444,7 +444,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket& p, std::unique_ptr
 {
   DNSZoneRecord rr;
   SOAData sd;
-  sd.db=0;
+  sd.db = nullptr;
 
   if(p.qtype.getCode()!=QType::AXFR) { // this packet needs additional processing
     // we now have a copy, push_back on packet might reallocate!
