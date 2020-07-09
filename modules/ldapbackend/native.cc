@@ -402,7 +402,7 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool get
   if( result.count( "sOARecord" ) && !result["sOARecord"].empty() )
   {
     sd.serial = 0;
-    fillSOAData( result["sOARecord"][0], sd );
+    parseSOAData( result["sOARecord"][0], sd );
 
     if ( result.count( "PdnsDomainId" ) && !result["PdnsDomainId"].empty() )
       di.id = std::stoi( result["PdnsDomainId"][0] );

@@ -320,7 +320,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
         DLOG(g_log<<Logger::Error<<"has pos cache entry: "<<shorter<<endl);
-        fillSOAData(d_answers[0], *sd);
+        copySOAData(d_answers[0], *sd);
 
         sd->db = 0;
         sd->qname = shorter;
@@ -413,7 +413,7 @@ bool UeberBackend::getSOA(const DNSName &domain, SOAData &sd)
     return false;
   }
   else if(cstat==1 && !d_answers.empty()) {
-    fillSOAData(d_answers[0],sd);
+    copySOAData(d_answers[0], sd);
     sd.domain_id=d_answers[0].domain_id;
     sd.ttl=d_answers[0].dr.d_ttl;
     sd.db=0;

@@ -133,7 +133,7 @@ bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const 
     return false;
 
   SOAData sd;
-  fillSOAData(rr.content, sd);
+  parseSOAData(rr.content, sd);
 
   sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, rr.qname);
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);

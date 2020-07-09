@@ -433,9 +433,12 @@ public:
   DBException(const string &reason_) : PDNSException(reason_){}
 };
 
-/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string &content, SOAData &data);
-// same but more karmic
-void fillSOAData(const DNSZoneRecord& in, SOAData& data);
-// the reverse
+// helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing
+void parseSOAData(const string &content, SOAData &data);
+// more karmic version, also fills domain_id, ttl
+void copySOAData(const DNSZoneRecord& in, SOAData& data);
+// parseSOAData, also fills qname, domain_id, ttl and defaults for nameserver, hostmaster
+void fillSOADataAndDefaults(const string &content, const DNSName& domain, int domain_id, uint32_t ttl, SOAData &data);
+
+// reverse of parseSOAData
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);

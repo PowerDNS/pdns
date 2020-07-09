@@ -232,27 +232,13 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
   while(this->get(rr)) {
     if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
     hits++;
-    fillSOAData(rr.content, sd);
-    sd.domain_id=rr.domain_id;
-    sd.ttl=rr.ttl;
+    fillSOADataAndDefaults(rr.content, sd.qname, rr.domain_id, rr.ttl, sd);
+    sd.db = this;
   }
 
   if(!hits)
     return false;
-  sd.qname = domain;
-  if(!sd.nameserver.countLabels())
-    sd.nameserver= DNSName(arg()["default-soa-name"]);
 
-  if(!sd.hostmaster.countLabels()) {
-    if (!arg().isEmpty("default-soa-mail")) {
-      sd.hostmaster= DNSName(arg()["default-soa-mail"]);
-      // attodot(sd.hostmaster); FIXME400
-    }
-    else
-      sd.hostmaster=DNSName("hostmaster")+domain;
-  }
-
-  sd.db=this;
   return true;
 }
 
@@ -312,7 +298,7 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   return ret;
 }
 
-void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
+void copySOAData(const DNSZoneRecord& in, SOAData& sd)
 {
   sd.domain_id = in.domain_id;
   sd.ttl = in.dr.d_ttl;
@@ -338,8 +324,7 @@ std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd)
     return std::make_shared<SOARecordContent>(sd.nameserver, sd.hostmaster, st);
 }
 
-
-void fillSOAData(const string &content, SOAData &data)
+void parseSOAData(const string &content, SOAData &data)
 {
   // content consists of fields separated by spaces:
   //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
@@ -354,7 +339,7 @@ void fillSOAData(const string &content, SOAData &data)
   //  cout<<"'"<<content<<"'"<<endl;
 
   if(pleft)
-    data.nameserver=DNSName(parts[0]);
+    data.nameserver = DNSName(parts[0]);
 
   if(pleft>1) 
     data.hostmaster=DNSName(attodot(parts[1])); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
@@ -376,5 +361,26 @@ void fillSOAData(const string &content, SOAData &data)
   }
   catch(const std::out_of_range& oor) {
     throw PDNSException("Out of range exception parsing "+content);
+  }
+}
+
+void fillSOADataAndDefaults(const string &content, const DNSName& domain, int domain_id, uint32_t ttl, SOAData &data)
+{
+  parseSOAData(content, data);
+  data.qname = domain;
+  data.domain_id = domain_id;
+  data.ttl = ttl;
+
+  if (!data.nameserver.countLabels()) {
+    data.nameserver = DNSName(arg()["default-soa-name"]);
+  }
+
+  if (!data.hostmaster.countLabels()) {
+    if (!arg().isEmpty("default-soa-mail")) {
+      data.hostmaster = DNSName(arg()["default-soa-mail"]);
+      // attodot(sd.hostmaster); FIXME400
+    } else {
+      data.hostmaster = DNSName("hostmaster") + domain;
+    }
   }
 }

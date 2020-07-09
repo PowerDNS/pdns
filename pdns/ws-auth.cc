@@ -1609,7 +1609,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         % document["serial"].int_value()
       ).str();
       SOAData sd;
-      fillSOAData(soa, sd);  // fills out default values for us
+      parseSOAData(soa, sd);  // fills out default values for us
       autorr.qtype = QType::SOA;
       autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
       increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
@@ -2093,7 +2093,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
       // return old and new serials in headers
       resp->headers["X-PDNS-Old-Serial"] = std::to_string(sd.serial);
-      fillSOAData(rr.content, sd);
+      parseSOAData(rr.content, sd);
       resp->headers["X-PDNS-New-Serial"] = std::to_string(sd.serial);
     }
 

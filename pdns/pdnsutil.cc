@@ -1145,7 +1145,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
                 % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zone).toString() : ::arg()["default-soa-mail"])
   ).str();
   SOAData sd;
-  fillSOAData(soa, sd);  // fills out default values for us
+  parseSOAData(soa, sd);  // fills out default values for us
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);

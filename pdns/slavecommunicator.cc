@@ -277,9 +277,9 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
           continue;
         if(rr.qtype.getCode() == QType::SOA) {
           if(soa_received)
-            continue; //skip the last SOA
+            continue; // skip the last SOA
           SOAData sd;
-          fillSOAData(rr.content,sd);
+          parseSOAData(rr.content, sd);
           zs.soa_serial = sd.serial;
           soa_received = true;
         }

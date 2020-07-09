@@ -183,9 +183,9 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       if (rrType == QType::SOA) { // SOA updates require the serial to be higher than the current
         SOAData sdOld, sdUpdate;
         DNSResourceRecord *oldRec = &rrset.front();
-        fillSOAData(oldRec->content, sdOld);
+        parseSOAData(oldRec->content, sdOld);
         oldRec->setContent(rr->d_content->getZoneRepresentation());
-        fillSOAData(oldRec->content, sdUpdate);
+        parseSOAData(oldRec->content, sdUpdate);
         if (rfc1982LessThan(sdOld.serial, sdUpdate.serial)) {
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
           *updatedSerial = true;

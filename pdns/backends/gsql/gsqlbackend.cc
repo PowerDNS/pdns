@@ -1371,7 +1371,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       }
 
       SOAData sd;
-      fillSOAData(row[2], sd);
+      parseSOAData(row[2], sd);
       di.serial = sd.serial;
       try {
         di.notified_serial = pdns_stou(row[5]);

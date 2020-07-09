@@ -167,7 +167,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
   while (get(rr)) {
     if (rr.qtype.getCode() == QType::SOA) {
       SOAData sd;
-      fillSOAData(rr.content, sd);
+      parseSOAData(rr.content, sd);
 
       DomainInfo di;
       di.id = -1; //TODO: Check if this is ok.
