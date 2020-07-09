@@ -408,11 +408,11 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       }
     }
     catch(const std::exception& exp) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone.toLogString()<<"': "<<exp.what()<<endl;
+      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"': "<<exp.what()<<endl;
       continue;
     }
     catch(...) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone.toLogString()<<"', skipping"<<endl;
+      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"', skipping"<<endl;
       continue;
     }
   }

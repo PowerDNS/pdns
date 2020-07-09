@@ -1045,7 +1045,7 @@ static bool nodCheckNewDomain(const DNSName& dname)
     if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
       if (g_nodLog) {
         // This should probably log to a dedicated log file
-        g_log<<Logger::Notice<<"Newly observed domain nod="<<dname.toLogString()<<endl;
+        g_log<<Logger::Notice<<"Newly observed domain nod="<<dname<<endl;
       }
       ret = true;
     }
@@ -1076,7 +1076,7 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
     if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
       if (g_udrLog) {  
         // This should also probably log to a dedicated file. 
-        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname.toLogString()<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name.toLogString() << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
+        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
       }
       ret = true;
     }

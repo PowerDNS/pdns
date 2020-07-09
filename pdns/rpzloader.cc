@@ -307,14 +307,14 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   std::string temp = dumpZoneFileName + "XXXXXX";
   int fd = mkstemp(&temp.at(0));
   if (fd < 0) {
-    g_log<<Logger::Warning<<"Unable to open a file to dump the content of the RPZ zone "<<zoneName.toLogString()<<endl;
+    g_log<<Logger::Warning<<"Unable to open a file to dump the content of the RPZ zone "<<zoneName<<endl;
     return false;
   }
 
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w+"), fclose);
   if (!fp) {
     close(fd);
-    g_log<<Logger::Warning<<"Unable to open a file pointer to dump the content of the RPZ zone "<<zoneName.toLogString()<<endl;
+    g_log<<Logger::Warning<<"Unable to open a file pointer to dump the content of the RPZ zone "<<zoneName<<endl;
     return false;
   }
   fd = -1;
@@ -323,27 +323,27 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
     newZone->dump(fp.get());
   }
   catch(const std::exception& e) {
-    g_log<<Logger::Warning<<"Error while dumping the content of the RPZ zone "<<zoneName.toLogString()<<": "<<e.what()<<endl;
+    g_log<<Logger::Warning<<"Error while dumping the content of the RPZ zone "<<zoneName<<": "<<e.what()<<endl;
     return false;
   }
 
   if (fflush(fp.get()) != 0) {
-    g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
+    g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 
   if (fsync(fileno(fp.get())) != 0) {
-    g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
+    g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 
   if (fclose(fp.release()) != 0) {
-    g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
+    g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
-    g_log<<Logger::Warning<<"Error while moving the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
+    g_log<<Logger::Warning<<"Error while moving the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 

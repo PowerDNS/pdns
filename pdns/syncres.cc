@@ -3766,23 +3766,23 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
     res = sr.beginResolve(qname, QType(qtype), qclass, ret, 0);
   }
   catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got pdns exception: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got pdns exception: "<<e.reason<<endl;
     ret.clear();
   }
   catch(const ImmediateServFailException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got ImmediateServFailException: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got ImmediateServFailException: "<<e.reason<<endl;
     ret.clear();
   }
   catch(const PolicyHitException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got a policy hit"<<endl;
+    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got a policy hit"<<endl;
     ret.clear();
   }
   catch(const std::exception& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got STL error: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got STL error: "<<e.what()<<endl;
     ret.clear();
   }
   catch(...) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got an exception"<<endl;
+    g_log<<Logger::Error<<"Failed to resolve "<<qname<<", got an exception"<<endl;
     ret.clear();
   }
   
