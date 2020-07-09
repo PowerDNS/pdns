@@ -231,6 +231,8 @@ is!
 -  ``list-subzone-query``: For doing RFC 2136 DNS Updates, lists all
    records below a zone.
 -  ``search-records-query``: To search for records on name and content.
+-  ``closest-soa-query``: Optimized query for finding the closest SOA
+   for a given name.
 
 DNSSEC queries
 ^^^^^^^^^^^^^^

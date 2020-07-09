@@ -37,9 +37,9 @@
 // this is so the geoipbackend can set this pointer if loaded for lua-record.cc
 std::function<std::string(const std::string&, int)> g_getGeo;
 
-bool DNSBackend::getAuth(const DNSName &target, SOAData *sd)
+bool DNSBackend::getAuth(const DNSName &target, SOAData &sd)
 {
-  return this->getSOA(target, *sd);
+  return this->getSOA(target, sd);
 }
 
 void DNSBackend::setArgPrefix(const string &prefix)
@@ -232,7 +232,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
   while(this->get(rr)) {
     if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
     hits++;
-    fillSOADataAndDefaults(rr.content, sd.qname, rr.domain_id, rr.ttl, sd);
+    fillSOADataAndDefaults(rr.content, rr.qname, rr.domain_id, rr.ttl, sd);
     sd.db = this;
   }
 

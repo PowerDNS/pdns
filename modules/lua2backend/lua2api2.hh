@@ -251,7 +251,7 @@ public:
     if (f_get_domaininfo == nullptr) {
       // use getAuth instead
       SOAData sd;
-      if (!getAuth(domain, &sd))
+      if (!getAuth(domain, sd))
         return false;
 
       di.zone = domain;

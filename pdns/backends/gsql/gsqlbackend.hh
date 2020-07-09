@@ -59,6 +59,7 @@ public:
       d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
       d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
       d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
+      d_ClosestSOAQuery_stmt = d_db->prepare(d_ClosestSOAQuery, 2);
       d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
       d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
       d_MasterOfDomainsZoneQuery_stmt = d_db->prepare(d_MasterOfDomainsZoneQuery, 1);
@@ -122,6 +123,7 @@ public:
     d_IdQuery_stmt.reset();
     d_ANYNoIdQuery_stmt.reset();
     d_ANYIdQuery_stmt.reset();
+    d_ClosestSOAQuery_stmt.reset();
     d_listQuery_stmt.reset();
     d_listSubZoneQuery_stmt.reset();
     d_MasterOfDomainsZoneQuery_stmt.reset();
@@ -183,6 +185,7 @@ public:
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
+  bool getAuth(const DNSName &domain, SOAData &sd) override;
   void alsoNotifies(const DNSName &domain, set<string> *ips) override;
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;
@@ -272,6 +275,7 @@ private:
   string d_IdQuery;
   string d_ANYNoIdQuery;
   string d_ANYIdQuery;
+  string d_ClosestSOAQuery;
 
   string d_listQuery;
   string d_listSubZoneQuery;
@@ -348,6 +352,7 @@ private:
   unique_ptr<SSqlStatement> d_IdQuery_stmt;
   unique_ptr<SSqlStatement> d_ANYNoIdQuery_stmt;
   unique_ptr<SSqlStatement> d_ANYIdQuery_stmt;
+  unique_ptr<SSqlStatement> d_ClosestSOAQuery_stmt;
   unique_ptr<SSqlStatement> d_listQuery_stmt;
   unique_ptr<SSqlStatement> d_listSubZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_MasterOfDomainsZoneQuery_stmt;

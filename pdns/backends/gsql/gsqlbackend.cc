@@ -57,6 +57,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_IdQuery=getArg("id-query");
   d_ANYNoIdQuery=getArg("any-query");
   d_ANYIdQuery=getArg("any-id-query");
+  d_ClosestSOAQuery=getArg("closest-soa-query");
 
   d_listQuery=getArg("list-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
@@ -182,6 +183,39 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteCommentsQuery_stmt = NULL;
   d_SearchRecordsQuery_stmt = NULL;
   d_SearchCommentsQuery_stmt = NULL;
+}
+
+// We will return the best zone!
+bool GSQLBackend::getAuth(const DNSName &domain, SOAData &sd)
+{
+  try {
+    reconnectIfNeeded();
+
+    d_query_name = "closest-soa-query";
+    d_query_stmt = &d_ClosestSOAQuery_stmt;
+    (*d_query_stmt)->
+      bind("qname", domain)->
+      bind("qname2", domain);
+
+    (*d_query_stmt)->
+      execute();
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to find closest SOA for '" + domain.toLogString() + "':" + e.txtReason());
+  }
+
+  d_qname.clear();
+
+  DNSResourceRecord rr;
+  if (!this->get(rr)) {
+    return false;
+  }
+
+  fillSOADataAndDefaults(rr.content, rr.qname, rr.domain_id, rr.ttl, sd);
+  sd.db = this;
+
+  while(this->get(rr));
+  return true;
 }
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)

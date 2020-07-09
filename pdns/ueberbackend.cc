@@ -348,7 +348,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
           break;
         } else {
           DLOG(g_log<<Logger::Error<<"lookup: "<<shorter<<endl);
-          if((*i)->getAuth(shorter, sd)) {
+          if((*i)->getAuth(shorter, *sd)) {
             DLOG(g_log<<Logger::Error<<"got: "<<sd->qname<<endl);
             if(!sd->qname.empty() && !shorter.isPartOf(sd->qname)) {
               throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+sd->qname.toLogString()+"' is not part of '"+shorter.toLogString()+"'");

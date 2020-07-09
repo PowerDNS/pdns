@@ -98,6 +98,7 @@ public:
     declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=false and type=$1 and name=$2 and domain_id=$3");
     declare(suffix, "any-query", "Any query", record_query+" disabled=false and name=$1");
     declare(suffix, "any-id-query", "Any with ID query", record_query+" disabled=false and name=$1 and domain_id=$2");
+    declare(suffix, "closest-soa-query", "Closest SOA query", "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int FROM records WHERE disabled=false and type='SOA' and (name=$1 or $2 LIKE '%.'||name) ORDER BY LENGTH(name) DESC");
 
     declare(suffix, "list-query", "AXFR query", record_query+" (disabled=false OR $1) and domain_id=$2 order by name, type");
     declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=false and (name=$1 OR name like $2) and domain_id=$3");
