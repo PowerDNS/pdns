@@ -52,6 +52,8 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
     g_log<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
+
+  reconnect();
   g_log<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
 }
 

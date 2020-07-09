@@ -45,6 +45,7 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
   {
     SSQLite3 *ptr = new SSQLite3( getArg( "database" ), getArg( "pragma-journal-mode") );
     setDB(ptr);
+    allocateStatements();
     if(!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous="+getArg("pragma-synchronous"));
     }

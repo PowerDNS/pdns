@@ -47,6 +47,8 @@ gODBCBackend::gODBCBackend (const std::string & mode, const std::string & suffix
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
+  allocateStatements();
+
   g_log << Logger::Warning << mode << " Connection successful" << std::endl;
 }
 
