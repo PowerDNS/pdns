@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(test_root_primed)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::AAAA);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
@@ -1532,7 +1532,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure)
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
 
   BOOST_CHECK_EQUAL(queries, 11U);
@@ -1558,7 +1558,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure)
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
 
   BOOST_CHECK_EQUAL(queries, 11U);
@@ -1679,7 +1679,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure)
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U); /* DNAME + RRSIG(DNAME) + CNAME + A */
 
   BOOST_CHECK_EQUAL(queries, 9U);
@@ -1702,7 +1702,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure)
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U); /* DNAME + RRSIG(DNAME) + CNAME + A */
 
   BOOST_CHECK_EQUAL(queries, 9U);

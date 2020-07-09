@@ -335,10 +335,10 @@ void RecursorLua4::postPrepareContext()
     d_pd.push_back({n.first, n.second});
 
   d_pd.push_back({"validationstates", in_t{
-        {"Indeterminate", Indeterminate },
-        {"Bogus", Bogus },
-        {"Insecure", Insecure },
-        {"Secure", Secure },
+        {"Indeterminate", static_cast<unsigned int>(vState::Indeterminate) },
+        {"Bogus", static_cast<unsigned int>(vState::Bogus) },
+        {"Insecure", static_cast<unsigned int>(vState::Insecure) },
+        {"Secure", static_cast<unsigned int>(vState::Secure) },
   }});
 
   d_pd.push_back({"now", &g_now});

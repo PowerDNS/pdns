@@ -81,7 +81,7 @@ public:
     std::string requestorId;
     std::string deviceId;
     std::string deviceName;
-    vState validationState{Indeterminate};
+    vState validationState{vState::Indeterminate};
     bool& variable;
     bool& wantsRPZ;
     bool& logResponse;

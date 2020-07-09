@@ -55,7 +55,7 @@ public:
     mutable uint32_t d_ttd; // Timestamp when this entry should die
     recordsAndSignatures authoritySOA; // The upstream SOA record and RRSIGs
     recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
-    mutable vState d_validationState{Indeterminate};
+    mutable vState d_validationState{vState::Indeterminate};
     uint32_t getTTD() const
     {
       return d_ttd;

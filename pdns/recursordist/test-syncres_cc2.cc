@@ -655,7 +655,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
@@ -663,7 +663,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
@@ -671,7 +671,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
@@ -691,7 +691,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
@@ -700,7 +700,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
@@ -708,7 +708,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 13U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3U);
@@ -716,7 +716,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 15U);
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4U);

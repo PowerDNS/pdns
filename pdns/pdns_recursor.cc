@@ -1537,7 +1537,7 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != Bogus)) {
+      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != vState::Bogus)) {
         if (res == RCode::NoError) {
           auto i = ret.cbegin();
           for(; i!= ret.cend(); ++i) {
@@ -1551,7 +1551,7 @@ static void startDoResolve(void *p)
             if (t_pdl && t_pdl->nodata(dq, res)) {
               shouldNotValidate = true;
             }
-            else if (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != Bogus) {
+            else if (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != vState::Bogus) {
               res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
               shouldNotValidate = true;
             }
@@ -1613,7 +1613,7 @@ static void startDoResolve(void *p)
 
           auto state = sr.getValidationState();
 
-          if(state == Secure) {
+          if(state == vState::Secure) {
             if(sr.doLog()) {
               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
             }
@@ -1622,14 +1622,14 @@ static void startDoResolve(void *p)
             if (dc->d_mdp.d_header.ad || DNSSECOK)
               pw.getHeader()->ad=1;
           }
-          else if(state == Insecure) {
+          else if(state == vState::Insecure) {
             if(sr.doLog()) {
               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates as Insecure"<<endl;
             }
             
             pw.getHeader()->ad=0;
           }
-          else if(state == Bogus) {
+          else if(state == vState::Bogus) {
             if(t_bogusremotes)
               t_bogusremotes->push_back(dc->d_source);
             if(t_bogusqueryring)
@@ -2592,7 +2592,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     if (cacheHit) {
-      if(valState == Bogus) {
+      if(valState == vState::Bogus) {
         if(t_bogusremotes)
           t_bogusremotes->push_back(source);
         if(t_bogusqueryring)
