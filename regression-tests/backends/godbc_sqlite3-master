@@ -20,6 +20,7 @@ godbc-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM
 godbc-clear-domain-all-keys-query=delete from cryptokeys where domain_id=(select id from domains where name=?)
 godbc-clear-domain-all-metadata-query=delete from domainmetadata where domain_id=(select id from domains where name=?)
 godbc-clear-domain-metadata-query=delete from domainmetadata where domain_id=(select id from domains where name=?) and domainmetadata.kind=?
+godbc-closest-soa-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=false and type='SOA' and (name=? or ? LIKE '%.'||name) ORDER BY LENGTH(name) DESC
 godbc-deactivate-domain-key-query=update cryptokeys set active=0 where domain_id=(select id from domains where name=?) and  cryptokeys.id=?
 godbc-delete-comment-rrset-query=DELETE FROM comments WHERE domain_id=? AND name=? AND type=?
 godbc-delete-comments-query=DELETE FROM comments WHERE domain_id=?
