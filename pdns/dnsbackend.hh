@@ -315,8 +315,8 @@ public:
   {
   }
 
-  //! Called when the Master of a domain should be changed
-  virtual bool setMaster(const DNSName &domain, const string &ip)
+  //! Called when the Master list of a domain should be changed
+  virtual bool setMasters(const DNSName &domain, const vector<ComboAddress> &masters)
   {
     return false;
   }
@@ -343,7 +343,7 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName &domain)
+  virtual bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
   {
     return false;
   }
