@@ -774,7 +774,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
 
   /* === first without validation, then with (just-in-time validation) === */
   /* clear the caches */
-  s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+  t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
   SyncRes::clearNegCache();
   sr->setDNSSECValidationRequested(false);
   primeHints();
