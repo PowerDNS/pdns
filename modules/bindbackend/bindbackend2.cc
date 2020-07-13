@@ -1150,7 +1150,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, int zoneId, 
 
   if(!found) {
     if(mustlog)
-      g_log<<Logger::Warning<<"Found no authoritative zone for '"<<qname<<"' and/or id "<<bbd.d_id<<endl;
+      g_log<<Logger::Warning<<"Found no authoritative zone for '"<<qname<<"' and/or id "<<zoneId<<endl;
     d_handle.d_list=false;
     return;
   }
