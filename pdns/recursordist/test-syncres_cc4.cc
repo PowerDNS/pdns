@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point)
@@ -516,7 +516,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -525,7 +525,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
@@ -604,7 +604,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -613,7 +613,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
@@ -670,7 +670,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
@@ -759,7 +759,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -768,7 +768,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 
@@ -782,7 +782,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
@@ -791,7 +791,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::DNSKEY), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
   /* 1 SOA + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
@@ -801,7 +801,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
@@ -869,7 +869,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -878,7 +878,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
@@ -939,7 +939,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* 13 NS + 0 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 13U);
   /* no RRSIG so no query for DNSKEYs */
@@ -949,7 +949,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 13U);
   /* check that we capped the TTL to max-cache-bogus-ttl */
   for (const auto& record : ret) {
@@ -1026,7 +1026,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   /* no supported DS so no query for DNSKEYs */
@@ -1036,7 +1036,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
@@ -1107,7 +1107,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   /* no supported DS so no query for DNSKEYs */
@@ -1117,7 +1117,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
@@ -1176,7 +1176,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -1185,7 +1185,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
@@ -1245,7 +1245,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
@@ -1254,7 +1254,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
@@ -1320,7 +1320,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 
@@ -1328,7 +1328,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 
@@ -1336,7 +1336,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   ret.clear();
   res = sr->beginResolve(DNSName("com."), QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
@@ -1394,7 +1394,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("com."), QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }

@@ -1157,11 +1157,11 @@ void registerAllStats()
 #endif
 
   addGetStat("dnssec-validations", &g_stats.dnssecValidations);
-  addGetStat("dnssec-result-insecure", &g_stats.dnssecResults[Insecure]);
-  addGetStat("dnssec-result-secure", &g_stats.dnssecResults[Secure]);
-  addGetStat("dnssec-result-bogus", &g_stats.dnssecResults[Bogus]);
-  addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[Indeterminate]);
-  addGetStat("dnssec-result-nta", &g_stats.dnssecResults[NTA]);
+  addGetStat("dnssec-result-insecure", &g_stats.dnssecResults[vState::Insecure]);
+  addGetStat("dnssec-result-secure", &g_stats.dnssecResults[vState::Secure]);
+  addGetStat("dnssec-result-bogus", &g_stats.dnssecResults[vState::Bogus]);
+  addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[vState::Indeterminate]);
+  addGetStat("dnssec-result-nta", &g_stats.dnssecResults[vState::NTA]);
 
   addGetStat("policy-result-noaction", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NoAction]);
   addGetStat("policy-result-drop", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Drop]);

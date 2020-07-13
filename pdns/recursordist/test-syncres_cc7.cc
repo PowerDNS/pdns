@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   /* 4 NS (com from root, com from com, powerdns.com from com,
      powerdns.com from powerdns.com)
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 
@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
@@ -485,7 +485,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 
@@ -493,7 +493,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
@@ -611,7 +611,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 
@@ -619,7 +619,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
@@ -707,7 +707,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 
@@ -715,7 +715,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
@@ -803,7 +803,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 
@@ -811,7 +811,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
@@ -899,7 +899,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 12U);
 
@@ -907,7 +907,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 12U);
 }
@@ -1020,7 +1020,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* no RRSIG to show */
   BOOST_CHECK_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 10U);
@@ -1029,7 +1029,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_CHECK_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 10U);
 }
@@ -1114,7 +1114,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   /* should be insecure but we have a TA for powerdns.com. */
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* We got a RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
@@ -1124,7 +1124,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
@@ -1210,7 +1210,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig)
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   /* should be insecure but we have a TA for powerdns.com., but no RRSIG so Bogus */
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* No RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
@@ -1220,7 +1220,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
@@ -1280,7 +1280,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
@@ -1289,7 +1289,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
@@ -1336,7 +1336,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ta)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   /* 13 NS + 0 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 13U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
@@ -1345,7 +1345,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ta)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 13U);
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
@@ -1388,7 +1388,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* com|NS, powerdns.com|NS, powerdns.com|A */
   BOOST_CHECK_EQUAL(queriesCount, 3U);
@@ -1397,7 +1397,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* we don't store empty results */
   BOOST_CHECK_EQUAL(queriesCount, 4U);
@@ -1441,7 +1441,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* com|NS, powerdns.com|NS, powerdns.com|A */
   BOOST_CHECK_EQUAL(queriesCount, 3U);
@@ -1450,7 +1450,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* we don't store empty results */
   BOOST_CHECK_EQUAL(queriesCount, 4U);

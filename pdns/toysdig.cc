@@ -145,7 +145,7 @@ try
       for(const auto& sig : csp.second.signatures) {
 	cerr<<"got rrsig "<<sig->d_signer<<"/"<<sig->d_tag<<endl;
 	vState state = getKeysFor(tro, sig->d_signer, keys);
-	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
+	cerr<<"! state = "<<state<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
         // dsmap.insert(make_pair(dsrc.d_tag, dsrc));
       }
     }
@@ -155,7 +155,7 @@ try
   else {
     cerr<<"no sigs, hoping for Insecure"<<endl;
     vState state = getKeysFor(tro, qname, keys);
-    cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
+    cerr<<"! state = "<<state<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
   }
   cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<cspmap.size()<<endl;
 

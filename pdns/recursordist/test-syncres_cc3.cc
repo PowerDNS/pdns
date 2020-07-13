@@ -869,7 +869,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 
@@ -877,7 +877,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
@@ -940,7 +940,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_bogus)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 
@@ -948,7 +948,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_bogus)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
@@ -1003,7 +1003,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* com|NS, powerdns.com|NS, powerdns.com|A */
   BOOST_CHECK_EQUAL(queriesCount, 3U);
@@ -1012,7 +1012,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* we don't store empty results */
   BOOST_CHECK_EQUAL(queriesCount, 4U);
@@ -1054,7 +1054,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 
   /* a second time, to check that the OOB flag is set when the query cache is used */
   ret.clear();
@@ -1064,7 +1064,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 
   /* a third time, to check that the validation is disabled when the OOB flag is set */
   ret.clear();
@@ -1075,7 +1075,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
@@ -1123,7 +1123,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 
   /* a second time, to check that the OOB flag is set when the query cache is used */
   ret.clear();
@@ -1134,7 +1134,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 
   /* a third time, to check that the validation is disabled when the OOB flag is set */
   ret.clear();
@@ -1146,7 +1146,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
   BOOST_CHECK(ret[1].d_type == QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone)

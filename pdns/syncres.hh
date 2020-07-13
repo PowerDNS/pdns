@@ -888,7 +888,7 @@ private:
   asyncresolve_t d_asyncResolve{nullptr};
   struct timeval d_now;
   string d_prefix;
-  vState d_queryValidationState{Indeterminate};
+  vState d_queryValidationState{vState::Indeterminate};
 
   /* When d_cacheonly is set to true, we will only check the cache.
    * This is set when the RD bit is unset in the incoming query

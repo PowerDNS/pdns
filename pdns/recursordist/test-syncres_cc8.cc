@@ -47,11 +47,11 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap)
   denialMap[std::make_pair(DNSName("example.org."), QType::NSEC)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 
   denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1)
@@ -83,11 +83,11 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_1)
   denialMap[std::make_pair(DNSName("z.example.org."), QType::NSEC)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 
   denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2)
@@ -119,11 +119,11 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_wrap_case_2)
   denialMap[std::make_pair(DNSName("y.example.org."), QType::NSEC)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("z.example.org."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 
   denialState = getDenial(denialMap, DNSName("d.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec)
@@ -155,11 +155,11 @@ BOOST_AUTO_TEST_CASE(test_nsec_denial_only_one_nsec)
   denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("b.example.org."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 
   denialState = getDenial(denialMap, DNSName("a.example.org."), QType::A, false, false);
   /* let's check that d.example.org. is not denied by this proof */
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial)
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_root_nxd_denial)
   denialMap[std::make_pair(DNSName("."), QType::NSEC)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("b."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
@@ -247,14 +247,14 @@ BOOST_AUTO_TEST_CASE(test_nsec_ancestor_nxqtype_denial)
   dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, false);
   /* no data means the qname/qtype is not denied, because an ancestor
      delegation NSEC can only deny the DS */
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 
   /* it can not be used to deny any RRs below that owner name either */
   denialState = getDenial(denialMap, DNSName("sub.a."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 
   denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
-  BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+  BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_insecure_delegation_denial)
   /* Insecure because the NS is not set, so while it does
      denies the DS, it can't prove an insecure delegation */
   dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_nxqtype_cname)
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxqtype_cname)
 
   /* this NSEC is not valid to deny a.powerdns.com|A since it states that a CNAME exists */
   dState denialState = getDenial(denialMap, DNSName("a.powerdns.com."), QType::A, true, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_cname)
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_cname)
 
   /* this NSEC3 is not valid to deny a.powerdns.com|A since it states that a CNAME exists */
   dState denialState = getDenial(denialMap, DNSName("a.powerdns.com."), QType::A, false, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_nxdomain_denial_missing_wildcard)
@@ -382,7 +382,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_nxdomain_denial_missing_wildcard)
   denialMap[std::make_pair(DNSName("a.powerdns.com."), QType::NSEC)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
 
   dState denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::A, false, false);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
@@ -452,16 +452,16 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
   /* this NSEC is valid to prove a NXQTYPE at c.powerdns.com because it proves that
      it is an ENT */
   dState denialState = getDenial(denialMap, DNSName("c.powerdns.com."), QType::AAAA, true, true);
-  BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+  BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
 
   /* this NSEC is not valid to prove a NXQTYPE at b.powerdns.com,
      it could prove a NXDOMAIN if it had an additional wildcard denial */
   denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::AAAA, true, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 
   /* this NSEC is not valid to prove a NXQTYPE for QType::A at a.c.powerdns.com either */
   denialState = getDenial(denialMap, DNSName("a.c.powerdns.com."), QType::A, true, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 
   /* if we add the wildcard denial proof, we should get a NXDOMAIN proof for b.powerdns.com */
   recordContents.clear();
@@ -476,12 +476,12 @@ BOOST_AUTO_TEST_CASE(test_nsec_ent_denial)
   denialMap[std::make_pair(DNSName(").powerdns.com."), QType::NSEC)] = pair;
 
   denialState = getDenial(denialMap, DNSName("b.powerdns.com."), QType::A, true, false);
-  BOOST_CHECK_EQUAL(denialState, NXDOMAIN);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
 
   /* this NSEC is NOT valid to prove a NXDOMAIN at c.powerdns.com because it proves that
      it exists and is an ENT */
   denialState = getDenial(denialMap, DNSName("c.powerdns.com."), QType::AAAA, true, false);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
@@ -524,10 +524,10 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, true);
   /* no data means the qname/qtype is not denied, because an ancestor
      delegation NSEC3 can only deny the DS */
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 
   denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
-  BOOST_CHECK_EQUAL(denialState, NXQTYPE);
+  BOOST_CHECK_EQUAL(denialState, dState::NXQTYPE);
 
   /* it can not be used to deny any RRs below that owner name either */
   /* Add NSEC3 for the next closer */
@@ -557,7 +557,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ancestor_nxqtype_denial)
   denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
 
   denialState = getDenial(denialMap, DNSName("sub.a."), QType::A, false, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_denial_too_many_iterations)
@@ -587,7 +587,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_denial_too_many_iterations)
 
   dState denialState = getDenial(denialMap, DNSName("a."), QType::A, false, true);
   /* since we refuse to compute more than g_maxNSEC3Iterations iterations, it should be Insecure */
-  BOOST_CHECK_EQUAL(denialState, INSECURE);
+  BOOST_CHECK_EQUAL(denialState, dState::INSECURE);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
@@ -629,7 +629,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
   /* Insecure because the NS is not set, so while it does
      denies the DS, it can't prove an insecure delegation */
   dState denialState = getDenial(denialMap, DNSName("a."), QType::DS, true, true);
-  BOOST_CHECK_EQUAL(denialState, NODATA);
+  BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
@@ -676,7 +676,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
@@ -685,7 +685,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
   BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
   BOOST_CHECK_EQUAL(ne.d_ttd, fixedNow + 1);
-  BOOST_CHECK_EQUAL(ne.d_validationState, Secure);
+  BOOST_CHECK_EQUAL(ne.d_validationState, vState::Secure);
   BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
   BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
   BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
@@ -695,7 +695,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
@@ -747,7 +747,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
@@ -756,7 +756,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
   BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
   BOOST_CHECK_EQUAL(ne.d_ttd, fixedNow + SyncRes::s_maxbogusttl);
-  BOOST_CHECK_EQUAL(ne.d_validationState, Bogus);
+  BOOST_CHECK_EQUAL(ne.d_validationState, vState::Bogus);
   BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
   BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
   BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
@@ -766,7 +766,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
@@ -814,7 +814,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
@@ -831,7 +831,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
@@ -883,7 +883,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
   sr->setDNSSECValidationRequested(false);
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
@@ -895,7 +895,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
   sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
@@ -948,7 +948,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure)
   sr->setDNSSECValidationRequested(false);
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);
@@ -960,7 +960,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure)
   sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);
@@ -1017,7 +1017,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
   sr->setDNSSECValidationRequested(false);
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);
@@ -1030,7 +1030,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
   sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   /* check that we correctly capped the TTD for a Bogus record after
      just-in-time validation */
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
@@ -1046,7 +1046,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
   sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);

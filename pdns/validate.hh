@@ -33,12 +33,11 @@ extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5
-enum vState : uint8_t { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
-extern const char *vStates[];
+enum class vState : uint8_t { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
+const std::string& vStateToString(vState state);
 
 // NSEC(3) results
-enum dState : uint8_t { NODATA, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
-extern const char *dStates[];
+enum class dState : uint8_t { NODENIAL, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
 
 std::ostream& operator<<(std::ostream &os, const vState d);
 std::ostream& operator<<(std::ostream &os, const dState d);

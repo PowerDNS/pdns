@@ -45,7 +45,7 @@ static void insertIntoRootNSZones(const DNSName &name) {
 void primeHints(void)
 {
   // prime root cache
-  const vState validationState = Insecure;
+  const vState validationState = vState::Insecure;
   vector<DNSRecord> nsset;
   t_rootNSZones.clear();
 

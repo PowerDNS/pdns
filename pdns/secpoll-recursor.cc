@@ -47,7 +47,7 @@ void doSecPoll(time_t* last_secpoll)
   boost::replace_all(qstring, "+", "_");
   boost::replace_all(qstring, "~", "_");
 
-  vState state = Indeterminate;
+  vState state = vState::Indeterminate;
   DNSName query(qstring);
   int res = sr.beginResolve(query, QType(QType::TXT), 1, ret);
 
@@ -55,7 +55,7 @@ void doSecPoll(time_t* last_secpoll)
     state = sr.getValidationState();
   }
 
-  if(state == Bogus) {
+  if(state == vState::Bogus) {
     g_log<<Logger::Error<<"Failed to retrieve security status update for '" +pkgv+ "' on '"<<query<<"', DNSSEC validation result was Bogus!"<<endl;
     if(g_security_status == 1) // If we were OK, go to unknown
       g_security_status = 0;
