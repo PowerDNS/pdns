@@ -1243,7 +1243,16 @@ static void startDoResolve(void *p)
             spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
             for (const auto& dr : spoofed) {
               ret.push_back(dr);
-              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+              try {
+                handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+              }
+              catch (const ImmediateServFailException& e) {
+                if (g_logCommonErrors) {
+                  g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy while resolving '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+                }
+                res = RCode::ServFail;
+                break;
+              }
             }
             goto haveAnswer;
           case DNSFilterEngine::PolicyKind::Truncate:
@@ -2746,7 +2755,21 @@ static void houseKeeping(void *)
       int res = SyncRes::getRootNS(g_now, nullptr);
       if (!res) {
         last_rootupdate=now.tv_sec;
-        primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
+        try {
+          primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
+        }
+        catch (const std::exception& e) {
+          g_log<<Logger::Error<<"Exception while priming the root NS zones: "<<e.what()<<endl;
+        }
+        catch (const PDNSException& e) {
+          g_log<<Logger::Error<<"Exception while priming the root NS zones: "<<e.reason<<endl;
+        }
+        catch (const ImmediateServFailException& e) {
+          g_log<<Logger::Error<<"Exception while priming the root NS zones: "<<e.reason<<endl;
+        }
+        catch (...) {
+          g_log<<Logger::Error<<"Exception while priming the root NS zones"<<endl;
+        }
       }
     }
 
@@ -2792,12 +2815,16 @@ static void houseKeeping(void *)
     }
     s_running=false;
   }
-  catch(PDNSException& ae)
-    {
-      s_running=false;
-      g_log<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
-      throw;
-    }
+  catch(PDNSException& ae) {
+    s_running=false;
+    g_log<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
+    throw;
+  }
+  catch(...) {
+    s_running=false;
+    g_log<<Logger::Error<<"Uncaught exception in housekeeping thread"<<endl;
+    throw;
+  }
 }
 
 static void makeThreadPipes()
