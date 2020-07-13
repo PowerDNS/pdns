@@ -12,7 +12,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CANONICAL_HOST
 # Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
 CFLAGS="-Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -g -O2 $CFLAGS"
-CXXFLAGS="-Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -g -O2 $CXXFLAGS"
+CXXFLAGS="-std=c++11 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -g -O2 $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args],["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
@@ -33,7 +33,7 @@ AC_DEFINE([RECURSOR], [1],
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
-AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
