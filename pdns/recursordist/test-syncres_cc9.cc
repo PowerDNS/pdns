@@ -1054,6 +1054,7 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_glue)
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
       addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "powerdns.com.", QType::DS, "1 8 2 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA AAAAAAAA", DNSResourceRecord::AUTHORITY, 172800);
       addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 172800);
       addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::AAAA, "2001:DB8::2", DNSResourceRecord::ADDITIONAL, 172800);
       addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 172800);
@@ -1063,6 +1064,7 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_glue)
     else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, target, QType::A, "192.0.2.4");
+      addRecordToLW(res, "powerdns.com.", QType::DS, "2 8 2 BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB BBBBBBBB", DNSResourceRecord::AUTHORITY);
       return 1;
     }
     else {
@@ -1091,6 +1093,12 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_glue)
   BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns1.powerdns.com."), QType(QType::AAAA), false, &cached, who), 0);
   BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns2.powerdns.com."), QType(QType::A), false, &cached, who), 0);
   BOOST_CHECK_GT(t_RC->get(now, DNSName("pdns-public-ns2.powerdns.com."), QType(QType::AAAA), false, &cached, who), 0);
+
+  cached.clear();
+  /* check that we accepted the DS from the parent, and not from the child zone */
+  BOOST_CHECK_GT(t_RC->get(now, DNSName("powerdns.com."), QType(QType::DS), false, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
+  BOOST_CHECK_EQUAL(cached.at(0).d_content->getZoneRepresentation(), "1 8 2 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 }
 
 BOOST_AUTO_TEST_CASE(test_records_sanitization_scrubs_ns_nxd)
