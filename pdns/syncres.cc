@@ -2052,8 +2052,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   std::vector<DNSRecord> dsrecords;
 
   vState state = Indeterminate;
+  const bool oldCacheOnly = setCacheOnly(false);
   int rcode = doResolve(zone, QType(QType::DS), dsrecords, depth + 1, beenthere, state);
   d_skipCNAMECheck = oldSkipCNAME;
+  setCacheOnly(oldCacheOnly);
 
   if (rcode == RCode::ServFail) {
     throw ImmediateServFailException("Server Failure while retrieving DS records for " + zone.toLogString());
@@ -2330,11 +2332,14 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   LOG(d_prefix<<"Retrieving DNSKeys for "<<signer<<endl);
 
   vState state = Indeterminate;
+
   /* following CNAME might lead to us to the wrong DNSKEY */
   bool oldSkipCNAME = d_skipCNAMECheck;
   d_skipCNAMECheck = true;
+  const bool oldCacheOnly = setCacheOnly(false);
   int rcode = doResolve(signer, QType(QType::DNSKEY), records, depth + 1, beenthere, state);
   d_skipCNAMECheck = oldSkipCNAME;
+  setCacheOnly(oldCacheOnly);
 
   if (rcode == RCode::ServFail) {
     throw ImmediateServFailException("Server Failure while retrieving DNSKEY records for " + signer.toLogString());
