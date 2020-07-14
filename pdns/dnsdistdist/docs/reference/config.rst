@@ -729,7 +729,7 @@ See :doc:`../guides/cache` for a how to.
 
     :param DNSName name: The name to expunge
     :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
-    :param bool suffixMatch: When set to true, remove al entries under ``name``
+    :param bool suffixMatch: When set to true, remove all entries under ``name``
 
   .. method:: PacketCache:getStats()
 
