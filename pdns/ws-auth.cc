@@ -680,12 +680,21 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   bool shouldRectify = false;
   bool dnssecInJSON = false;
   bool dnssecDocVal = false;
+  bool nsec3paramInJSON = false;
+  string nsec3paramDocVal;
 
   try {
     dnssecDocVal = boolFromJson(document, "dnssec");
     dnssecInJSON = true;
   }
   catch (const JsonException&) {}
+
+  try {
+    nsec3paramDocVal = stringFromJson(document, "nsec3param");
+    nsec3paramInJSON = true;
+  }
+  catch (const JsonException&) {}
+
 
   bool isDNSSECZone = dk.isSecuredZone(zonename);
 
@@ -737,19 +746,30 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     }
   }
 
-  if(document["nsec3param"].string_value().length() > 0) {
+  if (nsec3paramInJSON) {
     shouldRectify = true;
-    NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
-    string error_msg = "";
     if (!isDNSSECZone) {
       throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"', but zone is not DNSSEC secured.");
     }
-    if (!dk.checkNSEC3PARAM(ns3pr, error_msg)) {
-      throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"' are invalid. " + error_msg);
+
+    if (nsec3paramDocVal.length() == 0) {
+      // Switch to NSEC
+      if (!dk.unsetNSEC3PARAM(zonename)) {
+        throw ApiException("Unable to remove NSEC3PARAMs from zone '" + zonename.toString());
+      }
     }
-    if (!dk.setNSEC3PARAM(zonename, ns3pr, boolFromJson(document, "nsec3narrow", false))) {
-      throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() +
-          "' passed our basic sanity checks, but cannot be used with the current backend.");
+
+    if (nsec3paramDocVal.length() > 0) {
+      // Set the NSEC3PARAMs
+      NSEC3PARAMRecordContent ns3pr(nsec3paramDocVal);
+      string error_msg = "";
+      if (!dk.checkNSEC3PARAM(ns3pr, error_msg)) {
+        throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"' are invalid. " + error_msg);
+      }
+      if (!dk.setNSEC3PARAM(zonename, ns3pr, boolFromJson(document, "nsec3narrow", false))) {
+        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() +
+            "' passed our basic sanity checks, but cannot be used with the current backend.");
+      }
     }
   }
 
