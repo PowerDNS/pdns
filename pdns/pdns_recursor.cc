@@ -1454,8 +1454,15 @@ static void startDoResolve(void *p)
 
     // Check if the query has a policy attached to it
     if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
-      if (luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
+
+      if (luaconfsLocal->dfe.getClientPolicy(dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
         mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
+      }
+ 
+      if ((appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+        if (luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, sr.d_discardedPolicies, appliedPolicy)) {
+          mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
+        }
       }
     }
 

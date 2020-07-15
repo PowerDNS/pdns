@@ -337,17 +337,26 @@ public:
     }
   }
 
-  bool getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+  bool getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+  bool getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
   bool getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
   bool getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
   bool getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
 
   // A few convenience methods for the unit test code
-  Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
+  Policy getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
     Policy policy;
     policy.d_zoneData = std::make_shared<PolicyZoneData>();
     policy.d_zoneData->d_priority = p;
-    getQueryPolicy(qname, nm, discardedPolicies, policy);
+    getQueryPolicy(qname, discardedPolicies, policy);
+    return policy;
+  }
+
+  Policy getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {
+    Policy policy;
+    policy.d_zoneData = std::make_shared<PolicyZoneData>();
+    policy.d_zoneData->d_priority = p;
+    getClientPolicy(ca, discardedPolicies, policy);
     return policy;
   }
 
