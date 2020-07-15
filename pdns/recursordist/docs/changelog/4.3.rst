@@ -30,14 +30,14 @@ Changelogs for 4.3.x
     :pullreq: 9327
     :tickets: 9188
 
-    Refuse DS records received from child zones 
+    Refuse DS records received from child zones.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 9305
     :tickets: 9268
 
-    Better exception handling in houseKeeping / handlePolicyHit.
+    Better exception handling in houseKeeping/handlePolicyHit.
 
   .. change::
     :tags: Bug Fixes

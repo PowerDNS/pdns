@@ -5,39 +5,39 @@ Changelogs for 4.2.x
   :released: 17th of July 2020
 
   .. change::
-    :tags: XXXXXX
+    :tags: Bug Fixes
     :pullreq: 9334
     :tickets: 9309
 
-    Validate cached dnskeys against the dss, not the rrsigs only.
+    Validate cached DNSKEYs against the DSs, not the RRSIGs only.
 
   .. change::
-    :tags: XXXXXX
+    :tags: Bug Fixes
     :pullreq: 9333
     :tickets: 9297
 
-    Ignore cache-only for dnskeys/ds retrieval.
+    Ignore cache-only for DNSKEYS/DS retrieval.
 
   .. change::
-    :tags: XXXXXX
+    :tags: Bug Fixes
     :pullreq: 9332
     :tickets: 9292
 
-    A servfail while retrieving ds/dnskey records is just that.
+    A ServFail while retrieving DS/DNSKEY records is just that.
 
   .. change::
-    :tags: XXXXXX
+    :tags: Bug Fixes
     :pullreq: 9331
     :tickets: 9188
 
-    Refuse ds records received from child zones.
+    Refuse DS records received from child zones.
 
   .. change::
-    :tags: XXXXXX
+    :tags: Bug Fixes
     :pullreq: 9306
     :tickets: 9268
 
-    Better exception handling in housekeeping / handlepolicyhit.
+    Better exception handling in housekeeping/handlePolicyHit.
 
 .. changelog::
   :version: 4.2.3
