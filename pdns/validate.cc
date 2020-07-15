@@ -11,12 +11,47 @@ uint16_t g_maxNSEC3Iterations{0};
 
 #define LOG(x) if(g_dnssecLOG) { g_log <<Logger::Warning << x; }
 
+static bool isAZoneKey(const DNSKEYRecordContent& key)
+{
+  /* rfc4034 Section 2.1.1:
+     "Bit 7 of the Flags field is the Zone Key flag.  If bit 7 has value 1,
+     then the DNSKEY record holds a DNS zone key, and the DNSKEY RR's
+     owner name MUST be the name of a zone.  If bit 7 has value 0, then
+     the DNSKEY record holds some other type of DNS public key and MUST
+     NOT be used to verify RRSIGs that cover RRsets."
+
+     Let's check that this is a ZONE key, even though there is no other
+     types of DNSKEYs at the moment.
+  */
+  return (key.d_flags & 256) != 0;
+}
+
+static bool isRevokedKey(const DNSKEYRecordContent& key)
+{
+  /* rfc5011 Section 3 */
+  return (key.d_flags & 128) != 0;
+}
+
 static vector<shared_ptr<DNSKEYRecordContent > > getByTag(const skeyset_t& keys, uint16_t tag, uint8_t algorithm)
 {
   vector<shared_ptr<DNSKEYRecordContent>> ret;
-  for(const auto& key : keys)
-    if(key->d_protocol == 3 && key->getTag() == tag && key->d_algorithm == algorithm)
+
+  for (const auto& key : keys) {
+    if (!isAZoneKey(*key)) {
+      LOG("Key for tag "<<std::to_string(tag)<<" and algorithm "<<std::to_string(algorithm)<<" is not a zone key, skipping"<<endl;);
+      continue;
+    }
+
+    if (isRevokedKey(*key)) {
+      LOG("Key for tag "<<std::to_string(tag)<<" and algorithm "<<std::to_string(algorithm)<<" has been revoked, skipping"<<endl;);
+      continue;
+    }
+
+    if (key->d_protocol == 3 && key->getTag() == tag && key->d_algorithm == algorithm) {
       ret.push_back(key);
+    }
+  }
+
   return ret;
 }
 
@@ -748,17 +783,17 @@ bool validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& 
       LOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
     }
 
-    auto r = getByTag(keys, signature->d_tag, signature->d_algorithm);
+    auto keysMatchingTag = getByTag(keys, signature->d_tag, signature->d_algorithm);
 
-    if(r.empty()) {
+    if (keysMatchingTag.empty()) {
       LOG("No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
       continue;
     }
 
-    string msg=getMessageForRRSET(name, *signature, toSign, true);
-    for(const auto& l : r) {
-      bool signIsValid = checkSignatureWithKey(now, signature, l, msg);
-      if(signIsValid) {
+    string msg = getMessageForRRSET(name, *signature, toSign, true);
+    for(const auto& key : keysMatchingTag) {
+      bool signIsValid = checkSignatureWithKey(now, signature, key, msg);
+      if (signIsValid) {
         isValid = true;
         LOG("Validated "<<name<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl);
         //	  cerr<<"valid"<<endl;
