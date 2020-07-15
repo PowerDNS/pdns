@@ -198,9 +198,8 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
   return false;
 }
 
-bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
 {
-  // cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
   std::vector<bool> zoneEnabled(d_zones.size());
   size_t count = 0;
   bool allEmpty = true;
@@ -214,7 +213,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
         enabled = false;
       }
       else {
-        if (z->hasQNamePolicies() || z->hasClientPolicies()) {
+        if (z->hasClientPolicies()) {
           allEmpty = false;
         }
         else {
@@ -228,6 +227,59 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
   }
 
   if (allEmpty) {
+    cerr << " allempty" << endl;
+    return false;
+  }
+
+  count = 0;
+  for (const auto& z : d_zones) {
+    if (!zoneEnabled[count]) {
+      ++count;
+      continue;
+    }
+
+    if (z->findClientPolicy(ca, pol)) {
+      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+      return true;
+    }
+
+    ++count;
+  }
+
+  return false;
+}
+
+bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
+{
+  cerr<<"Got question for "<<qname<<' '<< pol.getPriority()<< endl;
+  std::vector<bool> zoneEnabled(d_zones.size());
+  size_t count = 0;
+  bool allEmpty = true;
+  for (const auto& z : d_zones) {
+    bool enabled = true;
+    if (z->getPriority() >= pol.getPriority()) {
+      enabled = false;
+    } else {
+      const auto& zoneName = z->getName();
+      if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
+        enabled = false;
+      }
+      else {
+        if (z->hasQNamePolicies()) {
+          allEmpty = false;
+        }
+        else {
+          enabled = false;
+        }
+      }
+    }
+
+    zoneEnabled[count] = enabled;
+    ++count;
+  }
+
+  if (allEmpty) {
+    cerr << " allempty" << endl;
     return false;
   }
 
@@ -246,11 +298,6 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
       continue;
     }
 
-    if (z->findClientPolicy(ca, pol)) {
-      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
-      return true;
-    }
-
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
       return true;
@@ -262,7 +309,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
         return true;
       }
     }
-
+    cerr << "no hit on " << qname << endl;
     ++count;
   }
 
