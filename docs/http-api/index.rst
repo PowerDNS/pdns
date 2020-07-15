@@ -25,6 +25,8 @@ The following webserver related configuration items are available:
 Metrics Endpoint
 ----------------
 
+.. versionadded:: 4.4.0
+
 The webserver exposes a metrics-endpoint that follows the `prometheus exposition-format <https://github.com/prometheus/docs/blob/master/content/docs/instrumenting/exposition_formats.md>`_ on path ``/metrics``.
 
 The metrics listed are equivalent to the variables section on the index-page of the webserver (prefixed with ``pdns_auth_`` and replacing dashes with underscores).
