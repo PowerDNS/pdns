@@ -835,6 +835,7 @@ static void protobufLogResponse(const RecProtoBufMessage& message)
 }
 #endif
 
+#if 0
 /**
  * Chases the CNAME provided by the PolicyCustom RPZ policy.
  *
@@ -860,6 +861,7 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
     sr.setWantsRPZ(oldWantsRPZ);
   }
 }
+#endif
 
 static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, uint32_t ttlCap, const uint16_t maxAnswerSize)
 {
@@ -1230,8 +1232,9 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
       return PolicyResult::HaveAnswer;
     }
     return PolicyResult::NoAction;
-
   case DNSFilterEngine::PolicyKind::Custom:
+    return PolicyResult::NoAction; // Now handled in syncres
+#if 0
     ret.clear();
     res = RCode::NoError;
     {
@@ -1258,6 +1261,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
       }
     }
     return PolicyResult::HaveAnswer;
+#endif
   }
 
   return PolicyResult::NoAction;

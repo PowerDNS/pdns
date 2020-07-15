@@ -638,11 +638,48 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
+bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype)
+{
+  //cerr << "wants: " << target << '/' << qtype.getName() << ' ' << d_wantsRPZ << ' ' << int(d_appliedPolicy.d_type) << ' ' <<  int(d_appliedPolicy.d_kind) << endl;
+  if (d_wantsRPZ) {
+    //cerr << "check" << endl;
+    bool match = dfe.getQueryPolicy(target, d_discardedPolicies, d_appliedPolicy, true);
+    if (match) {
+      mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+      if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+        LOG(" (CNAME hit by RPZ policy '" + d_appliedPolicy.getName() + "')");
+        if (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom) {
+          auto spoofed = d_appliedPolicy.getCustomRecords(target, qtype.getCode());
+          for (auto& dr : spoofed) {
+            auto content = getRR<CNAMERecordContent>(dr);
+            if (content) {
+              target = content->getTarget();
+              //cerr << "NEW TARGET " << target << endl;
+              return false;
+            }
+          }
+        }
+        //cerr << "OTHER POLICY HIT" << endl;
+        return true;
+      }
+    }
+  }
+  //cerr << "NOMATCH" << endl;
+  return false;
+}
+
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
-int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
+int SyncRes::doResolve(const DNSName &qnameArg, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
-  // In the auth or recursive forward case, it does nt make sense to do qname-minimization
+  auto luaconfsLocal = g_luaconfs.getLocal();
+
+  DNSName qname(qnameArg);
+  bool hit = qnameRPZHit(luaconfsLocal->dfe, qname, qtype);
+  if (hit) {
+    throw PolicyHitException();
+  }
+  // In the auth or recursive forward case, it does not make sense to do qname-minimization
   if (!getQNameMinimization() || isRecursiveForwardOrAuth(qname)) {
     return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
   }
