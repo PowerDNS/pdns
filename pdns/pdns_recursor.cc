@@ -835,7 +835,6 @@ static void protobufLogResponse(const RecProtoBufMessage& message)
 }
 #endif
 
-#if 0
 /**
  * Chases the CNAME provided by the PolicyCustom RPZ policy.
  *
@@ -861,7 +860,6 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
     sr.setWantsRPZ(oldWantsRPZ);
   }
 }
-#endif
 
 static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, uint32_t ttlCap, const uint16_t maxAnswerSize)
 {
@@ -1198,7 +1196,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
 
 enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
 
-static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
+static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, bool post)
 {
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
@@ -1232,12 +1230,10 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
       return PolicyResult::HaveAnswer;
     }
     return PolicyResult::NoAction;
+
   case DNSFilterEngine::PolicyKind::Custom:
-    return PolicyResult::NoAction; // Now handled in syncres
-#if 0
-    ret.clear();
     res = RCode::NoError;
-    {
+    if (post && ret.size() == 0) { // can happen with NS matches, those do not fill the result
       auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
       for (auto& dr : spoofed) {
         ret.push_back(dr);
@@ -1260,8 +1256,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
         }
       }
     }
-    return PolicyResult::HaveAnswer;
-#endif
+    return post ? PolicyResult::HaveAnswer : PolicyResult::NoAction;
   }
 
   return PolicyResult::NoAction;
@@ -1495,7 +1490,7 @@ static void startDoResolve(void *p)
 
       sr.setWantsRPZ(wantsRPZ);
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, false);
         if (policyResult == PolicyResult::HaveAnswer) {
           goto haveAnswer;
         }
@@ -1534,7 +1529,7 @@ static void startDoResolve(void *p)
         if (appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
           throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
         }
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, true);
         if (policyResult == PolicyResult::HaveAnswer) {
           goto haveAnswer;
         }
@@ -1581,7 +1576,7 @@ static void startDoResolve(void *p)
 
       if (wantsRPZ) { //XXX This block is repeated, see above
 
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, true);
         if (policyResult == PolicyResult::HaveAnswer) {
           goto haveAnswer;
         }

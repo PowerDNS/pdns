@@ -200,6 +200,7 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
 
 bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
 {
+  // cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
   std::vector<bool> zoneEnabled(d_zones.size());
   size_t count = 0;
   bool allEmpty = true;
@@ -227,7 +228,6 @@ bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unorder
   }
 
   if (allEmpty) {
-    //cerr << " allempty" << endl;
     return false;
   }
 
@@ -279,7 +279,6 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
   }
 
   if (allEmpty) {
-    //cerr << " allempty" << endl;
     return false;
   }
 
@@ -309,7 +308,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
         return true;
       }
     }
-    //cerr << "no hit on " << qname << endl;
+
     ++count;
   }
 
