@@ -638,44 +638,54 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
-bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype)
+bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype, vector<DNSRecord> &ret)
 {
-  //cerr << "wants: " << target << '/' << qtype.getName() << ' ' << d_wantsRPZ << ' ' << int(d_appliedPolicy.d_type) << ' ' <<  int(d_appliedPolicy.d_kind) << endl;
-  if (d_wantsRPZ) {
-    //cerr << "check" << endl;
-    bool match = dfe.getQueryPolicy(target, d_discardedPolicies, d_appliedPolicy, true);
-    if (match) {
-      mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
-      if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-        LOG(" (CNAME hit by RPZ policy '" + d_appliedPolicy.getName() + "')");
-        if (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom) {
-          auto spoofed = d_appliedPolicy.getCustomRecords(target, qtype.getCode());
-          for (auto& dr : spoofed) {
-            auto content = getRR<CNAMERecordContent>(dr);
-            if (content) {
-              target = content->getTarget();
-              //cerr << "NEW TARGET " << target << endl;
-              return false;
-            }
-          }
-        }
-        //cerr << "OTHER POLICY HIT" << endl;
-        return true;
-      }
+  if (!d_wantsRPZ) {
+    return false;
+  }
+
+  bool match = dfe.getQueryPolicy(target, d_discardedPolicies, d_appliedPolicy, true);
+  if (!match) {
+    return false;
+  }
+
+  mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+  if (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
+    return false;
+  }
+  LOG(": (hit by RPZ policy '" + d_appliedPolicy.getName() + "')" << endl);
+  if (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Truncate) {
+    // XXX We don't know if we're doing TCP here....
+    return false;
+  }
+  if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Custom) {
+    return true;
+  }
+  auto spoofed = d_appliedPolicy.getCustomRecords(target, qtype.getCode());
+  for (const auto& dr : spoofed) {
+    if (dr.d_place != DNSResourceRecord::ANSWER) {
+      continue;
+    }
+    ret.push_back(dr);
+    auto content = getRR<CNAMERecordContent>(dr);
+    if (content) {
+      target = content->getTarget();
+      return qnameRPZHit(dfe, target, qtype, ret);
     }
   }
-  //cerr << "NOMATCH" << endl;
-  return false;
+
+  return true;
 }
 
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
 int SyncRes::doResolve(const DNSName &qnameArg, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
+  DNSName qname(qnameArg);
   auto luaconfsLocal = g_luaconfs.getLocal();
 
-  DNSName qname(qnameArg);
-  bool hit = qnameRPZHit(luaconfsLocal->dfe, qname, qtype);
+  // Can change qname
+  bool hit = qnameRPZHit(luaconfsLocal->dfe, qname, qtype, ret);
   if (hit) {
     throw PolicyHitException();
   }
