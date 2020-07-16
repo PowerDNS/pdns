@@ -65,10 +65,10 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
 
   size_t valuesSize = 0;
   for (const auto& value : values) {
-    if (value.content.size() > std::numeric_limits<uint16_t>::max()) {
+    valuesSize += sizeof(uint8_t) + sizeof(uint8_t) * 2 + value.content.size();    
+    if (valuesSize > std::numeric_limits<uint16_t>::max()) {
       throw std::runtime_error("The size of proxy protocol values is limited to " + std::to_string(std::numeric_limits<uint16_t>::max()) + ", trying to add a value of size " + std::to_string(value.content.size()));
     }
-    valuesSize += sizeof(uint8_t) + sizeof(uint8_t) * 2 + value.content.size();
   }
 
   size_t total = (addrSize * 2) + sizeof(sourcePort) + sizeof(destinationPort) + valuesSize;
