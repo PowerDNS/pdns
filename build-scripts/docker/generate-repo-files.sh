@@ -190,7 +190,7 @@ elif [ "$RELEASE" = "rec-41" ]; then
     write_ubuntu trusty pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
+elif [ "$RELEASE" = "rec-42" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
@@ -198,6 +198,15 @@ elif [ "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -
     write_debian buster pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
+elif [ "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
+    write_centos 6 pdns-recursor pdns_recursor
+    write_centos 7 pdns-recursor pdns_recursor
+    write_centos 8 pdns-recursor pdns_recursor
+    write_debian stretch pdns-recursor pdns_recursor
+    write_debian buster pdns-recursor pdns_recursor
+    write_ubuntu xenial pdns-recursor pdns_recursor
+    write_ubuntu bionic pdns-recursor pdns_recursor
+    write_ubuntu focal pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
     write_centos 6 dnsdist dnsdist
     write_centos 7 dnsdist dnsdist
