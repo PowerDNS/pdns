@@ -38,6 +38,12 @@ write_centos()
     PKG=$2
     CMD=$3
 
+    if [ "$VERSION" = "8" ]; then
+        CENTOS8_FLAGS="--nobest"
+    else
+        CENTOS8_FLAGS=""
+    fi
+
     cat <<EOF > Dockerfile.$RELEASE.$OS-$VERSION
 FROM $OS:$VERSION
 
@@ -57,7 +63,7 @@ EOF
 
     cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 RUN curl -o /etc/yum.repos.d/powerdns-$RELEASE.repo https://repo.powerdns.com/repo-files/$OS-$RELEASE.repo
-RUN yum install --assumeyes --nobest $PKG
+RUN yum install --assumeyes $CENTOS8_FLAGS $PKG
 EOF
 
     if [ "$RELEASE" = "rec-43"  -o "$RELEASE" = "rec-44" ]; then
