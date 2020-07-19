@@ -674,7 +674,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
     h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
-    const char * sni = = h2o_socket_get_ssl_server_name(sock);
+    const char * sni = h2o_socket_get_ssl_server_name(sock);
     if (sni != nullptr) {
       du->sni = sni;
     }
