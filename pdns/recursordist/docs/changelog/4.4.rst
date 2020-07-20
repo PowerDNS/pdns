@@ -2,6 +2,225 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.0-alpha2
+  :released: 20th of July 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9320
+
+    Update proxy-protocol.cc (ihsinme).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9308
+
+    Check that DNSKEYs have the zone flag set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9314
+
+    Remove redundant toLogString() calls (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9312
+
+    Stop cluttering the global namespace with validation states.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9231
+
+    Use explicit flag for the specific version of c++ we're targeting.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9303
+
+    Use new operator to print states.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 9302
+
+    Kill an signed vs unsigned warning on OpenBSD.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9290
+
+    Refuse QType 0 right away, based on rfc6895 section 3.1.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9295
+
+    Specify a storage type for validation states.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9289
+
+    Common TCP write problems should only be logged if wanted.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9288
+
+    Dump the authority records of a negative cache entry as well.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9237
+
+    Don't validate a NXD with a NSEC proving that the name is an ENT.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9272
+    :tickets: 9266
+
+    Alternative way to do "skip cname check" for DS and DNSKEY records
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9267
+
+    Control stack depth when priming.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9252
+
+    Add version 'statistic' to prometheus.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9236
+
+    Cleanup cache cleaner pruneCollection function.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9226
+
+    Fix three shared cache issues.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9203
+
+    RPZ policy should override gettag_ffi answer by default.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9216
+
+    Don't copy the records when scanning for CNAME loops.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9213
+
+    Do not use `using namespace std;` .
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9202
+    :tickets: 9153, 9194
+
+    More sophisticated CNAME loop detection.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9205
+    :tickets: 9193
+
+    Limit the TTL of RRSIG records as well.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9207
+
+    Use std::string_view when available (Rosen Penev).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9152
+
+    Make sure we can install unsigned packages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9162
+
+    Clarify docs (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9073
+
+    Ensure runtime dirs for virtual services differ.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9085
+    :tickets: 8094
+
+    Builder: improve shipped config files (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9100
+
+    Less negatives in error messages improves readability.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9070
+
+    Boost 1.73 moved boost::bind placeholders to the placeholders namespace.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9079
+
+    Avoid throwing an exception in Logger::log().
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9076
+
+    Fix useless copies in loop reported by clang++ 10.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9078
+
+    NetmaskTree: do not test node for null, the loop guarantees node is not null.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9067
+
+    Wrap pthread objects
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9053
+
+    Get rid of a naked pointer in the /dev/poll event multiplexer.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9016
+    :tickets: 9004
+
+    Random engine.
+
+.. changelog::
   :version: 4.4.0-alpha1
   :released: 22th of April 2020
 
