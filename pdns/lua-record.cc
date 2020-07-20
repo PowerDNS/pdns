@@ -660,12 +660,12 @@ static void setupLuaRecords()
         for(int i=0; i<8; ++i) {
           if(i)
             together+=":";
-          string quad;
+          string lquad;
           for(int j=0; j <4; ++j) {
-            quad.append(1, labels[31-i*4-j][0]);
+            lquad.append(1, labels[31-i*4-j][0]);
             together += labels[31-i*4-j][0];
           }
-          quads.push_back(quad);
+          quads.push_back(lquad);
         }
         ComboAddress ip6(together,0);
 
@@ -685,8 +685,8 @@ static void setupLuaRecords()
           fmt % labels[i];
         fmt % dashed;
 
-        for(const auto& quad : quads)
-          fmt % quad;
+        for(const auto& lquad : quads)
+          fmt % lquad;
 
         return fmt.str();
       }
