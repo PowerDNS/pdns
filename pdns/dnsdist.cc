@@ -32,6 +32,8 @@
 #include <unistd.h>
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
+// If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
+#undef __STRICT_ANSI__
 #include <readline/readline.h>
 #else
 #include <editline/readline.h>
