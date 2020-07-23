@@ -469,7 +469,8 @@ Servers
       sockets=NUM,           -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
       disableZeroScope=BOOL, -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
       rise=NUM,              -- Require NUM consecutive successful checks before declaring the backend up, default: 1
-      useProxyProtocol=BOOL  -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
+      useProxyProtocol=BOOL, -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
+      reconnectOnUp=BOOL     -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
     })
 
   :param str server_string: A simple IP:PORT string.

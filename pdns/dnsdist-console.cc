@@ -462,7 +462,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newQPSLimiter", true, "rate, burst", "configure a QPS limiter with that rate and that burst capacity" },
   { "newRemoteLogger", true, "address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1]", "create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`" },
   { "newRuleAction", true, "DNS rule, DNS action [, {uuid=\"UUID\"}]", "return a pair of DNS Rule and DNS Action, to be used with `setRules()`" },
-  { "newServer", true, "{address=\"ip:port\", qps=1000, order=1, weight=10, pool=\"abuse\", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName=\"a.root-servers.net.\", checkType=\"A\", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source=\"address|interface name|address@interface\", sockets=1}", "instantiate a server" },
+  { "newServer", true, "{address=\"ip:port\", qps=1000, order=1, weight=10, pool=\"abuse\", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName=\"a.root-servers.net.\", checkType=\"A\", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source=\"address|interface name|address@interface\", sockets=1, reconnectOnUp=false}", "instantiate a server" },
   { "newServerPolicy", true, "name, function", "create a policy object from a Lua function" },
   { "newSuffixMatchNode", true, "", "returns a new SuffixMatchNode" },
   { "NoneAction", true, "", "Does nothing. Subsequent rules are processed after this action" },
