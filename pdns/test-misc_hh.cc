@@ -213,4 +213,18 @@ BOOST_AUTO_TEST_CASE(test_reverse_name_to_ip)
   BOOST_CHECK_EQUAL(reverseNameFromIP(v6).toString(), "2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.");
 }
 
+BOOST_AUTO_TEST_CASE(test_getCarbonHostName)
+{
+  char buffer[4096];
+
+  BOOST_CHECK_EQUAL(gethostname(buffer, sizeof buffer), 0);
+  std::string my_hostname(buffer);
+  boost::replace_all(my_hostname, ".", "_");
+
+  std::string hostname = getCarbonHostName();
+  // ensure it matches what we get
+  BOOST_CHECK_EQUAL(my_hostname, hostname);
+  BOOST_CHECK_EQUAL(my_hostname.size(), hostname.size());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
