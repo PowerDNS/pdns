@@ -41,6 +41,10 @@ bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress
   auto payload = makeProxyHeader(tcp, source, destination, values);
 
   auto previousSize = buffer.size();
+  if (payload.size() > (std::numeric_limits<size_t>::max() - previousSize)) {
+    return false;
+  }
+
   buffer.resize(previousSize + payload.size());
   std::copy_backward(buffer.begin(), buffer.begin() + previousSize, buffer.end());
   std::copy(payload.begin(), payload.end(), buffer.begin());
