@@ -38,6 +38,7 @@ void setupLuaBindingsPacketCache()
       size_t tempFailTTL = 60;
       size_t maxNegativeTTL = 3600;
       size_t staleTTL = 60;
+      size_t recacheTTL = 3600;
       size_t numberOfShards = 1;
       bool dontAge = false;
       bool deferrableInsertLock = true;
@@ -69,6 +70,10 @@ void setupLuaBindingsPacketCache()
           minTTL = boost::get<size_t>((*vars)["minTTL"]);
         }
 
+        if (vars->count("recacheTTL")) {
+          recacheTTL = boost::get<size_t>((*vars)["recacheTTL"]);
+        }
+
         if (vars->count("numberOfShards")) {
           numberOfShards = boost::get<size_t>((*vars)["numberOfShards"]);
         }
@@ -86,7 +91,7 @@ void setupLuaBindingsPacketCache()
         }
       }
 
-      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
+      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, recacheTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
 
       res->setKeepStaleData(keepStaleData);
 

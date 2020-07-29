@@ -32,11 +32,12 @@ struct DNSQuestion;
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
-  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t maxNegativeTTL=3600, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true, bool parseECS=false);
+  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t maxNegativeTTL=3600, uint32_t staleTTL=60, uint32_t recacheTTL=3600, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true, bool parseECS=false);
   ~DNSDistPacketCache();
 
   void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
-  bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnetOut, bool dnssecOK, uint32_t allowExpired=0, bool skipAging=false);
+  bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnetOut, bool dnssecOK, uint32_t allowExpired=0, bool skipAging=false, time_t* cacheValidTime=nullptr);
+  bool get(uint32_t key);
   size_t purgeExpired(size_t upTo=0);
   size_t expunge(size_t upTo=0);
   size_t expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
@@ -51,6 +52,7 @@ public:
   uint64_t getInsertCollisions() const { return d_insertCollisions; }
   uint64_t getMaxEntries() const { return d_maxEntries; }
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
+  uint32_t get_recacheTTL() const { return d_recacheTTL; }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
 
@@ -129,6 +131,7 @@ private:
   uint32_t d_maxNegativeTTL;
   uint32_t d_minTTL;
   uint32_t d_staleTTL;
+  uint32_t d_recacheTTL;
   bool d_dontAge;
   bool d_deferrableInsertLock;
   bool d_parseECS;

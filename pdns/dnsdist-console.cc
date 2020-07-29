@@ -458,7 +458,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newLMDBKVStore", true, "fname, dbName", "Return a new KeyValueStore object associated to the corresponding LMDB database" },
 #endif
   { "newNMG", true, "", "Returns a NetmaskGroup" },
-  { "newPacketCache", true, "maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, options={}]", "return a new Packet Cache" },
+  { "newPacketCache", true, "maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, recacheTTL=3600, dontAge=false, numberOfShards=1, deferrableInsertLock=true, options={}]", "return a new Packet Cache" },
   { "newQPSLimiter", true, "rate, burst", "configure a QPS limiter with that rate and that burst capacity" },
   { "newRemoteLogger", true, "address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1]", "create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`" },
   { "newRuleAction", true, "DNS rule, DNS action [, {uuid=\"UUID\"}]", "return a pair of DNS Rule and DNS Action, to be used with `setRules()`" },

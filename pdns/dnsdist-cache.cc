@@ -29,7 +29,7 @@
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 
-DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock), d_parseECS(parseECS)
+DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, uint32_t recacheTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_recacheTTL(recacheTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock), d_parseECS(parseECS)
 {
   d_shards.resize(d_shardCount);
 
@@ -201,7 +201,32 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   }
 }
 
-bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired, bool skipAging)
+bool DNSDistPacketCache::get(uint32_t key)
+{
+  uint32_t shardIndex = getShardIndex(key);
+  auto& shard = d_shards.at(shardIndex);
+  auto& map = shard.d_map;
+  {
+    TryReadLock r(&shard.d_lock);
+    if (!r.gotIt()) {
+        return false;
+    }
+
+    std::unordered_map<uint32_t,CacheValue>::const_iterator it = map.find(key);
+    if (it == map.end()) {
+      return false;
+    }
+
+    const CacheValue& value = it->second;
+
+    if (value.len < sizeof(dnsheader)) {
+      return false;
+    }
+    return true;
+  }
+}
+
+bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired, bool skipAging, time_t* cacheValidTime)
 {
   std::string dnsQName(dq.qname->toDNSString());
   uint32_t key = getKey(dnsQName, consumed, reinterpret_cast<const unsigned char*>(dq.dh), dq.len, dq.tcp);
@@ -255,6 +280,9 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
 
     memcpy(response, &queryId, sizeof(queryId));
     memcpy(response + sizeof(queryId), value.value.c_str() + sizeof(queryId), sizeof(dnsheader) - sizeof(queryId));
+    if(cacheValidTime){
+      *cacheValidTime = value.validity - now;
+    }
 
     if (value.len == sizeof(dnsheader)) {
       /* DNS header only, our work here is done */

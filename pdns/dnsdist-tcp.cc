@@ -897,6 +897,10 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   gettime(&queryRealTime, true);
 
   auto query = reinterpret_cast<char*>(&state->d_buffer.at(0));
+  time_t* cachedValidTime = new time_t(-1);
+  char* queryBackup = new char[state->d_querySize];
+  uint32_t len = state->d_querySize;
+  memcpy(queryBackup, query, state->d_querySize);
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
   auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, query, state->d_querySize, dnsCryptQuery, queryRealTime.tv_sec, true);
   if (dnsCryptResponse) {
@@ -911,6 +915,8 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
     return;
   }
 
+  bool sendToBackend;
+  bool replyTCP;
   uint16_t qtype, qclass;
   unsigned int consumed = 0;
   DNSName qname(query, state->d_querySize, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
@@ -924,22 +930,29 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   }
 
   state->d_ds.reset();
-  auto result = processQuery(dq, *state->d_ci.cs, state->d_threadData.holders, state->d_ds);
+  replyTCP = sendReplyCheck(dq, *state->d_ci.cs, state->d_threadData.holders, state->d_ds, cachedValidTime);
 
-  if (result == ProcessQueryResult::Drop) {
-    return;
-  }
-
-  if (result == ProcessQueryResult::SendAnswer) {
+  if (replyTCP) {
     state->d_selfGeneratedResponse = true;
     state->d_buffer.resize(dq.len);
     state->d_responseBuffer = std::move(state->d_buffer);
     state->d_responseSize = state->d_responseBuffer.size();
     sendResponse(state, now);
+  }
+
+  if(*cachedValidTime > static_cast<time_t>(dq.packetCache->get_recacheTTL())){
     return;
   }
 
-  if (result != ProcessQueryResult::PassToBackend || state->d_ds == nullptr) {
+  if(state->d_ds == nullptr){
+    return;
+  }
+
+  dq.len = len;
+  state->d_buffer  = vector<uint8_t>(queryBackup, queryBackup+len);
+  sendToBackend = sendBackendCheck(dq, *state->d_ci.cs, state->d_threadData.holders, state->d_ds);
+
+  if (!sendToBackend) {
     return;
   }
 

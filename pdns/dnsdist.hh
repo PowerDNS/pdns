@@ -1134,7 +1134,8 @@ static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries
 static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses larger than this value
 
 enum class ProcessQueryResult { Drop, SendAnswer, PassToBackend };
-ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
+bool sendReplyCheck(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend, time_t* cacheValidTime);
+bool sendBackendCheck(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
