@@ -1474,7 +1474,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
 
     _config_template = """
     function answerBasedOnLocalAddress(dq)
-      local dest = dq.localaddr:toString()
+      local dest = tostring(dq.localaddr)
       local i, j = string.find(dest, "[0-9.]+")
       local addr = string.sub(dest, i, j)
       local dashAddr = string.gsub(addr, "[.]", "-")
@@ -1942,7 +1942,7 @@ class TestAdvancedLuaRule(DNSDistTest):
         return false
       end
 
-      if dq.qname:toString() ~= 'lua-rule.advanced.tests.powerdns.com.' then
+      if tostring(dq.qname) ~= 'lua-rule.advanced.tests.powerdns.com.' then
         print('invalid qname')
         return false
       end
