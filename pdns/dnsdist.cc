@@ -1193,8 +1193,8 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     if (serverPool->policy != nullptr) {
       policy = *(serverPool->policy);
     }
-    auto servers = serverPool->getServers();
-    selectedBackend = getSelectedBackendFromPolicy(policy, servers, dq);
+    const auto servers = serverPool->getServers();
+    selectedBackend = getSelectedBackendFromPolicy(policy, *servers, dq);
 
     uint16_t cachedResponseSize = dq.size;
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
