@@ -17,7 +17,7 @@ wget -c -N http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip
 
 unzip top-1m.csv.zip
 
-numdomains="1000 5000 10000 50000 100000 500000 1000000"
+numdomains="1000 5000 10000 50000 100000 500000"
 if [ ! -z "$1" ]; then
   numdomains="$1"
 fi
