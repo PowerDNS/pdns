@@ -52,7 +52,7 @@ __EOF__
 	while [ $loopcount -lt 30 ]
 	do
 		sleep 5
-		todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQl2HOST" \
+		todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
 			"$GMYSQL2DB" -ss -e 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
 		if [ $todo = 0 ]
 		then
