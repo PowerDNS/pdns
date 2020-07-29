@@ -199,23 +199,26 @@ shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& se
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  ServerPolicy::NumberedServerVector poss;
+  vector<size_t> candidates;
+  candidates.reserve(servers.size());
 
-  for(auto& d : servers) {
-    if(d.second->isUp()) {
-      poss.push_back(d);
+  for (auto& d : servers) {
+    if (d.second->isUp()) {
+      candidates.push_back(d.first);
     }
   }
 
-  const auto *res=&poss;
-  if(poss.empty() && !g_roundrobinFailOnNoServer)
-    res = &servers;
-
-  if(res->empty())
-    return shared_ptr<DownstreamState>();
+  if (candidates.empty()) {
+    if (g_roundrobinFailOnNoServer) {
+      return shared_ptr<DownstreamState>();
+    }
+    for (auto& d : servers) {
+      candidates.push_back(d.first);
+    }
+  }
 
   static unsigned int counter;
-  return (*res)[(counter++) % res->size()].second;
+  return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
 const std::shared_ptr<ServerPolicy::NumberedServerVector> getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
