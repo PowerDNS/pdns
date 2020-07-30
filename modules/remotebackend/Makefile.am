@@ -123,6 +123,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/nameserver.cc \
 	../../pdns/rcpgenerator.cc \
 	../../pdns/unix_utility.cc \
+	../../pdns/svc-records.cc ../../pdns/svc-records.hh \
 	../../pdns/json.hh ../../pdns/json.cc \
 	../../pdns/shuffle.hh ../../pdns/shuffle.cc \
 	httpconnector.cc \

@@ -191,6 +191,7 @@ dnsdist_SOURCES = \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
+	svc-records.cc svc-records.hh \
 	statnode.cc statnode.hh \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
@@ -260,6 +261,7 @@ testrunner_SOURCES = \
 	sodcrypto.cc \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	svc-records.cc svc-records.hh \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	uuid-utils.hh uuid-utils.cc \

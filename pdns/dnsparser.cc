@@ -553,6 +553,107 @@ void PacketReader::xfrBlob(string& blob, int length)
   }
 }
 
+void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
+  while (d_pos < (d_startrecordpos + d_recordlen)) {
+    if (d_pos + 2 > (d_startrecordpos + d_recordlen)) {
+      throw std::out_of_range("incomplete key");
+    }
+    uint16_t keyInt;
+    xfr16BitInt(keyInt);
+    auto key = static_cast<SvcParam::SvcParamKey>(keyInt);
+    uint16_t len;
+    xfr16BitInt(len);
+    
+    if (d_pos + len > (d_startrecordpos + d_recordlen)) {
+      throw std::out_of_range("record is shorter than SVCB lengthfield implies");
+    }
+
+    switch (key)
+    {
+    case SvcParam::mandatory: {
+      if (len % 2 != 0) {
+        throw std::out_of_range("mandatory SvcParam has invalid length");
+      }
+      if (len == 0) {
+        throw std::out_of_range("empty 'mandatory' values");
+      }
+      std::set<SvcParam::SvcParamKey> paramKeys;
+      size_t stop = d_pos + len;
+      while (d_pos < stop) {
+        uint16_t keyval;
+        xfr16BitInt(keyval);
+        paramKeys.insert(static_cast<SvcParam::SvcParamKey>(keyval));
+      }
+      kvs.insert(SvcParam(key, paramKeys));
+      break;
+    }
+    case SvcParam::alpn: {
+      size_t stop = d_pos + len;
+      std::vector<string> alpns;
+      while (d_pos < stop) {
+        string alpn;
+        uint8_t alpnLen = 0;
+        xfr8BitInt(alpnLen);
+        if (alpnLen == 0) {
+          throw std::out_of_range("alpn length of 0");
+        }
+        xfrBlob(alpn, alpnLen);
+        alpns.push_back(alpn);
+      }
+      kvs.insert(SvcParam(key, alpns));
+      break;
+    }
+    case SvcParam::no_default_alpn: {
+      if (len != 0) {
+        throw std::out_of_range("invalid length for no-default-alpn");
+      }
+      kvs.insert(SvcParam(key));
+      break;
+    }
+    case SvcParam::port: {
+      if (len != 2) {
+        throw std::out_of_range("invalid length for port");
+      }
+      uint16_t port;
+      xfr16BitInt(port);
+      kvs.insert(SvcParam(key, port));
+      break;
+    }
+    case SvcParam::ipv4hint: /* fall-through */
+    case SvcParam::ipv6hint: {
+      size_t addrLen = (key == SvcParam::ipv4hint ? 4 : 16);
+      if (len % addrLen != 0) {
+        throw std::out_of_range("invalid length for " + SvcParam::keyToString(key));
+      }
+      vector<ComboAddress> addresses;
+      auto stop = d_pos + len;
+      while (d_pos < stop)
+      {
+        ComboAddress addr;
+        xfrCAWithoutPort(key, addr);
+        addresses.push_back(addr);
+      }
+      kvs.insert(SvcParam(key, addresses));
+      break;
+    }
+    case SvcParam::echconfig: {
+      std::string blob;
+      blob.reserve(len);
+      xfrBlobNoSpaces(blob, len);
+      kvs.insert(SvcParam(key, blob));
+      break;
+    }
+    default: {
+      std::string blob;
+      blob.reserve(len);
+      xfrBlob(blob, len);
+      kvs.insert(SvcParam(key, blob));
+      break;
+    }
+    }
+  }
+}
+
 
 void PacketReader::xfrHexBlob(string& blob, bool keepReading)
 {

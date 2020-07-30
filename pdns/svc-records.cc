@@ -76,24 +76,40 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::string &value) {
     d_echconfig = value;
     return;
   }
-  d_value = value;
+  d_value = std::move(value);
+}
+
+SvcParam::SvcParam(const SvcParamKey &key, const std::vector<std::string> & value) {
+  d_key = key;
+  if (d_key != SvcParamKey::alpn) {
+    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
+  }
+  if (d_key == SvcParamKey::alpn) {
+    d_alpn = std::move(value);
+  }
 }
 
 SvcParam::SvcParam(const SvcParamKey &key, const std::set<std::string> &value) {
   d_key = key;
-  if (d_key != SvcParamKey::alpn && d_key != SvcParamKey::mandatory) {
+  if (d_key != SvcParamKey::mandatory) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
   }
-  if (d_key == SvcParamKey::alpn) {
-    d_alpn = value;
-  }
   if (d_key == SvcParamKey::mandatory) {
-    // TODO validate entries
-    d_mandatory = value;
+    for (auto const &v: value) {
+      d_mandatory.insert(keyFromString(std::move(v)));
+    }
   }
 }
 
-SvcParam::SvcParam(const SvcParamKey &key, const std::set<ComboAddress> &value) {
+SvcParam::SvcParam(const SvcParamKey &key, const std::set<SvcParam::SvcParamKey> &value) {
+  d_key = key;
+  if (d_key != SvcParamKey::mandatory) {
+    throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
+  }
+  d_mandatory = std::move(value);
+}
+
+SvcParam::SvcParam(const SvcParamKey &key, const std::vector<ComboAddress> &value) {
   d_key = key;
   if (d_key != SvcParamKey::ipv6hint && d_key != SvcParamKey::ipv4hint) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with an IP address value");
@@ -106,7 +122,7 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::set<ComboAddress> &value) 
       throw std::invalid_argument("non-IPv4 address ('" + addr.toString() + "') passed for " + keyToString(key));
     }
   }
-  d_ipHints = value;
+  d_ipHints = std::move(value);
 }
 
 SvcParam::SvcParam(const SvcParamKey &key, const uint16_t value) {
@@ -117,7 +133,12 @@ SvcParam::SvcParam(const SvcParamKey &key, const uint16_t value) {
   d_port = value;
 }
 
-std::set<ComboAddress> SvcParam::getIPHints() const {
+//! This ensures an std::set<SvcParam> will be sorted by key (section 2.2 mandates this for wire format)
+bool SvcParam::operator<(const SvcParam& other) const {
+  return this->d_key < other.getKey();
+}
+
+std::vector<ComboAddress> SvcParam::getIPHints() const {
   if (d_key != SvcParamKey::ipv6hint && d_key != SvcParamKey::ipv4hint) {
     throw std::invalid_argument("getIPHints called for non-IP address key '" + keyToString(d_key) + "'");
   }
@@ -131,14 +152,14 @@ uint16_t SvcParam::getPort() const {
   return d_port;
 }
 
-std::set<std::string> SvcParam::getALPN() const {
+std::vector<std::string> SvcParam::getALPN() const {
   if (d_key != SvcParam::alpn) {
     throw std::invalid_argument("getALPN called for non-alpn key '" + keyToString(d_key) + "'");
   }
   return d_alpn;
 }
 
-std::set<std::string> SvcParam::getMandatory() const {
+std::set<SvcParam::SvcParamKey> SvcParam::getMandatory() const {
   if (d_key != SvcParam::mandatory) {
     throw std::invalid_argument("getMandatory called for non-mandatory key '" + keyToString(d_key) + "'");
   }

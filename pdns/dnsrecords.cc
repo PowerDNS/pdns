@@ -326,6 +326,22 @@ boilerplate_conv(OPENPGPKEY, 61,
                  conv.xfrBlob(d_keyring);
                  )
 
+boilerplate_conv(SVCB, 64,
+                 conv.xfr16BitInt(d_priority);
+                 conv.xfrName(d_target, false, true);
+                 if (d_priority != 0) {
+                   conv.xfrSvcParamKeyVals(d_params);
+                 }
+                 )
+
+boilerplate_conv(HTTPS, 65,
+                 conv.xfr16BitInt(d_priority);
+                 conv.xfrName(d_target, false, true);
+                 if (d_priority != 0) {
+                   conv.xfrSvcParamKeyVals(d_params);
+                 }
+                 )
+
 boilerplate_conv(SMIMEA, 53,
                  conv.xfr8BitInt(d_certusage);
                  conv.xfr8BitInt(d_selector);
@@ -859,6 +875,8 @@ void reportOtherTypes()
    TLSARecordContent::report();
    SMIMEARecordContent::report();
    OPENPGPKEYRecordContent::report();
+   SVCBRecordContent::report();
+   HTTPSRecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    DNSRecordContent::regist(QClass::ANY, QType::TKEY, &TKEYRecordContent::make, &TKEYRecordContent::make, "TKEY");

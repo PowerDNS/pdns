@@ -31,6 +31,7 @@
 #include <bitset>
 #include "namespaces.hh"
 #include "iputils.hh"
+#include "svc-records.hh"
 
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \
@@ -496,6 +497,27 @@ private:
   string d_keyring;
 };
 
+class SVCBRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(SVCB)
+
+private:
+  uint16_t d_priority;
+  DNSName d_target;
+  set<SvcParam> d_params;
+};
+
+class HTTPSRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(HTTPS)
+
+private:
+  uint16_t d_priority;
+  DNSName d_target;
+  set<SvcParam> d_params;
+};
 
 class RRSIGRecordContent : public DNSRecordContent
 {

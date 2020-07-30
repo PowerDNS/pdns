@@ -111,6 +111,8 @@ public:
     CDS=59,
     CDNSKEY=60,
     OPENPGPKEY=61,
+    SVCB=64,
+    HTTPS=65,
     SPF=99,
     EUI48=108,
     EUI64=109,
@@ -211,6 +213,8 @@ private:
       qtype_insert("CDS", 59);
       qtype_insert("CDNSKEY", 60);
       qtype_insert("OPENPGPKEY", 61);
+      qtype_insert("SVCB", 64);
+      qtype_insert("HTTPS", 65);
       qtype_insert("SPF", 99);
       qtype_insert("EUI48", 108);
       qtype_insert("EUI64", 109);

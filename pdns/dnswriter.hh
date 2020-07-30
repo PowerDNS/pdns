@@ -27,6 +27,7 @@
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include "iputils.hh"
+#include "svc-records.hh"
 #include <arpa/inet.h>
 
 
@@ -129,6 +130,7 @@ public:
   void xfrText(const string& text, bool multi=false, bool lenField=true);
   void xfrUnquotedText(const string& text, bool lenField);
   void xfrBlob(const string& blob, int len=-1);
+  void xfrSvcParamKeyVals(const set<SvcParam>& kvs);
   void xfrBlobNoSpaces(const string& blob, int len=-1);
   void xfrHexBlob(const string& blob, bool keepReading=false);
 

@@ -50,11 +50,17 @@ class SvcParam {
   //! To create a "generic" SvcParam (for keyNNNNN and echconfig)
   SvcParam(const SvcParamKey &key, const std::string &value);
 
-  //! To create a multi-value SvcParam (like alpn and mandatory)
+  //! To create a multi-value SvcParam (like mandatory)
   SvcParam(const SvcParamKey &key, const std::set<std::string> &value);
 
+  //! To create a multi-value SvcParam (like alpn)
+  SvcParam(const SvcParamKey &key, const std::vector<std::string> &value);
+
+  //! To create a multi-value SvcParam with key values (like mandatory)
+  SvcParam(const SvcParamKey &key, const std::set<SvcParamKey> &value);
+
   //! To create and ipv{4,6}hists SvcParam
-  SvcParam(const SvcParamKey &key, const std::set<ComboAddress> &value);
+  SvcParam(const SvcParamKey &key, const std::vector<ComboAddress> &value);
 
   //! To create a port SvcParam
   SvcParam(const SvcParamKey &key, const uint16_t value);
@@ -65,18 +71,16 @@ class SvcParam {
   //! Returns the string value of the SvcParamKey
   static std::string keyToString(const SvcParamKey &k);
 
-  bool operator< (const SvcParam &other) const {
-    return this->d_key < other.d_key;
-  };
+  bool operator< (const SvcParam &other) const;
 
   SvcParamKey getKey() const {
     return d_key;
   }
 
   uint16_t getPort() const;
-  std::set<ComboAddress> getIPHints() const;
-  std::set<std::string> getALPN() const;
-  std::set<std::string> getMandatory() const;
+  std::vector<ComboAddress> getIPHints() const;
+  std::vector<std::string> getALPN() const;
+  std::set<SvcParamKey> getMandatory() const;
   std::string getEchConfig() const;
   std::string getValue() const;
 
@@ -84,9 +88,9 @@ class SvcParam {
     SvcParamKey d_key;
     std::string d_value; // For keyNNNNN vals
 
-    std::set<std::string> d_alpn; // For ALPN
-    std::set<std::string> d_mandatory; // For mandatory
-    std::set<ComboAddress> d_ipHints; // For ipv{6,4}hints
+    std::vector<std::string> d_alpn; // For ALPN
+    std::set<SvcParamKey> d_mandatory; // For mandatory
+    std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
     std::string d_echconfig; // For echconfig
     uint16_t d_port; // For port
 

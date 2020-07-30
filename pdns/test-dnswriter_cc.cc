@@ -78,4 +78,224 @@ BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
   BOOST_CHECK_NO_THROW(MOADNSParser mdp(false, spacket));
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_mandatory) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<string> keys({"alpn", "ipv6hint"});
+  set<SvcParam> params({SvcParam(SvcParam::mandatory, keys)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({0,0,0,4,0,1,0,6}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  vector<string> alpns({"h2", "h2c", "h3"});
+  set<SvcParam> params({SvcParam(SvcParam::alpn, alpns)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({
+    0,1,0,10,
+    2,'h','2',
+    3,'h','2','c',
+    2,'h','3'}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_no_default_alpn) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<SvcParam> params({SvcParam(SvcParam::no_default_alpn)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({0,2,0,0}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_port) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<SvcParam> params({SvcParam(SvcParam::port, 53)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({0,3,0,2,0,53}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  vector<ComboAddress> addrs({ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2")});
+  set<SvcParam> params({SvcParam(SvcParam::ipv4hint, addrs)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({0,4,0,8,192,0,2,1,192,0,2,2}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<SvcParam> params({SvcParam(SvcParam::echconfig, "a very bogus echconfig value")});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({0,5,0,28,
+  'a',' ','v','e','r','y',' ','b','o','g','u','s',' ',
+  'e','c','h','c','o','n','f','i','g',' ','v','a','l','u','e'
+  }));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  vector<ComboAddress> addrs({ComboAddress("2001:db8::1"), ComboAddress("2001:db8::2")});
+  set<SvcParam> params({SvcParam(SvcParam::ipv6hint, addrs)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({0,6,0,32,
+  32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,1,
+  32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,2}));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  set<SvcParam> params({SvcParam(SvcParam::keyFromString("key666"), "mycoolvalue")});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({2,154,0,11,
+  'm','y','c','o','o','l','v','a','l','u','e'
+  }));
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
+  DNSName name("powerdns.com.");
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  vector<ComboAddress> addrs({ComboAddress("2001:db8::1"), ComboAddress("2001:db8::2")});
+  vector<string> alpns({"h2", "h2c", "h3"});
+  set<SvcParam> params({SvcParam(SvcParam::alpn, alpns), SvcParam(SvcParam::ipv6hint, addrs), SvcParam(SvcParam::port, 53)});
+
+  pwR.startRecord(name, QType::SVCB);
+  pwR.commit();
+  auto start = pwR.getContent().size();
+
+  pwR.xfrSvcParamKeyVals(params);
+  pwR.commit();
+  auto cit = pwR.getContent().begin();
+  for (size_t i = 0; i<start; i++)
+    cit++;
+
+  vector<uint8_t> c(cit, pwR.getContent().end());
+  BOOST_CHECK(c == vector<uint8_t>({
+  0,1,0,10,2,'h','2',3,'h','2','c',2,'h','3',  // alpn
+  0,3,0,2,0,53,                                // port    
+  0,6,0,32,                                    // ipv6
+  32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,1,
+  32,1,13,184,0,0,0,0,0,0,0,0,0,0,0,2}));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
