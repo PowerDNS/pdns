@@ -15,7 +15,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 9320
 
-    Prevent a possible overflow via large Proxy Protocol values. (Valеntei Sergey)
+    Prevent a possible overflow via large Proxy Protocol values. (Valentei Sergey)
 
   .. change::
     :tags: Bug Fixes
