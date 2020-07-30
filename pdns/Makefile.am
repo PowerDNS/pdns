@@ -1263,6 +1263,7 @@ testrunner_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc \
 	responsestats.cc \
 	responsestats-auth.cc \
 	shuffle.cc shuffle.hh \
@@ -1294,9 +1295,10 @@ testrunner_SOURCES = \
 	test-packetcache_hh.cc \
 	test-proxy_protocol_cc.cc \
 	test-rcpgenerator_cc.cc \
-	test-signers.cc \
 	test-sha_hh.cc \
+	test-signers.cc \
 	test-statbag_cc.cc \
+	test-svc_records_cc.cc \
 	test-tsig.cc \
 	test-ueberbackend_cc.cc \
 	test-zoneparser_tng_cc.cc \
