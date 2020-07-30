@@ -1331,6 +1331,7 @@ nsspeeds
 NSTTL
 nsupdate
 nta
+ntei
 ntlworld
 nullptr
 NULs

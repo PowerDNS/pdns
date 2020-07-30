@@ -2,6 +2,59 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.5.0
+  :released: 30th of July 2020
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9231
+
+    Use explicit flag for the specific version of c++ we are targeting.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9320
+
+    Prevent a possible overflow via large Proxy Protocol values. (Valеntei Sergey)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9348
+    :tickets: 9279
+
+    Avoid name clashes on Solaris derived systems.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9343
+
+    Resize hostname to final size in getCarbonHostname(). (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 9344
+
+    Fix compilation with h2o_socket_get_ssl_server_name().
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9346
+
+    Fix compilation on OpenBSD/amd64.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9356
+
+    Handle calling PacketCache methods on a nil object.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9360
+
+    Prevent a copy of a pool's backends when selecting a server.
+
+.. changelog::
   :version: 1.5.0-rc4
   :released: 7th of July 2020
 
@@ -823,7 +876,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 7886
 
-     SuffixMatchTree: fix root removal, partial match of non-leaf nodes
+    SuffixMatchTree: fix root removal, partial match of non-leaf nodes
 
   .. change::
     :tags: Improvements
@@ -1338,7 +1391,7 @@ Changelog
     :pullreq: 7585
     :tickets: 7534
 
-     Prevent 0-ttl cache hits
+    Prevent 0-ttl cache hits
 
   .. change::
     :tags: Improvements
@@ -1516,7 +1569,7 @@ Changelog
     :pullreq: 7015
     :tickets: 7004, 6990
 
-     Add support for exporting a server id in protobuf
+    Add support for exporting a server id in protobuf
 
   .. change::
     :tags: Improvements
@@ -1541,7 +1594,7 @@ Changelog
     :pullreq: 7064
     :tickets: 7060
 
-     Wrap GnuTLS and OpenSSL pointers in smart pointers
+    Wrap GnuTLS and OpenSSL pointers in smart pointers
 
   .. change::
     :tags: New Features
@@ -1699,7 +1752,7 @@ Changelog
     :pullreq: 6523
     :tickets: 6430
 
-     Tests: avoid failure on not-so-optimal distribution
+    Tests: avoid failure on not-so-optimal distribution
 
   .. change::
     :tags: New Features
@@ -1761,7 +1814,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 6672
 
-     Fix reconnection handling
+    Fix reconnection handling
 
   .. change::
     :tags: Improvements
