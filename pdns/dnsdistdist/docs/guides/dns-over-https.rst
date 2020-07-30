@@ -17,19 +17,23 @@ In order to support multiple certificates and keys, for example an ECDSA and an 
 
 The certificate chain presented by the server to an incoming client will then be selected based on the algorithms this client advertised support for.
 
-A fourth parameter may be added to specify the URL path(s) used by
-DoH. If you want your DoH server to handle
-``https://example.com/dns-query``, you have to add ``"/dns-query"`` to
-the call to :func:`addDOHLocal`. It is optional and defaults to ``/``, the root of your HTTP site.
+A fourth parameter may be added to specify the URL path(s) used by DoH. If you want your DoH server to handle ``https://example.com/dns-query-endpoint``, you have to add ``"/dns-query-endpoint"`` to
+the call to :func:`addDOHLocal`. It is optional and defaults to ``/`` in 1.4.0, and ``/dns-query`` since 1.5.0.
 
-The fifth parameter, if present, indicates various options. For
-instance, you use it to indicate custom HTTP headers. An example is::
+The fifth parameter, if present, indicates various options. For instance, you use it to indicate custom HTTP headers. An example is::
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["x-foo"]="bar"}}
 
 A more complicated (and more realistic) example is when you want to indicate metainformation about the server, such as the stated policy (privacy statement and so on). We use the link types of RFC 8631::
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
+
+It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend.setResponsesMap`.
+For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used:
+
+  map = { newDOHResponseMapEntry("^/rfc$", 307, "https://www.rfc-editor.org/info/rfc8484") }
+  dohFE = getDOHFrontend(0)
+  dohFE:setResponsesMap(map)
 
 In case you want to run DNS-over-HTTPS behind a reverse proxy you probably don't want to encrypt your traffic between reverse proxy and dnsdist.
 To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add one of the following to your config::
