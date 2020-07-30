@@ -360,6 +360,25 @@ union ComboAddress {
     }
     return false;
   }
+
+  /*! Returns a comma-separated string of IP addresses
+   *
+   * \param c  An stl container with ComboAddresses
+   * \param withPort  Also print the port (default true)
+   * \param portExcept  Print the port, except when this is the port (default 53)
+   */
+  template < template < class ... > class Container, class ... Args >
+  static string caContainerToString(const Container<ComboAddress, Args...>& c, const bool withPort = true, const uint16_t portExcept = 53) {
+  vector<string> strs;
+  for (const auto& ca : c) {
+    if (withPort) {
+      strs.push_back(ca.toStringWithPortExcept(portExcept));
+      continue;
+    }
+    strs.push_back(ca.toString());
+  }
+  return boost::join(strs, ",");
+  };
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
