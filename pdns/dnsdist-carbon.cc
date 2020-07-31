@@ -86,7 +86,7 @@ try
         }
         auto states = g_dstates.getLocal();
         for(const auto& state : *states) {
-          string serverName = state->getName().empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
+          string serverName = state->getName().empty() ? state->remote.toStringWithPort() : state->getName();
           boost::replace_all(serverName, ".", "_");
           const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
           str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
@@ -110,7 +110,7 @@ try
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
-          string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
+          string frontName = front->local.toStringWithPort() + (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
           auto dupPair = frontendDuplicates.insert({frontName, 1});
           if (!dupPair.second) {

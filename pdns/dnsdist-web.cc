@@ -636,7 +636,7 @@ static void connectionThread(int sock, ComboAddress remote)
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
-          const string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
+          const string frontName = front->local.toStringWithPort();
           const string proto = front->getType();
           const string fullName = frontName + "_" + proto;
           uint64_t threadNumber = 0;
