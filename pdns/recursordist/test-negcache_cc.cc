@@ -433,19 +433,19 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   cache.add(genNegCacheEntry(DNSName("www1.powerdns.com"), DNSName("powerdns.com"), now));
   cache.add(genNegCacheEntry(DNSName("www2.powerdns.com"), DNSName("powerdns.com"), now));
 
-  FILE* fp = tmpfile();
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
   if (!fp)
     BOOST_FAIL("Temporary file could not be opened");
 
-  cache.dumpToFile(fp);
+  cache.dumpToFile(fp.get());
 
-  rewind(fp);
+  rewind(fp.get());
   char* line = nullptr;
   size_t len = 0;
   ssize_t read;
 
   for (const auto& str : expected) {
-    read = getline(&line, &len, fp);
+    read = getline(&line, &len, fp.get());
     if (read == -1)
       BOOST_FAIL("Unable to read a line from the temp file");
     BOOST_CHECK_EQUAL(line, str);
@@ -457,8 +457,6 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
        last allocation if any. */
     free(line);
   }
-
-  fclose(fp);
 }
 
 BOOST_AUTO_TEST_CASE(test_count)

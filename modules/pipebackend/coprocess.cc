@@ -232,12 +232,7 @@ UnixRemote::UnixRemote(const string& path, int timeout)
   if(connect(d_fd, (struct sockaddr*)&remote, sizeof(remote)) < 0)
     unixDie("Unable to connect to remote '"+path+"' using UNIX domain socket");
 
-  d_fp = fdopen(d_fd, "r");
-}
-
-UnixRemote::~UnixRemote()
-{
-  fclose(d_fp);
+  d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(d_fd, "r"), fclose);
 }
 
 void UnixRemote::send(const string& line)
@@ -250,7 +245,7 @@ void UnixRemote::send(const string& line)
 void UnixRemote::receive(string& line)
 {
   line.clear();
-  stringfgets(d_fp, line);
+  stringfgets(d_fp.get(), line);
   trim_right(line);
 }
 

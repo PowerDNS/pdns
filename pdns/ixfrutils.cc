@@ -124,30 +124,31 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   DNSRecord soa;
   auto serial = getSerialFromRecords(records, soa);
   string fname=directory +"/"+std::to_string(serial);
-  FILE* fp=fopen((fname+".partial").c_str(), "w");
-  if(!fp)
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen((fname+".partial").c_str(), "w"), fclose);
+  if (!fp) {
     throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+stringerror());
+  }
 
   records_t soarecord;
   soarecord.insert(soa);
-  if(fprintf(fp, "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
+  if (fprintf(fp.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
     string error = "Error writing to zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
-    fclose(fp);
+    fp.reset();
     unlink((fname+".partial").c_str());
     throw std::runtime_error(error);
   }
 
   try {
-    writeRecords(fp, soarecord);
-    writeRecords(fp, records);
-    writeRecords(fp, soarecord);
+    writeRecords(fp.get(), soarecord);
+    writeRecords(fp.get(), records);
+    writeRecords(fp.get(), soarecord);
   } catch (runtime_error &e) {
-    fclose(fp);
+    fp.reset();
     unlink((fname+".partial").c_str());
     throw runtime_error("Error closing zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + e.what());
   }
 
-  if(fclose(fp) != 0) {
+  if (fclose(fp.release()) != 0) {
     string error = "Error closing zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
     unlink((fname+".partial").c_str());
     throw std::runtime_error(error);

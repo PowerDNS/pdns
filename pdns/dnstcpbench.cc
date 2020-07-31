@@ -255,23 +255,25 @@ try
   std::vector<std::thread> workers;
   workers.reserve(numworkers);
 
-  FILE* fp;
-  if(!g_vm.count("file"))
-    fp=fdopen(0, "r");
+  std::unique_ptr<FILE, int(*)(FILE*)> fp{nullptr, fclose};
+  if (!g_vm.count("file")) {
+    fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(0, "r"), fclose);
+  }
   else {
-    fp=fopen(g_vm["file"].as<string>().c_str(), "r");
-    if(!fp)
+    fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(g_vm["file"].as<string>().c_str(), "r"), fclose);
+    if (!fp) {
       unixDie("Unable to open "+g_vm["file"].as<string>()+" for input");
+    }
   }
   pair<string, string> q;
   string line;
-  while(stringfgets(fp, line)) {
+  while(stringfgets(fp.get(), line)) {
     trim_right(line);
     q=splitField(line, ' ');
     g_queries.push_back(BenchQuery(q.first, DNSRecordContent::TypeToNumber(q.second)));
   }
-  fclose(fp);
-    
+  fp.reset();
+
   for (unsigned int n = 0; n < numworkers; ++n) {
     workers.push_back(std::thread(worker));
   }

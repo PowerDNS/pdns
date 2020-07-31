@@ -90,8 +90,6 @@ public:
 
   PcapPacketReader(const string& fname); 
 
-  ~PcapPacketReader();
-
   template<typename T>
   void checkedFread(T* ptr)
   {
@@ -119,7 +117,7 @@ public:
   unsigned int d_runts, d_oversized, d_correctpackets, d_nonetheripudp;
   char d_buffer[32768];
 private:
-  FILE* d_fp;
+  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
   string d_fname;
   unsigned int d_skipMediaHeader;
 };
@@ -132,12 +130,11 @@ public:
   
   void write();
   void setPPR(const PcapPacketReader& ppr) { d_ppr = &ppr; }
-  ~PcapPacketWriter();
 
 private:
   string d_fname;
   const PcapPacketReader* d_ppr{nullptr};
 
-  FILE *d_fp;
+  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
   bool d_first{true};
 }; 

@@ -61,12 +61,11 @@ class UnixRemote : public CoRemote
 {
 public:
   UnixRemote(const string &path, int timeout=0);
-  ~UnixRemote();
   void sendReceive(const string &send, string &receive) override;
   void receive(string &rcv) override;
   void send(const string &send) override;
 private:
   int d_fd;
-  FILE *d_fp;
+  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
 };
 bool isUnixSocket(const string& fname);

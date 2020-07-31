@@ -447,12 +447,12 @@ uint64_t DNSDistPacketCache::getEntriesCount()
 
 uint64_t DNSDistPacketCache::dump(int fd)
 {
-  FILE * fp = fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if (fp == nullptr) {
     return 0;
   }
 
-  fprintf(fp, "; dnsdist's packet cache dump follows\n;\n");
+  fprintf(fp.get(), "; dnsdist's packet cache dump follows\n;\n");
 
   uint64_t count = 0;
   time_t now = time(nullptr);
@@ -465,14 +465,13 @@ uint64_t DNSDistPacketCache::dump(int fd)
       count++;
 
       try {
-        fprintf(fp, "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRId64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, static_cast<int64_t>(value.added));
+        fprintf(fp.get(), "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRId64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, static_cast<int64_t>(value.added));
       }
       catch(...) {
-        fprintf(fp, "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
+        fprintf(fp.get(), "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
       }
     }
   }
 
-  fclose(fp);
   return count;
 }
