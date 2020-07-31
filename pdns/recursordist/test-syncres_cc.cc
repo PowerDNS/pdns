@@ -44,7 +44,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
 #include "root-addresses.hh"
 
-void primeHints(void)
+bool primeHints(void)
 {
   vector<DNSRecord> nsset;
   if (!s_RC)
@@ -79,6 +79,7 @@ void primeHints(void)
     nsset.push_back(nsrr);
   }
   s_RC->replace(time(nullptr), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false); // and stuff in the cache
+  return true;
 }
 
 LuaConfigItems::LuaConfigItems()
@@ -118,6 +119,7 @@ void initSR(bool debug)
   SyncRes::s_packetcacheservfailttl = 60;
   SyncRes::s_serverdownmaxfails = 64;
   SyncRes::s_serverdownthrottletime = 60;
+  SyncRes::s_doIPv4 = true;
   SyncRes::s_doIPv6 = true;
   SyncRes::s_ecsipv4limit = 24;
   SyncRes::s_ecsipv6limit = 56;

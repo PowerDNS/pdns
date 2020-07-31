@@ -173,6 +173,7 @@ struct RecThreadInfo
   std::thread thread;
   MT_t* mt{nullptr};
   uint64_t numberOfDistributedQueries{0};
+  int exitCode{0};
   /* handle the web server, carbon, statistics and the control channel */
   bool isHandler{false};
   /* accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set) */
@@ -4127,6 +4128,8 @@ static void checkSocketDir(void)
 
 static int serviceMain(int argc, char*argv[])
 {
+  int ret = EXIT_SUCCESS;
+
   g_log.setName(s_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
@@ -4157,12 +4160,26 @@ static int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
+  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
+    SyncRes::s_doIPv4=true;
+    g_log<<Logger::Warning<<"Enabling IPv4 transport for outgoing queries"<<endl;
+  }
+  else {
+    g_log<<Logger::Warning<<"NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable"<<endl;
+  }
+
+
   if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
     SyncRes::s_doIPv6=true;
     g_log<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
   }
   else {
     g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable"<<endl;
+  }
+
+  if (!SyncRes::s_doIPv6 && !SyncRes::s_doIPv4) {
+    g_log<<Logger::Error<<"No outgoing addresses configured! Can not continue"<<endl;
+    exit(99);
   }
 
   // keep this ABOVE loadRecursorLuaConfig!
@@ -4634,6 +4651,9 @@ static int serviceMain(int argc, char*argv[])
     recursorThread(currentThreadId++, "worker");
     
     handlerInfos.thread.join();
+    if (handlerInfos.exitCode != 0) {
+      ret = handlerInfos.exitCode;
+    }
   }
   else {
 
@@ -4678,13 +4698,16 @@ static int serviceMain(int argc, char*argv[])
 
     for (auto & ti : s_threadInfos) {
       ti.thread.join();
+      if (ti.exitCode != 0) {
+        ret = ti.exitCode;
+      }
     }
   }
 
 #ifdef HAVE_PROTOBUF
   google::protobuf::ShutdownProtobufLibrary();
 #endif /* HAVE_PROTOBUF */
-  return 0;
+  return ret;
 }
 
 static void* recursorThread(unsigned int n, const string& threadName)
@@ -4701,8 +4724,14 @@ try
   t_allowFrom = g_initialAllowFrom;
   t_udpclientsocks = std::unique_ptr<UDPClientSocks>(new UDPClientSocks());
   t_tcpClientCounts = std::unique_ptr<tcpClientCounts_t>(new tcpClientCounts_t());
+
   if (threadInfo.isHandler) {
-    primeHints();
+    if (!primeHints()) {
+      threadInfo.exitCode = EXIT_FAILURE;
+      RecursorControlChannel::stop = 1;
+      g_log<<Logger::Critical<<"Priming cache failed, stopping"<<endl;
+      return nullptr;
+    }
     g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
   }
 
@@ -5215,7 +5244,7 @@ int main(int argc, char **argv)
     g_log.setLoglevel(logUrgency);
     g_log.toConsole(logUrgency);
 
-    serviceMain(argc, argv);
+    ret = serviceMain(argc, argv);
   }
   catch(PDNSException &ae) {
     g_log<<Logger::Error<<"Exception: "<<ae.reason<<endl;

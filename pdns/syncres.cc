@@ -85,6 +85,7 @@ uint8_t SyncRes::s_ecsipv6limit;
 uint8_t SyncRes::s_ecsipv4cachelimit;
 uint8_t SyncRes::s_ecsipv6cachelimit;
 
+bool SyncRes::s_doIPv4;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
@@ -934,7 +935,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     vState newState = vState::Indeterminate;
     res_t resv4;
     // If IPv4 ever becomes second class, we should revisit this
-    if (doResolve(qname, QType::A, resv4, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+    if (s_doIPv4 && doResolve(qname, QType::A, resv4, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
       for (auto const &i : resv4) {
         if (i.d_type == QType::A) {
           if (auto rec = getRR<ARecordContent>(i)) {
@@ -943,7 +944,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         }
       }
     }
-    if (s_doIPv6) {
+    if (s_doIPv6) { // s_doIPv6 **IMPLIES** pdns::isQueryLocalAddressFamilyEnabled(AF_INET6) returned true
       if (ret.empty()) {
         // We did not find IPv4 addresses, try to get IPv6 ones
         newState = vState::Indeterminate;
@@ -1046,10 +1047,16 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
         if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
           vector<DNSRecord> aset;
+          QType nsqt{QType::ADDR};
+          if (s_doIPv4 && !s_doIPv6) {
+            nsqt = QType::A;
+          } else if (!s_doIPv4 && s_doIPv6) {
+            nsqt = QType::AAAA;
+          }
 
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
-          if(nrr && (!nrr->getNS().isPartOf(subdomain) || s_RC->get(d_now.tv_sec, nrr->getNS(), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
+          if(nrr && (!nrr->getNS().isPartOf(subdomain) || s_RC->get(d_now.tv_sec, nrr->getNS(), nsqt,
                                                                     false, doLog() ? &aset : 0, d_cacheRemote, d_routingTag) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);

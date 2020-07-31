@@ -768,6 +768,7 @@ public:
   static uint8_t s_ecsipv6limit;
   static uint8_t s_ecsipv4cachelimit;
   static uint8_t s_ecsipv6cachelimit;
+  static bool s_doIPv4;
   static bool s_doIPv6;
   static bool s_noEDNSPing;
   static bool s_noEDNS;
@@ -1107,7 +1108,7 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false, uint16_t qty
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype=0xffff);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
-void primeHints(void);
+bool primeHints(void);
 void primeRootNSZones(bool, unsigned int depth);
 
 extern __thread struct timeval g_now;

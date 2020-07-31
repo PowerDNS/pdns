@@ -5,7 +5,8 @@ import struct
 import threading
 import time
 import clientsubnetoption
-from recursortests import RecursorTest
+import unittest
+from recursortests import RecursorTest, have_ipv6
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
@@ -14,6 +15,7 @@ nameECS = 'ecs-echo.example.'
 nameECSInvalidScope = 'invalid-scope.ecs-echo.example.'
 ttlECS = 60
 ecsReactorRunning = False
+ecsReactorv6Running = False
 
 class ECSTest(RecursorTest):
     _config_template_default = """
@@ -62,6 +64,7 @@ disable-syslog=yes
     @classmethod
     def startResponders(cls):
         global ecsReactorRunning
+        global ecsReactorv6Running
         print("Launching responders..")
 
         address = cls._PREFIX + '.21'
@@ -70,6 +73,10 @@ disable-syslog=yes
         if not ecsReactorRunning:
             reactor.listenUDP(port, UDPECSResponder(), interface=address)
             ecsReactorRunning = True
+
+        if not ecsReactorv6Running and have_ipv6():
+            reactor.listenUDP(53000, UDPECSResponder(), interface='::1')
+            ecsReactorv6Running = True
 
         if not reactor.running:
             cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
@@ -341,6 +348,7 @@ ecs-ipv6-cache-bits=128
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, ttlECS)
 
+@unittest.skipIf(not have_ipv6(), "No IPv6")
 class testIncomingECSByNameV6(ECSTest):
     _confdir = 'ECSIncomingByNameV6'
 
@@ -349,9 +357,9 @@ use-incoming-edns-subnet=yes
 ecs-ipv6-bits=128
 ecs-ipv4-cache-bits=32
 ecs-ipv6-cache-bits=128
-forward-zones=ecs-echo.example=%s.21
 query-local-address=::1
-    """ % (os.environ['PREFIX'])
+forward-zones=ecs-echo.example=[::1]:53000
+    """
 
     def testSendECS(self):
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', '2001:db8::1/128')

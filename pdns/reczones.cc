@@ -42,7 +42,7 @@ static void insertIntoRootNSZones(const DNSName &name) {
   }
 }
 
-void primeHints(void)
+bool primeHints(void)
 {
   // prime root cache
   const vState validationState = vState::Insecure;
@@ -84,26 +84,59 @@ void primeHints(void)
     ZoneParserTNG zpt(::arg()["hint-file"]);
     zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
     DNSResourceRecord rr;
+    set<DNSName> seenNS;
+    set<DNSName> seenA;
+    set<DNSName> seenAAAA;
 
     while(zpt.get(rr)) {
       rr.ttl+=time(0);
       if(rr.qtype.getCode()==QType::A) {
+        seenA.insert(rr.qname);
         vector<DNSRecord> aset;
         aset.push_back(DNSRecord(rr));
         s_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, boost::none, validationState); // auth, etc see above
       } else if(rr.qtype.getCode()==QType::AAAA) {
+        seenAAAA.insert(rr.qname);
         vector<DNSRecord> aaaaset;
         aaaaset.push_back(DNSRecord(rr));
         s_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, boost::none, boost::none, validationState);
       } else if(rr.qtype.getCode()==QType::NS) {
+        seenNS.insert(DNSName(rr.content));
         rr.content=toLower(rr.content);
         nsset.push_back(DNSRecord(rr));
       }
       insertIntoRootNSZones(rr.qname.getLastLabel());
     }
+
+    // Check reachability of A and AAAA records
+    bool reachableA = false, reachableAAAA = false;
+    for (auto const& r: seenA) {
+      if (seenNS.count(r)) {
+        reachableA = true;
+      }
+    }
+    for (auto const& r: seenAAAA) {
+      if (seenNS.count(r)) {
+        reachableAAAA = true;
+      }
+    }
+    if (SyncRes::s_doIPv4 && !SyncRes::s_doIPv6 && !reachableA) {
+      g_log<<Logger::Error<<"Running IPv4 only but no IPv4 root hints"<<endl;
+      return false;
+    }
+    if (!SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableAAAA) {
+      g_log<<Logger::Error<<"Running IPv6 only but no IPv6 root hints"<<endl;
+      return false;
+    }
+    if (SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableA && !reachableAAAA) {
+      g_log<<Logger::Error<<"No valid root hints"<<endl;
+      return false;
+    }
   }
+
   s_RC->doWipeCache(g_rootdnsname, false, QType::NS);
   s_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, boost::none, boost::none, validationState); // and stuff in the cache
+  return true;
 }
 
 
