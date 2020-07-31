@@ -4,9 +4,9 @@ port=$1
 limit=$2
 [ -z "$limit" ] && limit=100000
 threads=$3
-[ -z "$threads" ] && threads=2
+[ -z "$threads" ] && threads=8
 mthreads=$4
-[ -z "$mthreads" ] && mthreads=100
+[ -z "$mthreads" ] && mthreads=2048
 shards=$5
 [ -z "$shards" ] && shards=1024
 
