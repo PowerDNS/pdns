@@ -515,6 +515,14 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :param str pool: The pool to add the server to
 
+  .. method:: Server:getLatency() -> double
+
+    .. versionadded:: 1.6.0
+
+    Return the average latency of this server over the last 128 UDP queries, in microseconds.
+
+    :returns: The number of outstanding queries
+
   .. method:: Server:getName() -> string
 
     Get the name of this server.
