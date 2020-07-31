@@ -173,13 +173,13 @@ struct RecThreadInfo
   std::thread thread;
   MT_t* mt{nullptr};
   uint64_t numberOfDistributedQueries{0};
+  int exitCode{0};
   /* handle the web server, carbon, statistics and the control channel */
   bool isHandler{false};
   /* accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set) */
   bool isListener{false};
   /* process queries */
   bool isWorker{false};
-  int exitCode{0};
 };
 
 /* first we have the handler thread, t_id == 0 (some other
