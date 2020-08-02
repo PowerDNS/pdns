@@ -10,7 +10,7 @@ NetmaskGroup
    Represents a group of netmasks that can be used to match :class:`ComboAddress`\ es against.
 
   .. method:: NetmaskGroup:addMask(mask)
-              NetmaskGroup:addMask(masks)
+              NetmaskGroup:addMasks(masks)
 
     Add one or more masks to the NMG.
 
