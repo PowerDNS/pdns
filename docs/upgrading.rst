@@ -8,6 +8,15 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
+4.3.x to 4.4.0
+--------------
+
+``IPSECKEY`` change on secondaries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The in-database format of the ``IPSECKEY`` has changed from 'generic' format to its specialized format.
+It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have ``IPSECKEY`` or ``TYPE45`` records.
+
 4.2.x to 4.3.0
 --------------
 

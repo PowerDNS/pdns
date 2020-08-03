@@ -632,6 +632,7 @@ void reportOtherTypes()
    RRSIGRecordContent::report();
    DSRecordContent::report();
    CDSRecordContent::report();
+   IPSECKEYRecordContent::report();
    SSHFPRecordContent::report();
    CERTRecordContent::report();
    NSECRecordContent::report();
