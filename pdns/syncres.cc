@@ -1163,12 +1163,12 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   getBestNSFromCache(qname, qtype, bestns, flawedNSSet, depth, beenthere);
 
   // Pick up the auth domain
-  for (auto k = bestns.cbegin(); k != bestns.cend(); ++k) {
-    const auto nsContent = getRR<NSRecordContent>(*k);
+  for (const auto& k : bestns) {
+    const auto nsContent = getRR<NSRecordContent>(k);
     if (nsContent) {
-      nsFromCacheDomain = k->d_name;
+      nsFromCacheDomain = k.d_name;
+      break;
     }
-    break;
   }
 
   if (iter != t_sstorage.domainmap->end()) {
@@ -1176,7 +1176,8 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
       LOG(prefix << qname << " authOrForwDomain: " << authOrForwDomain << " nsFromCacheDomain: " << nsFromCacheDomain << " isPartof: " << authOrForwDomain.isPartOf(nsFromCacheDomain) << endl);
     }
 
-    // If the forwarder is better or equal to what's found in the cache, use forwarder
+    // If the forwarder is better or equal to what's found in the cache, use forwarder. Note that name.isPartOf(name).
+    // So queries that get NS for authOrForwDomain itself go to the forwarder
     if (authOrForwDomain.isPartOf(nsFromCacheDomain)) {
       if (doLog()) {
         LOG(prefix << qname << ": using forwarder as NS" << endl);
