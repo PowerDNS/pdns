@@ -1233,6 +1233,26 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
 
   case DNSFilterEngine::PolicyKind::Custom:
     res = RCode::NoError;
+    //cerr << "current answer(" << post << ") Q: " << dc->d_mdp.d_qname << '/' << QType(dc->d_mdp.d_qtype).getName() << endl;
+    //for (auto r : ret) {
+    //  cerr << r.d_place << ' ' << r.d_name << ' ' << QType(r.d_type).getName() << ' ' << r.d_content->getZoneRepresentation() << endl;
+    //}
+    //cerr << "------------" << endl;
+    // In some cases, the policy should extend the result vector and in some cases replace
+    // We extend if the current vector contains a CNAME we found while resolving a non-CNAME
+    // This is all very ugly, but ATM I don't know a better approach...
+    if (post && dc->d_mdp.d_qtype != QType::CNAME) {
+      bool cname = false;
+      for (const auto& r : ret) {
+        if (r.d_place == DNSResourceRecord::ANSWER && r.d_type == QType::CNAME) {
+          cname = true;
+          break;
+        }
+      }
+      if (!cname) {
+        ret.clear();
+      }
+    }
     if (post && ret.size() == 0) { // can happen with NS matches, those do not fill the result
       auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
       for (auto& dr : spoofed) {
