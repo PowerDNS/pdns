@@ -638,10 +638,17 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
-bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype, vector<DNSRecord> &ret)
+bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype, vector<DNSRecord> &ret, unsigned int depth)
 {
   if (!d_wantsRPZ) {
     return false;
+  }
+  if (s_maxdepth && depth > s_maxdepth) {
+    string prefix = d_prefix;
+    prefix.append(depth, ' ');
+    string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + target.toLogString();
+    LOG(prefix << target << ": " << msg << endl);
+    throw ImmediateServFailException(msg);
   }
 
   bool match = dfe.getQueryPolicy(target, d_discardedPolicies, d_appliedPolicy, true);
@@ -662,6 +669,8 @@ bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QTy
     return true;
   }
   auto spoofed = d_appliedPolicy.getCustomRecords(target, qtype.getCode());
+
+  // Add the record to the result vector being built, chase if we hit a CNAME
   for (const auto& dr : spoofed) {
     if (dr.d_place != DNSResourceRecord::ANSWER) {
       continue;
@@ -670,7 +679,9 @@ bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QTy
     auto content = getRR<CNAMERecordContent>(dr);
     if (content) {
       target = content->getTarget();
-      return qnameRPZHit(dfe, target, qtype, ret);
+      // This call wil return true if we hit a policy that needs an throw PolicyHitException
+      // For CNAME chasing, we don't want that since resolving should continue with the new target
+      return qnameRPZHit(dfe, target, qtype, ret, depth + 1);
     }
   }
 
@@ -685,7 +696,7 @@ int SyncRes::doResolve(const DNSName &qnameArg, const QType &qtype, vector<DNSRe
   auto luaconfsLocal = g_luaconfs.getLocal();
 
   // Can change qname
-  bool hit = qnameRPZHit(luaconfsLocal->dfe, qname, qtype, ret);
+  bool hit = qnameRPZHit(luaconfsLocal->dfe, qname, qtype, ret, depth + 1);
   if (hit) {
     throw PolicyHitException();
   }
