@@ -94,6 +94,7 @@ bool DNSFilterEngine::Zone::findNamedPolicy(const std::unordered_map<DNSName, DN
     iter = polmap.find(g_wildcarddnsname+s);
     if(iter != polmap.end()) {
       pol=iter->second;
+      pol.d_trigger = g_wildcarddnsname+s;
       return true;
     }
   }
@@ -109,6 +110,7 @@ bool DNSFilterEngine::Zone::findExactNamedPolicy(const std::unordered_map<DNSNam
   const auto& it = polmap.find(qname);
   if (it != polmap.end()) {
     pol = it->second;
+    pol.d_trigger = qname;
     return true;
   }
 
@@ -163,12 +165,16 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
     }
     if (z->findExactNSPolicy(qname, pol)) {
       // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
+      pol.d_trigger = qname;
+      pol.d_trigger.appendRawLabel("rpz-nsdname");
       return true;
     }
 
     for (const auto& wc : wcNames) {
       if (z->findExactNSPolicy(wc, pol)) {
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
+        pol.d_trigger = wc;
+        pol.d_trigger.appendRawLabel("rpz-nsdname");
         return true;
       }
     }
@@ -192,6 +198,9 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
 
     if(z->findNSIPPolicy(address, pol)) {
       //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
+      // XXX should use ns RPZ
+      pol.d_trigger = Zone::maskToRPZ(address);
+      pol.d_trigger.appendRawLabel("rpz-nsip");
       return true;
     }
   }
@@ -268,12 +277,14 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
 
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
+      pol.d_trigger = qname;
       return true;
     }
 
     for (const auto& wc : wcNames) {
       if (z->findExactQNamePolicy(wc, pol)) {
         // cerr<<"Had a hit on the name of the query"<<endl;
+        pol.d_trigger = wc;
         return true;
       }
     }
@@ -326,6 +337,8 @@ bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordere
     }
 
     if (z->findResponsePolicy(ca, pol)) {
+      pol.d_trigger = Zone::maskToRPZ(ca);
+      pol.d_trigger.appendRawLabel("rpz-ip");
       return true;
     }
   }
