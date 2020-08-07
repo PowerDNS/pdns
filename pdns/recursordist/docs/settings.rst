@@ -1838,14 +1838,16 @@ IP address for the webserver to listen on.
 
 ``webserver-allow-from``
 ------------------------
--  IP addresses, comma separated
+-  IP ranges, comma separated
 -  Default: 127.0.0.1,::1
 
 .. versionchanged:: 4.1.0
 
-    Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
+    Default is now 127.0.0.1,::1, was 0.0.0.0/0,::/0 before.
 
-These subnets are allowed to access the webserver.
+These IPs and subnets are allowed to access the webserver. Note that
+specifying an IP address without a netmask uses an implicit netmask
+of /32 or /128.
 
 .. _setting-webserver-loglevel:
 
