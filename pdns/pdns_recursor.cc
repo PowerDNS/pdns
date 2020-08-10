@@ -1777,6 +1777,7 @@ static void startDoResolve(void *p)
       if (!appliedPolicy.getName().empty()) {
         pbMessage->setAppliedPolicy(appliedPolicy.getName());
         pbMessage->setAppliedPolicyType(appliedPolicy.d_type);
+        pbMessage->setAppliedPolicyTrigger(appliedPolicy.d_trigger);
       }
       pbMessage->setPolicyTags(dc->d_policyTags);
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
