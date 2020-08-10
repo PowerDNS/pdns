@@ -554,6 +554,7 @@ static void setupLuaConfig(bool client, bool configCheck)
                         g_pools.setState(localPools);
                         states.erase(remove(states.begin(), states.end(), server), states.end());
                         g_dstates.setState(states);
+                        server->stop();
                       } );
 
   g_lua.writeFunction("truncateTC", [](bool tc) { setLuaSideEffect(); g_truncateTC=tc; });

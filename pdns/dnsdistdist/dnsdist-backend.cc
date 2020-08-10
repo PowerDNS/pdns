@@ -98,6 +98,21 @@ bool DownstreamState::reconnect()
 
   return connected;
 }
+
+void DownstreamState::stop()
+{
+  std::unique_lock<std::mutex> tl(connectLock);
+  std::lock_guard<std::mutex> slock(socketsLock);
+  d_stopped = true;
+
+  for (auto& fd : sockets) {
+    if (fd != -1) {
+      /* shutdown() is needed to wake up recv() in the responderThread */
+      shutdown(fd, SHUT_RDWR);
+    }
+  }
+}
+
 void DownstreamState::hash()
 {
   vinfolog("Computing hashes for id=%s and weight=%d", id, weight);
@@ -152,5 +167,20 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
     idStates.resize(g_maxOutstanding);
     sw.start();
   }
+}
 
+DownstreamState::~DownstreamState()
+{
+  for (auto& fd : sockets) {
+    if (fd >= 0) {
+      close(fd);
+      fd = -1;
+    }
+  }
+
+  // we need to either detach or join the thread before it
+  // is destroyed
+  if (threadStarted.test_and_set()) {
+    tid.detach();
+  }
 }

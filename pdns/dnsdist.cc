@@ -552,7 +552,7 @@ try {
   std::vector<int> sockets;
   sockets.reserve(dss->sockets.size());
 
-  for(;;) {
+  for(; !dss->isStopped(); ) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     try {
       pickBackendSocketsReadyForReceiving(dss, sockets);
@@ -561,8 +561,13 @@ try {
         char * response = packet;
         size_t responseSize = sizeof(packet);
 
-        if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader))
+        if (got == 0 && dss->isStopped()) {
+          break;
+        }
+
+        if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader)) {
           continue;
+        }
 
         uint16_t responseLen = static_cast<uint16_t>(got);
         queryId = dh->id;
