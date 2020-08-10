@@ -765,15 +765,8 @@ struct DownstreamState
 
   DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName, size_t numberOfSockets, bool connect);
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string(), 1, true) {}
-  ~DownstreamState()
-  {
-    for (auto& fd : sockets) {
-      if (fd >= 0) {
-        close(fd);
-        fd = -1;
-      }
-    }
-  }
+  ~DownstreamState();
+
   boost::uuids::uuid id;
   std::vector<unsigned int> hashes;
   mutable ReadWriteLock d_lock;
@@ -883,6 +876,11 @@ struct DownstreamState
   void hash();
   void setId(const boost::uuids::uuid& newId);
   void setWeight(int newWeight);
+  void stop();
+  bool isStopped() const
+  {
+    return d_stopped;
+  }
 
   void updateTCPMetrics(size_t nbQueries, uint64_t durationMs)
   {
@@ -892,6 +890,7 @@ struct DownstreamState
 private:
   std::string name;
   std::string nameWithAddr;
+  bool d_stopped{false};
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
