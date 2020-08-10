@@ -16,7 +16,7 @@ As an example:
 
 ``allow-from``
 --------------
--  IP ranges, separated by commas
+-  IP addresses or netmasks, separated by commas
 -  Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10
 
 Netmasks (both IPv4 and IPv6) that are allowed to use the server.
@@ -25,6 +25,8 @@ Due to the aggressive nature of the internet these days, it is highly recommende
 Questions from IP addresses not listed here are ignored and do not get an answer.
 
 When the Proxy Protocol is enabled (see `proxy-protocol-from`_), the recursor will check the address of the client IP advertised in the Proxy Protocol header instead of the one of the proxy.
+
+Note that specifying an IP address without a netmask uses an implicit netmask of /32 or /128.
 
 .. _setting-allow-from-file:
 
@@ -1276,7 +1278,7 @@ Whether to compute the latency of responses in protobuf messages using the times
 -----------------------
 .. versionadded:: 4.4.0
 
--  IP ranges, separated by commas
+-  IP addresses or netmasks, separated by commas
 -  Default: empty
 
 Ranges that are required to send a Proxy Protocol version 2 header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
@@ -1838,14 +1840,16 @@ IP address for the webserver to listen on.
 
 ``webserver-allow-from``
 ------------------------
--  IP addresses, comma separated
+-  IP addresses or netmasks, comma separated
 -  Default: 127.0.0.1,::1
 
 .. versionchanged:: 4.1.0
 
-    Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
+    Default is now 127.0.0.1,::1, was 0.0.0.0/0,::/0 before.
 
-These subnets are allowed to access the webserver.
+These IPs and subnets are allowed to access the webserver. Note that
+specifying an IP address without a netmask uses an implicit netmask
+of /32 or /128.
 
 .. _setting-webserver-loglevel:
 
@@ -1921,7 +1925,7 @@ If a PID file should be written to `socket-dir`_
 ------------------
 .. versionadded:: 4.2.0
 
--  IP ranges, separated by commas
+-  IP addresses or netmasks, separated by commas
 -  Default: empty
 
 .. note::
