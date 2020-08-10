@@ -1526,7 +1526,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
       }
     }
-  } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot() && !wasForwardedOrAuthZone) {
+  } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot()) {
     auto labels = qname.getRawLabels();
     DNSName negCacheName(g_rootdnsname);
     negCacheName.prependRawLabel(labels.back());
