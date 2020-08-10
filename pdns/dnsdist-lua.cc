@@ -465,6 +465,10 @@ static void setupLuaConfig(bool client, bool configCheck)
         ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
       }
 
+      if(vars.count("reconnectOnUp")) {
+        ret->reconnectOnUp=boost::get<bool>(vars["reconnectOnUp"]);
+      }
+
       if(vars.count("cpus")) {
         for (const auto& cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
           cpus.insert(std::stoi(cpu.second));
