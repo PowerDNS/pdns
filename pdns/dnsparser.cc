@@ -40,17 +40,25 @@ public:
     // parse the input
     vector<string> parts;
     stringtok(parts, zone);
-    if(parts.size()!=3 && !(parts.size()==2 && equals(parts[1],"0")) )
-      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+std::to_string(parts.size())+": "+zone );
-    const string& relevant=(parts.size() > 2) ? parts[2] : "";
-    unsigned int total=pdns_stou(parts[1]);
-    if(relevant.size() % 2 || relevant.size() / 2 != total)
+    // we need exactly 3 parts, except if the length field is set to 0 then we only need 2
+    if (parts.size() != 3 && !(parts.size() == 2 && equals(parts[1], "0"))) {
+      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got " + std::to_string(parts.size()) + ": " + zone);
+    }
+
+    const string& relevant = (parts.size() > 2) ? parts[2] : "";
+    unsigned int total = pdns_stou(parts[1]);
+    if (relevant.size() % 2 || (relevant.size() / 2) != total) {
       throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
+    }
+
     string out;
-    out.reserve(total+1);
-    for(unsigned int n=0; n < total; ++n) {
+    out.reserve(total + 1);
+
+    for (unsigned int n = 0; n < total; ++n) {
       int c;
-      sscanf(relevant.c_str()+2*n, "%02x", &c);
+      if (sscanf(relevant.c_str()+2*n, "%02x", &c) != 1) {
+        throw MOADNSException("unable to read data at position " + std::to_string(2 * n) + " from unknown record of size " + std::to_string(relevant.size()));
+      }
       out.append(1, (char)c);
     }
 
