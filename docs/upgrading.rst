@@ -21,7 +21,7 @@ PostgreSQL configuration escaping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We now correctly quote/escape Postgres connection parameters.
-If you used single quotes around your Postgres password because it contained spaces, you now need to remove those quotes.
+If you used single quotes (or some other form of escaping) around your Postgres password because it contained spaces, you now need to put your unmodified, unescaped, unquoted password in your configuration.
 
 4.3.0 to 4.3.1
 --------------
