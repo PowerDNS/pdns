@@ -378,6 +378,38 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   BOOST_CHECK_EQUAL(makeHexDump(std::string(pak.begin(),pak.end())), makeHexDump(packet));
 }
 
+// special record test, because Unknown record types are the worst
+BOOST_AUTO_TEST_CASE(test_unknown_records_in) {
+
+  auto validUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 42");
+
+  // we need at least two parts
+  BOOST_CHECK_THROW(auto notEnoughPartsUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\#"), MOADNSException);
+
+  // two parts are OK when the RDATA size is 0, not OK otherwise
+  auto validEmptyUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 0");
+  BOOST_CHECK_THROW(auto twoPartsNotZeroUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1"), MOADNSException);
+
+  // RDATA length is not even
+  BOOST_CHECK_THROW(auto unevenUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 A"), MOADNSException);
+
+  // RDATA length is not equal to the expected size
+  BOOST_CHECK_THROW(auto wrongRDATASizeUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 2 AA"), MOADNSException);
+
+  // RDATA is invalid (invalid hex value)
+  try {
+    auto invalidRDATAUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 JJ");
+    // we should not reach that code
+    BOOST_CHECK(false);
+    // but if we do let's see what we got (likely what was left over on the stack)
+    BOOST_CHECK_EQUAL(invalidRDATAUnknown->getZoneRepresentation(), "\\# 1 jj");
+  }
+  catch (const MOADNSException& e)
+  {
+    // it's expected to end up there
+  }
+}
+
 // special record test, because EUI are odd
 BOOST_AUTO_TEST_CASE(test_eui_records_in) {
 
