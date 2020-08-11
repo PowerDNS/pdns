@@ -407,10 +407,10 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
   return doOOBResolve(iter->second, qname, qtype, ret, res);
 }
 
-bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
+bool SyncRes::isRecursiveForwardOrAuth(const DNSName &qname) const {
   DNSName authname(qname);
   domainmap_t::const_iterator iter = getBestAuthZone(&authname);
-  return iter != t_sstorage.domainmap->end();
+  return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || iter->second.shouldRecurse());
 }
 
 uint64_t SyncRes::doEDNSDump(int fd)
@@ -642,7 +642,8 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
 
 int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
-  if (!getQNameMinimization() || isForwardOrAuth(qname)) {
+  // In the auth or recursive forward case, it does nt make sense to do qname-minimization
+  if (!getQNameMinimization() || isRecursiveForwardOrAuth(qname)) {
     return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
   }
 
@@ -672,7 +673,10 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   vector<DNSRecord> retq;
   bool old = setCacheOnly(true);
   bool fromCache = false;
-  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, &fromCache);
+  // For cache peeking, we tell doResolveNoQNameMinimization not to consider the (non-recursive) forward case.
+  // Otherwise all queries in a forward domain will be forwarded, while we want to consult the cache.
+  // The out-of-band cases for doResolveNoQNameMinimization() should be reconsidered and redone some day.
+  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, state, &fromCache, nullptr, false);
   setCacheOnly(old);
   if (fromCache) {
     QLOG("Step0 Found in cache");
@@ -772,7 +776,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error)
  */
-int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation)
+int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation, bool considerforwards)
 {
   string prefix;
   if(doLog()) {
@@ -806,7 +810,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
             *fromCache = d_wasOutOfBand;
           return res;
         }
-        else {
+        else if (considerforwards) {
           const vector<ComboAddress>& servers = iter->second.d_servers;
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
@@ -1136,37 +1140,75 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname) co
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
 DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere)
 {
-  DNSName authdomain(qname);
+  string prefix;
+  if (doLog()) {
+    prefix = d_prefix;
+    prefix.append(depth, ' ');
+  }
+  DNSName authOrForwDomain(qname);
 
-  domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
-  if(iter!=t_sstorage.domainmap->end()) {
-    if( iter->second.isAuth() )
+  domainmap_t::const_iterator iter = getBestAuthZone(&authOrForwDomain);
+  // We have an auth, forwarder of forwarder-recurse
+  if (iter != t_sstorage.domainmap->end()) {
+    if (iter->second.isAuth()) {
       // this gets picked up in doResolveAt, the empty DNSName, combined with the
       // empty vector means 'we are auth for this zone'
       nsset.insert({DNSName(), {{}, false}});
-    else {
-      // Again, picked up in doResolveAt. An empty DNSName, combined with a
-      // non-empty vector of ComboAddresses means 'this is a forwarded domain'
-      // This is actually picked up in retrieveAddressesForNS called from doResolveAt.
-      nsset.insert({DNSName(), {iter->second.d_servers, iter->second.shouldRecurse() }});
+      return authOrForwDomain;
     }
-    return authdomain;
+    else {
+      if (iter->second.shouldRecurse()) {
+        // Again, picked up in doResolveAt. An empty DNSName, combined with a
+        // non-empty vector of ComboAddresses means 'this is a forwarded domain'
+        // This is actually picked up in retrieveAddressesForNS called from doResolveAt.
+        nsset.insert({DNSName(), {iter->second.d_servers, true }});
+        return authOrForwDomain;
+      }
+    }
   }
 
-  DNSName subdomain(qname);
+  // We might have a (non-recursive) forwarder, but maybe the cache already contains
+  // a better NS
   vector<DNSRecord> bestns;
-  getBestNSFromCache(subdomain, qtype, bestns, flawedNSSet, depth, beenthere);
+  DNSName nsFromCacheDomain(g_rootdnsname);
+  getBestNSFromCache(qname, qtype, bestns, flawedNSSet, depth, beenthere);
 
-  for(auto k=bestns.cbegin() ; k != bestns.cend(); ++k) {
+  // Pick up the auth domain
+  for (const auto& k : bestns) {
+    const auto nsContent = getRR<NSRecordContent>(k);
+    if (nsContent) {
+      nsFromCacheDomain = k.d_name;
+      break;
+    }
+  }
+
+  if (iter != t_sstorage.domainmap->end()) {
+    if (doLog()) {
+      LOG(prefix << qname << " authOrForwDomain: " << authOrForwDomain << " nsFromCacheDomain: " << nsFromCacheDomain << " isPartof: " << authOrForwDomain.isPartOf(nsFromCacheDomain) << endl);
+    }
+
+    // If the forwarder is better or equal to what's found in the cache, use forwarder. Note that name.isPartOf(name).
+    // So queries that get NS for authOrForwDomain itself go to the forwarder
+    if (authOrForwDomain.isPartOf(nsFromCacheDomain)) {
+      if (doLog()) {
+        LOG(prefix << qname << ": using forwarder as NS" << endl);
+      }
+      nsset.insert({DNSName(), {iter->second.d_servers, false }});
+      return authOrForwDomain;
+    } else {
+      if (doLog()) {
+        LOG(prefix << qname << ": using NS from cache" << endl);
+      }
+    }
+  }
+  for (auto k = bestns.cbegin(); k != bestns.cend(); ++k) {
     // The actual resolver code will not even look at the ComboAddress or bool
     const auto nsContent = getRR<NSRecordContent>(*k);
     if (nsContent) {
       nsset.insert({nsContent->getNS(), {{}, false}});
-      if(k==bestns.cbegin())
-        subdomain=k->d_name;
     }
   }
-  return subdomain;
+  return nsFromCacheDomain;
 }
 
 void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const
