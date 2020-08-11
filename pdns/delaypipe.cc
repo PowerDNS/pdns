@@ -60,44 +60,41 @@ void ObjectPipe<T>::write(T& t)
 }
 
 template<class T>
-bool ObjectPipe<T>::read(T* t)
-{
-  T* ptr;
-  int ret = ::read(d_fds[0], &ptr, sizeof(ptr));
-
-  if(ret < 0)
-    unixDie("read");
-  if(ret==0)
-    return false;
-  if(ret != sizeof(ptr))
-    throw std::runtime_error("Partial read, should not happen");    
-  *t=*ptr;
-  delete ptr;
-  return true;
-}
-
-template<class T>
 int ObjectPipe<T>::readTimeout(T* t, double msec)
 {
-  T* ptr;
+  while (true) {
+    int ret = waitForData(d_fds[0], 0, 1000*msec);
+    if (ret < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      unixDie("waiting for data in object pipe");
+    }
+    else if (ret == 0) {
+      return -1;
+    }
 
-  int ret = waitForData(d_fds[0], 0, 1000*msec);
-  if(ret < 0)
-    unixDie("waiting for data in object pipe");
-  if(ret == 0) 
-    return -1;
+    T* ptr = nullptr;
+    ret = ::read(d_fds[0], &ptr, sizeof(ptr)); // this is BLOCKING!
 
-  ret = ::read(d_fds[0], &ptr, sizeof(ptr)); // this is BLOCKING!
+    if (ret < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      unixDie("read");
+    }
+    else if (ret == 0) {
+      return false;
+    }
 
-  if(ret < 0)
-    unixDie("read");
-  if(ret==0)
-    return false;
-  if(ret != sizeof(ptr))
-    throw std::runtime_error("Partial read, should not happen 2");    
-  *t=*ptr;
-  delete ptr;
-  return 1;
+    if (ret != sizeof(ptr)) {
+      throw std::runtime_error("Partial read, should not happen 2");
+    }
+
+    *t = *ptr;
+    delete ptr;
+    return 1;
+  }
 }
 
 
