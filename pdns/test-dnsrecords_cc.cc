@@ -390,6 +390,9 @@ BOOST_AUTO_TEST_CASE(test_unknown_records_in) {
   auto validEmptyUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 0");
   BOOST_CHECK_THROW(auto twoPartsNotZeroUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1"), MOADNSException);
 
+  // the first part has to be "\#"
+  BOOST_CHECK_THROW(auto invalidFirstPartUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\$ 0"), MOADNSException);
+
   // RDATA length is not even
   BOOST_CHECK_THROW(auto unevenUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 A"), MOADNSException);
 
