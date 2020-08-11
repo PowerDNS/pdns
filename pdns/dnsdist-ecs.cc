@@ -30,7 +30,9 @@
 /* when we add EDNS to a query, we don't want to advertise
    a large buffer size */
 size_t g_EdnsUDPPayloadSize = 512;
-uint16_t g_PayloadSizeSelfGenAnswers{s_udpIncomingBufferSize};
+static const uint16_t defaultPayloadSizeSelfGenAnswers = 1232;
+static_assert(defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The UDP responder's payload size should be smaller or equal to our incoming buffer size");
+uint16_t g_PayloadSizeSelfGenAnswers{defaultPayloadSizeSelfGenAnswers};
 
 /* draft-ietf-dnsop-edns-client-subnet-04 "11.1.  Privacy" */
 uint16_t g_ECSSourcePrefixV4 = 24;
