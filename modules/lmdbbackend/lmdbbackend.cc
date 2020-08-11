@@ -233,7 +233,7 @@ void serFromString(const string_view& str, DNSResourceRecord& rr)
 
 static std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::string& content)
 {
-  auto drc = DNSRecordContent::mastermake(qtype, 1, content);
+  auto drc = DNSRecordContent::mastermake(qtype, QClass::IN, content);
   return drc->serialize(domain, false);
 }
 

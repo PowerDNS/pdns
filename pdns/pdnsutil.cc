@@ -363,7 +363,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       rr.content = "\""+rr.content+"\"";
 
     try {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
       string tmp=drc->serialize(rr.qname);
       tmp = drc->getZoneRepresentation(true);
       if (rr.qtype.getCode() != QType::AAAA) {

@@ -133,7 +133,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   dr.d_ttl=ttl.get_value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
-  dr.d_content = DNSRecordContent::mastermake(type, 1, content);
+  dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, content);
   records.push_back(dr);
 }
 
@@ -263,7 +263,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) { return value.content; });
   d_lw->registerFunction<const ProxyProtocolValue, uint8_t()>("getType", [](const ProxyProtocolValue& value) { return value.type; });
 
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, 1, newContent); });
+  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, QClass::IN, newContent); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
   d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
