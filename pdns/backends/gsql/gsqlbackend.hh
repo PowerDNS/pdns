@@ -48,11 +48,11 @@ public:
     d_db=std::unique_ptr<SSql>(db);
     if (d_db) {
       d_db->setLog(::arg().mustDo("query-logging"));
-      allocateStatements();
     }
   }
 
-  void allocateStatements()
+protected:
+  virtual void allocateStatements()
   {
     if (d_db) {
       d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 2);
@@ -117,7 +117,7 @@ public:
     }
   }
 
-  void freeStatements() {
+  virtual void freeStatements() {
     d_NoIdQuery_stmt.reset();
     d_IdQuery_stmt.reset();
     d_ANYNoIdQuery_stmt.reset();
@@ -179,6 +179,7 @@ public:
     d_SearchCommentsQuery_stmt.reset();
   }
 
+public:
   void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
@@ -260,11 +261,12 @@ protected:
     return d_inTransaction;
   }
 
-private:
   string d_query_name;
   DNSName d_qname;
   SSqlStatement::result_t d_result;
+  unique_ptr<SSqlStatement>* d_query_stmt;
 
+private:
   string d_NoIdQuery;
   string d_IdQuery;
   string d_ANYNoIdQuery;
@@ -339,7 +341,6 @@ private:
   string d_SearchRecordsQuery;
   string d_SearchCommentsQuery;
 
-  unique_ptr<SSqlStatement>* d_query_stmt;
 
   unique_ptr<SSqlStatement> d_NoIdQuery_stmt;
   unique_ptr<SSqlStatement> d_IdQuery_stmt;

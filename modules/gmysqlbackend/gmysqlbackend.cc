@@ -62,6 +62,7 @@ void gMySQLBackend::reconnect()
                    getArgAsNum("timeout"),
                    mustDo("thread-cleanup"),
                    mustDo("ssl")));
+  allocateStatements();
 }
 
 class gMySQLFactory : public BackendFactory
