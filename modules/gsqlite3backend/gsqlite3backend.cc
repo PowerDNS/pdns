@@ -72,7 +72,7 @@ public:
   }
   
   //! Declares all needed arguments.
-  void declareArguments( const std::string & suffix = "" )
+  void declareArguments( const std::string & suffix = "" ) override
   {
     declare(suffix, "database", "Filename of the SQLite3 database", "powerdns.sqlite");
     declare(suffix, "pragma-synchronous", "Set this to 0 for blazing speed", "");
@@ -156,7 +156,7 @@ public:
   }
 
   //! Constructs a new gSQLite3Backend object.
-  DNSBackend *make( const string & suffix = "" )
+  DNSBackend *make( const string & suffix = "" ) override
   {
     return new gSQLite3Backend( d_mode, suffix );
   }

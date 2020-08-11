@@ -1558,7 +1558,7 @@ class LMDBFactory : public BackendFactory
 {
 public:
   LMDBFactory() : BackendFactory("lmdb") {}
-  void declareArguments(const string &suffix="")
+  void declareArguments(const string &suffix="") override
   {
     declare(suffix,"filename","Filename for lmdb","./pdns.lmdb");
     declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync, sync","mapasync");
@@ -1566,7 +1566,7 @@ public:
     declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64");
     declare(suffix,"schema-version","Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", SCHEMAVERSION_TEXT); 
   }
-  DNSBackend *make(const string &suffix="")
+  DNSBackend *make(const string &suffix="") override
   {
     return new LMDBBackend(suffix);
   }

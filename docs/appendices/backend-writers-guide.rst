@@ -2,8 +2,9 @@ Backend writers' guide
 ======================
 
 PowerDNS backends are implemented via a simple yet powerful C++
-interface. If your needs are not met by the PipeBackend, you may want to
-write your own. Before doing any PowerDNS development, please read `this blog
+interface. If your needs are not met by the regular backends, including
+the PipeBackend and the RemoteBackend, you may want to write your own.
+Before doing any PowerDNS development, please read `this blog
 post <https://blog.powerdns.com/2015/06/23/what-is-a-powerdns-backend-and-how-do-i-make-it-send-an-nxdomain/>`__
 which has a FAQ and several pictures that help explain what a backend
 is.
@@ -117,11 +118,25 @@ default ``getSOA()`` method performs a regular lookup on your backend to
 figure out the SOA, so if you have no special treatment for SOA records,
 where is no need to implement your own ``getSOA()``.
 
+Figuring out the Start of Authority can require an important number of
+call to ``getSOA()`` if the name has a lot of labels. For example,
+figuring out that the SOA for ``2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.``
+is ``d.0.1.0.0.2.ip6.arpa.`` might involve 26 calls, chopping off one label
+at a time. If your backend has an efficient way to figure out the
+best SOA it has for a given name, it is possible to override the
+default ``getSOA()`` implementation to immediately return the
+``d.0.1.0.0.2.ip6.arpa.`` SOA record to the first
+``2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.``
+``getSOA()`` call.
+
 Besides direct queries, PowerDNS also needs to be able to list a zone,
 to do zone transfers for example. Each zone has an id which should be
-unique within the backend. To list all records belonging to a zone id,
+unique within the backends. To list all records belonging to a zone id,
 the ``list()`` method is used. Conveniently, the domain_id is also
 available in the ``SOAData`` structure.
+
+.. warning::
+  Each zone should have a unique id, even across backends.
 
 The following lists the contents of a zone called "powerdns.com".
 
@@ -210,9 +225,31 @@ furthermore, only about its A record:
     static RandomLoader randomloader;
 
 This simple backend can be used as an 'overlay'. In other words, it only
-knows about a single record, another loaded backend would have to know
-about the SOA and NS records and such. But nothing prevents us from
-loading it without another backend.
+knows about a single name, ``random.powerdns.com``, another loaded backend
+would have to know about the SOA and NS records for the ``powerdns.com`` zone
+and such.
+
+.. warning::
+  Spreading the content of a zone across multiple backends, described above
+  as 'overlay', makes the zone incompatible with some operations that
+  assume that a single zone is always entirely stored in the same backend.
+  Such operations include zone transfers, listing and editing zone content via
+  the API or ``pdnsutil``.
+
+.. warning::
+  When the content of a zone is spread across multiple backends, all the types
+  for a given name should be delegated to the same backend.
+  For example a backend can know about all the types for ``random.powerdns.com``
+  while another backend knows about all the types for ``random2.powerdns.com``,
+  but it is not possible to let one backend handle only ``AAAA`` queries for
+  all names while another one handles only ``A`` queries, for example.
+  This limitation comes from the fact that PowerDNS uses ``ANY`` queries to fetch
+  all types from the backend in one go and that it assumes that once one backend
+  has returned records the other ones do not need to be called.
+  It is also possible to have two backends providing records for the same name
+  and types, for example if the first one does not support DNSSEC and the second
+  does, but that requires some mechanism outside of PowerDNS to keep records in
+  sync between the two backends.
 
 The first part of the code contains the actual logic and should be
 pretty straightforward. The second part is a boilerplate 'factory' class
@@ -316,7 +353,7 @@ Classes
 Methods
 ~~~~~~~
 
-.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt=0, int zoneId=-1)
+.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt=nullptr, int zoneId=-1)
 
   This function is used to initiate a straight lookup for a record of name
   'qdomain' and type 'qtype'. A QType can be converted into an integer by
@@ -326,6 +363,11 @@ Methods
   The original question may or may not be passed in the pointer pkt. If it
   is, you can retrieve information about who asked the question with the
   ``pkt->getRemote()`` method.
+
+  .. note::
+    Since 4.1.0, 'SOA' lookups are not passed this pointer anymore because
+    PowerDNS doesn't support tailoring whether a whole zone exists or not based
+    on who is asking.
 
   Note that **qdomain** can be of any case and that your backend should
   make sure it is in effect case insensitive. Furthermore, the case of the
@@ -397,7 +439,7 @@ message won't be visible otherwise.
 To indicate the importance of an error, the standard syslog errorlevels
 are available. They can be set by outputting ``Logger::Critical``,
 ``Logger::Error``, ``Logger::Warning``, ``Logger::Notice``,
-``Logger::Info`` or ``Logger::Debug`` to ``L``, in descending order of
+``Logger::Info`` or ``Logger::Debug`` to ``g_log``, in descending order of
 graveness.
 
 Declaring and reading configuration details
@@ -630,7 +672,7 @@ The actual code in PowerDNS is currently:
 
         while(resolver.axfrChunk(recs)) {
           for(Resolver::res_t::const_iterator i=recs.begin();i!=recs.end();++i) {
-        db->feedRecord(*i);
+            db->feedRecord(*i);
           }
         }
         db->commitTransaction();
@@ -770,6 +812,147 @@ other update/remove functionality at a later stage.
   ``qname`` need to be removed. After removal, the records in ``rrset``
   must be added to the zone. ``rrset`` can be empty in which case the
   method is used to remove a RRset.
+
+Domain metadata support
+-----------------------
+
+As described in :ref:`per-zone-settings-domain-metadata`, each served zone can have “metadata”. Such metadata determines how this zone behaves in certain circumstances.
+In order for a backend to support domain metadata, the following operations have to be implemented:
+
+.. code-block:: cpp
+
+    class DNSBackend {
+    public:
+      /* ... */
+      virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+      virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+      virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+      /* ... */
+    }
+
+.. cpp:function:: virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
+
+  Fills 'meta' with the value(s) of all kinds for zone 'name'. Returns true if the domain metadata operation are supported, regardless
+  of whether there is any data for this zone.
+
+.. cpp:function:: virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+
+  Fills 'meta' with the value(s) of the specified kind for zone 'name'. Returns true if the domain metadata operation are supported, regardless
+  of whether there is any data of this kind for this zone.
+
+.. cpp:function:: virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+
+  Store the values from 'meta' for the specified kind for zone 'name', discarding existing values if any. An empty meta is equivalent to a deletion request.
+  Returns true if the values have been correctly stored, and false otherwise.
+
+TSIG keys
+---------
+
+In order for a backend to support the storage of TSIG keys, the following operations have to be implemented:
+
+.. code-block:: cpp
+
+    class DNSBackend {
+    public:
+      /* ... */
+      virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+      virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+      virtual bool deleteTSIGKey(const DNSName& name);
+      virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+      /* ... */
+    }
+
+DNSSEC support
+--------------
+
+In order for a backend to support DNSSEC, quite a few number of additional operations have to be implemented:
+
+.. code-block:: cpp
+
+    struct KeyData {
+      std::string content;
+      unsigned int id;
+      unsigned int flags;
+      bool active;
+      bool published;
+    };
+
+    class DNSBackend {
+    public:
+      /* ... */
+      virtual bool doesDNSSEC();
+      virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+
+      /* update operations */
+      virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY);
+      virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove);
+      virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm);
+      virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
+
+      /* keys management */
+      virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
+      virtual bool removeDomainKey(const DNSName& name, unsigned int id);
+      virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
+      virtual bool activateDomainKey(const DNSName& name, unsigned int id);
+      virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
+      virtual bool publishDomainKey(const DNSName& name, unsigned int id);
+      virtual bool unpublishDomainKey(const DNSName& name, unsigned int id);
+
+      /* ... */
+    }
+
+.. cpp:function:: virtual bool doesDNSSEC()
+
+  Returns true if that backend supports DNSSEC.
+
+.. cpp:function:: virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+
+  Asks the names before and after qname for NSEC and NSEC3. The qname will be hashed when using NSEC3. Care must be taken to handle wrap-around when qname is the first or last in the ordered list of zone names.
+
+.. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
+
+  Updates the ordername and auth fields.
+
+.. cpp:function:: virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+
+  Updates ENT after a zone has been rectified. If 'remove' is false, 'erase' contains a list of ENTs to remove from the zone before adding any. Otherwise all ENTs should be removed from the zone before adding any. 'insert' contains the list of ENTs to add to the zone after the removals have been done.
+
+.. cpp:function:: virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm)
+
+  This method is used by ``pdnsutil rectify-zone`` to populate missing non-terminals. This is used when you have, say, record like _sip._upd.example.com, but no _udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one.
+
+.. cpp:function:: virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+
+  Same as feedEnts, but provides NSEC3 hashing parameters.
+
+.. cpp:function:: virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
+
+  Retrieves all DNSSEC keys. Content must be valid key record in format that PowerDNS understands.
+
+.. cpp:function:: virtual bool removeDomainKey(const DNSName& name, unsigned int id)
+
+  Removes this key.
+
+.. cpp:function:: virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+
+  Adds a new DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool activateDomainKey(const DNSName& name, unsigned int id)
+
+  Activates an inactive DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool deactivateDomainKey(const DNSName& name, unsigned int id)
+
+  Deactivates an active DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool publishDomainKey(const DNSName& name, unsigned int id)
+
+  Publishes a previously hidden DNSSEC key for this domain.
+
+.. cpp:function:: virtual bool unpublishDomainKey(const DNSName& name, unsigned int id)
+
+  Hides a DNSSEC key for this domain. Hidden DNSSEC keys are used for signing but do not appear in the actual zone,
+  and are useful for rollover operations.
 
 Miscellaneous
 -------------

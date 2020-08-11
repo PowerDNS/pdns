@@ -1036,13 +1036,13 @@ class RemoteBackendFactory : public BackendFactory
   public:
       RemoteBackendFactory() : BackendFactory("remote") {}
 
-      void declareArguments(const std::string &suffix="")
+      void declareArguments(const std::string &suffix="") override
       {
           declare(suffix,"dnssec","Enable dnssec support","no");
           declare(suffix,"connection-string","Connection string","");
       }
 
-      DNSBackend *make(const std::string &suffix="")
+      DNSBackend *make(const std::string &suffix="") override
       {
          return new RemoteBackend(suffix);
       }

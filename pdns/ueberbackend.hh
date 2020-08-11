@@ -24,18 +24,13 @@
 #include <map>
 #include <string>
 #include <algorithm>
-#include <semaphore.h>
 #include <mutex>
 #include <condition_variable>
 
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <boost/utility.hpp>
+
 #include "dnspacket.hh"
 #include "dnsbackend.hh"
-
 #include "namespaces.hh"
 
 /** This is a very magic backend that allows us to load modules dynamically,

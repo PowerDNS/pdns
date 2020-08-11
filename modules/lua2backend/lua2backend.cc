@@ -31,14 +31,14 @@ class Lua2Factory : public BackendFactory
 public:
   Lua2Factory() : BackendFactory("lua2") {}
 
-  void declareArguments(const string &suffix="")
+  void declareArguments(const string &suffix="") override
   {
     declare(suffix,"filename","Filename of the script for lua backend","powerdns-luabackend.lua");
     declare(suffix,"query-logging","Logging of the Lua2 Backend","no");
     declare(suffix,"api","Lua backend API version","2");
   }
 
-  DNSBackend *make(const string &suffix="")
+  DNSBackend *make(const string &suffix="") override
   {
     const std::string apiSet = "lua2" + suffix + "-api";
     const int api = ::arg().asNum(apiSet);

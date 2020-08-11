@@ -2,6 +2,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <fcntl.h>
+
 #include "dnsseckeeper.hh"
 #include "dnssecinfra.hh"
 #include "statbag.hh"

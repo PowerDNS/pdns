@@ -277,7 +277,7 @@ class LdapFactory : public BackendFactory
 
     LdapFactory() : BackendFactory( "ldap" ) {}
 
-    void declareArguments( const string &suffix="" )
+    void declareArguments( const string &suffix="" ) override
     {
       declare( suffix, "host", "One or more LDAP server with ports or LDAP URIs (separated by spaces)","ldap://127.0.0.1:389/" );
       declare( suffix, "starttls", "Use TLS to encrypt connection (unused for LDAP URIs)", "no" );
@@ -297,7 +297,7 @@ class LdapFactory : public BackendFactory
     }
 
 
-    DNSBackend* make( const string &suffix="" )
+    DNSBackend* make( const string &suffix="" ) override
     {
       return new LdapBackend( suffix );
     }

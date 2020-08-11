@@ -357,7 +357,7 @@ class PipeFactory : public BackendFactory
    public:
       PipeFactory() : BackendFactory("pipe") {}
 
-      void declareArguments(const string &suffix="")
+      void declareArguments(const string &suffix="") override
       {
          declare(suffix,"command","Command to execute for piping questions to","");
          declare(suffix,"timeout","Number of milliseconds to wait for an answer","2000");
@@ -365,7 +365,7 @@ class PipeFactory : public BackendFactory
          declare(suffix,"abi-version","Version of the pipe backend ABI","1");
       }
 
-      DNSBackend *make(const string &suffix="")
+      DNSBackend *make(const string &suffix="") override
       {
          return new PipeBackend(suffix);
       }

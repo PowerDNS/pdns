@@ -80,7 +80,7 @@ class gPgSQLFactory : public BackendFactory
 public:
   gPgSQLFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
 
-  void declareArguments(const string &suffix="")
+  void declareArguments(const string &suffix="") override
   {
     declare(suffix,"dbname","Backend database name to connect to","");
     declare(suffix,"user","Database backend user to connect as","");
@@ -167,7 +167,7 @@ public:
 
   }
 
-  DNSBackend *make(const string &suffix="")
+  DNSBackend *make(const string &suffix="") override
   {
     return new gPgSQLBackend(d_mode,suffix);
   }
