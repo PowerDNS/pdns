@@ -275,7 +275,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
     return "Domain '"+domain.toString()+"' is not a slave domain (or has no master defined)";
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  auto master = di.masters.front();
+  const auto& master = di.masters.front();
   Communicator.addSuckRequest(domain, master, override_master);
   g_log<<Logger::Warning<<"Retrieval request for domain '"<<domain<<"' from master '"<<master<<"' received from operator"<<endl;
   return "Added retrieval request for '"+domain.toLogString()+"' from master "+master.toLogString();
