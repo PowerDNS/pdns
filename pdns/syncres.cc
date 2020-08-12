@@ -676,12 +676,16 @@ bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QTy
       continue;
     }
     ret.push_back(dr);
-    auto content = getRR<CNAMERecordContent>(dr);
-    if (content) {
-      target = content->getTarget();
-      // This call wil return true if we hit a policy that needs an throw PolicyHitException
-      // For CNAME chasing, we don't want that since resolving should continue with the new target
-      return qnameRPZHit(dfe, target, qtype, ret, depth + 1);
+    switch (dr.d_type) {
+    case QType::CNAME:
+      auto cnamecontent = getRR<CNAMERecordContent>(dr);
+      if (cnamecontent) {
+        target = cnamecontent->getTarget();
+        // This call wil return true if we hit a policy that needs an throw PolicyHitException
+        // For CNAME chasing, we don't want that since resolving should continue with the new target
+        return qnameRPZHit(dfe, target, qtype, ret, depth + 1);
+      }
+      break;
     }
   }
 
