@@ -1241,7 +1241,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
     // In some cases, the policy should extend the result vector and in some cases replace
     // We extend if the current vector contains a CNAME we found while resolving a non-CNAME
     // This is all very ugly, but ATM I don't know a better approach...
-    if (post && dc->d_mdp.d_qtype != QType::CNAME) {
+    if (dc->d_mdp.d_qtype != QType::CNAME) {
       bool cname = false;
       for (const auto& r : ret) {
         if (r.d_place == DNSResourceRecord::ANSWER && r.d_type == QType::CNAME) {
@@ -1253,7 +1253,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
         ret.clear();
       }
     }
-    if (post && ret.size() == 0) { // can happen with NS matches, those do not fill the result
+    if (post && ret.size() == 0) { // can happen with NS matches, those do not fill the result, fallback to original behaviour
       auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
       for (auto& dr : spoofed) {
         ret.push_back(dr);
@@ -1276,7 +1276,17 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
         }
       }
     }
-    return post ? PolicyResult::HaveAnswer : PolicyResult::NoAction;
+    // Do we have an answer, or only a CNAME match while not looking for CNAME?
+    // In the latter case we should call SyncRes.beginResolve() to chase the CNAME.
+    bool haveanswer = false;
+    for (const auto& r : ret) {
+      if (r.d_place == DNSResourceRecord::ANSWER && r.d_type == dc->d_mdp.d_qtype) {
+        haveanswer = true;
+        break;
+      }
+    }
+
+    return haveanswer ? PolicyResult::HaveAnswer : PolicyResult::NoAction;
   }
 
   return PolicyResult::NoAction;
@@ -1471,7 +1481,7 @@ static void startDoResolve(void *p)
       t_pdl->prerpz(dq, res);
     }
 
-    // Check if the query has a policy attached to it
+    // Check if the client has a policy attached to it
     if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
 
       if (luaconfsLocal->dfe.getClientPolicy(dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
@@ -1485,9 +1495,11 @@ static void startDoResolve(void *p)
       }
     }
 
-    // If we are doing RPZ and a policy was matched, it normally takes precedence over an answer from gettag.
+    // If we are doing RPZ and a policy was matched on the qname, it normally takes precedence over an answer from gettag.
     // So process the gettag_ffi answer only if no RPZ action was matched or the policy indicates gettag should
     // have precedence.
+    // Note that this case will only be entered if the policy hit was on the client or on the original qname,
+    // hits while chasing CNAMEs will not be known here yet, since they only will be discovered by SyncRes.beginResolve().
     if (!wantsRPZ || !appliedPolicy.policyOverridesGettag() || appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
       if (dc->d_rcode != boost::none) {
         /* we have a response ready to go, most likely from gettag_ffi */
@@ -1499,7 +1511,7 @@ static void startDoResolve(void *p)
         goto haveAnswer;
       }
     }
-
+    
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if (!t_pdl || !t_pdl->preresolve(dq, res)) {
 
@@ -1528,6 +1540,7 @@ static void startDoResolve(void *p)
           sr.d_routingTag = dc->d_routingTag;
         }
 
+        ret.clear(); // policy might have filled it with custom records but we decided not to use them
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
       }
