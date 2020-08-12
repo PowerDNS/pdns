@@ -724,7 +724,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     set<string> messaged;
 
     for (const auto &value : metaData.second) {
-      if (seen.count(value) <= 0) {
+      if (seen.count(value) == 0) {
         seen.insert(value);
       } else if (messaged.count(value) <= 0) {
         cout << "[Error] Found duplicate metadata key value pair for zone " << zone << " with key '" << metaData.first << "' and value '" << value << "'" << endl;
