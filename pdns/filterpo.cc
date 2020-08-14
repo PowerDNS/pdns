@@ -27,6 +27,14 @@
 #include "namespaces.hh"
 #include "dnsrecords.hh"
 
+static const string rpzDropName("rpz-drop."),
+  rpzTruncateName("rpz-tcp-only."),
+  rpzNoActionName("rpz-passthru."),
+  rpzClientIPName("rpz-client-ip"),
+  rpzIPName("rpz-ip."),
+  rpzNSDnameName("rpz-nsdname."),
+  rpzNSIPName("rpz-nsip.");
+
 DNSFilterEngine::DNSFilterEngine()
 {
 }
@@ -174,7 +182,7 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
       if (z->findExactNSPolicy(wc, pol)) {
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
         pol.d_trigger = wc;
-        pol.d_trigger.appendRawLabel("rpz-nsdname");
+        pol.d_trigger.appendRawLabel(rpzNSDnameName);
         return true;
       }
     }
@@ -200,7 +208,7 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
       //      cerr<<"Had a hit on the nameserver ("<<address.toString()<<") used to process the query"<<endl;
       // XXX should use ns RPZ
       pol.d_trigger = Zone::maskToRPZ(address);
-      pol.d_trigger.appendRawLabel("rpz-nsip");
+      pol.d_trigger.appendRawLabel(rpzNSIPName);
       return true;
     }
   }
@@ -593,22 +601,19 @@ std::vector<DNSRecord> DNSFilterEngine::Policy::getCustomRecords(const DNSName& 
 
 std::string DNSFilterEngine::getKindToString(DNSFilterEngine::PolicyKind kind)
 {
-  static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
-  static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
-    rpzNSDname("rpz-nsdname"), rpzNSIP("rpz-nsip.");
-  static const std::string rpzPrefix("rpz-");
+  //static const std::string rpzPrefix("rpz-");
 
   switch(kind) {
   case DNSFilterEngine::PolicyKind::NoAction:
-    return noaction.toString();
+    return rpzNoActionName;
   case DNSFilterEngine::PolicyKind::Drop:
-    return drop.toString();
+    return rpzDropName;
   case DNSFilterEngine::PolicyKind::NXDOMAIN:
     return g_rootdnsname.toString();
   case PolicyKind::NODATA:
     return g_wildcarddnsname.toString();
   case DNSFilterEngine::PolicyKind::Truncate:
-    return truncate.toString();
+    return rpzTruncateName;
   default:
     throw std::runtime_error("Unexpected DNSFilterEngine::Policy kind");
   }
@@ -729,19 +734,19 @@ void DNSFilterEngine::Zone::dump(FILE* fp) const
   }
 
   for (const auto& pair : d_propolName) {
-    dumpNamedPolicy(fp, pair.first + DNSName("rpz-nsdname.") + d_domain, pair.second);
+    dumpNamedPolicy(fp, pair.first + DNSName(rpzNSDnameName) + d_domain, pair.second);
   }
 
   for (const auto& pair : d_qpolAddr) {
-    dumpAddrPolicy(fp, pair.first, DNSName("rpz-client-ip.") + d_domain, pair.second);
+    dumpAddrPolicy(fp, pair.first, DNSName(rpzClientIPName) + d_domain, pair.second);
   }
 
   for (const auto& pair : d_propolNSAddr) {
-    dumpAddrPolicy(fp, pair.first, DNSName("rpz-nsip.") + d_domain, pair.second);
+    dumpAddrPolicy(fp, pair.first, DNSName(rpzNSIPName) + d_domain, pair.second);
   }
 
   for (const auto& pair : d_postpolAddr) {
-    dumpAddrPolicy(fp, pair.first, DNSName("rpz-ip.") + d_domain, pair.second);
+    dumpAddrPolicy(fp, pair.first, DNSName(rpzIPName) + d_domain, pair.second);
   }
 }
 
