@@ -1778,6 +1778,7 @@ static void startDoResolve(void *p)
         pbMessage->setAppliedPolicy(appliedPolicy.getName());
         pbMessage->setAppliedPolicyType(appliedPolicy.d_type);
         pbMessage->setAppliedPolicyTrigger(appliedPolicy.d_trigger);
+        pbMessage->setAppliedPolicyHit(appliedPolicy.d_hit);
       }
       pbMessage->setPolicyTags(dc->d_policyTags);
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {

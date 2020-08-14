@@ -53,6 +53,7 @@ public:
   void setAppliedPolicy(const std::string& policy);
   void setAppliedPolicyType(const DNSFilterEngine::PolicyType& policyType);
   void setAppliedPolicyTrigger(const DNSName& trigger);
+  void setAppliedPolicyHit(const string& hit);
   void setPolicyTags(const std::unordered_set<std::string>& policyTags);
   void addPolicyTag(const std::string& policyTag);
   void removePolicyTag(const std::string& policyTag);

@@ -158,6 +158,7 @@ public:
     std::vector<std::shared_ptr<DNSRecordContent>> d_custom;
     std::shared_ptr<PolicyZoneData> d_zoneData{nullptr};
     DNSName d_trigger;
+    string d_hit;
     /* Yup, we are currently using the same TTL for every record for a given name */
     int32_t d_ttl;
     PolicyKind d_kind;

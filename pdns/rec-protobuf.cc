@@ -177,6 +177,16 @@ void RecProtoBufMessage::setAppliedPolicyTrigger(const DNSName& trigger)
 #endif /* HAVE_PROTOBUF */
 }
 
+void RecProtoBufMessage::setAppliedPolicyHit(const string& hit)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response && !hit.empty()) {
+    response->set_appliedpolicyhit(hit);
+  }
+#endif /* HAVE_PROTOBUF */
+}
+
 void RecProtoBufMessage::setPolicyTags(const std::unordered_set<std::string>& policyTags)
 {
 #ifdef HAVE_PROTOBUF
