@@ -50,8 +50,10 @@ A small example of the functionality of a :class:`DNSName` is shown below:
   .. method:: DNSName:equal(name) -> bool
 
     Returns true when both names are equal for the DNS, i.e case insensitive.
+    
+    To compare two ``DNSName`` objects, use ``==``.
 
-    :param DNSName name: The name to compare against.
+    :param DNSName string: The name to compare against.
 
   .. method:: DNSName:isPartOf(name) -> bool
 
