@@ -27,13 +27,17 @@
 #include "namespaces.hh"
 #include "dnsrecords.hh"
 
-static const string rpzDropName("rpz-drop."),
+// Names below are RPZ Actions and end with a dot (execpt "Local Data")
+static const std::string rpzDropName("rpz-drop."),
   rpzTruncateName("rpz-tcp-only."),
   rpzNoActionName("rpz-passthru."),
-  rpzClientIPName("rpz-client-ip"),
-  rpzIPName("rpz-ip."),
-  rpzNSDnameName("rpz-nsdname."),
-  rpzNSIPName("rpz-nsip.");
+  rpzCustomName("Local Data");
+
+// Names below are (part) of RPZ Trigger names and do NOT end with a dot
+static const std::string rpzClientIPName("rpz-client-ip"),
+  rpzIPName("rpz-ip"),
+  rpzNSDnameName("rpz-nsdname"),
+  rpzNSIPName("rpz-nsip");
 
 DNSFilterEngine::DNSFilterEngine()
 {
@@ -103,7 +107,7 @@ bool DNSFilterEngine::Zone::findNamedPolicy(const std::unordered_map<DNSName, DN
     if(iter != polmap.end()) {
       pol=iter->second;
       pol.d_trigger = g_wildcarddnsname+s;
-      pol.d_hit = qname.toString();
+      pol.d_hit = qname.toStringNoDot();
       return true;
     }
   }
@@ -120,7 +124,7 @@ bool DNSFilterEngine::Zone::findExactNamedPolicy(const std::unordered_map<DNSNam
   if (it != polmap.end()) {
     pol = it->second;
     pol.d_trigger = qname;
-    pol.d_hit = qname.toString();
+    pol.d_hit = qname.toStringNoDot();
     return true;
   }
 
@@ -176,8 +180,8 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
     if (z->findExactNSPolicy(qname, pol)) {
       // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
       pol.d_trigger = qname;
-      pol.d_trigger.appendRawLabel("rpz-nsdname");
-      pol.d_hit = qname.toString();
+      pol.d_trigger.appendRawLabel(rpzNSDnameName);
+      pol.d_hit = qname.toStringNoDot();
       return true;
     }
 
@@ -186,7 +190,7 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
         pol.d_trigger = wc;
         pol.d_trigger.appendRawLabel(rpzNSDnameName);
-        pol.d_hit = qname.toString();
+        pol.d_hit = qname.toStringNoDot();
         return true;
       }
     }
@@ -291,7 +295,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
       pol.d_trigger = qname;
-      pol.d_hit = qname.toString();
+      pol.d_hit = qname.toStringNoDot();
       return true;
     }
 
@@ -299,7 +303,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
       if (z->findExactQNamePolicy(wc, pol)) {
         // cerr<<"Had a hit on the name of the query"<<endl;
         pol.d_trigger = wc;
-        pol.d_hit = qname.toString();
+        pol.d_hit = qname.toStringNoDot();
         return true;
       }
     }
@@ -545,6 +549,10 @@ bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, const Policy& pol)
   return rmNetmaskTrigger(d_propolNSAddr, nm, pol);
 }
 
+std::string DNSFilterEngine::Policy::getLogString() const {
+  return ": RPZ Hit; PolicyName=" + getName() + "; Trigger=" + d_trigger.toLogString() + "; Hit=" + d_hit + "; Type=" + getTypeToString(d_type) + "; Kind=" + getKindToString(d_kind);
+}
+
 DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const
 {
   DNSRecord dr;
@@ -622,6 +630,8 @@ std::string DNSFilterEngine::getKindToString(DNSFilterEngine::PolicyKind kind)
     return g_wildcarddnsname.toString();
   case DNSFilterEngine::PolicyKind::Truncate:
     return rpzTruncateName;
+  case DNSFilterEngine::PolicyKind::Custom:
+    return rpzCustomName;
   default:
     throw std::runtime_error("Unexpected DNSFilterEngine::Policy kind");
   }

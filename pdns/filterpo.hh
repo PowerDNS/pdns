@@ -152,6 +152,7 @@ public:
       return (d_type != DNSFilterEngine::PolicyType::None && d_kind != DNSFilterEngine::PolicyKind::NoAction);
     }
 
+    std::string getLogString() const;
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
