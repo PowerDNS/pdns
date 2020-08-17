@@ -7,7 +7,6 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   DNSName name;
-  bool sign = false;
 
   if (!p.getTKEYRecord(&tkey_in, &name)) {
     g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
@@ -22,26 +21,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_inception = time((time_t*)NULL);
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
-  GssContext ctx(name);
-
   if (tkey_in.d_mode == 3) { // establish context
     if (tkey_in.d_algo == DNSName("gss-tsig.")) {
-      std::vector<std::string> meta;
-      DNSName tmpName(name);
-      do {
-        if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
-          break;
-        }
-      } while(tmpName.chopOff());
-
-      if (meta.size()>0) {
-        ctx.setLocalPrincipal(meta[0]);
-      }
-      // try to get a context
-      if (!ctx.accept(tkey_in.d_key, tkey_out->d_key))
-        tkey_out->d_error = 19;
-      else
-        sign = true;
+      tkey_out->d_error = 19;
     } else {
       tkey_out->d_error = 21; // BADALGO
     }
@@ -53,10 +35,8 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
         r->setRcode(RCode::NotAuth);
       return;
     }
-    if (ctx.valid())
-      ctx.destroy();
-    else
-      tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
+
+    tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
   } else {
     if (p.d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
       if (p.d.opcode == Opcode::Update)
@@ -80,20 +60,5 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_content = tkey_out;
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
   r->addRecord(std::move(zrr));
-
-  if (sign)
-  {
-    TSIGRecordContent trc;
-    trc.d_algoName = DNSName("gss-tsig");
-    trc.d_time = tkey_out->d_inception;
-    trc.d_fudge = 300;
-    trc.d_mac = "";
-    trc.d_origID = p.d.id;
-    trc.d_eRcode = 0;
-    trc.d_otherData = "";
-    // this should cause it to lookup name context
-    r->setTSIGDetails(trc, name, name.toStringNoDot(), "", false);
-  }
-
   r->commitD();
 }

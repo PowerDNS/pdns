@@ -48,7 +48,6 @@
 
 #include "dns_random.hh"
 #include <poll.h>
-#include "gss_context.hh"
 #include "namespaces.hh"
 
 using pdns::resolver::parseResult;

@@ -32,7 +32,6 @@
 #include "dnssecinfra.hh"
 
 #include "dns_random.hh"
-#include "gss_context.hh"
 #include <boost/multi_index_container.hpp>
 #include "axfr-retriever.hh"
 #include <fstream>

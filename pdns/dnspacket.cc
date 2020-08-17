@@ -48,7 +48,6 @@
 #include "dnssecinfra.hh"
 #include "base64.hh"
 #include "ednssubnet.hh"
-#include "gss_context.hh"
 #include "dns_random.hh"
 #include "shuffle.hh"
 
@@ -634,14 +633,12 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
     tt.algo = DNSName("hmac-md5");
 
   string secret64;
-  if (tt.algo != DNSName("gss-tsig")) {
-    if(!B->getTSIGKey(*keyname, &tt.algo, &secret64)) {
-      g_log<<Logger::Error<<"Packet for domain '"<<this->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<tt.algo<<"'"<<endl;
-      return false;
-    }
-    B64Decode(secret64, *secret);
-    tt.secret = *secret;
+  if(!B->getTSIGKey(*keyname, &tt.algo, &secret64)) {
+    g_log<<Logger::Error<<"Packet for domain '"<<this->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<tt.algo<<"'"<<endl;
+    return false;
   }
+  B64Decode(secret64, *secret);
+  tt.secret = *secret;
 
   bool result;
 

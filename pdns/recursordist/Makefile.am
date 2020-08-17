@@ -120,7 +120,6 @@ pdns_recursor_SOURCES = \
 	filterpo.cc filterpo.hh \
 	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
-	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
@@ -242,7 +241,6 @@ testrunner_SOURCES = \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
 	gettime.cc gettime.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
