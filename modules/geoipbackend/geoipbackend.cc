@@ -263,7 +263,7 @@ void GeoIPBackend::initialize() {
     for(auto &item: dom.records) {
       map<uint16_t, float> weights;
       map<uint16_t, float> sums;
-      map<uint16_t, GeoIPDNSResourceRecord> lasts;
+      map<uint16_t, GeoIPDNSResourceRecord*> lasts;
       bool has_weight=false;
       // first we look for used weight
       for(const auto &rr: item.second) {
@@ -277,13 +277,13 @@ void GeoIPBackend::initialize() {
           rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weights[rr_type])*1000.0);
           sums[rr_type] += rr.weight;
           rr.has_weight = has_weight;
-          lasts[rr_type] = rr;
+          lasts[rr_type] = &rr;
         }
         // remove rounding gap
         for(auto &x: lasts) {
           float sum = sums[x.first];
           if (sum < 1000)
-            x.second.weight += (1000-sum);
+            x.second->weight += (1000-sum);
         }
       }
     }
