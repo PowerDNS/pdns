@@ -159,6 +159,11 @@ paths:
           in: path
           required: true
           description: The id of the zone to retrieve
+        - name: rrsets
+          in: query
+          description: '“true” (default) or “false”, whether to include the “rrsets” in the response Zone object.'
+          type: boolean
+          default: true
       responses:
         '200':
           description: A Zone
