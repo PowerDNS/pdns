@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <string>
+#include <tuple>
 #include <map>
 #include <time.h>
 #include <pthread.h>
