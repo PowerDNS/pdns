@@ -870,7 +870,7 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& 
 
 int PacketHandler::processNotify(const DNSPacket& p)
 {
-  /* now what? 
+  /* now what?
      was this notification from an approved address?
      was this notification approved by TSIG?
      We determine our internal SOA id (via UeberBackend)
@@ -948,7 +948,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
   }
 
   if(::arg().mustDo("slave")) {
-    g_log<<Logger::Debug<<"Queueing slave check for "<<p.qdomain<<endl;
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" - queueing check"<<endl;
     Communicator.addSlaveCheckRequest(di, p.d_remote);
   }
   return 0;
