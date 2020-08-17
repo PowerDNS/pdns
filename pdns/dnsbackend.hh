@@ -336,6 +336,12 @@ public:
   //! Can be called to seed the getArg() function with a prefix
   void setArgPrefix(const string &prefix);
 
+  //! Add an entry for a super master
+  virtual bool superMasterAdd(const string &ip, const string &nameserver, const string &account) 
+  {
+    return false; 
+  }
+
   //! determine if ip is a supermaster or a domain
   virtual bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
   {
