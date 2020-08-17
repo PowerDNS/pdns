@@ -256,11 +256,18 @@ private:
   int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype=QType::ANY);
+
+  bool upgradeToSchemav3();
   
   bool get_list(DNSZoneRecord &rr);
   bool get_lookup(DNSZoneRecord &rr);
   std::string d_matchkey;
   DNSName d_lookupdomain;
+
+  vector<DNSResourceRecord> d_currentrrset;
+  size_t d_currentrrsetpos;
+  MDBOutVal d_currentKey;
+  MDBOutVal d_currentVal;
   
   DNSName d_transactiondomain;
   uint32_t d_transactiondomainid;
