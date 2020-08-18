@@ -495,87 +495,93 @@ void APLRecordContent::report(void)
 {
   regist(1, QType::APL, &make, &make, "APL");
 }
+
 // Parse incoming packets (e.g. nsupdate)
 std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, PacketReader& pr) {
   uint8_t temp;
-
-  if(dr.d_clen < 5 or dr.d_clen > 20)
-    throw MOADNSException("Wrong size for APL record");
+  APLRDataElement ard;
+  int processed = 0;
 
   auto ret=std::make_shared<APLRecordContent>();
-  pr.xfr16BitInt(ret->d_family);
-  pr.xfr8BitInt(ret->d_prefix);
-  pr.xfr8BitInt(temp);
-  ret->d_n = (temp & 128) >> 7;
-  ret->d_afdlength = temp & 127;
 
-  if (ret->d_family == APL_FAMILY_IPV4) { // IPv4
-    if (ret->d_afdlength > 4) {
-      throw MOADNSException("Invalid IP length for IPv4 APL");
-    }
-    bzero(ret->d_ip4, sizeof(ret->d_ip4));
-    // Call min because we can't trust d_afdlength in an inbound packet
-    for (u_int i=0; i < min(ret->d_afdlength, (u_int)4); i++)
-      pr.xfr8BitInt(ret->d_ip4[i]);
-  } else if (ret->d_family == APL_FAMILY_IPV6) {
-    if (ret->d_afdlength > 16) {
-      throw MOADNSException("Invalid IP length for IPv6 APL");
-    }
-    bzero(ret->d_ip6, sizeof(ret->d_ip6));
-    // Call min because we can't trust d_afdlength in an inbound packet
-    for (u_int i=0; i < min(ret->d_afdlength, (u_int)16); i++)
-      pr.xfr8BitInt(ret->d_ip6[i]);
-  } else
+  while (processed<dr.d_clen) {
+    pr.xfr16BitInt(ard.d_family);
+    pr.xfr8BitInt(ard.d_prefix);
+    pr.xfr8BitInt(temp);
+    ard.d_n = (temp & 128) >> 7;
+    ard.d_afdlength = temp & 127;
+
+    if (ard.d_family == APL_FAMILY_IPV4) { // IPv4
+      if (ard.d_afdlength > 4) {
+        throw MOADNSException("Invalid IP length for IPv4 APL");
+      }
+      bzero(ard.d_ip4, sizeof(ard.d_ip4));
+      // Call min because we can't trust d_afdlength in an inbound packet
+      for (u_int i=0; i < min(ard.d_afdlength, (u_int)4); i++)
+        pr.xfr8BitInt(ard.d_ip4[i]);
+    } else if (ard.d_family == APL_FAMILY_IPV6) {
+      if (ard.d_afdlength > 16) {
+        throw MOADNSException("Invalid IP length for IPv6 APL");
+      }
+      bzero(ard.d_ip6, sizeof(ard.d_ip6));
+      // Call min because we can't trust d_afdlength in an inbound packet
+      for (u_int i=0; i < min(ard.d_afdlength, (u_int)16); i++)
+        pr.xfr8BitInt(ard.d_ip6[i]);
+    } else
     throw MOADNSException("Unknown family for APL record");
+
+    processed += 4 + ard.d_afdlength;
+
+    ret->aplrdata.push_back(ard);
+  }
 
   return ret;
 }
 
-// Parse backend record
-std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
+// Parse a single APL <apitem>
+APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
   string record;
   Netmask nm;
   int bytes;
   bool done_trimming;
-
-  auto ret=std::make_shared<APLRecordContent>();
+  APLRDataElement ard;
 
   // Parse the optional leading ! (negate)
-  if (zone[0] == '!') {
-    ret->d_n = true;
-    record = zone.substr(1, zone.length()-1);
+  if (element[0] == '!') {
+    ard.d_n = true;
+    record = element.substr(1, element.length()-1);
   } else {
-    ret->d_n = false;
-    record = zone;
+    ard.d_n = false;
+    record = element;
   }
 
   if (record.find("/") == string::npos) { // Required by RFC section 5
-    throw MOADNSException("Asked to decode '"+zone+"' as an APL record, but missing subnet mask");
+    throw MOADNSException("Asked to decode '"+element+"' as an APL record, but missing subnet mask");
   }
 
 
   if (record.find("1:", 0) == 0) { // IPv4
     uint32_t v4ip;
 
-    ret->d_family = APL_FAMILY_IPV4;
+    ard.d_family = APL_FAMILY_IPV4;
 
     // Ensure that a mask is provided
 
     // Read IPv4 string into a Netmask object
     nm = Netmask(record.substr(2, record.length() - 2));
-    ret->d_prefix = nm.getBits();
+    ard.d_prefix = nm.getBits();
 
     if (nm.getNetwork().isIPv4() == 0)
-      throw MOADNSException("Asked to decode '"+zone+"' as an APL v4 record");
+      throw MOADNSException("Asked to decode '"+element+"' as an APL v4 record");
 
     // Section 4.1 of RFC 3123 (don't send trailing "0" bytes)
     // Copy data; using array of bytes since we might end up truncating them in the packet
     v4ip = ntohl(nm.getNetwork().sin4.sin_addr.s_addr);
-    bzero(ret->d_ip4, sizeof(ret->d_ip4));
+    bzero(ard.d_ip4, sizeof(ard.d_ip4));
     bytes  = 4; // Start by assuming we'll send 4 bytes
     done_trimming = false;
     for (int i=0; i<4; i++) {
-      ret->d_ip4[3-i] = (v4ip & 255);
+      ard.d_ip4[3-i] = (v4ip & 255);
       // Remove trailing "0" bytes from packet and update length
       if ((v4ip & 255) == 0 and !done_trimming) {
         bytes--;
@@ -584,25 +590,25 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
       }
       v4ip = v4ip >> 8;
     }
-    ret->d_afdlength = bytes;
+    ard.d_afdlength = bytes;
 
   } else if (record.find("2:", 0) == 0) { // IPv6
-    ret->d_family = APL_FAMILY_IPV6;
+    ard.d_family = APL_FAMILY_IPV6;
 
     // Parse IPv6 string into a Netmask object
     nm = Netmask(record.substr(2, record.length() - 2));
-    ret->d_prefix = nm.getBits();
+    ard.d_prefix = nm.getBits();
 
     if (nm.getNetwork().isIPv6() == 0)
-      throw MOADNSException("Asked to decode '"+zone+"' as an APL v6 record");
+      throw MOADNSException("Asked to decode '"+element+"' as an APL v6 record");
 
     // Section 4.2 of RFC 3123 (don't send trailing "0" bytes)
     // Remove trailing "0" bytes from packet and reduce length
-    bzero(ret->d_ip6, sizeof(ret->d_ip6));
+    bzero(ard.d_ip6, sizeof(ard.d_ip6));
     bytes = 16; // Start by assuming we'll send 16 bytes
     done_trimming = false;
     for (int i=0; i<16; i++) {
-      ret->d_ip6[15-i] = nm.getNetwork().sin6.sin6_addr.s6_addr[15-i];
+      ard.d_ip6[15-i] = nm.getNetwork().sin6.sin6_addr.s6_addr[15-i];
       if (nm.getNetwork().sin6.sin6_addr.s6_addr[15-i] == 0 and !done_trimming) {
         // trailing 0 byte, update length
         bytes--;
@@ -610,68 +616,96 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
         done_trimming = true;
       }
     }
-    ret->d_afdlength = bytes;
+    ard.d_afdlength = bytes;
 
   } else {
-      throw MOADNSException("Asked to encode '"+zone+"' as an IPv6 APL record but got unknown Address Family");
+      throw MOADNSException("Asked to encode '"+element+"' as an IPv6 APL record but got unknown Address Family");
   }
+  return ard;
 
+}
+
+// Parse backend record (0, 1 or more <apitem>)
+std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
+  APLRDataElement ard;
+  vector<string> elements;
+
+  auto ret=std::make_shared<APLRecordContent>();
+
+  boost::split(elements, zone, boost::is_any_of(" "));
+  for (std::vector<std::string>::iterator elem = elements.begin() ; elem != elements.end(); ++elem) {
+    if (!elem->empty()) {
+      ard = ret->parseAPLElement(*elem);
+      ret->aplrdata.push_back(ard);
+    }
+  }
   return ret;
 }
 
+
 // DNSRecord to Packet conversion
 void APLRecordContent::toPacket(DNSPacketWriter& pw) {
-
-    pw.xfr16BitInt(d_family);
-    pw.xfr8BitInt(d_prefix);
-    pw.xfr8BitInt((d_n << 7) + d_afdlength);
-    if (d_family == APL_FAMILY_IPV4) {
-      for (int i=0; i<d_afdlength; i++) {
-        pw.xfr8BitInt(d_ip4[i]);
+  for (std::vector<APLRDataElement>::iterator ard = aplrdata.begin() ; ard != aplrdata.end(); ++ard) {
+    pw.xfr16BitInt(ard->d_family);
+    pw.xfr8BitInt(ard->d_prefix);
+    pw.xfr8BitInt((ard->d_n << 7) + ard->d_afdlength);
+    if (ard->d_family == APL_FAMILY_IPV4) {
+      for (int i=0; i<ard->d_afdlength; i++) {
+        pw.xfr8BitInt(ard->d_ip4[i]);
       }
-    } else if (d_family == APL_FAMILY_IPV6) {
-      for (int i=0; i<d_afdlength; i++) {
-        pw.xfr8BitInt(d_ip6[i]);
+    } else if (ard->d_family == APL_FAMILY_IPV6) {
+      for (int i=0; i<ard->d_afdlength; i++) {
+        pw.xfr8BitInt(ard->d_ip6[i]);
       }
     }
+  }
 }
 
 // Decode record into string
 string APLRecordContent::getZoneRepresentation(bool noDot) const {
-  string s_n, s_family;
+  string s_n, s_family, output;
   ComboAddress ca;
   Netmask nm;
 
-  // Negation flag
-  if (d_n) {
-    s_n = "!";
-  } else {
-    s_n = "";
-  }
+  output = "";
 
-  if (d_family == APL_FAMILY_IPV4) { // IPv4
-    s_family = std::to_string(APL_FAMILY_IPV4);
-    ca = ComboAddress();
-    for (int i=0; i < 4; i++) {
-        ca.sin4.sin_addr.s_addr |= d_ip4[i] << (i*8);
+  for (std::vector<APLRDataElement>::const_iterator ard = aplrdata.begin() ; ard != aplrdata.end(); ++ard) {
+
+    // Negation flag
+    if (ard->d_n) {
+      s_n = "!";
+    } else {
+      s_n = "";
     }
-  } else if (d_family == APL_FAMILY_IPV6) { // IPv6
-    s_family = std::to_string(APL_FAMILY_IPV6);
-    ca = ComboAddress();
-    ca.sin4.sin_family = AF_INET6;
-    for (int i=0; i < 16; i++) {
-      if (i < d_afdlength) {
-        ca.sin6.sin6_addr.s6_addr[i] = d_ip6[i];
-      } else {
-        ca.sin6.sin6_addr.s6_addr[i] = 0;
+
+    if (ard->d_family == APL_FAMILY_IPV4) { // IPv4
+      s_family = std::to_string(APL_FAMILY_IPV4);
+      ca = ComboAddress();
+      for (int i=0; i < 4; i++) {
+          ca.sin4.sin_addr.s_addr |= ard->d_ip4[i] << (i*8);
       }
+    } else if (ard->d_family == APL_FAMILY_IPV6) { // IPv6
+      s_family = std::to_string(APL_FAMILY_IPV6);
+      ca = ComboAddress();
+      ca.sin4.sin_family = AF_INET6;
+      for (int i=0; i < 16; i++) {
+        if (i < ard->d_afdlength) {
+          ca.sin6.sin6_addr.s6_addr[i] = ard->d_ip6[i];
+        } else {
+          ca.sin6.sin6_addr.s6_addr[i] = 0;
+        }
+      }
+    } else {
+      throw MOADNSException("Asked to decode APL record but got unknown Address Family");
     }
-  } else {
-    throw MOADNSException("Asked to decode APL record but got unknown Address Family");
-  }
 
-  nm = Netmask(ca, d_prefix);
-  return s_n + s_family + ":" + nm.toString();
+    nm = Netmask(ca, ard->d_prefix);
+
+    output += s_n + s_family + ":" + nm.toString();
+    if (std::next(ard) != aplrdata.end())
+      output += " ";
+  }
+  return output;
 }
 
 /* APL end */
@@ -819,7 +853,6 @@ void reportOtherTypes()
    RRSIGRecordContent::report();
    DSRecordContent::report();
    CDSRecordContent::report();
-   IPSECKEYRecordContent::report();
    SSHFPRecordContent::report();
    CERTRecordContent::report();
    NSECRecordContent::report();
