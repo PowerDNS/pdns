@@ -34,7 +34,7 @@ Configuring the Recursor
 The configuration file is called ``recursor.conf`` and is located in the ``SYSCONFDIR`` defined at compile-time.
 This is usually ``/etc/powerdns``, ``/etc/pdns``, ``/etc/pdns-recursor``, ``/usr/local/etc`` or similar.
 
-Run ``pdns_recursor --no-config --config | grep config-dir`` to find this location on you installation.
+Run ``pdns_recursor --config=default | grep config-dir`` to find this location on you installation.
 
 The PowerDNS Recursor listens on the local loopback interface by default, this can be changed with the :ref:`setting-local-address` setting.
 

@@ -190,7 +190,7 @@ the C function 'snprintf' which implies that substitutions are performed
 on the basis of %-placeholders.
 
 To see the default queries for a backend, run
-``pdns_server --no-config --launch=BACKEND --config``.
+``pdns_server --launch=BACKEND --config=default``.
 
 Regular Queries
 ^^^^^^^^^^^^^^^

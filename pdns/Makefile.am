@@ -1264,7 +1264,7 @@ endif
 endif
 
 pdns.conf-dist: pdns_server
-	$(AM_V_GEN)./pdns_server --no-config --config=default 2>/dev/null > $@
+	$(AM_V_GEN)./pdns_server --config=default 2>/dev/null > $@
 
 testrunner_SOURCES = \
 	arguments.cc \
