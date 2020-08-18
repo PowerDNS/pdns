@@ -436,6 +436,18 @@ rebalanced-queries
 
 number of queries balanced to a different worker thread because the first selected one was above the target load configured with 'distribution-load-factor'
 
+record-cache-contended
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.0
+
+number of contented record cache mutex acquisitions
+
+record-cache-acquired
+^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.0
+number of record cache mutex acquisitions
+
+
 resource-limits
 ^^^^^^^^^^^^^^^
 counts number of queries that could not be   performed because of resource limits
