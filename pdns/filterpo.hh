@@ -347,6 +347,7 @@ public:
   bool getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
   bool getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
   bool getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
+  bool getPostPolicy(const DNSRecord& record, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& policy) const;
 
   // A few convenience methods for the unit test code
   Policy getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Priority p) const {

@@ -638,72 +638,27 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
-bool SyncRes::qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype, vector<DNSRecord> &ret, unsigned int depth)
-{
-  if (!d_wantsRPZ) {
-    return false;
-  }
-  if (s_maxdepth && depth > s_maxdepth) {
-    string prefix = d_prefix;
-    prefix.append(depth, ' ');
-    string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + target.toLogString();
-    LOG(prefix << target << ": " << msg << endl);
-    throw ImmediateServFailException(msg);
-  }
-
-  bool match = dfe.getQueryPolicy(target, d_discardedPolicies, d_appliedPolicy, true);
-  if (!match) {
-    return false;
-  }
-
-  mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
-  if (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
-    return false;
-  }
-  LOG(": (hit by RPZ policy '" + d_appliedPolicy.getName() + "')" << endl);
-  if (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Truncate) {
-    // XXX We don't know if we're doing TCP here....
-    return false;
-  }
-  if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Custom) {
-    return true;
-  }
-  auto spoofed = d_appliedPolicy.getCustomRecords(target, qtype.getCode());
-
-  // Add the record to the result vector being built, chase if we hit a CNAME
-  for (const auto& dr : spoofed) {
-    if (dr.d_place != DNSResourceRecord::ANSWER) {
-      continue;
-    }
-    ret.push_back(dr);
-    switch (dr.d_type) {
-    case QType::CNAME:
-      auto cnamecontent = getRR<CNAMERecordContent>(dr);
-      if (cnamecontent) {
-        target = cnamecontent->getTarget();
-        // This call wil return true if we hit a policy that needs an throw PolicyHitException
-        // For CNAME chasing, we don't want that since resolving should continue with the new target
-        return qnameRPZHit(dfe, target, qtype, ret, depth + 1);
-      }
-      break;
-    }
-  }
-
-  return true;
-}
-
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
-int SyncRes::doResolve(const DNSName &qnameArg, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
+int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
-  DNSName qname(qnameArg);
+  string prefix = d_prefix;
+  prefix.append(depth, ' ');
   auto luaconfsLocal = g_luaconfs.getLocal();
 
-  // Can change qname
-  bool hit = qnameRPZHit(luaconfsLocal->dfe, qname, qtype, ret, depth + 1);
-  if (hit) {
-    throw PolicyHitException();
+  /* Apply qname (including CNAME chain) filtering policies */
+  if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+    if (luaconfsLocal->dfe.getQueryPolicy(qname, d_discardedPolicies, d_appliedPolicy)) {
+      mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+      bool done = false;
+      int rcode = RCode::NoError;
+      handlePolicyHit(prefix, qname, qtype, ret, done, rcode, depth);
+      if (done) {
+        return rcode;
+      }
+    }
   }
+
   // In the auth or recursive forward case, it does not make sense to do qname-minimization
   if (!getQNameMinimization() || isRecursiveForwardOrAuth(qname)) {
     return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
@@ -725,8 +680,6 @@ int SyncRes::doResolve(const DNSName &qnameArg, const QType &qtype, vector<DNSRe
   // moves to three labels per iteration after three iterations.
 
   DNSName child;
-  string prefix = d_prefix;
-  prefix.append(depth, ' ');
   prefix.append(string("QM ") + qname.toString() + "|" + qtype.getName());
 
   QLOG("doResolve");
@@ -917,23 +870,46 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
       }
     }
 
-    if(doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
+    if (doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
       // Do not set *fromCache; res does not reflect the final result in all cases
+        /* Apply Post filtering policies */
+
+      if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+        auto luaLocal = g_luaconfs.getLocal();
+        if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+          mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+          bool done = false;
+          handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+        }
+      }
+
       return res;
     }
 
-    if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
+    if (doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
       // we done
       d_wasOutOfBand = wasAuthZone;
-      if (fromCache)
+      if (fromCache) {
         *fromCache = true;
+      }
+
+      if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+        auto luaLocal = g_luaconfs.getLocal();
+        if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+          mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+          bool done = false;
+          handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+        }
+      }
+
       return res;
     }
   }
 
-  if(d_cacheonly)
+  if (d_cacheonly) {
     return 0;
+  }
 
   LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl);
 
@@ -956,8 +932,21 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
   LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<state<<endl);
 
-  if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation)))
+  res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
+
+  /* Apply Post filtering policies */
+  if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+    auto luaLocal = g_luaconfs.getLocal();
+    if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+      mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+      bool done = false;
+      handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+    }
+  }
+
+  if (!res) {
     return 0;
+  }
 
   LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
 
@@ -1951,13 +1940,100 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
   ret.insert(ret.end(), ne.DNSSECRecords.signatures.begin(), ne.DNSSECRecords.signatures.end());
 }
 
+static bool rpzHitShouldReplaceContent(const DNSName& qname, const QType& qtype, const std::vector<DNSRecord>& records)
+{
+  if (qtype == QType::CNAME) {
+    return true;
+  }
+
+  for (const auto& record : records) {
+    if (record.d_type == QType::CNAME) {
+      if (auto content = getRR<CNAMERecordContent>(record)) {
+        if (qname == content->getTarget()) {
+          /* we have a CNAME whose target matches the entry we are about to
+             generate, so it will complete the current records, not replace
+             them
+          */
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, const QType& qtype, std::vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth)
+{
+  /* don't account truncate actions for TCP queries, since they are not applied */
+  if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !d_queryReceivedOverTCP) {
+    ++g_stats.policyResults[d_appliedPolicy.d_kind];
+  }
+
+  cerr<<"Handling policy hit for "<<qname<<" of type "<<(int)d_appliedPolicy.d_kind<<endl;
+  switch (d_appliedPolicy.d_kind) {
+
+  case DNSFilterEngine::PolicyKind::NoAction:
+      return;
+
+  case DNSFilterEngine::PolicyKind::Drop:
+    ++g_stats.policyDrops;
+    throw ImmediateQueryDropException();
+
+  case DNSFilterEngine::PolicyKind::NXDOMAIN:
+    ret.clear();
+    rcode = RCode::NXDomain;
+    done = true;
+    return;
+
+  case DNSFilterEngine::PolicyKind::NODATA:
+    ret.clear();
+    rcode = RCode::NoError;
+    done = true;
+    return;
+
+  case DNSFilterEngine::PolicyKind::Truncate:
+    if (!d_queryReceivedOverTCP) {
+      ret.clear();
+      rcode = RCode::NoError;
+      throw SendTruncatedAnswerException();
+    }
+    return;
+
+  case DNSFilterEngine::PolicyKind::Custom:
+    {
+      cerr<<"custom"<<endl;
+      if (rpzHitShouldReplaceContent(qname, qtype, ret)) {
+        cerr<<"clearing"<<endl;
+        ret.clear();
+      }
+
+      rcode = RCode::NoError;
+      done = true;
+      auto spoofed = d_appliedPolicy.getCustomRecords(qname, qtype.getCode());
+      for (auto& dr : spoofed) {
+        ret.push_back(dr);
+
+        if (dr.d_name == qname && dr.d_type == QType::CNAME && qtype != QType::CNAME) {
+          if (auto content = getRR<CNAMERecordContent>(dr)) {
+#warning FIXME shall we stop RPZ processing from here?
+            // https://tools.ietf.org/html/draft-vixie-dnsop-dns-rpz-00#section-6
+            vState newTargetState = vState::Indeterminate;
+            handleNewTarget(prefix, qname, content->getTarget(), qtype.getCode(), ret, rcode, depth, {}, newTargetState);
+          }
+        }
+      }
+    }
+  }
+}
+
 bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers)
 {
   /* we skip RPZ processing if:
      - it was disabled (d_wantsRPZ is false) ;
      - we already got a RPZ hit (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) since
      the only way we can get back here is that it was a 'pass-thru' (NoAction) meaning that we should not
-     process any further RPZ rules.
+     process any further RPZ rules. Except that we need to process rules of higher priority..
   */
   if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
     for (auto const &ns : nameservers) {
@@ -1992,7 +2068,7 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
      - it was disabled (d_wantsRPZ is false) ;
      - we already got a RPZ hit (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) since
      the only way we can get back here is that it was a 'pass-thru' (NoAction) meaning that we should not
-     process any further RPZ rules.
+     process any further RPZ rules. Except that we need to process rules of higher priority..
   */
   if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
     bool match = dfe.getProcessingPolicy(remoteIP, d_discardedPolicies, d_appliedPolicy);
@@ -2321,6 +2397,8 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
   }
 
   const bool oldCacheOnly = setCacheOnly(false);
+  const bool oldWantsRPZ = d_wantsRPZ;
+  d_wantsRPZ = false;
 
   dsmap_t ds;
   vState cutState = getDSRecords(end, ds, false, depth);
@@ -2329,6 +2407,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
 
   if (!shouldValidate()) {
     setCacheOnly(oldCacheOnly);
+    d_wantsRPZ = oldWantsRPZ;
     return;
   }
 
@@ -2397,6 +2476,7 @@ void SyncRes::computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned
     }
   }
   setCacheOnly(oldCacheOnly);
+  d_wantsRPZ = oldWantsRPZ;
 }
 
 vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth)
@@ -3050,7 +3130,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
   return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE);
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, unsigned int depth)
 {
   bool done = false;
   DNSName dnameTarget, dnameOwner;
@@ -3073,8 +3153,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       LOG(prefix<<qname<<": got negative caching indication for name '"<<qname<<"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget<<"'"<<endl);
 
       rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
-      if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
+      // only add a SOA if we're not going anywhere after this
+      if (newtarget.empty()) {
         ret.push_back(rec);
+      }
 
       NegCache::NegCacheEntry ne;
 
@@ -3122,7 +3204,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         }
         ret.push_back(rec);
         if (auto content = getRR<CNAMERecordContent>(rec)) {
-          newtarget=content->getTarget();
+          newtarget=DNSName(content->getTarget());
         }
       } else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
         ret.push_back(rec);
@@ -3167,7 +3249,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     {
       LOG(prefix<<qname<<": answer is in: resolved to '"<< rec.d_content->getZoneRepresentation()<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"'"<<endl);
 
-      done=true;
+      done = true;
+      rcode = RCode::NoError;
 
       if (state == vState::Secure && needWildcardProof) {
         /* We have a positive answer synthesized from a wildcard, we need to check that we have
@@ -3201,6 +3284,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           updateValidationStatusInCache(qname, qtype, lwr.d_aabit, st);
         }
       }
+
       ret.push_back(rec);
     }
     else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER) {
@@ -3262,8 +3346,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         }
       }
     }
-    else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
-            lwr.d_rcode==RCode::NoError && qname.isPartOf(rec.d_name)) {
+    else if (!done && rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
+            lwr.d_rcode == RCode::NoError && qname.isPartOf(rec.d_name)) {
       LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype.getName()<<"'"<<endl);
 
       if(!newtarget.empty()) {
@@ -3311,7 +3395,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     cnamerec.d_type = QType::CNAME;
     cnamerec.d_ttl = dnameTTL;
     cnamerec.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newtarget));
-    ret.push_back(cnamerec);
+    ret.push_back(std::move(cnamerec));
   }
   return done;
 }
@@ -3464,6 +3548,49 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   return true;
 }
 
+void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, uint16_t qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state)
+{
+  if (newtarget == qname) {
+    LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
+    ret.clear();
+    rcode = RCode::ServFail;
+    return;
+  }
+
+  if (depth > 10) {
+    LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
+    rcode = RCode::ServFail;
+    return;
+  }
+
+  // Check to see if we already have seen the new target as a previous target
+  if (scanForCNAMELoop(newtarget, ret)) {
+    LOG(prefix<<qname<<": status=got a CNAME referral that causes a loop, returning SERVFAIL"<<endl);
+    ret.clear();
+    rcode = RCode::ServFail;
+    return;
+  }
+
+  if (qtype == QType::DS || qtype == QType::DNSKEY) {
+    LOG(prefix<<qname<<": status=got a CNAME referral, but we are looking for a DS or DNSKEY"<<endl);
+
+    if (d_doDNSSEC) {
+      addNXNSECS(ret, recordsFromAnswer);
+    }
+
+    rcode = RCode::NoError;
+    return;
+  }
+
+  LOG(prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl);
+
+  set<GetBestNSAnswer> beenthere;
+  vState cnameState = vState::Indeterminate;
+  rcode = doResolve(newtarget, QType(qtype), ret, depth + 1, beenthere, cnameState);
+  LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<state<<" with the state from the CNAME quest: "<<cnameState<<endl);
+  updateValidationState(state, cnameState);
+}
+
 bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state)
 {
   string prefix;
@@ -3503,56 +3630,17 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   DNSName newauth;
   DNSName newtarget;
 
-  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount);
+  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, *rcode, depth);
 
-  if(done){
+  if (done){
     LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);
     LOG(prefix<<qname<<": validation status is "<<state<<endl);
-    *rcode = RCode::NoError;
     return true;
   }
 
-  if(!newtarget.empty()) {
-    if(newtarget == qname) {
-      LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
-      ret.clear();
-      *rcode = RCode::ServFail;
-      return true;
-    }
-
-    if(depth > 10) {
-      LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
-      *rcode = RCode::ServFail;
-      return true;
-    }
-
-    // Check to see if we already have seen the new target as a previous target
-    if (scanForCNAMELoop(newtarget, ret)) {
-      LOG(prefix<<qname<<": status=got a CNAME referral that causes a loop, returning SERVFAIL"<<endl);
-      ret.clear();
-      *rcode = RCode::ServFail;
-      return true;
-    }
-
-    if (qtype == QType::DS || qtype == QType::DNSKEY) {
-      LOG(prefix<<qname<<": status=got a CNAME referral, but we are looking for a DS or DNSKEY"<<endl);
-
-      if(d_doDNSSEC)
-        addNXNSECS(ret, lwr.d_records);
-
-      *rcode = RCode::NoError;
-      return true;
-    }
-    else {
-      LOG(prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl);
-
-      set<GetBestNSAnswer> beenthere2;
-      vState cnameState = vState::Indeterminate;
-      *rcode = doResolve(newtarget, qtype, ret, depth + 1, beenthere2, cnameState);
-      LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<state<<" with the state from the CNAME quest: "<<cnameState<<endl);
-      updateValidationState(state, cnameState);
-      return true;
-    }
+  if (!newtarget.empty()) {
+    handleNewTarget(prefix, qname, newtarget, qtype.getCode(), ret, *rcode, depth, lwr.d_records, state);
+    return true;
   }
 
   if(lwr.d_rcode == RCode::NXDomain) {

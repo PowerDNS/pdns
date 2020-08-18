@@ -730,6 +730,11 @@ public:
     return d_queryValidationState;
   }
 
+  void setQueryReceivedOverTCP(bool tcp)
+  {
+    d_queryReceivedOverTCP = tcp;
+  }
+
   static thread_local ThreadLocalStorage t_sstorage;
 
   static std::atomic<uint64_t> s_queries;
@@ -823,7 +828,6 @@ private:
   bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated);
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state);
 
-  bool qnameRPZHit(const DNSFilterEngine& dfe, DNSName& target, const QType& qtype, vector<DNSRecord>& ret, unsigned int depth);
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state);
   int doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool* fromCache = NULL, StopAtDelegation* stopAtDelegation = NULL, bool considerforwards = true);
   bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res);
@@ -848,7 +852,7 @@ private:
 
   void sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
   RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool sendRDQuery);
-  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherwildcardProof, const unsigned int wildcardLabelsCount);
+  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherwildcardProof, const unsigned int wildcardLabelsCount, int& rcode, unsigned int depth);
 
   bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret);
 
@@ -872,6 +876,10 @@ private:
 
   bool lookForCut(const DNSName& qname, unsigned int depth, const vState existingState, vState& newState);
   void computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth);
+
+  void handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, uint16_t qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state);
+
+  void handlePolicyHit(const std::string& prefix, const DNSName& qname, const QType& qtype, vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth);
 
   void setUpdatingRootNS()
   {
@@ -905,6 +913,7 @@ private:
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
   bool d_qNameMinimization{false};
+  bool d_queryReceivedOverTCP{false};
 
   LogMode d_lm;
 };
@@ -1064,6 +1073,14 @@ public:
 };
 
 class PolicyHitException
+{
+};
+
+class ImmediateQueryDropException
+{
+};
+
+class SendTruncatedAnswerException
 {
 };
 
