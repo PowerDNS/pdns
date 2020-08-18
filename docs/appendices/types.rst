@@ -77,7 +77,7 @@ The APL record,
 specified in :rfc:`3123`, is used
 to specify a DNS RR type "APL" for address prefix lists.
 
-.. _types-apl:
+.. _types-caa:
 
 CAA
 ---
