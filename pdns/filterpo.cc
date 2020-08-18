@@ -311,7 +311,7 @@ void DNSFilterEngine::assureZones(size_t zone)
     d_zones.resize(zone+1);
 }
 
-void DNSFilterEngine::Zone::addToNameMap(std::unordered_map<DNSName,Policy>& map, const DNSName& n, Policy&& pol, bool ignoreDuplicate, PolicyType ptype)
+void DNSFilterEngine::Zone::addNameTrigger(std::unordered_map<DNSName,Policy>& map, const DNSName& n, Policy&& pol, bool ignoreDuplicate, PolicyType ptype)
 {
   auto it = map.find(n);
 
@@ -337,7 +337,7 @@ void DNSFilterEngine::Zone::addToNameMap(std::unordered_map<DNSName,Policy>& map
   }
 }
 
-void DNSFilterEngine::Zone::addToNetmaskTree(NetmaskTree<Policy>& nmt, const Netmask& nm, Policy&& pol, bool ignoreDuplicate, PolicyType ptype)
+void DNSFilterEngine::Zone::addNetmaskTrigger(NetmaskTree<Policy>& nmt, const Netmask& nm, Policy&& pol, bool ignoreDuplicate, PolicyType ptype)
 {
   bool exists = nmt.has_key(nm);
 
@@ -365,60 +365,23 @@ void DNSFilterEngine::Zone::addToNetmaskTree(NetmaskTree<Policy>& nmt, const Net
   }
 }
 
-void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
+bool DNSFilterEngine::Zone::rmNameTrigger(std::unordered_map<DNSName,Policy>& map, const DNSName& n, const Policy& pol)
 {
-  addToNetmaskTree(d_qpolAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::ClientIP);
-}
-
-void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
-{
-  addToNetmaskTree(d_postpolAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::ResponseIP);
-}
-
-void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
-{
-  addToNameMap(d_qpolName, n, std::move(pol), ignoreDuplicate, PolicyType::QName);
-}
-
-void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
-{
-  addToNameMap(d_propolName, n, std::move(pol), ignoreDuplicate, PolicyType::NSDName);
-}
-
-void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
-{
-  addToNetmaskTree(d_propolNSAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::NSIP);
-}
-
-bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, const Policy& pol)
-{
-  d_qpolAddr.erase(nm);
-  return true;
-}
-
-bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, const Policy& pol)
-{
-  d_postpolAddr.erase(nm);
-  return true;
-}
-
-bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, const Policy& pol)
-{
-  auto found = d_qpolName.find(n);
-  if (found == d_qpolName.end()) {
+  auto found = map.find(n);
+  if (found == map.end()) {
     return false;
   }
 
   auto& existing = found->second;
   if (existing.d_kind != DNSFilterEngine::PolicyKind::Custom) {
-    d_qpolName.erase(found);
+    map.erase(found);
     return true;
   }
 
   /* for custom types, we might have more than one type,
      and then we need to remove only the right ones. */
   if (existing.d_custom.size() <= 1) {
-    d_qpolName.erase(found);
+    map.erase(found);
     return true;
   }
 
@@ -436,16 +399,90 @@ bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, const Policy& pol)
   return result;
 }
 
+bool DNSFilterEngine::Zone::rmNetmaskTrigger(NetmaskTree<Policy>& nmt, const Netmask& nm, const Policy& pol)
+{
+  bool found = nmt.has_key(nm);
+  if (!found) {
+    return false;
+  }
+
+  // XXX NetMaskTree's node_type has a non-const second, but lookup() returns a const node_type *, so we cannot modify second
+  // Should look into making lookup) return a non-const node_type *...
+  auto& existing = const_cast<Policy&>(nmt.lookup(nm)->second);
+  if (existing.d_kind != DNSFilterEngine::PolicyKind::Custom) {
+    nmt.erase(nm);
+    return true;
+  }
+
+  /* for custom types, we might have more than one type,
+     and then we need to remove only the right ones. */
+  if (existing.d_custom.size() <= 1) {
+    nmt.erase(nm);
+    return true;
+  }
+
+  bool result = false;
+  for (auto& toRemove : pol.d_custom) {
+    for (auto it = existing.d_custom.begin(); it != existing.d_custom.end(); ++it) {
+      if (**it == *toRemove) {
+        existing.d_custom.erase(it);
+        result = true;
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
+{
+  addNetmaskTrigger(d_qpolAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::ClientIP);
+}
+
+void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
+{
+  addNetmaskTrigger(d_postpolAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::ResponseIP);
+}
+
+void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
+{
+  addNameTrigger(d_qpolName, n, std::move(pol), ignoreDuplicate, PolicyType::QName);
+}
+
+void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
+{
+  addNameTrigger(d_propolName, n, std::move(pol), ignoreDuplicate, PolicyType::NSDName);
+}
+
+void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
+{
+  addNetmaskTrigger(d_propolNSAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::NSIP);
+}
+
+bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, const Policy& pol)
+{
+  return rmNetmaskTrigger(d_qpolAddr, nm, pol);
+}
+
+bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, const Policy& pol)
+{
+  return rmNetmaskTrigger(d_postpolAddr, nm, pol);
+}
+
+bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, const Policy& pol)
+{
+  return rmNameTrigger(d_qpolName, n, pol);
+}
+
 bool DNSFilterEngine::Zone::rmNSTrigger(const DNSName& n, const Policy& pol)
 {
-  d_propolName.erase(n); // XXX verify policy matched? =pol;
-  return true;
+  return rmNameTrigger(d_propolName, n, pol);
 }
 
 bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, const Policy& pol)
 {
-  d_propolNSAddr.erase(nm);
-  return true;
+  return rmNetmaskTrigger(d_propolNSAddr, nm, pol);
 }
 
 DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const
