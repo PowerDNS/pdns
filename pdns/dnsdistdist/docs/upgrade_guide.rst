@@ -25,6 +25,8 @@ Packages provided on `the PowerDNS Repository <https://repo.powerdns.com>`__ wil
 This might not be sufficient if the dnsdist configuration refers to files outside of the /etc/dnsdist directory, like DoT or DoH certificates and private keys.
 Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
 
+The :func:`webserver` configuration now has an optional ACL parameter, that defaults to "127.0.0.1, ::1".
+
 1.3.x to 1.4.0
 --------------
 
