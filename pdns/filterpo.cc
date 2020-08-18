@@ -311,33 +311,19 @@ void DNSFilterEngine::assureZones(size_t zone)
     d_zones.resize(zone+1);
 }
 
-void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy&& pol)
+void DNSFilterEngine::Zone::addToNameMap(std::unordered_map<DNSName,Policy>& map, const DNSName& n, Policy&& pol, bool ignoreDuplicate, PolicyType ptype)
 {
-  pol.d_zoneData = d_zoneData;
-  pol.d_type = PolicyType::ClientIP;
-  d_qpolAddr.insert(nm).second=std::move(pol);
-}
+  auto it = map.find(n);
 
-void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol)
-{
-  pol.d_zoneData = d_zoneData;
-  pol.d_type = PolicyType::ResponseIP;
-  d_postpolAddr.insert(nm).second=std::move(pol);
-}
-
-void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
-{
-  auto it = d_qpolName.find(n);
-
-  if (it != d_qpolName.end()) {
+  if (it != map.end()) {
     auto& existingPol = it->second;
 
     if (pol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
-      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following QName: " + n.toLogString());
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following name: " + n.toLogString());
     }
 
     if (existingPol.d_kind != PolicyKind::Custom && ignoreDuplicate) {
-      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following QName: " + n.toLogString());
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following name: " + n.toLogString());
     }
 
     existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
@@ -345,24 +331,63 @@ void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool
     std::move(pol.d_custom.begin(), pol.d_custom.end(), std::back_inserter(existingPol.d_custom));
   }
   else {
-    auto& qpol = d_qpolName.insert({n, std::move(pol)}).first->second;
+    auto& qpol = map.insert({n, std::move(pol)}).first->second;
     qpol.d_zoneData = d_zoneData;
-    qpol.d_type = PolicyType::QName;
+    qpol.d_type = ptype;
   }
 }
 
-void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy&& pol)
+void DNSFilterEngine::Zone::addToNetmaskTree(NetmaskTree<Policy>& nmt, const Netmask& nm, Policy&& pol, bool ignoreDuplicate, PolicyType ptype)
 {
-  pol.d_zoneData = d_zoneData;
-  pol.d_type = PolicyType::NSDName;
-  d_propolName.insert({n, std::move(pol)});
+  bool exists = nmt.has_key(nm);
+
+  if (exists) {
+    // XXX NetMaskTree's node_type has a non-const second, but lookup() returns a const node_type *, so we cannot modify second
+    // Should look into making lookup) return a non-const node_type *...
+    auto& existingPol = const_cast<Policy&>(nmt.lookup(nm)->second);
+
+    if (pol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following netmask: " + nm.toString());
+    }
+
+    if (existingPol.d_kind != PolicyKind::Custom && ignoreDuplicate) {
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following netmask: " + nm.toString());
+    }
+
+    existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
+
+    std::move(pol.d_custom.begin(), pol.d_custom.end(), std::back_inserter(existingPol.d_custom));
+  }
+  else {
+    pol.d_zoneData = d_zoneData;
+    pol.d_type = ptype;
+    nmt.insert(nm).second = std::move(pol);
+  }
 }
 
-void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy&& pol)
+void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
 {
-  pol.d_zoneData = d_zoneData;
-  pol.d_type = PolicyType::NSIP;
-  d_propolNSAddr.insert(nm).second = std::move(pol);
+  addToNetmaskTree(d_qpolAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::ClientIP);
+}
+
+void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
+{
+  addToNetmaskTree(d_postpolAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::ResponseIP);
+}
+
+void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
+{
+  addToNameMap(d_qpolName, n, std::move(pol), ignoreDuplicate, PolicyType::QName);
+}
+
+void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
+{
+  addToNameMap(d_propolName, n, std::move(pol), ignoreDuplicate, PolicyType::NSDName);
+}
+
+void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate)
+{
+  addToNetmaskTree(d_propolNSAddr, nm, std::move(pol), ignoreDuplicate, PolicyType::NSIP);
 }
 
 bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, const Policy& pol)

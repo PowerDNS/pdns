@@ -147,14 +147,14 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      zone->addNSTrigger(filt, std::move(pol));
+      zone->addNSTrigger(filt, std::move(pol), defpolApplied);
     else
       zone->rmNSTrigger(filt, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzClientIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzClientIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addClientTrigger(nm, std::move(pol));
+      zone->addClientTrigger(nm, std::move(pol), defpolApplied);
     else
       zone->rmClientTrigger(nm, std::move(pol));
     
@@ -163,14 +163,14 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
     DNSName filt=dr.d_name.makeRelative(rpzIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addResponseTrigger(nm, std::move(pol));
+      zone->addResponseTrigger(nm, std::move(pol), defpolApplied);
     else
       zone->rmResponseTrigger(nm, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addNSIPTrigger(nm, std::move(pol));
+      zone->addNSIPTrigger(nm, std::move(pol), defpolApplied);
     else
       zone->rmNSIPTrigger(nm, std::move(pol));
   } else {
