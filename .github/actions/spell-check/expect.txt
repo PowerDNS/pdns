@@ -662,6 +662,7 @@ fcgi
 fcontext
 fd
 fda
+fdc
 fdce
 fdd
 fdde
@@ -983,6 +984,7 @@ keyfile
 keygen
 keyname
 keypair
+keypairgen
 keyroll
 keysearch
 keysize
@@ -1958,6 +1960,7 @@ toc
 toctree
 todo
 toint
+tokenuser
 tolower
 Tolstov
 Toshifumi
