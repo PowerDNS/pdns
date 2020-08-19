@@ -131,7 +131,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("chroot","Switch to this chroot jail")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
   ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";
-  ::arg().set("any-lookups-only","Send only ANY lookup operations to the backend to reduce the number of lookups")="yes";
+  ::arg().set("consistent-backends", "Assume individual domains are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups")="yes";
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname.c_str()))

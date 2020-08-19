@@ -95,7 +95,7 @@ bool UeberBackend::loadModules(const vector<string>& modules, const string& path
 
 void UeberBackend::go(void)
 {
-  if (::arg().mustDo("any-lookups-only")) {
+  if (::arg().mustDo("consistent-backends")) {
     s_doANYLookupsOnly = true;
   }
 
