@@ -537,7 +537,6 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data_netmask)
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
   }
-
 }
 
 BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
