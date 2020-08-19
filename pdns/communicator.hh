@@ -45,6 +45,7 @@ struct SuckRequest
 {
   DNSName domain;
   ComboAddress master;
+  bool force;
   bool operator<(const SuckRequest& b) const
   {
     return tie(domain, master) < tie(b.domain, b.master);
@@ -161,7 +162,7 @@ public:
   
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
-  void addSuckRequest(const DNSName &domain, const ComboAddress& master);
+  void addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force=false);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(const DNSPacket& p);
   void notify(const DNSName &domain, const string &ip);
@@ -176,7 +177,7 @@ private:
   int d_nsock4, d_nsock6;
   map<pair<DNSName,string>,time_t>d_holes;
   std::mutex d_holelock;
-  void suck(const DNSName &domain, const ComboAddress& remote);
+  void suck(const DNSName &domain, const ComboAddress& remote, bool force=false);
   void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, std::unique_ptr<AuthLua4>& pdl,
                 ZoneStatus& zs, vector<DNSRecord>* axfr);
 

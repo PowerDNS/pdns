@@ -239,8 +239,8 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   extern CommunicatorClass Communicator;
   ostringstream os;
-  if(parts.size()!=2)
-    return "syntax: retrieve domain";
+  if(parts.size()!=2 && parts.size()!=3)
+    return "syntax: retrieve domain [ip]";
 
   DNSName domain;
   try {
@@ -249,17 +249,34 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
     return "Failed to parse domain as valid DNS name";
   }
 
+  ComboAddress master_ip;
+  bool override_master = false;
+  if (parts.size() == 3) {
+    try {
+      master_ip = ComboAddress{parts[2], 53};
+    } catch (...) {
+      return "Invalid master address";
+    }
+    override_master = true;
+  }
+
   DomainInfo di;
   UeberBackend B;
-  if(!B.getDomainInfo(domain, di))
-    return "Domain '"+domain.toString()+"' unknown";
-  
-  if(di.kind != DomainInfo::Slave || di.masters.empty())
+  if(!B.getDomainInfo(domain, di)) {
+    return " Domain '"+domain.toString()+"' unknown";
+  }
+
+  if (override_master) {
+    di.masters.clear();
+    di.masters.push_back(master_ip);
+  }
+
+  if(!override_master && (di.kind != DomainInfo::Slave || di.masters.empty()))
     return "Domain '"+domain.toString()+"' is not a slave domain (or has no master defined)";
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  auto master = di.masters.front();
-  Communicator.addSuckRequest(domain, master);
+  const auto& master = di.masters.front();
+  Communicator.addSuckRequest(domain, master, override_master);
   g_log<<Logger::Warning<<"Retrieval request for domain '"<<domain<<"' from master '"<<master<<"' received from operator"<<endl;
   return "Added retrieval request for '"+domain.toLogString()+"' from master "+master.toLogString();
 }
