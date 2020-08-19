@@ -64,6 +64,15 @@ Interval in seconds to check for zone file changes. Default is 0 (disabled).
 
 See :ref:`bind-operation` section for more information.
 
+.. _setting-bind-load-threads:
+
+``bind-load-threads``
+~~~~~~~~~~~~~~~
+
+The number of threads to use when loading zone files. The default is 1 thread
+but if you have a lot of files you can significantly improve (re)load
+performance by increasing this to roughly the number of cores on your server.
+
 .. _setting-bind-dnssec-db:
 
 ``bind-dnssec-db``

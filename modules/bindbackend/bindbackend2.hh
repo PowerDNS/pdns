@@ -170,8 +170,11 @@ class NSEC3PARAMRecordContent;
 struct NameTag
 {};
 
+class BindParallelParser;
+
 class Bind2Backend : public DNSBackend
 {
+  friend class BindParallelParser;
 public:
   Bind2Backend(const string &suffix="", bool loadZones=true); 
   ~Bind2Backend();
