@@ -1357,6 +1357,19 @@ Disabled by default, which also disables outgoing IPv6 support.
 
 Don't log queries.
 
+.. _setting-record-cache-shards
+
+``record-cache-shards``
+------------------------
+.. versionadded:: 4.4.0
+-  Integer
+-  Default: 1024
+
+Sets the number of shards in the record cache. If you have high
+contention as reported by
+``record-cache-contented/record-cache-acquired``, you can try to
+enlarge this value or run with fewer threads.
+
 .. _setting-reuseport:
 
 ``reuseport``
