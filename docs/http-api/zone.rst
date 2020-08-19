@@ -37,7 +37,7 @@ Changes made through the Zones API will always yield valid zone data, as the API
 
 DNSSEC-enabled zones should be :ref:`rectified <rules-for-filling-out-dnssec-fields>` after changing the zone data.
 This can be done by the API automatically after a change when the :ref:`metadata-api-rectify` metadata is set.
-When creating or updating a zone, the "api_rectify" field of the :json:object:`ZOne` can be set to `true` to enable this behaviour.
+When creating or updating a zone, the "api_rectify" field of the :json:object:`Zone` can be set to `true` to enable this behaviour.
 
 Backends might implement additional features (by coincidence or not).
 These things are not supported through the API.
