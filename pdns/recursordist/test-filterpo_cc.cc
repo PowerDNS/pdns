@@ -417,6 +417,129 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_filter_policies_local_data_netmask)
+{
+  DNSFilterEngine dfe;
+
+  std::string zoneName("Unit test policy local data using netmasks");
+  auto zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName(zoneName);
+
+  const DNSName name("foo.example.com");
+  const Netmask nm1("192.168.1.0/24");
+
+  zone->addClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.4")}));
+  zone->addClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.5")}));
+  zone->addClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::AAAA, QClass::IN, "::1234")}));
+  BOOST_CHECK_EQUAL(zone->size(), 1U);
+
+  dfe.addZone(zone);
+
+  { // A query should match two records
+    const auto matchingPolicy = dfe.getQueryPolicy(name, ComboAddress("192.168.1.1"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(DNSName(), QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 2U);
+    const auto& record1 = records.at(0);
+    BOOST_CHECK(record1.d_type == QType::A);
+    BOOST_CHECK(record1.d_class == QClass::IN);
+    auto content1 = std::dynamic_pointer_cast<ARecordContent>(record1.d_content);
+    BOOST_CHECK(content1 != nullptr);
+    BOOST_CHECK_EQUAL(content1->getCA().toString(), "1.2.3.4");
+
+    const auto& record2 = records.at(1);
+    BOOST_CHECK(record2.d_type == QType::A);
+    BOOST_CHECK(record2.d_class == QClass::IN);
+    auto content2 = std::dynamic_pointer_cast<ARecordContent>(record2.d_content);
+    BOOST_CHECK(content2 != nullptr);
+    BOOST_CHECK_EQUAL(content2->getCA().toString(), "1.2.3.5");
+  }
+
+  { // AAAA query should match 1 record
+    const auto matchingPolicy = dfe.getQueryPolicy(name, ComboAddress("192.168.1.1"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(DNSName(), QType::AAAA);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record1 = records.at(0);
+    BOOST_CHECK(record1.d_type == QType::AAAA);
+    BOOST_CHECK(record1.d_class == QClass::IN);
+    auto content1 = std::dynamic_pointer_cast<AAAARecordContent>(record1.d_content);
+    BOOST_CHECK(content1 != nullptr);
+    BOOST_CHECK_EQUAL(content1->getCA().toString(), "::1234");
+  }
+
+  // Try to zap 1 nonexisting record
+  zone->rmClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.1.1.1")}));
+
+  // Zap a record using a wider netmask
+  zone->rmClientTrigger(Netmask("192.168.0.0/16"), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.4")}));
+
+  // Zap a record using a narrow netmask
+  zone->rmClientTrigger(Netmask("192.168.1.1/32"), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.4")}));
+
+  // Zap 1 existing record
+  zone->rmClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.5")}));
+
+  { // A query should match one record now
+    const auto matchingPolicy = dfe.getQueryPolicy(name, ComboAddress("192.168.1.1"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(DNSName(), QType::A);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record1 = records.at(0);
+    BOOST_CHECK(record1.d_type == QType::A);
+    BOOST_CHECK(record1.d_class == QClass::IN);
+    auto content1 = std::dynamic_pointer_cast<ARecordContent>(record1.d_content);
+    BOOST_CHECK(content1 != nullptr);
+    BOOST_CHECK_EQUAL(content1->getCA().toString(), "1.2.3.4");
+  }
+  { // AAAA query should still match one record
+    const auto matchingPolicy = dfe.getQueryPolicy(name, ComboAddress("192.168.1.1"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(DNSName(), QType::AAAA);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record1 = records.at(0);
+    BOOST_CHECK(record1.d_type == QType::AAAA);
+    BOOST_CHECK(record1.d_class == QClass::IN);
+    auto content1 = std::dynamic_pointer_cast<AAAARecordContent>(record1.d_content);
+    BOOST_CHECK(content1 != nullptr);
+    BOOST_CHECK_EQUAL(content1->getCA().toString(), "::1234");
+  }
+
+  // Zap one more A record
+  zone->rmClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.4")}));
+
+  // Zap now nonexisting record
+  zone->rmClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::A, QClass::IN, "1.2.3.4")}));
+
+  { // AAAA query should still match one record
+    const auto matchingPolicy = dfe.getQueryPolicy(name, ComboAddress("192.168.1.1"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
+    auto records = matchingPolicy.getCustomRecords(DNSName(), QType::AAAA);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
+    const auto& record1 = records.at(0);
+    BOOST_CHECK(record1.d_type == QType::AAAA);
+    BOOST_CHECK(record1.d_class == QClass::IN);
+    auto content1 = std::dynamic_pointer_cast<AAAARecordContent>(record1.d_content);
+    BOOST_CHECK(content1 != nullptr);
+    BOOST_CHECK_EQUAL(content1->getCA().toString(), "::1234");
+  }
+
+  // Zap AAAA record
+  zone->rmClientTrigger(nm1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::ClientIP, 0, nullptr, {DNSRecordContent::mastermake(QType::AAAA, QClass::IN, "::1234")}));
+
+  { // there should be no match left
+    const auto matchingPolicy = dfe.getQueryPolicy(name, ComboAddress("192.168.1.1"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+}
+
 BOOST_AUTO_TEST_CASE(test_multiple_filter_policies)
 {
   DNSFilterEngine dfe;

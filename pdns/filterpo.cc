@@ -380,11 +380,6 @@ bool DNSFilterEngine::Zone::rmNameTrigger(std::unordered_map<DNSName,Policy>& ma
 
   /* for custom types, we might have more than one type,
      and then we need to remove only the right ones. */
-  if (existing.d_custom.size() <= 1) {
-    map.erase(found);
-    return true;
-  }
-
   bool result = false;
   for (auto& toRemove : pol.d_custom) {
     for (auto it = existing.d_custom.begin(); it != existing.d_custom.end(); ++it) {
@@ -394,6 +389,12 @@ bool DNSFilterEngine::Zone::rmNameTrigger(std::unordered_map<DNSName,Policy>& ma
         break;
       }
     }
+  }
+
+  // No records left for this trigger?
+  if (existing.d_custom.size() == 0) {
+    map.erase(found);
+    return true;
   }
 
   return result;
@@ -416,10 +417,6 @@ bool DNSFilterEngine::Zone::rmNetmaskTrigger(NetmaskTree<Policy>& nmt, const Net
 
   /* for custom types, we might have more than one type,
      and then we need to remove only the right ones. */
-  if (existing.d_custom.size() <= 1) {
-    nmt.erase(nm);
-    return true;
-  }
 
   bool result = false;
   for (auto& toRemove : pol.d_custom) {
@@ -430,6 +427,12 @@ bool DNSFilterEngine::Zone::rmNetmaskTrigger(NetmaskTree<Policy>& nmt, const Net
         break;
       }
     }
+  }
+
+  // No records left for this trigger?
+  if (existing.d_custom.size() == 0) {
+    nmt.erase(nm);
+    return true;
   }
 
   return result;
