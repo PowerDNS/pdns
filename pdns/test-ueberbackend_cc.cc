@@ -335,6 +335,7 @@ struct UeberBackendSetupArgFixture {
     extern AuthQueryCache QC;
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
+    ::arg().set("consistent-backends")="no";
     QC.cleanup();
     BackendMakers().clear();
     SimpleBackend::s_zones.clear();
