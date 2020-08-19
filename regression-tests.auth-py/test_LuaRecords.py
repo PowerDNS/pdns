@@ -117,6 +117,8 @@ any              IN           TXT "hello there"
 
 resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}} for _,v in ipairs(r) do table.insert(t, v:toString()) end return t"
 
+*.createforward  IN    LUA    A   "createForward()"
+
         """,
     }
     _web_rrsets = []
@@ -610,6 +612,41 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(res.answer, response.answer)
+
+    def testCreateForward(self):
+        name_suffix = '.createforward.example.org.'
+
+        name_expected = {
+            "1.2.3.4": "1.2.3.4",
+            "1.2.3.4.static": "1.2.3.4",
+            "1.2.3.4.5.6": "1.2.3.4",
+            "invalid.1.2.3.4": "0.0.0.0",
+            "invalid": "0.0.0.0",
+            "1-2-3-4": "1.2.3.4",
+            "1-2-3-4.foo": "1.2.3.4",
+            "1-2-3-4.foo.bar": "0.0.0.0",
+            "1-2-3-4.foo.bar.baz": "0.0.0.0",
+            "1-2-3-4.foo.bar.baz.quux": "0.0.0.0",
+            "ip-1-2-3-4": "1.2.3.4",
+            "ip-is-here-for-you-1-2-3-4": "1.2.3.4",
+            "ip40414243": "64.65.66.67",
+            "ipp40414243": "0.0.0.0",
+            "ip4041424": "0.0.0.0",
+        }
+
+        for k, v in name_expected.items():
+            name = k + name_suffix
+
+            query = dns.message.make_query(name, 'A')
+            response = dns.message.make_response(query)
+            response.answer.append(dns.rrset.from_text(
+                name, 0, dns.rdataclass.IN, dns.rdatatype.A, v))
+
+            res = self.sendUDPQuery(query)
+            print(res)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(res.answer, response.answer)
+
 
 if __name__ == '__main__':
     unittest.main()
