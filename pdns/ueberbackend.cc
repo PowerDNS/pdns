@@ -99,7 +99,7 @@ void UeberBackend::go(void)
   S.declare("backend-queries", "Number of queries sent to the backend(s)");
   s_backendQueries = S.getPointer("backend-queries");
 
-  if (::arg().mustDo("any-lookups-only")) {
+  if (::arg().mustDo("consistent-backends")) {
     s_doANYLookupsOnly = true;
   }
 
