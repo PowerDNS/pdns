@@ -2855,7 +2855,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
 
           if(g_weDistributeQueries) {
-            distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues));
+            distributeAsyncFunction(data, [data = data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues]() mutable
+              { return doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues); });
           }
           else {
             ++s_threadInfos[t_id].numberOfDistributedQueries;
@@ -3549,7 +3550,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 
     const auto& tps = threadInfo.pipes;
     ThreadMSG* tmsg = new ThreadMSG();
-    tmsg->func = boost::bind(voider<T>, func);
+    tmsg->func = [func]{ return voider<T>(func); };
     tmsg->wantAnswer = true;
 
     if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
@@ -3839,7 +3840,7 @@ catch(PDNSException& ae)
 
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end)
 {
-  return broadcastAccFunction<string>(boost::bind(pleaseUseNewTraceRegex, begin!=end ? *begin : ""));
+  return broadcastAccFunction<string>([=]{ return pleaseUseNewTraceRegex(begin!=end ? *begin : ""); });
 }
 
 static void checkLinuxIPv6Limits()
@@ -3960,7 +3961,7 @@ void parseACLs()
   }
 
   g_initialAllowFrom = allowFrom;
-  broadcastFunction(boost::bind(pleaseSupplantACLs, allowFrom));
+  broadcastFunction([=]{ return pleaseSupplantACLs(allowFrom); });
   oldAllowFrom = nullptr;
 
   l_initialized = true;

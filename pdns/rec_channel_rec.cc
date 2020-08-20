@@ -250,7 +250,7 @@ static string doDumpNSSpeeds(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpNSSpeeds, fd));
+    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpNSSpeeds(fd); });
   }
   catch(std::exception& e)
   {
@@ -281,7 +281,7 @@ static string doDumpCache(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = s_RC->doDump(fd) + broadcastAccFunction<uint64_t>(boost::bind(pleaseDump, fd));
+    total = s_RC->doDump(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
   }
   catch(...){}
   
@@ -303,7 +303,7 @@ static string doDumpEDNSStatus(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpEDNSMap, fd));
+    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpEDNSMap(fd); });
   }
   catch(...){}
 
@@ -364,7 +364,7 @@ static string doDumpThrottleMap(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpThrottleMap, fd));
+    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpThrottleMap(fd); });
   }
   catch(...){}
 
@@ -386,7 +386,7 @@ static string doDumpFailedServers(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpFailedServers, fd));
+    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpFailedServers(fd); });
   }
   catch(...){}
 
@@ -435,9 +435,9 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
 
   int count=0, pcount=0, countNeg=0;
   for (auto wipe : toWipe) {
-    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, wipe.first, wipe.second, qtype));
-    pcount+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, wipe.first, wipe.second, qtype));
-    countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, wipe.first, wipe.second));
+    count+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipeCache(wipe.first, wipe.second, qtype);});
+    pcount+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipePacketCache(wipe.first, wipe.second, qtype);});
+    countNeg+=broadcastAccFunction<uint64_t>([=]{ return pleaseWipeAndCountNegCache(wipe.first, wipe.second);});
   }
 
   return "wiped "+std::to_string(count)+" records, "+std::to_string(countNeg)+" negative records, "+std::to_string(pcount)+" packets\n";
@@ -538,9 +538,9 @@ static string doAddNTA(T begin, T end)
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
-  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true, 0xffff));
-  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true, 0xffff));
-  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
+  broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(who, true, 0xffff);});
+  broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
+  broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(who, true);});
   return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
 }
 
@@ -586,9 +586,9 @@ static string doClearNTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.negAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true, 0xffff));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true, 0xffff));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
     if (!first) {
       first = false;
       removed += ",";
@@ -643,9 +643,9 @@ static string doAddTA(T begin, T end)
       auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[who].insert(*ds);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true, 0xffff));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true, 0xffff));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(who, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(who, true);});
     g_log<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
@@ -689,9 +689,9 @@ static string doClearTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.dsAnchors.erase(entry);
       });
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true, 0xffff));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true, 0xffff));
-    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
     if (!first) {
       first = false;
       removed += ",";
@@ -1112,13 +1112,13 @@ void registerAllStats()
   addGetStat("ecs-queries", &SyncRes::s_ecsqueries);
   addGetStat("ecs-responses", &SyncRes::s_ecsresponses);
   addGetStat("chain-resends", &g_stats.chainResends);
-  addGetStat("tcp-clients", boost::bind(TCPConnection::getCurrentConnections));
+  addGetStat("tcp-clients", []{return TCPConnection::getCurrentConnections();});
 
 #ifdef __linux__
-  addGetStat("udp-recvbuf-errors", boost::bind(udpErrorStats, "udp-recvbuf-errors"));
-  addGetStat("udp-sndbuf-errors", boost::bind(udpErrorStats, "udp-sndbuf-errors"));
-  addGetStat("udp-noport-errors", boost::bind(udpErrorStats, "udp-noport-errors"));
-  addGetStat("udp-in-errors", boost::bind(udpErrorStats, "udp-in-errors"));
+  addGetStat("udp-recvbuf-errors", []{return udpErrorStats("udp-recvbuf-errors");});
+  addGetStat("udp-sndbuf-errors", []{return udpErrorStats("udp-sndbuf-errors");});
+  addGetStat("udp-noport-errors", []{return udpErrorStats("udp-noport-errors");});
+  addGetStat("udp-in-errors", []{return udpErrorStats("udp-in-errors");});
 #endif
 
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
