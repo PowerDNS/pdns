@@ -500,7 +500,7 @@ void APLRecordContent::report(void)
 std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, PacketReader& pr) {
   uint8_t temp;
   APLRDataElement ard;
-  int processed = 0;
+  size_t processed = 0;
 
   auto ret=std::make_shared<APLRecordContent>();
 
@@ -511,21 +511,19 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
     ard.d_n = (temp & 128) >> 7;
     ard.d_afdlength = temp & 127;
 
-    if (ard.d_family == APL_FAMILY_IPV4) { // IPv4
+    if (ard.d_family == APL_FAMILY_IPV4) {
       if (ard.d_afdlength > 4) {
         throw MOADNSException("Invalid IP length for IPv4 APL");
       }
-      bzero(ard.d_ip4, sizeof(ard.d_ip4));
-      // Call min because we can't trust d_afdlength in an inbound packet
-      for (u_int i=0; i < min(ard.d_afdlength, (u_int)4); i++)
+      memset(ard.d_ip4, 0, sizeof(ard.d_ip4));
+      for (u_int i=0; i < ard.d_afdlength; i++)
         pr.xfr8BitInt(ard.d_ip4[i]);
     } else if (ard.d_family == APL_FAMILY_IPV6) {
       if (ard.d_afdlength > 16) {
         throw MOADNSException("Invalid IP length for IPv6 APL");
       }
-      bzero(ard.d_ip6, sizeof(ard.d_ip6));
-      // Call min because we can't trust d_afdlength in an inbound packet
-      for (u_int i=0; i < min(ard.d_afdlength, (u_int)16); i++)
+      memset(ard.d_ip6, 0, sizeof(ard.d_ip6));
+      for (u_int i=0; i < ard.d_afdlength; i++)
         pr.xfr8BitInt(ard.d_ip6[i]);
     } else
     throw MOADNSException("Unknown family for APL record");
@@ -542,12 +540,12 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
 APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
   string record;
   Netmask nm;
-  int bytes;
+  unsigned int bytes;
   bool done_trimming;
   APLRDataElement ard;
 
   // Parse the optional leading ! (negate)
-  if (element[0] == '!') {
+  if (element.at(0) == '!') {
     ard.d_n = true;
     record = element.substr(1, element.length()-1);
   } else {
@@ -577,7 +575,7 @@ APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
     // Section 4.1 of RFC 3123 (don't send trailing "0" bytes)
     // Copy data; using array of bytes since we might end up truncating them in the packet
     v4ip = ntohl(nm.getNetwork().sin4.sin_addr.s_addr);
-    bzero(ard.d_ip4, sizeof(ard.d_ip4));
+    memset(ard.d_ip4, 0, sizeof(ard.d_ip4));
     bytes  = 4; // Start by assuming we'll send 4 bytes
     done_trimming = false;
     for (int i=0; i<4; i++) {
@@ -604,7 +602,7 @@ APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
 
     // Section 4.2 of RFC 3123 (don't send trailing "0" bytes)
     // Remove trailing "0" bytes from packet and reduce length
-    bzero(ard.d_ip6, sizeof(ard.d_ip6));
+    memset(ard.d_ip6, 0, sizeof(ard.d_ip6));
     bytes = 16; // Start by assuming we'll send 16 bytes
     done_trimming = false;
     for (int i=0; i<16; i++) {
