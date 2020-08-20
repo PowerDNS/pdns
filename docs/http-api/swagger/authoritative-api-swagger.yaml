@@ -807,6 +807,7 @@ paths:
          * Changing the Name, this will remove the key with tsigkey_id after adding.
          * Changing the Algorithm
          * Changing the Key
+
         Only the relevant fields have to be provided in the request body.
       operationId: putTSIGKey
       tags:
