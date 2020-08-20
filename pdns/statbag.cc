@@ -105,6 +105,11 @@ StatType StatBag::getStatType(const string &item)
 
 void StatBag::declare(const string &key, const string &descrip, StatType statType)
 {
+  if(d_stats.count(key)) {
+    *d_stats[key] = 0;
+    return;
+  }
+
   auto i=make_unique<AtomicCounter>(0);
   d_stats[key]=std::move(i);
   d_keyDescrips[key]=descrip;
