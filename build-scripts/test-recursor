@@ -29,7 +29,6 @@ done
 [ -z $MODULES ] && echo "No module directory found" >&2 && exit 1
 
 # Symlink the modules on the system
-cd regression-tests/modules
 for backend in *.so; do
   ln -sf $MODULES/$backend $backend
 done
