@@ -714,12 +714,12 @@ bool UeberBackend::get(DNSZoneRecord &rr)
 
   if (!gotRecord) {
     // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-    if (s_doANYLookupsOnly && d_anyCount == 0 && d_handle.qname.countLabels()) {
+    if (s_doANYLookupsOnly && d_anyCount == 0 && !d_handle.qname.empty()) {
       /* we can negcache the whole name */
       // cerr<<"we can negcache the whole name"<<endl;
       addNegCache(d_question, QType::ANY);
     }
-    else if (d_ancount == 0 && d_handle.qname.countLabels()) {
+    else if (d_ancount == 0 && !d_handle.qname.empty()) {
       /* we can negcache that specific type */
       // cerr<<"we can negcache the exact type of type "<<d_question.qtype.getName()<<endl;
       addNegCache(d_question, d_question.qtype);
