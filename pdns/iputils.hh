@@ -1390,6 +1390,7 @@ int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
 int SSetsockopt(int sockfd, int level, int opname, int value);
 void setSocketIgnorePMTU(int sockfd);
+bool setReusePort(int sockfd);
 
 #if defined(IP_PKTINFO)
   #define GEN_IP_PKTINFO IP_PKTINFO

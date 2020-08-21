@@ -537,6 +537,7 @@ dumresp_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dumresp.cc \
+	iputils.cc iputils.hh \
 	logger.cc \
 	misc.cc misc.hh \
 	statbag.cc \
