@@ -319,11 +319,12 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
   do {
 
+    d_question.qtype = QType::SOA;
+    d_question.qname = shorter;
+    d_question.zoneId = -1;
+
     // Check cache
     if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
-      d_question.qtype = QType::SOA;
-      d_question.qname = shorter;
-      d_question.zoneId = -1;
 
       cstat = cacheHas(d_question,d_answers);
 
