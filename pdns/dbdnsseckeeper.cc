@@ -80,6 +80,7 @@ bool DNSSECKeeper::isPresigned(const DNSName& name)
   return meta=="1";
 }
 
+
 bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active, bool published)
 {
   if(!bits) {
@@ -119,27 +120,36 @@ void DNSSECKeeper::clearAllCaches() {
   s_metacache.clear();
 }
 
-void DNSSECKeeper::clearCaches(const DNSName& name)
+
+bool DNSSECKeeper::clearKeyCache(const DNSName& name)
 {
-  {
-    WriteLock l(&s_keycachelock);
-    s_keycache.erase(name); 
-  }
-  WriteLock l(&s_metacachelock);
-  s_metacache.erase(name);
+  WriteLock l(&s_keycachelock);
+  s_keycache.erase(name);
+  return true;
 }
 
+bool DNSSECKeeper::clearMetaCache(const DNSName& name)
+{
+  WriteLock l(&s_metacachelock);
+  s_metacache.erase(name);
+  return true;
+}
+
+void DNSSECKeeper::clearCaches(const DNSName& name)
+{
+  clearKeyCache(name);
+  clearMetaCache(name);
+}
 
 bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)
 {
-  clearCaches(name);
   DNSBackend::KeyData kd;
   kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
   kd.published = published;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb->addDomainKey(name, kd, id);
+  return d_keymetadb->addDomainKey(name, kd, id) && clearKeyCache(name);
 }
 
 
@@ -171,32 +181,27 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
 
 bool DNSSECKeeper::removeKey(const DNSName& zname, unsigned int id)
 {
-  clearCaches(zname);
-  return d_keymetadb->removeDomainKey(zname, id);
+  return d_keymetadb->removeDomainKey(zname, id) && clearKeyCache(zname);
 }
 
 bool DNSSECKeeper::deactivateKey(const DNSName& zname, unsigned int id)
 {
-  clearCaches(zname);
-  return d_keymetadb->deactivateDomainKey(zname, id);
+  return d_keymetadb->deactivateDomainKey(zname, id) && clearKeyCache(zname);
 }
 
 bool DNSSECKeeper::activateKey(const DNSName& zname, unsigned int id)
 {
-  clearCaches(zname);
-  return d_keymetadb->activateDomainKey(zname, id);
+  return d_keymetadb->activateDomainKey(zname, id) && clearKeyCache(zname);
 }
 
 bool DNSSECKeeper::unpublishKey(const DNSName& zname, unsigned int id)
 {
-  clearCaches(zname);
-  return d_keymetadb->unpublishDomainKey(zname, id);
+  return d_keymetadb->unpublishDomainKey(zname, id) && clearKeyCache(zname);
 }
 
 bool DNSSECKeeper::publishKey(const DNSName& zname, unsigned int id)
 {
-  clearCaches(zname);
-  return d_keymetadb->publishDomainKey(zname, id);
+  return d_keymetadb->publishDomainKey(zname, id) && clearKeyCache(zname);
 }
 
 void DNSSECKeeper::getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue)
@@ -351,7 +356,6 @@ bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordCon
   if (!checkNSEC3PARAM(ns3p, error_msg))
     throw runtime_error("NSEC3PARAMs provided for zone '"+zname.toLogString()+"' are invalid: " + error_msg);
 
-  clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
@@ -361,30 +365,27 @@ bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordCon
     if(narrow)
       meta.push_back("1");
     
-    return d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta);
+    return d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta) && clearMetaCache(zname);
   }
   return false;
 }
 
 bool DNSSECKeeper::unsetNSEC3PARAM(const DNSName& zname)
 {
-  clearCaches(zname);
-  return (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", vector<string>()) && d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", vector<string>()));
+  return (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", vector<string>()) && d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", vector<string>())) && clearMetaCache(zname);
 }
 
 
 bool DNSSECKeeper::setPresigned(const DNSName& zname)
 {
-  clearCaches(zname);
   vector<string> meta;
   meta.push_back("1");
-  return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", meta);
+  return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", meta) && clearMetaCache(zname);
 }
 
 bool DNSSECKeeper::unsetPresigned(const DNSName& zname)
 {
-  clearCaches(zname);
-  return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", vector<string>());
+  return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", vector<string>()) && clearMetaCache(zname);
 }
 
 /**
@@ -398,10 +399,9 @@ bool DNSSECKeeper::unsetPresigned(const DNSName& zname)
  */
 bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos)
 {
-  clearCaches(zname);
   vector<string> meta;
   meta.push_back(digestAlgos);
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", meta);
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", meta) && clearMetaCache(zname);
 }
 
 void DNSSECKeeper::getPublishCDS(const DNSName& zname, std::string& value)
@@ -417,8 +417,7 @@ void DNSSECKeeper::getPublishCDS(const DNSName& zname, std::string& value)
  */
 bool DNSSECKeeper::unsetPublishCDS(const DNSName& zname)
 {
-  clearCaches(zname);
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", vector<string>());
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", vector<string>()) && clearMetaCache(zname);
 }
 
 /**
@@ -429,10 +428,9 @@ bool DNSSECKeeper::unsetPublishCDS(const DNSName& zname)
  */
 bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
 {
-  clearCaches(zname);
   vector<string> meta;
   meta.push_back("1");
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta);
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta) && clearMetaCache(zname);
 }
 
 void DNSSECKeeper::getPublishCDNSKEY(const DNSName& zname, std::string& value)
@@ -448,8 +446,7 @@ void DNSSECKeeper::getPublishCDNSKEY(const DNSName& zname, std::string& value)
  */
 bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
 {
-  clearCaches(zname);
-  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", vector<string>());
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", vector<string>()) && clearMetaCache(zname);
 }
 
 /**
