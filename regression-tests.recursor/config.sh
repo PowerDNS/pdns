@@ -137,6 +137,7 @@ ns.arthur.example.net.   3600 IN A   $PREFIX.12
 ns2.arthur.example.net.  3600 IN A   $PREFIX.13
 www.arthur.example.net.  3600 IN A   192.0.2.2
 www2.arthur.example.net. 3600 IN A   192.0.2.6
+www3.arthur.example.net. 3600 IN A   192.0.2.6
 mail.arthur.example.net. 3600 IN A   192.0.2.3
 big.arthur.example.net.  3600 IN TXT "the quick brown fox jumps over the lazy dog"
 big.arthur.example.net.  3600 IN TXT "The quick brown fox jumps over the lazy dog"
@@ -243,7 +244,7 @@ cat > $PREFIX.16/trillian.example.net.zone <<EOF
 trillian.example.net.         3600 IN SOA $SOA
 trillian.example.net.         3600 IN NS  ns.trillian.example.net.
 ns.trillian.example.net.      3600 IN A     $PREFIX.16
-www.trillian.example.net.     3600 IN CNAME www2.arthur.example.net.
+www.trillian.example.net.     3600 IN CNAME www3.arthur.example.net.
 EOF
 
 cat > $PREFIX.16/prequery.lua <<EOF
@@ -258,7 +259,7 @@ function prequery ( dnspacket )
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
-        ret[1] = newDR(newDN(qname), "CNAME", 3600, "www2.arthur.example.net", 1)
+        ret[1] = newDR(newDN(qname), "CNAME", 3600, "www3.arthur.example.net", 1)
         ret[2] = newDR(newDN(""), "SOA", 3600, "$SOA", 2)
         dnspacket:addRecords(ret)
         return true
@@ -602,7 +603,8 @@ cat > recursor-service3/rpz.zone <<EOF
 
 arthur.example.net     CNAME .                   ; NXDOMAIN on apex
 *.arthur.example.net   CNAME *.                  ; NODATA for everything below the apex
-srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name though
+www3.arthur.example.net CNAME rpz-passthru.      ; Allow this name through (so that the CNAME from www.trillian.example.net is not blocked)
+srv.arthur.example.net CNAME rpz-passthru.       ; Allow this name through
 www.example.net        CNAME www2.example.net.   ; Local-Data Action
 www3.example.net       CNAME www4.example.net.   ; Local-Data Action (to be changed in preresolve)
 www5.example.net       A     192.0.2.15          ; Override www5.example.net.
