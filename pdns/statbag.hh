@@ -80,6 +80,7 @@ class StatBag
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
   bool d_doRings;
+
   std::set<string> d_blacklist;
 
   void registerRingStats(const string& name);
@@ -147,6 +148,8 @@ public:
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
   void blacklist(const string &str);
+
+  bool d_allowRedeclare; // only set this true during tests, never in production code
 };
 
 inline void StatBag::deposit(const string &key, int value)
