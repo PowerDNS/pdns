@@ -816,7 +816,7 @@ other update/remove functionality at a later stage.
 Domain metadata support
 -----------------------
 
-As described in :ref:`per-zone-settings-domain-metadata`, each served zone can have “metadata”. Such metadata determines how this zone behaves in certain circumstances.
+As described in :doc:`../domainmetadata`, each served zone can have “metadata”. Such metadata determines how this zone behaves in certain circumstances.
 In order for a backend to support domain metadata, the following operations have to be implemented:
 
 .. code-block:: cpp
