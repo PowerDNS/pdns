@@ -187,6 +187,8 @@ public:
 
   static uint64_t dbdnssecCacheSizes(const std::string& str);
   static void clearAllCaches();
+  static bool clearKeyCache(const DNSName& name);
+  static bool clearMetaCache(const DNSName& name);
   static void clearCaches(const DNSName& name);
 
   bool doesDNSSEC();
