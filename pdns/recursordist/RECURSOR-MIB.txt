@@ -847,6 +847,22 @@ proxyProtocolInvalid OBJECT-TYPE
         "Number of invalid proxy protocol headers received"
     ::= { stats 101 }
 
+recordCacheContended OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of contended record cache lock acquisitions"
+    ::= { stats 102 }
+
+recordCacheAcquired OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of record cache lock acquisitions"
+    ::= { stats 103 }
+
 ---
 --- Traps / Notifications
 ---
@@ -991,7 +1007,9 @@ recGroup OBJECT-GROUP
         rebalancedQueries,
         trapReason,
         qnameMinFallbackSuccess,
-        proxyProtocolInvalid
+        proxyProtocolInvalid,
+        recordCacheContended,
+        recordCacheAcquired
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

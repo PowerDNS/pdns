@@ -1023,6 +1023,8 @@ void registerAllStats()
   addGetStat("max-cache-entries", []() { return g_maxCacheEntries.load(); });
   addGetStat("max-packetcache-entries", []() { return g_maxPacketCacheEntries.load();}); 
   addGetStat("cache-bytes", doGetCacheBytes); 
+  addGetStat("record-cache-contended", []() { return s_RC->stats().first;});
+  addGetStat("record-cache-acquired", []() { return s_RC->stats().second;});
   
   addGetStat("packetcache-hits", doGetPacketCacheHits);
   addGetStat("packetcache-misses", doGetPacketCacheMisses); 
