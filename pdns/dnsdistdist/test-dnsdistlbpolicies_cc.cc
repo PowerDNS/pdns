@@ -170,17 +170,70 @@ BOOST_AUTO_TEST_CASE(test_firstAvailable) {
   BOOST_REQUIRE(server != nullptr);
   BOOST_CHECK(server == servers.at(1).second);
 
-  std::vector<DNSName> names;
-  names.reserve(1000);
-  for (size_t idx = 0; idx < 1000; idx++) {
-    names.push_back(DNSName("powerdns-" + std::to_string(idx) + ".com."));
-  }
+  benchPolicy(pol);
+}
+
+BOOST_AUTO_TEST_CASE(test_roundRobin) {
+  auto dq = getDQ();
+
+  ServerPolicy pol{"roundrobin", roundrobin, false};
+  ServerPolicy::NumberedServerVector servers;
+
+  /* selecting a server on an empty server list */
+  g_roundrobinFailOnNoServer = false;
+  auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_CHECK(server == nullptr);
+
+  servers.push_back({ 1, std::make_shared<DownstreamState>(ComboAddress("192.0.2.1:53")) });
+
+  /* servers start as 'down' but the RR policy returns a server unless g_roundrobinFailOnNoServer is set */
+  g_roundrobinFailOnNoServer = true;
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_CHECK(server == nullptr);
+  g_roundrobinFailOnNoServer = false;
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_CHECK(server != nullptr);
+
+  /* mark the server as 'up' */
+  servers.at(0).second->setUp();
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_CHECK(server != nullptr);
+
+  /* add a second server, we should get the first one then the second one */
+  servers.push_back({ 2, std::make_shared<DownstreamState>(ComboAddress("192.0.2.2:53")) });
+  servers.at(1).second->setUp();
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_REQUIRE(server != nullptr);
+  BOOST_CHECK(server == servers.at(0).second);
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_REQUIRE(server != nullptr);
+  BOOST_CHECK(server == servers.at(1).second);
+
+  /* mark the first server as 'down', second as 'up' */
+  servers.at(0).second->setDown();
+  servers.at(1).second->setUp();
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_REQUIRE(server != nullptr);
+  BOOST_CHECK(server == servers.at(1).second);
+
   std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
-  for (size_t idx = 1; idx <= 10; idx++) {
-    servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
-    serversMap[servers.at(idx - 1).second] = 0;
-    servers.at(idx - 1).second->setUp();
+  /* mark all servers 'up' */
+  for (auto& s : servers) {
+    s.second->setUp();
+    serversMap[s.second] = 0;
   }
+
+  for (size_t idx = 0; idx < 1000; idx++) {
+    server = getSelectedBackendFromPolicy(pol, servers, dq);
+    BOOST_REQUIRE(serversMap.count(server) == 1);
+    ++serversMap[server];
+  }
+  uint64_t total = 0;
+  for (const auto& entry : serversMap) {
+    BOOST_CHECK_EQUAL(entry.second, 1000 / servers.size());
+    total += entry.second;
+  }
+  BOOST_CHECK_EQUAL(total, 1000U);
 
   benchPolicy(pol);
 }
