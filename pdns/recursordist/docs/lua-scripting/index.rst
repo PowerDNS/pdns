@@ -22,6 +22,7 @@ For extra performance, a Just In Time compiled version of Lua called `LuaJIT <ht
     dnsrecord
     comboaddress
     netmask
+    policyevent
     statistics
     logging
     hooks
