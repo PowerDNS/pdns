@@ -176,5 +176,24 @@ BOOST_AUTO_TEST_CASE(test_SimpleMatch) {
   BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abc")), true);
 }
 
+BOOST_AUTO_TEST_CASE(test_getCarbonHostName)
+{
+  char buffer[4096];
+
+  BOOST_CHECK_EQUAL(gethostname(buffer, sizeof buffer), 0);
+  std::string my_hostname(buffer);
+  auto pos = my_hostname.find(".");
+  if (pos != std::string::npos) {
+    my_hostname.resize(pos);
+  }
+
+  boost::replace_all(my_hostname, ".", "_");
+
+  std::string hostname = getCarbonHostName();
+  // ensure it matches what we get
+  BOOST_CHECK_EQUAL(my_hostname, hostname);
+  BOOST_CHECK_EQUAL(my_hostname.size(), hostname.size());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
