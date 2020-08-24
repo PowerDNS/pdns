@@ -1309,7 +1309,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 }
 
 // addSuperMaster add anew super master
-int addSuperMaster(const std::string &IP, const std::string &nameserver, const std::string &account)
+static int addSuperMaster(const std::string &IP, const std::string &nameserver, const std::string &account)
 {
   UeberBackend B("default");
 
