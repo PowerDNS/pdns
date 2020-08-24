@@ -435,9 +435,14 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
 
   int count=0, pcount=0, countNeg=0;
   for (auto wipe : toWipe) {
-    count+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipeCache(wipe.first, wipe.second, qtype);});
-    pcount+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipePacketCache(wipe.first, wipe.second, qtype);});
-    countNeg+=broadcastAccFunction<uint64_t>([=]{ return pleaseWipeAndCountNegCache(wipe.first, wipe.second);});
+    try {
+      count+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipeCache(wipe.first, wipe.second, qtype);});
+      pcount+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipePacketCache(wipe.first, wipe.second, qtype);});
+      countNeg+=broadcastAccFunction<uint64_t>([=]{ return pleaseWipeAndCountNegCache(wipe.first, wipe.second);});
+    }
+    catch (const std::exception& e) {
+      g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
+    }
   }
 
   return "wiped "+std::to_string(count)+" records, "+std::to_string(countNeg)+" negative records, "+std::to_string(pcount)+" packets\n";
@@ -538,9 +543,15 @@ static string doAddNTA(T begin, T end)
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
-  broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(who, true, 0xffff);});
-  broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
-  broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(who, true);});
+  try {
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(who, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
+    broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(who, true);});
+  }
+  catch (std::exception& e) {
+    g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
+    return "Unable to clear caches while adding Negative Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+  }
   return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
 }
 
@@ -581,20 +592,27 @@ static string doClearNTA(T begin, T end)
 
   string removed("");
   bool first(true);
-  for (auto const &entry : toRemove) {
-    g_log<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<entry<<", requested via control channel"<<endl;
-    g_luaconfs.modify([entry](LuaConfigItems& lci) {
-        lci.negAnchors.erase(entry);
-      });
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
-    if (!first) {
-      first = false;
-      removed += ",";
+  try {
+    for (auto const &entry : toRemove) {
+      g_log<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+      g_luaconfs.modify([entry](LuaConfigItems& lci) {
+                          lci.negAnchors.erase(entry);
+                        });
+      broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
+      broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
+      broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
+      if (!first) {
+        first = false;
+        removed += ",";
+      }
+      removed += " " + entry.toStringRootDot();
     }
-    removed += " " + entry.toStringRootDot();
   }
+  catch(std::exception &e) {
+    g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
+    return "Unable to clear caches while clearing Negative Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+  }
+
   return "Removed Negative Trust Anchors for " + removed + "\n";
 }
 
@@ -684,20 +702,27 @@ static string doClearTA(T begin, T end)
 
   string removed("");
   bool first(true);
-  for (auto const &entry : toRemove) {
-    g_log<<Logger::Warning<<"Removing Trust Anchor for "<<entry<<", requested via control channel"<<endl;
-    g_luaconfs.modify([entry](LuaConfigItems& lci) {
-        lci.dsAnchors.erase(entry);
-      });
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
-    if (!first) {
-      first = false;
-      removed += ",";
+  try {
+    for (auto const &entry : toRemove) {
+      g_log<<Logger::Warning<<"Removing Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+      g_luaconfs.modify([entry](LuaConfigItems& lci) {
+                          lci.dsAnchors.erase(entry);
+                        });
+      broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
+      broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
+      broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
+      if (!first) {
+        first = false;
+        removed += ",";
+      }
+      removed += " " + entry.toStringRootDot();
     }
-    removed += " " + entry.toStringRootDot();
   }
+  catch (std::exception& e) {
+    g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
+    return "Unable to clear caches while clearing Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
+  }
+
   return "Removed Trust Anchor(s) for" + removed + "\n";
 }
 
