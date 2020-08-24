@@ -374,6 +374,38 @@ void RecursorLua4::postPrepareContext()
   d_lw->writeFunction("getregisteredname", [](const DNSName &dname) {
       return getRegisteredName(dname);
   });
+
+  d_lw->registerMember<const DNSName (PolicyEvent::*)>("qname", [](const PolicyEvent& event) -> const DNSName& { return event.qname; }, [](PolicyEvent& event, const DNSName& newName) { (void) newName; });
+  d_lw->registerMember<uint16_t (PolicyEvent::*)>("qtype", [](const PolicyEvent& event) -> uint16_t { return event.qtype.getCode(); }, [](PolicyEvent& event, uint16_t newType) { (void) newType; });
+  d_lw->registerMember<bool (PolicyEvent::*)>("isTcp", [](const PolicyEvent& event) -> bool { return event.isTcp; }, [](PolicyEvent& event, bool newTcp) { (void) newTcp; });
+  d_lw->registerMember<const ComboAddress (PolicyEvent::*)>("remote", [](const PolicyEvent& event) -> const ComboAddress& { return event.remote; }, [](PolicyEvent& event, const ComboAddress& newRemote) { (void) newRemote; });
+  d_lw->registerMember("appliedPolicy", &PolicyEvent::appliedPolicy);
+  d_lw->registerFunction<void(PolicyEvent::*)(const std::string&)>("addPolicyTag", [](PolicyEvent& event, const std::string& tag) { if (event.policyTags) { event.policyTags->insert(tag); } });
+  d_lw->registerFunction<void(PolicyEvent::*)(const std::vector<std::pair<int, std::string> >&)>("setPolicyTags", [](PolicyEvent& event, const std::vector<std::pair<int, std::string> >& tags) {
+      if (event.policyTags) {
+        event.policyTags->clear();
+        event.policyTags->reserve(tags.size());
+        for (const auto& tag : tags) {
+          event.policyTags->insert(tag.second);
+        }
+      }
+    });
+  d_lw->registerFunction<std::vector<std::pair<int, std::string> >(PolicyEvent::*)()>("getPolicyTags", [](const PolicyEvent& event) {
+      std::vector<std::pair<int, std::string> > ret;
+      if (event.policyTags) {
+        int count = 1;
+        ret.reserve(event.policyTags->size());
+        for (const auto& tag : *event.policyTags) {
+          ret.push_back({count++, tag});
+        }
+      }
+      return ret;
+    });
+  d_lw->registerFunction<void(PolicyEvent::*)(const std::string&)>("discardPolicy", [](PolicyEvent& event, const std::string& policy) {
+    if (event.discardedPolicies) {
+      (*event.discardedPolicies)[policy] = true;
+    }
+  });
 }
 
 void RecursorLua4::postLoad() {
@@ -388,6 +420,8 @@ void RecursorLua4::postLoad() {
   d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
   d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
+
+  d_policyHitEventFilter = d_lw->readVariable<boost::optional<policyEventFilter_t>>("policyEventFilter").get_value_or(0);
 }
 
 void RecursorLua4::getFeatures(Features & features) {
@@ -446,6 +480,25 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   if(d_ipfilter)
     return d_ipfilter(remote, local, dh);
   return false; // don't block
+}
+
+bool RecursorLua4::policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string,bool>& dicardedPolicies) const
+{
+  if (!d_policyHitEventFilter) {
+    return false;
+  }
+
+  PolicyEvent event(remote, qname, qtype, tcp);
+  event.appliedPolicy = &policy;
+  event.policyTags = &tags;
+  event.discardedPolicies = &dicardedPolicies;
+
+  if (d_policyHitEventFilter(event)) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const

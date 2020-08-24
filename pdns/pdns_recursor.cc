@@ -132,7 +132,6 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> s_RC;
 
-
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
@@ -1459,7 +1458,7 @@ static void startDoResolve(void *p)
       if (luaconfsLocal->dfe.getClientPolicy(dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
         mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
       }
-     }
+    }
 
     /* If we already have an answer generated from gettag_ffi, let's see if the filtering policies
        should be applied to it */
@@ -1495,7 +1494,7 @@ static void startDoResolve(void *p)
         goto haveAnswer;
       }
     }
-    
+
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if (!t_pdl || !t_pdl->preresolve(dq, res)) {
 
@@ -1505,17 +1504,25 @@ static void startDoResolve(void *p)
       }
 
       sr.setWantsRPZ(wantsRPZ);
+
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, false);
-        if (policyResult == PolicyResult::HaveAnswer) {
-          goto haveAnswer;
+
+        if (t_pdl && t_pdl->policyHitEventFilter(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
+          /* reset to no match */
+          appliedPolicy = DNSFilterEngine::Policy();
         }
-        else if (policyResult == PolicyResult::Drop) {
-          return;
+        else {
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, false);
+          if (policyResult == PolicyResult::HaveAnswer) {
+            goto haveAnswer;
+          }
+          else if (policyResult == PolicyResult::Drop) {
+            return;
+          }
         }
       }
 
-      // Query got not handled for QNAME Policy reasons, now actually go out to find an answer
+      // Query did not get handled for Client IP or QNAME Policy reasons, now actually go out to find an answer
       try {
         sr.d_appliedPolicy = appliedPolicy;
         sr.d_policyTags = std::move(dc->d_policyTags);
@@ -1529,7 +1536,7 @@ static void startDoResolve(void *p)
         shouldNotValidate = sr.wasOutOfBand();
       }
       catch (const ImmediateQueryDropException& e) {
-#warning We need to export a protobuf (and NOD lookup?) message if requested!
+        // XXX We need to export a protobuf message (and do a NOD lookup) if requested!
         g_stats.policyDrops++;
         g_log<<Logger::Debug<<"Dropping query because of a filtering policy "<<makeLoginfo(dc)<<endl;
         return;

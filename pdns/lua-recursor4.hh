@@ -115,6 +115,20 @@ public:
     DNSName followupName;
   };
 
+  struct PolicyEvent
+  {
+    PolicyEvent(const ComboAddress& rem, const DNSName& name, const QType& type, bool tcp): qname(name), qtype(type), remote(rem), isTcp(tcp)
+    {
+    }
+    const DNSName& qname;
+    const QType qtype;
+    const ComboAddress& remote;
+    const bool isTcp;
+    DNSFilterEngine::Policy* appliedPolicy{nullptr};
+    std::unordered_set<std::string>* policyTags{nullptr};
+    std::unordered_map<std::string,bool>* discardedPolicies{nullptr};
+  };
+
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const;
   unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const;
 
@@ -127,6 +141,8 @@ public:
 
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const;
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&) const;
+
+  bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string,bool>& dicardedPolicies) const;
 
   bool needDQ() const
   {
@@ -154,5 +170,7 @@ private:
   bool genhook(const luacall_t& func, DNSQuestion& dq, int& ret) const;
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
+  typedef std::function<bool(PolicyEvent&)> policyEventFilter_t;
+  policyEventFilter_t d_policyHitEventFilter;
 };
 

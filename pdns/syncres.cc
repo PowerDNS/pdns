@@ -1965,12 +1965,17 @@ static bool rpzHitShouldReplaceContent(const DNSName& qname, const QType& qtype,
 
 void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, const QType& qtype, std::vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth)
 {
+  if (d_pdl && d_pdl->policyHitEventFilter(d_requestor, qname, qtype, d_queryReceivedOverTCP, d_appliedPolicy, d_policyTags, d_discardedPolicies)) {
+    /* reset to no match */
+    d_appliedPolicy = DNSFilterEngine::Policy();
+    return;
+  }
+
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !d_queryReceivedOverTCP) {
     ++g_stats.policyResults[d_appliedPolicy.d_kind];
   }
 
-  cerr<<"Handling policy hit for "<<qname<<" of type "<<(int)d_appliedPolicy.d_kind<<endl;
   switch (d_appliedPolicy.d_kind) {
 
   case DNSFilterEngine::PolicyKind::NoAction:
@@ -2002,9 +2007,7 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
 
   case DNSFilterEngine::PolicyKind::Custom:
     {
-      cerr<<"custom"<<endl;
       if (rpzHitShouldReplaceContent(qname, qtype, ret)) {
-        cerr<<"clearing"<<endl;
         ret.clear();
       }
 
@@ -2016,8 +2019,6 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
 
         if (dr.d_name == qname && dr.d_type == QType::CNAME && qtype != QType::CNAME) {
           if (auto content = getRR<CNAMERecordContent>(dr)) {
-#warning FIXME shall we stop RPZ processing from here?
-            // https://tools.ietf.org/html/draft-vixie-dnsop-dns-rpz-00#section-6
             vState newTargetState = vState::Indeterminate;
             handleNewTarget(prefix, qname, content->getTarget(), qtype.getCode(), ret, rcode, depth, {}, newTargetState);
           }
@@ -3681,8 +3682,14 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
         if (match) {
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
           if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
-            LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<d_appliedPolicy.getName()<<"'"<<endl);
-            throw PolicyHitException();
+            if (d_pdl && d_pdl->policyHitEventFilter(d_requestor, qname, qtype, d_queryReceivedOverTCP, d_appliedPolicy, d_policyTags, d_discardedPolicies)) {
+              /* reset to no match */
+              d_appliedPolicy = DNSFilterEngine::Policy();
+            }
+            else {
+              LOG("however "<<nameserver<<" was blocked by RPZ policy '"<<d_appliedPolicy.getName()<<"'"<<endl);
+              throw PolicyHitException();
+            }
           }
         }
       }
@@ -3717,7 +3724,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
   if (nameserversBlockedByRPZ(luaconfsLocal->dfe, nameservers)) {
     /* RPZ hit */
-    throw PolicyHitException();
+    if (d_pdl && d_pdl->policyHitEventFilter(d_requestor, qname, qtype, d_queryReceivedOverTCP, d_appliedPolicy, d_policyTags, d_discardedPolicies)) {
+      /* reset to no match */
+      d_appliedPolicy = DNSFilterEngine::Policy();
+    }
+    else {
+      throw PolicyHitException();
+    }
   }
 
   LOG(endl);
@@ -3817,7 +3830,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           LOG(endl);
           if (hitPolicy) { //implies d_wantsRPZ
             /* RPZ hit */
-            throw PolicyHitException();
+            if (d_pdl && d_pdl->policyHitEventFilter(d_requestor, qname, qtype, d_queryReceivedOverTCP, d_appliedPolicy, d_policyTags, d_discardedPolicies)) {
+              /* reset to no match */
+              d_appliedPolicy = DNSFilterEngine::Policy();
+            }
+            else {
+              throw PolicyHitException();
+            }
           }
         }
 
