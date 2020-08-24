@@ -440,12 +440,12 @@ record-cache-contended
 ^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.0
 
-number of contented record cache mutex acquisitions
+number of contented record cache lock acquisitions
 
 record-cache-acquired
 ^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.0
-number of record cache mutex acquisitions
+number of record cache lock acquisitions
 
 
 resource-limits

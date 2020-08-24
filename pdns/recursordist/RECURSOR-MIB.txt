@@ -852,7 +852,7 @@ recordCacheContended OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of contended record cache mutex acquisitions"
+        "Number of contended record cache lock acquisitions"
     ::= { stats 102 }
 
 recordCacheAcquired OBJECT-TYPE
@@ -860,7 +860,7 @@ recordCacheAcquired OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of record cache mutex acquisitions"
+        "Number of record cache lock acquisitions"
     ::= { stats 103 }
 
 ---
