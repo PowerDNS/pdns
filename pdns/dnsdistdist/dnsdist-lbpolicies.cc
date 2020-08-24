@@ -199,6 +199,10 @@ shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& se
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
+  if (servers.empty()) {
+    return shared_ptr<DownstreamState>();
+  }
+
   vector<size_t> candidates;
   candidates.reserve(servers.size());
 

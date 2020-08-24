@@ -178,11 +178,17 @@ BOOST_AUTO_TEST_CASE(test_roundRobin) {
 
   ServerPolicy pol{"roundrobin", roundrobin, false};
   ServerPolicy::NumberedServerVector servers;
+
+  /* selecting a server on an empty server list */
+  g_roundrobinFailOnNoServer = false;
+  auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+  BOOST_CHECK(server == nullptr);
+
   servers.push_back({ 1, std::make_shared<DownstreamState>(ComboAddress("192.0.2.1:53")) });
 
   /* servers start as 'down' but the RR policy returns a server unless g_roundrobinFailOnNoServer is set */
   g_roundrobinFailOnNoServer = true;
-  auto server = getSelectedBackendFromPolicy(pol, servers, dq);
+  server = getSelectedBackendFromPolicy(pol, servers, dq);
   BOOST_CHECK(server == nullptr);
   g_roundrobinFailOnNoServer = false;
   server = getSelectedBackendFromPolicy(pol, servers, dq);
