@@ -1357,7 +1357,7 @@ Disabled by default, which also disables outgoing IPv6 support.
 
 Don't log queries.
 
-.. _setting-record-cache-shards
+.. _setting-record-cache-shards:
 
 ``record-cache-shards``
 ------------------------
