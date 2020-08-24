@@ -43,8 +43,7 @@ public:
   ObjectPipe();
   ~ObjectPipe();
   void write(T& t);
-  bool read(T* t); // returns false on EOF
-  int readTimeout(T* t, double msec); //!< -1 is timeout, 0 is no data, 1 is data. msec<0 waits infinitely wrong. msec==0 = undefined
+  int readTimeout(T* t, double msec); //!< -1 is timeout, 0 is no data, 1 is data. msec<0 waits infinitely long. msec==0 = undefined
   void close(); 
 private:
   int d_fds[2];

@@ -15,13 +15,13 @@ BOOST_AUTO_TEST_CASE(test_object_pipe) {
 
   int i;
   for(int n=0; n < 100; ++n) {
-    bool res=op.read(&i);
-    BOOST_CHECK_EQUAL(res, true);
+    int res=op.readTimeout(&i, -1);
+    BOOST_CHECK_EQUAL(res, 1);
     BOOST_CHECK_EQUAL(n, i);
   }
 
   op.close();
-  BOOST_CHECK_EQUAL(op.read(&i), false);
+  BOOST_CHECK_EQUAL(op.readTimeout(&i, 1), 0);
 
 };
 
