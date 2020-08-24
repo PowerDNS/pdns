@@ -1597,6 +1597,7 @@ std::string getCarbonHostName()
   }
 
   boost::replace_all(hostname, ".", "_");
+  hostname.resize(strlen(hostname.c_str()));
 
   return hostname;
 }
