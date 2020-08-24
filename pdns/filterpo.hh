@@ -230,11 +230,11 @@ public:
 
     void dump(FILE * fp) const;
 
-    void addClientTrigger(const Netmask& nm, Policy&& pol);
-    void addQNameTrigger(const DNSName& nm, Policy&& pol, bool ignoreDuplicate=false);
-    void addNSTrigger(const DNSName& dn, Policy&& pol);
-    void addNSIPTrigger(const Netmask& nm, Policy&& pol);
-    void addResponseTrigger(const Netmask& nm, Policy&& pol);
+    void addClientTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate = false);
+    void addQNameTrigger(const DNSName& nm, Policy&& pol, bool ignoreDuplicate = false);
+    void addNSTrigger(const DNSName& dn, Policy&& pol, bool ignoreDuplicate = false);
+    void addNSIPTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate = false);
+    void addResponseTrigger(const Netmask& nm, Policy&& pol, bool ignoreDuplicate = false);
 
     bool rmClientTrigger(const Netmask& nm, const Policy& pol);
     bool rmQNameTrigger(const DNSName& nm, const Policy& pol);
@@ -276,6 +276,11 @@ public:
     }
     
   private:
+    void addNameTrigger(std::unordered_map<DNSName,Policy>& map, const DNSName& n, Policy&& pol, bool ignoreDuplicate, PolicyType ptype);
+    void addNetmaskTrigger(NetmaskTree<Policy>& nmt, const Netmask& nm, Policy&& pol, bool ignoreDuplicate, PolicyType ptype);
+    bool rmNameTrigger(std::unordered_map<DNSName,Policy>& map, const DNSName& n, const Policy& pol);
+    bool rmNetmaskTrigger(NetmaskTree<Policy>& nmt, const Netmask& nm, const Policy& pol);
+
     static DNSName maskToRPZ(const Netmask& nm);
     static bool findExactNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol);
     static bool findNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol);
