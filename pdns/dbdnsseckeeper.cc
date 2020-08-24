@@ -108,7 +108,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, in
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = setSEPBit ? 257 : 256;
-  return addKey(name, dspk, id, active, published);
+  return addKey(name, dspk, id, active, published) && clearKeyCache(name);
 }
 
 void DNSSECKeeper::clearAllCaches() {
