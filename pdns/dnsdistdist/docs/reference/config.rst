@@ -232,6 +232,14 @@ Control Socket, Console and Webserver
 
   :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
 
+.. function:: clearConsoleHistory()
+
+  .. versionadded:: 1.6.0
+
+  Clear the internal (in-memory) buffers of console commands. These buffers are used to provide the :func:`delta` command and
+  console completion and history, and can end up being quite large when a lot of commands are issued via the console, consuming
+  a noticeable amount of memory.
+
 .. function:: controlSocket(address)
 
   Bind to ``addr`` and listen for a connection for the console. Since 1.3.0 only connections from local users are allowed
@@ -240,6 +248,10 @@ Control Socket, Console and Webserver
   local connections, since not enabling it allows any local user to connect to the console.
 
   :param str address: An IP address with optional port. By default, the port is 5199.
+
+.. function:: delta()
+
+  Issuing `delta` on the console will print the changes to the configuration that have been made since startup.
 
 .. function:: inClientStartup()
 
