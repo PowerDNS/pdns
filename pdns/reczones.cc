@@ -261,20 +261,24 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
 
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
 {
-  if(input.find(':') == string::npos || input.empty()) // common case
+  if (input.find(':') == string::npos || input.empty()) { // common case
     return ComboAddress(input, port);
+  }
 
   pair<string,string> both;
-
   try { // case 2
-    both=splitField(input,':');
-    uint16_t newport=static_cast<uint16_t>(pdns_stou(both.second));
-    return ComboAddress(both.first, newport);
-  } 
-  catch(...){}
+    string::size_type cpos = input.rfind(':');
+    both.first = input.substr(0, cpos);
+    both.second = input.substr(cpos + 1);
 
-  if(input[0]=='[') { // case 4
-    both=splitField(input.substr(1),']');
+    uint16_t newport = static_cast<uint16_t>(pdns_stou(both.second));
+    return ComboAddress(both.first, newport);
+  }
+  catch(...) {
+  }
+
+  if (input[0] == '[') { // case 4
+    both = splitField(input.substr(1), ']');
     return ComboAddress(both.first, both.second.empty() ? port : static_cast<uint16_t>(pdns_stou(both.second.substr(1))));
   }
 
