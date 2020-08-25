@@ -636,7 +636,13 @@ int main(int argc, char **argv)
     exit(1);
   }
   
-  declareStats();
+  try {
+    declareStats();
+  }
+  catch(PDNSException &PE) {
+    g_log<<Logger::Error<<"Exiting because: "<<PE.reason<<endl;
+    exit(1);
+  }
   S.blacklist("special-memory-usage");
 
   DLOG(g_log<<Logger::Warning<<"Verbose logging in effect"<<endl);

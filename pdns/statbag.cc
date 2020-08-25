@@ -38,6 +38,7 @@
 StatBag::StatBag()
 {
   d_doRings=false;
+  d_allowRedeclare=false;
 }
 
 void StatBag::exists(const string &key)
@@ -105,6 +106,16 @@ StatType StatBag::getStatType(const string &item)
 
 void StatBag::declare(const string &key, const string &descrip, StatType statType)
 {
+  if(d_stats.count(key)) {
+    if (d_allowRedeclare) {
+      *d_stats[key] = 0;
+      return;
+    }
+    else {
+      throw PDNSException("Attempt to re-declare statbag '"+key+"'");
+    }
+  }
+
   auto i=make_unique<AtomicCounter>(0);
   d_stats[key]=std::move(i);
   d_keyDescrips[key]=descrip;
@@ -113,6 +124,10 @@ void StatBag::declare(const string &key, const string &descrip, StatType statTyp
 
 void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func, StatType statType)
 {
+  if(d_funcstats.count(key) && !d_allowRedeclare) {
+    throw PDNSException("Attempt to re-declare func statbag '"+key+"'");
+  }
+
   d_funcstats[key]=func;
   d_keyDescrips[key]=descrip;
   d_statTypes[key]=statType;
