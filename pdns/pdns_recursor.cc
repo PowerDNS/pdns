@@ -882,7 +882,7 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
 
 enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
 
-static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, bool post)
+static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
 {
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
@@ -1512,7 +1512,7 @@ static void startDoResolve(void *p)
           appliedPolicy = DNSFilterEngine::Policy();
         }
         else {
-          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, false);
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           if (policyResult == PolicyResult::HaveAnswer) {
             goto haveAnswer;
           }
@@ -1564,7 +1564,7 @@ static void startDoResolve(void *p)
         if (appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction) {
           throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
         }
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw, true);
+        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
         if (policyResult == PolicyResult::HaveAnswer) {
           goto haveAnswer;
         }

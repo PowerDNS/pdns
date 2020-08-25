@@ -218,7 +218,7 @@ bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unorder
   return false;
 }
 
-bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol, bool equalOK) const
+bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
 {
   //cerr<<"Got question for "<<qname<<' '<< pol.getPriority()<< endl;
   std::vector<bool> zoneEnabled(d_zones.size());
@@ -226,7 +226,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
   bool allEmpty = true;
   for (const auto& z : d_zones) {
     bool enabled = true;
-    if (z->getPriority() > pol.getPriority() || (!equalOK && z->getPriority() == pol.getPriority())) {
+    if (z->getPriority() >= pol.getPriority()) {
       enabled = false;
     } else {
       const auto& zoneName = z->getName();
