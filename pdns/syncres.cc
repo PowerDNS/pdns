@@ -1963,6 +1963,36 @@ static bool rpzHitShouldReplaceContent(const DNSName& qname, const QType& qtype,
   return true;
 }
 
+static void removeConflictingRecord(std::vector<DNSRecord>& records, const DNSName& name, uint16_t dtype)
+{
+  for (auto it = records.begin(); it != records.end(); ) {
+    bool remove = false;
+
+    if (it->d_class == QClass::IN &&
+        (it->d_type == QType::CNAME || dtype == QType::CNAME || it->d_type == dtype) &&
+        it->d_name == name) {
+      remove = true;
+    }
+    else if (it->d_class == QClass::IN &&
+             it->d_type == QType::RRSIG &&
+             it->d_name == name) {
+      if (auto rrc = getRR<RRSIGRecordContent>(*it)) {
+        if (rrc->d_type == QType::CNAME || rrc->d_type == dtype) {
+          /* also remove any RRSIG that could conflict */
+          remove = true;
+        }
+      }
+    }
+
+    if (remove) {
+      it = records.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
+}
+
 void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, const QType& qtype, std::vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth)
 {
   if (d_pdl && d_pdl->policyHitEventFilter(d_requestor, qname, qtype, d_queryReceivedOverTCP, d_appliedPolicy, d_policyTags, d_discardedPolicies)) {
@@ -2014,6 +2044,10 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
       rcode = RCode::NoError;
       done = true;
       auto spoofed = d_appliedPolicy.getCustomRecords(qname, qtype.getCode());
+      for (auto& dr : spoofed) {
+        removeConflictingRecord(ret, dr.d_name, dr.d_type);
+      }
+
       for (auto& dr : spoofed) {
         ret.push_back(dr);
 
