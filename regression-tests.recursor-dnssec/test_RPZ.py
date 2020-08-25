@@ -863,3 +863,156 @@ forward-zones=delegated.example=127.0.0.1:%d
         # We only test once because after that the answer is cached, so the NS is not contacted
         # and the whitelist is not applied (yes, NSIP and NSDNAME are brittle).
         self.checkCustom('nsip.delegated.example.', 'A', dns.rrset.from_text('nsip.delegated.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.1'))
+
+
+class RPZResponseIPCNameChainCustomTest(RPZRecursorTest):
+    """
+    This test makes sure that the recursor applies response IP rules to records in a CNAME chain,
+    and resolves the target of a custom CNAME.
+    """
+
+    _confdir = 'RPZResponseIPCNameChainCustom'
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz."})
+    """ % (_confdir)
+    _config_template = """
+auth-zones=example=configs/%s/example.zone
+forward-zones=delegated.example=127.0.0.1:%d
+""" % (_confdir, rpzAuthServerPort)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        authzonepath = os.path.join(confdir, 'example.zone')
+        with open(authzonepath, 'w') as authzone:
+            authzone.write("""$ORIGIN example.
+@ 3600 IN SOA {soa}
+name IN CNAME cname
+cname IN A 192.0.2.255
+custom-target IN A 192.0.2.254
+""".format(soa=cls._SOA))
+
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+cname.example IN CNAME custom-target.example.
+custom-target.example IN A 192.0.2.253
+""".format(soa=cls._SOA))
+
+        super(RPZResponseIPCNameChainCustomTest, cls).generateRecursorConfig(confdir)
+
+    def testRPZChain(self):
+        # we request the A record for 'name.example.', which is a CNAME to 'cname.example'
+        # this one does exist but we have a RPZ rule that should be triggered,
+        # replacing the 'real' CNAME by a CNAME to 'custom-target.example.'
+        # There is a RPZ rule for that name but it should not be triggered, since
+        # the RPZ specs state "Recall that only one policy rule, from among all those matched at all
+        # stages of resolving a CNAME or DNAME chain, can affect the final
+        # response; this is true even if the selected rule has a PASSTHRU
+        # action" in 5.1 "CNAME or DNAME Chain Position" Precedence Rule
+
+        # two times to check the cache
+        for _ in range(2):
+            query = dns.message.make_query('name.example.', 'A', want_dnssec=True)
+            query.flags |= dns.flags.CD
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                res = sender(query)
+                self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                self.assertRRsetInAnswer(res, dns.rrset.from_text('name.example.', 0, dns.rdataclass.IN, 'CNAME', 'cname.example.'))
+                self.assertRRsetInAnswer(res, dns.rrset.from_text('cname.example.', 0, dns.rdataclass.IN, 'CNAME', 'custom-target.example.'))
+                self.assertRRsetInAnswer(res, dns.rrset.from_text('custom-target.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.254'))
+
+
+class RPZCNameChainCustomTest(RPZRecursorTest):
+    """
+    This test makes sure that the recursor applies QName rules to names in a CNAME chain.
+    No forward or internal auth zones here, as we want to test the real resolution
+    (with QName Minimization).
+    """
+
+    _PREFIX = os.environ['PREFIX']
+    _confdir = 'RPZCNameChainCustom'
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz."})
+    """ % (_confdir)
+    _config_template = ""
+
+    @classmethod
+    def setUpClass(cls):
+
+        cls.setUpSockets()
+        cls.startResponders()
+
+        confdir = os.path.join('configs', cls._confdir)
+        cls.createConfigDir(confdir)
+
+        cls.generateAllAuthConfig(confdir)
+        cls.startAuth(os.path.join(confdir, "auth-8"), cls._PREFIX + '.8')
+        cls.startAuth(os.path.join(confdir, "auth-10"), cls._PREFIX + '.10')
+
+        cls.generateRecursorConfig(confdir)
+        cls.startRecursor(confdir, cls._recursorPort)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tearDownAuth()
+        cls.tearDownRecursor()
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+32.100.2.0.192.rpz-ip IN CNAME .
+32.101.2.0.192.rpz-ip IN CNAME *.
+32.102.2.0.192.rpz-ip IN A 192.0.2.103
+""".format(soa=cls._SOA))
+
+        super(RPZCNameChainCustomTest, cls).generateRecursorConfig(confdir)
+
+    def testRPZChainNXD(self):
+        # we should match the A at the end of the CNAME chain and
+        # trigger a NXD
+
+        # two times to check the cache
+        for _ in range(2):
+            query = dns.message.make_query('cname-nxd.example.', 'A', want_dnssec=True)
+            query.flags |= dns.flags.CD
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                res = sender(query)
+                self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+                self.assertEquals(len(res.answer), 0)
+
+    def testRPZChainNODATA(self):
+        # we should match the A at the end of the CNAME chain and
+        # trigger a NODATA
+
+        # two times to check the cache
+        for _ in range(2):
+            query = dns.message.make_query('cname-nodata.example.', 'A', want_dnssec=True)
+            query.flags |= dns.flags.CD
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                res = sender(query)
+                self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                self.assertEquals(len(res.answer), 0)
+
+    def testRPZChainCustom(self):
+        # we should match the A at the end of the CNAME chain and
+        # get a custom A, replacing the existing one
+
+        # two times to check the cache
+        for _ in range(2):
+            query = dns.message.make_query('cname-custom-a.example.', 'A', want_dnssec=True)
+            query.flags |= dns.flags.CD
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                res = sender(query)
+                self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                # the original CNAME record is signed
+                self.assertEquals(len(res.answer), 3)
+                self.assertRRsetInAnswer(res, dns.rrset.from_text('cname-custom-a.example.', 0, dns.rdataclass.IN, 'CNAME', 'cname-custom-a-target.example.'))
+                self.assertRRsetInAnswer(res, dns.rrset.from_text('cname-custom-a-target.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.103'))
