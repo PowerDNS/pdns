@@ -695,7 +695,11 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   setCacheOnly(old);
   if (fromCache) {
     QLOG("Step0 Found in cache");
+    if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NXDOMAIN || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NODATA)) {
+      ret.clear();
+    }
     ret.insert(ret.end(), retq.begin(), retq.end());
+
     return res;
   }
   QLOG("Step0 Not cached");
@@ -872,8 +876,10 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
     if (doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
-      // Do not set *fromCache; res does not reflect the final result in all cases
-        /* Apply Post filtering policies */
+      if (fromCache) {
+        *fromCache = true;
+      }
+      /* Apply Post filtering policies */
 
       if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
         auto luaLocal = g_luaconfs.getLocal();
