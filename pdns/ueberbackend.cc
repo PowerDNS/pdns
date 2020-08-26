@@ -478,7 +478,6 @@ UeberBackend::UeberBackend(const string &pname)
   }
 
   d_negcached=0;
-  d_ancount=0;
   d_domain_id=-1;
   d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
@@ -582,13 +581,14 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     g_log<<Logger::Error<<"Broadcast received, unblocked"<<endl;
   }
 
+  d_qtype=qtype.getCode();
   d_domain_id=zoneId;
 
   d_handle.i=0;
-  d_handle.qtype=qtype;
+  d_handle.qtype=false ? QType::ANY : qtype;
   d_handle.qname=qname;
+  d_handle.zoneId=false ? -1 : zoneId;
   d_handle.pkt_p=pkt_p;
-  d_ancount=0;
 
   if(!backends.size()) {
     g_log<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
@@ -596,15 +596,16 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     throw PDNSException("We are stale, please recycle");
   }
   else {
-    d_question.qtype=qtype;
+    d_question.qtype=d_handle.qtype;
     d_question.qname=qname;
-    d_question.zoneId=zoneId;
+    d_question.zoneId=d_handle.zoneId;
+
     int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
       d_negcached=d_cached=false;
       d_answers.clear(); 
-      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,zoneId,pkt_p);
+      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
     } 
     else if(cstat==0) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
@@ -638,31 +639,34 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   }
 
   if(d_cached) {
-    if(d_cachehandleiter != d_answers.end()) {
+    while(d_cachehandleiter != d_answers.end()) {
       rr=*d_cachehandleiter++;;
+      if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype) && (d_domain_id == -1 || (rr.domain_id != -1 && rr.domain_id == d_domain_id))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  while(d_handle.get(rr)) {
+    rr.dr.d_place=DNSResourceRecord::ANSWER;
+    d_answers.push_back(rr);
+    if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype) && (d_domain_id == -1 || (rr.domain_id != -1 && rr.domain_id == d_domain_id))) {
       return true;
     }
-    return false;
-  }
-  if(!d_handle.get(rr)) {
-    // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-    if(!d_ancount && d_handle.qname.countLabels()) {// don't cache axfr
-      // cout<<"adding negcache"<<endl;
-      addNegCache(d_question);
-    }
-    else {
-      // cout<<"adding query cache"<<endl;
-      addCache(d_question, std::move(d_answers));
-    }
-    d_answers.clear();
-    return false;
   }
 
-  rr.dr.d_place=DNSResourceRecord::ANSWER;
-
-  d_ancount++;
-  d_answers.push_back(rr);
-  return true;
+  // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
+  if(d_answers.empty()) {
+    // cout<<"adding negcache"<<endl;
+    addNegCache(d_question);
+  }
+  else {
+    // cout<<"adding query cache"<<endl;
+    addCache(d_question, std::move(d_answers));
+  }
+  d_answers.clear();
+  return false;
 }
 
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
@@ -708,7 +712,7 @@ bool UeberBackend::handle::get(DNSZoneRecord &r)
            <<" out of answers, taking next"<<endl);
       
       d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,parent->d_domain_id,pkt_p);
+      d_hinterBackend->lookup(qtype,qname,zoneId,pkt_p);
     }
     else 
       break;

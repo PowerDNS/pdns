@@ -87,6 +87,7 @@ public:
     //! Index of the current backend within the backends vector
     unsigned int i;
     QType qtype;
+    int zoneId;
 
   private:
 
@@ -147,8 +148,8 @@ private:
   }d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
+  uint16_t d_qtype;
   int d_domain_id;
-  int d_ancount;
 
   bool d_negcached;
   bool d_cached;
