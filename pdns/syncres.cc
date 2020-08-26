@@ -647,7 +647,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   auto luaconfsLocal = g_luaconfs.getLocal();
 
   /* Apply qname (including CNAME chain) filtering policies */
-  if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+  if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
     if (luaconfsLocal->dfe.getQueryPolicy(qname, d_discardedPolicies, d_appliedPolicy)) {
       mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
       bool done = false;
@@ -882,12 +882,14 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
       // we will get the records from the cache, resulting in a small overhead.
       // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
       // RPZ rules will not be evaluated anymore (we already matched).
-      if (fromCache && (!d_cacheonly || (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction))) {
+      const bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
+
+      if (fromCache && (!d_cacheonly || stoppedByPolicyHit)) {
         *fromCache = true;
       }
       /* Apply Post filtering policies */
 
-      if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+      if (d_wantsRPZ && !stoppedByPolicyHit) {
         auto luaLocal = g_luaconfs.getLocal();
         if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
@@ -909,7 +911,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
         *fromCache = true;
       }
 
-      if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+      if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
         auto luaLocal = g_luaconfs.getLocal();
         if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
@@ -950,7 +952,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
   res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
 
   /* Apply Post filtering policies */
-  if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+  if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
     auto luaLocal = g_luaconfs.getLocal();
     if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
       mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
@@ -2087,7 +2089,7 @@ bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& n
      the only way we can get back here is that it was a 'pass-thru' (NoAction) meaning that we should not
      process any further RPZ rules. Except that we need to process rules of higher priority..
   */
-  if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+  if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
     for (auto const &ns : nameservers) {
       bool match = dfe.getProcessingPolicy(ns.first, d_discardedPolicies, d_appliedPolicy);
       if (match) {
@@ -2122,7 +2124,7 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
      the only way we can get back here is that it was a 'pass-thru' (NoAction) meaning that we should not
      process any further RPZ rules. Except that we need to process rules of higher priority..
   */
-  if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+  if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
     bool match = dfe.getProcessingPolicy(remoteIP, d_discardedPolicies, d_appliedPolicy);
     if (match) {
       mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
@@ -3728,7 +3730,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
     nameservers.clear();
     for (auto const &nameserver : nsset) {
-      if (d_wantsRPZ && (d_appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+      if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
         bool match = dfe.getProcessingPolicy(nameserver, d_discardedPolicies, d_appliedPolicy);
         if (match) {
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());

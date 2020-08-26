@@ -1453,7 +1453,7 @@ static void startDoResolve(void *p)
     }
 
     // Check if the client has a policy attached to it
-    if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
+    if (wantsRPZ && !appliedPolicy.wasHit()) {
 
       if (luaconfsLocal->dfe.getClientPolicy(dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
         mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
@@ -1479,7 +1479,7 @@ static void startDoResolve(void *p)
           }
         }
 
-        if (appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+        if (appliedPolicy.wasHit()) {
           policyOverride = true;
         }
       }

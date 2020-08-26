@@ -147,6 +147,11 @@ public:
       return true;
     }
 
+    bool wasHit() const
+    {
+      return (d_type != DNSFilterEngine::PolicyType::None && d_kind != DNSFilterEngine::PolicyKind::NoAction);
+    }
+
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
