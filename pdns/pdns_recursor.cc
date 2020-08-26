@@ -2855,8 +2855,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
 
           if(g_weDistributeQueries) {
-            distributeAsyncFunction(data, [data = data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues]() mutable
-              { return doProcessUDPQuestion(data, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues); });
+            std::string localdata = data;
+            distributeAsyncFunction(data, [localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues]() mutable
+              { return doProcessUDPQuestion(localdata, fromaddr, dest, source, destination, tv, fd, proxyProtocolValues); });
           }
           else {
             ++s_threadInfos[t_id].numberOfDistributedQueries;
