@@ -876,7 +876,13 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
     if (doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
-      if (fromCache) {
+      // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
+      // are in QM Step0) we might have a CNAME but not the corresponding target.
+      // It means that we will sometimes go to the next steps when we are in fact done, but that's fine since
+      // we will get the records from the cache, resulting in a small overhead.
+      // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
+      // RPZ rules will not be evaluated anymore (we already matched).
+      if (fromCache && (!d_cacheonly || (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction))) {
         *fromCache = true;
       }
       /* Apply Post filtering policies */
@@ -887,6 +893,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
           bool done = false;
           handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+          if (done && fromCache) {
+            *fromCache = true;
+          }
         }
       }
 
@@ -1468,6 +1477,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
       set<GetBestNSAnswer>beenthere;
       vState cnameState = vState::Indeterminate;
+      // Be aware that going out on the network might be disabled (cache-only), for example because we are in QM Step0,
+      // so you can't trust that a real lookup will have been made.
       res = doResolve(newTarget, qtype, ret, depth+1, beenthere, cnameState);
       LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<state<<" with the state from the DNAME/CNAME quest: "<<cnameState<<endl);
       updateValidationState(state, cnameState);
