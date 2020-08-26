@@ -489,6 +489,225 @@ string EUI64RecordContent::getZoneRepresentation(bool noDot) const
 
 /* EUI64 end */
 
+/* APL start */
+/* https://tools.ietf.org/html/rfc3123 */
+void APLRecordContent::report(void)
+{
+  regist(1, QType::APL, &make, &make, "APL");
+}
+
+// Parse incoming packets (e.g. nsupdate)
+std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, PacketReader& pr) {
+  uint8_t temp;
+  APLRDataElement ard;
+  size_t processed = 0;
+
+  auto ret=std::make_shared<APLRecordContent>();
+
+  while (processed<dr.d_clen) {
+    pr.xfr16BitInt(ard.d_family);
+    pr.xfr8BitInt(ard.d_prefix);
+    pr.xfr8BitInt(temp);
+    ard.d_n = (temp & 128) >> 7;
+    ard.d_afdlength = temp & 127;
+
+    if (ard.d_family == APL_FAMILY_IPV4) {
+      if (ard.d_afdlength > 4) {
+        throw MOADNSException("Invalid IP length for IPv4 APL");
+      }
+      memset(ard.d_ip.d_ip4, 0, sizeof(ard.d_ip.d_ip4));
+      for (u_int i=0; i < ard.d_afdlength; i++)
+        pr.xfr8BitInt(ard.d_ip.d_ip4[i]);
+    } else if (ard.d_family == APL_FAMILY_IPV6) {
+      if (ard.d_afdlength > 16) {
+        throw MOADNSException("Invalid IP length for IPv6 APL");
+      }
+      memset(ard.d_ip.d_ip6, 0, sizeof(ard.d_ip.d_ip6));
+      for (u_int i=0; i < ard.d_afdlength; i++)
+        pr.xfr8BitInt(ard.d_ip.d_ip6[i]);
+    } else
+    throw MOADNSException("Unknown family for APL record");
+
+    processed += 4 + ard.d_afdlength;
+
+    ret->aplrdata.push_back(ard);
+  }
+
+  return ret;
+}
+
+// Parse a single APL <apitem>
+APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
+  string record;
+  Netmask nm;
+  unsigned int bytes;
+  bool done_trimming;
+  APLRDataElement ard;
+
+  // Parse the optional leading ! (negate)
+  if (element.at(0) == '!') {
+    ard.d_n = true;
+    record = element.substr(1, element.length()-1);
+  } else {
+    ard.d_n = false;
+    record = element;
+  }
+
+  if (record.find("/") == string::npos) { // Required by RFC section 5
+    throw MOADNSException("Asked to decode '"+element+"' as an APL record, but missing subnet mask");
+  }
+
+
+  if (record.find("1:", 0) == 0) { // IPv4
+    uint32_t v4ip;
+
+    ard.d_family = APL_FAMILY_IPV4;
+
+    // Ensure that a mask is provided
+
+    // Read IPv4 string into a Netmask object
+    nm = Netmask(record.substr(2, record.length() - 2));
+    ard.d_prefix = nm.getBits();
+
+    if (nm.getNetwork().isIPv4() == 0)
+      throw MOADNSException("Asked to decode '"+element+"' as an APL v4 record");
+
+    // Section 4.1 of RFC 3123 (don't send trailing "0" bytes)
+    // Copy data; using array of bytes since we might end up truncating them in the packet
+    v4ip = ntohl(nm.getNetwork().sin4.sin_addr.s_addr);
+    memset(ard.d_ip.d_ip4, 0, sizeof(ard.d_ip.d_ip4));
+    bytes  = 4; // Start by assuming we'll send 4 bytes
+    done_trimming = false;
+    for (int i=0; i<4; i++) {
+      ard.d_ip.d_ip4[3-i] = (v4ip & 255);
+      // Remove trailing "0" bytes from packet and update length
+      if ((v4ip & 255) == 0 and !done_trimming) {
+        bytes--;
+      } else {
+        done_trimming = true;
+      }
+      v4ip = v4ip >> 8;
+    }
+    ard.d_afdlength = bytes;
+
+  } else if (record.find("2:", 0) == 0) { // IPv6
+    ard.d_family = APL_FAMILY_IPV6;
+
+    // Parse IPv6 string into a Netmask object
+    nm = Netmask(record.substr(2, record.length() - 2));
+    ard.d_prefix = nm.getBits();
+
+    if (nm.getNetwork().isIPv6() == 0)
+      throw MOADNSException("Asked to decode '"+element+"' as an APL v6 record");
+
+    // Section 4.2 of RFC 3123 (don't send trailing "0" bytes)
+    // Remove trailing "0" bytes from packet and reduce length
+    memset(ard.d_ip.d_ip6, 0, sizeof(ard.d_ip.d_ip6));
+    bytes = 16; // Start by assuming we'll send 16 bytes
+    done_trimming = false;
+    for (int i=0; i<16; i++) {
+      ard.d_ip.d_ip6[15-i] = nm.getNetwork().sin6.sin6_addr.s6_addr[15-i];
+      if (nm.getNetwork().sin6.sin6_addr.s6_addr[15-i] == 0 and !done_trimming) {
+        // trailing 0 byte, update length
+        bytes--;
+      } else {
+        done_trimming = true;
+      }
+    }
+    ard.d_afdlength = bytes;
+
+  } else {
+      throw MOADNSException("Asked to encode '"+element+"' as an IPv6 APL record but got unknown Address Family");
+  }
+  return ard;
+
+}
+
+// Parse backend record (0, 1 or more <apitem>)
+std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
+  APLRDataElement ard;
+  vector<string> elements;
+
+  auto ret=std::make_shared<APLRecordContent>();
+
+  boost::split(elements, zone, boost::is_any_of(" "));
+  for (std::vector<std::string>::iterator elem = elements.begin() ; elem != elements.end(); ++elem) {
+    if (!elem->empty()) {
+      ard = ret->parseAPLElement(*elem);
+      ret->aplrdata.push_back(ard);
+    }
+  }
+  return ret;
+}
+
+
+// DNSRecord to Packet conversion
+void APLRecordContent::toPacket(DNSPacketWriter& pw) {
+  for (std::vector<APLRDataElement>::iterator ard = aplrdata.begin() ; ard != aplrdata.end(); ++ard) {
+    pw.xfr16BitInt(ard->d_family);
+    pw.xfr8BitInt(ard->d_prefix);
+    pw.xfr8BitInt((ard->d_n << 7) + ard->d_afdlength);
+    if (ard->d_family == APL_FAMILY_IPV4) {
+      for (int i=0; i<ard->d_afdlength; i++) {
+        pw.xfr8BitInt(ard->d_ip.d_ip4[i]);
+      }
+    } else if (ard->d_family == APL_FAMILY_IPV6) {
+      for (int i=0; i<ard->d_afdlength; i++) {
+        pw.xfr8BitInt(ard->d_ip.d_ip6[i]);
+      }
+    }
+  }
+}
+
+// Decode record into string
+string APLRecordContent::getZoneRepresentation(bool noDot) const {
+  string s_n, s_family, output;
+  ComboAddress ca;
+  Netmask nm;
+
+  output = "";
+
+  for (std::vector<APLRDataElement>::const_iterator ard = aplrdata.begin() ; ard != aplrdata.end(); ++ard) {
+
+    // Negation flag
+    if (ard->d_n) {
+      s_n = "!";
+    } else {
+      s_n = "";
+    }
+
+    if (ard->d_family == APL_FAMILY_IPV4) { // IPv4
+      s_family = std::to_string(APL_FAMILY_IPV4);
+      ca = ComboAddress();
+      for (int i=0; i < 4; i++) {
+          ca.sin4.sin_addr.s_addr |= ard->d_ip.d_ip4[i] << (i*8);
+      }
+    } else if (ard->d_family == APL_FAMILY_IPV6) { // IPv6
+      s_family = std::to_string(APL_FAMILY_IPV6);
+      ca = ComboAddress();
+      ca.sin4.sin_family = AF_INET6;
+      for (int i=0; i < 16; i++) {
+        if (i < ard->d_afdlength) {
+          ca.sin6.sin6_addr.s6_addr[i] = ard->d_ip.d_ip6[i];
+        } else {
+          ca.sin6.sin6_addr.s6_addr[i] = 0;
+        }
+      }
+    } else {
+      throw MOADNSException("Asked to decode APL record but got unknown Address Family");
+    }
+
+    nm = Netmask(ca, ard->d_prefix);
+
+    output += s_n + s_family + ":" + nm.toString();
+    if (std::next(ard) != aplrdata.end())
+      output += " ";
+  }
+  return output;
+}
+
+/* APL end */
+
 boilerplate_conv(TKEY, QType::TKEY,
                  conv.xfrName(d_algo);
                  conv.xfr32BitInt(d_inception);
@@ -632,7 +851,6 @@ void reportOtherTypes()
    RRSIGRecordContent::report();
    DSRecordContent::report();
    CDSRecordContent::report();
-   IPSECKEYRecordContent::report();
    SSHFPRecordContent::report();
    CERTRecordContent::report();
    NSECRecordContent::report();
@@ -651,6 +869,7 @@ void reportOtherTypes()
    MINFORecordContent::report();
    URIRecordContent::report();
    CAARecordContent::report();
+   APLRecordContent::report();
 }
 
 void reportAllTypes()

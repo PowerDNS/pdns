@@ -784,6 +784,29 @@ private:
  uint8_t d_eui64[8];
 };
 
+#define APL_FAMILY_IPV4 1
+#define APL_FAMILY_IPV6 2
+typedef struct s_APLRDataElement {
+  uint16_t d_family;
+  uint8_t d_prefix;
+  bool d_n : 1;
+  unsigned int d_afdlength : 7;
+  union u_d_ip {
+      uint8_t d_ip4[4];
+      uint8_t d_ip6[16];
+  } d_ip;
+} APLRDataElement;
+class APLRecordContent : public DNSRecordContent
+{
+public:
+  APLRecordContent() {};
+  includeboilerplate(APL)
+private:
+  std::vector<APLRDataElement> aplrdata;
+  APLRDataElement parseAPLElement(const string &element);
+};
+
+
 class TKEYRecordContent : public DNSRecordContent
 {
 public:
