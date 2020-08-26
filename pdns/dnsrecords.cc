@@ -515,16 +515,16 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
       if (ard.d_afdlength > 4) {
         throw MOADNSException("Invalid IP length for IPv4 APL");
       }
-      memset(ard.d_ip4, 0, sizeof(ard.d_ip4));
+      memset(ard.d_ip.d_ip4, 0, sizeof(ard.d_ip.d_ip4));
       for (u_int i=0; i < ard.d_afdlength; i++)
-        pr.xfr8BitInt(ard.d_ip4[i]);
+        pr.xfr8BitInt(ard.d_ip.d_ip4[i]);
     } else if (ard.d_family == APL_FAMILY_IPV6) {
       if (ard.d_afdlength > 16) {
         throw MOADNSException("Invalid IP length for IPv6 APL");
       }
-      memset(ard.d_ip6, 0, sizeof(ard.d_ip6));
+      memset(ard.d_ip.d_ip6, 0, sizeof(ard.d_ip.d_ip6));
       for (u_int i=0; i < ard.d_afdlength; i++)
-        pr.xfr8BitInt(ard.d_ip6[i]);
+        pr.xfr8BitInt(ard.d_ip.d_ip6[i]);
     } else
     throw MOADNSException("Unknown family for APL record");
 
@@ -575,11 +575,11 @@ APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
     // Section 4.1 of RFC 3123 (don't send trailing "0" bytes)
     // Copy data; using array of bytes since we might end up truncating them in the packet
     v4ip = ntohl(nm.getNetwork().sin4.sin_addr.s_addr);
-    memset(ard.d_ip4, 0, sizeof(ard.d_ip4));
+    memset(ard.d_ip.d_ip4, 0, sizeof(ard.d_ip.d_ip4));
     bytes  = 4; // Start by assuming we'll send 4 bytes
     done_trimming = false;
     for (int i=0; i<4; i++) {
-      ard.d_ip4[3-i] = (v4ip & 255);
+      ard.d_ip.d_ip4[3-i] = (v4ip & 255);
       // Remove trailing "0" bytes from packet and update length
       if ((v4ip & 255) == 0 and !done_trimming) {
         bytes--;
@@ -602,11 +602,11 @@ APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
 
     // Section 4.2 of RFC 3123 (don't send trailing "0" bytes)
     // Remove trailing "0" bytes from packet and reduce length
-    memset(ard.d_ip6, 0, sizeof(ard.d_ip6));
+    memset(ard.d_ip.d_ip6, 0, sizeof(ard.d_ip.d_ip6));
     bytes = 16; // Start by assuming we'll send 16 bytes
     done_trimming = false;
     for (int i=0; i<16; i++) {
-      ard.d_ip6[15-i] = nm.getNetwork().sin6.sin6_addr.s6_addr[15-i];
+      ard.d_ip.d_ip6[15-i] = nm.getNetwork().sin6.sin6_addr.s6_addr[15-i];
       if (nm.getNetwork().sin6.sin6_addr.s6_addr[15-i] == 0 and !done_trimming) {
         // trailing 0 byte, update length
         bytes--;
@@ -649,11 +649,11 @@ void APLRecordContent::toPacket(DNSPacketWriter& pw) {
     pw.xfr8BitInt((ard->d_n << 7) + ard->d_afdlength);
     if (ard->d_family == APL_FAMILY_IPV4) {
       for (int i=0; i<ard->d_afdlength; i++) {
-        pw.xfr8BitInt(ard->d_ip4[i]);
+        pw.xfr8BitInt(ard->d_ip.d_ip4[i]);
       }
     } else if (ard->d_family == APL_FAMILY_IPV6) {
       for (int i=0; i<ard->d_afdlength; i++) {
-        pw.xfr8BitInt(ard->d_ip6[i]);
+        pw.xfr8BitInt(ard->d_ip.d_ip6[i]);
       }
     }
   }
@@ -680,7 +680,7 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
       s_family = std::to_string(APL_FAMILY_IPV4);
       ca = ComboAddress();
       for (int i=0; i < 4; i++) {
-          ca.sin4.sin_addr.s_addr |= ard->d_ip4[i] << (i*8);
+          ca.sin4.sin_addr.s_addr |= ard->d_ip.d_ip4[i] << (i*8);
       }
     } else if (ard->d_family == APL_FAMILY_IPV6) { // IPv6
       s_family = std::to_string(APL_FAMILY_IPV6);
@@ -688,7 +688,7 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
       ca.sin4.sin_family = AF_INET6;
       for (int i=0; i < 16; i++) {
         if (i < ard->d_afdlength) {
-          ca.sin6.sin6_addr.s6_addr[i] = ard->d_ip6[i];
+          ca.sin6.sin6_addr.s6_addr[i] = ard->d_ip.d_ip6[i];
         } else {
           ca.sin6.sin6_addr.s6_addr[i] = 0;
         }

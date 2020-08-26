@@ -791,8 +791,10 @@ typedef struct s_APLRDataElement {
   uint8_t d_prefix;
   bool d_n : 1;
   unsigned int d_afdlength : 7;
-  uint8_t d_ip4[4];
-  uint8_t d_ip6[16];
+  union u_d_ip {
+      uint8_t d_ip4[4];
+      uint8_t d_ip6[16];
+  } d_ip;
 } APLRDataElement;
 class APLRecordContent : public DNSRecordContent
 {
