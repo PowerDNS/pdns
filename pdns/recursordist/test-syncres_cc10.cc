@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
   BOOST_REQUIRE_EQUAL(v4Hit, true);
   BOOST_REQUIRE_EQUAL(v6Hit, false);
   BOOST_CHECK_EQUAL(rcode, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_outgoing_v4_only_no_A_in_delegation)
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only_no_A_in_delegation)
   rcode = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_REQUIRE_EQUAL(queries, 14); // We keep trying all parent nameservers, this is wrong!
   BOOST_CHECK_EQUAL(rcode, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_outgoing_v6_only_no_AAAA_in_delegation)
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v6_only_no_AAAA_in_delegation)
   rcode = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_REQUIRE_EQUAL(queries, 14); // The recursor tries all parent nameservers... this needs to be fixed
   BOOST_CHECK_EQUAL(rcode, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
