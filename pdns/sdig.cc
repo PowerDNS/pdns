@@ -105,6 +105,9 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
 static void printReply(const string& reply, bool showflags, bool hidesoadetails)
 {
   MOADNSParser mdp(false, reply);
+  if (mdp.d_header.id) {
+    cout << "ID is not zero, this response was not meant for us!"<<endl;
+  }
   cout << "Reply to question for qname='" << mdp.d_qname.toString()
        << "', qtype=" << DNSRecordContent::NumberToType(mdp.d_qtype) << endl;
   cout << "Rcode: " << mdp.d_header.rcode << " ("
