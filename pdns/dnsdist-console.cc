@@ -187,7 +187,6 @@ void doClient(ComboAddress server, const std::string& command)
   }
 
   string histfile = historyFile();
-  set<string> dupper;
   {
     ifstream history(histfile);
     string line;
@@ -230,7 +229,6 @@ void doClient(ComboAddress server, const std::string& command)
 void doConsole()
 {
   string histfile = historyFile(true);
-  set<string> dupper;
   {
     ifstream history(histfile);
     string line;
@@ -362,10 +360,11 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "AndRule", true, "list of DNS rules", "matches if all sub-rules matches" },
   { "benchRule", true, "DNS Rule [, iterations [, suffix]]", "bench the specified DNS rule" },
   { "carbonServer", true, "serverIP, [ourname], [interval]", "report statistics to serverIP using our hostname, or 'ourname' if provided, every 'interval' seconds" },
-  { "controlSocket", true, "addr", "open a control socket on this address / connect to this address in client mode" },
+  { "clearConsoleHistory", true, "", "clear the internal (in-memory) history of console commands" },
   { "clearDynBlocks", true, "", "clear all dynamic blocks" },
   { "clearQueryCounters", true, "", "clears the query counter buffer" },
   { "clearRules", true, "", "remove all current rules" },
+  { "controlSocket", true, "addr", "open a control socket on this address / connect to this address in client mode" },
   { "ContinueAction", true, "action", "execute the specified action and continue the processing of the remaining rules, regardless of the return of the action" },
   { "DelayAction", true, "milliseconds", "delay the response by the specified amount of milliseconds (UDP-only)" },
   { "DelayResponseAction", true, "milliseconds", "delay the response by the specified amount of milliseconds (UDP-only)" },
@@ -821,4 +820,10 @@ catch(const std::exception& e)
 {
   close(fd);
   errlog("Control connection died: %s", e.what());
+}
+
+void clearConsoleHistory()
+{
+  clear_history();
+  g_confDelta.clear();
 }
