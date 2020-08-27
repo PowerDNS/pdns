@@ -488,7 +488,6 @@ UeberBackend::UeberBackend(const string &pname)
   }
 
   d_negcached=0;
-  d_domain_id=-1;
   d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
@@ -592,12 +591,11 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
   }
 
   d_qtype=qtype.getCode();
-  d_domain_id=zoneId;
 
   d_handle.i=0;
   d_handle.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
   d_handle.qname=qname;
-  d_handle.zoneId=s_doANYLookupsOnly? -1 : zoneId;
+  d_handle.zoneId=zoneId;
   d_handle.pkt_p=pkt_p;
 
   if(!backends.size()) {
@@ -652,7 +650,7 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   if(d_cached) {
     while(d_cachehandleiter != d_answers.end()) {
       rr=*d_cachehandleiter++;;
-      if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype) && (d_domain_id == -1 || (rr.domain_id != -1 && rr.domain_id == d_domain_id))) {
+      if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype)) {
         return true;
       }
     }
@@ -662,7 +660,7 @@ bool UeberBackend::get(DNSZoneRecord &rr)
   while(d_handle.get(rr)) {
     rr.dr.d_place=DNSResourceRecord::ANSWER;
     d_answers.push_back(rr);
-    if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype) && (d_domain_id == -1 || (rr.domain_id != -1 && rr.domain_id == d_domain_id))) {
+    if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype)) {
       return true;
     }
   }
