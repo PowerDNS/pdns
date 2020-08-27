@@ -1199,7 +1199,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       policy = *(serverPool->policy);
     }
     const auto servers = serverPool->getServers();
-    selectedBackend = getSelectedBackendFromPolicy(policy, *servers, dq);
+    selectedBackend = policy.getSelectedBackend(*servers, dq);
 
     uint16_t cachedResponseSize = dq.size;
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
@@ -2168,7 +2168,7 @@ try
 
   g_policy.setState(leastOutstandingPol);
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
-    setupLua(true, false, g_cmdLine.config);
+    setupLua(g_lua, true, false, g_cmdLine.config);
     if (clientAddress != ComboAddress())
       g_serverControl = clientAddress;
     doClient(g_serverControl, g_cmdLine.command);
@@ -2189,22 +2189,22 @@ try
   g_consoleACL.setState(consoleACL);
 
   if (g_cmdLine.checkConfig) {
-    setupLua(false, true, g_cmdLine.config);
+    setupLua(g_lua, false, true, g_cmdLine.config);
     // No exception was thrown
     infolog("Configuration '%s' OK!", g_cmdLine.config);
     _exit(EXIT_SUCCESS);
   }
 
-  auto todo=setupLua(false, false, g_cmdLine.config);
+  auto todo = setupLua(g_lua, false, false, g_cmdLine.config);
 
   auto localPools = g_pools.getCopy();
   {
     bool precompute = false;
-    if (g_policy.getLocal()->name == "chashed") {
+    if (g_policy.getLocal()->getName() == "chashed") {
       precompute = true;
     } else {
       for (const auto& entry: localPools) {
-        if (entry.second->policy != nullptr && entry.second->policy->name == "chashed") {
+        if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
           precompute = true;
           break ;
         }

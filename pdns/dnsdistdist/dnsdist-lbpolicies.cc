@@ -22,6 +22,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-lbpolicies.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
 
@@ -251,9 +252,9 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
   if (!poolName.empty()) {
-    vinfolog("Setting pool %s server selection policy to %s", poolName, policy->name);
+    vinfolog("Setting pool %s server selection policy to %s", poolName, policy->getName());
   } else {
-    vinfolog("Setting default pool server selection policy to %s", policy->name);
+    vinfolog("Setting default pool server selection policy to %s", policy->getName());
   }
   pool->policy = policy;
 }
@@ -294,28 +295,61 @@ std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poo
   return it->second;
 }
 
-std::shared_ptr<DownstreamState> getSelectedBackendFromPolicy(const ServerPolicy& policy, const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq)
+ServerPolicy::ServerPolicy(const std::string& name_, const std::string& code): d_name(name_), d_perThreadPolicyCode(code), d_isLua(true), d_isFFI(true), d_isPerThread(true)
+{
+  LuaContext tmpContext;
+  setupLuaLoadBalancingContext(tmpContext);
+  auto ret = tmpContext.executeCode<ServerPolicy::ffipolicyfunc_t>(code);
+}
+
+thread_local ServerPolicy::PerThreadState ServerPolicy::t_perThreadState;
+
+const ServerPolicy::ffipolicyfunc_t& ServerPolicy::getPerThreadPolicy() const
+{
+  auto& state = t_perThreadState;
+  if (!state.d_initialized) {
+    setupLuaLoadBalancingContext(state.d_luaContext);
+    state.d_initialized = true;
+  }
+
+  const auto& it = state.d_policies.find(d_name);
+  if (it != state.d_policies.end()) {
+    return it->second;
+  }
+
+  auto newPolicy = state.d_luaContext.executeCode<ServerPolicy::ffipolicyfunc_t>(d_perThreadPolicyCode);
+  state.d_policies[d_name] = std::move(newPolicy);
+  return state.d_policies.at(d_name);
+}
+
+std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq) const
 {
   std::shared_ptr<DownstreamState> selectedBackend{nullptr};
 
-  if (policy.isLua) {
-    if (!policy.isFFI) {
+  if (d_isLua) {
+    if (!d_isFFI) {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      selectedBackend = policy.policy(servers, &dq);
+      selectedBackend = d_policy(servers, &dq);
     }
     else {
       dnsdist_ffi_dnsquestion_t dnsq(&dq);
       dnsdist_ffi_servers_list_t serversList(servers);
       unsigned int selected = 0;
-      {
+
+      if (!d_isPerThread) {
         std::lock_guard<std::mutex> lock(g_luamutex);
-        selected = policy.ffipolicy(&serversList, &dnsq);
+        selected = d_ffipolicy(&serversList, &dnsq);
       }
+      else {
+        const auto& policy = getPerThreadPolicy();
+        selected = policy(&serversList, &dnsq);
+      }
+
       selectedBackend = servers.at(selected).second;
     }
   }
   else {
-    selectedBackend = policy.policy(servers, &dq);
+    selectedBackend = d_policy(servers, &dq);
   }
 
   return selectedBackend;

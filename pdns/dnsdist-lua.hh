@@ -94,14 +94,15 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
 
 typedef NetmaskTree<DynBlock> nmts_t;
 
-vector<std::function<void(void)>> setupLua(bool client, bool configCheck, const std::string& config);
-void setupLuaActions();
-void setupLuaBindings(bool client);
-void setupLuaBindingsDNSCrypt();
-void setupLuaBindingsDNSQuestion();
-void setupLuaBindingsKVS(bool client);
-void setupLuaBindingsPacketCache();
-void setupLuaBindingsProtoBuf(bool client, bool configCheck);
-void setupLuaRules();
-void setupLuaInspection();
-void setupLuaVars();
+vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
+void setupLuaActions(LuaContext& luaCtx);
+void setupLuaBindings(LuaContext& luaCtx, bool client);
+void setupLuaBindingsDNSCrypt(LuaContext& luaCtx);
+void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
+void setupLuaBindingsKVS(LuaContext& luaCtx, bool client);
+void setupLuaBindingsPacketCache(LuaContext& luaCtx);
+void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck);
+void setupLuaRules(LuaContext& luaCtx);
+void setupLuaInspection(LuaContext& luaCtx);
+void setupLuaVars(LuaContext& luaCtx);
+void setupLuaLoadBalancingContext(LuaContext& luaCtx);

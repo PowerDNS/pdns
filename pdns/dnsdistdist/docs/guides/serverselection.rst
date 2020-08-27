@@ -112,6 +112,24 @@ Or::
 
   setServerPolicyLua("splitsetup", splitSetup)
 
+For performance reasons, 1.6.0 introduced per-thread Lua FFI policies that are run in a lock-free per-thread Lua context instead of the global one.
+This reduces contention between threads at the cost of preventing sharing data between threads for these policies. Since the policy needs to be recompiled
+in the context of each thread instead of the global one, Lua code that returns a function should be passed to the function as a string instead of directly
+passing the name of a function:
+
+.. code-block:: lua
+
+  setServerPolicyLuaFFIPerThread("luaffiroundrobin", [[
+    local ffi = require("ffi")
+    local C = ffi.C
+
+    local counter = 0
+    return function(servers_list, dq)
+      counter = counter + 1
+      return (counter % tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list)))
+    end
+  ]])
+
 ServerPolicy Objects
 --------------------
 
@@ -142,6 +160,12 @@ ServerPolicy Objects
   .. attribute:: ServerPolicy.isLua
 
     Whether this policy is a native (C++) policy or a Lua-based one.
+
+  .. attribute:: ServerPolicy.isPerThread
+
+    .. versionadded: 1.6.0
+
+    Whether a FFI Lua-based policy is executed in a lock-free per-thread context instead of running in the global Lua context.
 
   .. attribute:: ServerPolicy.name
 
@@ -196,6 +220,16 @@ Functions
 
   :param string name: name for this policy
   :param string function: name of the FFI function
+
+.. function:: setServerPolicyLuaFFIPerThread(name, code)
+
+  .. versionadded:: 1.6.0
+
+  Set server selection policy to one named ``name`` and the Lua FFI function returned by the Lua code passed in ``code``.
+  The resulting policy will be executed in a lock-free per-thread context, instead of running in the global Lua context.
+
+  :param string name: name for this policy
+  :param string code: Lua FFI code returning the function to execute as a server selection policy
 
 .. function:: setServFailWhenNoServer(value)
 

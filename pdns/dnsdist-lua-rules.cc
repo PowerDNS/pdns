@@ -178,80 +178,80 @@ static void mvRule(GlobalStateHolder<vector<T> > *someRespRulActions, unsigned i
   someRespRulActions->setState(std::move(rules));
 }
 
-void setupLuaRules()
+void setupLuaRules(LuaContext& luaCtx)
 {
-  g_lua.writeFunction("makeRule", makeRule);
+  luaCtx.writeFunction("makeRule", makeRule);
 
-  g_lua.registerFunction<string(std::shared_ptr<DNSRule>::*)()>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
+  luaCtx.registerFunction<string(std::shared_ptr<DNSRule>::*)()>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
 
-  g_lua.writeFunction("showResponseRules", [](boost::optional<ruleparams_t> vars) {
+  luaCtx.writeFunction("showResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_resprulactions, vars);
     });
 
-  g_lua.writeFunction("rmResponseRule", [](boost::variant<unsigned int, std::string> id) {
+  luaCtx.writeFunction("rmResponseRule", [](boost::variant<unsigned int, std::string> id) {
       rmRule(&g_resprulactions, id);
     });
 
-  g_lua.writeFunction("topResponseRule", []() {
+  luaCtx.writeFunction("topResponseRule", []() {
       topRule(&g_resprulactions);
     });
 
-  g_lua.writeFunction("mvResponseRule", [](unsigned int from, unsigned int to) {
+  luaCtx.writeFunction("mvResponseRule", [](unsigned int from, unsigned int to) {
       mvRule(&g_resprulactions, from, to);
     });
 
-  g_lua.writeFunction("showCacheHitResponseRules", [](boost::optional<ruleparams_t> vars) {
+  luaCtx.writeFunction("showCacheHitResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_cachehitresprulactions, vars);
     });
 
-  g_lua.writeFunction("rmCacheHitResponseRule", [](boost::variant<unsigned int, std::string> id) {
+  luaCtx.writeFunction("rmCacheHitResponseRule", [](boost::variant<unsigned int, std::string> id) {
       rmRule(&g_cachehitresprulactions, id);
     });
 
-  g_lua.writeFunction("topCacheHitResponseRule", []() {
+  luaCtx.writeFunction("topCacheHitResponseRule", []() {
       topRule(&g_cachehitresprulactions);
     });
 
-  g_lua.writeFunction("mvCacheHitResponseRule", [](unsigned int from, unsigned int to) {
+  luaCtx.writeFunction("mvCacheHitResponseRule", [](unsigned int from, unsigned int to) {
       mvRule(&g_cachehitresprulactions, from, to);
     });
 
-  g_lua.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
+  luaCtx.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_selfansweredresprulactions, vars);
     });
 
-  g_lua.writeFunction("rmSelfAnsweredResponseRule", [](boost::variant<unsigned int, std::string> id) {
+  luaCtx.writeFunction("rmSelfAnsweredResponseRule", [](boost::variant<unsigned int, std::string> id) {
       rmRule(&g_selfansweredresprulactions, id);
     });
 
-  g_lua.writeFunction("topSelfAnsweredResponseRule", []() {
+  luaCtx.writeFunction("topSelfAnsweredResponseRule", []() {
       topRule(&g_selfansweredresprulactions);
     });
 
-  g_lua.writeFunction("mvSelfAnsweredResponseRule", [](unsigned int from, unsigned int to) {
+  luaCtx.writeFunction("mvSelfAnsweredResponseRule", [](unsigned int from, unsigned int to) {
       mvRule(&g_selfansweredresprulactions, from, to);
     });
 
-  g_lua.writeFunction("rmRule", [](boost::variant<unsigned int, std::string> id) {
+  luaCtx.writeFunction("rmRule", [](boost::variant<unsigned int, std::string> id) {
       rmRule(&g_rulactions, id);
     });
 
-  g_lua.writeFunction("topRule", []() {
+  luaCtx.writeFunction("topRule", []() {
       topRule(&g_rulactions);
     });
 
-  g_lua.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
+  luaCtx.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
       mvRule(&g_rulactions, from, to);
     });
 
-  g_lua.writeFunction("clearRules", []() {
+  luaCtx.writeFunction("clearRules", []() {
       setLuaSideEffect();
       g_rulactions.modify([](decltype(g_rulactions)::value_type& rulactions) {
           rulactions.clear();
         });
     });
 
-  g_lua.writeFunction("setRules", [](const std::vector<std::pair<int, std::shared_ptr<DNSDistRuleAction>>>& newruleactions) {
+  luaCtx.writeFunction("setRules", [](const std::vector<std::pair<int, std::shared_ptr<DNSDistRuleAction>>>& newruleactions) {
       setLuaSideEffect();
       g_rulactions.modify([newruleactions](decltype(g_rulactions)::value_type& gruleactions) {
           gruleactions.clear();
@@ -265,52 +265,52 @@ void setupLuaRules()
         });
     });
 
-  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc, boost::optional<int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction) {
+  luaCtx.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc, boost::optional<int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, burst.get_value_or(qps), ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64), expiration.get_value_or(300), cleanupDelay.get_value_or(60), scanFraction.get_value_or(10)));
     });
 
-  g_lua.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<int> burst) {
+  luaCtx.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<int> burst) {
       if(!burst)
         return std::shared_ptr<DNSRule>(new MaxQPSRule(qps));
       else
         return std::shared_ptr<DNSRule>(new MaxQPSRule(qps, *burst));
     });
 
-  g_lua.writeFunction("RegexRule", [](const std::string& str) {
+  luaCtx.writeFunction("RegexRule", [](const std::string& str) {
       return std::shared_ptr<DNSRule>(new RegexRule(str));
     });
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  g_lua.writeFunction("HTTPHeaderRule", [](const std::string& header, const std::string& regex) {
+  luaCtx.writeFunction("HTTPHeaderRule", [](const std::string& header, const std::string& regex) {
       return std::shared_ptr<DNSRule>(new HTTPHeaderRule(header, regex));
     });
-  g_lua.writeFunction("HTTPPathRule", [](const std::string& path) {
+  luaCtx.writeFunction("HTTPPathRule", [](const std::string& path) {
       return std::shared_ptr<DNSRule>(new HTTPPathRule(path));
     });
-  g_lua.writeFunction("HTTPPathRegexRule", [](const std::string& regex) {
+  luaCtx.writeFunction("HTTPPathRegexRule", [](const std::string& regex) {
       return std::shared_ptr<DNSRule>(new HTTPPathRegexRule(regex));
     });
 #endif
 
 #ifdef HAVE_RE2
-  g_lua.writeFunction("RE2Rule", [](const std::string& str) {
+  luaCtx.writeFunction("RE2Rule", [](const std::string& str) {
       return std::shared_ptr<DNSRule>(new RE2Rule(str));
     });
 #endif
 
-  g_lua.writeFunction("SNIRule", [](const std::string& name) {
+  luaCtx.writeFunction("SNIRule", [](const std::string& name) {
       return std::shared_ptr<DNSRule>(new SNIRule(name));
   });
 
-  g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
+  luaCtx.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
     });
 
-  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src, boost::optional<bool> quiet) {
+  luaCtx.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src, boost::optional<bool> quiet) {
       return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true, quiet ? *quiet : false));
     });
 
-  g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
+  luaCtx.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
       setLuaNoSideEffect();
       int times = times_.get_value_or(100000);
       DNSName suffix(suffix_.get_value_or("powerdns.com"));
@@ -349,19 +349,19 @@ void setupLuaRules()
 
     });
 
-  g_lua.writeFunction("AllRule", []() {
+  luaCtx.writeFunction("AllRule", []() {
       return std::shared_ptr<DNSRule>(new AllRule());
     });
 
-  g_lua.writeFunction("ProbaRule", [](double proba) {
+  luaCtx.writeFunction("ProbaRule", [](double proba) {
       return std::shared_ptr<DNSRule>(new ProbaRule(proba));
     });
 
-  g_lua.writeFunction("QNameRule", [](const std::string& qname) {
+  luaCtx.writeFunction("QNameRule", [](const std::string& qname) {
       return std::shared_ptr<DNSRule>(new QNameRule(DNSName(qname)));
     });
 
-  g_lua.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
+  luaCtx.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
       uint16_t qtype;
       if(auto dir = boost::get<int>(&str)) {
         qtype = *dir;
@@ -375,123 +375,123 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new QTypeRule(qtype));
     });
 
-  g_lua.writeFunction("QClassRule", [](int c) {
+  luaCtx.writeFunction("QClassRule", [](int c) {
       return std::shared_ptr<DNSRule>(new QClassRule(c));
     });
 
-  g_lua.writeFunction("OpcodeRule", [](uint8_t code) {
+  luaCtx.writeFunction("OpcodeRule", [](uint8_t code) {
       return std::shared_ptr<DNSRule>(new OpcodeRule(code));
     });
 
-  g_lua.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
+  luaCtx.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
       return std::shared_ptr<DNSRule>(new AndRule(a));
     });
 
-  g_lua.writeFunction("OrRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
+  luaCtx.writeFunction("OrRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
       return std::shared_ptr<DNSRule>(new OrRule(a));
     });
 
-  g_lua.writeFunction("DSTPortRule", [](uint16_t port) {
+  luaCtx.writeFunction("DSTPortRule", [](uint16_t port) {
       return std::shared_ptr<DNSRule>(new DSTPortRule(port));
     });
 
-  g_lua.writeFunction("TCPRule", [](bool tcp) {
+  luaCtx.writeFunction("TCPRule", [](bool tcp) {
       return std::shared_ptr<DNSRule>(new TCPRule(tcp));
     });
 
-  g_lua.writeFunction("DNSSECRule", []() {
+  luaCtx.writeFunction("DNSSECRule", []() {
       return std::shared_ptr<DNSRule>(new DNSSECRule());
     });
 
-  g_lua.writeFunction("NotRule", [](std::shared_ptr<DNSRule>rule) {
+  luaCtx.writeFunction("NotRule", [](std::shared_ptr<DNSRule>rule) {
       return std::shared_ptr<DNSRule>(new NotRule(rule));
     });
 
-  g_lua.writeFunction("RecordsCountRule", [](uint8_t section, uint16_t minCount, uint16_t maxCount) {
+  luaCtx.writeFunction("RecordsCountRule", [](uint8_t section, uint16_t minCount, uint16_t maxCount) {
       return std::shared_ptr<DNSRule>(new RecordsCountRule(section, minCount, maxCount));
     });
 
-  g_lua.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t type, uint16_t minCount, uint16_t maxCount) {
+  luaCtx.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t type, uint16_t minCount, uint16_t maxCount) {
       return std::shared_ptr<DNSRule>(new RecordsTypeCountRule(section, type, minCount, maxCount));
     });
 
-  g_lua.writeFunction("TrailingDataRule", []() {
+  luaCtx.writeFunction("TrailingDataRule", []() {
       return std::shared_ptr<DNSRule>(new TrailingDataRule());
     });
 
-  g_lua.writeFunction("QNameLabelsCountRule", [](unsigned int minLabelsCount, unsigned int maxLabelsCount) {
+  luaCtx.writeFunction("QNameLabelsCountRule", [](unsigned int minLabelsCount, unsigned int maxLabelsCount) {
       return std::shared_ptr<DNSRule>(new QNameLabelsCountRule(minLabelsCount, maxLabelsCount));
     });
 
-  g_lua.writeFunction("QNameWireLengthRule", [](size_t min, size_t max) {
+  luaCtx.writeFunction("QNameWireLengthRule", [](size_t min, size_t max) {
       return std::shared_ptr<DNSRule>(new QNameWireLengthRule(min, max));
     });
 
-  g_lua.writeFunction("RCodeRule", [](uint8_t rcode) {
+  luaCtx.writeFunction("RCodeRule", [](uint8_t rcode) {
       return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
     });
 
-  g_lua.writeFunction("ERCodeRule", [](uint8_t rcode) {
+  luaCtx.writeFunction("ERCodeRule", [](uint8_t rcode) {
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
-  g_lua.writeFunction("EDNSVersionRule", [](uint8_t version) {
+  luaCtx.writeFunction("EDNSVersionRule", [](uint8_t version) {
       return std::shared_ptr<DNSRule>(new EDNSVersionRule(version));
     });
 
-  g_lua.writeFunction("EDNSOptionRule", [](uint16_t optcode) {
+  luaCtx.writeFunction("EDNSOptionRule", [](uint16_t optcode) {
       return std::shared_ptr<DNSRule>(new EDNSOptionRule(optcode));
     });
 
-  g_lua.writeFunction("showRules", [](boost::optional<ruleparams_t> vars) {
+  luaCtx.writeFunction("showRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_rulactions, vars);
     });
 
-  g_lua.writeFunction("RDRule", []() {
+  luaCtx.writeFunction("RDRule", []() {
       return std::shared_ptr<DNSRule>(new RDRule());
     });
 
-  g_lua.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
+  luaCtx.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
       return std::shared_ptr<DNSRule>(new TagRule(tag, value));
     });
 
-  g_lua.writeFunction("TimedIPSetRule", []() {
+  luaCtx.writeFunction("TimedIPSetRule", []() {
       return std::shared_ptr<TimedIPSetRule>(new TimedIPSetRule());
     });
 
-  g_lua.writeFunction("PoolAvailableRule", [](std::string poolname) {
+  luaCtx.writeFunction("PoolAvailableRule", [](std::string poolname) {
     return std::shared_ptr<DNSRule>(new PoolAvailableRule(poolname));
   });
 
-  g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("clear", [](std::shared_ptr<TimedIPSetRule> tisr) {
+  luaCtx.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("clear", [](std::shared_ptr<TimedIPSetRule> tisr) {
       tisr->clear();
     });
 
-  g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("cleanup", [](std::shared_ptr<TimedIPSetRule> tisr) {
+  luaCtx.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("cleanup", [](std::shared_ptr<TimedIPSetRule> tisr) {
       tisr->cleanup();
     });
 
-  g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)(const ComboAddress& ca, int t)>("add", [](std::shared_ptr<TimedIPSetRule> tisr, const ComboAddress& ca, int t) {
+  luaCtx.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)(const ComboAddress& ca, int t)>("add", [](std::shared_ptr<TimedIPSetRule> tisr, const ComboAddress& ca, int t) {
       tisr->add(ca, time(0)+t);
     });
 
-  g_lua.registerFunction<std::shared_ptr<DNSRule>(std::shared_ptr<TimedIPSetRule>::*)()>("slice", [](std::shared_ptr<TimedIPSetRule> tisr) {
+  luaCtx.registerFunction<std::shared_ptr<DNSRule>(std::shared_ptr<TimedIPSetRule>::*)()>("slice", [](std::shared_ptr<TimedIPSetRule> tisr) {
       return std::dynamic_pointer_cast<DNSRule>(tisr);
     });
 
-  g_lua.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
+  luaCtx.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
       return std::shared_ptr<DNSRule>(new QNameSetRule(names));
     });
 
-  g_lua.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
+  luaCtx.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
       return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
     });
 
-  g_lua.writeFunction("LuaRule", [](LuaRule::func_t func) {
+  luaCtx.writeFunction("LuaRule", [](LuaRule::func_t func) {
       return std::shared_ptr<DNSRule>(new LuaRule(func));
     });
 
-  g_lua.writeFunction("LuaFFIRule", [](LuaFFIRule::func_t func) {
+  luaCtx.writeFunction("LuaFFIRule", [](LuaFFIRule::func_t func) {
       return std::shared_ptr<DNSRule>(new LuaFFIRule(func));
     });
 }

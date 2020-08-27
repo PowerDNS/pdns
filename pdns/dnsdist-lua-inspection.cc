@@ -223,9 +223,9 @@ static counts_t exceedRespByterate(unsigned int rate, int seconds)
 		   });
 }
 
-void setupLuaInspection()
+void setupLuaInspection(LuaContext& luaCtx)
 {
-  g_lua.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
+  luaCtx.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
       setLuaNoSideEffect();
       auto top = top_.get_value_or(10);
       map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts;
@@ -259,7 +259,7 @@ void setupLuaInspection()
       g_outputBuffer += (fmt % (count) % "Rest" % rest % (total > 0 ? 100.0*rest/total : 100.0)).str();
     });
 
-  g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
+  luaCtx.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
       setLuaNoSideEffect();
       map<DNSName, unsigned int> counts;
       unsigned int total=0;
@@ -307,9 +307,9 @@ void setupLuaInspection()
 
     });
 
-  g_lua.executeCode(R"(function topQueries(top, labels) top = top or 10; for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
+  luaCtx.executeCode(R"(function topQueries(top, labels) top = top or 10; for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
-  g_lua.writeFunction("getResponseRing", []() {
+  luaCtx.writeFunction("getResponseRing", []() {
       setLuaNoSideEffect();
       size_t totalEntries = 0;
       std::vector<boost::circular_buffer<Rings::Response>> rings;
@@ -336,28 +336,28 @@ void setupLuaInspection()
       return ret;
     });
 
-  g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
+  luaCtx.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
       return getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
     });
 
-  g_lua.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  luaCtx.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
 
-  g_lua.writeFunction("getSlowResponses", [](unsigned int top, unsigned int msec, boost::optional<int> labels) {
+  luaCtx.writeFunction("getSlowResponses", [](unsigned int top, unsigned int msec, boost::optional<int> labels) {
       return getGenResponses(top, labels, [msec](const Rings::Response& r) { return r.usec > msec*1000; });
     });
 
 
-  g_lua.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  luaCtx.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
-  g_lua.writeFunction("getTopBandwidth", [](unsigned int top) {
+  luaCtx.writeFunction("getTopBandwidth", [](unsigned int top) {
       setLuaNoSideEffect();
       return g_rings.getTopBandwidth(top);
     });
 
-  g_lua.executeCode(R"(function topBandwidth(top) top = top or 10; for k,v in ipairs(getTopBandwidth(top)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  luaCtx.executeCode(R"(function topBandwidth(top) top = top or 10; for k,v in ipairs(getTopBandwidth(top)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
-  g_lua.writeFunction("delta", []() {
+  luaCtx.writeFunction("delta", []() {
       setLuaNoSideEffect();
       // we hold the lua lock already!
       for(const auto& d : g_confDelta) {
@@ -370,7 +370,7 @@ void setupLuaInspection()
       }
     });
 
-  g_lua.writeFunction("grepq", [](boost::variant<string, vector<pair<int,string> > > inp, boost::optional<unsigned int> limit) {
+  luaCtx.writeFunction("grepq", [](boost::variant<string, vector<pair<int,string> > > inp, boost::optional<unsigned int> limit) {
       setLuaNoSideEffect();
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
@@ -517,7 +517,7 @@ void setupLuaInspection()
       }
     });
 
-  g_lua.writeFunction("showResponseLatency", []() {
+  luaCtx.writeFunction("showResponseLatency", []() {
       setLuaNoSideEffect();
       map<double, unsigned int> histo;
       double bin=100;
@@ -575,7 +575,7 @@ void setupLuaInspection()
       }
     });
 
-  g_lua.writeFunction("showTCPStats", [] {
+  luaCtx.writeFunction("showTCPStats", [] {
       setLuaNoSideEffect();
       ostringstream ret;
       boost::format fmt("%-12d %-12d %-12d %-12d");
@@ -611,7 +611,7 @@ void setupLuaInspection()
       g_outputBuffer=ret.str();
     });
 
-  g_lua.writeFunction("showTLSErrorCounters", [] {
+  luaCtx.writeFunction("showTLSErrorCounters", [] {
       setLuaNoSideEffect();
       ostringstream ret;
       boost::format fmt("%-3d %-20.20s %-23d %-23d %-23d %-23d %-23d %-23d %-23d %-23d");
@@ -642,7 +642,7 @@ void setupLuaInspection()
       g_outputBuffer=ret.str();
     });
 
-  g_lua.writeFunction("dumpStats", [] {
+  luaCtx.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();
       vector<string> leftcolumn, rightcolumn;
 
@@ -686,21 +686,21 @@ void setupLuaInspection()
       }
     });
 
-  g_lua.writeFunction("exceedServFails", [](unsigned int rate, int seconds) {
+  luaCtx.writeFunction("exceedServFails", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
       return exceedRCode(rate, seconds, RCode::ServFail);
     });
-  g_lua.writeFunction("exceedNXDOMAINs", [](unsigned int rate, int seconds) {
+  luaCtx.writeFunction("exceedNXDOMAINs", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
       return exceedRCode(rate, seconds, RCode::NXDomain);
     });
 
-  g_lua.writeFunction("exceedRespByterate", [](unsigned int rate, int seconds) {
+  luaCtx.writeFunction("exceedRespByterate", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
       return exceedRespByterate(rate, seconds);
     });
 
-  g_lua.writeFunction("exceedQTypeRate", [](uint16_t type, unsigned int rate, int seconds) {
+  luaCtx.writeFunction("exceedQTypeRate", [](uint16_t type, unsigned int rate, int seconds) {
       setLuaNoSideEffect();
       return exceedQueryGen(rate, seconds, [type](counts_t& counts, const Rings::Query& q) {
 	  if(q.qtype==type)
@@ -708,71 +708,71 @@ void setupLuaInspection()
 	});
     });
 
-  g_lua.writeFunction("exceedQRate", [](unsigned int rate, int seconds) {
+  luaCtx.writeFunction("exceedQRate", [](unsigned int rate, int seconds) {
       setLuaNoSideEffect();
       return exceedQueryGen(rate, seconds, [](counts_t& counts, const Rings::Query& q) {
           counts[q.requestor]++;
 	});
     });
 
-  g_lua.writeFunction("getRespRing", getRespRing);
+  luaCtx.writeFunction("getRespRing", getRespRing);
 
   /* StatNode */
-  g_lua.registerFunction<StatNode, unsigned int()>("numChildren",
+  luaCtx.registerFunction<StatNode, unsigned int()>("numChildren",
                                                    [](StatNode& sn) -> unsigned int {
                                                      return sn.children.size();
                                                    } );
-  g_lua.registerMember("fullname", &StatNode::fullname);
-  g_lua.registerMember("labelsCount", &StatNode::labelsCount);
-  g_lua.registerMember("servfails", &StatNode::Stat::servfails);
-  g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
-  g_lua.registerMember("queries", &StatNode::Stat::queries);
-  g_lua.registerMember("noerrors", &StatNode::Stat::noerrors);
-  g_lua.registerMember("drops", &StatNode::Stat::drops);
-  g_lua.registerMember("bytes", &StatNode::Stat::bytes);
+  luaCtx.registerMember("fullname", &StatNode::fullname);
+  luaCtx.registerMember("labelsCount", &StatNode::labelsCount);
+  luaCtx.registerMember("servfails", &StatNode::Stat::servfails);
+  luaCtx.registerMember("nxdomains", &StatNode::Stat::nxdomains);
+  luaCtx.registerMember("queries", &StatNode::Stat::queries);
+  luaCtx.registerMember("noerrors", &StatNode::Stat::noerrors);
+  luaCtx.registerMember("drops", &StatNode::Stat::drops);
+  luaCtx.registerMember("bytes", &StatNode::Stat::bytes);
 
-  g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
+  luaCtx.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
       statNodeRespRing(visitor, seconds ? *seconds : 0);
     });
 
   /* DynBlockRulesGroup */
-  g_lua.writeFunction("dynBlockRulesGroup", []() { return std::make_shared<DynBlockRulesGroup>(); });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
+  luaCtx.writeFunction("dynBlockRulesGroup", []() { return std::make_shared<DynBlockRulesGroup>(); });
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
         group->setQueryRate(rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
         group->setResponseByteRate(rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, DynBlockRulesGroup::smtVisitor_t)>("setSuffixMatchRule", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, DynBlockRulesGroup::smtVisitor_t visitor) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, DynBlockRulesGroup::smtVisitor_t)>("setSuffixMatchRule", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, DynBlockRulesGroup::smtVisitor_t visitor) {
       if (group) {
         group->setSuffixMatchRule(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, visitor);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, dnsdist_ffi_stat_node_visitor_t)>("setSuffixMatchRuleFFI", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, dnsdist_ffi_stat_node_visitor_t visitor) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, dnsdist_ffi_stat_node_visitor_t)>("setSuffixMatchRuleFFI", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, dnsdist_ffi_stat_node_visitor_t visitor) {
       if (group) {
         group->setSuffixMatchRuleFFI(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, visitor);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
         group->setRCodeRate(rcode, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, double, unsigned int, const std::string&, unsigned int, size_t, boost::optional<DNSAction::Action>, boost::optional<double>)>("setRCodeRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, boost::optional<DNSAction::Action> action, boost::optional<double> warningRatio) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, double, unsigned int, const std::string&, unsigned int, size_t, boost::optional<DNSAction::Action>, boost::optional<double>)>("setRCodeRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, boost::optional<DNSAction::Action> action, boost::optional<double> warningRatio) {
       if (group) {
         group->setRCodeRatio(rcode, ratio, warningRatio ? *warningRatio : 0.0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, minimumNumberOfResponses);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
         group->setQTypeRate(qtype, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           group->excludeRange(Netmask(range.second));
@@ -782,7 +782,7 @@ void setupLuaInspection()
         group->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           group->includeRange(Netmask(range.second));
@@ -792,7 +792,7 @@ void setupLuaInspection()
         group->includeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeDomains", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> domains) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeDomains", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> domains) {
       if (domains.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&domains)) {
           group->excludeDomain(DNSName(range.second));
@@ -802,9 +802,9 @@ void setupLuaInspection()
         group->excludeDomain(DNSName(*boost::get<std::string>(&domains)));
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)()>("apply", [](std::shared_ptr<DynBlockRulesGroup>& group) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)()>("apply", [](std::shared_ptr<DynBlockRulesGroup>& group) {
     group->apply();
   });
-  g_lua.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
-  g_lua.registerFunction("toString", &DynBlockRulesGroup::toString);
+  luaCtx.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
+  luaCtx.registerFunction("toString", &DynBlockRulesGroup::toString);
 }

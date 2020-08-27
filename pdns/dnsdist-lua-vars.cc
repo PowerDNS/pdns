@@ -25,9 +25,9 @@
 
 #undef BADSIG  // signal.h SIG_ERR
 
-void setupLuaVars()
+void setupLuaVars(LuaContext& luaCtx)
 {
-  g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
+  luaCtx.writeVariable("DNSAction", std::unordered_map<string,int>{
       {"Drop", (int)DNSAction::Action::Drop},
       {"Nxdomain", (int)DNSAction::Action::Nxdomain},
       {"Refused", (int)DNSAction::Action::Refused},
@@ -44,7 +44,7 @@ void setupLuaVars()
       {"NoRecurse", (int)DNSAction::Action::NoRecurse}
     });
 
-  g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
+  luaCtx.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
       {"Allow",        (int)DNSResponseAction::Action::Allow        },
       {"Delay",        (int)DNSResponseAction::Action::Delay        },
       {"Drop",         (int)DNSResponseAction::Action::Drop         },
@@ -53,14 +53,14 @@ void setupLuaVars()
       {"None",         (int)DNSResponseAction::Action::None         }
     });
 
-  g_lua.writeVariable("DNSClass", std::unordered_map<string,int>{
+  luaCtx.writeVariable("DNSClass", std::unordered_map<string,int>{
       {"IN",    QClass::IN    },
       {"CHAOS", QClass::CHAOS },
       {"NONE",  QClass::NONE  },
       {"ANY",   QClass::ANY   }
     });
 
-  g_lua.writeVariable("DNSOpcode", std::unordered_map<string,int>{
+  luaCtx.writeVariable("DNSOpcode", std::unordered_map<string,int>{
       {"Query",  Opcode::Query  },
       {"IQuery", Opcode::IQuery },
       {"Status", Opcode::Status },
@@ -68,14 +68,14 @@ void setupLuaVars()
       {"Update", Opcode::Update }
     });
 
-  g_lua.writeVariable("DNSSection", std::unordered_map<string,int>{
+  luaCtx.writeVariable("DNSSection", std::unordered_map<string,int>{
       {"Question",  0 },
       {"Answer",    1 },
       {"Authority", 2 },
       {"Additional",3 }
     });
 
-  g_lua.writeVariable("EDNSOptionCode", std::unordered_map<string,int>{
+  luaCtx.writeVariable("EDNSOptionCode", std::unordered_map<string,int>{
       {"NSID",         EDNSOptionCode::NSID },
       {"DAU",          EDNSOptionCode::DAU },
       {"DHU",          EDNSOptionCode::DHU },
@@ -89,7 +89,7 @@ void setupLuaVars()
       {"KEYTAG",       EDNSOptionCode::KEYTAG }
     });
 
-  g_lua.writeVariable("DNSRCode", std::unordered_map<string, int>{
+  luaCtx.writeVariable("DNSRCode", std::unordered_map<string, int>{
       {"NOERROR",  RCode::NoError  },
       {"FORMERR",  RCode::FormErr  },
       {"SERVFAIL", RCode::ServFail },
@@ -115,9 +115,9 @@ void setupLuaVars()
   vector<pair<string, int> > dd;
   for(const auto& n : QType::names)
     dd.push_back({n.first, n.second});
-  g_lua.writeVariable("DNSQType", dd);
+  luaCtx.writeVariable("DNSQType", dd);
 
-  g_lua.executeCode(R"LUA(
+  luaCtx.executeCode(R"LUA(
     local tables = {
       DNSQType = DNSQType,
       DNSRCode = DNSRCode
@@ -139,7 +139,7 @@ void setupLuaVars()
   );
 
 #ifdef HAVE_DNSCRYPT
-    g_lua.writeVariable("DNSCryptExchangeVersion", std::unordered_map<string,int>{
+    luaCtx.writeVariable("DNSCryptExchangeVersion", std::unordered_map<string,int>{
         { "VERSION1", DNSCryptExchangeVersion::VERSION1 },
         { "VERSION2", DNSCryptExchangeVersion::VERSION2 },
     });

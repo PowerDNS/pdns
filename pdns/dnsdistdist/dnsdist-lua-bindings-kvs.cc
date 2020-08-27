@@ -23,24 +23,24 @@
 #include "dnsdist-kvs.hh"
 #include "dnsdist-lua.hh"
 
-void setupLuaBindingsKVS(bool client)
+void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
 {
   /* Key Value Store objects */
-  g_lua.writeFunction("KeyValueLookupKeySourceIP", [](boost::optional<uint8_t> v4Mask, boost::optional<uint8_t> v6Mask) {
+  luaCtx.writeFunction("KeyValueLookupKeySourceIP", [](boost::optional<uint8_t> v4Mask, boost::optional<uint8_t> v6Mask) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask.get_value_or(32), v6Mask.get_value_or(128)));
   });
-  g_lua.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
+  luaCtx.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName(wireFormat ? *wireFormat : true));
   });
-  g_lua.writeFunction("KeyValueLookupKeySuffix", [](boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
+  luaCtx.writeFunction("KeyValueLookupKeySuffix", [](boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySuffix(minLabels ? *minLabels : 0, wireFormat ? *wireFormat : true));
   });
-  g_lua.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
+  luaCtx.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
   });
 
 #ifdef HAVE_LMDB
-  g_lua.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName) {
+  luaCtx.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName) {
     if (client) {
       return std::shared_ptr<KeyValueStore>(nullptr);
     }
@@ -49,7 +49,7 @@ void setupLuaBindingsKVS(bool client)
 #endif /* HAVE_LMDB */
 
 #ifdef HAVE_CDB
-  g_lua.writeFunction("newCDBKVStore", [client](const std::string& fname, time_t refreshDelay) {
+  luaCtx.writeFunction("newCDBKVStore", [client](const std::string& fname, time_t refreshDelay) {
     if (client) {
       return std::shared_ptr<KeyValueStore>(nullptr);
     }
@@ -57,7 +57,7 @@ void setupLuaBindingsKVS(bool client)
   });
 #endif /* HAVE_CDB */
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, boost::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, boost::optional<bool> wireFormat) {
+  luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, boost::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, boost::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -89,7 +89,7 @@ void setupLuaBindingsKVS(bool client)
     return result;
   });
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
+  luaCtx.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -105,7 +105,7 @@ void setupLuaBindingsKVS(bool client)
     return result;
   });
 
-  g_lua.registerFunction<bool(std::shared_ptr<KeyValueStore>::*)()>("reload", [](std::shared_ptr<KeyValueStore>& kvs) {
+  luaCtx.registerFunction<bool(std::shared_ptr<KeyValueStore>::*)()>("reload", [](std::shared_ptr<KeyValueStore>& kvs) {
     if (!kvs) {
       return false;
     }

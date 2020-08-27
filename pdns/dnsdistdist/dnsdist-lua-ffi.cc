@@ -21,6 +21,7 @@
  */
 
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-ecs.hh"
 
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
@@ -503,4 +504,16 @@ const std::string& getLuaFFIWrappers()
 
 )FFICodeContent";
   return code;
+}
+
+void setupLuaLoadBalancingContext(LuaContext& luaCtx)
+{
+  setupLuaBindings(luaCtx, true);
+  setupLuaBindingsDNSQuestion(luaCtx);
+  setupLuaBindingsKVS(luaCtx, true);
+  setupLuaVars(luaCtx);
+
+#ifdef LUAJIT_VERSION
+  luaCtx.executeCode(getLuaFFIWrappers());
+#endif
 }
