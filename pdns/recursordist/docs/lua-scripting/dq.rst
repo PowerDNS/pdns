@@ -92,6 +92,14 @@ The DNSQuestion object contains at least the following fields:
 
         The TTL in seconds for the ``pdns.policyactions.Custom`` response
 
+    .. attribute:: DNSQuestion.appliedPolicy.policyTrigger
+
+        The trigger (left-hand) part of the RPZ rule that was matched
+
+  .. attribute:: DNSQuestion.appliedPolicy.policyHit
+
+        The value that was matched. This is a string representing a name or an address.
+
   .. attribute:: DNSQuestion.wantsRPZ
 
       A boolean that indicates the use of the Policy Engine.

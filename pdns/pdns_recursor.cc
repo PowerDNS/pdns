@@ -889,6 +889,10 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
     ++g_stats.policyResults[appliedPolicy.d_kind];
   }
 
+  if (sr.doLog() &&  appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
+    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
+  }
+
   switch (appliedPolicy.d_kind) {
 
   case DNSFilterEngine::PolicyKind::NoAction:
@@ -1569,10 +1573,6 @@ static void startDoResolve(void *p)
           goto haveAnswer;
         }
         else if (policyResult == PolicyResult::Drop) {
-          if (sr.doLog()) {
-            g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
-          }
-          g_stats.policyDrops++;
           return;
         }
       }
@@ -1620,9 +1620,6 @@ static void startDoResolve(void *p)
             g_log<<Logger::Warning<< line << endl;
         }
       }
-    }
-    if (sr.doLog() &&  appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
-      g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
     }
 
     if(res == -1) {

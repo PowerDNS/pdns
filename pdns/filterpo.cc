@@ -27,7 +27,7 @@
 #include "namespaces.hh"
 #include "dnsrecords.hh"
 
-// Names below are RPZ Actions and end with a dot (execpt "Local Data")
+// Names below are RPZ Actions and end with a dot (except "Local Data")
 static const std::string rpzDropName("rpz-drop."),
   rpzTruncateName("rpz-tcp-only."),
   rpzNoActionName("rpz-passthru."),
@@ -106,7 +106,7 @@ bool DNSFilterEngine::Zone::findNamedPolicy(const std::unordered_map<DNSName, DN
     iter = polmap.find(g_wildcarddnsname+s);
     if(iter != polmap.end()) {
       pol=iter->second;
-      pol.d_trigger = g_wildcarddnsname+s;
+      pol.d_trigger = iter->first;
       pol.d_hit = qname.toStringNoDot();
       return true;
     }
