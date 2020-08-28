@@ -194,14 +194,16 @@ class TestRecursorProtobuf(RecursorTest):
             self.assertEquals(record.ttl, rttl)
         self.assertTrue(record.HasField('rdata'))
 
-    def checkProtobufPolicy(self, msg, policyType, reason, name):
+    def checkProtobufPolicy(self, msg, policyType, reason, trigger, hit):
         self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.assertTrue(msg.response.HasField('appliedPolicyType'))
         self.assertTrue(msg.response.HasField('appliedPolicy'))
         self.assertTrue(msg.response.HasField('appliedPolicyTrigger'))
+        self.assertTrue(msg.response.HasField('appliedPolicyHit'))
         self.assertEquals(msg.response.appliedPolicy, reason)
         self.assertEquals(msg.response.appliedPolicyType, policyType)
-        self.assertEquals(msg.response.appliedPolicyTrigger, name)
+        self.assertEquals(msg.response.appliedPolicyTrigger, trigger)
+        self.assertEquals(msg.response.appliedPolicyHit, hit)
 
     def checkProtobufTags(self, msg, tags):
         print(tags)
@@ -861,7 +863,7 @@ sub.test 3600 IN A 192.0.2.42
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.')
+        self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.', 'sub.test.example')
         self.assertEquals(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
@@ -928,7 +930,7 @@ sub.test 3600 IN A 192.0.2.42
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.')
+        self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.', 'sub.test.example')
         self.checkProtobufTags(msg, self._tags + self._tags_from_gettag + self._tags_from_rpz)
         self.assertEquals(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
