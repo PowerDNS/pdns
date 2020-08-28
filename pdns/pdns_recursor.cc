@@ -889,6 +889,10 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
     ++g_stats.policyResults[appliedPolicy.d_kind];
   }
 
+  if (sr.doLog() &&  appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
+    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
+  }
+
   switch (appliedPolicy.d_kind) {
 
   case DNSFilterEngine::PolicyKind::NoAction:
@@ -1777,6 +1781,8 @@ static void startDoResolve(void *p)
       if (!appliedPolicy.getName().empty()) {
         pbMessage->setAppliedPolicy(appliedPolicy.getName());
         pbMessage->setAppliedPolicyType(appliedPolicy.d_type);
+        pbMessage->setAppliedPolicyTrigger(appliedPolicy.d_trigger);
+        pbMessage->setAppliedPolicyHit(appliedPolicy.d_hit);
       }
       pbMessage->setPolicyTags(dc->d_policyTags);
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {

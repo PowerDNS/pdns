@@ -79,6 +79,8 @@ message PBDNSMessage {
     optional uint32 queryTimeSec = 5;           // Time of the corresponding query reception (seconds since epoch)
     optional uint32 queryTimeUsec = 6;          // Time of the corresponding query reception (additional micro-seconds)
     optional PolicyType appliedPolicyType = 7;  // Type of the filtering policy (RPZ or Lua) applied
+    optional string appliedPolicyTrigger = 8;   // The RPZ trigger
+    optional string appliedPolicyHit = 9;       // The value (qname or IP) that caused the hit
   }
 
   optional DNSResponse response = 13;

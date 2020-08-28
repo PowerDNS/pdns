@@ -188,6 +188,8 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("policyKind", &DNSFilterEngine::Policy::d_kind);
   d_lw->registerMember("policyType", &DNSFilterEngine::Policy::d_type);
   d_lw->registerMember("policyTTL", &DNSFilterEngine::Policy::d_ttl);
+  d_lw->registerMember("policyTrigger", &DNSFilterEngine::Policy::d_trigger);
+  d_lw->registerMember("policyHit", &DNSFilterEngine::Policy::d_hit);
   d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyCustom",
     [](const DNSFilterEngine::Policy& pol) -> std::string {
       std::string result;
@@ -329,6 +331,15 @@ void RecursorLua4::postPrepareContext()
     {"NODATA",   (int)DNSFilterEngine::PolicyKind::NODATA  },
     {"Truncate", (int)DNSFilterEngine::PolicyKind::Truncate},
     {"Custom",   (int)DNSFilterEngine::PolicyKind::Custom  }
+    }});
+
+  d_pd.push_back({"policytypes", in_t {
+    {"None",       (int)DNSFilterEngine::PolicyType::None       },
+    {"QName",      (int)DNSFilterEngine::PolicyType::QName      },
+    {"ClientIP",   (int)DNSFilterEngine::PolicyType::ClientIP   },
+    {"ResponseIP", (int)DNSFilterEngine::PolicyType::ResponseIP },
+    {"NSDName",    (int)DNSFilterEngine::PolicyType::NSDName    },
+    {"NSIP",       (int)DNSFilterEngine::PolicyType::NSIP       }
     }});
 
   for(const auto& n : QType::names)

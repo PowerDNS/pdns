@@ -2028,6 +2028,10 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
     ++g_stats.policyResults[d_appliedPolicy.d_kind];
   }
 
+  if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
+    LOG(prefix << qname << "|" << qtype.getName() << d_appliedPolicy.getLogString() << endl);
+  }
+
   switch (d_appliedPolicy.d_kind) {
 
   case DNSFilterEngine::PolicyKind::NoAction:
