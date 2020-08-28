@@ -94,7 +94,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
 
   /* will look like: dnsheader, 5 bytes, encoded qname, dns record header, serialized data */
 
-  string encoded=qname.toDNSString();
+  const auto& encoded = qname.getStorage();
 
   packet.resize(sizeof(dnsheader) + 5 + encoded.size() + sizeof(struct dnsrecordheader) + serialized.size());
 

@@ -311,8 +311,8 @@ static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* respon
     return true;
   }
 
-  if(g_fixupCase) {
-    string realname = qname.toDNSString();
+  if (g_fixupCase) {
+    const auto& realname = qname.getStorage();
     if (*responseLen >= (sizeof(dnsheader) + realname.length())) {
       memcpy(*response + sizeof(dnsheader), realname.c_str(), realname.length());
     }

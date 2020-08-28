@@ -152,6 +152,7 @@ size_t readn2(int fd, void* buffer, size_t len);
 size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout=0);
 size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout);
 
+void toLowerInPlace(string& str);
 const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);
@@ -230,16 +231,24 @@ inline int DTime::udiffNoReset()
   return ret;
 }
 
+inline void toLowerInPlace(string& str)
+{
+  const size_t length = str.length();
+  char c;
+  for (unsigned int i = 0; i < length; ++i) {
+    c = dns_tolower(str[i]);
+    if (c != str[i]) {
+      str[i] = c;
+    }
+  }
+}
+
 inline const string toLower(const string &upper)
 {
   string reply(upper);
-  const size_t length = reply.length();
-  char c;
-  for(unsigned int i = 0; i < length; ++i) {
-    c = dns_tolower(upper[i]);
-    if( c != upper[i])
-      reply[i] = c;
-  }
+
+  toLowerInPlace(reply);
+
   return reply;
 }
 
