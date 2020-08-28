@@ -1,5 +1,6 @@
 Intercepting queries with Lua
 =============================
+
 To get a quick start, we have supplied a sample script that showcases all functionality described below.
 Please find it `here <https://github.com/PowerDNS/pdns/blob/master/pdns/recursordist/contrib/powerdns-example-script.lua>`_.
 
@@ -12,6 +13,7 @@ Queries can be intercepted in many places:
 -  after the resolving process failed to find a correct answer for a domain (:func:`nodata`, :func:`nxdomain`)
 -  after the whole process is done and an answer is ready for the client (:func:`postresolve`)
 -  before an outgoing query is made to an authoritative server (:func:`preoutquery`)
+-  after a filtering policy hit has occurred (:func:`policyEventFilter`)
 
 Writing Lua PowerDNS Recursor scripts
 -------------------------------------
@@ -169,6 +171,43 @@ Interception Functions
 
   :param DNSQuestion dq: The DNS question to handle
 
+.. function:: policyEventFilter(event)
+
+    .. versionadded:: 4.4.0
+
+  This hook is called when a filtering policy has been hit, before the decision has been applied, making it possible to change a policy decision by altering its content or to skip it entirely.
+  Using the :meth:`event:discardPolicy() <PolicyEvent:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones.
+  The return value indicates whether the policy hit should be completely ignored (true) or applied (false), possibly after editing the action to take in that latter case (see :ref:`modifyingpolicydecisions` below). when true is returned, the resolution process will resume as if the policy hit never took place.
+
+  As an example, to ignore the result of a policy hit for the example.com domain:
+
+  .. code-block:: Lua
+
+      function policyEventFilter(event)
+        if event.qname:equal("example.com") then
+          -- ignore that policy hit
+          return true
+        end
+        return false
+      end
+
+  To alter the decision of the policy hit instead:
+
+  .. code-block:: Lua
+
+      function policyEventFilter(event)
+        if event.qname:equal("example.com") then
+          -- replace the decision with a custom CNAME
+          event.appliedPolicy.policyKind = pdns.policykinds.Custom
+          event.appliedPolicy.policyCustom = "example.net"
+          -- returning false so that the hit is not ignored
+          return false
+        end
+        return false
+      end
+
+  :param :class:`PolicyEvent` event: The event to handle
+
 Semantics
 ^^^^^^^^^
 The functions must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with its regular query-processing.
@@ -178,6 +217,8 @@ If a function has taken over a request, it should set an rcode (usually 0), and 
 An interesting rcode is NXDOMAIN (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
 
 The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true of false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
+
+The func:`policyEventFilter` has a different meaning as well, where returning true means that the policy hit should be ignored and normal processing should be resumed.
 
 A minimal sample script:
 
@@ -289,7 +330,7 @@ The PowerDNS Recursor has a :doc:`policy engine based on Response Policy Zones (
 Starting with version 4.0.1 of the recursor, it is possible to alter this decision inside the Lua hooks.
 
 If the decision is modified in a Lua hook, ``false`` should be returned, as the query is not actually handled by Lua so the decision is picked up by the Recursor.
-The result of the policy decision is checked after :func:`preresolve` and :func:`postresolve`.
+The result of the policy decision is checked after :func:`preresolve` and :func:`postresolve` before 4.4.0. Beginning with version 4.4.0, the policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call instead.
 
 For example, if a decision is set to ``pdns.policykinds.NODATA`` by the policy engine and is unchanged in :func:`preresolve`, the query is replied to with a NODATA response immediately after :func:`preresolve`.
 

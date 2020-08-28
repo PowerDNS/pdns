@@ -20,8 +20,8 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> www.trillian.example.net has no RPZ policy attached, so lookup should succeed
 Reply to question for qname='www.trillian.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	www.trillian.example.net.	IN	CNAME	15	www2.arthur.example.net.
-0	www2.arthur.example.net.	IN	A	15	192.0.2.6
+0	www.trillian.example.net.	IN	CNAME	15	www3.arthur.example.net.
+0	www3.arthur.example.net.	IN	A	15	192.0.2.6
 ==> www.hijackme.example.net is served on ns.hijackme.example.net, which should be NXDOMAIN
 Reply to question for qname='www.hijackme.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
@@ -64,7 +64,9 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='not-rpz.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 0	not-rpz.example.net.	IN	CNAME	5	rpz-not.com.
+1	.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
 ==> echo-me.wildcard-target.example.net is an RPZ wildcard target
 Reply to question for qname='echo-me.wildcard-target.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 0	echo-me.wildcard-target.example.net.	IN	CNAME	7200	echo-me.wildcard-target.example.net.walled-garden.example.net.
+1	example.net.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300

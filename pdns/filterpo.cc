@@ -198,9 +198,29 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
   return false;
 }
 
-bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
 {
-  // cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
+  // cout<<"Got question from "<<ca.toString()<<endl;
+  for (const auto& z : d_zones) {
+    if (z->getPriority() >= pol.getPriority()) {
+      break;
+    }
+    const auto& zoneName = z->getName();
+    if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
+      continue;
+    }
+
+    if (z->findClientPolicy(ca, pol)) {
+      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
+{
+  //cerr<<"Got question for "<<qname<<' '<< pol.getPriority()<< endl;
   std::vector<bool> zoneEnabled(d_zones.size());
   size_t count = 0;
   bool allEmpty = true;
@@ -214,7 +234,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
         enabled = false;
       }
       else {
-        if (z->hasQNamePolicies() || z->hasClientPolicies()) {
+        if (z->hasQNamePolicies()) {
           allEmpty = false;
         }
         else {
@@ -246,11 +266,6 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
       continue;
     }
 
-    if (z->findClientPolicy(ca, pol)) {
-      // cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
-      return true;
-    }
-
     if (z->findExactQNamePolicy(qname, pol)) {
       // cerr<<"Had a hit on the name of the query"<<endl;
       return true;
@@ -271,37 +286,50 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& c
 
 bool DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
 {
-  ComboAddress ca;
-  for (const auto& r : records) {
-    if (r.d_place != DNSResourceRecord::ANSWER)
-      continue;
-    if (r.d_type == QType::A) {
-      if (auto rec = getRR<ARecordContent>(r)) {
-        ca = rec->getCA();
-      }
-    }
-    else if(r.d_type == QType::AAAA) {
-      if (auto rec = getRR<AAAARecordContent>(r)) {
-        ca = rec->getCA();
-      }
-    }
-    else
-      continue;
-
-    for (const auto& z : d_zones) {
-      if (z->getPriority() >= pol.getPriority()) {
-        break;
-      }
-      const auto& zoneName = z->getName();
-      if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
-        continue;
-      }
-
-      if (z->findResponsePolicy(ca, pol)) {
-	return true;
-      }
+  for (const auto& record : records) {
+    if (getPostPolicy(record, discardedPolicies, pol)) {
+      return true;
     }
   }
+
+  return false;
+}
+
+bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordered_map<std::string,bool>& discardedPolicies, Policy& pol) const
+{
+  ComboAddress ca;
+  if (record.d_place != DNSResourceRecord::ANSWER) {
+    return false;
+  }
+
+  if (record.d_type == QType::A) {
+    if (auto rec = getRR<ARecordContent>(record)) {
+      ca = rec->getCA();
+    }
+  }
+  else if(record.d_type == QType::AAAA) {
+    if (auto rec = getRR<AAAARecordContent>(record)) {
+      ca = rec->getCA();
+    }
+  }
+  else {
+    return false;
+  }
+
+  for (const auto& z : d_zones) {
+    if (z->getPriority() >= pol.getPriority()) {
+      break;
+    }
+    const auto& zoneName = z->getName();
+    if (discardedPolicies.find(zoneName) != discardedPolicies.end()) {
+      return false;
+    }
+
+    if (z->findResponsePolicy(ca, pol)) {
+      return true;
+    }
+  }
+
   return false;
 }
 

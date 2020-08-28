@@ -132,7 +132,6 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> s_RC;
 
-
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
@@ -881,6 +880,75 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
   return true;
 }
 
+enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
+
+static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
+{
+  /* don't account truncate actions for TCP queries, since they are not applied */
+  if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
+    ++g_stats.policyResults[appliedPolicy.d_kind];
+  }
+
+  switch (appliedPolicy.d_kind) {
+
+  case DNSFilterEngine::PolicyKind::NoAction:
+      return PolicyResult::NoAction;
+
+  case DNSFilterEngine::PolicyKind::Drop:
+    ++g_stats.policyDrops;
+    return PolicyResult::Drop;
+
+  case DNSFilterEngine::PolicyKind::NXDOMAIN:
+    ret.clear();
+    res = RCode::NXDomain;
+    return PolicyResult::HaveAnswer;
+
+  case DNSFilterEngine::PolicyKind::NODATA:
+    ret.clear();
+    res = RCode::NoError;
+    return PolicyResult::HaveAnswer;
+
+  case DNSFilterEngine::PolicyKind::Truncate:
+    if (!dc->d_tcp) {
+      ret.clear();
+      res = RCode::NoError;
+      pw.getHeader()->tc = 1;
+      return PolicyResult::HaveAnswer;
+    }
+    return PolicyResult::NoAction;
+
+  case DNSFilterEngine::PolicyKind::Custom:
+    res = RCode::NoError;
+    {
+      auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+      for (auto& dr : spoofed) {
+        ret.push_back(dr);
+        try {
+          handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+        }
+        catch (const ImmediateServFailException& e) {
+          if (g_logCommonErrors) {
+            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+          }
+          res = RCode::ServFail;
+          break;
+        }
+        catch (const PolicyHitException& e) {
+          if (g_logCommonErrors) {
+            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because another RPZ policy was hit" << endl;
+          }
+          res = RCode::ServFail;
+          break;
+        }
+      }
+
+      return PolicyResult::HaveAnswer;
+    }
+  }
+
+  return PolicyResult::NoAction;
+}
+
 #ifdef HAVE_PROTOBUF
 static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config)
 {
@@ -1194,75 +1262,6 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   return rcode;
 }
 
-enum class PolicyResult : uint8_t { NoAction, HaveAnswer, Drop };
-
-static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw)
-{
-  /* don't account truncate actions for TCP queries, since they are not applied */
-  if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
-    ++g_stats.policyResults[appliedPolicy.d_kind];
-  }
-
-  switch (appliedPolicy.d_kind) {
-
-  case DNSFilterEngine::PolicyKind::NoAction:
-      return PolicyResult::NoAction;
-
-  case DNSFilterEngine::PolicyKind::Drop:
-    ++g_stats.policyDrops;
-    return PolicyResult::Drop;
-
-  case DNSFilterEngine::PolicyKind::NXDOMAIN:
-    ret.clear();
-    res = RCode::NXDomain;
-    return PolicyResult::HaveAnswer;
-
-  case DNSFilterEngine::PolicyKind::NODATA:
-    ret.clear();
-    res = RCode::NoError;
-    return PolicyResult::HaveAnswer;
-
-  case DNSFilterEngine::PolicyKind::Truncate:
-    if (!dc->d_tcp) {
-      ret.clear();
-      res = RCode::NoError;
-      pw.getHeader()->tc = 1;
-      return PolicyResult::HaveAnswer;
-    }
-    return PolicyResult::NoAction;
-
-  case DNSFilterEngine::PolicyKind::Custom:
-    ret.clear();
-    res = RCode::NoError;
-    {
-      auto spoofed = appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
-      for (auto& dr : spoofed) {
-        ret.push_back(dr);
-        try {
-          handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
-        }
-        catch (const ImmediateServFailException& e) {
-          if (g_logCommonErrors) {
-            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
-          }
-          res = RCode::ServFail;
-          break;
-        }
-        catch (const PolicyHitException& e) {
-          if (g_logCommonErrors) {
-            g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '"<<dc->d_mdp.d_qname<<"' because another RPZ policy was hit"<<endl;
-          }
-          res = RCode::ServFail;
-          break;
-        }
-      }
-    }
-    return PolicyResult::HaveAnswer;
-  }
-
-  return PolicyResult::NoAction;
-}
-
 static void startDoResolve(void *p)
 {
   auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1394,6 +1393,7 @@ static void startDoResolve(void *p)
     sr.setFrameStreamServers(t_frameStreamServers);
 #endif
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
+    sr.setQueryReceivedOverTCP(dc->d_tcp);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool shouldNotValidate = false;
@@ -1452,19 +1452,40 @@ static void startDoResolve(void *p)
       t_pdl->prerpz(dq, res);
     }
 
-    // Check if the query has a policy attached to it
-    if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
-      if (luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
+    // Check if the client has a policy attached to it
+    if (wantsRPZ && !appliedPolicy.wasHit()) {
+
+      if (luaconfsLocal->dfe.getClientPolicy(dc->d_source, sr.d_discardedPolicies, appliedPolicy)) {
         mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
       }
     }
 
-    // If we are doing RPZ and a policy was matched, it normally takes precedence over an answer from gettag.
-    // So process the gettag_ffi answer only if no RPZ action was matched or the policy indicates gettag should
-    // have precedence.
-    if (!wantsRPZ || !appliedPolicy.policyOverridesGettag() || appliedPolicy.d_type == DNSFilterEngine::PolicyType::None) {
-      if (dc->d_rcode != boost::none) {
-        /* we have a response ready to go, most likely from gettag_ffi */
+    /* If we already have an answer generated from gettag_ffi, let's see if the filtering policies
+       should be applied to it */
+    if (dc->d_rcode != boost::none) {
+
+      bool policyOverride = false;
+      /* Unless we already matched on the client IP, time to check the qname.
+         We normally check it in beginResolve() but it will be bypassed since we already have an answer */
+      if (wantsRPZ && appliedPolicy.policyOverridesGettag()) {
+        if (appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
+          // Client IP already matched
+        }
+        else {
+          // no match on the client IP, check the qname
+          if (luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, sr.d_discardedPolicies, appliedPolicy)) {
+            // got a match
+            mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
+          }
+        }
+
+        if (appliedPolicy.wasHit()) {
+          policyOverride = true;
+        }
+      }
+
+      if (policyOverride) {
+        /* No RPZ or gettag overrides it anyway */
         ret = std::move(dc->d_records);
         res = *dc->d_rcode;
         if (res == RCode::NoError && dc->d_followCNAMERecords) {
@@ -1483,17 +1504,25 @@ static void startDoResolve(void *p)
       }
 
       sr.setWantsRPZ(wantsRPZ);
+
       if (wantsRPZ && appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
-        if (policyResult == PolicyResult::HaveAnswer) {
-          goto haveAnswer;
+
+        if (t_pdl && t_pdl->policyHitEventFilter(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_tcp, appliedPolicy, dc->d_policyTags, sr.d_discardedPolicies)) {
+          /* reset to no match */
+          appliedPolicy = DNSFilterEngine::Policy();
         }
-        else if (policyResult == PolicyResult::Drop) {
-          return;
+        else {
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+          if (policyResult == PolicyResult::HaveAnswer) {
+            goto haveAnswer;
+          }
+          else if (policyResult == PolicyResult::Drop) {
+            return;
+          }
         }
       }
 
-      // Query got not handled for QNAME Policy reasons, now actually go out to find an answer
+      // Query did not get handled for Client IP or QNAME Policy reasons, now actually go out to find an answer
       try {
         sr.d_appliedPolicy = appliedPolicy;
         sr.d_policyTags = std::move(dc->d_policyTags);
@@ -1502,16 +1531,28 @@ static void startDoResolve(void *p)
           sr.d_routingTag = dc->d_routingTag;
         }
 
+        ret.clear(); // policy might have filled it with custom records but we decided not to use them
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
         shouldNotValidate = sr.wasOutOfBand();
       }
-      catch(const ImmediateServFailException &e) {
+      catch (const ImmediateQueryDropException& e) {
+        // XXX We need to export a protobuf message (and do a NOD lookup) if requested!
+        g_stats.policyDrops++;
+        g_log<<Logger::Debug<<"Dropping query because of a filtering policy "<<makeLoginfo(dc)<<endl;
+        return;
+      }
+      catch (const ImmediateServFailException &e) {
         if(g_logCommonErrors) {
           g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
         }
         res = RCode::ServFail;
       }
-      catch(const PolicyHitException& e) {
+      catch (const SendTruncatedAnswerException& e) {
+        ret.clear();
+        res = RCode::NoError;
+        pw.getHeader()->tc = 1;
+      }
+      catch (const PolicyHitException& e) {
         res = -2;
       }
       dq.validationState = sr.getValidationState();
@@ -1529,12 +1570,6 @@ static void startDoResolve(void *p)
         }
         else if (policyResult == PolicyResult::Drop) {
           return;
-        }
-      }
-
-      if (wantsRPZ && (appliedPolicy.d_type == DNSFilterEngine::PolicyType::None || appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction)) {
-        if (luaconfsLocal->dfe.getPostPolicy(ret, sr.d_discardedPolicies, appliedPolicy)) {
-          mergePolicyTags(dc->d_policyTags, appliedPolicy.getTags());
         }
       }
 
@@ -1567,23 +1602,9 @@ static void startDoResolve(void *p)
           shouldNotValidate = true;
         }
       }
-
-      if (wantsRPZ) { //XXX This block is repeated, see above
-
-        auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
-        if (policyResult == PolicyResult::HaveAnswer) {
-          goto haveAnswer;
-        }
-        else if (policyResult == PolicyResult::Drop) {
-          return;
-        }
-      }
     }
+
   haveAnswer:;
-    if(res == PolicyDecision::DROP) {
-      g_stats.policyDrops++;
-      return;
-    }
     if(tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     { 
       string trace(sr.getTrace());
@@ -1963,13 +1984,13 @@ static void startDoResolve(void *p)
 
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
   }
-  catch(PDNSException &ae) {
+  catch (const PDNSException &ae) {
     g_log<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
   }
-  catch(const MOADNSException &mde) {
+  catch (const MOADNSException &mde) {
     g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<mde.what()<<endl;
   }
-  catch(std::exception& e) {
+  catch (const std::exception& e) {
     g_log<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
 
     // Luawrapper nests the exception from Lua, so we unnest it here

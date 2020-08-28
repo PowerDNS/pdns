@@ -1474,6 +1474,7 @@ Poelov
 pointsize
 polarssl
 policyactions
+policyevent
 policykinds
 policyname
 pollmplexer

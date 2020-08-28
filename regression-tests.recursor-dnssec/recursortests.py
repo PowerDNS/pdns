@@ -141,6 +141,13 @@ delay1.example.                     3600 IN DS 42043 13 2 7319fa605cf117f36e3de0
 delay2.example.                     3600 IN NS   ns1.delay2.example.
 ns1.delay2.example.                 3600 IN A    {prefix}.17
 delay2.example.                     3600 IN DS 42043 13 2 60a047b87740c8564c21d5fd34626c10a77a6c41e3b34564230119c2f13937b8
+
+cname-nxd.example.                  3600 IN CNAME cname-nxd-target.example.
+cname-nxd-target.example.           3600 IN A 192.0.2.100
+cname-nodata.example.               3600 IN CNAME cname-nodata-target.example.
+cname-nodata-target.example.        3600 IN A 192.0.2.101
+cname-custom-a.example.             3600 IN CNAME cname-custom-a-target.example.
+cname-custom-a-target.example.      3600 IN A 192.0.2.102
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
