@@ -331,7 +331,9 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
   };
   if (dk) {
     obj["dnssec"] = dk->isSecuredZone(di.zone);
-    obj["edited_serial"] = (double)calculateEditSOA(di.serial, *dk, di.zone);
+    string soa_edit;
+    dk->getSoaEdit(di.zone, soa_edit, false);
+    obj["edited_serial"] = (double)calculateEditSOA(di.serial, soa_edit, di.zone);
   }
   return obj;
 }
@@ -697,6 +699,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
 
   bool isDNSSECZone = dk.isSecuredZone(zonename);
+  bool isPresigned = dk.isPresigned(zonename);
 
   if (dnssecInJSON) {
     if (dnssecDocVal) {
@@ -737,7 +740,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         if (!dk.unSecureZone(zonename, error, info)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
-        isDNSSECZone = dk.isSecuredZone(zonename);
+        isDNSSECZone = dk.isSecuredZone(zonename, false); 
         if (isDNSSECZone) {
           throw ApiException("Unable to un-secure zone '"+ zonename.toString()+"'");
         }
@@ -773,7 +776,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     }
   }
 
-  if (shouldRectify && !dk.isPresigned(zonename)) {
+  if (shouldRectify && !isPresigned) {
     // Rectify
     string api_rectify;
     di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
