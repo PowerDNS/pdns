@@ -208,7 +208,9 @@ std::string DNSName::toDNSString() const
 
 std::string DNSName::toDNSStringLC() const
 {
-  return toLower(toDNSString()); // label lengths are always < 'A'
+  auto result = toDNSString();
+  toLowerInPlace(result); // label lengths are always < 'A'
+  return result;
 }
 
 /**

@@ -537,7 +537,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   uint16_t numberOfRecords = 0;
   if (!d_cname.empty()) {
     qtype = QType::CNAME;
-    totrdatalen += d_cname.toDNSString().size();
+    totrdatalen += d_cname.getStorage().size();
     numberOfRecords = 1;
   } else if (!d_rawResponse.empty()) {
     totrdatalen += d_rawResponse.size();
@@ -592,7 +592,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   bool raw = false;
 
   if (qtype == QType::CNAME) {
-    const std::string wireData = d_cname.toDNSString(); // Note! This doesn't do compression!
+    const auto& wireData = d_cname.getStorage(); // Note! This doesn't do compression!
     uint16_t rdataLen = htons(wireData.length());
     qtype = htons(qtype);
     memcpy(&recordstart[2], &qtype, sizeof(qtype));
@@ -732,7 +732,7 @@ public:
     }
     else {
       if (d_binary) {
-        std::string out = dq->qname->toDNSString();
+        const auto& out = dq->qname->getStorage();
         if (d_includeTimestamp) {
           uint64_t tv_sec = static_cast<uint64_t>(dq->queryTime->tv_sec);
           uint32_t tv_nsec = static_cast<uint32_t>(dq->queryTime->tv_nsec);
