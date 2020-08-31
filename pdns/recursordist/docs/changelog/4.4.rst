@@ -1,5 +1,84 @@
 Changelogs for 4.4.x
 ====================
+.. changelog::
+  :version: 4.4.0-beta1
+  :released: 31st of August 2020
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9376
+
+    Store RPZ trigger and hit in appliedPolicy and protobuf message
+    and log them in the trace log.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9414
+    :tickets: 9363
+
+    Apply filtering policies (RPZ) on CNAME chains as well.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9411
+
+    Fix warning: initialized lambda captures are a C++14 extension.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9375
+
+    Allow some more depth headroom for the no-qname-minimization fallback case.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9412
+
+    Clean some coverity reported cases of exceptions thrown but not caught.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9391
+
+    Export record cache lock (contention) stats via the various channels.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9396
+
+    Allow multiple local data records when doing RPZ IP matching.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 9380
+
+    Replace the use of '1' by QClass::IN to improve readability.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9351
+    :tickets: 9227
+
+    If we have an NS in cache, use it in the forwarder case.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9196
+
+    Disable outgoing v4 when query-local-address has no v4 addresses.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9343
+
+    Resize hostname to final size in getCarbonHostname() (Aki Tuomi).
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 9348
+    :tickets: 9279
+
+    Avoid name clashes on Solaris derived systems.
 
 .. changelog::
   :version: 4.4.0-alpha2
