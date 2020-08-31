@@ -235,7 +235,7 @@ inline void toLowerInPlace(string& str)
 {
   const size_t length = str.length();
   char c;
-  for (unsigned int i = 0; i < length; ++i) {
+  for (size_t i = 0; i < length; ++i) {
     c = dns_tolower(str[i]);
     if (c != str[i]) {
       str[i] = c;
