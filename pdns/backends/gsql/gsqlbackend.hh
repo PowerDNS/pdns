@@ -259,7 +259,7 @@ protected:
     reconnect();
   }
   virtual void reconnect() { }
-  virtual bool inTransaction()
+  virtual bool inTransaction() override
   {
     return d_inTransaction;
   }

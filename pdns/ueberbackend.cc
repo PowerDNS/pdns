@@ -304,6 +304,16 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
+bool UeberBackend::inTransaction()
+{
+  for (auto* b : backends )
+  {
+    if(b->inTransaction())
+      return true;
+  }
+  return false;
+}
+
 bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* sd, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
