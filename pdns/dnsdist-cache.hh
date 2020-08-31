@@ -66,7 +66,7 @@ public:
   }
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
-  static uint32_t getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
+  static uint32_t getKey(const DNSName::string_t& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
   static bool getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet);
 
 private:
