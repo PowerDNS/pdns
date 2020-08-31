@@ -220,6 +220,7 @@ commands:
               libssl-dev \
               libsystemd0 \
               libsodium23 \
+              patch \
               protobuf-compiler \
               virtualenv
 
