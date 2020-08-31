@@ -746,6 +746,9 @@ See :doc:`../guides/cache` for a how to.
     .. versionchanged:: 1.2.0
       ``suffixMatch`` parameter added.
 
+    .. versionchanged:: 1.6.0
+      ``name`` can now also be a string
+
     Remove entries matching ``name`` and type from the cache.
 
     :param DNSName name: The name to expunge

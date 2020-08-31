@@ -116,13 +116,20 @@ void setupLuaBindingsPacketCache()
       }
       return static_cast<size_t>(0);
     });
-  g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const DNSName& dname, boost::optional<uint16_t> qtype, boost::optional<bool> suffixMatch)>("expungeByName", [](
+  g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const boost::variant<DNSName, string>& dname, boost::optional<uint16_t> qtype, boost::optional<bool> suffixMatch)>("expungeByName", [](
               std::shared_ptr<DNSDistPacketCache>& cache,
-              const DNSName& dname,
+              const boost::variant<DNSName, string>& dname,
               boost::optional<uint16_t> qtype,
               boost::optional<bool> suffixMatch) {
+                DNSName qname;
+                if (dname.type() == typeid(DNSName)) {
+                  qname = boost::get<DNSName>(dname);
+                }
+                if (dname.type() == typeid(string)) {
+                  qname = DNSName(boost::get<string>(dname));
+                }
                 if (cache) {
-                  g_outputBuffer="Expunged " + std::to_string(cache->expungeByName(dname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
+                  g_outputBuffer="Expunged " + std::to_string(cache->expungeByName(qname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
                 }
     });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
