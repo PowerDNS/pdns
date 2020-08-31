@@ -47,6 +47,7 @@ using namespace boost::assign;
 
 DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
+int64_t DNSSECKeeper::s_metaCacheCleanActions = 0;
 ReadWriteLock DNSSECKeeper::s_metacachelock;
 ReadWriteLock DNSSECKeeper::s_keycachelock;
 AtomicCounter DNSSECKeeper::s_ops;
@@ -132,6 +133,7 @@ bool DNSSECKeeper::clearMetaCache(const DNSName& name)
 {
   WriteLock l(&s_metacachelock);
   s_metacache.erase(name);
+  ++s_metaCacheCleanActions;
   return true;
 }
 
@@ -234,6 +236,9 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
       meta = iter->d_value;
       fromCache = true;
     }
+    else {
+      d_metaCacheCleanAction = s_metaCacheCleanActions;
+    }
   }
 
   if (!fromCache) {
@@ -255,6 +260,9 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     nce.d_value = std::move(meta);
     {
       WriteLock l(&s_metacachelock);
+      if(d_metaCacheCleanAction != s_metaCacheCleanActions) {
+        return false;
+      }
       lruReplacingInsert<SequencedTag>(s_metacache, nce);
     }
   }
