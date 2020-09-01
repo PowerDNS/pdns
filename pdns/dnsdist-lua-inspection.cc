@@ -445,11 +445,18 @@ void setupLuaInspection()
       if(msec==-1) {
         for(const auto& c : qr) {
           bool nmmatch=true, dnmatch=true;
-          if(nm)
+          if (nm) {
             nmmatch = nm->match(c.requestor);
-          if(dn)
-            dnmatch = c.name.isPartOf(*dn);
-          if(nmmatch && dnmatch) {
+          }
+          if (dn) {
+            if (c.name.empty()) {
+              dnmatch = false;
+            }
+            else {
+              dnmatch = c.name.isPartOf(*dn);
+            }
+          }
+          if (nmmatch && dnmatch) {
             QType qt(c.qtype);
             std::string extra;
             if (c.dh.opcode != 0) {
@@ -468,26 +475,40 @@ void setupLuaInspection()
       string extra;
       for(const auto& c : rr) {
         bool nmmatch=true, dnmatch=true, msecmatch=true;
-        if(nm)
+        if (nm) {
           nmmatch = nm->match(c.requestor);
-        if(dn)
-          dnmatch = c.name.isPartOf(*dn);
-        if(msec != -1)
+        }
+        if (dn) {
+          if (c.name.empty()) {
+            dnmatch = false;
+          }
+          else {
+            dnmatch = c.name.isPartOf(*dn);
+          }
+        }
+        if (msec != -1) {
           msecmatch=(c.usec/1000 > (unsigned int)msec);
+        }
 
-        if(nmmatch && dnmatch && msecmatch) {
+        if (nmmatch && dnmatch && msecmatch) {
           QType qt(c.qtype);
-	  if(!c.dh.rcode)
+	  if (!c.dh.rcode) {
 	    extra=". " +std::to_string(htons(c.dh.ancount))+ " answers";
-	  else
+          }
+	  else {
 	    extra.clear();
-          if(c.usec != std::numeric_limits<decltype(c.usec)>::max())
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
-          else
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+          }
 
-          if(limit && *limit==++num)
+          if (c.usec != std::numeric_limits<decltype(c.usec)>::max()) {
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+          }
+          else {
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+          }
+
+          if (limit && *limit == ++num) {
             break;
+          }
         }
       }
 
