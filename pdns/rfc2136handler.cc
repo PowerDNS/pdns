@@ -127,43 +127,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       d_dk.setNSEC3PARAM(di->zone, *ns3pr, (*narrow));
       *haveNSEC3 = true;
 
-      vector<DNSResourceRecord> rrs;
-      set<DNSName> qnames, nssets, dssets;
-      di->backend->list(di->zone, di->id);
-      while (di->backend->get(rec)) {
-        qnames.insert(rec.qname);
-        if(rec.qtype.getCode() == QType::NS && rec.qname != di->zone)
-          nssets.insert(rec.qname);
-        if(rec.qtype.getCode() == QType::DS)
-          dssets.insert(rec.qname);
-      }
-
-      DNSName shorter;
-      for(const auto& qname: qnames) {
-        shorter = qname;
-        int ddepth = 0;
-        do {
-          if(qname == di->zone)
-            break;
-          if(nssets.count(shorter))
-            ++ddepth;
-        } while(shorter.chopOff());
-
-        DNSName ordername = DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, qname)));
-        if (! *narrow && (ddepth == 0 || (ddepth == 1 && nssets.count(qname)))) {
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, ordername, (ddepth == 0 ));
-
-          if (nssets.count(qname)) {
-            if (ns3pr->d_flags)
-              di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::NS );
-            di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::A);
-            di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::AAAA);
-          }
-        } else {
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), (ddepth == 0));
-        }
-        if (ddepth == 1 || dssets.count(qname)) // FIXME400 && ?
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, ordername, false, QType::DS);
+      string error;
+      string info;
+      if (!d_dk.rectifyZone(di->zone, error, info, false)) {
+        throw PDNSException("Failed to rectify '" + di->zone.toLogString() + "': " + error);
       }
       return 1;
     }
@@ -411,44 +378,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       *haveNSEC3 = false;
       *narrow = false;
 
-      vector<DNSResourceRecord> rrs;
-      set<DNSName> qnames, nssets, dssets, ents;
-      di->backend->list(di->zone, di->id);
-      while (di->backend->get(rec)) {
-        qnames.insert(rec.qname);
-        if(rec.qtype.getCode() == QType::NS && rec.qname != di->zone)
-          nssets.insert(rec.qname);
-        if(rec.qtype.getCode() == QType::DS)
-          dssets.insert(rec.qname);
-        if(!rec.qtype.getCode())
-          ents.insert(rec.qname);
-      }
-
-      DNSName shorter;
-      string hashed;
-      for(const DNSName& qname :  qnames) {
-        shorter = qname;
-        int ddepth = 0;
-        do {
-          if(qname == di->zone)
-            break;
-          if(nssets.count(shorter))
-            ++ddepth;
-        } while(shorter.chopOff());
-
-        DNSName ordername=qname.makeRelative(di->zone);
-        if (!ents.count(qname) && (ddepth == 0 || (ddepth == 1 && nssets.count(qname)))) {
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, ordername, (ddepth == 0));
-
-          if (nssets.count(qname)) {
-            di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::A);
-            di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::AAAA);
-          }
-        } else {
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), (ddepth == 0));
-        }
-        if (ddepth == 1 || dssets.count(qname))
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, ordername, true, QType::DS);
+      string error;
+      string info;
+      if (!d_dk.rectifyZone(di->zone, error, info, false)) {
+        throw PDNSException("Failed to rectify '" + di->zone.toLogString() + "': " + error);
       }
       return 1;
     } // end of NSEC3PARAM delete block
