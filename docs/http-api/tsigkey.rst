@@ -57,4 +57,3 @@ Objects
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
   :definitions: TSIGKey
-

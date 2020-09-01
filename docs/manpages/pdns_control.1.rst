@@ -148,7 +148,7 @@ respsizes
 Get a histogram of the response sizes.
 
 retrieve *DOMAIN* [IP]
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 Retrieve slave *DOMAIN* from its master. Done nearly immediately.
 If IP is specified, then retrieval is forced from the specified IP.

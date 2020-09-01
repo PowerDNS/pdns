@@ -71,5 +71,5 @@ Please report this in private, see the :ref:`securitypolicy`.
 I have a good idea for a feature!
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We like to work on new things!
-You can file a feature request on `GitHub <https://github.com/PowerDNS/pdns/issues/new?template=feature_request.md>`_.
+You can file a feature request on `GitHub <https://github.com/PowerDNS/pdns/issues/new?template=feature_request.md>`__.
 
