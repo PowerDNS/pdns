@@ -746,6 +746,8 @@ jobs:
           context: gmysql-nsec3-optout-both
       - auth-regress:
           context: gmysql-nsec3-narrow
+      - auth-regress:
+          context: gmysql_sp-both
 
   test-auth-regress-gpgsql:
     resource_class: small
