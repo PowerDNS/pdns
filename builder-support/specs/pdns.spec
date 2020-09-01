@@ -69,7 +69,11 @@ This package contains the extra tools for %{name}
 Summary: MySQL backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
+%if 0%{?rhel} < 8
 BuildRequires: mysql-devel
+%else
+BuildRequires: mariadb-connector-c-devel
+%endif
 %global backends %{backends} gmysql
 
 %description backend-mysql
