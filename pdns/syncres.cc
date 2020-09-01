@@ -739,7 +739,10 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         // Case 5: unexpected answer
         QLOG("Step5: other rcode, last effort final resolve");
         setQNameMinimization(false);
-        res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
+        // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
+        // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
+        // maxdepth.
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth/2, beenthere, state);
 
         if(res == RCode::NoError) {
           s_qnameminfallbacksuccess++;

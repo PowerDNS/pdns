@@ -955,6 +955,8 @@ This setting, which defaults to 3600 seconds, puts a maximum on the amount of ti
 Total maximum number of internal recursion calls the server may use to answer a single query.
 0 means unlimited.
 The value of `stack-size`_ should be increased together with this one to prevent the stack from overflowing.
+If `qname-minimization`_ is enabled, the fallback code in case of a failing resolve is allowed an additional `max-recursion-depth/2`.
+
 
 .. versionchanged:: 4.1.0
 
