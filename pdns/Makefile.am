@@ -188,6 +188,7 @@ pdns_server_SOURCES = \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
+	kvs.cc kvs.hh \
 	lock.hh \
 	logger.cc logger.hh \
 	lua-base4.cc lua-base4.hh \

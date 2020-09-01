@@ -20,10 +20,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifdef DNSDIST
 #include "dnsdist-kvs.hh"
+#else
+#include "kvs.hh"
+bool g_syslog{false};
+#endif
 #include "dolog.hh"
 
 #include <sys/stat.h>
+
+#ifdef DNSDIST
 
 std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const ComboAddress& addr)
 {
@@ -70,6 +77,8 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
 
   return result;
 }
+
+#endif // DNSDIST
 
 #ifdef HAVE_LMDB
 
@@ -120,6 +129,7 @@ bool LMDBKVStore::keyExists(const std::string& key)
 
 CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)
 {
+  cerr<<"construct"<<endl;
   d_refreshing.clear();
 
   time_t now = time(nullptr);
@@ -131,6 +141,7 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
 }
 
 CDBKVStore::~CDBKVStore() {
+  cerr<<"destruct"<<endl;
 }
 
 bool CDBKVStore::reload(const struct stat& st)

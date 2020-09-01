@@ -10,6 +10,7 @@
 #include "dnsrecords.hh"
 #include "dns_random.hh"
 #include "common_startup.hh"
+#include "kvs.hh"
 #include "../modules/geoipbackend/geoipinterface.hh" // only for the enum
 
 /* to do:
@@ -532,6 +533,29 @@ static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
 static void setupLuaRecords()
 {
   LuaContext& lua = *s_LUA->getLua();
+
+#ifdef HAVE_LMDB
+  lua.writeFunction("newLMDBKVStore", [](const std::string& fname, const std::string& dbName) {
+    return std::shared_ptr<KeyValueStore>(new LMDBKVStore(fname, dbName));
+  });
+#endif /* HAVE_LMDB */
+
+#ifdef HAVE_CDB
+  lua.writeFunction("newCDBKVStore", [](const std::string& fname, time_t refreshDelay) {
+    return std::shared_ptr<KeyValueStore>(new CDBKVStore(fname, refreshDelay));
+  });
+#endif /* HAVE_CDB */
+
+  lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const std::string)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const std::string keyVar) {
+    std::string result;
+    if (!kvs) {
+      return result;
+    }
+
+      kvs->getValue(keyVar, result);
+
+    return result;
+  });
 
   lua.writeFunction("latlon", []() {
       double lat = 0, lon = 0;
