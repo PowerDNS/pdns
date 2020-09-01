@@ -17,6 +17,13 @@ upgrade notes if your version is older than 3.4.2.
 The in-database format of the ``IPSECKEY`` has changed from 'generic' format to its specialized format.
 It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have ``IPSECKEY`` or ``TYPE45`` records.
 
+4.3.0 to 4.3.1
+--------------
+
+On RHEL/CentOS 8, the gmysql backend now uses ``mariadb-connector-c`` instead of ``mysql-libs``.
+This change was made because the default MySQL implementation for RHEL8 is MariaDB, and MariaDB and MySQL cannot be installed in parallel due to conflicting RPM packages.
+The mariadb client lib will connect to your existing MySQL servers without trouble.
+
 4.2.x to 4.3.0
 --------------
 
