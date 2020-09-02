@@ -882,6 +882,91 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
+BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord_dnssec)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  /* signed */
+  const DNSName target1("a.test.");
+  const DNSName target2("b.test.");
+
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("test."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  const ComboAddress forwardedNS("192.0.2.42:53");
+  size_t queriesCount = 0;
+
+  SyncRes::AuthDomain ad;
+  ad.d_rdForward = false;
+  ad.d_servers.push_back(forwardedNS);
+  (*SyncRes::t_sstorage.domainmap)[g_rootdnsname] = ad;
+
+  sr->setAsyncCallback([target1, target2, keys, forwardedNS, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    BOOST_CHECK_EQUAL(sendRDQuery, false);
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, DNSName(".") , type, keys);
+    }
+
+    if (ip != forwardedNS) {
+      //return 0;
+    }
+
+    if (domain == target1 && type == QType::A) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target1, QType::A, "192.0.2.1");
+      addRRSIG(keys, res->d_records, DNSName("test."), 300);
+
+      return 1;
+    }
+    if (domain == target2 && type == QType::A) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target2, QType::A, "192.0.2.2");
+      addRRSIG(keys, res->d_records, DNSName("test."), 300);
+
+      return 1;
+    }
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+
+  /* target2 query should not lead to DS query */
+  // ret.clear();
+  // res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  // BOOST_CHECK_EQUAL(res, RCode::NoError);
+  // BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  // BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  // BOOST_CHECK_EQUAL(queriesCount, 6U);
+}
+
+
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_bogus)
 {
   std::unique_ptr<SyncRes> sr;
