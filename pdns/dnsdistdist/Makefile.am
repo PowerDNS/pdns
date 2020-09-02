@@ -219,17 +219,23 @@ testrunner_SOURCES = \
 	test-iputils_hh.cc \
 	test-mplexer.cc \
 	test-proxy_protocol_cc.cc \
+	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	dnsdist.hh \
 	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
+	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
+	dnsdist-lua-bindings.cc \
+	dnsdist-lua-bindings-dnsquestion.cc \
+	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
+	dnsdist-lua-vars.cc \
 	dnsdist-rings.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnscrypt.cc dnscrypt.hh \

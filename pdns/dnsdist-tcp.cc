@@ -1405,10 +1405,10 @@ void tcpClientThread(int pipefd)
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and
    they will hand off to worker threads & spawn more of them if required
 */
-void tcpAcceptorThread(void* p)
+void tcpAcceptorThread(ClientState* cs)
 {
   setThreadName("dnsdist/tcpAcce");
-  ClientState* cs = (ClientState*) p;
+
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;

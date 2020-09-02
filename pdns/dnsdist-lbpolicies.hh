@@ -27,37 +27,69 @@ struct dnsdist_ffi_dnsquestion_t;
 
 struct DownstreamState;
 
-struct ServerPolicy
+struct PerThreadPoliciesState;
+
+class ServerPolicy
 {
+public:
   template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
   using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
   typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
   typedef std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)> ffipolicyfunc_t;
 
-  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_): name(name_), policy(policy_), isLua(isLua_)
+  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_): d_name(name_), d_policy(policy_), d_isLua(isLua_)
   {
   }
-  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_): name(name_), ffipolicy(policy_), isLua(true), isFFI(true)
+
+  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_): d_name(name_), d_ffipolicy(policy_), d_isLua(true), d_isFFI(true)
   {
   }
+
+  /* create a per-thread FFI policy */
+  ServerPolicy(const std::string& name_, const std::string& code);
+
   ServerPolicy()
   {
   }
 
-  string name;
-  policyfunc_t policy;
-  ffipolicyfunc_t ffipolicy;
-  bool isLua{false};
-  bool isFFI{false};
+  std::shared_ptr<DownstreamState> getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq) const;
+
+  const std::string& getName() const
+  {
+    return d_name;
+  }
 
   std::string toString() const {
-    return string("ServerPolicy") + (isLua ? " (Lua)" : "") + " \"" + name + "\"";
+    return string("ServerPolicy") + (d_isLua ? " (Lua)" : "") + " \"" + d_name + "\"";
   }
+
+private:
+  struct PerThreadState
+  {
+    LuaContext d_luaContext;
+    std::unordered_map<std::string, ffipolicyfunc_t> d_policies;
+    bool d_initialized{false};
+  };
+
+  const ffipolicyfunc_t& getPerThreadPolicy() const;
+  static thread_local PerThreadState t_perThreadState;
+
+
+public:
+  std::string d_name;
+  std::string d_perThreadPolicyCode;
+
+  policyfunc_t d_policy;
+  ffipolicyfunc_t d_ffipolicy;
+
+  bool d_isLua{false};
+  bool d_isFFI{false};
+  bool d_isPerThread{false};
 };
 
 struct ServerPool;
 
-using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
+using pools_t = map<std::string, std::shared_ptr<ServerPool>>;
 std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
@@ -75,7 +107,6 @@ std::shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedSer
 std::shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
 std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
-std::shared_ptr<DownstreamState> getSelectedBackendFromPolicy(const ServerPolicy& policy, const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq);
 
 extern double g_consistentHashBalancingFactor;
 extern double g_weightedBalancingFactor;

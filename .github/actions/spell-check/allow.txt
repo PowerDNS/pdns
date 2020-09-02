@@ -2078,6 +2078,7 @@ luadnsrule
 luaffi
 luaffiactionfunction
 luaffiactionsettag
+luaffiroundrobin
 luaffirulefunction
 luahooks
 LUAJITPC

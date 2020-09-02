@@ -1107,7 +1107,7 @@ struct dnsheader;
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
-void tcpAcceptorThread(void* p);
+void tcpAcceptorThread(ClientState* p);
 #ifdef HAVE_DNS_OVER_HTTPS
 void dohThread(ClientState* cs);
 #endif /* HAVE_DNS_OVER_HTTPS */
