@@ -834,11 +834,12 @@ BOOST_AUTO_TEST_CASE(test_parseIPAndPort)
     { "1.2.3.4", 0, "1.2.3.4:0", false },
     { "1.2.3.4", 999, "1.2.3.4:999", false },
     { "1::", 999, "[1::]:999", false },
-    { "1::33:99", 0, "[1::33]:99", false },
+    { "1::33:99", 0, "[1::33:99]", false },
     { "[1::33]:99", 0, "[1::33]:99", false },
     { "1:33::99", 0, "1:33::99", false },
     { "[1:33::]:99", 0, "[1:33::]:99", false },
     { "2003:1234::f561", 53, "[2003:1234::f561]:53", false },
+    { "2003:1234::f561:53", 54, "[2003:1234::f561:53]:54", false },
   };
 
   for (const auto& t : tests) {
@@ -846,7 +847,7 @@ BOOST_AUTO_TEST_CASE(test_parseIPAndPort)
       BOOST_CHECK_THROW(parseIPAndPort(t.str, t.port), PDNSException);
     } else {
       ComboAddress a = parseIPAndPort(t.str, t.port);
-      BOOST_CHECK_EQUAL(a.toString(), ComboAddress(t.result).toString());
+      BOOST_CHECK_EQUAL(a.toStringWithPort(), ComboAddress(t.result).toStringWithPort());
     }
   }
 }
