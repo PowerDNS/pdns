@@ -2,6 +2,74 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.1
+  :released: 22nd of September 2020
+
+  This is version 4.3.1 of the Authoritative Server.
+  This release contains the fix for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>` (CVE-2020-17482).
+  It also contains several other fixes and improvements:
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9498
+
+    Raise an exception on invalid hex content in unknown records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9444
+
+    Handle the extra single-row result set of MySQL stored procedures (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9036
+
+    EL8 pkgs: Build mysql backend against mariadb-connector-c-devel
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9219
+
+    gpgsql: Reintroduce prepared statements (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9233
+
+    gsqlite3backend: add missing indexes (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9224
+
+    use real remote for supermaster createSlaveDomain() (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9176
+
+    Optimize IXFR-to-AXFR fallback path (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9013
+
+    Install bind SQL schema files as part of bindbackend (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9083
+
+    add ubuntu focal target
+
+  .. change:
+    :tags: Improvements
+    :pullreq: 9480
+
+    Do not send out of zone lookups to the backends (Kees Monshouwer)
+
+.. changelog::
   :version: 4.3.0
   :released: 7th of April 2020
 

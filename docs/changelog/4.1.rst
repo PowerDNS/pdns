@@ -2,6 +2,18 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.14
+  :released: September 2nd 2020
+
+  This release contains the fix for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>` (CVE-2020-17482)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9500
+
+    Raise an exception on invalid hex content in unknown records.
+
+.. changelog::
   :version: 4.1.13
   :released: August 9th 2019
 
