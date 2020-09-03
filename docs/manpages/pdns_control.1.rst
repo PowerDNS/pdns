@@ -192,4 +192,4 @@ Print the version of the running pdns daemon.
 See also
 --------
 
-pdns\_server(1)
+pdns\_server (1), pdnsutil (1)
