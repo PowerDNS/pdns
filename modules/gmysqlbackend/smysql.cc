@@ -301,7 +301,10 @@ public:
         d_resnum = mysql_stmt_num_rows(d_stmt);
         // XXX: For some reason mysql_stmt_result_metadata returns NULL here, so we cannot
         // ensure row field count matches first result set.
-        if (d_resnum > 0) { // ignore empty result set
+        // We need to check the field count as stored procedure return the final values of OUT and INOUT parameters
+        // as an extra single-row result set following any result sets produced by the procedure itself.
+        // mysql_stmt_field_count() will return 0 for those.
+        if (mysql_stmt_field_count(d_stmt) > 0 && d_resnum > 0) { // ignore empty result set
           if (d_res_bind != nullptr && mysql_stmt_bind_result(d_stmt, d_res_bind) != 0) {
             string error(mysql_stmt_error(d_stmt));
             releaseStatement();
