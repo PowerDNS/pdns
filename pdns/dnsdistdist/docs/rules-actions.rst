@@ -826,11 +826,11 @@ These ``DNSRule``\ s be one of the following items:
   :param bool name: The name of the tag that has to be set
   :param bool value: If set, the value the tag has to be set to. Default is unset
 
-.. function:: TCPRule([tcp])
+.. function:: TCPRule(tcp)
 
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
 
-  :param bool tcp: Match TCP traffic. Default is true.
+  :param bool tcp: Match TCP traffic if true, UDP traffic if false.
 
 .. function:: TrailingDataRule()
 
