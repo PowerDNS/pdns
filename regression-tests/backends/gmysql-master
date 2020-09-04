@@ -1,7 +1,7 @@
 source ./backends/gsql-common
 
 case $context in
-	gmysql-nodnssec | gmysql | gmysql-nsec3 | gmysql-nsec3-optout | gmysql-nsec3-narrow)
+	gmysql-nodnssec | gmysql | gmysql-nsec3 | gmysql-nsec3-optout | gmysql-nsec3-narrow | gmysql_sp)
 		[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 		[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
 		[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
@@ -33,3 +33,17 @@ __EOF__
 	*)
 		nocontext=yes
 esac
+
+if [[ "$context" = "gmysql_sp" ]]; then
+    cat >> pdns-gmysql.conf << __EOF__
+gmysql-basic-query=CALL basic_query(?, ?)
+__EOF__
+    mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+        "$GMYSQLDB" << __EOF__
+DELIMITER //
+CREATE PROCEDURE basic_query(incoming_type varchar(10), incoming_name varchar(255))
+BEGIN
+SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=incoming_type and name=incoming_name;
+END//
+__EOF__
+fi
