@@ -882,6 +882,111 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
+BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord_dnssec)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  /* signed */
+  const DNSName parent("test.");
+  const DNSName target1("a.test.");
+  const DNSName target2("b.test.");
+
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("test."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  const ComboAddress forwardedNS("192.0.2.42:53");
+  size_t queriesCount = 0;
+  size_t DSforParentCount = 0;
+
+  SyncRes::AuthDomain ad;
+  ad.d_rdForward = false;
+  ad.d_servers.push_back(forwardedNS);
+  (*SyncRes::t_sstorage.domainmap)[DNSName("test.")] = ad;
+
+  sr->setAsyncCallback([parent, target1, target2, keys, forwardedNS, &queriesCount, &DSforParentCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    BOOST_CHECK_EQUAL(sendRDQuery, false);
+
+    if (type == QType::DS && domain == parent) {
+      DSforParentCount++;
+    }
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (domain != parent && domain.isPartOf(parent)) {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false /* no cut / delegation */);
+      }
+      else {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      }
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, parent, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 42);
+      addRRSIG(keys, res->d_records, g_rootdnsname, 300);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+    }
+
+    if (ip != forwardedNS) {
+      return 0;
+    }
+
+    if (domain == target1 && type == QType::A) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target1, QType::A, "192.0.2.1");
+      addRRSIG(keys, res->d_records, parent, 300);
+
+      return 1;
+    }
+    if (domain == target2 && type == QType::A) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target2, QType::A, "192.0.2.2");
+      addRRSIG(keys, res->d_records, parent, 300);
+
+      return 1;
+    }
+
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(DSforParentCount, 1U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(DSforParentCount, 1U);
+
+  /* new target should no cause a DS query for tets. */
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(DSforParentCount, 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_bogus)
 {
   std::unique_ptr<SyncRes> sr;

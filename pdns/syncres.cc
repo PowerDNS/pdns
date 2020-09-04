@@ -2942,6 +2942,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         if (!t_sstorage.domainmap->empty()) {
           // Check if we are authoritative for a zone in this answer
           DNSName tmp_qname(rec.d_name);
+          // We may be auth for domain example.com, but the DS record needs to come from the parent (.com) nameserver
+          if (rec.d_type == QType::DS) {
+            tmp_qname.chopOff();
+          }
           auto auth_domain_iter=getBestAuthZone(&tmp_qname);
           if(auth_domain_iter!=t_sstorage.domainmap->end() &&
              auth.countLabels() <= auth_domain_iter->first.countLabels()) {
