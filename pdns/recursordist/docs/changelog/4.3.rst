@@ -1,5 +1,30 @@
 Changelogs for 4.3.x
 ====================
+
+.. changelog::
+  :version: 4.3.4
+  :released: 8th of September 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9416
+    :tickets: 9375
+
+    Allow some more depth headroom for the no-qname-minimization fallback case.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9367
+
+    Resize hostname to final size in getCarbonHostname().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9397
+    :tickets: 9073
+
+    Ensure runtime dirs for virtual services differ.
+
 .. changelog::
   :version: 4.3.3
   :released: 17th of July 2020
