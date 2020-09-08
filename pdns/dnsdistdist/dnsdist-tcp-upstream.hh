@@ -57,7 +57,6 @@ struct ConnectionInfo
 class IncomingTCPConnectionState
 {
 public:
-  //IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(s_maxPacketCacheEntrySize), d_responseBuffer(s_maxPacketCacheEntrySize), d_threadData(threadData), d_ci(std::move(ci)), d_handler(d_ci.fd, g_tcpRecvTimeout, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : nullptr, now.tv_sec), d_ioState(threadData.mplexer, d_ci.fd), _connectionStartTime(now)
   IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(s_maxPacketCacheEntrySize), d_threadData(threadData), d_ci(std::move(ci)), d_handler(d_ci.fd, g_tcpRecvTimeout, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : nullptr, now.tv_sec), d_ioState(make_unique<IOStateHandler>(threadData.mplexer, d_ci.fd)), d_connectionStartTime(now)
   {
     d_origDest.reset();
@@ -138,6 +137,7 @@ public:
     return false;
   }
 
+#if 0
   void dump() const
   {
     static std::mutex s_mutex;
@@ -165,14 +165,11 @@ public:
       }
     }
   }
+#endif
 
-  std::shared_ptr<TCPConnectionToBackend> getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds)
-  {
-#warning TODO: we need to find a connection to this DS, usable (no TLV values sent) and supporting OOR
-    return nullptr;
-  }
-
+  std::shared_ptr<TCPConnectionToBackend> getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds);
   std::shared_ptr<TCPConnectionToBackend> getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const struct timeval& now);
+  void registerActiveDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn);
 
   std::unique_ptr<FDMultiplexer>& getIOMPlexer() const
   {
@@ -189,6 +186,8 @@ public:
   void handleXFRResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
   void handleTimeout(bool write);
 
+  bool canAcceptNewQueries() const;
+
   bool active() const
   {
     return d_ioState != nullptr;
@@ -196,6 +195,7 @@ public:
 
   enum class State { doingHandshake, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
+  std::map<ComboAddress, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
   std::vector<uint8_t> d_buffer;
   std::deque<TCPResponse> d_queuedResponses;
   TCPClientThreadData& d_threadData;
@@ -211,6 +211,7 @@ public:
   struct timeval d_queryReadTime;
   size_t d_currentPos{0};
   size_t d_queriesCount{0};
+  size_t d_currentQueriesCount{0};
   unsigned int d_remainingTime{0};
   uint16_t d_querySize{0};
   uint16_t d_downstreamFailures{0};
@@ -219,10 +220,8 @@ public:
   bool d_readingFirstQuery{true};
   bool d_isXFR{false};
   bool d_xfrStarted{false};
-  bool d_xfrDone{false};
   bool d_selfGeneratedResponse{false};
   bool d_proxyProtocolPayloadAdded{false};
   bool d_proxyProtocolPayloadHasTLV{false};
 };
 
-IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t toRead);

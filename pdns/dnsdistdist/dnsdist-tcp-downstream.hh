@@ -20,17 +20,19 @@ struct TCPQuery
   std::vector<uint8_t> d_buffer;
 };
 
+class TCPConnectionToBackend;
+
 struct TCPResponse : public TCPQuery
 {
   TCPResponse()
   {
   }
 
-  TCPResponse(std::vector<uint8_t>&& buffer, IDState&& state, std::shared_ptr<DownstreamState> ds): TCPQuery(std::move(buffer), std::move(state)), d_ds(ds)
+  TCPResponse(std::vector<uint8_t>&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
   }
 
-  std::shared_ptr<DownstreamState> d_ds{nullptr};
+  std::shared_ptr<TCPConnectionToBackend> d_connection{nullptr};
   dnsheader d_cleartextDH;
   bool d_selfGenerated{false};
 };
@@ -68,6 +70,11 @@ public:
     return d_socket->getHandle();
   }
 
+  const std::shared_ptr<DownstreamState>& getDS() const
+  {
+    return d_ds;
+  }
+
   const ComboAddress& getRemote() const
   {
     return d_ds->remote;
@@ -103,6 +110,7 @@ public:
     return d_enableFastOpen;
   }
 
+  /* whether we can acept new queries FOR THE SAME CLIENT */
   bool canAcceptNewQueries() const
   {
     if (d_usedForXFR || d_connectionDied) {
@@ -110,10 +118,20 @@ public:
       /* Don't reuse the TCP connection after an {A,I}XFR */
       /* but don't reset it either, we will need to read more messages */
     }
-#warning FIXME: maximum number of pending queries
+
+    if ((d_pendingQueries.size() + d_pendingResponses.size()) >= d_ds->d_maxInFlightQueriesPerConn) {
+      return false;
+    }
+
     return true;
   }
 
+  bool isIdle() const
+  {
+    return d_pendingQueries.size() == 0 && d_pendingResponses.size() == 0;
+  }
+
+  /* whether a connection can be reused for a different client */
   bool canBeReused() const
   {
     if (d_usedForXFR || d_connectionDied) {
@@ -138,17 +156,17 @@ public:
     return ds == d_ds;
   }
 
-  static void handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
-  static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
-  static IOState sendNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
-
   void queueQuery(TCPQuery&& query, std::shared_ptr<TCPConnectionToBackend>& sharedSelf);
   void handleTimeout(const struct timeval& now, bool write);
-  IOState handleResponse(const struct timeval& now);
   void setProxyProtocolPayload(std::string&& payload);
   void setProxyProtocolPayloadAdded(bool added);
 
 private:
+  static void handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
+  static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
+  static IOState sendNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
+
+  IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   uint16_t getQueryIdFromResponse();
   bool reconnect();
   void notifyAllQueriesFailed(const struct timeval& now, bool timeout = false);
@@ -194,7 +212,6 @@ private:
   std::unique_ptr<Socket> d_socket{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
-  //std::weak_ptr<IncomingTCPConnectionState> d_clientConn;
   std::shared_ptr<IncomingTCPConnectionState> d_clientConn;
   std::string d_proxyProtocolPayload;
   TCPQuery d_currentQuery;
@@ -206,7 +223,7 @@ private:
   State d_state{State::idle};
   bool d_fresh{true};
   bool d_enableFastOpen{false};
-  bool d_connectionDied{true};
+  bool d_connectionDied{false};
   bool d_usedForXFR{false};
   bool d_proxyProtocolPayloadAdded{false};
 };

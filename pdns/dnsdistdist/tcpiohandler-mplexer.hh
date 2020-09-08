@@ -4,6 +4,12 @@
 #include "mplexer.hh"
 #include "tcpiohandler.hh"
 
+#if 0
+#define DEBUGLOG(x) cerr<<x<<endl;
+#else
+#define DEBUGLOG(x)
+#endif
+
 class IOStateHandler
 {
 public:
@@ -43,14 +49,14 @@ public:
 
   void update(IOState iostate, FDMultiplexer::callbackfunc_t callback = FDMultiplexer::callbackfunc_t(), FDMultiplexer::funcparam_t callbackData = boost::any(), boost::optional<struct timeval> ttd = boost::none)
   {
-    cerr<<"in "<<__PRETTY_FUNCTION__<<" for fd "<<d_fd<<", last state was "<<(int)d_currentState<<", new state is "<<(int)iostate<<endl;
+    DEBUGLOG("in "<<__PRETTY_FUNCTION__<<" for fd "<<d_fd<<", last state was "<<(int)d_currentState<<", new state is "<<(int)iostate);
     if (d_currentState == IOState::NeedRead && iostate != IOState::NeedRead) {
-      cerr<<__PRETTY_FUNCTION__<<": remove read FD "<<d_fd<<endl;
+      DEBUGLOG(__PRETTY_FUNCTION__<<": remove read FD "<<d_fd);
       d_mplexer->removeReadFD(d_fd);
       d_currentState = IOState::Done;
     }
     else if (d_currentState == IOState::NeedWrite && iostate != IOState::NeedWrite) {
-      cerr<<__PRETTY_FUNCTION__<<": remove write FD "<<d_fd<<endl;
+      DEBUGLOG(__PRETTY_FUNCTION__<<": remove write FD "<<d_fd);
       d_mplexer->removeWriteFD(d_fd);
       d_currentState = IOState::Done;
     }
@@ -65,7 +71,7 @@ public:
       }
 
       d_currentState = IOState::NeedRead;
-      cerr<<__PRETTY_FUNCTION__<<": add read FD "<<d_fd<<endl;
+      DEBUGLOG(__PRETTY_FUNCTION__<<": add read FD "<<d_fd);
       d_mplexer->addReadFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
     }
     else if (iostate == IOState::NeedWrite) {
@@ -74,12 +80,12 @@ public:
       }
 
       d_currentState = IOState::NeedWrite;
-      cerr<<__PRETTY_FUNCTION__<<": add write FD "<<d_fd<<endl;
+      DEBUGLOG(__PRETTY_FUNCTION__<<": add write FD "<<d_fd);
       d_mplexer->addWriteFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
     }
     else if (iostate == IOState::Done) {
       d_currentState = IOState::Done;
-      cerr<<__PRETTY_FUNCTION__<<": done"<<endl;
+      DEBUGLOG(__PRETTY_FUNCTION__<<": done");
     }
   }
 
@@ -104,7 +110,7 @@ public:
        let's reset the state so it's not registered to the IO multiplexer anymore
        and its reference count goes to zero */
     if (d_enabled && d_handler) {
-      cerr<<"IOStateGuard destroyed while holding a state, let's reset it"<<endl;
+      DEBUGLOG("IOStateGuard destroyed while holding a state, let's reset it");
       d_handler->reset();
       d_enabled = false;
     }

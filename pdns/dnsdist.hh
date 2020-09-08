@@ -669,6 +669,7 @@ struct ClientState
   std::atomic<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   std::atomic<double> tcpAvgConnectionDuration{0.0};
+  size_t d_maxInFlightQueriesPerConn{1};
   int udpFD{-1};
   int tcpFD{-1};
   int tcpListenQueueSize{SOMAXCONN};
@@ -852,6 +853,7 @@ struct DownstreamState
   /* in ms */
   std::atomic<double> tcpAvgConnectionDuration{0.0};
   size_t socketsOffset{0};
+  size_t d_maxInFlightQueriesPerConn{1};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};
