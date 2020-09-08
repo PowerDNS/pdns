@@ -706,6 +706,12 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
   const unsigned int qnamelen = qname.countLabels();
 
+  DNSName fwdomain(qname);
+  const bool forwarded = getBestAuthZone(&fwdomain) != t_sstorage.domainmap->end();
+  if (forwarded) {
+    QLOG("Step0 qname is in a forwarded domain " << fwdomain);
+  }
+
   for (unsigned int i = 0; i <= qnamelen; ) {
 
     // Step 1
@@ -714,29 +720,25 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     if (qtype == QType::DS) {
       nsdomain.chopOff();
     }
-
-    DNSName fwdomain(qname);
-    bool forwarded = getBestAuthZone(&fwdomain) != t_sstorage.domainmap->end();
-    if (forwarded) {
-      QLOG("Step1 qname is in a forwarded domain");
-    } else {
-      // the two retries allow getBestNSFromCache&co to reprime the root
-      // hints, in case they ever go missing
-      for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
-        bool flawedNSSet = false;
-        set<GetBestNSAnswer> beenthereIgnored;
-        getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored);
-      }
-
-      if (bestns.size() == 0) {
-        // Something terrible is wrong
-        QLOG("Step1 No ancestor found return ServFail");
-        return RCode::ServFail;
-      }
-      QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
+    // the two retries allow getBestNSFromCache&co to reprime the root
+    // hints, in case they ever go missing
+    for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
+      bool flawedNSSet = false;
+      set<GetBestNSAnswer> beenthereIgnored;
+      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored);
     }
 
-    const DNSName& ancestor(forwarded ? fwdomain : bestns[0].d_name);
+    if (bestns.size() == 0) {
+      // Something terrible is wrong
+      QLOG("Step1 No ancestor found return ServFail");
+      return RCode::ServFail;
+    }
+    QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
+
+    const DNSName& ancestor(!forwarded || bestns[0].d_name.isPartOf(fwdomain) ? bestns[0].d_name : fwdomain);
+    if (forwarded) {
+      QLOG("Step1 Final Ancestor (using forwarding info) is " << ancestor);
+    }
 
     child = ancestor;
 
