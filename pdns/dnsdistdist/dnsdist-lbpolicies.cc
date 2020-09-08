@@ -206,24 +206,39 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
 
   vector<size_t> candidates;
   candidates.reserve(servers.size());
+  bool valid_backup = false;
 
   for (auto& d : servers) {
     if (d.second->isUp()) {
-      candidates.push_back(d.first);
+      if (d.second->is_backup)
+        valid_backup = true;
+      else
+        candidates.push_back(d.first);
     }
   }
 
   if (candidates.empty()) {
-    if (g_roundrobinFailOnNoServer) {
-      return shared_ptr<DownstreamState>();
-    }
-    for (auto& d : servers) {
-      candidates.push_back(d.first);
+    if (valid_backup) {
+      for (auto& d : servers) {
+        if (d.second->isUp()) {
+            candidates.push_back(d.first);
+        }
+      }
+    } else {  
+      if (g_roundrobinFailOnNoServer) {
+        return shared_ptr<DownstreamState>();
+      }
+      for (auto& d : servers) {
+        candidates.push_back(d.first);
+      }
     }
   }
 
   static unsigned int counter;
-  return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
+  auto x = servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
+  vinfolog("BK using %s", x->getName());
+
+  return x;
 }
 
 const std::shared_ptr<ServerPolicy::NumberedServerVector> getDownstreamCandidates(const pools_t& pools, const std::string& poolName)

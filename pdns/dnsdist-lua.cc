@@ -378,6 +378,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         ret->checkInterval=static_cast<unsigned int>(std::stoul(boost::get<string>(vars["checkInterval"])));
       }
 
+      if(vars.count("backup")) {
+        ret->is_backup=boost::get<bool>(vars["backup"]);
+      }
+
       if(vars.count("tcpConnectTimeout")) {
         ret->tcpConnectTimeout=std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
       }

@@ -815,6 +815,7 @@ struct DownstreamState
   int tcpSendTimeout{30};
   unsigned int checkInterval{1};
   unsigned int lastCheck{0};
+  bool is_backup{false};
   const unsigned int sourceItf{0};
   uint16_t retries{5};
   uint16_t xpfRRCode{0};
