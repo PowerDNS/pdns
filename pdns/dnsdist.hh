@@ -237,7 +237,41 @@ extern uint64_t getLatencyCount(const std::string&);
 
 struct DNSDistStats
 {
-  using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
+#define CPU_LEVEL1_DCACHE_LINESIZE 64 // Until we know better via configure/getconf
+
+  class stat_t {
+  public:
+    typedef uint64_t base_t;
+    typedef std::atomic<base_t> atomic_t;
+    stat_t() : stat_t(0) {
+    }
+    stat_t(const base_t x) {
+      new(&counter) atomic_t(x);
+    }
+    ~stat_t() {
+      reinterpret_cast<atomic_t *>(&counter)->~atomic_t();
+    }
+    stat_t(const stat_t&) = delete;
+    base_t operator++(int) {
+      return (*reinterpret_cast<atomic_t *>(&counter))++;
+    }
+    base_t operator++() {
+      return ++(*reinterpret_cast<atomic_t *>(&counter));
+    }
+    base_t operator+=(const stat_t& v) {
+      return (*reinterpret_cast<atomic_t *>(&counter)) += *reinterpret_cast<const atomic_t *>(&v.counter);
+    }
+    base_t load() const {
+      return reinterpret_cast<const atomic_t *>(&counter)->load();
+    }
+    operator base_t() const {
+      return reinterpret_cast<const atomic_t *>(&counter)->load();
+    }
+    //const atomic_t& operator()() { return *reinterpret_cast<const atomic_t*>(&counter); }
+  private:
+    typename std::aligned_storage<sizeof(base_t), CPU_LEVEL1_DCACHE_LINESIZE>::type counter;
+  };
+
   stat_t responses{0};
   stat_t servfailResponses{0};
   stat_t queries{0};
