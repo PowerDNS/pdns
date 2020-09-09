@@ -440,9 +440,9 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
       return IOState::Done;
     }
     auto ids = std::move(it->second.d_idstate);
+    d_pendingResponses.erase(it);
     DEBUGLOG("passing response to client connection for "<<ids.qname);
     clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
-    d_pendingResponses.erase(it);
 
     if (!d_pendingQueries.empty()) {
       DEBUGLOG("still have some queries to send");
