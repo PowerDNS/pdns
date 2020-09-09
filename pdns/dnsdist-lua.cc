@@ -98,7 +98,7 @@ void resetLuaSideEffect()
 
 typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::vector<std::pair<int, std::string> >, std::map<std::string,std::string>  > > localbind_t;
 
-static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize)
+static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, size_t& maxInFlightQueriesPerConnection)
 {
   if (vars) {
     if (vars->count("reusePort")) {
@@ -109,6 +109,9 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
     }
     if (vars->count("tcpListenQueueSize")) {
       tcpListenQueueSize = boost::get<int>((*vars)["tcpListenQueueSize"]);
+    }
+    if (vars->count("maxInFlight")) {
+      maxInFlightQueriesPerConnection = boost::get<int>((*vars)["maxInFlight"]);
     }
     if (vars->count("interface")) {
       interface = boost::get<std::string>((*vars)["interface"]);
@@ -401,6 +404,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       }
 
+      if(vars.count("maxInFlight")) {
+        ret->d_maxInFlightQueriesPerConn = std::stoi(boost::get<string>(vars["maxInFlight"]));
+      }
+
       if(vars.count("name")) {
         ret->setName(boost::get<string>(vars["name"]));
       }
@@ -585,10 +592,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       int tcpListenQueueSize = 0;
+      size_t maxInFlightQueriesPerConn = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
 
       try {
 	ComboAddress loc(addr, 53);
@@ -608,6 +616,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         if (tcpListenQueueSize > 0) {
           tcpCS->tcpListenQueueSize = tcpListenQueueSize;
         }
+        if (maxInFlightQueriesPerConn > 0) {
+          tcpCS->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+        }
         g_frontends.push_back(std::move(tcpCS));
       }
       catch(const std::exception& e) {
@@ -626,10 +637,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       int tcpListenQueueSize = 0;
+      size_t maxInFlightQueriesPerConn = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
 
       try {
 	ComboAddress loc(addr, 53);
@@ -638,6 +650,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         auto tcpCS = std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
         if (tcpListenQueueSize > 0) {
           tcpCS->tcpListenQueueSize = tcpListenQueueSize;
+        }
+        if (maxInFlightQueriesPerConn > 0) {
+          tcpCS->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
         }
         g_frontends.push_back(std::move(tcpCS));
       }
@@ -1248,11 +1263,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       int tcpListenQueueSize = 0;
+      size_t maxInFlightQueriesPerConn = 0;
       std::string interface;
       std::set<int> cpus;
       std::vector<DNSCryptContext::CertKeyPaths> certKeys;
 
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
 
       if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
         auto certFile = boost::get<std::string>(certFiles);
@@ -1950,11 +1966,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
+    size_t maxInFlightQueriesPerConn = 0;
     std::string interface;
     std::set<int> cpus;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
 
       if (vars->count("idleTimeout")) {
         frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
@@ -2136,11 +2153,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         bool reusePort = false;
         int tcpFastOpenQueueSize = 0;
         int tcpListenQueueSize = 0;
+        size_t maxInFlightQueriesPerConn = 0;
         std::string interface;
         std::set<int> cpus;
 
         if (vars) {
-          parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize);
+          parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
 
           if (vars->count("provider")) {
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
@@ -2168,6 +2186,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           if (tcpListenQueueSize > 0) {
             cs->tcpListenQueueSize = tcpListenQueueSize;
           }
+          if (maxInFlightQueriesPerConn > 0) {
+            cs->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+          }
+
           g_tlslocals.push_back(cs->tlsFrontend);
           g_frontends.push_back(std::move(cs));
         }
