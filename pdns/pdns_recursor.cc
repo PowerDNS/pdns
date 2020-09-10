@@ -3880,6 +3880,7 @@ static int serviceMain(int argc, char*argv[])
     }
     g_dontThrottleNames.setState(dontThrottleNames);
 
+    parts.clear();
     NetmaskGroup dontThrottleNetmasks;
     stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
     for (const auto &p : parts) {
