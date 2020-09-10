@@ -67,7 +67,7 @@ function handleSafeSearch(dq)
                  dq.followupFunction="followCNAMERecords"
                  return true
 
-         elseif(name=="duckduckgo.com") then
+         elseif(name=="duckduckgo.com" or name=="www.duckduckgo.com") then
                  dq:addAnswer(pdns.CNAME, "safe.duckduckgo.com")
                  dq.rcode=0
                  dq.followupFunction="followCNAMERecords"
