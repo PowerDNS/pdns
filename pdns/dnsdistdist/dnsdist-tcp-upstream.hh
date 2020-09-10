@@ -195,7 +195,7 @@ public:
 
   enum class State { doingHandshake, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
-  std::map<ComboAddress, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
+  std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
   std::vector<uint8_t> d_buffer;
   std::deque<TCPResponse> d_queuedResponses;
   TCPClientThreadData& d_threadData;

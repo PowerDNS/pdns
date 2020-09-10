@@ -33,7 +33,6 @@
 #include "dnsdist-xpf.hh"
 #include "dnsparser.hh"
 #include "dolog.hh"
-#include "ednsoptions.hh"
 #include "gettime.hh"
 #include "lock.hh"
 #include "sstuff.hh"
@@ -74,7 +73,7 @@ public:
   {
     std::shared_ptr<TCPConnectionToBackend> result;
 
-    const auto& it = t_downstreamConnections.find(ds->remote);
+    const auto& it = t_downstreamConnections.find(ds);
     if (it != t_downstreamConnections.end()) {
       auto& list = it->second;
       if (!list.empty()) {
@@ -99,8 +98,8 @@ public:
       return;
     }
 
-    const auto& remote = conn->getRemote();
-    const auto& it = t_downstreamConnections.find(remote);
+    const auto& ds = conn->getDS();
+    const auto& it = t_downstreamConnections.find(ds);
     if (it != t_downstreamConnections.end()) {
       auto& list = it->second;
       if (list.size() >= s_maxCachedConnectionsPerDownstream) {
@@ -112,7 +111,7 @@ public:
       list.push_back(std::move(conn));
     }
     else {
-      t_downstreamConnections[remote].push_back(std::move(conn));
+      t_downstreamConnections[ds].push_back(std::move(conn));
     }
   }
 
@@ -138,11 +137,11 @@ public:
   }
 
 private:
-  static thread_local map<ComboAddress, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
+  static thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
   static const size_t s_maxCachedConnectionsPerDownstream;
 };
 
-thread_local map<ComboAddress, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
+thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
 const size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{20};
 
 static void decrementTCPClientCount(const ComboAddress& client)
@@ -158,7 +157,6 @@ static void decrementTCPClientCount(const ComboAddress& client)
 
 IncomingTCPConnectionState::~IncomingTCPConnectionState()
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   decrementTCPClientCount(d_ci.remote);
 
   if (d_ci.cs != nullptr) {
@@ -311,7 +309,6 @@ static IOState handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& s
   }
 
   if (state->d_queuedResponses.empty()) {
-    DEBUGLOG("no response remaining");
     if (state->d_isXFR) {
       /* we should still be reading from the backend, and we don't want to read from the client */
       state->d_state = IncomingTCPConnectionState::State::idle;
@@ -319,12 +316,13 @@ static IOState handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& s
       DEBUGLOG("idling for XFR completion");
       return IOState::Done;
     } else {
-      DEBUGLOG("reading new queries if any");
       if (state->canAcceptNewQueries()) {
+        DEBUGLOG("waiting for new queries");
         state->resetForNewQuery();
         return IOState::NeedRead;
       }
       else {
+        DEBUGLOG("idling");
         state->d_state = IncomingTCPConnectionState::State::idle;
         return IOState::Done;
       }
@@ -348,13 +346,11 @@ bool IncomingTCPConnectionState::canAcceptNewQueries() const
     return false;
   }
 
-  // d_state ?
   if (d_currentQueriesCount >= d_ci.cs->d_maxInFlightQueriesPerConn) {
     DEBUGLOG("not accepting new queries because we already have "<<d_currentQueriesCount<<" out of "<<d_ci.cs->d_maxInFlightQueriesPerConn);
     return false;
   }
 
-  DEBUGLOG("accepting new queries");
   return true;
 }
 
@@ -371,18 +367,18 @@ void IncomingTCPConnectionState::resetForNewQuery()
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds)
 {
-  auto it = d_activeConnectionsToBackend.find(ds->remote);
+  auto it = d_activeConnectionsToBackend.find(ds);
   if (it == d_activeConnectionsToBackend.end()) {
-    DEBUGLOG("no active connection found for "<<ds->remote.toString());
+    DEBUGLOG("no active connection found for "<<ds->getName());
     return nullptr;
   }
 
   for (auto& conn : it->second) {
     if (conn->canAcceptNewQueries()) {
-      DEBUGLOG("Got one active connection accepting more for "<<ds->remote.toString());
+      DEBUGLOG("Got one active connection accepting more for "<<ds->getName());
       return conn;
     }
-    DEBUGLOG("not accepting more for "<<ds->remote.toString());
+    DEBUGLOG("not accepting more for "<<ds->getName());
   }
 
   return nullptr;
@@ -390,13 +386,12 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDow
 
 void IncomingTCPConnectionState::registerActiveDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
-  d_activeConnectionsToBackend[conn->getRemote()].push_front(conn);
+  d_activeConnectionsToBackend[conn->getDS()].push_front(conn);
 }
 
 /* this version is called when the buffer has been set and the rules have been processed */
 void IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   // if we already reading a query (not the query size, mind you), or sending a response we need to either queue the response
   // otherwise we can start sending it right away
   if (state->d_state == IncomingTCPConnectionState::State::idle ||
@@ -425,9 +420,9 @@ void IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConnect
 /* this version is called from the backend code when a new response has been received */
 void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
-  if (response.d_connection && response.d_connection->isIdle()) {
-    auto& list = d_activeConnectionsToBackend.at(response.d_connection->getRemote());
+  // if we have added a TCP Proxy Protocol payload to a connection, don't release it yet, no one else will be able to use it anyway
+  if (!state->d_isXFR && response.d_connection && response.d_connection->isIdle() && response.d_connection->canBeReused()) {
+    auto& list = d_activeConnectionsToBackend.at(response.d_connection->getDS());
     for (auto it = list.begin(); it != list.end(); ++it) {
       if (*it == response.d_connection) {
         DownstreamConnectionsManager::releaseDownstreamConnection(std::move(*it));
@@ -650,7 +645,6 @@ void IncomingTCPConnectionState::handleIOCallback(int fd, FDMultiplexer::funcpar
 
 void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   // why do we loop? Because the TLS layer does buffering, and thus can have data ready to read
   // even though the underlying socket is not ready, so we need to actually ask for the data first
   bool wouldBlock = false;
@@ -728,7 +722,6 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           DEBUGLOG("query received");
 
           if (handleQuery(state, now)) {
-            DEBUGLOG("handle query returned true");
             // if the query has been passed to a backend, or dropped, we can start
             // reading again, or sending queued responses
             if (state->d_queuedResponses.empty()) {
@@ -752,7 +745,6 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           else {
             /* otherwise the state should already be waiting for
                the socket to be writable */
-            DEBUGLOG("should be waiting for writable socket");
             ioGuard.release();
             return;
           }
@@ -822,7 +814,6 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 
 void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   if (d_state == State::sendingResponse) {
     /* if we have responses to send, let's do that first */
   }

@@ -6,13 +6,21 @@ const uint16_t TCPConnectionToBackend::s_xfrID = 0;
 
 void TCPConnectionToBackend::assignToClientConnection(std::shared_ptr<IncomingTCPConnectionState>& clientConn, bool isXFR)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
+  if (d_usedForXFR == true) {
+    throw std::runtime_error("Trying to send a query over a backend connection used for XFR");
+  }
+
   if (isXFR) {
     d_usedForXFR = true;
   }
 
-  d_clientConn = clientConn;
-  d_ioState = make_unique<IOStateHandler>(clientConn->getIOMPlexer(), d_socket->getHandle());
+  if (!d_clientConn) {
+    d_clientConn = clientConn;
+    d_ioState = make_unique<IOStateHandler>(clientConn->getIOMPlexer(), d_socket->getHandle());
+  }
+  else if (d_clientConn != clientConn) {
+    throw std::runtime_error("Assigning a query from a different client to an existing backend connection with pending queries");
+  }
 }
 
 IOState TCPConnectionToBackend::sendNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
@@ -63,7 +71,6 @@ static IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t
 
 void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   if (conn->d_socket == nullptr) {
     throw std::runtime_error("No downstream socket in " + std::string(__PRETTY_FUNCTION__) + "!");
   }
@@ -75,7 +82,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
   try {
     if (conn->d_state == State::sendingQueryToBackend) {
-      DEBUGLOG("sending query to backend over FD "<<fd);
+      DEBUGLOG("sending query to backend "<<conn->getDS()->getName()<<" over FD "<<fd);
       int socketFlags = 0;
 #ifdef MSG_FASTOPEN
       if (conn->isFastOpenEnabled()) {
@@ -89,7 +96,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         /* request sent ! */
         conn->incQueries();
         conn->d_currentPos = 0;
-        //conn->d_currentQuery.d_querySentTime = now;
+
         DEBUGLOG("adding a pending response for ID "<<conn->d_currentQuery.d_idstate.origID<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
         conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
         conn->d_currentQuery.d_buffer.clear();
@@ -117,7 +124,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
       // then we need to allocate a new buffer (new because we might need to re-send the query if the
       // backend dies on us)
       // We also might need to read and send to the client more than one response in case of XFR (yeah!)
-      // should very likely be a TCPIOHandler d_downstreamHandler
+      // should very likely be a TCPIOHandler
       conn->d_responseBuffer.resize(sizeof(uint16_t));
       iostate = tryRead(fd, conn->d_responseBuffer, conn->d_currentPos, sizeof(uint16_t) - conn->d_currentPos);
       if (iostate == IOState::Done) {
@@ -135,7 +142,6 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
       iostate = tryRead(fd, conn->d_responseBuffer, conn->d_currentPos, conn->d_responseSize - conn->d_currentPos);
       if (iostate == IOState::Done) {
         DEBUGLOG("got response from backend");
-        //conn->d_responseReadTime = now;
         try {
           iostate = conn->handleResponse(conn, now);
         }
@@ -170,15 +176,6 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
       ++conn->d_downstreamFailures;
     }
 
-#if 0
-    if (conn->d_outstanding) {
-      conn->d_outstanding = false;
-
-      if (conn->d_ds != nullptr) {
-        --conn->d_ds->outstanding;
-      }
-    }
-#endif
     /* remove this FD from the IO multiplexer */
     iostate = IOState::Done;
     connectionDied = true;
@@ -189,15 +186,14 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
     DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
 
     if ((!conn->d_usedForXFR || conn->d_queries == 0) && conn->d_downstreamFailures < conn->d_ds->retries) {
-      DEBUGLOG("reconnecting");
+
       conn->d_ioState->reset();
       ioGuard.release();
 
       if (conn->reconnect()) {
-        DEBUGLOG("reconnected");
-
         conn->d_ioState = make_unique<IOStateHandler>(conn->d_clientConn->getIOMPlexer(), conn->d_socket->getHandle());
 
+        /* we need to resend the queries that were in flight, if any */
         for (auto& pending : conn->d_pendingResponses) {
           conn->d_pendingQueries.push_back(std::move(pending.second));
         }
@@ -252,7 +248,6 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
 
 void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPConnectionToBackend>& sharedSelf)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   if (d_ioState == nullptr) {
     throw std::runtime_error("Trying to queue a query to a TCP connection that has no incoming client connection assigned");
   }
@@ -269,8 +264,6 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
       d_proxyProtocolPayloadAdded = true;
     }
 
-    DEBUGLOG("need write");
-
     struct timeval now;
     gettimeofday(&now, 0);
 
@@ -280,7 +273,6 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
     // store query in the list of queries to send
     d_pendingQueries.push_back(std::move(query));
   }
-  DEBUGLOG("out of "<<__PRETTY_FUNCTION__);
 }
 
 bool TCPConnectionToBackend::reconnect()
@@ -297,9 +289,11 @@ bool TCPConnectionToBackend::reconnect()
 
   do {
     vinfolog("TCP connecting to downstream %s (%d)", d_ds->getNameWithAddr(), d_downstreamFailures);
+    DEBUGLOG("Opening TCP connection to backend "<<d_ds->getNameWithAddr());
     try {
       result = std::unique_ptr<Socket>(new Socket(d_ds->remote.sin4.sin_family, SOCK_STREAM, 0));
       DEBUGLOG("result of connect is "<<result->getHandle());
+
       if (!IsAnyAddress(d_ds->sourceAddr)) {
         SSetsockopt(result->getHandle(), SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
@@ -327,7 +321,6 @@ bool TCPConnectionToBackend::reconnect()
 #endif /* MSG_FASTOPEN */
 
       d_socket = std::move(result);
-      DEBUGLOG("connected new socket "<<d_socket->getHandle());
       ++d_ds->tcpCurrentConnections;
       return true;
     }
@@ -362,7 +355,6 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
 
 void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, bool timeout)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
   d_connectionDied = true;
 
   auto& clientConn = d_clientConn;
@@ -376,7 +368,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, b
     ++clientConn->d_ci.cs->tcpDownstreamTimeouts;
   }
 
-  if (d_state == State::doingHandshake || d_state == State::sendingQueryToBackend) {
+  if (d_state == State::sendingQueryToBackend) {
     clientConn->notifyIOError(clientConn, std::move(d_currentQuery.d_idstate), now);
   }
 
@@ -396,13 +388,10 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, b
 
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
-  DEBUGLOG("in "<<__PRETTY_FUNCTION__);
-
   d_downstreamFailures = 0;
 
   auto& clientConn = d_clientConn;
   if (!clientConn->active()) {
-    DEBUGLOG("client is not active");
     // a client timeout occured, or something like that */
     d_connectionDied = true;
     d_clientConn.reset();
@@ -418,11 +407,10 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     d_state = State::readingResponseSizeFromBackend;
     d_currentPos = 0;
     d_responseBuffer.resize(sizeof(uint16_t));
-    return IOState::NeedRead;
     // get ready to read the next packet, if any
+    return IOState::NeedRead;
   }
   else {
-    DEBUGLOG("not XFR, phew");
     uint16_t queryId = 0;
     try {
       queryId = getQueryIdFromResponse();
@@ -439,6 +427,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
       notifyAllQueriesFailed(now);
       return IOState::Done;
     }
+
     auto ids = std::move(it->second.d_idstate);
     d_pendingResponses.erase(it);
     DEBUGLOG("passing response to client connection for "<<ids.qname);
@@ -460,7 +449,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
       return IOState::NeedRead;
     }
     else {
-      DEBUGLOG("nothing to do, phewwwww");
+      DEBUGLOG("nothing to do, waiting for a new query");
       d_state = State::idle;
       d_clientConn.reset();
       return IOState::Done;
