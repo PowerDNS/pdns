@@ -36,6 +36,8 @@ class OOORTCPResponder(object):
                 conn.send(struct.pack("!H", len(wire)))
                 conn.send(wire)
 
+        except ConnectionError as err:
+            print("Error in the thread handling reverse OOOR connections: %s" % (err))
         finally:
             conn.close()
 
@@ -105,6 +107,8 @@ class ReverseOOORTCPResponder(OOORTCPResponder):
                 response = dns.message.make_response(request)
                 queuedResponses.append(response)
 
+        except ConnectionError as err:
+            print("Error in the thread handling reverse OOOR connections: %s" % (err))
         finally:
             conn.close()
 
