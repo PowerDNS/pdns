@@ -24,7 +24,7 @@ To compare the address (so not the port) of two ComboAddresses, use :meth:`:equa
 To convert an address to human-friendly representation, use :meth:`:toString <ComboAddress:toString>` or :meth:`:toStringWithPort <ComboAddress:toStringWithPort()>`.
 To get only the port number, use :meth:`:getPort() <ComboAddress:getPort>`.
 
-.. function:: NewCA(address) -> ComboAddress
+.. function:: newCA(address) -> ComboAddress
 
   Creates a :class:`ComboAddress`.
 
