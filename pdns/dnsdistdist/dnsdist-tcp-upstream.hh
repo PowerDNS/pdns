@@ -216,7 +216,6 @@ public:
   uint16_t d_querySize{0};
   uint16_t d_downstreamFailures{0};
   State d_state{State::doingHandshake};
-  IOState d_lastIOState{IOState::Done};
   bool d_readingFirstQuery{true};
   bool d_isXFR{false};
   bool d_xfrStarted{false};

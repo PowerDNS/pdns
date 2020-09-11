@@ -166,21 +166,6 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
     auto diff = now - d_connectionStartTime;
     d_ci.cs->updateTCPMetrics(d_queriesCount, diff.tv_sec * 1000.0 + diff.tv_usec / 1000.0);
   }
-
-  try {
-    if (d_lastIOState == IOState::NeedRead) {
-      d_threadData.mplexer->removeReadFD(d_ci.fd);
-    }
-    else if (d_lastIOState == IOState::NeedWrite) {
-      d_threadData.mplexer->removeWriteFD(d_ci.fd);
-    }
-  }
-  catch (const FDMultiplexerException& e) {
-    vinfolog("Got an exception when trying to remove a pending IO operation on an incoming TCP connection from %s: %s", d_ci.remote.toStringWithPort(), e.what());
-  }
-  catch (...) {
-    vinfolog("Got an unknown exception when trying to remove a pending IO operation on an incoming TCP connection from %s", d_ci.remote.toStringWithPort());
-  }
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const struct timeval& now)
@@ -329,7 +314,7 @@ static IOState handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& s
     }
   }
   else {
-    DEBUGLOG("queue size is "<<state->d_queuedResponses.size());
+    DEBUGLOG("queue size is "<<state->d_queuedResponses.size()<<", sending the next one");
     TCPResponse resp = std::move(state->d_queuedResponses.front());
     state->d_queuedResponses.pop_front();
     state->d_state = IncomingTCPConnectionState::State::idle;
@@ -361,7 +346,6 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_querySize = 0;
   d_downstreamFailures = 0;
   d_state = State::readingQuerySize;
-  d_lastIOState = IOState::Done;
   d_selfGeneratedResponse = false;
 }
 
@@ -623,9 +607,8 @@ static bool handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     downstreamConnection->setProxyProtocolPayload(std::move(proxyProtocolPayload));
   }
 
-  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
-
   ++state->d_currentQueriesCount;
+  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
   downstreamConnection->queueQuery(TCPQuery(std::move(state->d_buffer), std::move(ids)), downstreamConnection);
 
   return true;
@@ -738,6 +721,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
               TCPResponse resp = std::move(state->d_queuedResponses.front());
               state->d_queuedResponses.pop_front();
               ioGuard.release();
+              state->d_state = IncomingTCPConnectionState::State::idle;
               state->sendResponse(state, now, std::move(resp));
               return;
             }
@@ -789,12 +773,12 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         ++state->d_ci.cs->tcpDiedSendingResponse;
       }
 
-      if (state->d_lastIOState == IOState::NeedWrite || state->d_readingFirstQuery) {
+      if (state->d_ioState->getState() == IOState::NeedWrite || state->d_readingFirstQuery) {
         DEBUGLOG("Got an exception while handling TCP query: "<<e.what());
-        vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (state->d_lastIOState == IOState::NeedRead ? "reading" : "writing"), state->d_ci.remote.toStringWithPort(), e.what());
+        vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (state->d_ioState->getState() == IOState::NeedRead ? "reading" : "writing"), state->d_ci.remote.toStringWithPort(), e.what());
       }
       else {
-        vinfolog("Closing TCP client connection with %s", state->d_ci.remote.toStringWithPort());
+        vinfolog("Closing TCP client connection with %s: %s", state->d_ci.remote.toStringWithPort(), e.what());
         DEBUGLOG("Closing TCP client connection: "<<e.what());
       }
       /* remove this FD from the IO multiplexer */
@@ -821,11 +805,11 @@ void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnec
     /* stop reading and send what we have */
     TCPResponse resp = std::move(d_queuedResponses.front());
     d_queuedResponses.pop_front();
+    state->d_state = IncomingTCPConnectionState::State::idle;
     sendResponse(state, now, std::move(resp));
   }
   else {
     // the backend code already tried to reconnect if it was possible
-    d_lastIOState = IOState::Done;
     d_ioState->reset();
   }
 }
@@ -839,7 +823,6 @@ void IncomingTCPConnectionState::handleTimeout(bool write)
 {
   DEBUGLOG("client timeout");
   ++d_ci.cs->tcpClientTimeouts;
-  d_lastIOState = IOState::Done;
   d_ioState->reset();
 }
 
