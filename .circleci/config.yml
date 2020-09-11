@@ -1570,60 +1570,9 @@ jobs:
 
 workflows:
   version: 2
-  coverity:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only: master
-    jobs:
-      - coverity-auth:
-          context: auth-coverity
-      - coverity-dnsdist:
-          context: dnsdist-coverity
-      - coverity-recursor:
-          context: recursor-coverity
-
   build-and-test-all:
     jobs:
       - checkout
-      - build-auth:
-          requires:
-            - checkout
-      - test-auth-api:
-          requires:
-            - build-auth
-      - test-auth-algorithms:
-          requires:
-            - build-auth
-      - test-auth-regress-odbc-sqlite3:
-          requires:
-            - build-auth
-      - test-auth-regress-odbc-mssql:
-          requires:
-            - build-auth
-      - test-auth-regress-gmysql:
-          requires:
-            - build-auth
-      - test-auth-regress-bind:
-          requires:
-            - build-auth
-      - test-auth-regress-gsqlite3:
-          requires:
-            - build-auth
-      - test-auth-regress-gpgsql:
-          requires:
-            - build-auth
-      - test-auth-regress-lmdb:
-          requires:
-            - build-auth
-      - test-auth-regress-ldap:
-          requires:
-            - build-auth
-      - test-auth-regress-tinydns:
-          requires:
-            - build-auth
       - check-formatting:
           requires:
             - checkout
@@ -1639,32 +1588,11 @@ workflows:
       - test-recursor-api:
           requires:
             - build-recursor
-      - build-dnsdist:
-          requires:
-            - checkout
-      - test-dnsdist-regression:
-          requires:
-            - build-dnsdist
-      - test-ixfrdist-regression:
-          requires:
-            - build-auth
 
   build-docs:
     jobs:
       - checkout
-      - build-auth-docs:
-          filters:
-            branches:
-              ignore: master
-          requires:
-            - checkout
       - build-recursor-docs:
-          filters:
-            branches:
-              ignore: master
-          requires:
-            - checkout
-      - build-dnsdist-docs:
           filters:
             branches:
               ignore: master
