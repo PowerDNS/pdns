@@ -387,7 +387,7 @@ static void connectionThread(int sock, ComboAddress remote)
         for(const auto& e : g_stats.entries) {
           if (e.first == "special-memory-usage")
             continue; // Too expensive for get-all
-          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+          if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
             obj.insert({e.first, (double)(*val)->load()});
           else if (const auto& dval = boost::get<double*>(&e.second))
             obj.insert({e.first, (**dval)});
@@ -498,7 +498,7 @@ static void connectionThread(int sock, ComboAddress remote)
           output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
           output << prometheusMetricName << " ";
 
-          if (const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+          if (const auto& val = boost::get<pdns::stat_t*>(&std::get<1>(e)))
             output << (*val)->load();
           else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
             output << **dval;
@@ -1042,7 +1042,7 @@ static void connectionThread(int sock, ComboAddress remote)
         if (item.first == "special-memory-usage")
           continue; // Too expensive for get-all
 
-        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&item.second)) {
+        if(const auto& val = boost::get<pdns::stat_t*>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
               { "name", item.first },

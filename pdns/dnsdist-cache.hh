@@ -26,6 +26,7 @@
 
 #include "iputils.hh"
 #include "lock.hh"
+#include "stat_t.hh"
 
 struct DNSQuestion;
 
@@ -113,13 +114,13 @@ private:
 
   std::vector<CacheShard> d_shards;
 
-  std::atomic<uint64_t> d_deferredLookups{0};
-  std::atomic<uint64_t> d_deferredInserts{0};
-  std::atomic<uint64_t> d_hits{0};
-  std::atomic<uint64_t> d_misses{0};
-  std::atomic<uint64_t> d_insertCollisions{0};
-  std::atomic<uint64_t> d_lookupCollisions{0};
-  std::atomic<uint64_t> d_ttlTooShorts{0};
+  pdns::stat_t d_deferredLookups{0};
+  pdns::stat_t d_deferredInserts{0};
+  pdns::stat_t d_hits{0};
+  pdns::stat_t d_misses{0};
+  pdns::stat_t d_insertCollisions{0};
+  pdns::stat_t d_lookupCollisions{0};
+  pdns::stat_t d_ttlTooShorts{0};
 
   size_t d_maxEntries;
   uint32_t d_expungeIndex{0};

@@ -76,7 +76,7 @@ try
         time_t now=time(0);
         for(const auto& e : g_stats.entries) {
           str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
-          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+          if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
             str<<(*val)->load();
           else if (const auto& dval = boost::get<double*>(&e.second))
             str<<**dval;
@@ -199,7 +199,7 @@ try
               ++(dupPair.first->second);
             }
 
-            vector<pair<const char*, const std::atomic<uint64_t>&>> v{
+            vector<pair<const char*, const pdns::stat_t&>> v{
               {"http-connects", doh->d_httpconnects},
               {"http1-queries", doh->d_http1Stats.d_nbQueries},
               {"http2-queries", doh->d_http2Stats.d_nbQueries},

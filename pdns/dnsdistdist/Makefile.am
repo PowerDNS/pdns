@@ -191,6 +191,7 @@ dnsdist_SOURCES = \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	stat_t.hh \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
@@ -259,6 +260,7 @@ testrunner_SOURCES = \
 	sodcrypto.cc \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	stat_t.hh \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	uuid-utils.hh uuid-utils.cc \

@@ -656,7 +656,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       boost::format flt("    %9.1f");
       for(const auto& e : entries) {
 	string second;
-	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+	if(const auto& val = boost::get<pdns::stat_t*>(&e.second))
 	  second=std::to_string((*val)->load());
 	else if (const auto& dval = boost::get<double*>(&e.second))
 	  second=(flt % (**dval)).str();

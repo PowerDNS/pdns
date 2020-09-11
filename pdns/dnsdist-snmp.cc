@@ -79,14 +79,14 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = boost::get<DNSDistStats::stat_t*>(&it->second)) {
+  if (const auto& val = boost::get<pdns::stat_t*>(&it->second)) {
     return DNSDistSNMPAgent::setCounter64Value(requests, (*val)->load());
   }
 
   return SNMP_ERR_GENERR;
 }
 
-static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength, DNSDistStats::stat_t* ptr)
+static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength, pdns::stat_t* ptr)
 {
   if (statOIDLength != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Counter64 statistic %s", name);

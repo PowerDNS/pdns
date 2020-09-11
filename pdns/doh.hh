@@ -22,6 +22,7 @@
 #pragma once
 #include "iputils.hh"
 #include "libssl.hh"
+#include "stat_t.hh"
 
 struct DOHServerConfig;
 
@@ -76,23 +77,23 @@ struct DOHFrontend
   uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
   std::vector<std::string> d_urls;
 
-  std::atomic<uint64_t> d_httpconnects{0};   // number of TCP/IP connections established
-  std::atomic<uint64_t> d_getqueries{0};     // valid DNS queries received via GET
-  std::atomic<uint64_t> d_postqueries{0};    // valid DNS queries received via POST
-  std::atomic<uint64_t> d_badrequests{0};     // request could not be converted to dns query
-  std::atomic<uint64_t> d_errorresponses{0}; // dnsdist set 'error' on response
-  std::atomic<uint64_t> d_redirectresponses{0}; // dnsdist set 'redirect' on response
-  std::atomic<uint64_t> d_validresponses{0}; // valid responses sent out
+  pdns::stat_t d_httpconnects{0};   // number of TCP/IP connections established
+  pdns::stat_t d_getqueries{0};     // valid DNS queries received via GET
+  pdns::stat_t d_postqueries{0};    // valid DNS queries received via POST
+  pdns::stat_t d_badrequests{0};     // request could not be converted to dns query
+  pdns::stat_t d_errorresponses{0}; // dnsdist set 'error' on response
+  pdns::stat_t d_redirectresponses{0}; // dnsdist set 'redirect' on response
+  pdns::stat_t d_validresponses{0}; // valid responses sent out
 
   struct HTTPVersionStats
   {
-    std::atomic<uint64_t> d_nbQueries{0}; // valid DNS queries received
-    std::atomic<uint64_t> d_nb200Responses{0};
-    std::atomic<uint64_t> d_nb400Responses{0};
-    std::atomic<uint64_t> d_nb403Responses{0};
-    std::atomic<uint64_t> d_nb500Responses{0};
-    std::atomic<uint64_t> d_nb502Responses{0};
-    std::atomic<uint64_t> d_nbOtherResponses{0};
+    pdns::stat_t d_nbQueries{0}; // valid DNS queries received
+    pdns::stat_t d_nb200Responses{0};
+    pdns::stat_t d_nb400Responses{0};
+    pdns::stat_t d_nb403Responses{0};
+    pdns::stat_t d_nb500Responses{0};
+    pdns::stat_t d_nb502Responses{0};
+    pdns::stat_t d_nbOtherResponses{0};
   };
 
   HTTPVersionStats d_http1Stats;

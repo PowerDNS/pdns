@@ -30,6 +30,7 @@
 #include "circular_buffer.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "stat_t.hh"
 
 
 struct Rings {
@@ -192,10 +193,10 @@ struct Rings {
   }
 
   std::vector<std::unique_ptr<Shard> > d_shards;
-  std::atomic<uint64_t> d_blockingQueryInserts;
-  std::atomic<uint64_t> d_blockingResponseInserts;
-  std::atomic<uint64_t> d_deferredQueryInserts;
-  std::atomic<uint64_t> d_deferredResponseInserts;
+  pdns::stat_t d_blockingQueryInserts;
+  pdns::stat_t d_blockingResponseInserts;
+  pdns::stat_t d_deferredQueryInserts;
+  pdns::stat_t d_deferredResponseInserts;
 
 private:
   size_t getShardId()
