@@ -225,7 +225,7 @@ struct DynBlock
   struct timespec until;
   DNSName domain;
   DNSAction::Action action;
-  mutable pdns::stat32_t blocks;
+  mutable std::atomic<unsigned int> blocks;
   bool warning;
 };
 
