@@ -725,17 +725,23 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
       bool flawedNSSet = false;
       set<GetBestNSAnswer> beenthereIgnored;
-      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored);
+      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored, forwarded ? fwdomain : g_rootdnsname);
+      if (forwarded) {
+        break;
+      }
     }
 
     if (bestns.size() == 0) {
-      // Something terrible is wrong
-      QLOG("Step1 No ancestor found return ServFail");
-      return RCode::ServFail;
+      if (!forwarded) {
+        // Something terrible is wrong
+        QLOG("Step1 No ancestor found return ServFail");
+        return RCode::ServFail;
+      }
+    } else {
+      QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
     }
-    QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
-
-    const DNSName& ancestor(!forwarded || bestns[0].d_name.isPartOf(fwdomain) ? bestns[0].d_name : fwdomain);
+    const DNSName& ancestor(!forwarded || (bestns.size() > 0 && bestns[0].d_name.isPartOf(fwdomain)) ?
+                            bestns[0].d_name : fwdomain);
     if (forwarded) {
       QLOG("Step1 Final Ancestor (using forwarding info) is " << ancestor);
     }
@@ -1110,7 +1116,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const DNSName& cutOffDomain)
 {
   string prefix;
   DNSName subdomain(qname);
@@ -1121,6 +1127,9 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
   bestns.clear();
   bool brokeloop;
   do {
+    if (!subdomain.isPartOf(cutOffDomain)) {
+      break;
+    }
     brokeloop=false;
     LOG(prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl);
     vector<DNSRecord> ns;
