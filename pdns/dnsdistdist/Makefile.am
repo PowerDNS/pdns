@@ -205,6 +205,7 @@ dnsdist_SOURCES = \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	stat_t.hh \
 	svc-records.cc svc-records.hh \
 	tcpiohandler-mplexer.hh \
 	tcpiohandler.cc tcpiohandler.hh \
@@ -258,6 +259,7 @@ testrunner_SOURCES = \
 	sodcrypto.cc \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	stat_t.hh \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
 	test-delaypipe_hh.cc \

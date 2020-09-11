@@ -82,7 +82,6 @@
    On the C++ side, both could be inherited from a class Rule and a class Action, 
    on the Lua side we can't do that. */
 
-using std::atomic;
 using std::thread;
 bool g_verbose;
 
@@ -1585,8 +1584,8 @@ uint16_t getRandomDNSID()
 }
 
 boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
-std::atomic<uint16_t> g_cacheCleaningDelay{60};
-std::atomic<uint16_t> g_cacheCleaningPercentage{100};
+pdns::stat16_t g_cacheCleaningDelay{60};
+pdns::stat16_t g_cacheCleaningPercentage{100};
 
 static void maintThread()
 {
