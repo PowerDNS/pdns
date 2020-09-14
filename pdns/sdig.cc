@@ -55,11 +55,13 @@ const string nameForClass(uint16_t qclass, uint16_t qtype)
   }
 }
 
-void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
-  bool dnssec, const boost::optional<Netmask> ednsnm,
-  bool recurse, uint16_t xpfcode, uint16_t xpfversion,
-  uint64_t xpfproto, char* xpfsrc, char* xpfdst,
-  uint16_t qclass)
+static std::unordered_set<uint16_t> s_expectedIDs;
+
+static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
+                       bool dnssec, const boost::optional<Netmask> ednsnm,
+                       bool recurse, uint16_t xpfcode, uint16_t xpfversion,
+                       uint64_t xpfproto, char* xpfsrc, char* xpfdst,
+                       uint16_t qclass, uint16_t qid)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass);
 
@@ -98,11 +100,18 @@ void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
   if (recurse) {
     pw.getHeader()->rd = true;
   }
+
+  pw.getHeader()->id = htons(qid);
 }
 
 void printReply(const string& reply, bool showflags, bool hidesoadetails)
 {
   MOADNSParser mdp(false, reply);
+  if (!s_expectedIDs.count(ntohs(mdp.d_header.id))) {
+    cout << "ID " << ntohs(mdp.d_header.id) << " was not expected, this response was not meant for us!"<<endl;
+  }
+  s_expectedIDs.erase(ntohs(mdp.d_header.id));
+
   cout << "Reply to question for qname='" << mdp.d_qname.toString()
        << "', qtype=" << DNSRecordContent::NumberToType(mdp.d_qtype) << endl;
   cout << "Rcode: " << mdp.d_header.rcode << " ("
@@ -288,8 +297,9 @@ try {
   if (doh) {
 #ifdef HAVE_LIBCURL
     vector<uint8_t> packet;
+    s_expectedIDs.insert(0);
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-      xpfproto, xpfsrc, xpfdst, qclass);
+               xpfproto, xpfsrc, xpfdst, qclass, 0);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.insert(std::make_pair("Content-Type", "application/dns-message"));
@@ -305,12 +315,15 @@ try {
     reply = string(begin, end);
     printReply(reply, showflags, hidesoadetails);
   } else if (tcp) {
+    uint16_t counter = 0;
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.connect(dest);
     for (const auto& it : questions) {
       vector<uint8_t> packet;
+      s_expectedIDs.insert(counter);
       fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, xpfcode,
-        xpfversion, xpfproto, xpfsrc, xpfdst, qclass);
+                 xpfversion, xpfproto, xpfsrc, xpfdst, qclass, counter);
+      counter++;
 
       uint16_t len = htons(packet.size());
       if (sock.write((const char *)&len, 2) != 2)
@@ -341,8 +354,9 @@ try {
   } else // udp
   {
     vector<uint8_t> packet;
+    s_expectedIDs.insert(0);
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-      xpfproto, xpfsrc, xpfdst, qclass);
+               xpfproto, xpfsrc, xpfdst, qclass, 0);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.sendTo(question, dest);
