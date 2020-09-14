@@ -941,8 +941,16 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     bool hasSOA = false;
     SOAData sd;
-    try{
-      hasSOA = B->getSOA(di.zone, sd);
+    sd.serial = 0;
+    try {
+      // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
+      B->lookup(QType(QType::SOA), di.zone, di.id, nullptr);
+      DNSZoneRecord zr;
+      hasSOA = B->get(zr);
+      if (hasSOA) {
+        fillSOAData(zr, sd);
+        while(B->get(zr));
+      }
     }
     catch(...) {}
 
