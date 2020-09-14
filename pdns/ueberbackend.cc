@@ -402,28 +402,6 @@ found:
   return found;
 }
 
-bool UeberBackend::getSOA(const DNSName &domain, SOAData &sd)
-{
-  d_question.qtype=QType::SOA;
-  d_question.qname=domain;
-  d_question.zoneId=-1;
-    
-  int cstat=cacheHas(d_question,d_answers);
-  if(cstat==0) { // negative
-    return false;
-  }
-  else if(cstat==1 && !d_answers.empty()) {
-    fillSOAData(d_answers[0],sd);
-    sd.domain_id=d_answers[0].domain_id;
-    sd.ttl=d_answers[0].dr.d_ttl;
-    sd.db = nullptr;
-    return true;
-  }
-
-  // not found in neg. or pos. cache, look it up
-  return getSOAUncached(domain, sd);
-}
-
 bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
 {
   d_question.qtype=QType::SOA;

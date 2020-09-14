@@ -97,7 +97,7 @@ public:
 
   /** Determines if we are authoritative for a zone, and at what level */
   bool getAuth(const DNSName &target, const QType &qtype, SOAData* sd, bool cachedOk=true);
-  bool getSOA(const DNSName &domain, SOAData &sd);
+
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const DNSName &domain, SOAData &sd);
   bool get(DNSZoneRecord &r);
