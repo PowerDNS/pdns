@@ -706,6 +706,12 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
   const unsigned int qnamelen = qname.countLabels();
 
+  DNSName fwdomain(qname);
+  const bool forwarded = getBestAuthZone(&fwdomain) != t_sstorage.domainmap->end();
+  if (forwarded) {
+    QLOG("Step0 qname is in a forwarded domain " << fwdomain);
+  }
+
   for (unsigned int i = 0; i <= qnamelen; ) {
 
     // Step 1
@@ -719,18 +725,28 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
       bool flawedNSSet = false;
       set<GetBestNSAnswer> beenthereIgnored;
-      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored);
+      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored, boost::make_optional(forwarded, fwdomain));
+      if (forwarded) {
+        break;
+      }
     }
 
     if (bestns.size() == 0) {
-      // Something terrible is wrong
-      QLOG("Step1 No ancestor found return ServFail");
-      return RCode::ServFail;
+      if (!forwarded) {
+        // Something terrible is wrong
+        QLOG("Step1 No ancestor found return ServFail");
+        return RCode::ServFail;
+      }
+      child = fwdomain;
+    } else {
+      QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
+      if (forwarded) {
+        child = bestns[0].d_name.isPartOf(fwdomain) ? bestns[0].d_name : fwdomain;
+        QLOG("Step1 Final Ancestor (using forwarding info) is " << child);
+      } else {
+        child = bestns[0].d_name;
+      }
     }
-
-    const DNSName& ancestor(bestns[0].d_name);
-    QLOG("Step1 Ancestor from cache is " << ancestor.toString());
-    child = ancestor;
 
     unsigned int targetlen = std::min(child.countLabels() + (i > 3 ? 3 : 1), qnamelen);
 
@@ -1100,7 +1116,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain)
 {
   string prefix;
   DNSName subdomain(qname);
@@ -1111,6 +1127,9 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
   bestns.clear();
   bool brokeloop;
   do {
+    if (cutOffDomain && (subdomain == *cutOffDomain || !subdomain.isPartOf(*cutOffDomain))) {
+      break;
+    }
     brokeloop=false;
     LOG(prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl);
     vector<DNSRecord> ns;
