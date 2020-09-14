@@ -595,6 +595,11 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, 
   }
     
   DNSName relqname = qdomain.makeRelative(hunt);
+
+  if(relqname.empty()) {
+    throw DBException("lookup for out of zone rrset");
+  }
+
   //  cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<endl;
   d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
 

@@ -256,8 +256,9 @@ DNSName DNSName::makeRelative(const DNSName& zone) const
 {
   DNSName ret(*this);
   ret.makeUsRelative(zone);
-  return ret.empty() ? zone : ret; // HACK FIXME400
+  return ret;
 }
+
 void DNSName::makeUsRelative(const DNSName& zone) 
 {
   if (isPartOf(zone)) {

@@ -63,7 +63,6 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   d_doDNAME=::arg().mustDo("dname-processing");
   d_doExpandALIAS = ::arg().mustDo("expand-alias");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
-  d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
@@ -439,61 +438,45 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const SOAData& sd, const DNSNa
   return haveSomething;
 }
 
-/** dangling is declared true if we were unable to resolve everything */
-int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& soadata, bool retargeted)
+
+void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& soadata)
 {
-  DNSZoneRecord rr;
-  SOAData sd;
-  sd.db = nullptr;
-
-  if(p.qtype.getCode()!=QType::AXFR) { // this packet needs additional processing
-    // we now have a copy, push_back on packet might reallocate!
-    auto& records = r->getRRS();
-    vector<DNSZoneRecord> toAdd;
-
-    for(auto i = records.cbegin() ; i!= records.cend(); ++i) {
-      if(i->dr.d_place==DNSResourceRecord::ADDITIONAL ||
-         !(i->dr.d_type==QType::MX || i->dr.d_type==QType::NS || i->dr.d_type==QType::SRV))
-        continue;
-
-      if(r->d.aa && i->dr.d_name.countLabels() && i->dr.d_type==QType::NS && !B.getSOA(i->dr.d_name,sd) && !retargeted) { // drop AA in case of non-SOA-level NS answer, except for root referral
-        r->setA(false);
-        //        i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
+  DNSName content;
+  std::unordered_set<DNSName> lookup;
+  const auto& rrs = r->getRRS();
+ 
+  lookup.reserve(rrs.size());
+  for(auto& rr : rrs) {
+    if(rr.dr.d_place != DNSResourceRecord::ADDITIONAL) {
+      switch(rr.dr.d_type) {
+        case QType::NS:
+          content=std::move(getRR<NSRecordContent>(rr.dr)->getNS());
+          break;
+        case QType::MX:
+          content=std::move(getRR<MXRecordContent>(rr.dr)->d_mxname);
+          break;
+        case QType::SRV:
+          content=std::move(getRR<SRVRecordContent>(rr.dr)->d_target);
+          break;
+        default:
+          continue;
       }
-
-      DNSName lookup;
-
-      if(i->dr.d_type == QType::MX)
-        lookup = getRR<MXRecordContent>(i->dr)->d_mxname;
-      else if(i->dr.d_type == QType::SRV)
-        lookup = getRR<SRVRecordContent>(i->dr)->d_target;
-      else if(i->dr.d_type == QType::NS) 
-        lookup = getRR<NSRecordContent>(i->dr)->getNS();
-      else
-        continue;
-
-      B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, soadata.domain_id, &p);
-
-      while(B.get(rr)) {
-        if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
-          continue;
-        if(!rr.dr.d_name.isPartOf(soadata.qname)) {
-          // FIXME we might still pass on the record if it is occluded and the
-          // backend uses a single id for all zones
-          continue;
-        }
-        rr.dr.d_place=DNSResourceRecord::ADDITIONAL;
-        toAdd.push_back(rr);
+      if(content.isPartOf(soadata.qname)) {
+        lookup.emplace(std::move(content));
       }
     }
-
-    for(auto& rec : toAdd) {
-      r->addRecord(std::move(rec));
-    }
-    
-    //records.insert(records.end(), toAdd.cbegin(), toAdd.cend()); // would be faster, but no dedup
   }
-  return 1;
+
+  DNSZoneRecord dzr;
+  for(const auto& name : lookup) {
+    B.lookup(QType(QType::ANY), name, soadata.domain_id, &p);
+    while(B.get(dzr)) {
+      if(dzr.dr.d_type == QType::A || dzr.dr.d_type == QType::AAAA) {
+        dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
+        r->addRecord(std::move(dzr));
+      }
+    }
+  }
 }
 
 
@@ -1552,9 +1535,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
     
   sendit:;
-    if(doAdditionalProcessingAndDropAA(p, r, sd, retargetcount)<0) {
-      return 0;
-    }
+    doAdditionalProcessing(p, r, sd);
 
     for(const auto& loopRR: r->getRRS()) {
       if(loopRR.scopeMask) {
