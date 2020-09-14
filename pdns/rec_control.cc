@@ -106,7 +106,12 @@ try
       command+=" ";
     command+=commands[i];
     if (commands[i] == "dump-cache" && i+1 < commands.size()) {
-      fd = open(commands[++i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+      ++i;
+      if (commands[i] == "stdout") {
+        fd = STDOUT_FILENO;
+      } else {
+        fd = open(commands[i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+      }
       if (fd == -1) {
         int err = errno;
         throw PDNSException("Error opening dump file for writing: " + stringerror(err));
