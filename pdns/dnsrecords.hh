@@ -656,7 +656,7 @@ public:
   static void report(void);
   NSECRecordContent()
   {}
-  NSECRecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
+  NSECRecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
@@ -694,7 +694,7 @@ public:
   static void report(void);
   NSEC3RecordContent()
   {}
-  NSEC3RecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
+  NSEC3RecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
@@ -738,7 +738,7 @@ public:
   static void report(void);
   NSEC3PARAMRecordContent()
   {}
-  NSEC3PARAMRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
+  NSEC3PARAMRecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);

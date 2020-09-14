@@ -176,10 +176,7 @@ try
       }
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
-      vector<string> parts;
-      string sname=i->first.d_name.toString();
-      boost::split(parts, sname /* FIXME400 */, boost::is_any_of("."));
-      nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r->d_nexthash)));
+      nsec3s.insert(make_pair(toLower(i->first.d_name.getRawLabel(0)), toBase32Hex(r->d_nexthash)));
       nsec3salt = r->d_salt;
       nsec3iters = r->d_iterations;
     }
