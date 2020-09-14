@@ -1327,6 +1327,8 @@ The following actions exist.
     -- select reverse queries for '127.0.0.1' and answer with 'localhost'
     addAction(AndRule({QNameRule('1.0.0.127.in-addr.arpa.'), QTypeRule(DNSQType.PTR)}), SpoofRawAction("\009localhost\000"))
 
+  :func:`DNSName:toDNSString` is convenient for converting names to wire format for passing to ``SpoofRawAction``.
+
   :param string rawAnswer: The raw record data
   :param table options: A table with key: value pairs with options.
 
