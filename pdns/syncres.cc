@@ -737,16 +737,16 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         QLOG("Step1 No ancestor found return ServFail");
         return RCode::ServFail;
       }
+      child = fwdomain;
     } else {
       QLOG("Step1 Ancestor from cache is " << bestns[0].d_name);
+      if (forwarded) {
+        child = bestns[0].d_name.isPartOf(fwdomain) ? bestns[0].d_name : fwdomain;
+        QLOG("Step1 Final Ancestor (using forwarding info) is " << child);
+      } else {
+        child = bestns[0].d_name;
+      }
     }
-    const DNSName& ancestor(!forwarded || (bestns.size() > 0 && bestns[0].d_name.isPartOf(fwdomain)) ?
-                            bestns[0].d_name : fwdomain);
-    if (forwarded) {
-      QLOG("Step1 Final Ancestor (using forwarding info) is " << ancestor);
-    }
-
-    child = ancestor;
 
     unsigned int targetlen = std::min(child.countLabels() + (i > 3 ? 3 : 1), qnamelen);
 
