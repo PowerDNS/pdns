@@ -52,6 +52,10 @@ Functions and methods of a ``DNSName``
 
     :param DNSName name: The name to check against
 
+  .. method:: DNSName:toDNSString() -> string
+
+    Returns a wire format form of the DNSName, suitable for usage in :func:`SpoofRawAction`.
+
   .. method:: DNSName:toString() -> string
               DNSName:tostring() -> string
 
