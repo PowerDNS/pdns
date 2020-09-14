@@ -24,6 +24,7 @@
 #endif
 #include "rec_channel.hh"
 #include <iostream>
+#include <fcntl.h>
 #include "pdnsexception.hh"
 #include "arguments.hh"
 
@@ -103,10 +104,14 @@ try
   for(unsigned int i=0; i< commands.size(); ++i) {
     if(i>0)
       command+=" ";
-    if (commands[i] == "dump-cache") {
-      fd = STDOUT_FILENO; // XXX
-    }
     command+=commands[i];
+    if (commands[i] == "dump-cache" && i+1 < commands.size()) {
+      fd = open(commands[++i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+      if (fd == -1) {
+        int err = errno;
+        throw PDNSException("Error opening dump file for writing: " + stringerror(err));
+      }
+    }
   }
   rccS.send(command, nullptr, arg().asNum("timeout"), fd);
   string receive=rccS.recv(0, arg().asNum("timeout"));

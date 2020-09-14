@@ -330,26 +330,19 @@ getfd(int s)
   return fd;
 }
 
-template<typename T>
-static string doDumpCache(int s, T begin, T end)
+static string doDumpCache(int s)
 {
-
   int fd = getfd(s);
-  
-  T i=begin;
-  string fname;
 
-  if(i!=end) 
-    fname=*i;
-
-  if(fd < 0) 
+  if(fd < 0) {
     return "Error opening dump file for writing: "+stringerror()+"\n";
+  }
   uint64_t total = 0;
   try {
     total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
   }
   catch(...){}
-  
+
   close(fd);
   return "dumped "+std::to_string(total)+" records\n";
 }
@@ -1814,7 +1807,7 @@ string RecursorControlParser::getAnswer(int s, const string& question, RecursorC
   }
 
   if(cmd=="dump-cache")
-    return doDumpCache(s, begin, end);
+    return doDumpCache(s);
 
   if(cmd=="dump-ednsstatus" || cmd=="dump-edns")
     return doDumpEDNSStatus(begin, end);
