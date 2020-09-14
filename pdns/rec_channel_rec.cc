@@ -293,16 +293,55 @@ static string doDumpNSSpeeds(T begin, T end)
   return "dumped "+std::to_string(total)+" records\n";
 }
 
-template<typename T>
-static string doDumpCache(T begin, T end)
+static int
+getfd(int s)
 {
+  int fd = -1;
+  struct msghdr    msg;
+  struct cmsghdr  *cmsg;
+  union {
+    struct cmsghdr hdr;
+    unsigned char    buf[CMSG_SPACE(sizeof(int))];
+  } cmsgbuf;
+  struct iovec io_vector[1];
+  char ch;
+
+  io_vector[0].iov_base = &ch;
+  io_vector[0].iov_len = 1;
+
+  memset(&msg, 0, sizeof(msg));
+  msg.msg_control = &cmsgbuf.buf;
+  msg.msg_controllen = sizeof(cmsgbuf.buf);
+  msg.msg_iov = io_vector;
+  msg.msg_iovlen = 1;
+
+  if (recvmsg(s, &msg, 0) == -1)
+    throw PDNSException("recvmsg");
+  if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC))
+    throw PDNSException("control message truncated");
+  for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+       cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+    if (cmsg->cmsg_len == CMSG_LEN(sizeof(int)) &&
+        cmsg->cmsg_level == SOL_SOCKET &&
+        cmsg->cmsg_type == SCM_RIGHTS) {
+      fd = *(int *)CMSG_DATA(cmsg);
+    }
+  }
+  return fd;
+}
+
+template<typename T>
+static string doDumpCache(int s, T begin, T end)
+{
+
+  int fd = getfd(s);
+  
   T i=begin;
   string fname;
 
   if(i!=end) 
     fname=*i;
 
-  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
@@ -1679,7 +1718,7 @@ static string clearDontThrottleNetmasks(T begin, T end) {
   return ret + "\n";
 }
 
-string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
+string RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
   vector<string> words;
@@ -1775,7 +1814,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   }
 
   if(cmd=="dump-cache")
-    return doDumpCache(begin, end);
+    return doDumpCache(s, begin, end);
 
   if(cmd=="dump-ednsstatus" || cmd=="dump-edns")
     return doDumpEDNSStatus(begin, end);

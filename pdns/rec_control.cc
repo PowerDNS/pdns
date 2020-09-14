@@ -99,12 +99,16 @@ try
 
   const vector<string>&commands=arg().getCommands();
   string command;
+  int fd = -1;
   for(unsigned int i=0; i< commands.size(); ++i) {
     if(i>0)
       command+=" ";
+    if (commands[i] == "dump-cache") {
+      fd = STDOUT_FILENO; // XXX
+    }
     command+=commands[i];
   }
-  rccS.send(command, nullptr, arg().asNum("timeout"));
+  rccS.send(command, nullptr, arg().asNum("timeout"), fd);
   string receive=rccS.recv(0, arg().asNum("timeout"));
   if(receive.compare(0, 7, "Unknown") == 0) {
     cerr<<receive<<endl;

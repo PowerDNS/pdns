@@ -3898,7 +3898,7 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
     RecursorControlParser::func_t* command;
 
     g_log << Logger::Notice << "Received rec_control command '" << msg << "' from control socket" << endl;
-    string answer=rcp.getAnswer(msg, &command);
+    string answer=rcp.getAnswer(fd, msg, &command);
 
     // If we are inside a chroot, we need to strip
     if (!arg()["chroot"].empty()) {

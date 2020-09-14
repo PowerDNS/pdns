@@ -51,7 +51,7 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5);
+  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5, int fd = -1);
   std::string recv(std::string* remote=0, unsigned int timeout=5);
 
   int d_fd;
@@ -68,7 +68,7 @@ public:
   }
   static void nop(void){}
   typedef void func_t(void);
-  std::string getAnswer(const std::string& question, func_t** func);
+  std::string getAnswer(int s, const std::string& question, func_t** func);
 };
 
 enum class StatComponent { API, Carbon, RecControl, SNMP };
