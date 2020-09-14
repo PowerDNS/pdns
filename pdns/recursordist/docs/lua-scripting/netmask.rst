@@ -86,7 +86,7 @@ They can be matched against netmasks objects:
   nmg = newNMG()
   nmg:addMask("127.0.0.0/8")
   nmg:addMasks({"213.244.168.0/24", "130.161.0.0/16"})
-  nmg:addMasks(dofile("bad.ips")) -- contains return {"ip1","ip2"..}
+  nmg:addMasks(dofile("bad-ips.lua")) -- a lua script file that contains: return {"ip1","ip2"..}
 
   if nmg:match(dq.remoteaddr) then
     print("Intercepting query from ", dq.remoteaddr)
