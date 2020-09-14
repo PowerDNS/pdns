@@ -798,6 +798,8 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 
 void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now)
 {
+  --state->d_currentQueriesCount;
+
   if (state->d_state == State::sendingResponse) {
     /* if we have responses to send, let's do that first */
   }
