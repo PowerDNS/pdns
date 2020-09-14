@@ -180,8 +180,11 @@ class TestOOORWithClientNotBackend(DNSDistTest):
 
         conn = self.openTCPConnection()
 
+        counter = 0
         for name in names:
             query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+            query.id = counter
+            counter = counter + 1
 
             self.sendTCPQueryOverConnection(conn, query)
 
@@ -212,8 +215,11 @@ class TestOOORWithClientNotBackend(DNSDistTest):
 
         conn = self.openTCPConnection()
 
+        counter = 0
         for name in names:
             query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+            query.id = counter
+            counter = counter + 1
 
             self.sendTCPQueryOverConnection(conn, query)
 
@@ -263,8 +269,11 @@ class TestOOORWithClientAndBackend(DNSDistTest):
 
         conn = self.openTCPConnection()
 
+        counter = 0
         for name in names:
             query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+            query.id = counter
+            counter = counter + 1
 
             self.sendTCPQueryOverConnection(conn, query)
 
@@ -293,8 +302,11 @@ class TestOOORWithClientAndBackend(DNSDistTest):
 
         conn = self.openTCPConnection()
 
+        counter = 0
         for name in names:
             query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+            query.id = counter
+            counter = counter + 1
 
             self.sendTCPQueryOverConnection(conn, query)
 

@@ -423,7 +423,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
     auto it = d_pendingResponses.find(queryId);
     if (it == d_pendingResponses.end()) {
-      DEBUGLOG("could not found any corresponding query for ID "<<queryId);
+      DEBUGLOG("could not find any corresponding query for ID "<<queryId<<". This is likely a duplicated ID over the same TCP connection, giving up!");
       notifyAllQueriesFailed(now);
       return IOState::Done;
     }
