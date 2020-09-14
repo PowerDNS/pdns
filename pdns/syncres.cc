@@ -725,7 +725,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
       bool flawedNSSet = false;
       set<GetBestNSAnswer> beenthereIgnored;
-      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored, forwarded ? fwdomain : g_rootdnsname);
+      getBestNSFromCache(nsdomain, qtype, bestns, &flawedNSSet, depth, beenthereIgnored, boost::make_optional(forwarded, fwdomain));
       if (forwarded) {
         break;
       }
@@ -1116,7 +1116,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const DNSName& cutOffDomain)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain)
 {
   string prefix;
   DNSName subdomain(qname);
@@ -1127,7 +1127,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
   bestns.clear();
   bool brokeloop;
   do {
-    if (!subdomain.isPartOf(cutOffDomain)) {
+    if (cutOffDomain && (subdomain == *cutOffDomain || !subdomain.isPartOf(*cutOffDomain))) {
       break;
     }
     brokeloop=false;
