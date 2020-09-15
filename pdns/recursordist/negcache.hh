@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <mutex>
+#include <vector>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include "dnsparser.hh"
@@ -70,13 +72,13 @@ public:
   void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<time_t> capTTD);
   bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false);
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
-  size_t count(const DNSName& qname);
-  size_t count(const DNSName& qname, const QType qtype);
+  size_t count(const DNSName& qname) const;
+  size_t count(const DNSName& qname, const QType qtype) const;
   void prune(size_t maxEntries);
   void clear();
-  size_t dumpToFile(FILE* fd);
+  size_t dumpToFile(FILE* fd) const;
   size_t wipe(const DNSName& name, bool subtree = false);
-  size_t size();
+  size_t size() const;
 
   void preRemoval(const NegCacheEntry& entry)
   {
@@ -110,10 +112,10 @@ private:
     MapCombo(const MapCombo &) = delete;
     MapCombo & operator=(const MapCombo &) = delete;
     negcache_t d_map;
-    std::mutex mutex;
+    mutable std::mutex mutex;
     std::atomic<uint64_t> d_entriesCount{0};
-    uint64_t d_contended_count{0};
-    uint64_t d_acquired_count{0};
+    mutable uint64_t d_contended_count{0};
+    mutable uint64_t d_acquired_count{0};
     bool d_cachecachevalid{false}; // XXX
   };
 
@@ -123,9 +125,13 @@ private:
   {
     return d_maps[qname.hash() % d_maps.size()];
   }
+  const MapCombo& getMap(const DNSName &qname) const
+  {
+    return d_maps[qname.hash() % d_maps.size()];
+  }
 public:
   struct lock {
-    lock(MapCombo& map) : m(map.mutex)
+    lock(const MapCombo& map) : m(map.mutex)
     {
       if (!m.try_lock()) {
         m.lock();

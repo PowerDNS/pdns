@@ -43,10 +43,10 @@ NegCache::~NegCache()
   }
 }
 
-size_t NegCache::size()
+size_t NegCache::size() const
 {
   size_t count = 0;
-  for (auto& map : d_maps) {
+  for (const auto& map : d_maps) {
     count += map.d_entriesCount;
   }
   return count;
@@ -168,9 +168,9 @@ void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, 
  *
  * \param qname The name of the entries to be counted
  */
-size_t NegCache::count(const DNSName& qname)
+size_t NegCache::count(const DNSName& qname) const
 {
-  auto& map = getMap(qname);
+  const auto& map = getMap(qname);
   const lock l(map);
   return map.d_map.count(tie(qname));
 }
@@ -181,9 +181,9 @@ size_t NegCache::count(const DNSName& qname)
  * \param qname The name of the entries to be counted
  * \param qtype The type of the entries to be counted
  */
-size_t NegCache::count(const DNSName& qname, const QType qtype)
+size_t NegCache::count(const DNSName& qname, const QType qtype) const
 {
-  auto& map = getMap(qname);
+  const auto& map = getMap(qname);
   const lock l(map);
   return map.d_map.count(tie(qname, qtype));
 }
@@ -252,29 +252,30 @@ void NegCache::prune(size_t maxEntries)
  *
  * \param fp A pointer to an open FILE object
  */
-size_t NegCache::dumpToFile(FILE* fp)
+size_t NegCache::dumpToFile(FILE* fp) const
 {
-  size_t ret(0);
+  size_t ret = 0;
   struct timeval now;
   Utility::gettimeofday(&now, nullptr);
 
-  for (auto& m : d_maps) {
+  for (const auto& m : d_maps) {
     const lock l(m);
     auto& sidx = m.d_map.get<SequenceTag>();
     for (const NegCacheEntry& ne : sidx) {
       ret++;
-      fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str());
+      int64_t ttl = ne.d_ttd - now.tv_sec;
+      fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s)\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str());
       for (const auto& rec : ne.authoritySOA.records) {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.authoritySOA.signatures) {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), sig.d_content->getZoneRepresentation().c_str());
+        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
       }
       for (const auto& rec : ne.DNSSECRecords.records) {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.DNSSECRecords.signatures) {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), sig.d_content->getZoneRepresentation().c_str());
+        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
       }
     }
   }
