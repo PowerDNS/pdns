@@ -199,21 +199,21 @@ string static doGetParameter(T begin, T end)
 }
 
 
-static uint64_t dumpNegCache(NegCache& negcache, int fd)
+static uint64_t dumpNegCache(int fd)
 {
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp) { // dup probably failed
     return 0;
   }
   uint64_t ret;
-  fprintf(fp.get(), "; negcache dump from thread follows\n;\n");
-  ret = negcache.dumpToFile(fp.get());
+  fprintf(fp.get(), "; negcache dump follows\n;\n");
+  ret = s_negcache->dumpToFile(fp.get());
   return ret;
 }
 
 static uint64_t* pleaseDump(int fd)
 {
-  return new uint64_t(dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
+  return new uint64_t(t_packetCache->doDump(fd));
 }
 
 static uint64_t* pleaseDumpEDNSMap(int fd)
@@ -281,7 +281,7 @@ static string doDumpCache(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = s_RC->doDump(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
+    total = s_RC->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
   }
   catch(...){}
   
@@ -407,7 +407,7 @@ uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qty
 
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 {
-  uint64_t ret = SyncRes::wipeNegCache(canon, subtree);
+  uint64_t ret = s_negcache->wipe(canon, subtree);
   return new uint64_t(ret);
 }
 
@@ -907,7 +907,7 @@ static uint64_t getThrottleSize()
 
 uint64_t* pleaseGetNegCacheSize()
 {
-  uint64_t tmp=(SyncRes::getNegCacheSize());
+  uint64_t tmp = s_negcache->size();
   return new uint64_t(tmp);
 }
 

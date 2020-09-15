@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   /* one for target1 and one for the entire TLD */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
@@ -323,7 +323,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_LE(ret[0].d_ttl, SyncRes::s_maxnegttl);
   /* one for target1 and one for the entire TLD */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 
   /* we should have sent only one query */
   BOOST_CHECK_EQUAL(queriesCount, 1U);
@@ -380,7 +380,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific)
 
   /* even with root-nx-trust on and a NX answer from the root,
      we should not have cached the entire TLD this time. */
-  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific)
   BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress("192.0.2.2"));
 
-  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
@@ -442,14 +442,14 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   /* one for target1 */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   /* one for target1 */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   /* we should have sent three queries */
   BOOST_CHECK_EQUAL(queriesCount, 3U);
@@ -492,28 +492,28 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   // Now test without RFC 8020 to see the cache and query count grow
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
@@ -524,7 +524,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   // New query
   ret.clear();
@@ -532,21 +532,21 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 3U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 4U);
 
   // reset
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
@@ -658,7 +658,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
@@ -666,7 +666,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
@@ -674,7 +674,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
@@ -682,7 +682,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   // Now test without RFC 8020 to see the cache and query count grow
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
@@ -694,7 +694,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   // New query
   ret.clear();
@@ -703,7 +703,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 11U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
@@ -711,7 +711,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 13U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 3U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
@@ -719,7 +719,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 15U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 4U);
 
   // reset
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
@@ -775,28 +775,28 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis)
@@ -849,28 +849,28 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response)
@@ -927,7 +927,7 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(ret.size(), 2U);
   /* no negative cache entry because the response was variable */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 0U);
+  BOOST_CHECK_EQUAL(s_negcache->size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed)

@@ -131,6 +131,7 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> s_RC;
+std::unique_ptr<NegCache> s_negcache;
 
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
@@ -3229,7 +3230,6 @@ static void houseKeeping(void *)
     past.tv_sec -= 5;
     if (last_prune < past) {
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
-      SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));
 
       time_t limit;
       if(!((cleanCounter++)%40)) {  // this is a full scan!
@@ -3247,6 +3247,7 @@ static void houseKeeping(void *)
     if(isHandlerThread()) {
       if (now.tv_sec - last_RC_prune > 5) {
         s_RC->doPrune(g_maxCacheEntries);
+        s_negcache->prune(g_maxCacheEntries / 10);
         last_RC_prune = now.tv_sec;
       }
       // XXX !!! global
@@ -5285,6 +5286,7 @@ int main(int argc, char **argv)
     }
 
     s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
+    s_negcache = std::unique_ptr<NegCache>(new NegCache(::arg().asNum("record-cache-shards")));
 
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
 

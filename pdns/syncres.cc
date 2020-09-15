@@ -1608,11 +1608,11 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
   }
   if (state != vState::Indeterminate) {
     /* validation succeeded, let's update the cache entry so we don't have to validate again */
-    boost::optional<uint32_t> capTTD = boost::none;
+    boost::optional<time_t> capTTD = boost::none;
     if (state == vState::Bogus) {
       capTTD = d_now.tv_sec + s_maxbogusttl;
     }
-    t_sstorage.negcache.updateValidationStatus(ne.d_name, ne.d_qtype, state, capTTD);
+    s_negcache->updateValidationStatus(ne.d_name, ne.d_qtype, state, capTTD);
   }
 }
 
@@ -1635,7 +1635,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
-      t_sstorage.negcache.getRootNXTrust(qname, d_now, ne) &&
+      s_negcache->getRootNXTrust(qname, d_now, ne) &&
       ne.d_auth.isRoot() &&
       !(wasForwardedOrAuthZone && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
     sttl = ne.d_ttd - d_now.tv_sec;
@@ -1643,11 +1643,11 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     res = RCode::NXDomain;
     giveNegative = true;
     cachedState = ne.d_validationState;
-  } else if (t_sstorage.negcache.get(qname, qtype, d_now, ne)) {
+  } else if (s_negcache->get(qname, qtype, d_now, ne)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
     if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
-        t_sstorage.negcache.get(qname, qtype, d_now, ne, true))
+        s_negcache->get(qname, qtype, d_now, ne, true))
     {
       res = RCode::NXDomain;
       sttl = ne.d_ttd - d_now.tv_sec;
@@ -1666,7 +1666,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     negCacheName.prependRawLabel(labels.back());
     labels.pop_back();
     while(!labels.empty()) {
-      if (t_sstorage.negcache.get(negCacheName, QType(0), d_now, ne, true)) {
+      if (s_negcache->get(negCacheName, QType(0), d_now, ne, true)) {
         if (ne.d_validationState == vState::Indeterminate && validationEnabled()) {
           // LOG(prefix << negCacheName <<  " negatively cached and vState::Indeterminate, trying to validate NXDOMAIN" << endl);
           // ...
@@ -3271,10 +3271,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
          We have a regression test making sure we do exactly that.
       */
       if(!wasVariable() && newtarget.empty()) {
-        t_sstorage.negcache.add(ne);
+        s_negcache->add(ne);
         if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
-          t_sstorage.negcache.add(ne);
+          s_negcache->add(ne);
         }
       }
 
@@ -3419,7 +3419,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
           if(!wasVariable()) {
-            t_sstorage.negcache.add(ne);
+            s_negcache->add(ne);
           }
 
           if (qname == newauth && qtype == QType::DS) {
@@ -3462,7 +3462,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
         if(!wasVariable()) {
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-            t_sstorage.negcache.add(ne);
+            s_negcache->add(ne);
           }
         }
 

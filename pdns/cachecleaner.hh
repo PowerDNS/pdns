@@ -249,13 +249,13 @@ template <typename N, typename T> uint64_t purgeExactLockedCollection(T& mc, con
 }
 
 template<typename S, typename Index>
-std::pair<typename Index::iterator,bool>
-lruReplacingInsert(Index& i,const typename Index::value_type& x)
+bool lruReplacingInsert(Index& i, const typename Index::value_type& x)
 {
-  std::pair<typename Index::iterator,bool> res = i.insert(x);
-  if (!res.second) {
-    moveCacheItemToBack<S>(i, res.first);
-    res.second = i.replace(res.first, x);
+  auto inserted = i.insert(x);
+  if (!inserted.second) {
+    moveCacheItemToBack<S>(i, inserted.first);
+    i.replace(inserted.first, x);
+    return false;
   }
-  return res;
+  return true;
 }

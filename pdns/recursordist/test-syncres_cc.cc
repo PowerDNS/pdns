@@ -11,6 +11,7 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 std::unique_ptr<MemRecursorCache> s_RC{nullptr};
+std::unique_ptr<NegCache> s_negcache{nullptr};
 unsigned int g_numThreads = 1;
 bool g_lowercaseOutgoing = false;
 
@@ -54,6 +55,8 @@ bool primeHints(void)
   vector<DNSRecord> nsset;
   if (!s_RC)
     s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+  if (!s_negcache)
+    s_negcache = std::unique_ptr<NegCache>(new NegCache());
 
   DNSRecord arr, aaaarr, nsrr;
   nsrr.d_name = g_rootdnsname;
@@ -112,6 +115,7 @@ void initSR(bool debug)
   }
 
   s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+  s_negcache = std::unique_ptr<NegCache>(new NegCache());
 
   SyncRes::s_maxqperq = 50;
   SyncRes::s_maxnsaddressqperq = 10;
@@ -198,7 +202,7 @@ void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNo
   sr->setLogMode(debug == false ? SyncRes::LogNone : SyncRes::Log);
 
   SyncRes::setDomainMap(std::make_shared<SyncRes::domainmap_t>());
-  SyncRes::clearNegCache();
+  s_negcache->clear();
 }
 
 void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& mode)
