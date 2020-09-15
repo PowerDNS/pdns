@@ -323,7 +323,6 @@ static IOState handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& s
   }
 }
 
-
 bool IncomingTCPConnectionState::canAcceptNewQueries() const
 {
   if (d_isXFR) {
@@ -573,10 +572,13 @@ static bool handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   /* prepend the size. Yes, this is not the most efficient way but it prevents mistakes
      that could occur if we had to deal with the size during the processing,
      especially alignment issues */
+  /* first we need to resize to the size that is actually used, since we allocated more to be able to insert
+     EDNS or Proxy Protocol values */
+  dq.size = state->d_buffer.size();
+  state->d_buffer.resize(dq.len);
   state->d_buffer.insert(state->d_buffer.begin(), sizeBytes, sizeBytes + 2);
   dq.len = dq.len + 2;
   dq.dh = reinterpret_cast<dnsheader*>(&state->d_buffer.at(0));
-  dq.size = state->d_buffer.size();
   state->d_buffer.resize(dq.len);
 
   bool proxyProtocolPayloadAdded = false;
