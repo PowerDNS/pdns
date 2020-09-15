@@ -26,7 +26,8 @@
 #include "cachecleaner.hh"
 #include "utility.hh"
 
-NegCache::NegCache(size_t mapsCount) : d_maps(mapsCount)
+NegCache::NegCache(size_t mapsCount) :
+  d_maps(mapsCount)
 {
 }
 
@@ -39,7 +40,7 @@ NegCache::~NegCache()
       locks.push_back(lock_t(new lock(map)));
     }
   }
-  catch(...) {
+  catch (...) {
   }
 }
 

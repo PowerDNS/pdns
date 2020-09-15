@@ -49,7 +49,6 @@ typedef struct
 class NegCache : public boost::noncopyable
 {
 public:
-
   NegCache(size_t mapsCount = 1024);
   ~NegCache();
 
@@ -109,8 +108,8 @@ private:
   struct MapCombo
   {
     MapCombo() {}
-    MapCombo(const MapCombo &) = delete;
-    MapCombo & operator=(const MapCombo &) = delete;
+    MapCombo(const MapCombo&) = delete;
+    MapCombo& operator=(const MapCombo&) = delete;
     negcache_t d_map;
     mutable std::mutex mutex;
     std::atomic<uint64_t> d_entriesCount{0};
@@ -121,17 +120,20 @@ private:
 
   vector<MapCombo> d_maps;
 
-  MapCombo& getMap(const DNSName &qname)
+  MapCombo& getMap(const DNSName& qname)
   {
     return d_maps[qname.hash() % d_maps.size()];
   }
-  const MapCombo& getMap(const DNSName &qname) const
+  const MapCombo& getMap(const DNSName& qname) const
   {
     return d_maps[qname.hash() % d_maps.size()];
   }
+
 public:
-  struct lock {
-    lock(const MapCombo& map) : m(map.mutex)
+  struct lock
+  {
+    lock(const MapCombo& map) :
+      m(map.mutex)
     {
       if (!m.try_lock()) {
         m.lock();
@@ -139,11 +141,12 @@ public:
       }
       map.d_acquired_count++;
     }
-    ~lock() {
+    ~lock()
+    {
       m.unlock();
     }
-  private:
-    std::mutex &m;
-  };
 
+  private:
+    std::mutex& m;
+  };
 };
