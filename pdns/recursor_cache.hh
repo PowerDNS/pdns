@@ -214,6 +214,11 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
     uint64_t d_contended_count{0};
     uint64_t d_acquired_count{0};
+
+    void invalidate()
+    {
+      d_cachecachevalid = false;
+    }
   };
 
   vector<MapCombo> d_maps;
