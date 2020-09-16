@@ -224,6 +224,15 @@ public:
     return got;
   }
 
+  bool hasBufferedData() const override
+  {
+    if (d_conn) {
+      return SSL_pending(d_conn.get()) > 0;
+    }
+
+    return false;
+  }
+
   void close() override
   {
     if (d_conn) {
@@ -688,6 +697,15 @@ public:
     while (got < bufferSize);
 
     return got;
+  }
+
+  bool hasBufferedData() const override
+  {
+    if (d_conn) {
+      return gnutls_record_check_pending(d_conn.get()) > 0;
+    }
+
+    return false;
   }
 
   std::string getServerNameIndication() const override

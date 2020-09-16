@@ -5,6 +5,7 @@
 #include "tcpiohandler.hh"
 
 #if 0
+#define DEBUGLOG_ENABLED
 #define DEBUGLOG(x) cerr<<x<<endl;
 #else
 #define DEBUGLOG(x)

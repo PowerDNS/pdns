@@ -837,11 +837,14 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
     /* we still have some queries in flight, let's just stop reading for now */
     state->d_state = IncomingTCPConnectionState::State::idle;
     state->d_ioState->update(IOState::Done, handleIOCallback, state);
+
+#ifdef DEBUGLOG_ENABLED
     for (const auto& active : state->d_activeConnectionsToBackend) {
       for (const auto& conn: active.second) {
         DEBUGLOG("Connection to "<<active.first->getName()<<" is "<<(conn->isIdle() ? "idle" : "not idle"));
       }
     }
+#endif
   }
 }
 
