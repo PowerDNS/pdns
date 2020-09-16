@@ -3731,6 +3731,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
 
     if (state == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
+      LOG(prefix<<qname<<": NXDOMAIN without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::Bogus);
     }
 
@@ -3745,6 +3746,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 
     if(state == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
+      LOG(prefix<<qname<<": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::Bogus);
     }
 
