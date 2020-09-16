@@ -194,6 +194,13 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;
+  } catch (const std::exception &e) {
+    g_log<<Logger::Error<<"Caught an exception instantiating a backend: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Cleaning up"<<endl;
+    for (auto i : ret) {
+      delete i;
+    }
+    throw;
   } catch(...) {
     // and cleanup
     g_log<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
