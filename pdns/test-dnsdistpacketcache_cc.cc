@@ -11,6 +11,7 @@
 #include "dnswriter.hh"
 #include "dnsdist-cache.hh"
 #include "gettime.hh"
+#include "packetcache.hh"
 
 BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
@@ -418,7 +419,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   boost::optional<Netmask> subnetOut;
   bool dnssecOK = false;
 
-  /* lookup for a query with an ECS value of 10.0.118.46/32,
+  /* lookup for a query with a first ECS value,
      insert a corresponding response */
   {
     vector<uint8_t> query;
@@ -427,7 +428,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     pwQ.getHeader()->id = qid;
     DNSPacketWriter::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
-    opt.source = Netmask("10.0.118.46/32");
+    opt.source = Netmask("10.0.59.220/32");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
@@ -463,7 +464,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
   }
 
-  /* now lookup for the same query with an ECS value of 10.0.123.193/32
+  /* now lookup for the same query with a different ECS value,
      we should get the same key (collision) but no match */
   {
     vector<uint8_t> query;
@@ -472,7 +473,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     pwQ.getHeader()->id = qid;
     DNSPacketWriter::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
-    opt.source = Netmask("10.0.123.193/32");
+    opt.source = Netmask("10.0.167.48/32");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
@@ -490,6 +491,47 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
     BOOST_CHECK_EQUAL(PC.getLookupCollisions(), 1U);
   }
+
+#if 0
+  /* to be able to compute a new collision if the packet cache hashing code is updated */
+  {
+    DNSDistPacketCache pc(10000);
+    DNSPacketWriter::optvect_t ednsOptions;
+    EDNSSubnetOpts opt;
+    std::map<uint32_t, Netmask> colMap;
+    size_t collisions = 0;
+    size_t total = 0;
+    //qname = DNSName("collision-with-ecs-parsing.cache.tests.powerdns.com.");
+
+    for (size_t idxA = 0; idxA < 256; idxA++) {
+      for (size_t idxB = 0; idxB < 256; idxB++) {
+        for (size_t idxC = 0; idxC < 256; idxC++) {
+          vector<uint8_t> secondQuery;
+          DNSPacketWriter pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
+          pwFQ.getHeader()->rd = 1;
+          pwFQ.getHeader()->qr = false;
+          pwFQ.getHeader()->id = 0x42;
+          opt.source = Netmask("10." + std::to_string(idxA) + "." + std::to_string(idxB) + "." + std::to_string(idxC) + "/32");
+          ednsOptions.clear();
+          ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
+          pwFQ.addOpt(512, 0, 0, ednsOptions);
+          pwFQ.commit();
+          secondKey = pc.getKey(qname.toDNSString(), qname.wirelength(), secondQuery.data(), secondQuery.size(), false);
+          auto pair = colMap.insert(std::make_pair(secondKey, opt.source));
+          total++;
+          if (!pair.second) {
+            collisions++;
+            cerr<<"Collision between "<<colMap[secondKey].toString()<<" and "<<opt.source.toString()<<" for key "<<secondKey<<endl;
+            goto done;
+          }
+        }
+      }
+    }
+  done:
+    cerr<<"collisions: "<<collisions<<endl;
+    cerr<<"total: "<<total<<endl;
+  }
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {

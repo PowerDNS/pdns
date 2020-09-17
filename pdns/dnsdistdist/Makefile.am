@@ -179,6 +179,7 @@ dnsdist_SOURCES = \
 	misc.cc misc.hh \
 	mplexer.hh \
 	namespaces.hh \
+	packetcache.hh \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \
 	proxy-protocol.cc proxy-protocol.hh \

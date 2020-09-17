@@ -55,6 +55,7 @@ public:
   uint64_t dump(int fd);
 
   bool isECSParsingEnabled() const { return d_parseECS; }
+  bool isCookieHashingEnabled() const { return d_cookieHashing; }
 
   bool keepStaleData() const
   {
@@ -65,8 +66,19 @@ public:
     d_keepStaleData = keep;
   }
 
+  void setCookieHashing(bool hashing)
+  {
+    d_cookieHashing = hashing;
+  }
+
+  void setECSParsingEnabled(bool enabled)
+  {
+    d_parseECS = enabled;
+  }
+
+  uint32_t getKey(const DNSName::string_t& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
+
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
-  static uint32_t getKey(const DNSName::string_t& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
   static bool getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet);
 
 private:
@@ -133,4 +145,5 @@ private:
   bool d_deferrableInsertLock;
   bool d_parseECS;
   bool d_keepStaleData{false};
+  bool d_cookieHashing{false};
 };

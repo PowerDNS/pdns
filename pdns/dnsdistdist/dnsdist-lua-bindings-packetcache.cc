@@ -42,6 +42,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
       bool dontAge = false;
       bool deferrableInsertLock = true;
       bool ecsParsing = false;
+      bool cookieHashing = false;
 
       if (vars) {
 
@@ -84,11 +85,16 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
         if (vars->count("temporaryFailureTTL")) {
           tempFailTTL = boost::get<size_t>((*vars)["temporaryFailureTTL"]);
         }
+
+        if (vars->count("cookieHashing")) {
+          cookieHashing = boost::get<bool>((*vars)["cookieHashing"]);
+        }
       }
 
       auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
 
       res->setKeepStaleData(keepStaleData);
+      res->setCookieHashing(cookieHashing);
 
       return res;
     });

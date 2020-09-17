@@ -72,7 +72,7 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
 
   cleanupIfNeeded();
 
-  uint32_t hash = canHashPacket(p.getString());
+  uint32_t hash = canHashPacket(p.getString(), /* don't skip ECS */ false);
   p.setHash(hash);
 
   string value;
@@ -108,7 +108,8 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
 
 bool AuthPacketCache::entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp)
 {
-  return iter->tcp == tcp && iter->qtype == qtype && iter->qname == qname && queryMatches(iter->query, query, qname);
+  static const std::unordered_set<uint16_t> skippedEDNSTypes{ EDNSOptionCode::COOKIE };
+  return iter->tcp == tcp && iter->qtype == qtype && iter->qname == qname && queryMatches(iter->query, query, qname, skippedEDNSTypes);
 }
 
 void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
