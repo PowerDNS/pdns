@@ -32,10 +32,6 @@ if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
-if GSS_TSIG
-AM_CPPFLAGS +=$(GSS_CFLAGS)
-endif
-
 if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
@@ -184,7 +180,6 @@ pdns_server_SOURCES = \
 	dynmessenger.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
@@ -280,10 +275,6 @@ if LUA
 pdns_server_LDADD += $(LUA_LIBS)
 endif
 
-if GSS_TSIG
-pdns_server_LDADD += $(GSS_LIBS)
-endif
-
 pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
@@ -312,7 +303,6 @@ pdnsutil_SOURCES = \
 	dynlistener.cc \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
-	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc iputils.hh \
 	json.cc \
@@ -377,10 +367,6 @@ endif
 
 if LUA
 pdnsutil_LDADD += $(LUA_LIBS)
-endif
-
-if GSS_TSIG
-pdnsutil_LDADD += $(GSS_LIBS)
 endif
 
 zone2sql_SOURCES = \
@@ -589,7 +575,6 @@ saxfr_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -610,10 +595,6 @@ saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
-if GSS_TSIG
-saxfr_LDADD += $(GSS_LIBS)
-endif
-
 ixfrdist_SOURCES = \
 	arguments.cc \
 	base32.cc \
@@ -626,7 +607,6 @@ ixfrdist_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrdist.cc \
@@ -671,11 +651,6 @@ ixfrdist_SOURCES += pkcs11signers.cc pkcs11signers.hh
 ixfrdist_LDADD += $(P11KIT1_LIBS)
 endif
 
-if GSS_TSIG
-ixfrdist_LDADD += $(GSS_LIBS)
-endif
-
-
 ixplore_SOURCES = \
 	arguments.cc \
 	base32.cc \
@@ -688,7 +663,6 @@ ixplore_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -714,11 +688,6 @@ if PKCS11
 ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
 ixplore_LDADD += $(P11KIT1_LIBS)
 endif
-
-if GSS_TSIG
-ixplore_LDADD += $(GSS_LIBS)
-endif
-
 
 dnstcpbench_SOURCES = \
 	base32.cc \
@@ -759,7 +728,6 @@ nsec3dig_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -780,10 +748,6 @@ nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
 endif
 
-if GSS_TSIG
-nsec3dig_LDADD += $(GSS_LIBS)
-endif
-
 toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -796,7 +760,6 @@ toysdig_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -821,10 +784,6 @@ toysdig_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
 toysdig_LDADD = $(LIBCRYPTO_LIBS)
 
-if GSS_TSIG
-toysdig_LDADD += $(GSS_LIBS)
-endif
-
 if PKCS11
 toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 toysdig_LDADD += $(P11KIT1_LIBS)
@@ -844,7 +803,6 @@ tsig_tests_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -866,10 +824,6 @@ tsig_tests_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 if PKCS11
 tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
-endif
-
-if GSS_TSIG
-tsig_tests_LDADD += $(GSS_LIBS)
 endif
 
 speedtest_SOURCES = \
@@ -1294,7 +1248,6 @@ testrunner_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
-	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc \
 	ixfr.cc ixfr.hh \

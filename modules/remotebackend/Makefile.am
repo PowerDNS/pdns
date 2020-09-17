@@ -123,7 +123,6 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/nameserver.cc \
 	../../pdns/rcpgenerator.cc \
 	../../pdns/unix_utility.cc \
-	../../pdns/gss_context.cc ../../pdns/gss_context.hh \
 	../../pdns/json.hh ../../pdns/json.cc \
 	../../pdns/shuffle.hh ../../pdns/shuffle.cc \
 	httpconnector.cc \
@@ -159,13 +158,6 @@ libtestremotebackend_la_LIBADD += \
 
 libtestremotebackend_la_CPPFLAGS += \
 	$(P11KIT1_CFLAGS)
-endif
-
-if GSS_TSIG
-libtestremotebackend_la_LIBADD += \
-	$(GSS_LIBS)
-libtestremotebackend_la_CPPFLAGS+= \
-	$(GSS_CFLAGS)
 endif
 
 remotebackend_http_test_SOURCES = \

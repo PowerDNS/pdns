@@ -748,20 +748,10 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         return RCode::Refused;
       }
 
-      if (p.d_tsig_algo == TSIG_GSS) {
-        GssName inputname(p.d_peer_principal); // match against principal since GSS
-        for(const auto& key: tsigKeys) {
-          if (inputname.match(key)) {
-            validKey = true;
-            break;
-          }
-        }
-      } else {
-        for(const auto& key: tsigKeys) {
-          if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
-            validKey=true;
-            break;
-          }
+      for(const auto& key: tsigKeys) {
+        if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
+          validKey=true;
+          break;
         }
       }
 

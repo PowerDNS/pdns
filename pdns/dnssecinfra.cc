@@ -44,7 +44,6 @@
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
 #endif
-#include "gss_context.hh"
 #include "misc.hh"
 
 using namespace boost::assign;
@@ -661,9 +660,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkey
   string toSign = makeTSIGPayload(tsigprevious, reinterpret_cast<const char*>(pw.getContent().data()), pw.getContent().size(), tsigkeyname, trc, timersonly);
 
   if (algo == TSIG_GSS) {
-    if (!gss_add_signature(tsigkeyname, toSign, trc.d_mac)) {
-      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toLogString()+string("'"));
-    }
+    throw PDNSException(string("Unsupported TSIG GSS algorithm ") + trc.d_algoName.toLogString());
   } else {
     trc.d_mac = calculateHMAC(tsigsecret, toSign, algo);
     //  trc.d_mac[0]++; // sabotage
@@ -698,10 +695,7 @@ bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& t
   tsigMsg = makeTSIGMessageFromTSIGPacket(packet, sigPos, tt.name, trc, previousMAC, timersOnly, dnsHeaderOffset);
 
   if (algo == TSIG_GSS) {
-    GssContext gssctx(tt.name);
-    if (!gss_verify_signature(tt.name, tsigMsg, theirMAC)) {
-      throw std::runtime_error("Signature with TSIG key '"+tt.name.toLogString()+"' failed to validate");
-    }
+    throw std::runtime_error("Unsupported TSIG GSS algorithm " + trc.d_algoName.toLogString());
   } else {
     string ourMac = calculateHMAC(tt.secret, tsigMsg, algo);
 
