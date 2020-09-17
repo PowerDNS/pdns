@@ -127,7 +127,7 @@ Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 
 GSS-ACCEPTOR-PRINCIPAL
 ----------------------
-  .. versionchanged:: 4.3.1
+  .. versionchanged:: 4.4.0
     GSS support was removed
 
 Use this principal for accepting GSS context.
