@@ -174,16 +174,33 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
                  # @aio, @sync, @chown, @setuid, @memlock, @signal and @timer in 235
                  systemd_system_call_filter=y
               fi
+              if test $_systemd_version -ge 239; then
+                 systemd_private_mounts=y
+              fi
+              if test $_systemd_version -ge 242; then
+                 systemd_protect_hostname=y
+                 systemd_restrict_suidsgid=y
+              fi
+              if test $_systemd_version -ge 244; then
+                 systemd_protect_kernel_logs=y
+              fi
+              if test $_systemd_version -ge 245; then
+                 systemd_protect_clock=y
+              fi
           ])
         ])
         AM_CONDITIONAL([HAVE_SYSTEMD_DYNAMIC_USER], [ test x"$systemd_dynamic_user" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_LOCK_PERSONALITY], [ test x"$systemd_lock_personality" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE], [ test x"$systemd_memory_deny_write_execute" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_DEVICES], [ test x"$systemd_private_devices" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_MOUNTS], [ test x"$systemd_private_mounts" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_TMP], [ test x"$systemd_private_tmp" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_USERS], [ test x"$systemd_private_users" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_CLOCK], [ test x"$systemd_protect_clock" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS], [ test x"$systemd_protect_control_groups" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_HOME], [ test x"$systemd_protect_home" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_HOSTNAME], [ test x"$systemd_protect_hostname" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_LOGS], [ test x"$systemd_protect_kernel_logs" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_MODULES], [ test x"$systemd_protect_kernel_modules" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES], [ test x"$systemd_protect_kernel_tunables" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_SYSTEM], [ test x"$systemd_protect_system" = "xy" ])
