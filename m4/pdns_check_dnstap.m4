@@ -28,7 +28,7 @@ AC_DEFUN([PDNS_CHECK_DNSTAP], [
     AS_IF([test x"$FSTRM_LIBS" = "x"], [
       AC_MSG_ERROR([dnstap requested but libfstrm was not found])
     ])
-    AS_IF([test "x$PROTOBUF_LIBS" = "x" -a x"$PROTOC" = "x"], [
+    AS_IF([test "x$PROTOBUF_LIBS" = "x" -o x"$PROTOC" = "x"], [
       AC_MSG_ERROR([dnstap requested but protobuf was not found])
     ])
   ])
