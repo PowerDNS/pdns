@@ -234,7 +234,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
         for idx in range(5):
             self.assertIn('%d.more-queries.ooor.tests.powerdns.com.' % (idx), receivedResponses)
 
-        self.assertLessEqual(OOORTCPResponder.numberOfConnections, 10)
+        self.assertLessEqual(OOORTCPResponder.numberOfConnections, self._concurrentQueriesFromClient)
 
 class TestOOORWithClientAndBackend(DNSDistTest):
     # this test suite uses a different responder port

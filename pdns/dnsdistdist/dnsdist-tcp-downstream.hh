@@ -128,7 +128,7 @@ public:
 
   bool isIdle() const
   {
-    return d_pendingQueries.size() == 0 && d_pendingResponses.size() == 0;
+    return d_state == State::idle && d_pendingQueries.size() == 0 && d_pendingResponses.size() == 0;
   }
 
   /* whether a connection can be reused for a different client */
@@ -158,13 +158,16 @@ public:
 
   void queueQuery(TCPQuery&& query, std::shared_ptr<TCPConnectionToBackend>& sharedSelf);
   void handleTimeout(const struct timeval& now, bool write);
+  void release();
+
   void setProxyProtocolPayload(std::string&& payload);
   void setProxyProtocolPayloadAdded(bool added);
 
 private:
   static void handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
-  static IOState sendNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
+  static IOState queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
+  static IOState sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
 
   IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   uint16_t getQueryIdFromResponse();

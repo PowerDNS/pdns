@@ -23,7 +23,15 @@ void TCPConnectionToBackend::assignToClientConnection(std::shared_ptr<IncomingTC
   }
 }
 
-IOState TCPConnectionToBackend::sendNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
+void TCPConnectionToBackend::release()
+{
+  d_clientConn.reset();
+  if (d_ioState) {
+    d_ioState.reset();
+  }
+}
+
+IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
   conn->d_currentQuery = std::move(conn->d_pendingQueries.front());
   conn->d_pendingQueries.pop_front();
@@ -69,6 +77,38 @@ static IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t
   return IOState::Done;
 }
 
+IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
+{
+  int fd = conn->d_socket->getHandle();
+  DEBUGLOG("sending query to backend "<<conn->getDS()->getName()<<" over FD "<<fd);
+  int socketFlags = 0;
+#ifdef MSG_FASTOPEN
+  if (conn->isFastOpenEnabled()) {
+    socketFlags |= MSG_FASTOPEN;
+  }
+#endif /* MSG_FASTOPEN */
+
+  size_t sent = sendMsgWithOptions(fd, reinterpret_cast<const char *>(&conn->d_currentQuery.d_buffer.at(conn->d_currentPos)), conn->d_currentQuery.d_buffer.size() - conn->d_currentPos, &conn->d_ds->remote, &conn->d_ds->sourceAddr, conn->d_ds->sourceItf, socketFlags);
+  if (sent == conn->d_currentQuery.d_buffer.size()) {
+    DEBUGLOG("query sent to backend");
+    /* request sent ! */
+    conn->incQueries();
+    conn->d_currentPos = 0;
+
+    DEBUGLOG("adding a pending response for ID "<<conn->d_currentQuery.d_idstate.origID<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
+    conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
+    conn->d_currentQuery.d_buffer.clear();
+
+    return IOState::Done;
+  }
+  else {
+    conn->d_currentPos += sent;
+    /* disable fast open on partial write */
+    conn->disableFastOpen();
+    return IOState::NeedWrite;
+  }
+}
+
 void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   if (conn->d_socket == nullptr) {
@@ -82,40 +122,18 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
   try {
     if (conn->d_state == State::sendingQueryToBackend) {
-      DEBUGLOG("sending query to backend "<<conn->getDS()->getName()<<" over FD "<<fd);
-      int socketFlags = 0;
-#ifdef MSG_FASTOPEN
-      if (conn->isFastOpenEnabled()) {
-        socketFlags |= MSG_FASTOPEN;
-      }
-#endif /* MSG_FASTOPEN */
+      iostate = sendQuery(conn, now);
 
-      size_t sent = sendMsgWithOptions(fd, reinterpret_cast<const char *>(&conn->d_currentQuery.d_buffer.at(conn->d_currentPos)), conn->d_currentQuery.d_buffer.size() - conn->d_currentPos, &conn->d_ds->remote, &conn->d_ds->sourceAddr, conn->d_ds->sourceItf, socketFlags);
-      if (sent == conn->d_currentQuery.d_buffer.size()) {
-        DEBUGLOG("query sent to backend");
-        /* request sent ! */
-        conn->incQueries();
+      while (iostate == IOState::Done && !conn->d_pendingQueries.empty()) {
+        queueNextQuery(conn);
+        iostate = sendQuery(conn, now);
+      }
+
+      if (iostate == IOState::Done && conn->d_pendingQueries.empty()) {
+        conn->d_state = State::readingResponseSizeFromBackend;
         conn->d_currentPos = 0;
-
-        DEBUGLOG("adding a pending response for ID "<<conn->d_currentQuery.d_idstate.origID<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
-        conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
-        conn->d_currentQuery.d_buffer.clear();
-
-        if (conn->d_pendingQueries.empty()) {
-          conn->d_state = State::readingResponseSizeFromBackend;
-          conn->d_currentPos = 0;
-          conn->d_responseBuffer.resize(sizeof(uint16_t));
-          iostate = IOState::NeedRead;
-        }
-        else {
-          iostate = sendNextQuery(conn);
-        }
-      }
-      else {
-        conn->d_currentPos += sent;
-        iostate = IOState::NeedWrite;
-        /* disable fast open on partial write */
-        conn->disableFastOpen();
+        conn->d_responseBuffer.resize(sizeof(uint16_t));
+        iostate = IOState::NeedRead;
       }
     }
 
@@ -206,7 +224,11 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           // resume sending query
         }
         else {
-          iostate = sendNextQuery(conn);
+          if (conn->d_pendingQueries.empty()) {
+            throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
+          }
+
+          iostate = queueNextQuery(conn);
         }
 
         if (!conn->d_proxyProtocolPayloadAdded && !conn->d_proxyProtocolPayload.empty()) {
@@ -225,12 +247,15 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
     }
   }
 
-  if (iostate == IOState::Done) {
-    conn->d_ioState->update(iostate, handleIOCallback, conn);
+  if (conn->d_ioState) {
+    if (iostate == IOState::Done) {
+      conn->d_ioState->update(iostate, handleIOCallback, conn);
+    }
+    else {
+      conn->d_ioState->update(iostate, handleIOCallback, conn, iostate == IOState::NeedRead ? conn->getBackendReadTTD(now) : conn->getBackendWriteTTD(now));
+    }
   }
-  else {
-    conn->d_ioState->update(iostate, handleIOCallback, conn, iostate == IOState::NeedRead ? conn->getBackendReadTTD(now) : conn->getBackendWriteTTD(now));
-  }
+
   ioGuard.release();
 }
 
@@ -267,7 +292,8 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
     struct timeval now;
     gettimeofday(&now, 0);
 
-    d_ioState->update(IOState::NeedWrite, handleIOCallback, sharedSelf, getBackendWriteTTD(now));
+    handleIO(sharedSelf, now);
+    // d_ioState->update(IOState::NeedWrite, handleIOCallback, sharedSelf, getBackendWriteTTD(now));
   }
   else {
     // store query in the list of queries to send
@@ -391,7 +417,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   d_downstreamFailures = 0;
 
   auto& clientConn = d_clientConn;
-  if (!clientConn->active()) {
+  if (!clientConn || !clientConn->active()) {
     // a client timeout occured, or something like that */
     d_connectionDied = true;
     d_clientConn.reset();
@@ -431,6 +457,10 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     auto ids = std::move(it->second.d_idstate);
     d_pendingResponses.erase(it);
     DEBUGLOG("passing response to client connection for "<<ids.qname);
+    /* marking as idle for now, so we can accept new queries if our queues are empty */
+    if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
+      d_state = State::idle;
+    }
     clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
 
     if (!d_pendingQueries.empty()) {
