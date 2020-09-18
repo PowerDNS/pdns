@@ -580,6 +580,7 @@ local-port=5301
 socket-dir=/tmp/recursor-service3
 lua-config-file=$(pwd)/recursor-service3/config.lua
 lua-dns-script=$(pwd)/recursor-service3/script.lua
+security-poll-suffix=
 
 EOF
 

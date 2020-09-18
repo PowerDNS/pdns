@@ -130,7 +130,8 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 #endif /* HAVE_FSTRM */
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
-std::unique_ptr<MemRecursorCache> s_RC;
+std::unique_ptr<MemRecursorCache> g_recCache;
+std::unique_ptr<NegCache> g_negCache;
 
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
@@ -1934,10 +1935,10 @@ static void startDoResolve(void *p)
     }
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
-      s_RC->cacheMisses++;
+      g_recCache->cacheMisses++;
     }
     else {
-      s_RC->cacheHits++;
+      g_recCache->cacheHits++;
     }
 
     if(spent < 0.001)
@@ -3144,10 +3145,10 @@ static void doStats(void)
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
 
-  uint64_t cacheHits = s_RC->cacheHits;
-  uint64_t cacheMisses = s_RC->cacheMisses;
-  uint64_t cacheSize = s_RC->size();
-  auto rc_stats = s_RC->stats();
+  uint64_t cacheHits = g_recCache->cacheHits;
+  uint64_t cacheMisses = g_recCache->cacheMisses;
+  uint64_t cacheSize = g_recCache->size();
+  auto rc_stats = g_recCache->stats();
   double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
   
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
@@ -3221,7 +3222,6 @@ static void houseKeeping(void *)
     past.tv_sec -= 5;
     if (last_prune < past) {
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
-      SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));
 
       time_t limit;
       if(!((cleanCounter++)%40)) {  // this is a full scan!
@@ -3238,7 +3238,8 @@ static void houseKeeping(void *)
 
     if(isHandlerThread()) {
       if (now.tv_sec - last_RC_prune > 5) {
-        s_RC->doPrune(g_maxCacheEntries);
+        g_recCache->doPrune(g_maxCacheEntries);
+        g_negCache->prune(g_maxCacheEntries / 10);
         last_RC_prune = now.tv_sec;
       }
       // XXX !!! global
@@ -5275,7 +5276,8 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
+    g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
+    g_negCache = std::unique_ptr<NegCache>(new NegCache(::arg().asNum("record-cache-shards")));
 
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
 

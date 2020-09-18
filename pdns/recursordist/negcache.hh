@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <mutex>
+#include <vector>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include "dnsparser.hh"
@@ -47,36 +49,35 @@ typedef struct
 class NegCache : public boost::noncopyable
 {
 public:
+  NegCache(size_t mapsCount = 1024);
+  ~NegCache();
+
   struct NegCacheEntry
   {
-    DNSName d_name; // The denied name
-    QType d_qtype; // The denied type
-    DNSName d_auth; // The denying name (aka auth)
-    mutable uint32_t d_ttd; // Timestamp when this entry should die
     recordsAndSignatures authoritySOA; // The upstream SOA record and RRSIGs
     recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
+    DNSName d_name; // The denied name
+    DNSName d_auth; // The denying name (aka auth)
+    mutable time_t d_ttd; // Timestamp when this entry should die
     mutable vState d_validationState{vState::Indeterminate};
-    uint32_t getTTD() const
+    QType d_qtype; // The denied type
+    time_t getTTD() const
     {
       return d_ttd;
     };
   };
 
   void add(const NegCacheEntry& ne);
-  void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<uint32_t> capTTD);
+  void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<time_t> capTTD);
   bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false);
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
-  uint64_t count(const DNSName& qname) const;
-  uint64_t count(const DNSName& qname, const QType qtype) const;
+  size_t count(const DNSName& qname) const;
+  size_t count(const DNSName& qname, const QType qtype) const;
   void prune(size_t maxEntries);
   void clear();
-  uint64_t dumpToFile(FILE* fd);
-  uint64_t wipe(const DNSName& name, bool subtree = false);
-
-  uint64_t size()
-  {
-    return d_negcache.size();
-  };
+  size_t dumpToFile(FILE* fd) const;
+  size_t wipe(const DNSName& name, bool subtree = false);
+  size_t size() const;
 
   void preRemoval(const NegCacheEntry& entry)
   {
@@ -104,9 +105,48 @@ private:
         member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
     negcache_t;
 
-  // Required for the cachecleaner
-  typedef negcache_t::nth_index<1>::type negcache_sequence_t;
+  struct MapCombo
+  {
+    MapCombo() {}
+    MapCombo(const MapCombo&) = delete;
+    MapCombo& operator=(const MapCombo&) = delete;
+    negcache_t d_map;
+    mutable std::mutex mutex;
+    std::atomic<uint64_t> d_entriesCount{0};
+    mutable uint64_t d_contended_count{0};
+    mutable uint64_t d_acquired_count{0};
+    void invalidate() {}
+  };
 
-  // Stores the negative cache entries
-  negcache_t d_negcache;
+  vector<MapCombo> d_maps;
+
+  MapCombo& getMap(const DNSName& qname)
+  {
+    return d_maps[qname.hash() % d_maps.size()];
+  }
+  const MapCombo& getMap(const DNSName& qname) const
+  {
+    return d_maps[qname.hash() % d_maps.size()];
+  }
+
+public:
+  struct lock
+  {
+    lock(const MapCombo& map) :
+      m(map.mutex)
+    {
+      if (!m.try_lock()) {
+        m.lock();
+        map.d_contended_count++;
+      }
+      map.d_acquired_count++;
+    }
+    ~lock()
+    {
+      m.unlock();
+    }
+
+  private:
+    std::mutex& m;
+  };
 };

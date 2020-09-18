@@ -255,6 +255,8 @@ private:
   cont_t d_cont;
 };
 
+extern std::unique_ptr<NegCache> g_negCache;
+
 class SyncRes : public boost::noncopyable
 {
 public:
@@ -400,7 +402,6 @@ public:
   };
 
   struct ThreadLocalStorage {
-    NegCache negcache;
     nsspeeds_t nsSpeeds;
     throttle_t throttle;
     ednsstatus_t ednsstatus;
@@ -552,32 +553,10 @@ public:
   {
     return t_sstorage.fails.value(server);
   }
-
-  static void clearNegCache()
-  {
-    t_sstorage.negcache.clear();
-  }
-
-  static uint64_t getNegCacheSize()
-  {
-    return t_sstorage.negcache.size();
-  }
-
-  static void pruneNegCache(unsigned int maxEntries)
-  {
-    t_sstorage.negcache.prune(maxEntries);
-  }
-
-  static uint64_t wipeNegCache(const DNSName& name, bool subtree = false)
-  {
-    return t_sstorage.negcache.wipe(name, subtree);
-  }
-
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
     t_sstorage.domainmap = newMap;
   }
-
   static const std::shared_ptr<domainmap_t> getDomainMap()
   {
     return t_sstorage.domainmap;
@@ -976,7 +955,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     return a.domain < b.domain;
   }
 };
-extern std::unique_ptr<MemRecursorCache> s_RC;
+extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 MT_t* getMT();

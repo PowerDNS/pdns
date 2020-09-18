@@ -144,7 +144,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
   for (auto& mc : maps) {
     const typename C::lock l(mc);
-    mc.d_cachecachevalid = false;
+    mc.invalidate();
     auto& sidx = boost::multi_index::get<S>(mc.d_map);
     uint64_t erased = 0, lookedAt = 0;
     for (auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
@@ -178,7 +178,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
     size_t pershard = toTrim / maps_size + 1;
     for (auto& mc : maps) {
       const typename C::lock l(mc);
-      mc.d_cachecachevalid = false;
+      mc.invalidate();
       auto& sidx = boost::multi_index::get<S>(mc.d_map);
       size_t removed = 0;
       for (auto i = sidx.begin(); i != sidx.end() && removed < pershard; removed++) {
@@ -249,13 +249,13 @@ template <typename N, typename T> uint64_t purgeExactLockedCollection(T& mc, con
 }
 
 template<typename S, typename Index>
-std::pair<typename Index::iterator,bool>
-lruReplacingInsert(Index& i,const typename Index::value_type& x)
+bool lruReplacingInsert(Index& i, const typename Index::value_type& x)
 {
-  std::pair<typename Index::iterator,bool> res = i.insert(x);
-  if (!res.second) {
-    moveCacheItemToBack<S>(i, res.first);
-    res.second = i.replace(res.first, x);
+  auto inserted = i.insert(x);
+  if (!inserted.second) {
+    moveCacheItemToBack<S>(i, inserted.first);
+    i.replace(inserted.first, x);
+    return false;
   }
-  return res;
+  return true;
 }

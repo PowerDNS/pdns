@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE(test_clear)
 
 BOOST_AUTO_TEST_CASE(test_dumpToFile)
 {
-  NegCache cache;
+  NegCache cache(1);
   vector<string> expected;
   expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
   expected.push_back("powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate)\n");
