@@ -1,6 +1,23 @@
 Changelogs for 4.4.x
 ====================
 .. changelog::
+  :version: 4.4.0-rc1
+  :released: 21st of September 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9465
+    :tickets: 9448
+
+    Only do QName Minimization for the names inside a forwarded domain.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9458
+
+    Fix the parsing of `dont-throttle-netmasks` in the presence of `dont-throttle-names`.
+
+.. changelog::
   :version: 4.4.0-beta1
   :released: 31st of August 2020
 
