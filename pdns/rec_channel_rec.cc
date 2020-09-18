@@ -207,7 +207,7 @@ static uint64_t dumpNegCache(int fd)
   }
   uint64_t ret;
   fprintf(fp.get(), "; negcache dump follows\n;\n");
-  ret = s_negcache->dumpToFile(fp.get());
+  ret = g_negCache->dumpToFile(fp.get());
   return ret;
 }
 
@@ -281,7 +281,7 @@ static string doDumpCache(T begin, T end)
     return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = s_RC->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
+    total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
   }
   catch(...){}
   
@@ -396,7 +396,7 @@ static string doDumpFailedServers(T begin, T end)
 
 uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(s_RC->doWipeCache(canon, subtree));
+  return new uint64_t(g_recCache->doWipeCache(canon, subtree));
 }
 
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
@@ -407,7 +407,7 @@ uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qty
 
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 {
-  uint64_t ret = s_negcache->wipe(canon, subtree);
+  uint64_t ret = g_negCache->wipe(canon, subtree);
   return new uint64_t(ret);
 }
 
@@ -907,7 +907,7 @@ static uint64_t getThrottleSize()
 
 uint64_t* pleaseGetNegCacheSize()
 {
-  uint64_t tmp = s_negcache->size();
+  uint64_t tmp = g_negCache->size();
   return new uint64_t(tmp);
 }
 
@@ -959,7 +959,7 @@ static uint64_t getConcurrentQueries()
 
 static uint64_t doGetCacheSize()
 {
-  return s_RC->size();
+  return g_recCache->size();
 }
 
 static uint64_t doGetAvgLatencyUsec()
@@ -969,17 +969,17 @@ static uint64_t doGetAvgLatencyUsec()
 
 static uint64_t doGetCacheBytes()
 {
-  return s_RC->bytes();
+  return g_recCache->bytes();
 }
 
 static uint64_t doGetCacheHits()
 {
-  return s_RC->cacheHits;
+  return g_recCache->cacheHits;
 }
 
 static uint64_t doGetCacheMisses()
 {
-  return s_RC->cacheMisses;
+  return g_recCache->cacheMisses;
 }
 
 uint64_t* pleaseGetPacketCacheSize()
@@ -1048,8 +1048,8 @@ void registerAllStats()
   addGetStat("max-cache-entries", []() { return g_maxCacheEntries.load(); });
   addGetStat("max-packetcache-entries", []() { return g_maxPacketCacheEntries.load();}); 
   addGetStat("cache-bytes", doGetCacheBytes); 
-  addGetStat("record-cache-contended", []() { return s_RC->stats().first;});
-  addGetStat("record-cache-acquired", []() { return s_RC->stats().second;});
+  addGetStat("record-cache-contended", []() { return g_recCache->stats().first;});
+  addGetStat("record-cache-acquired", []() { return g_recCache->stats().second;});
   
   addGetStat("packetcache-hits", doGetPacketCacheHits);
   addGetStat("packetcache-misses", doGetPacketCacheMisses); 

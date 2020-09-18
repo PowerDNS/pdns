@@ -255,7 +255,7 @@ private:
   cont_t d_cont;
 };
 
-extern std::unique_ptr<NegCache> s_negcache;
+extern std::unique_ptr<NegCache> g_negCache;
 
 class SyncRes : public boost::noncopyable
 {
@@ -955,7 +955,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     return a.domain < b.domain;
   }
 };
-extern std::unique_ptr<MemRecursorCache> s_RC;
+extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 MT_t* getMT();

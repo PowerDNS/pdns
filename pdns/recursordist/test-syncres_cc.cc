@@ -10,8 +10,8 @@ RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
-std::unique_ptr<MemRecursorCache> s_RC{nullptr};
-std::unique_ptr<NegCache> s_negcache{nullptr};
+std::unique_ptr<MemRecursorCache> g_recCache{nullptr};
+std::unique_ptr<NegCache> g_negCache{nullptr};
 unsigned int g_numThreads = 1;
 bool g_lowercaseOutgoing = false;
 
@@ -53,10 +53,10 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 bool primeHints(void)
 {
   vector<DNSRecord> nsset;
-  if (!s_RC)
-    s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
-  if (!s_negcache)
-    s_negcache = std::unique_ptr<NegCache>(new NegCache());
+  if (!g_recCache)
+    g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+  if (!g_negCache)
+    g_negCache = std::unique_ptr<NegCache>(new NegCache());
 
   DNSRecord arr, aaaarr, nsrr;
   nsrr.d_name = g_rootdnsname;
@@ -75,18 +75,18 @@ bool primeHints(void)
     arr.d_content = std::make_shared<ARecordContent>(ComboAddress(rootIps4[c - 'a']));
     vector<DNSRecord> aset;
     aset.push_back(arr);
-    s_RC->replace(time(nullptr), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true); // auth, nuke it all
+    g_recCache->replace(time(nullptr), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true); // auth, nuke it all
     if (rootIps6[c - 'a'] != NULL) {
       aaaarr.d_content = std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c - 'a']));
 
       vector<DNSRecord> aaaaset;
       aaaaset.push_back(aaaarr);
-      s_RC->replace(time(nullptr), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true);
+      g_recCache->replace(time(nullptr), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true);
     }
 
     nsset.push_back(nsrr);
   }
-  s_RC->replace(time(nullptr), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false); // and stuff in the cache
+  g_recCache->replace(time(nullptr), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false); // and stuff in the cache
   return true;
 }
 
@@ -114,8 +114,8 @@ void initSR(bool debug)
     g_log.toConsole(Logger::Error);
   }
 
-  s_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
-  s_negcache = std::unique_ptr<NegCache>(new NegCache());
+  g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
+  g_negCache = std::unique_ptr<NegCache>(new NegCache());
 
   SyncRes::s_maxqperq = 50;
   SyncRes::s_maxnsaddressqperq = 10;
@@ -202,7 +202,7 @@ void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNo
   sr->setLogMode(debug == false ? SyncRes::LogNone : SyncRes::Log);
 
   SyncRes::setDomainMap(std::make_shared<SyncRes::domainmap_t>());
-  s_negcache->clear();
+  g_negCache->clear();
 }
 
 void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& mode)

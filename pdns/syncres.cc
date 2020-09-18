@@ -1052,7 +1052,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
         // Once IPv6 adoption matters, this needs to be revisited
         res_t cset;
-        if (s_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote, d_routingTag) > 0) {
+        if (g_recCache->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote, d_routingTag) > 0) {
           for (const auto &i : cset) {
             if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
@@ -1135,7 +1135,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(s_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), false, &ns, d_cacheRemote, d_routingTag) > 0) {
+    if(g_recCache->get(d_now.tv_sec, subdomain, QType(QType::NS), false, &ns, d_cacheRemote, d_routingTag) > 0) {
       bestns.reserve(ns.size());
 
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
@@ -1150,7 +1150,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
 
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
-          if(nrr && (!nrr->getNS().isPartOf(subdomain) || s_RC->get(d_now.tv_sec, nrr->getNS(), nsqt,
+          if(nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt,
                                                                     false, doLog() ? &aset : 0, d_cacheRemote, d_routingTag) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
@@ -1304,10 +1304,10 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const
 {
   if (newState == vState::Bogus) {
-    s_RC->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, d_routingTag, aa, newState, s_maxbogusttl + d_now.tv_sec);
+    g_recCache->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, d_routingTag, aa, newState, s_maxbogusttl + d_now.tv_sec);
   }
   else {
-    s_RC->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, d_routingTag, aa, newState, boost::none);
+    g_recCache->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, d_routingTag, aa, newState, boost::none);
   }
 }
 
@@ -1347,7 +1347,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
   LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
   /* we don't require auth data for forward-recurse lookups */
-  if (s_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+  if (g_recCache->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
     foundName = qname;
     foundQT = QType(QType::CNAME);
   }
@@ -1364,7 +1364,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (s_RC->get(d_now.tv_sec, dnameName, QType(QType::DNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType(QType::DNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
         foundName = dnameName;
         foundQT = QType(QType::DNAME);
         break;
@@ -1612,7 +1612,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
     if (state == vState::Bogus) {
       capTTD = d_now.tv_sec + s_maxbogusttl;
     }
-    s_negcache->updateValidationStatus(ne.d_name, ne.d_qtype, state, capTTD);
+    g_negCache->updateValidationStatus(ne.d_name, ne.d_qtype, state, capTTD);
   }
 }
 
@@ -1635,7 +1635,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   NegCache::NegCacheEntry ne;
 
   if(s_rootNXTrust &&
-      s_negcache->getRootNXTrust(qname, d_now, ne) &&
+      g_negCache->getRootNXTrust(qname, d_now, ne) &&
       ne.d_auth.isRoot() &&
       !(wasForwardedOrAuthZone && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
     sttl = ne.d_ttd - d_now.tv_sec;
@@ -1643,11 +1643,11 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     res = RCode::NXDomain;
     giveNegative = true;
     cachedState = ne.d_validationState;
-  } else if (s_negcache->get(qname, qtype, d_now, ne)) {
+  } else if (g_negCache->get(qname, qtype, d_now, ne)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
     if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
-        s_negcache->get(qname, qtype, d_now, ne, true))
+        g_negCache->get(qname, qtype, d_now, ne, true))
     {
       res = RCode::NXDomain;
       sttl = ne.d_ttd - d_now.tv_sec;
@@ -1666,7 +1666,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     negCacheName.prependRawLabel(labels.back());
     labels.pop_back();
     while(!labels.empty()) {
-      if (s_negcache->get(negCacheName, QType(0), d_now, ne, true)) {
+      if (g_negCache->get(negCacheName, QType(0), d_now, ne, true)) {
         if (ne.d_validationState == vState::Indeterminate && validationEnabled()) {
           // LOG(prefix << negCacheName <<  " negatively cached and vState::Indeterminate, trying to validate NXDOMAIN" << endl);
           // ...
@@ -1720,7 +1720,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth;
 
-  if(s_RC->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
+  if(g_recCache->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
@@ -3161,7 +3161,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         }
       }
       if (doCache) {
-        s_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState);
+        g_recCache->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState);
       }
     }
 
@@ -3271,10 +3271,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
          We have a regression test making sure we do exactly that.
       */
       if(!wasVariable() && newtarget.empty()) {
-        s_negcache->add(ne);
+        g_negCache->add(ne);
         if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
-          s_negcache->add(ne);
+          g_negCache->add(ne);
         }
       }
 
@@ -3419,7 +3419,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
 
           if(!wasVariable()) {
-            s_negcache->add(ne);
+            g_negCache->add(ne);
           }
 
           if (qname == newauth && qtype == QType::DS) {
@@ -3462,7 +3462,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
         if(!wasVariable()) {
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-            s_negcache->add(ne);
+            g_negCache->add(ne);
           }
         }
 
@@ -3841,7 +3841,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         if(!auth.isRoot() && flawedNSSet) {
           LOG(prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
 
-          if(s_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
+          if(g_recCache->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
             g_stats.nsSetInvalidations++;
         }
         return -1;
