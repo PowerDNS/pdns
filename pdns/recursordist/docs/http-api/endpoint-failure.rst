@@ -16,7 +16,7 @@ Failure logging endpoint
 
     {
       "top-domains": 100,
-      "domains": ".*\.example\.com$",
+      "domains": ".*\\.example\\.com$"
     }
 
   :property int top-domains: Number of top resolved domains that are automatically monitored for failures.
@@ -36,7 +36,7 @@ Failure logging endpoint
 
     {
       "top-domains": 100,
-      "domains": ".*\.example\.com$",
+      "domains": ".*\\.example\\.com$",
       "log": [
         {
           "first_occurred": 1234567890,
@@ -49,9 +49,9 @@ Failure logging endpoint
              {
                "name": "ns1.example.net",
                "address": "192.0.2.53"
-             },
+             }
           ]
-        },
+        }
       ]
     }
 
