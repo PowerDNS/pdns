@@ -439,6 +439,7 @@ number of queries balanced to a different worker thread because the first select
 record-cache-acquired
 ^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.0
+
 number of record cache lock acquisitions
 
 record-cache-contended
