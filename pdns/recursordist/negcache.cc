@@ -104,7 +104,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
   auto& map = getMap(qname);
   const lock l(map);
 
-  const auto& idx = map.d_map.get<2>();
+  const auto& idx = map.d_map.get<NegCacheEntry>();
   auto range = idx.equal_range(qname);
   auto ni = range.first;
 
@@ -112,7 +112,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
     // We have an entry
     if ((!typeMustMatch && ni->d_qtype.getCode() == 0) || ni->d_qtype == qtype) {
       // We match the QType or the whole name is denied
-      auto firstIndexIterator = map.d_map.project<0>(ni);
+      auto firstIndexIterator = map.d_map.project<CompositeKey>(ni);
 
       if (now.tv_sec < ni->d_ttd) {
         // Not expired
