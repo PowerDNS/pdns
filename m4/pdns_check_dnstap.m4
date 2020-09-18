@@ -1,4 +1,5 @@
 AC_DEFUN([PDNS_CHECK_DNSTAP], [
+  AC_REQUIRE([PDNS_WITH_PROTOBUF])
   AC_MSG_CHECKING([whether we will have dnstap])
   AC_ARG_ENABLE([dnstap],
     AS_HELP_STRING([--enable-dnstap],[enable dnstap support @<:@default=$1@:>@]),
@@ -26,6 +27,9 @@ AC_DEFUN([PDNS_CHECK_DNSTAP], [
   AS_IF([test "x$enable_dnstap" = "xyes"], [
     AS_IF([test x"$FSTRM_LIBS" = "x"], [
       AC_MSG_ERROR([dnstap requested but libfstrm was not found])
+    ])
+    AS_IF([test "x$PROTOBUF_LIBS" = "x" -o x"$PROTOC" = "x"], [
+      AC_MSG_ERROR([dnstap requested but protobuf was not found])
     ])
   ])
 ])
