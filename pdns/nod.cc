@@ -25,7 +25,6 @@
 #include "pdnsexception.hh"
 #include <iostream>
 #include <iomanip>
-#include <ctime>
 #include <thread>
 #include "threadname.hh"
 #include <unistd.h>

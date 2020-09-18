@@ -22,10 +22,11 @@
 #pragma once
 
 #include <string>
-#include <ctime>
 #include <iostream>
 #include <sstream>
 #include <syslog.h>
+#include <time.h>
+#include <stdio.h>
 
 #include "namespaces.hh"
 #include "dnsname.hh"
@@ -93,6 +94,34 @@ public:
   }
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
+
+  static const std::string s_timeFormat;
+  std::string d_timeFormat = s_timeFormat;
+
+  void setTimeFormat(const std::string& str)
+  {
+    d_timeFormat = str;
+  }
+
+  std::string toTimeStr(time_t t)
+  {
+    struct tm tm;
+    std::string ret(32, 0); // must be >= 26 for ctime_r fallback
+    if (strftime(&ret.at(0), ret.length(), d_timeFormat.c_str(), localtime_r(&t, &tm)) == 0) {
+      ctime_r(&t, &ret.at(0));
+      ret[strlen(ret.c_str()) - 1] = '\0'; // zap newline
+    }
+    return ret;
+  }
+
+  void toTimeStrMill(char* buffer, size_t sz)
+  {
+    struct timespec tms;
+    clock_gettime(CLOCK_REALTIME, &tms);
+    std::string tmp = toTimeStr(tms.tv_sec);
+    snprintf(buffer, sz, "%s.%03ld ", tmp.c_str(), tms.tv_nsec / 1000000);
+  }
+
 
 private:
   struct PerThread

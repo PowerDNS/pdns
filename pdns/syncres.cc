@@ -429,8 +429,7 @@ uint64_t SyncRes::doEDNSDump(int fd)
   fprintf(fp.get(),"; edns from thread follows\n;\n");
   for(const auto& eds : t_sstorage.ednsstatus) {
     count++;
-    char tmp[26];
-    fprintf(fp.get(), "%s\t%d\t%s", eds.address.toString().c_str(), (int)eds.mode, ctime_r(&eds.modeSetAt, tmp));
+    fprintf(fp.get(), "%s\t%d\t%s\n", eds.address.toString().c_str(), (int)eds.mode, g_log.toTimeStr(eds.modeSetAt).c_str());
   }
   return count;
 }
@@ -484,9 +483,8 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   for(const auto& i : throttleMap)
   {
     count++;
-    char tmp[26];
     // remote IP, dns name, qtype, count, ttd
-    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.thing.get<0>().toString().c_str(), i.thing.get<1>().toLogString().c_str(), i.thing.get<2>(), i.count, ctime_r(&i.ttd, tmp));
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.thing.get<0>().toString().c_str(), i.thing.get<1>().toLogString().c_str(), i.thing.get<2>(), i.count, g_log.toTimeStr(i.ttd).c_str());
   }
 
   return count;
@@ -510,10 +508,8 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
   for(const auto& i : t_sstorage.fails.getMap())
   {
     count++;
-    char tmp[26];
-    ctime_r(&i.last, tmp);
     fprintf(fp.get(), "%s\t%lld\t%s", i.address.toString().c_str(),
-            static_cast<long long>(i.value), tmp);
+            static_cast<long long>(i.value), g_log.toTimeStr(i.last).c_str());
   }
 
   return count;

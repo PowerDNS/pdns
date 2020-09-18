@@ -34,6 +34,7 @@ extern StatBag S;
 #include "namespaces.hh"
 
 thread_local Logger::PerThread Logger::t_perThread;
+const std::string Logger::s_timeFormat = "%m-%dT%H:%M:%S";
 
 Logger& getLogger()
 {
@@ -56,13 +57,11 @@ void Logger::log(const string &msg, Urgency u) noexcept
   bool mustAccount(false);
 #endif
   if(u<=consoleUrgency) {
-    char buffer[50] = "";
+    char buffer[50];
     if (d_timestamps) {
-      struct tm tm;
-      time_t t;
-      time(&t);
-      localtime_r(&t, &tm);
-      strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
+      toTimeStrMill(buffer, sizeof(buffer));
+    } else {
+      buffer[0] = '\0';
     }
 
     string prefix;
