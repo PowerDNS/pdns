@@ -603,7 +603,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "topCacheHitResponseRule", true, "", "move the last cache hit response rule to the first position" },
   { "topClients", true, "n", "show top-`n` clients sending the most queries over length of ringbuffer" },
   { "topQueries", true, "n[, labels]", "show top 'n' queries, as grouped when optionally cut down to 'labels' labels" },
-  { "topResponses", true, "n, kind[, labels]", "show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels" },
+  { "topResponses", true, "n, kind[, labels]", "show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=NXDomain), as grouped when optionally cut down to 'labels' labels" },
   { "topResponseRule", true, "", "move the last response rule to the first position" },
   { "topRule", true, "", "move the last rule to the first position" },
   { "topSelfAnsweredResponseRule", true, "", "move the last self-answered response rule to the first position" },
