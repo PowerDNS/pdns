@@ -23,18 +23,18 @@
 #pragma once
 
 #ifdef __cpp_lib_string_view
-using std::string_view;
+using pdns_string_view = std::string_view;
 #else
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 106400
 // string_view already exists in 1.61.0 but string_view::at() is not usable with modern compilers, see:
 // https://github.com/boostorg/utility/pull/26
 #include <boost/utility/string_view.hpp>
-using boost::string_view;
+using pdns_string_view = boost::string_view;
 #elif BOOST_VERSION >= 105300
 #include <boost/utility/string_ref.hpp>
-using string_view = boost::string_ref;
+using pdns_string_view = boost::string_ref;
 #else
-using string_view = std::string;
+using pdns_string_view = std::string;
 #endif
 #endif
