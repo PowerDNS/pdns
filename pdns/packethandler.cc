@@ -472,16 +472,17 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket& p, std::unique_ptr
       else
         continue;
 
+      if(!lookup.isPartOf(soadata.qname)) {
+        continue;
+      }
+
       B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, soadata.domain_id, &p);
 
       while(B.get(rr)) {
         if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
           continue;
-        if(!rr.dr.d_name.isPartOf(soadata.qname)) {
-          // FIXME we might still pass on the record if it is occluded and the
-          // backend uses a single id for all zones
-          continue;
-        }
+        // FIXME we might still pass on the record if it is occluded and the
+        // backend uses a single id for all zones
         rr.dr.d_place=DNSResourceRecord::ADDITIONAL;
         toAdd.push_back(rr);
       }
