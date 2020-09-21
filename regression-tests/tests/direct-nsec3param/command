@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig example.com NSEC3PARAM dnssec
