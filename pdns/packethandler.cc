@@ -1050,9 +1050,11 @@ void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>&
 {
   addNSECX(p, r, target, DNSName(), sd.qname, 5);
   if(sd.qname == p.qdomain) {
-    addDNSKEY(p, r, sd);
-    addCDNSKEY(p, r, sd);
-    addCDS(p, r, sd);
+    if(!d_dk.isPresigned(sd.qname)) {
+      addDNSKEY(p, r, sd);
+      addCDNSKEY(p, r, sd);
+      addCDS(p, r, sd);
+    }
     addNSEC3PARAM(p, r, sd);
   }
 }
@@ -1281,22 +1283,24 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(!retargetcount) r->qdomainzone=sd.qname;
 
     if(sd.qname==p.qdomain) {
-      if(p.qtype.getCode() == QType::DNSKEY)
-      {
-        if(addDNSKEY(p, r, sd))
-          goto sendit;
+      if(!d_dk.isPresigned(sd.qname)) {
+        if(p.qtype.getCode() == QType::DNSKEY)
+        {
+          if(addDNSKEY(p, r, sd))
+            goto sendit;
+        }
+        else if(p.qtype.getCode() == QType::CDNSKEY)
+        {
+          if(addCDNSKEY(p,r, sd))
+            goto sendit;
+        }
+        else if(p.qtype.getCode() == QType::CDS)
+        {
+          if(addCDS(p,r, sd))
+            goto sendit;
+        }
       }
-      else if(p.qtype.getCode() == QType::CDNSKEY)
-      {
-        if(addCDNSKEY(p,r, sd))
-          goto sendit;
-      }
-      else if(p.qtype.getCode() == QType::CDS)
-      {
-        if(addCDS(p,r, sd))
-          goto sendit;
-      }
-      else if(d_dnssec && p.qtype.getCode() == QType::NSEC3PARAM)
+      if(d_dnssec && p.qtype.getCode() == QType::NSEC3PARAM)
       {
         if(addNSEC3PARAM(p,r, sd))
           goto sendit;
