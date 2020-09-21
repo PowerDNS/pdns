@@ -24,6 +24,7 @@ public:
   virtual ~SNMPAgent()
   {
 #ifdef HAVE_NET_SNMP
+    
     close(d_trapPipe[0]);
     close(d_trapPipe[1]);
 #endif /* HAVE_NET_SNMP */
@@ -33,6 +34,7 @@ public:
   {
 #ifdef HAVE_NET_SNMP
   d_thread = std::thread(&SNMPAgent::worker, this);
+  d_thread.detach();
 #endif /* HAVE_NET_SNMP */
   }
 
