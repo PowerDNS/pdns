@@ -166,7 +166,6 @@ void declareArguments()
   ::arg().set("webserver-loglevel", "Amount of logging in the webserver (none, normal, detailed)") = "normal";
   ::arg().set("webserver-max-bodysize","Webserver/API maximum request/response body size in megabytes")="2";
 
-  ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
 
   ::arg().set("carbon-namespace", "If set overwrites the first part of the carbon string")="pdns";

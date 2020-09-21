@@ -612,6 +612,9 @@ Enable/Disable DNS update (RFC2136) support. See :doc:`dnsupdate` for more.
 -  Boolean
 -  Default: yes
 
+.. versionchanged:: 4.4.0
+  This setting has been removed
+
 Perform AAAA additional processing. This sends AAAA records in the
 ADDITIONAL section when sending a referral.
 

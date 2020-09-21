@@ -73,7 +73,7 @@ private:
   bool addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
   bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
   bool addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
-  int doAdditionalProcessingAndDropAA(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd, bool retargeted);
+  void doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
   void addNSECX(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const DNSName &auth, int mode);
   void addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, int mode);
   void addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
@@ -103,7 +103,6 @@ private:
   static AtomicCounter s_count;
   static std::mutex s_rfc2136lock;
   bool d_logDNSDetails;
-  bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
   bool d_doExpandALIAS;
   bool d_dnssec;
