@@ -396,7 +396,7 @@ static string doDumpFailedServers(T begin, T end)
 
 uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
-  return new uint64_t(g_recCache->doWipeCache(canon, subtree));
+  return new uint64_t(g_recCache->doWipeCache(canon, subtree, qtype));
 }
 
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
