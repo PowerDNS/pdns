@@ -16,9 +16,7 @@
 using std::string_view;
 #else
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 106400
-// string_view already exists in 1.61.0 but string_view::at() is not usable with modern compilers, see:
-// https://github.com/boostorg/utility/pull/26
+#if BOOST_VERSION >= 106100
 #include <boost/utility/string_view.hpp>
 using boost::string_view;
 #elif BOOST_VERSION >= 105300
