@@ -50,7 +50,9 @@ public:
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
       int c;
-      sscanf(relevant.c_str()+2*n, "%02x", &c);
+      if (sscanf(&relevant.at(2*n), "%02x", &c) != 1) {
+        throw MOADNSException("unable to read data at position " + std::to_string(2 * n) + " from unknown record of size " + std::to_string(relevant.size()));
+      }
       out.append(1, (char)c);
     }
 
