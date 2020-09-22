@@ -429,7 +429,7 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, uint16_t con
   if (packetLen > ((sizeof(dnsheader) + consumed))) {
     if (!d_cookieHashing) {
       /* skip EDNS Cookie options if any */
-      result = PacketCache::hashAfterQname(string_view(reinterpret_cast<const char*>(packet), packetLen), result, sizeof(dnsheader) + consumed, false);
+      result = PacketCache::hashAfterQname(pdns_string_view(reinterpret_cast<const char*>(packet), packetLen), result, sizeof(dnsheader) + consumed, false);
     }
     else {
       result = burtle(packet + sizeof(dnsheader) + consumed, packetLen - (sizeof(dnsheader) + consumed), result);

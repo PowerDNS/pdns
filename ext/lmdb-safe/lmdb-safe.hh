@@ -19,9 +19,11 @@ using std::string_view;
 #if BOOST_VERSION >= 106100
 #include <boost/utility/string_view.hpp>
 using boost::string_view;
-#else
+#elif BOOST_VERSION >= 105300
 #include <boost/utility/string_ref.hpp>
 using string_view = boost::string_ref;
+#else
+using string_view = std::string;
 #endif
 #endif
 

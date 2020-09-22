@@ -710,15 +710,15 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 }
 
 /* can only be called from the main DoH thread */
-static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, string_view& value)
+static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerName, pdns_string_view& value)
 {
   bool found = false;
   /* early versions of boost::string_ref didn't have the ability to compare to string */
-  string_view headerNameView(headerName);
+  pdns_string_view headerNameView(headerName);
 
   for (size_t i = 0; i < req->headers.size; ++i) {
-    if (string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerNameView) {
-      value = string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
+    if (pdns_string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerNameView) {
+      value = pdns_string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
       /* don't stop there, we might have more than one header with the same name, and we want the last one */
       found = true;
     }
@@ -731,12 +731,12 @@ static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerNa
 static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote)
 {
   static const std::string headerName = "x-forwarded-for";
-  string_view value;
+  pdns_string_view value;
 
   if (getHTTPHeaderValue(req, headerName, value)) {
     try {
       auto pos = value.rfind(',');
-      if (pos != string_view::npos) {
+      if (pos != pdns_string_view::npos) {
         ++pos;
         for (; pos < value.size() && value[pos] == ' '; ++pos)
         {

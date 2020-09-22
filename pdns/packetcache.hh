@@ -34,7 +34,7 @@ public:
      - EDNS Cookie options, if any ;
      - EDNS Client Subnet options, if any and skipECS is true.
   */
-  static uint32_t hashAfterQname(const string_view& packet, uint32_t currentHash, size_t pos, bool skipECS)
+  static uint32_t hashAfterQname(const pdns_string_view& packet, uint32_t currentHash, size_t pos, bool skipECS)
   {
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
