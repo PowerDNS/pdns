@@ -156,13 +156,11 @@ if [ "$RELEASE" = "auth-40" ]; then
     write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
     write_debian stretch pdns-server pdns_server
-    write_ubuntu trusty pdns-server pdns_server
     write_ubuntu xenial pdns-server pdns_server
 elif [ "$RELEASE" = "auth-41" ]; then
     write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
     write_debian stretch pdns-server pdns_server
-    write_ubuntu trusty pdns-server pdns_server
     write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
 elif [ "$RELEASE" = "auth-42" ]; then
@@ -186,13 +184,11 @@ elif [ "$RELEASE" = "rec-40" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_debian stretch pdns-recursor pdns_recursor
-    write_ubuntu trusty pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-41" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_debian stretch pdns-recursor pdns_recursor
-    write_ubuntu trusty pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-42" ]; then
