@@ -104,20 +104,20 @@ int32_t MemRecursorCache::handleHit(MapCombo& map, MemRecursorCache::OrderedTagI
     }
   }
 
-  if(signatures) { // if you do an ANY lookup you are hosed XXXX
-    *signatures = entry->d_signatures;
+  if (signatures) {
+    signatures->insert(signatures->end(), entry->d_signatures.begin(), entry->d_signatures.end());
   }
 
-  if(authorityRecs) {
-    *authorityRecs = entry->d_authorityRecs;
+  if (authorityRecs) {
+    authorityRecs->insert(authorityRecs->end(), entry->d_authorityRecs.begin(), entry->d_authorityRecs.end());
   }
 
   if (state) {
-    *state = entry->d_state;
+    updateDNSSECValidationState(*state, entry->d_state);
   }
 
   if (wasAuth) {
-    *wasAuth = entry->d_auth;
+    *wasAuth = *wasAuth && entry->d_auth;
   }
 
   moveCacheItemToBack<SequencedTag>(map.d_map, entry);
@@ -224,6 +224,14 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
     res->clear();
   }
   const uint16_t qtype = qt.getCode();
+  if (wasAuth) {
+    // we might retrieve more than one entry, we need to set that to true
+    // so it will be set to false if at least one entry is not auth
+    *wasAuth = true;
+  }
+  if (state) {
+    *state = vState::Indeterminate;
+  }
 
   auto& map = getMap(qname);
   const lock l(map);
@@ -494,12 +502,19 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
 
 bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
 {
+  uint16_t qtype = qt.getCode();
+  if (qtype == QType::ANY) {
+    throw std::runtime_error("Trying to update the DNSSEC validation status of all (via ANY) records for " + qname.toLogString());
+  }
+  if (qtype == QType::ADDR) {
+    throw std::runtime_error("Trying to update the DNSSEC validation status of several (via ADDR) records for " + qname.toLogString());
+  }
+
   auto& map = getMap(qname);
   const lock l(map);
 
   bool updated = false;
-  uint16_t qtype = qt.getCode();
-  if (qtype != QType::ANY && qtype != QType::ADDR && !map.d_ecsIndex.empty() && !routingTag) {
+  if (!map.d_ecsIndex.empty() && !routingTag) {
     auto entry = getEntryUsingECSIndex(map, now, qname, qtype, requireAuth, who);
     if (entry == map.d_map.end()) {
       return false;
@@ -527,8 +542,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
     }
     updated = true;
 
-    if(qtype != QType::ANY && qtype != QType::ADDR) // normally if we have a hit, we are done
-      break;
+    break;
   }
 
   return updated;
