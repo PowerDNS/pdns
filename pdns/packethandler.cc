@@ -438,13 +438,51 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const SOAData& sd, const DNSNa
   return haveSomething;
 }
 
+DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, const int domain_id, std::unique_ptr<DNSPacket>& r) {
+  DNSName ret = firstTarget;
+  size_t ctr = 5; // Max 5 SVCB Aliasforms per query
+  bool done = false;
+  while (!done && ctr > 0) {
+    DNSZoneRecord rr;
+    done = true;
+    B.lookup(QType(qtype), ret, domain_id);
+    while (B.get(rr)) {
+      rr.dr.d_place = DNSResourceRecord::ADDITIONAL;
+      switch (qtype) {
+        case QType::SVCB: {
+          auto rrc = getRR<SVCBRecordContent>(rr.dr);
+          r->addRecord(std::move(rr));
+          ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
+          if (rrc->getPriority() == 0) {
+            done = false;
+          }
+          break;
+        }
+        case QType::HTTPS: {
+          auto rrc = getRR<HTTPSRecordContent>(rr.dr);
+          r->addRecord(std::move(rr));
+          ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
+          if (rrc->getPriority() == 0) {
+            done = false;
+          }
+          break;
+        }
+        default:
+          throw PDNSException("Unknown type (" + QType(qtype).getName() + "for additional service processing");
+      }
+    }
+    ctr--;
+  }
+  return ret;
+}
+
 
 void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& soadata)
 {
   DNSName content;
   std::unordered_set<DNSName> lookup;
   const auto& rrs = r->getRRS();
- 
+
   lookup.reserve(rrs.size());
   for(auto& rr : rrs) {
     if(rr.dr.d_place != DNSResourceRecord::ADDITIONAL) {
@@ -458,6 +496,24 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         case QType::SRV:
           content=std::move(getRR<SRVRecordContent>(rr.dr)->d_target);
           break;
+        case QType::SVCB: {
+          auto rrc = getRR<SVCBRecordContent>(rr.dr);
+          content = rrc->getTarget();
+          if (content.isRoot()) {
+            content = rr.dr.d_name;
+          }
+          content = doAdditionalServiceProcessing(content, rr.dr.d_type, soadata.domain_id, r);
+          break;
+        }
+        case QType::HTTPS: {
+          auto rrc = getRR<HTTPSRecordContent>(rr.dr);
+          content = rrc->getTarget();
+          if (content.isRoot()) {
+            content = rr.dr.d_name;
+          }
+          content = doAdditionalServiceProcessing(content, rr.dr.d_type, soadata.domain_id, r);
+          break;
+        }
         default:
           continue;
       }

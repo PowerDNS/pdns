@@ -501,6 +501,8 @@ class SVCBRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(SVCB)
+  const DNSName& getTarget() const {return d_target;}
+  uint16_t getPriority() const {return d_priority;}
 
 private:
   uint16_t d_priority;
@@ -512,6 +514,8 @@ class HTTPSRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(HTTPS)
+  const DNSName& getTarget() const {return d_target;}
+  uint16_t getPriority() const {return d_priority;}
 
 private:
   uint16_t d_priority;
