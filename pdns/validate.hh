@@ -82,3 +82,4 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
 bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent> sig);
 bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
 bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
+void updateDNSSECValidationState(vState& state, const vState stateUpdate);

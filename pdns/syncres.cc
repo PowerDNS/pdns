@@ -2246,24 +2246,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
 void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
 {
   LOG(d_prefix<<"validation state was "<<state<<", state update is "<<stateUpdate);
-
-  if (stateUpdate == vState::TA) {
-    state = vState::Secure;
-  }
-  else if (stateUpdate == vState::NTA) {
-    state = vState::Insecure;
-  }
-  else if (stateUpdate == vState::Bogus) {
-    state = vState::Bogus;
-  }
-  else if (state == vState::Indeterminate) {
-    state = stateUpdate;
-  }
-  else if (stateUpdate == vState::Insecure) {
-    if (state != vState::Bogus) {
-      state = vState::Insecure;
-    }
-  }
+  updateDNSSECValidationState(state, stateUpdate);
   LOG(", validation state is now "<<state<<endl);
 }
 
