@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(test_skip_opt_any)
   sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     setLWResult(res, 0, true, false, true);
     addRecordToLW(res, domain, QType::A, "192.0.2.42");
-    addRecordToLW(res, domain, QType::ANY, "0 0");
+    addRecordToLW(res, domain, QType::ANY, "\\# 0");
     addRecordToLW(res, domain, QType::OPT, "");
     return 1;
   });
