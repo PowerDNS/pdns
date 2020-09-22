@@ -167,7 +167,7 @@ elif [ "$RELEASE" = "auth-41" ]; then
     write_ubuntu trusty pdns-server pdns_server
     write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
-elif [ "$RELEASE" = "auth-42" -o "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-master" ]; then
+elif [ "$RELEASE" = "auth-42" ]; then
     write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
     write_centos 8 pdns pdns_server
@@ -175,6 +175,15 @@ elif [ "$RELEASE" = "auth-42" -o "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-ma
     write_debian buster pdns-server pdns_server
     write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
+elif [ "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-master" ]; then
+    write_centos 6 pdns pdns_server
+    write_centos 7 pdns pdns_server
+    write_centos 8 pdns pdns_server
+    write_debian stretch pdns-server pdns_server
+    write_debian buster pdns-server pdns_server
+    write_ubuntu xenial pdns-server pdns_server
+    write_ubuntu bionic pdns-server pdns_server
+    write_ubuntu focal pdns-server pdns_server
 elif [ "$RELEASE" = "rec-40" ]; then
     write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
@@ -215,6 +224,7 @@ elif [ "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
     write_debian buster dnsdist dnsdist
     write_ubuntu xenial dnsdist dnsdist
     write_ubuntu bionic dnsdist dnsdist
+    write_ubuntu focal dnsdist dnsdist
 else
     echo "Invalid release: $RELEASE"
     exit 1
