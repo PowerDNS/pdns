@@ -170,7 +170,7 @@ int main()
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer 
 */
 
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeoutMsec, struct timeval* now)
+template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeoutMsec, const struct timeval* now)
 {
   if(d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
@@ -301,7 +301,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
     \return Returns if there is more work scheduled and recalling schedule now would be useful
       
 */
-template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  now)
+template<class Key, class Val>bool MTasker<Key,Val>::schedule(const struct timeval*  now)
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();

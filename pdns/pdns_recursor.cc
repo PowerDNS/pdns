@@ -676,7 +676,7 @@ int asendto(const char *data, size_t len, int flags,
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
-              uint16_t id, const DNSName& domain, uint16_t qtype, int fd, struct timeval* now)
+              uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit)

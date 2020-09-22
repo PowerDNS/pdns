@@ -196,8 +196,12 @@ public:
   DTime & operator=(const DTime &dt) = default;
   time_t time();
   inline void set();  //!< Reset the timer
-  inline int udiff(); //!< Return the number of microseconds since the timer was last set.
-  inline int udiffNoReset(); //!< Return the number of microseconds since the timer was last set.
+  inline int udiff(bool reset = true); //!< Return the number of microseconds since the timer was last set.
+
+  int udiffNoReset() //!< Return the number of microseconds since the timer was last set.
+  {
+    return udiff(false);
+  }
   void setTimeval(const struct timeval& tv)
   {
     d_set=tv;
@@ -215,19 +219,17 @@ inline void DTime::set()
   gettimeofday(&d_set,0);
 }
 
-inline int DTime::udiff()
-{
-  int res=udiffNoReset();
-  gettimeofday(&d_set,0);
-  return res;
-}
-
-inline int DTime::udiffNoReset()
+inline int DTime::udiff(bool reset)
 {
   struct timeval now;
-
   gettimeofday(&now,0);
+
   int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
+
+  if (reset) {
+    d_set = now;
+  }
+
   return ret;
 }
 
