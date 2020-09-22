@@ -81,10 +81,12 @@ static const oid dontOutqueriesOID[] = { RECURSOR_STATS_OID, 62 };
 static const oid unreachablesOID[] = { RECURSOR_STATS_OID, 63 };
 static const oid chainResendsOID[] = { RECURSOR_STATS_OID, 64 };
 static const oid tcpClientsOID[] = { RECURSOR_STATS_OID, 65 };
+#ifdef __linux__
 static const oid udpRecvbufErrorsOID[] = { RECURSOR_STATS_OID, 66 };
 static const oid udpSndbufErrorsOID[] = { RECURSOR_STATS_OID, 67 };
 static const oid udpNoportErrorsOID[] = { RECURSOR_STATS_OID, 68 };
 static const oid udpinErrorsOID[] = { RECURSOR_STATS_OID, 69 };
+#endif /* __linux__ */
 static const oid ednsPingMatchesOID[] = { RECURSOR_STATS_OID, 70 };
 static const oid ednsPingMismatchesOID[] = { RECURSOR_STATS_OID, 71 };
 static const oid dnssecQueriesOID[] = { RECURSOR_STATS_OID, 72 };
