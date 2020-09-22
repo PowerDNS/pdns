@@ -1303,6 +1303,11 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 
 void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const
 {
+  if (qt == QType::ANY || qt == QType::ADDR) {
+    // not doing that
+    return;
+  }
+
   if (newState == vState::Bogus) {
     s_RC->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, d_routingTag, aa, newState, s_maxbogusttl + d_now.tv_sec);
   }
@@ -1755,7 +1760,9 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         if (cachedState == vState::Bogus) {
           capTTL = s_maxbogusttl;
         }
-        updateValidationStatusInCache(sqname, sqt, wasCachedAuth, cachedState);
+        if (sqt != QType::ANY && sqt != QType::ADDR) {
+          updateValidationStatusInCache(sqname, sqt, wasCachedAuth, cachedState);
+        }
       }
     }
 
