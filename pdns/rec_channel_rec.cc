@@ -201,14 +201,16 @@ string static doGetParameter(T begin, T end)
 
 static uint64_t dumpNegCache(int fd)
 {
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
-  if(!fp) { // dup probably failed
+  int newfd = dup(fd);
+  if (newfd == -1) {
     return 0;
   }
-  uint64_t ret;
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    return 0;
+  }
   fprintf(fp.get(), "; negcache dump follows\n;\n");
-  ret = g_negCache->dumpToFile(fp.get());
-  return ret;
+  return g_negCache->dumpToFile(fp.get());
 }
 
 static uint64_t* pleaseDump(int fd)
