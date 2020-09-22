@@ -63,7 +63,7 @@ Changelogs for 4.3.x
 
     add ubuntu focal target
 
-  .. change:
+  .. change::
     :tags: Improvements
     :pullreq: 9480
 
