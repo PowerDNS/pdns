@@ -412,9 +412,13 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qty
     auto range = idx.equal_range(name);
     auto i = range.first;
     while (i != range.second) {
-      i = idx.erase(i);
-      count++;
-      map.d_entriesCount--;
+      if (i->d_qtype == qtype || qtype == 0xffff) {
+        i = idx.erase(i);
+        count++;
+        map.d_entriesCount--;
+      } else {
+        ++i;
+      }
     }
 
     if (qtype == 0xffff) {
