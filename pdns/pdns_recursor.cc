@@ -1820,7 +1820,7 @@ static void startDoResolve(void *p)
               t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
             }
             catch (const FDMultiplexerException &) {
-              // but the FD was removed because of a timeout while we were sending a response,
+              // but if the FD was removed because of a timeout while we were sending a response,
               // we need to re-arm it. If it was an error it will error again.
               ttd.tv_sec += g_tcpTimeout;
               t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
