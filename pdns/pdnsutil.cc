@@ -324,10 +324,11 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
 
   bool hasNsAtApex = false;
-  set<DNSName> tlsas, cnames, noncnames, glue, checkglue;
+  set<DNSName> tlsas, cnames, noncnames, glue, checkglue, addresses, svcbAliases, httpsAliases, svcbRecords, httpsRecords;
   set<pair<DNSName, QType> > checkOcclusion;
   set<string> recordcontents;
   map<string, unsigned int> ttl;
+  set<std::tuple<DNSName, uint16_t, DNSName> > svcbTargets, httpsTargets;
 
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
@@ -346,6 +347,9 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   for(auto &rr : records) { // we modify this
     if(rr.qtype.getCode() == QType::TLSA)
       tlsas.insert(rr.qname);
+    if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
+      addresses.insert(rr.qname);
+    }
     if(rr.qtype.getCode() == QType::SOA) {
       vector<string>parts;
       stringtok(parts, rr.content);
@@ -399,6 +403,39 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       cout<<"[Error] Record '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
       numerrors++;
       continue;
+    }
+
+    if (rr.qtype.getCode() == QType::SVCB || rr.qtype.getCode() == QType::HTTPS) {
+      vector<string> parts;
+      stringtok(parts, rr.content);
+      if (std::atoi(parts.at(0).c_str()) == 0 && parts.size() > 2) {
+        cout<<"[Warning] Aliasform "<<rr.qtype.getName()<<" record "<<rr.qname<<" has service parameters."<<endl;
+        numwarnings++;
+      }
+      switch (rr.qtype.getCode()) {
+      case QType::SVCB:
+        if (std::atoi(parts.at(0).c_str()) == 0) {
+          if (svcbAliases.find(rr.qname) != svcbAliases.end()) {
+            cout << "[Warning] More than one Alias form SVCB record for " << rr.qname << " exists." << endl;
+            numwarnings++;
+          }
+          svcbAliases.insert(rr.qname);
+        }
+        svcbTargets.emplace(std::make_tuple(rr.qname, std::atoi(parts.at(0).c_str()), DNSName(parts.at(1))));
+        svcbRecords.insert(rr.qname);
+        break;
+      case QType::HTTPS:
+        if (std::atoi(parts.at(0).c_str()) == 0) {
+          if (httpsAliases.find(rr.qname) != httpsAliases.end()) {
+            cout << "[Warning] More than one Alias form HTTPS record for " << rr.qname << " exists." << endl;
+            numwarnings++;
+          }
+          httpsAliases.insert(rr.qname);
+        }
+        httpsTargets.emplace(std::make_tuple(rr.qname, std::atoi(parts.at(0).c_str()), DNSName(parts.at(1))));
+        httpsRecords.insert(rr.qname);
+        break;
+      }
     }
 
     content.str("");
@@ -538,6 +575,54 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       }
       numwarnings++;
       cout<<" A query for '"<<name<<"' will yield an empty response. This is most likely a mistake, please create records for '"<<name<<"'."<<endl;
+    }
+  }
+
+  for (const auto &svcb : svcbTargets) {
+    auto name = std::get<0>(svcb);
+    auto target = std::get<2>(svcb);
+    auto prio = std::get<1>(svcb);
+
+    if (name == target) {
+      cout<<"[Error] SVCB record "<<name<<" has itself as target."<<endl;
+      numerrors++;
+    }
+
+    if (prio == 0) {
+      if (target.isPartOf(zone)) {
+        if (svcbAliases.find(target) != svcbAliases.end()) {
+          cout << "[Warning] SVCB record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
+          numwarnings++;
+        }
+        if (addresses.find(target) == addresses.end() && svcbRecords.find(target) == svcbRecords.end()) {
+          cout<<"[Error] SVCB record "<<name<<" has a target "<<target<<" that has neither address nor SVCB records."<<endl;
+          numerrors++;
+        }
+      }
+    }
+  }
+
+  for (const auto &httpsRecord : httpsTargets) {
+    auto name = std::get<0>(httpsRecord);
+    auto target = std::get<2>(httpsRecord);
+    auto prio = std::get<1>(httpsRecord);
+
+    if (name == target) {
+      cout<<"[Error] HTTPS record "<<name<<" has itself as target."<<endl;
+      numerrors++;
+    }
+
+    if (prio == 0) {
+      if (target.isPartOf(zone)) {
+        if (httpsAliases.find(target) != httpsAliases.end()) {
+          cout << "[Warning] HTTPS record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
+          numwarnings++;
+        }
+        if (addresses.find(target) == addresses.end() && httpsRecords.find(target) == httpsRecords.end()) {
+          cout<<"[Error] HTTPS record "<<name<<" has a target "<<target<<" that has neither address nor HTTPS records."<<endl;
+          numerrors++;
+        }
+      }
     }
   }
 
