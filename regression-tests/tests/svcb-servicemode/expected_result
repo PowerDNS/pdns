@@ -1,0 +1,8 @@
+0	bar.svcb.example.com.	IN	SVCB	120	1 . alpn=h2
+0	bar.svcb.example.com.	IN	SVCB	120	3 . alpn=h3 port=1500
+2	.	IN	OPT	32768	
+2	bar.svcb.example.com.	IN	A	120	192.0.2.1
+2	bar.svcb.example.com.	IN	AAAA	120	2001:db8::3:1
+2	bar.svcb.example.com.	IN	AAAA	120	2001:db8::3:4
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='bar.svcb.example.com.', qtype=SVCB
