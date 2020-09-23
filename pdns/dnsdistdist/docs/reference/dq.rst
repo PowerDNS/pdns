@@ -130,7 +130,7 @@ This state can be modified from the various hooks.
 
     Return the HTTP scheme for a DoH query.
 
-    :returns: The scheme of the DoH query, for example ''http'' or ''https''
+    :returns: The scheme of the DoH query, for example ``http`` or ``https``
 
   .. method:: DNSQuestion:getServerNameIndication() -> string
 
@@ -179,19 +179,19 @@ This state can be modified from the various hooks.
     .. versionadded:: 1.4.0
 
     Set the HTTP status code and content to immediately send back to the client.
-    For HTTP redirects (3xx), the string supplied in ''body'' should be the URL to redirect to.
-    For 200 responses, the value of the content type header can be specified via the ''contentType'' parameter.
+    For HTTP redirects (3xx), the string supplied in ``body`` should be the URL to redirect to.
+    For 200 responses, the value of the content type header can be specified via the ``contentType`` parameter.
     In order for the response to be sent, the QR bit should be set before returning and the function should return Action.HeaderModify.
 
     :param int status: The HTTP status code to return
     :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
-    :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
+    :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ``application/dns-message``.
 
   .. method:: DNSQuestion:setNegativeAndAdditionalSOA(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
 
     .. versionadded:: 1.5.0
 
-    Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
+    Turn a question into a response, either a NXDOMAIN or a NODATA one based on ``nxd``, setting the QR bit to 1 and adding a SOA record in the additional section.
 
     :param bool nxd: Whether the answer is a NXDOMAIN (true) or a NODATA (false)
     :param string zone: The owner name for the SOA record
@@ -210,7 +210,7 @@ This state can be modified from the various hooks.
 
     Set the Proxy-Protocol Type-Length values to send to the backend along with this query.
 
-    :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
+    :param table values: A table of types and values to send, for example: ``{ [0x00] = "foo", [0x42] = "bar" }``. Note that the type must be an integer. Try to avoid these values: 0x01 - 0x05, 0x20 - 0x25, 0x30 as those are predefined in https://www.haproxy.org/download/2.3/doc/proxy-protocol.txt (search for `PP2_TYPE_ALPN`)
 
   .. method:: DNSQuestion:setTag(key, value)
 
