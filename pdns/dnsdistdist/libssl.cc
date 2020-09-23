@@ -661,6 +661,9 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 
   if (config.d_preferServerCiphers) {
     sslOptions |= SSL_OP_CIPHER_SERVER_PREFERENCE;
+#ifdef SSL_OP_PRIORITIZE_CHACHA
+    sslOptions |= SSL_OP_PRIORITIZE_CHACHA;
+#endif /* SSL_OP_PRIORITIZE_CHACHA */
   }
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
