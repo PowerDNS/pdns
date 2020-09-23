@@ -386,6 +386,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   ce.d_records.clear();
   ce.d_records.reserve(content.size());
 
+  if (ce.d_qtype == QType::DNSKEY || ce.d_qtype == QType::SOA) {
+    maxTTD = now + 1;
+  }
   for(const auto& i : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */

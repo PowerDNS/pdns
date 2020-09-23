@@ -366,9 +366,9 @@ string reloadAuthAndForwards()
     }
 
     for(const auto& i : oldAndNewDomains) {
-      broadcastAccFunction<uint64_t>([&]{return pleaseWipeCache(i, true, 0xffff);});
+      g_recCache->doWipeCache(i, true, 0xffff);
       broadcastAccFunction<uint64_t>([&]{return pleaseWipePacketCache(i, true, 0xffff);});
-      broadcastAccFunction<uint64_t>([&]{return pleaseWipeAndCountNegCache(i, true);});
+      g_negCache->wipe(i, true);
     }
 
     broadcastFunction([=]{return pleaseUseNewSDomainsMap(newDomainMap);});
