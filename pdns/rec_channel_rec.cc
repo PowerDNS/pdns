@@ -894,15 +894,9 @@ static uint64_t getThrottleSize()
   return broadcastAccFunction<uint64_t>(pleaseGetThrottleSize);
 }
 
-uint64_t* pleaseGetNegCacheSize()
-{
-  uint64_t tmp = g_negCache->size();
-  return new uint64_t(tmp);
-}
-
 static uint64_t getNegCacheSize()
 {
-  return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
+  return g_negCache->size();
 }
 
 static uint64_t* pleaseGetFailedHostsSize()

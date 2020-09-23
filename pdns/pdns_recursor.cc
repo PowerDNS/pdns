@@ -3150,11 +3150,12 @@ static void doStats(void)
   uint64_t cacheSize = g_recCache->size();
   auto rc_stats = g_recCache->stats();
   double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
-  
+  uint64_t negCacheSize = g_negCache->size();
+
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
       cacheSize << " cache entries, "<<
-      broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
+      negCacheSize<<" negative entries, "<<
       (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl;
     g_log << Logger::Notice<< "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
