@@ -95,9 +95,11 @@ void RecordTextReader::xfrTime(uint32_t &val)
 
   tmp<<itmp;
 
-  sscanf(tmp.str().c_str(), "%04d%02d%02d" "%02d%02d%02d", 
-         &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
-         &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
+  if (sscanf(tmp.str().c_str(), "%04d%02d%02d" "%02d%02d%02d",
+             &tm.tm_year, &tm.tm_mon, &tm.tm_mday,
+             &tm.tm_hour, &tm.tm_min, &tm.tm_sec) != 6) {
+    throw RecordTextException("unable to parse '"+std::to_string(itmp)+"' into a valid time at position "+std::to_string(d_pos)+" in '"+d_string+"'");
+  }
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;

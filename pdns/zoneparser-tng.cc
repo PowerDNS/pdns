@@ -35,6 +35,7 @@
 #include <deque>
 #include <boost/algorithm/string.hpp>
 #include <system_error>
+#include <cinttypes>
 
 static string g_INstr("IN");
 
@@ -148,9 +149,9 @@ bool ZoneParserTNG::getTemplateLine()
     string part=makeString(d_templateline, *iter);
     
     /* a part can contain a 'naked' $, an escaped $ (\$), or ${offset,width,radix}, with width defaulting to 0, 
-       and radix being 'd', 'o', 'x' or 'X', defaulting to 'd'. 
+       and radix being 'd', 'o', 'x' or 'X', defaulting to 'd' (so ${offset} is valid).
 
-       The width is zero-padded, so if the counter is at 1, the offset is 15, with is 3, and the radix is 'x',
+       The width is zero-padded, so if the counter is at 1, the offset is 15, width is 3, and the radix is 'x',
        output will be '010', from the input of ${15,3,x}
     */
 
@@ -191,7 +192,11 @@ bool ZoneParserTNG::getTemplateLine()
         string spec(part.c_str() + startPos, part.c_str() + pos);
         int offset=0, width=0;
         char radix='d';
-        sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
+        // parse format specifier
+        int extracted = sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);
+        if (extracted < 1) {
+          throw PDNSException("Unable to parse offset, width and radix for $GENERATE's lhs from '"+spec+"' "+getLineOfFile());
+        }
 
         char tmp[80];
         switch (radix) {
@@ -324,10 +329,19 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         throw exception("$GENERATE is not allowed in this zone");
       }
       // $GENERATE 1-127 $ CNAME $.0
+      // The range part can be one of two forms: start-stop or start-stop/step. If the first
+      // form is used, then step is set to 1. start, stop and step must be positive
+      // integers between 0 and (2^31)-1. start must not be larger than stop.
       string range=makeString(d_line, d_parts[1]);
       d_templatestep=1;
       d_templatestop=0;
-      sscanf(range.c_str(),"%u-%u/%u", &d_templatecounter, &d_templatestop, &d_templatestep);
+      int extracted = sscanf(range.c_str(),"%" SCNu32 "-%" SCNu32 "/%" SCNu32, &d_templatecounter, &d_templatestop, &d_templatestep);
+      if (extracted == 2) {
+        d_templatestep=1;
+      }
+      else if (extracted != 3) {
+        throw exception("Invalid range from $GENERATE parameters '" + range + "'");
+      }
       if (d_templatestep < 1 ||
           d_templatestop < d_templatecounter) {
         throw exception("Invalid $GENERATE parameters");
