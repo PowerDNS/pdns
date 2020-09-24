@@ -91,6 +91,8 @@ __attribute__ ((unused)) static const char* ldap_attrany[] = {
   "cDSRecord",
   "cDNSKeyRecord",
   "openPGPKeyRecord",
+  "SVCBRecord",
+  "HTTPSRecord",
   "sPFRecord",
   "EUI48Record",
   "EUI64Record",
