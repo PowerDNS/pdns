@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
 Uploaders: Chris Hofstaedtler <zeha@debian.org>
-Build-Depends: debhelper (>= 10~),
+Build-Depends: debhelper (>= 10),
                libboost-dev,
                libcap-dev,
                libcdb-dev,

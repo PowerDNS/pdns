@@ -1,5 +1,6 @@
 #!/usr/bin/make -f
-DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/pkg-info.mk
 
 # Enable hardening features for daemons
 # Note: blhc (build log hardening check) will find these false positives: CPPFLAGS 2 missing, LDFLAGS 1 missing
@@ -8,7 +9,7 @@ DPKG_EXPORT_BUILDFLAGS = 1
 # Include buildflags.mk so we can append to the vars it sets.
 include /usr/share/dpkg/buildflags.mk
 
-# Disable systemd integration on non-linux archs
+# Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
 DH_ARGS += --with systemd

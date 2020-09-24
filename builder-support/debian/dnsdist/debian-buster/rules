@@ -1,7 +1,6 @@
 #!/usr/bin/make -f
-# See debhelper(7) (uncomment to enable)
-# output every command that modifies files on the build system.
-#DH_VERBOSE = 1
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/pkg-info.mk
 
 # Enable hardening features for daemons
 export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
@@ -12,16 +11,19 @@ include /usr/share/dpkg/default.mk
 # for atomic support on powerpc (automatic on mipsel)
 LDFLAGS += -latomic
 
-# Disable systemd integration on non-linux archs
+# Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
+DH_ARGS += --with systemd
 else
 CONFIGURE_ARGS += --disable-systemd
 endif
 
 
 %:
-	dh $@
+	dh $@ \
+	  --with autoreconf \
+	  $(DH_ARGS)
 
 override_dh_auto_clean:
 	rm -f dnslabeltext.cc

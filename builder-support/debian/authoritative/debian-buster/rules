@@ -11,9 +11,10 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 # Backends
 backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lmdb lua2 remote random tinydns
 
-# Disable systemd integration on non-linux archs
+# Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
+DH_ARGS += --with systemd
 else
 CONFIGURE_ARGS += --disable-systemd
 endif
@@ -22,8 +23,7 @@ endif
 %:
 	dh $@ \
 	  --with autoreconf \
-	  --with systemd \
-	  --parallel
+	  $(DH_ARGS)
 
 override_dh_auto_configure:
 	test -f pdns/dnslabeltext.cc && mv pdns/dnslabeltext.cc debian/dnslabeltext.cc.moved || true
