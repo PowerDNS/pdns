@@ -51,16 +51,16 @@ class SvcParam {
   SvcParam(const SvcParamKey &key, const std::string &value);
 
   //! To create a multi-value SvcParam (like mandatory)
-  SvcParam(const SvcParamKey &key, const std::set<std::string> &value);
+  SvcParam(const SvcParamKey &key, std::set<std::string> &&value);
 
   //! To create a multi-value SvcParam (like alpn)
-  SvcParam(const SvcParamKey &key, const std::vector<std::string> &value);
+  SvcParam(const SvcParamKey &key, std::vector<std::string> &&value);
 
   //! To create a multi-value SvcParam with key values (like mandatory)
-  SvcParam(const SvcParamKey &key, const std::set<SvcParamKey> &value);
+  SvcParam(const SvcParamKey &key, std::set<SvcParamKey> &&value);
 
   //! To create and ipv{4,6}hists SvcParam
-  SvcParam(const SvcParamKey &key, const std::vector<ComboAddress> &value);
+  SvcParam(const SvcParamKey &key, std::vector<ComboAddress> &&value);
 
   //! To create a port SvcParam
   SvcParam(const SvcParamKey &key, const uint16_t value);

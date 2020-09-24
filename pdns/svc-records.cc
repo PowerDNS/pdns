@@ -79,7 +79,7 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::string &value) {
   d_value = std::move(value);
 }
 
-SvcParam::SvcParam(const SvcParamKey &key, const std::vector<std::string> & value) {
+SvcParam::SvcParam(const SvcParamKey &key, std::vector<std::string> &&value) {
   d_key = key;
   if (d_key != SvcParamKey::alpn) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
@@ -89,7 +89,7 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::vector<std::string> & valu
   }
 }
 
-SvcParam::SvcParam(const SvcParamKey &key, const std::set<std::string> &value) {
+SvcParam::SvcParam(const SvcParamKey &key, std::set<std::string> &&value) {
   d_key = key;
   if (d_key != SvcParamKey::mandatory) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
@@ -101,7 +101,7 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::set<std::string> &value) {
   }
 }
 
-SvcParam::SvcParam(const SvcParamKey &key, const std::set<SvcParam::SvcParamKey> &value) {
+SvcParam::SvcParam(const SvcParamKey &key, std::set<SvcParam::SvcParamKey> &&value) {
   d_key = key;
   if (d_key != SvcParamKey::mandatory) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
@@ -109,7 +109,7 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::set<SvcParam::SvcParamKey>
   d_mandatory = std::move(value);
 }
 
-SvcParam::SvcParam(const SvcParamKey &key, const std::vector<ComboAddress> &value) {
+SvcParam::SvcParam(const SvcParamKey &key, std::vector<ComboAddress> &&value) {
   d_key = key;
   if (d_key != SvcParamKey::ipv6hint && d_key != SvcParamKey::ipv4hint) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with an IP address value");

@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_mandatory) {
   pwR.getHeader()->qr = 1;
 
   set<string> keys({"alpn", "ipv6hint"});
-  set<SvcParam> params({SvcParam(SvcParam::mandatory, keys)});
+  set<SvcParam> params({SvcParam(SvcParam::mandatory, std::move(keys))});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
   pwR.getHeader()->qr = 1;
 
   vector<string> alpns({"h2", "h2c", "h3"});
-  set<SvcParam> params({SvcParam(SvcParam::alpn, alpns)});
+  set<SvcParam> params({SvcParam(SvcParam::alpn, std::move(alpns))});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
   pwR.getHeader()->qr = 1;
 
   vector<ComboAddress> addrs({ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2")});
-  set<SvcParam> params({SvcParam(SvcParam::ipv4hint, addrs)});
+  set<SvcParam> params({SvcParam(SvcParam::ipv4hint, std::move(addrs))});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
   pwR.getHeader()->qr = 1;
 
   vector<ComboAddress> addrs({ComboAddress("2001:db8::1"), ComboAddress("2001:db8::2")});
-  set<SvcParam> params({SvcParam(SvcParam::ipv6hint, addrs)});
+  set<SvcParam> params({SvcParam(SvcParam::ipv6hint, std::move(addrs))});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
 
   vector<ComboAddress> addrs({ComboAddress("2001:db8::1"), ComboAddress("2001:db8::2")});
   vector<string> alpns({"h2", "h2c", "h3"});
-  set<SvcParam> params({SvcParam(SvcParam::alpn, alpns), SvcParam(SvcParam::ipv6hint, addrs), SvcParam(SvcParam::port, 53)});
+  set<SvcParam> params({SvcParam(SvcParam::alpn, std::move(alpns)), SvcParam(SvcParam::ipv6hint, std::move(addrs)), SvcParam(SvcParam::port, 53)});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();

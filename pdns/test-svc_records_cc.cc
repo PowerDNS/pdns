@@ -109,17 +109,17 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_value) {
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_string_value) {
     set<string> val({"foo", "bar", "baz"});
 
-    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::port, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::echconfig, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, val), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::port, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::echconfig, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(val)), std::invalid_argument);
 
     set<string> mandatoryVal = {"alpn", "key666"};
     set<SvcParam::SvcParamKey> mandatoryExpected = {SvcParam::alpn, (SvcParam::SvcParamKey)666};
     SvcParam param;
-    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::keyFromString("mandatory"), mandatoryVal));
+    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::keyFromString("mandatory"), std::move(mandatoryVal)));
 
     auto retval = param.getMandatory();
     BOOST_CHECK(retval == mandatoryExpected);
@@ -132,19 +132,20 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_string_value) {
 
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_vector_string_value) {
     auto val = vector<string>({"h3, h2"});
+    auto checkVal = val;
 
-    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::port, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::echconfig, val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, val), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::port, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::echconfig, std::move(val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(val)), std::invalid_argument);
 
     SvcParam param;
-    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::keyFromString("alpn"), val));
+    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::keyFromString("alpn"), std::move(val)));
     auto alpns = param.getALPN();
 
-    BOOST_CHECK_EQUAL_COLLECTIONS(alpns.begin(), alpns.end(), val.begin(), val.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(alpns.begin(), alpns.end(), checkVal.begin(), checkVal.end());
     BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getEchConfig(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getIPHints(), std::invalid_argument);
@@ -160,34 +161,36 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_set_comboaddress_value) {
 
     vector<ComboAddress> mixedVal({ca1, ca3});
     vector<ComboAddress> v4Val({ca1, ca2});
+    auto v4CheckVal = v4Val;
     vector<ComboAddress> v6Val({ca3, ca4});
+    auto v6CheckVal = v6Val;
 
-    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, v4Val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, v4Val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, v4Val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::port, v4Val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::echconfig, v4Val), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::mandatory, std::move(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::alpn, std::move(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::no_default_alpn, std::move(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::port, std::move(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::echconfig, std::move(v4Val)), std::invalid_argument);
 
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, v4Val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, v6Val), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, mixedVal), std::invalid_argument);
-    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, mixedVal), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(v4Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(v6Val)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv6hint, std::move(mixedVal)), std::invalid_argument);
+    BOOST_CHECK_THROW(SvcParam(SvcParam::ipv4hint, std::move(mixedVal)), std::invalid_argument);
 
     SvcParam param;
-    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::ipv4hint, v4Val));
+    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::ipv4hint, std::move(v4Val)));
 
     auto retval = param.getIPHints();
-    BOOST_CHECK(retval == v4Val);
+    BOOST_CHECK(retval == v4CheckVal);
     BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getALPN(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getEchConfig(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getPort(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getValue(), std::invalid_argument);
 
-    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::ipv6hint, v6Val));
+    BOOST_CHECK_NO_THROW(param = SvcParam(SvcParam::ipv6hint, std::move(v6Val)));
     retval.clear();
     retval = param.getIPHints();
-    BOOST_CHECK(retval == v6Val);
+    BOOST_CHECK(retval == v6CheckVal);
     BOOST_CHECK_THROW(param.getMandatory(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getALPN(), std::invalid_argument);
     BOOST_CHECK_THROW(param.getEchConfig(), std::invalid_argument);

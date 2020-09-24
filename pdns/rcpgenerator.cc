@@ -350,7 +350,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
         }
       } while (d_pos != d_end && d_string.at(d_pos) != ' ');
       try {
-        val.insert(SvcParam(key, hints));
+        val.insert(SvcParam(key, std::move(hints)));
       }
       catch (const std::invalid_argument& e) {
         throw RecordTextException(e.what());
@@ -362,7 +362,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       xfrUnquotedText(value, false);
       vector<string> parts;
       stringtok(parts, value, ",");
-      val.insert(SvcParam(key, parts));
+      val.insert(SvcParam(key, std::move(parts)));
       break;
     }
     case SvcParam::mandatory: {
@@ -371,7 +371,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       vector<string> parts;
       stringtok(parts, value, ",");
       set<string> values(parts.begin(), parts.end());
-      val.insert(SvcParam(key, values));
+      val.insert(SvcParam(key, std::move(values)));
       break;
     }
     case SvcParam::port: {

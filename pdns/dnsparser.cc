@@ -584,7 +584,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
         xfr16BitInt(keyval);
         paramKeys.insert(static_cast<SvcParam::SvcParamKey>(keyval));
       }
-      kvs.insert(SvcParam(key, paramKeys));
+      kvs.insert(SvcParam(key, std::move(paramKeys)));
       break;
     }
     case SvcParam::alpn: {
@@ -600,7 +600,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
         xfrBlob(alpn, alpnLen);
         alpns.push_back(alpn);
       }
-      kvs.insert(SvcParam(key, alpns));
+      kvs.insert(SvcParam(key, std::move(alpns)));
       break;
     }
     case SvcParam::no_default_alpn: {
@@ -633,7 +633,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
         xfrCAWithoutPort(key, addr);
         addresses.push_back(addr);
       }
-      kvs.insert(SvcParam(key, addresses));
+      kvs.insert(SvcParam(key, std::move(addresses)));
       break;
     }
     case SvcParam::echconfig: {
