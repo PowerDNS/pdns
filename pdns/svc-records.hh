@@ -78,11 +78,11 @@ class SvcParam {
   }
 
   uint16_t getPort() const;
-  std::vector<ComboAddress> getIPHints() const;
-  std::vector<std::string> getALPN() const;
-  std::set<SvcParamKey> getMandatory() const;
-  std::string getEchConfig() const;
-  std::string getValue() const;
+  const std::vector<ComboAddress>& getIPHints() const;
+  const std::vector<std::string>& getALPN() const;
+  const std::set<SvcParamKey>& getMandatory() const;
+  const std::string& getEchConfig() const;
+  const std::string& getValue() const;
 
   private:
     SvcParamKey d_key;

@@ -138,7 +138,7 @@ bool SvcParam::operator<(const SvcParam& other) const {
   return this->d_key < other.getKey();
 }
 
-std::vector<ComboAddress> SvcParam::getIPHints() const {
+const std::vector<ComboAddress>& SvcParam::getIPHints() const {
   if (d_key != SvcParamKey::ipv6hint && d_key != SvcParamKey::ipv4hint) {
     throw std::invalid_argument("getIPHints called for non-IP address key '" + keyToString(d_key) + "'");
   }
@@ -152,28 +152,28 @@ uint16_t SvcParam::getPort() const {
   return d_port;
 }
 
-std::vector<std::string> SvcParam::getALPN() const {
+const std::vector<std::string>& SvcParam::getALPN() const {
   if (d_key != SvcParam::alpn) {
     throw std::invalid_argument("getALPN called for non-alpn key '" + keyToString(d_key) + "'");
   }
   return d_alpn;
 }
 
-std::set<SvcParam::SvcParamKey> SvcParam::getMandatory() const {
+const std::set<SvcParam::SvcParamKey>& SvcParam::getMandatory() const {
   if (d_key != SvcParam::mandatory) {
     throw std::invalid_argument("getMandatory called for non-mandatory key '" + keyToString(d_key) + "'");
   }
   return d_mandatory;
 }
 
-std::string SvcParam::getEchConfig() const {
+const std::string& SvcParam::getEchConfig() const {
   if (d_key != SvcParam::echconfig) {
     throw std::invalid_argument("getEchConfig called for non-echconfig key '" + keyToString(d_key) + "'");
   }
   return d_echconfig;
 }
 
-std::string SvcParam::getValue() const {
+const std::string& SvcParam::getValue() const {
   if (d_key < 7) {
     throw std::invalid_argument("getValue called for non-single value key '" + keyToString(d_key) + "'");
   }
