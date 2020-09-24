@@ -19,6 +19,12 @@ else
 CONFIGURE_ARGS += --disable-systemd
 endif
 
+# Only disable luajit on arm64
+ifneq ($(DEB_HOST_ARCH),arm64)
+CONFIGURE_ARGS += --with-lua=luajit
+else
+CONFIGURE_ARGS += --with-lua=lua5.3
+endif
 
 %:
 	dh $@ \
@@ -50,7 +56,6 @@ override_dh_auto_configure:
 	  --with-libsodium \
 	  --with-re2 \
 	  --with-ebpf \
-	  --with-lua=luajit \
 	  --with-protobuf \
 	  --with-service-user='_dnsdist' \
 	  --with-service-group='_dnsdist' \
