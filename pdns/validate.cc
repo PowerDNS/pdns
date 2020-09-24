@@ -916,11 +916,6 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
     }
   }
 
-  vector<uint16_t> toSignTags;
-  for (const auto& key : tkeys) {
-    toSignTags.push_back(key->getTag());
-  }
-
   //    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
   // these counts could be off if we somehow ended up with
   // duplicate keys. Should switch to a type that prevents that.
