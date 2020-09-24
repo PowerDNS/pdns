@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+rootPath=$(readlink -f $(dirname $0))
+
+DIRECTORIES=$rootPath/../../modules/lmdbbackend/test-assets/*
+
+for testFiles in $DIRECTORIES
+do
+  workdir=$(mktemp -d)
+
+  cp -r $testFiles/* $workdir
+
+  cat << EOF > "${workdir}/pdns-lmdb.conf"
+  module-dir=../regression-tests/modules
+  launch=lmdb
+  lmdb-filename=${workdir}/pdns.lmdb
+  lmdb-shards=2
+EOF
+
+  for zone in $(grep 'zone ' "${rootPath}/../../regression-tests/named.conf"  | cut -f2 -d\" | grep -v '^nztest.com$')
+  do
+    if [ "$zone" != "." ]; then
+      $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb list-zone $zone
+    fi
+  done
+  rm -r $workdir
+done
