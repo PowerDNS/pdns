@@ -122,11 +122,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (rrType == QType::NSEC3PARAM) {
       g_log<<Logger::Notice<<msgPrefix<<"Adding/updating NSEC3PARAM for zone, resetting ordernames."<<endl;
 
-      NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
+      *ns3pr = NSEC3PARAMRecordContent(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
       *narrow = false; // adding a NSEC3 will cause narrow mode to be dropped, as you cannot specify that in a NSEC3PARAM record
-      d_dk.setNSEC3PARAM(di->zone, nsec3param, (*narrow));
-
-      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
+      d_dk.setNSEC3PARAM(di->zone, *ns3pr, (*narrow));
+      *haveNSEC3 = true;
 
       vector<DNSResourceRecord> rrs;
       set<DNSName> qnames, nssets, dssets;
@@ -401,15 +400,16 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         d_dk.unsetNSEC3PARAM(rr->d_name);
       else if (rr->d_class == QClass::NONE) {
         NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
-        if (ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
+        if (*haveNSEC3 && ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
           d_dk.unsetNSEC3PARAM(rr->d_name);
         else
           return 0;
       } else
         return 0;
 
-      // We retrieve new values, other RR's in this update package might need it as well.
-      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
+      // Update NSEC3 variables, other RR's in this update package might need them as well.
+      *haveNSEC3 = false;
+      *narrow = false;
 
       vector<DNSResourceRecord> rrs;
       set<DNSName> qnames, nssets, dssets, ents;
@@ -900,6 +900,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     bool narrow=false;
     bool haveNSEC3 = d_dk.getNSEC3PARAM(di.zone, &ns3pr, &narrow);
     bool isPresigned = d_dk.isPresigned(di.zone);
+    string soaEditSetting;
+    d_dk.getSoaEdit(di.zone, soaEditSetting);
 
     // 3.4.2 - Perform the updates.
     // There's a special condition where deleting the last NS record at zone apex is never deleted (3.4.2.4)
@@ -1002,7 +1004,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
 
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
     if (changedRecords > 0 && !updatedSerial) {
-      increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
+      increaseSerial(msgPrefix, &di, soaEditSetting, haveNSEC3, narrow, &ns3pr);
       changedRecords++;
     }
 
@@ -1014,6 +1016,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
 
       S.deposit("dnsupdate-changes", changedRecords);
 
+      d_dk.clearMetaCache(di.zone);
       // Purge the records!
       string zone(di.zone.toString());
       zone.append("$");
@@ -1063,7 +1066,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   }
 }
 
-void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
+void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, const string& soaEditSetting,  bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
   SOAData sd;
   if (!di->backend->getSOA(di->zone, sd)) {
     throw PDNSException("SOA-Serial update failed because there was no SOA. Wowie.");
@@ -1078,8 +1081,6 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   if (!soaEdit2136Setting.empty()) {
     soaEdit2136 = soaEdit2136Setting[0];
     if (pdns_iequals(soaEdit2136, "SOA-EDIT") || pdns_iequals(soaEdit2136,"SOA-EDIT-INCREASE") ){
-      string soaEditSetting;
-      d_dk.getSoaEdit(di->zone, soaEditSetting);
       if (soaEditSetting.empty()) {
         g_log<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
         soaEdit2136 = "DEFAULT";

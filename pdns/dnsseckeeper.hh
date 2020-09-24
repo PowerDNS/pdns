@@ -243,7 +243,7 @@ public:
 
   typedef std::map<std::string, std::vector<std::string> > METAValues;
 private:
-
+  int64_t d_metaCacheCleanAction{0};
 
   struct KeyCacheEntry
   {
@@ -295,6 +295,7 @@ private:
 
   static keycache_t s_keycache;
   static metacache_t s_metacache;
+  static int64_t s_metaCacheCleanActions;
   static ReadWriteLock s_metacachelock;
   static ReadWriteLock s_keycachelock;
   static AtomicCounter s_ops;
