@@ -119,12 +119,12 @@ public:
   }
 
   typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
-  int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeoutMsec=0, struct timeval* now=0);
+  int waitEvent(EventKey &key, EventVal *val=nullptr, unsigned int timeoutMsec=0, const struct timeval* now=nullptr);
   void yield();
-  int sendEvent(const EventKey& key, const EventVal* val=0);
+  int sendEvent(const EventKey& key, const EventVal* val=nullptr);
   void getEvents(std::vector<EventKey>& events);
   void makeThread(tfunc_t *start, void* val);
-  bool schedule(struct timeval* now=0);
+  bool schedule(const struct timeval* now=nullptr);
   bool noProcesses() const;
   unsigned int numProcesses() const;
   int getTid() const;

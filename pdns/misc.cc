@@ -440,17 +440,6 @@ string humanDuration(time_t passed)
   return ret.str();
 }
 
-DTime::DTime()
-{
-//  set(); // saves lots of gettimeofday calls
-  d_set.tv_sec=d_set.tv_usec=0;
-}
-
-time_t DTime::time()
-{
-  return d_set.tv_sec;
-}
-
 const string unquotify(const string &item)
 {
   if(item.size()<2)

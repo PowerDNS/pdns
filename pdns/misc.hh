@@ -191,43 +191,51 @@ On 32 bits systems this means that 2147 seconds is the longest time that can be 
 class DTime
 {
 public:
-  DTime(); //!< Does not set the timer for you! Saves lots of gettimeofday() calls
+  //!< Does not set the timer for you! Saves lots of gettimeofday() calls
+  DTime() = default;
   DTime(const DTime &dt) = default;
   DTime & operator=(const DTime &dt) = default;
-  time_t time();
+  inline time_t time() const;
   inline void set();  //!< Reset the timer
-  inline int udiff(); //!< Return the number of microseconds since the timer was last set.
-  inline int udiffNoReset(); //!< Return the number of microseconds since the timer was last set.
+  inline int udiff(bool reset = true); //!< Return the number of microseconds since the timer was last set.
+
+  int udiffNoReset() //!< Return the number of microseconds since the timer was last set.
+  {
+    return udiff(false);
+  }
   void setTimeval(const struct timeval& tv)
   {
     d_set=tv;
   }
-  struct timeval getTimeval()
+  struct timeval getTimeval() const
   {
     return d_set;
   }
 private:
-  struct timeval d_set;
+struct timeval d_set{0, 0};
 };
+
+inline time_t DTime::time() const
+{
+  return d_set.tv_sec;
+}
 
 inline void DTime::set()
 {
-  gettimeofday(&d_set,0);
+  gettimeofday(&d_set, nullptr);
 }
 
-inline int DTime::udiff()
-{
-  int res=udiffNoReset();
-  gettimeofday(&d_set,0);
-  return res;
-}
-
-inline int DTime::udiffNoReset()
+inline int DTime::udiff(bool reset)
 {
   struct timeval now;
+  gettimeofday(&now, nullptr);
 
-  gettimeofday(&now,0);
   int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
+
+  if (reset) {
+    d_set = now;
+  }
+
   return ret;
 }
 
