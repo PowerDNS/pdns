@@ -864,6 +864,38 @@ Status, Statistics and More
 
   Return the number of TLSFrontend binds.
 
+.. function:: getTopCacheHitResponseRules([top])
+
+  .. versionadded:: 1.6.0
+
+  Return the `top` cache-hit response rules that matched the most.
+
+  :param int top: How many response rules to return.
+
+.. function:: getTopResponseRules([top])
+
+  .. versionadded:: 1.6.0
+
+  Return the `top` response rules that matched the most.
+
+  :param int top: How many response rules to return.
+
+.. function:: getTopRules([top])
+
+  .. versionadded:: 1.6.0
+
+  Return the `top` rules that matched the most.
+
+  :param int top: How many rules to return.
+
+.. function:: getTopSelfAnsweredRules([top])
+
+  .. versionadded:: 1.6.0
+
+  Return the `top` self-answered rules that matched the most.
+
+  :param int top: How many rules to return.
+
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
 
@@ -959,6 +991,19 @@ Status, Statistics and More
 
   :param int num: Number to show, defaults to 10.
 
+.. function:: topCacheHitResponseRules([top [, options]])
+
+  .. versionadded:: 1.6.0
+
+  This function shows the cache-hit response rules having matched the most.
+
+  :param int top: How many rules to show.
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+
 .. function:: topClients([num])
 
   Print the top ``num`` clients sending the most queries over length of ringbuffer
@@ -981,6 +1026,45 @@ Status, Statistics and More
   :param int num: Number to show, defaults to 10
   :param int rcode: :ref:`Response code <DNSRCode>`, defaults to 0 (No Error)
   :param int label: Number of labels to cut down to
+
+.. function:: topResponseRules([top [, options]])
+
+  .. versionadded:: 1.6.0
+
+  This function shows the response rules having matched the most.
+
+  :param int top: How many rules to show.
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+
+.. function:: topRules([top [, options]])
+
+  .. versionadded:: 1.6.0
+
+  This function shows the rules having matched the most.
+
+  :param int top: How many rules to show.
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+
+.. function:: topSelfAnsweredResponseRules([top [, options]])
+
+  .. versionadded:: 1.6.0
+
+  This function shows the self-answered response rules having matched the most.
+
+  :param int top: How many rules to show.
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
 
 .. function:: topSlow([num[, limit[, labels]]])
 

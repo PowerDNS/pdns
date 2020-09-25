@@ -313,6 +313,12 @@ For Rules related to the incoming query:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
+.. function:: mvRuleToTop()
+
+  .. versionadded:: 1.6.0
+
+  This function moves the last rule to the first position. Before 1.6.0 this was handled by :func:`topRule`.
+
 .. function:: newRuleAction(rule, action[, options])
 
   .. versionchanged:: 1.3.0
@@ -350,7 +356,10 @@ For Rules related to the incoming query:
 
 .. function:: topRule()
 
-  Move the last rule to the first position.
+  .. versionchanged:: 1.6.0
+    Replaced by :func:`mvRuleToTop`
+
+  Before 1.6.0 this functions used to move the last rule to the first position, which is now handled by :func:`mvRuleToTop`.
 
 .. function:: rmRule(id)
 
@@ -386,6 +395,12 @@ For Rules related to responses:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
+.. function:: mvResponseRuleToTop()
+
+  .. versionadded:: 1.6.0
+
+  This function moves the last response rule to the first position. Before 1.6.0 this was handled by :func:`topResponseRule`.
+
 .. function:: rmResponseRule(id)
 
   .. versionchanged:: 1.3.0
@@ -411,7 +426,10 @@ For Rules related to responses:
 
 .. function:: topResponseRule()
 
-  Move the last response rule to the first position.
+  .. versionchanged:: 1.6.0
+    Replaced by :func:`mvResponseRuleToTop`
+
+  Before 1.6.0, this function used to move the last response rule to the first position, which is now handled by :func:`mvResponseRuleToTop`.
 
 Functions for manipulating Cache Hit Response Rules:
 
@@ -442,6 +460,12 @@ Functions for manipulating Cache Hit Response Rules:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
+.. function:: mvCacheHitResponseRuleToTop()
+
+  .. versionadded:: 1.6.0
+
+  This function moves the last cache hit response rule to the first position. Before 1.6.0 this was handled by :func:`topCacheHitResponseRule`.
+
 .. function:: rmCacheHitResponseRule(id)
 
   .. versionadded:: 1.2.0
@@ -471,7 +495,10 @@ Functions for manipulating Cache Hit Response Rules:
 
   .. versionadded:: 1.2.0
 
-  Move the last cache hit response rule to the first position.
+  .. versionchanged:: 1.6.0
+    Replaced by :func:`mvCacheHitResponseRuleToTop`
+
+  Before 1.6.0, this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvCacheHitResponseRuleToTop`.
 
 Functions for manipulating Self-Answered Response Rules:
 
@@ -493,6 +520,12 @@ Functions for manipulating Self-Answered Response Rules:
 
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
+
+.. function:: mvSelfAnsweredResponseRuleToTop()
+
+  .. versionadded:: 1.6.0
+
+  This function moves the last self-answered response rule to the first position. Before 1.6.0 this was handled by :func:`topSelfAnsweredResponseRule`.
 
 .. function:: rmSelfAnsweredResponseRule(id)
 
@@ -518,6 +551,11 @@ Functions for manipulating Self-Answered Response Rules:
 .. function:: topSelfAnsweredResponseRule()
 
   .. versionadded:: 1.3.0
+
+  .. versionchanged:: 1.6.0
+    Replaced by :func:`mvSelfAnsweredResponseRuleToTop`
+
+  Before 1.6.0 this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvSelfAnsweredResponseRuleToTop`.
 
   Move the last self answered response rule to the first position.
 
