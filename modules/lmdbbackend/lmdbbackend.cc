@@ -238,7 +238,7 @@ std::string serToString(const vector<DNSResourceRecord>& rrs)
   return ret;
 }
 
-size_t serOneRRFromString(const string_view& str, DNSResourceRecord& rr)
+static inline size_t serOneRRFromString(const string_view& str, DNSResourceRecord& rr)
 {
   uint16_t len;
   memcpy(&len, &str[0], 2);
@@ -546,8 +546,12 @@ bool LMDBBackend::upgradeToSchemav3()
 {
   for(auto i = 0; i < d_shards; i++) {
     string filename = getArg("filename")+"-"+std::to_string(i);
-    if (!access(filename.c_str(), F_OK)) {
-      rename(filename.c_str(), (filename+"-old").c_str());
+    if (rename(filename.c_str(), (filename+"-old").c_str()) < 0) {
+        if (errno == ENOENT) {
+            // apparently this shard doesn't exist yet, moving on
+            continue;
+        }
+        unixDie("Rename failed during LMDB upgrade");
     }
 
     LMDBBackend::RecordsDB oldShard, newShard;
