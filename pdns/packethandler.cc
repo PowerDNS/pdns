@@ -468,7 +468,9 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
           break;
         }
         default:
-          throw PDNSException("Unknown type (" + QType(qtype).getName() + "for additional service processing");
+          while (B.get(rr)) ;              // don't leave DB handle in bad state
+
+          throw PDNSException("Unknown type (" + QType(qtype).getName() + ") for additional service processing");
       }
     }
     ctr--;
