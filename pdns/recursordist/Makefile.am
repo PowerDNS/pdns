@@ -175,6 +175,7 @@ pdns_recursor_SOURCES = \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
 	stable-bloom.hh \
+	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
@@ -269,6 +270,7 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sstuff.hh \
 	stable-bloom.hh \
+	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \

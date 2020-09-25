@@ -199,6 +199,7 @@ pdns_server_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	receiver.cc \
 	resolver.cc resolver.hh \
 	axfr-retriever.cc axfr-retriever.hh \
@@ -315,6 +316,7 @@ pdnsutil_SOURCES = \
 	pdnsutil.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	serialtweaker.cc \
 	shuffle.cc shuffle.hh \
 	signingpipe.cc \
@@ -390,6 +392,7 @@ zone2sql_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -417,6 +420,7 @@ zone2json_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -453,6 +457,7 @@ zone2ldap_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -478,6 +483,7 @@ sdig_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sdig.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -510,6 +516,7 @@ calidns_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
@@ -556,6 +563,7 @@ stubquery_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	stubresolver.cc stubresolver.hh \
@@ -581,6 +589,7 @@ saxfr_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	saxfr.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -620,6 +629,7 @@ ixfrdist_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	resolver.cc \
 	axfr-retriever.cc \
 	pollmplexer.cc \
@@ -670,6 +680,7 @@ ixplore_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	resolver.cc \
 	axfr-retriever.cc \
 	ixfr.cc ixfr.hh \
@@ -704,6 +715,7 @@ dnstcpbench_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
@@ -735,6 +747,7 @@ nsec3dig_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
@@ -768,6 +781,7 @@ toysdig_SOURCES = \
 	qtype.cc \
 	root-dnssec.hh \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	rec-lua-conf.hh \
 	recursor_cache.hh \
 	sholder.hh \
@@ -810,6 +824,7 @@ tsig_tests_SOURCES = \
 	query-local-address.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	resolver.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -839,6 +854,7 @@ speedtest_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	speedtest.cc \
 	statbag.cc \
@@ -881,6 +897,7 @@ dnsbulktest_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -911,6 +928,7 @@ comfun_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -942,6 +960,7 @@ dnsscan_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -972,6 +991,7 @@ dnsreplay_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -1002,6 +1022,7 @@ nproxy_SOURCES = \
 	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc
@@ -1032,6 +1053,7 @@ pdns_notify_SOURCES = \
 	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -1069,6 +1091,7 @@ dnsscope_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	statnode.cc statnode.hh \
@@ -1099,6 +1122,7 @@ dnsgram_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -1126,6 +1150,7 @@ dnsdemog_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -1156,6 +1181,7 @@ dnspcap2calidns_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -1198,6 +1224,7 @@ dnspcap2protobuf_SOURCES = \
 	protobuf.cc protobuf.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
@@ -1263,6 +1290,7 @@ testrunner_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc \
+	svc-records.cc svc-records.hh \
 	responsestats.cc \
 	responsestats-auth.cc \
 	shuffle.cc shuffle.hh \
@@ -1294,9 +1322,10 @@ testrunner_SOURCES = \
 	test-packetcache_hh.cc \
 	test-proxy_protocol_cc.cc \
 	test-rcpgenerator_cc.cc \
-	test-signers.cc \
 	test-sha_hh.cc \
+	test-signers.cc \
 	test-statbag_cc.cc \
+	test-svc_records_cc.cc \
 	test-tsig.cc \
 	test-ueberbackend_cc.cc \
 	test-zoneparser_tng_cc.cc \
@@ -1426,6 +1455,7 @@ fuzz_target_moadnsparser_SOURCES = \
 	nsecrecords.cc  \
 	qtype.cc qtype.hh \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc statbag.hh \
 	unix_utility.cc \
@@ -1441,6 +1471,7 @@ fuzz_target_packetcache_SOURCES = \
 	dnsname.cc dnsname.hh \
 	ednsoptions.cc ednsoptions.hh \
 	misc.cc misc.hh \
+	svc-records.cc svc-records.hh \
 	packetcache.hh \
 	qtype.cc qtype.hh \
 	statbag.cc statbag.hh
@@ -1473,7 +1504,8 @@ fuzz_target_dnsdistcache_SOURCES = \
 	iputils.cc iputils.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
-	qtype.cc qtype.hh
+	qtype.cc qtype.hh \
+	svc-records.cc svc-records.hh
 
 fuzz_target_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
@@ -1493,6 +1525,7 @@ fuzz_target_zoneparsertng_SOURCES = \
 	nsecrecords.cc  \
 	qtype.cc qtype.hh \
 	rcpgenerator.cc rcpgenerator.hh \
+	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc statbag.hh \
 	unix_utility.cc \

@@ -74,6 +74,7 @@ private:
   bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
   bool addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
   void doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SOAData& sd);
+  DNSName doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, const int domain_id, std::unique_ptr<DNSPacket>& r);
   void addNSECX(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const DNSName &auth, int mode);
   void addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, int mode);
   void addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);

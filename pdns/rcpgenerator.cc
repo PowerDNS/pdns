@@ -135,7 +135,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
       if(octet > 255)
         throw RecordTextException("unable to parse IP address");
     }
-    else if(dns_isspace(d_string.at(d_pos))) 
+    else if(dns_isspace(d_string.at(d_pos)) || d_string.at(d_pos) == ',') 
       break;
     else {
       throw RecordTextException(string("unable to parse IP address, strange character: ")+d_string.at(d_pos));
@@ -296,6 +296,117 @@ void RecordTextReader::xfrBlob(string& val, int)
   B64Decode(tmp, val);
 }
 
+void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
+{
+  while (d_pos != d_end) {
+    skipSpaces();
+    if (d_pos == d_end)
+      return;
+
+    // Find the SvcParamKey
+    size_t pos = d_pos;
+    while (d_pos != d_end) {
+      if (d_string.at(d_pos) == '=' || d_string.at(d_pos) == ' ') {
+        break;
+      }
+      d_pos++;
+    }
+
+    // We've reached a space or equals-sign or the end of the string (d_pos is at this char)
+    string k = d_string.substr(pos, d_pos - pos);
+    SvcParam::SvcParamKey key;
+    try {
+      key = SvcParam::keyFromString(k);
+    } catch (const std::invalid_argument &e) {
+      throw RecordTextException(e.what());
+    }
+
+    if (key != SvcParam::no_default_alpn) {
+      if (d_pos == d_end || d_string.at(d_pos) != '=') {
+        throw RecordTextException("expected '=' after " + k);
+      }
+      d_pos++; // Now on the first character after '='
+      if (d_pos == d_end || d_string.at(d_pos) == ' ') {
+        throw RecordTextException("expected value after " + k + "=");
+      }
+    }
+
+    switch (key) {
+    case SvcParam::no_default_alpn:
+      if (d_pos != d_end && d_string.at(d_pos) == '=') {
+        throw RecordTextException(k + " key can not have values");
+      }
+      val.insert(SvcParam(key));
+      break;
+    case SvcParam::ipv4hint: /* fall-through */
+    case SvcParam::ipv6hint: {
+      vector<ComboAddress> hints;
+      do {
+        ComboAddress address;
+        xfrCAWithoutPort(key, address); // The SVBC authors chose 4 and 6 to represent v4hint and v6hint :)
+        hints.push_back(address);
+        if (d_pos < d_end && d_string.at(d_pos) == ',') {
+          d_pos++; // Go to the next address
+        }
+      } while (d_pos != d_end && d_string.at(d_pos) != ' ');
+      try {
+        val.insert(SvcParam(key, std::move(hints)));
+      }
+      catch (const std::invalid_argument& e) {
+        throw RecordTextException(e.what());
+      }
+      break;
+    }
+    case SvcParam::alpn: {
+      string value;
+      xfrUnquotedText(value, false);
+      vector<string> parts;
+      stringtok(parts, value, ",");
+      val.insert(SvcParam(key, std::move(parts)));
+      break;
+    }
+    case SvcParam::mandatory: {
+      string value;
+      xfrUnquotedText(value, false);
+      vector<string> parts;
+      stringtok(parts, value, ",");
+      set<string> values(parts.begin(), parts.end());
+      val.insert(SvcParam(key, std::move(values)));
+      break;
+    }
+    case SvcParam::port: {
+      uint16_t port;
+      xfr16BitInt(port);
+      val.insert(SvcParam(key, port));
+      break;
+    }
+    case SvcParam::echconfig: {
+      bool haveQuote = d_string.at(d_pos) == '"';
+      if (haveQuote) {
+        d_pos++;
+      }
+      string value;
+      xfrBlobNoSpaces(value);
+      if (haveQuote) {
+        d_pos++;
+      }
+      val.insert(SvcParam(key, value));
+      break;
+    }
+    default: {
+      string value;
+      if (d_string.at(d_pos) == '"') {
+        xfrText(value);
+      }
+      else {
+        xfrUnquotedText(value);
+      }
+      val.insert(SvcParam(key, value));
+      break;
+    }
+    }
+  }
+}
 
 static inline uint8_t hextodec(uint8_t val)
 {
@@ -604,6 +715,61 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   for(string::size_type n = 0; n < limit; ++n) {
     snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)val[n]);
     d_string+=tmp;
+  }
+}
+
+void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
+  for (auto const &param : val) {
+    if (!d_string.empty())
+      d_string.append(1, ' ');
+
+    d_string.append(SvcParam::keyToString(param.getKey()));
+    if (param.getKey() != SvcParam::no_default_alpn) {
+      d_string.append(1, '=');
+    }
+
+    switch (param.getKey())
+    {
+    case SvcParam::no_default_alpn:
+      break;
+    case SvcParam::ipv4hint: /* fall-through */
+    case SvcParam::ipv6hint:
+      // TODO use xfrCA and put commas in between?
+      d_string.append(ComboAddress::caContainerToString(param.getIPHints(), false));
+      break;
+    case SvcParam::alpn:
+      // This is safe, as this value needs no quotes
+      d_string.append(boost::join(param.getALPN(), ","));
+      break;
+    case SvcParam::mandatory:
+    {
+      bool doComma = false;
+      for (auto const &k: param.getMandatory()) {
+        if (doComma)
+          d_string.append(1, ',');
+        d_string.append(SvcParam::keyToString(k));
+        doComma = true;
+      }
+      break;
+    }
+    case SvcParam::port: {
+      auto str = d_string;
+      d_string.clear();
+      xfr16BitInt(param.getPort());
+      d_string = str + d_string;
+      break;
+    }
+    case SvcParam::echconfig: {
+      auto str = d_string;
+      d_string.clear();
+      xfrBlobNoSpaces(param.getEchConfig());
+      d_string = str + '"' + d_string + '"';
+      break;
+    }
+    default:
+      d_string.append(param.getValue());
+      break;
+    }
   }
 }
 

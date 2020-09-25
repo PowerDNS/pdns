@@ -30,5 +30,327 @@ BOOST_AUTO_TEST_CASE(test_xfrIP6) {
         
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
+        string source("alpn=h2");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto alpn = v.begin()->getALPN();
+        BOOST_CHECK_EQUAL(alpn.size(), 1);
+        auto val = alpn.begin();
+        BOOST_CHECK_EQUAL(*val, "h2");
 
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        source = "alpn=h2,h3";
+        RecordTextReader rtr2(source);
+        rtr2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        alpn = v.begin()->getALPN();
+        BOOST_CHECK_EQUAL(alpn.size(), 2);
+        val = alpn.begin();
+        BOOST_CHECK_EQUAL(*val, "h2");
+        val++;
+        BOOST_CHECK_EQUAL(*val, "h3");
+
+        // Check the writer
+        target.clear();
+        RecordTextWriter rtw2(target);
+        rtw2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_mandatory) {
+        string source("mandatory=alpn");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto m = v.begin()->getMandatory();
+        BOOST_CHECK_EQUAL(m.size(), 1);
+        auto val = m.begin();
+        BOOST_CHECK(*val == SvcParam::alpn);
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        source = "mandatory=alpn,ipv4hint";
+        RecordTextReader rtr2("mandatory=alpn,ipv4hint");
+        rtr2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        m = v.begin()->getMandatory();
+        BOOST_CHECK_EQUAL(m.size(), 2);
+        val = m.begin();
+        BOOST_CHECK(*val == SvcParam::alpn);
+        val++;
+        BOOST_CHECK(*val ==  SvcParam::ipv4hint);
+
+        // Check the writer
+        target.clear();
+        RecordTextWriter rtw2(target);
+        rtw2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_no_default_alpn) {
+        string source("no-default-alpn");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::no_default_alpn);
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        RecordTextReader rtr2("no-default-alpn=");
+        v.clear();
+        BOOST_CHECK_THROW(rtr2.xfrSvcParamKeyVals(v), RecordTextException);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
+        string source("ipv4hint=192.0.2.1");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::ipv4hint);
+        auto val = v.begin()->getIPHints();
+        BOOST_CHECK_EQUAL(val.size(), 1);
+        BOOST_CHECK_EQUAL(val.begin()->toString(), "192.0.2.1");
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        source = "ipv4hint=192.0.2.1,192.0.2.2,192.0.2.3";
+        RecordTextReader rtr2(source);
+        rtr2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::ipv4hint);
+
+        val = v.begin()->getIPHints();
+        BOOST_CHECK_EQUAL(val.size(), 3);
+        auto valit = val.begin();
+        BOOST_CHECK_EQUAL(valit->toString(), "192.0.2.1");
+        valit++;
+        BOOST_CHECK_EQUAL(valit->toString(), "192.0.2.2");
+        valit++;
+        BOOST_CHECK_EQUAL(valit->toString(), "192.0.2.3");
+
+        // Check the writer
+        target.clear();
+        RecordTextWriter rtw2(target);
+        rtw2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        RecordTextReader rtr3("ipv4hint=2001:db8::1");
+        BOOST_CHECK_THROW(rtr3.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr4("ipv4hint=192.0.2.1,2001:db8::1");
+        BOOST_CHECK_THROW(rtr4.xfrSvcParamKeyVals(v), RecordTextException);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
+        string source("ipv6hint=2001:db8::1");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::ipv6hint);
+        auto val = v.begin()->getIPHints();
+        BOOST_CHECK_EQUAL(val.size(), 1);
+        BOOST_CHECK_EQUAL(val.begin()->toString(), "2001:db8::1");
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        source = "ipv6hint=2001:db8::1,2001:db8::2,2001:db8::3";
+        RecordTextReader rtr2(source);
+        rtr2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::ipv6hint);
+
+        val = v.begin()->getIPHints();
+        BOOST_CHECK_EQUAL(val.size(), 3);
+        auto valit = val.begin();
+        BOOST_CHECK_EQUAL(valit->toString(), "2001:db8::1");
+        valit++;
+        BOOST_CHECK_EQUAL(valit->toString(), "2001:db8::2");
+        valit++;
+        BOOST_CHECK_EQUAL(valit->toString(), "2001:db8::3");
+
+        // Check the writer
+        target.clear();
+        RecordTextWriter rtw2(target);
+        rtw2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        RecordTextReader rtr3("ipv6hint=192.0.2.1");
+        BOOST_CHECK_THROW(rtr3.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr4("ipv6hint=192.0.2.1,2001:db8::1");
+        BOOST_CHECK_THROW(rtr4.xfrSvcParamKeyVals(v), RecordTextException);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_port) {
+        string source("port=53");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::port);
+        auto val = v.begin()->getPort();
+        BOOST_CHECK_EQUAL(val, 53);
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        RecordTextReader rtr2("port=100000");
+        BOOST_CHECK_THROW(rtr2.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr3("port=foo");
+        BOOST_CHECK_THROW(rtr3.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr4("port=");
+        BOOST_CHECK_THROW(rtr4.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr5("port");
+        BOOST_CHECK_THROW(rtr5.xfrSvcParamKeyVals(v), RecordTextException);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
+        string source("key666=foobar");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto k = v.begin()->getKey();
+        BOOST_CHECK(k == 666);
+        auto val = v.begin()->getValue();
+        BOOST_CHECK_EQUAL(val, "foobar");
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        RecordTextReader rtr2("key666=");
+        BOOST_CHECK_THROW(rtr2.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr3("key666");
+        BOOST_CHECK_THROW(rtr3.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        source = "key666=\"blablabla\"";
+        RecordTextReader rtr4(source);
+        rtr4.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::keyFromString("key666"));
+        val = v.begin()->getValue();
+        BOOST_CHECK_EQUAL(val, "\"blablabla\"");
+
+        // Check the writer
+        target.clear();
+        RecordTextWriter rtw2(target);
+        rtw2.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, source);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
+        RecordTextReader rtr("key666=foobar echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 alpn=h2,h3 mandatory=alpn ipv4hint=192.0.2.1,192.0.2.2"); // out of order, resulting set should be in-order
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 6);
+        auto vit = v.begin();
+
+        // Check ordering
+        for (size_t i = 0; i < v.size(); i++) {
+                if (i == 0) {
+                        BOOST_CHECK(vit->getKey() == SvcParam::mandatory);
+                }
+                if (i == 1) {
+                        BOOST_CHECK(vit->getKey() == SvcParam::alpn);
+                }
+                if (i == 2) {
+                        BOOST_CHECK(vit->getKey() == SvcParam::ipv4hint);
+                }
+                if (i == 3) {
+                        BOOST_CHECK(vit->getKey() == SvcParam::echconfig);
+                }
+                if (i == 4) {
+                        BOOST_CHECK(vit->getKey() == SvcParam::ipv6hint);
+                }
+                if (i == 5) {
+                        BOOST_CHECK(vit->getKey() == SvcParam::keyFromString("key666"));
+                }
+                vit++;
+        }
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(target, "mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 key666=foobar");
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
+        string source("echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\"");
+        RecordTextReader rtr(source);
+        set<SvcParam> v;
+        rtr.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1);
+        auto k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::echconfig);
+        auto val = v.begin()->getEchConfig();
+        BOOST_CHECK_EQUAL(val, "totally bogus echconfig value"); // decoded!
+
+        // Check the writer
+        string target;
+        RecordTextWriter rtw(target);
+        rtw.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(source, target);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

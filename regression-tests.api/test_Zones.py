@@ -1462,6 +1462,25 @@ $ORIGIN %NAME%
                                headers={'content-type': 'application/json'})
         self.assert_success(r)  # user should be able to create DNAME at APEX as per RFC 6672 section 2.3
 
+    def test_rr_svcb(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': 'svcb.' + name,
+            'type': 'SVCB',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": '40 . mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 echconfig="dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU="',
+                    "disabled": False
+                },
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assert_success(r)
+
     def test_rrset_ns_dname_exclude(self):
         name, payload, zone = self.create_zone()
         rrset = {

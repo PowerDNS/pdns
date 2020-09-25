@@ -388,6 +388,63 @@ void DNSPacketWriter::xfrHexBlob(const string& blob, bool keepReading)
   xfrBlob(blob);
 }
 
+void DNSPacketWriter::xfrSvcParamKeyVals(const std::set<SvcParam> &kvs)
+{
+  for (auto const &param : kvs) {
+    // Key first!
+    xfr16BitInt(param.getKey());
+
+    switch (param.getKey())
+    {
+    case SvcParam::mandatory:
+      xfr16BitInt(2 * param.getMandatory().size());
+      for (auto const &m: param.getMandatory()) {
+        xfr16BitInt(m);
+      }
+      break;
+    case SvcParam::alpn:
+    {
+      uint16_t totalSize = param.getALPN().size(); // All 1 octet size headers for each value
+      for (auto const &a : param.getALPN()) {
+        totalSize += a.length();
+      }
+      xfr16BitInt(totalSize);
+      for (auto const &a : param.getALPN()) {
+        xfrUnquotedText(a, true); // will add the 1-byte length field
+      }
+      break;
+    }
+    case SvcParam::no_default_alpn:
+      xfr16BitInt(0); // no size :)
+      break;
+    case SvcParam::port:
+      xfr16BitInt(2); // size
+      xfr16BitInt(param.getPort());
+      break;
+    case SvcParam::ipv4hint:
+      xfr16BitInt(param.getIPHints().size() * 4); // size
+      for (auto a: param.getIPHints()) {
+        xfrCAWithoutPort(param.getKey(), a);
+      }
+      break;
+    case SvcParam::ipv6hint:
+      xfr16BitInt(param.getIPHints().size() * 16); // size
+      for (auto a: param.getIPHints()) {
+        xfrCAWithoutPort(param.getKey(), a);
+      }
+      break;
+    case SvcParam::echconfig:
+      xfr16BitInt(param.getEchConfig().size()); // size
+      xfrBlobNoSpaces(param.getEchConfig());
+      break;
+    default:
+      xfr16BitInt(param.getValue().size());
+      xfrUnquotedText(param.getValue(), false);
+      break;
+    }
+  }
+}
+
 // call __before commit__
 void DNSPacketWriter::getRecordPayload(string& records)
 {

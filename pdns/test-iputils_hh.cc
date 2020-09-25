@@ -795,4 +795,29 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_ComboAddress_caContainerToString) {
+  ComboAddress ca1("192.0.2.1:53");
+  ComboAddress ca2("192.0.2.2:5300");
+  ComboAddress ca3("[2001:db8:53::3]:53");
+  ComboAddress ca4("[2001:db8:53::4]:5300");
+
+  set<ComboAddress> caSet({ca1, ca2, ca3, ca4});
+  vector<ComboAddress> caVector({ca1, ca2, ca3, ca4});
+
+  string caSetStr = ComboAddress::caContainerToString(caSet, false);
+  string caVectorStr = ComboAddress::caContainerToString(caVector, false);
+  BOOST_CHECK_EQUAL(caSetStr, "192.0.2.1,192.0.2.2,2001:db8:53::3,2001:db8:53::4");
+  BOOST_CHECK_EQUAL(caVectorStr, "192.0.2.1,192.0.2.2,2001:db8:53::3,2001:db8:53::4");
+
+  caSetStr = ComboAddress::caContainerToString(caSet, true);
+  caVectorStr = ComboAddress::caContainerToString(caVector, true);
+  BOOST_CHECK_EQUAL(caSetStr, "192.0.2.1,192.0.2.2:5300,2001:db8:53::3,[2001:db8:53::4]:5300");
+  BOOST_CHECK_EQUAL(caVectorStr, "192.0.2.1,192.0.2.2:5300,2001:db8:53::3,[2001:db8:53::4]:5300");
+
+  caSetStr = ComboAddress::caContainerToString(caSet, true, 0);
+  caVectorStr = ComboAddress::caContainerToString(caVector, true, 0);
+  BOOST_CHECK_EQUAL(caSetStr, "192.0.2.1:53,192.0.2.2:5300,[2001:db8:53::3]:53,[2001:db8:53::4]:5300");
+  BOOST_CHECK_EQUAL(caVectorStr, "192.0.2.1:53,192.0.2.2:5300,[2001:db8:53::3]:53,[2001:db8:53::4]:5300");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

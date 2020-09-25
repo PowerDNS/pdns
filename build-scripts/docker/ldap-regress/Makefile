@@ -1,6 +1,6 @@
 NAME = powerdns/ldap-regress
 VERSION = 1.2.4
-REVISION = 0
+REVISION = 1
 
 .PHONY: all build build-nocache dep
 
