@@ -359,7 +359,7 @@ For Rules related to the incoming query:
   .. versionchanged:: 1.6.0
     Replaced by :func:`mvRuleToTop`
 
-  Before 1.6.0 this functions used to move the last rule to the first position, which is now handled by :func:`mvRuleToTop`.
+  Before 1.6.0 this function used to move the last rule to the first position, which is now handled by :func:`mvRuleToTop`.
 
 .. function:: rmRule(id)
 
@@ -429,7 +429,7 @@ For Rules related to responses:
   .. versionchanged:: 1.6.0
     Replaced by :func:`mvResponseRuleToTop`
 
-  Before 1.6.0, this function used to move the last response rule to the first position, which is now handled by :func:`mvResponseRuleToTop`.
+  Before 1.6.0 this function used to move the last response rule to the first position, which is now handled by :func:`mvResponseRuleToTop`.
 
 Functions for manipulating Cache Hit Response Rules:
 
@@ -498,7 +498,7 @@ Functions for manipulating Cache Hit Response Rules:
   .. versionchanged:: 1.6.0
     Replaced by :func:`mvCacheHitResponseRuleToTop`
 
-  Before 1.6.0, this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvCacheHitResponseRuleToTop`.
+  Before 1.6.0 this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvCacheHitResponseRuleToTop`.
 
 Functions for manipulating Self-Answered Response Rules:
 

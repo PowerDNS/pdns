@@ -868,7 +868,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  Return the `top` cache-hit response rules that matched the most.
+  Return the cache-hit response rules that matched the most.
 
   :param int top: How many response rules to return.
 
@@ -876,7 +876,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  Return the `top` response rules that matched the most.
+  Return the response rules that matched the most.
 
   :param int top: How many response rules to return.
 
@@ -884,7 +884,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  Return the `top` rules that matched the most.
+  Return the rules that matched the most.
 
   :param int top: How many rules to return.
 
@@ -892,7 +892,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  Return the `top` self-answered rules that matched the most.
+  Return the self-answered rules that matched the most.
 
   :param int top: How many rules to return.
 
@@ -995,7 +995,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  This function shows the cache-hit response rules having matched the most.
+  This function shows the cache-hit response rules that matched the most.
 
   :param int top: How many rules to show.
   :param table options: A table with key: value pairs with display options.
@@ -1031,7 +1031,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  This function shows the response rules having matched the most.
+  This function shows the response rules that matched the most.
 
   :param int top: How many rules to show.
   :param table options: A table with key: value pairs with display options.
@@ -1044,7 +1044,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  This function shows the rules having matched the most.
+  This function shows the rules that matched the most.
 
   :param int top: How many rules to show.
   :param table options: A table with key: value pairs with display options.
@@ -1057,7 +1057,7 @@ Status, Statistics and More
 
   .. versionadded:: 1.6.0
 
-  This function shows the self-answered response rules having matched the most.
+  This function shows the self-answered response rules that matched the most.
 
   :param int top: How many rules to show.
   :param table options: A table with key: value pairs with display options.
