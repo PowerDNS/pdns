@@ -547,6 +547,10 @@ bool LMDBBackend::upgradeToSchemav3()
   for(auto i = 0; i < d_shards; i++) {
     string filename = getArg("filename")+"-"+std::to_string(i);
     if (rename(filename.c_str(), (filename+"-old").c_str()) < 0) {
+        if (errno == ENOENT) {
+            // apparently this shard doesn't exist yet, moving on
+            continue;
+        }
         unixDie("Rename failed during LMDB upgrade");
     }
 
