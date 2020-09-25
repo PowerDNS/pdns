@@ -934,6 +934,7 @@ void Bind2Backend::loadConfig(string* status)
         // overwrite what we knew about the domain
         bbd.d_name=i->name;
         bool filenameChanged = (bbd.d_filename!=i->filename);
+        bool addressesChanged = (bbd.d_masters!=i->masters || bbd.d_also_notify!=i->alsoNotify);
         bbd.d_filename=i->filename;
         bbd.d_masters=i->masters;
         bbd.d_also_notify=i->alsoNotify;
@@ -986,8 +987,9 @@ void Bind2Backend::loadConfig(string* status)
             g_log<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
             rejected++;
           }
-	  safePutBBDomainInfo(bbd);
-	  
+          safePutBBDomainInfo(bbd);
+        } else if(addressesChanged) {
+          safePutBBDomainInfo(bbd);
         }
       }
     vector<DNSName> diff;
