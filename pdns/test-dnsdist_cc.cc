@@ -1985,4 +1985,75 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(getEDNSOptionsWithoutEDNS) {
+  const ComboAddress remote("192.168.1.25");
+  const DNSName name("www.powerdns.com.");
+  const ComboAddress origRemote("127.0.0.1");
+  const ComboAddress v4("192.0.2.1");
+
+  {
+    /* no EDNS and no other additional record */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
+    pw.getHeader()->rd = 1;
+    pw.commit();
+
+    /* large enough packet */
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    uint16_t qclass;
+    DNSName qname(packet, query.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    DNSQuestion dq(&qname, qtype, qclass, consumed, nullptr, &remote, reinterpret_cast<dnsheader*>(packet), sizeof(packet), query.size(), false, nullptr);
+
+    BOOST_CHECK(!parseEDNSOptions(dq));
+  }
+
+  {
+    /* nothing in additional (so no EDNS) but a record in ANSWER */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
+    pw.getHeader()->rd = 1;
+    pw.startRecord(name, QType::A, 60, QClass::IN, DNSResourceRecord::ANSWER);
+    pw.xfrIP(v4.sin4.sin_addr.s_addr);
+    pw.commit();
+
+    /* large enough packet */
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    uint16_t qclass;
+    DNSName qname(packet, query.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    DNSQuestion dq(&qname, qtype, qclass, consumed, nullptr, &remote, reinterpret_cast<dnsheader*>(packet), sizeof(packet), query.size(), false, nullptr);
+
+    BOOST_CHECK(!parseEDNSOptions(dq));
+  }
+
+  {
+    /* nothing in additional (so no EDNS) but a record in AUTHORITY */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
+    pw.getHeader()->rd = 1;
+    pw.startRecord(name, QType::A, 60, QClass::IN, DNSResourceRecord::AUTHORITY);
+    pw.xfrIP(v4.sin4.sin_addr.s_addr);
+    pw.commit();
+
+    /* large enough packet */
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    uint16_t qclass;
+    DNSName qname(packet, query.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+    DNSQuestion dq(&qname, qtype, qclass, consumed, nullptr, &remote, reinterpret_cast<dnsheader*>(packet), sizeof(packet), query.size(), false, nullptr);
+
+    BOOST_CHECK(!parseEDNSOptions(dq));
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END();
