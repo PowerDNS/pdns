@@ -11,17 +11,26 @@ upgrade notes if your version is older than 3.4.2.
 4.3.x to 4.4.0
 --------------
 
-``IPSECKEY`` change on secondaries
+Record type changes on secondaries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The in-database format of the ``IPSECKEY`` has changed from 'generic' format to its specialized format.
-It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have ``IPSECKEY`` or ``TYPE45`` records.
+The in-database format of the ``IPSECKEY``, ``SVCB``, ``HTTPS`` and ``APL`` records has changed from 'generic' format to its specialized format.
+It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have records of those types, or ``TYPExx``, for numbers 42, 45, 64, 65.
 
 PostgreSQL configuration escaping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We now correctly quote/escape Postgres connection parameters.
 If you used single quotes (or some other form of escaping) around your Postgres password because it contained spaces, you now need to put your unmodified, unescaped, unquoted password in your configuration.
+
+New LMDB schema
+^^^^^^^^^^^^^^^
+
+An LMDB schema upgrade is mandatory.
+Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4.x.
+
+FIXME: 4.3.1 docs failed to mention #9233 (gsqlite3: add missing indexes)
+
 
 4.3.0 to 4.3.1
 --------------

@@ -1,0 +1,300 @@
+Changelogs for 4.4.x
+====================
+
+.. changelog::
+  :version: 4.4.0-alpha1
+  :released: 30th of September 2020
+
+  This is version 4.4.0-alpha1 of the Authoritative Server.
+  This release drops GSS/TSIG support, please see :doc:`PowerDNS Security Advisory 2020-06 <../security-advisories/powerdns-advisory-2020-06>`.
+
+  Version 4.4.0 brings a bunch of exciting changes:
+
+  * the LMDB backend now supports long record content, making it production ready for everybody
+  * the SVCB and HTTPS record types are supported, with limited additional processing
+  * transaction handling in the 2136 handler and the HTTP API was again improved a lot, avoiding various spurious issues users may have noticed if they do a lot of changes
+  * we finally emit Prometheus metrics!
+
+  We want to specifically thank Robin Geuze, Kees Monshouwer, Mischan Toosarani-Hausberger, and Chris Hofstaedtler for their contributions to this release.
+  We are also grateful to all other reporters of bugs, issues, feature requests, and submitters of smaller fixes and features.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9369, 8638, 9337
+
+    New RRtypes: SVCB, HTTPS, APL.
+    Fixed RRtypes: IPSECKEY.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9389
+
+    LMDB: new schema that supports long records (Robin Geuze)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9518, 9427, 9409, 9407
+
+    Improved transaction handling, especially around the metadata cache (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9524
+
+    bindbackend: 'rediscover' changes to master and also-notifies (Matti Hiljanen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9496
+
+    ignore cryptokeys in presigned zones (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9039
+
+    quote/escape PG connection parameters
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8942
+
+    lua: add backtraces to errors
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9478
+
+    remove a '// HACK FIXME400' and fix the bugs it was hiding (Kees Monshouwer)
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 9385
+
+    Remove GSS/TSIG support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8993
+
+    Skip EDNS Cookies in the packet cache
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8969
+
+    Use more of systemd's sandboxing options when available
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9387
+
+    auth slave: log successful NOTIFY (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9439
+
+    Fix the sample 'geoip.conf' for Debian-based packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9419, 9430
+
+    sdig: Increment the DNS message IDs when pipelining, report ID mismatches
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9408
+
+    Fix building with LLVM11 (RvdE)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9157
+
+    Add support for FreeBSD's SO_REUSEPORT_LB
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9101
+
+    LUA records: two improvements to createForward
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8824
+
+    Allow forced secondary zone retrieval
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8928
+
+    Ensure qtype is set before calling setContent() in axfrfilter()
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7963
+
+    Add a new command to add a super-master to SQL backends (Godwottery)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8564, 8565
+
+    geoipbackend: top looking after first weighted match, propagate weighted rounding gap fix (criteo-forks)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8623
+
+    Make a combination of delete and replace for rrset possible (jonathaneen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9340
+
+    Auth API: Allow removal of NSEC3PARAM metadata
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9218
+
+    log more pdns_control actions (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9318
+
+    gsqlbackend: allow backend-specific queries (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9265
+
+    add used master address to slave check logs (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9280
+
+    immediately fill account, kind, masters on zone create (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9169
+
+    fetch all metadata at once (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9252
+
+    Add version 'statistic' to prometheus
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9253
+    :issues: 4973
+
+    pdnsutil: make sure we let all destructors run.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9215
+
+    PKCS11 improvements
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9189
+
+    gpgsqlbackend: add parameters to query logging (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9187
+
+    Set SyslogIdentifier for multiple instances (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9183
+
+    API: Allow rectifying Slave zones (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9182
+
+    Implemented prometheus metrics-endpoint for auth (supervacuus)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9163
+
+    Optimize IXFR-to-AXFR fallback path (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8943
+
+    Remote Backend: Throw DBException in functions that allow it
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9073
+
+    Ensure runtime dirs for virtual services differ
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9080
+
+    better (actual) fix for mem leak in SSQLite3::execute()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9069
+
+    Avoid "pthread_rwlock_destroy on rwlock with waiters!" on OpenBSD
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9060
+
+    BIND-DOMAIN-EXTENDED-STATUS: don't look for a domain called BIND-DOMAIN-EXTENDED-STATUS
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9024
+
+    auth smysql: mimic error message format from mysql tooling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8975
+
+    improve sql schema updates (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8939, 8925
+
+    NSEC fixes for unpublished DNSKEY (RobinGeuze)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8929
+
+    make sure we look at 10% of all cached items during cleanup (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8714
+
+    Reduce the number of temporary memory allocations
+
