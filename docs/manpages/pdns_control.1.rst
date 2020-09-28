@@ -77,7 +77,7 @@ when the server is running in guardian mode.
 list
 ^^^^
 
-Dump all variables and their values in a comma separated list,
+Dump all statistics and their values in a comma separated list,
 equivalent to ``show *``.
 
 list-zones [master,slave,native]
@@ -160,11 +160,17 @@ set *VARIABLE* *VALUE*
 Set the configuration parameter *VARIABLE* to *VALUE*. Currently
 only the query-logging can be set.
 
-show *VARIABLE*
-^^^^^^^^^^^^^^^
+show *STATISTIC*
+^^^^^^^^^^^^^^^^
 
 Show a single statistic, as present in the output of the list
 command.
+
+show *STATISTIC-PREFIX*\*
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Show all statistics which names start with the supplied *STATISTIC-PREFIX*,
+as a comma-separated list. Only one (ending) wildcard is allowed.
 
 status
 ^^^^^^
