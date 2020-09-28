@@ -92,7 +92,7 @@ class SvcParam {
     std::set<SvcParamKey> d_mandatory; // For mandatory
     std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
     std::string d_echconfig; // For echconfig
-    uint16_t d_port; // For port
+    uint16_t d_port{0}; // For port
 
     static const std::map<std::string, SvcParamKey> SvcParams;
 };
