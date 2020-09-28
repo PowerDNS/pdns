@@ -1005,6 +1005,10 @@ static void setupLuaConfig(bool client, bool configCheck)
 	g_consoleKey=newkey;
     });
 
+  g_lua.writeFunction("clearConsoleHistory", []() {
+      clearConsoleHistory();
+    });
+
   g_lua.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
    {
      setLuaNoSideEffect();
