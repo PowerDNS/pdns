@@ -394,11 +394,6 @@ static string doDumpFailedServers(T begin, T end)
   return "dumped "+std::to_string(total)+" records\n";
 }
 
-uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree, uint16_t qtype)
-{
-  return new uint64_t(s_RC->doWipeCache(canon, subtree));
-}
-
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
 {
   return new uint64_t(t_packetCache->doWipePacketCache(canon, qtype, subtree));
@@ -436,7 +431,7 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
   int count=0, pcount=0, countNeg=0;
   for (auto wipe : toWipe) {
     try {
-      count+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipeCache(wipe.first, wipe.second, qtype);});
+      count+= s_RC->doWipeCache(wipe.first, wipe.second, qtype);
       pcount+= broadcastAccFunction<uint64_t>([=]{ return pleaseWipePacketCache(wipe.first, wipe.second, qtype);});
       countNeg+=broadcastAccFunction<uint64_t>([=]{ return pleaseWipeAndCountNegCache(wipe.first, wipe.second);});
     }
@@ -544,7 +539,7 @@ static string doAddNTA(T begin, T end)
       lci.negAnchors[who] = why;
       });
   try {
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(who, true, 0xffff);});
+    s_RC->doWipeCache(who, true, 0xffff);
     broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
     broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(who, true);});
   }
@@ -598,7 +593,7 @@ static string doClearNTA(T begin, T end)
       g_luaconfs.modify([entry](LuaConfigItems& lci) {
                           lci.negAnchors.erase(entry);
                         });
-      broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
+      s_RC->doWipeCache(entry, true, 0xffff);
       broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
       broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
       if (!first) {
@@ -661,7 +656,7 @@ static string doAddTA(T begin, T end)
       auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[who].insert(*ds);
       });
-    broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(who, true, 0xffff);});
+    s_RC->doWipeCache(who, true, 0xffff);
     broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
     broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(who, true);});
     g_log<<Logger::Warning<<endl;
@@ -708,7 +703,7 @@ static string doClearTA(T begin, T end)
       g_luaconfs.modify([entry](LuaConfigItems& lci) {
                           lci.dsAnchors.erase(entry);
                         });
-      broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(entry, true, 0xffff);});
+      s_RC->doWipeCache(entry, true, 0xffff);
       broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
       broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(entry, true);});
       if (!first) {
