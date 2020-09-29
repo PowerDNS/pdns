@@ -1344,6 +1344,9 @@ In the default configuration this means that IPv6 is not used for outgoing queri
 .. deprecated:: 4.4.0
   Use :ref:`setting-query-local-address` for IPv4 and IPv6.
 
+.. deprecated:: 4.5.0
+  Removed, use :ref:`setting-query-local-address`.
+
 -  IPv6 addresses, comma separated
 -  Default: unset
 
