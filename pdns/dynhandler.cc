@@ -96,6 +96,8 @@ string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid) {
     if (parts.size() == 2) {
       if (parts[1] == "*")
         ret = S.directory();
+      else if (parts[1].length() && parts[1][parts[1].length() - 1 ] == '*')
+        ret = S.directory(parts[1].substr(0, parts[1].length() - 1));
       else
         ret = S.getValueStr(parts[1]);
     }
