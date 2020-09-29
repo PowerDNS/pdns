@@ -10,6 +10,7 @@ class TestTrailingDataToBackend(DNSDistTest):
     # responders allow trailing data and we don't want
     # to mix things up.
     _testServerPort = 5360
+    _verboseMode = True
     _config_template = """
     newServer{address="127.0.0.1:%s"}
 
@@ -163,6 +164,7 @@ class TestTrailingDataToBackend(DNSDistTest):
             self.assertEquals(receivedResponse, expectedResponse)
 
 class TestTrailingDataToDnsdist(DNSDistTest):
+    _verboseMode = True
     _config_template = """
     newServer{address="127.0.0.1:%s"}
 
@@ -171,6 +173,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
     function removeTrailingData(dq)
         local success = dq:setTrailingData("")
         if not success then
+            print("Trailing removal failed")
             return DNSAction.ServFail, ""
         end
         return DNSAction.None, ""

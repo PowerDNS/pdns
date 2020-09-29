@@ -202,6 +202,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             try:
                 request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
             except dns.message.TrailingJunk as e:
+                print('trailing data exception in UDPResponder')
                 if trailingDataResponse is False or forceRcode is True:
                     raise
                 print("UDP query with trailing data, synthesizing response")
