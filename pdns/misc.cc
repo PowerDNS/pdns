@@ -1107,7 +1107,9 @@ string getMACAddress(const ComboAddress& ca)
       if(parts.size() < 4)
         return ret;
       unsigned int tmp[6];
-      sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5);
+      if (sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5) != 6) {
+        return ret;
+      }
       for(int i = 0 ; i< 6 ; ++i)
         ret.append(1, (char)tmp[i]);
       return ret;
