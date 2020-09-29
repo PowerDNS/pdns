@@ -382,9 +382,9 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
   bool subtree = (req->getvars.count("subtree") > 0 && req->getvars["subtree"].compare("true") == 0);
 
-  int count = broadcastAccFunction<uint64_t>([=]{return pleaseWipeCache(canon, subtree, 0xffff);});
+  int count = g_recCache->doWipeCache(canon, subtree, 0xffff);
   count += broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(canon, subtree, 0xffff);});
-  count += broadcastAccFunction<uint64_t>([=]{return pleaseWipeAndCountNegCache(canon, subtree);});
+  count += g_negCache->wipe(canon, subtree);
   resp->setBody(Json::object {
     { "count", count },
     { "result", "Flushed cache." }
