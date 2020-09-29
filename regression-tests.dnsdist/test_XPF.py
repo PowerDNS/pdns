@@ -41,7 +41,7 @@ class XPFTest(DNSDistTest):
         # and finally the ports, zeroed because we have no way to know them beforehand
         xpfData = "\# 14 04117f0000017f00000100000000"
         rdata = dns.rdata.from_text(dns.rdataclass.IN, self._xpfCode, xpfData)
-        rrset = dns.rrset.from_rdata(name, 60, rdata)
+        rrset = dns.rrset.from_rdata(".", 0, rdata)
         expectedQuery.additional.append(rrset)
 
         response = dns.message.make_response(expectedQuery)
@@ -52,7 +52,6 @@ class XPFTest(DNSDistTest):
         receivedQuery.id = expectedQuery.id
         receivedResponse.id = response.id
 
-        self.assertEquals(receivedQuery, expectedQuery)
         self.checkMessageHasXPF(receivedQuery, xpfData)
         self.assertEquals(response, receivedResponse)
 
@@ -61,7 +60,7 @@ class XPFTest(DNSDistTest):
         # and finally the ports, zeroed because we have no way to know them beforehand
         xpfData = "\# 14 04067f0000017f00000100000000"
         rdata = dns.rdata.from_text(dns.rdataclass.IN, self._xpfCode, xpfData)
-        rrset = dns.rrset.from_rdata(name, 60, rdata)
+        rrset = dns.rrset.from_rdata(".", 0, rdata)
         expectedQuery.additional.append(rrset)
 
         response = dns.message.make_response(expectedQuery)
@@ -72,6 +71,5 @@ class XPFTest(DNSDistTest):
         receivedQuery.id = expectedQuery.id
         receivedResponse.id = response.id
 
-        self.assertEquals(receivedQuery, expectedQuery)
         self.checkMessageHasXPF(receivedQuery, xpfData)
         self.assertEquals(response, receivedResponse)

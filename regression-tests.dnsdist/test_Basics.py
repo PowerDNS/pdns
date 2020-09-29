@@ -161,10 +161,9 @@ class TestBasics(DNSDistTest):
         """
         name = 'atruncatetc.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
-        response = dns.message.make_response(query)
         # force a different responder payload than the one in the query,
         # so we check that we don't just mirror it
-        response.payload = 4242
+        response = dns.message.make_response(query, our_payload=4242)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -173,8 +172,7 @@ class TestBasics(DNSDistTest):
 
         response.answer.append(rrset)
         response.flags |= dns.flags.TC
-        expectedResponse = dns.message.make_response(query)
-        expectedResponse.payload = 4242
+        expectedResponse = dns.message.make_response(query, our_payload=4242)
         expectedResponse.flags |= dns.flags.TC
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
