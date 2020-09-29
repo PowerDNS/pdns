@@ -35,6 +35,7 @@ Requirements:
 from __future__ import print_function
 from __future__ import division
 
+import math
 import socket
 import struct
 import dns
@@ -125,7 +126,7 @@ class ClientSubnetOption(dns.edns.Option):
         """" Determines whether this instance is using the draft option code """
         return self.option == DRAFT_OPTION_CODE
 
-    def to_wire(self, file):
+    def to_wire(self, file=None):
         """Create EDNS packet as defined in draft-vandergaast-edns-client-subnet-01."""
 
         ip = self.calculate_ip()
@@ -142,7 +143,10 @@ class ClientSubnetOption(dns.edns.Option):
 
         format = "!HBB%ds" % (mask_bits // 8)
         data = struct.pack(format, self.family, self.mask, self.scope, test)
-        file.write(data)
+        if file:
+            file.write(data)
+        else:
+            return data
 
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-vandergaast-edns-client-subnet-01.
@@ -172,6 +176,23 @@ class ClientSubnetOption(dns.edns.Option):
         return cls(ip, mask, scope, otype)
 
     from_wire = classmethod(from_wire)
+
+    # needed in 2.0.0..
+    @classmethod
+    def from_wire_parser(cls, otype, parser):
+        family, src, scope = parser.get_struct('!HBB')
+        addrlen = int(math.ceil(src / 8.0))
+        prefix = parser.get_bytes(addrlen)
+        if family == 1:
+            pad = 4 - addrlen
+            addr = dns.ipv4.inet_ntoa(prefix + b'\x00' * pad)
+        elif family == 2:
+            pad = 16 - addrlen
+            addr = dns.ipv6.inet_ntoa(prefix + b'\x00' * pad)
+        else:
+            raise ValueError('unsupported family')
+
+        return cls(addr, src, scope, otype)
 
     def __repr__(self):
         if self.family == FAMILY_IPV4:
