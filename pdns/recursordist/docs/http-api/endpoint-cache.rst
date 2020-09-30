@@ -12,6 +12,10 @@ Cache manipulation endpoint
 
   :query subtree: If set to `true`, also flush the whole subtree (default = `false`)
 
+  .. versionadded:: 4.4.0
+
+  :query type: If set only flush records of the specified type name.
+
   **Example Response:**
 
   .. code-block:: json
