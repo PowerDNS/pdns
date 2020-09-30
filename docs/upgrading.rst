@@ -29,9 +29,6 @@ New LMDB schema
 An LMDB schema upgrade is mandatory.
 Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4.x.
 
-FIXME: 4.3.1 docs failed to mention #9233 (gsqlite3: add missing indexes)
-
-
 4.3.0 to 4.3.1
 --------------
 
@@ -40,6 +37,11 @@ This change was made because the default MySQL implementation for RHEL8 is Maria
 The mariadb client lib will connect to your existing MySQL servers without trouble.
 
 Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil check-all-zones`` to review your zone contents.
+
+The previous set of indexes for the gsqlite3 backend was found to be poor.
+4.3.1 ships a new schema, and a migration:
+
+.. literalinclude:: ../modules/gsqlite3backend/4.3.0_to_4.3.1_schema.sqlite3.sql
 
 4.2.x to 4.3.0
 --------------
