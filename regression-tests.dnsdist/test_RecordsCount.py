@@ -71,6 +71,12 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
                                                     '127.0.0.1'))
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
+        # this is not great, we should fix that!
+        expectedResponse.additional.append(dns.rrset.from_text(name,
+                                                               3600,
+                                                               dns.rdataclass.IN,
+                                                               dns.rdatatype.A,
+                                                               '127.0.0.1'))
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)

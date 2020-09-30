@@ -945,7 +945,7 @@ bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone,
 
   dq.dh->arcount = htons(1);
 
-  if (g_addEDNSToSelfGeneratedResponses) {
+  if (hadEDNS) {
     /* now we need to add a new OPT record */
     return addEDNS(dq.dh, dq.len, dq.size, dnssecOK, g_PayloadSizeSelfGenAnswers, dq.ednsRCode);
   }
