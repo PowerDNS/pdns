@@ -101,6 +101,12 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_loop)
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
+  // We only do v4, this avoids "beenthere" non-deterministic behavour. If we do both v4 and v6, there are multiple IPs
+  // per (root) nameserver, and the "beenthere" loop detection is influenced by the particular address family selected.
+  // To see the non-deterministic behaviour, uncomment the line below (you'll be seeing around 21-24 queries).
+  // See #9565
+  SyncRes::s_doIPv6 = false;
+
   primeHints();
 
   const DNSName target1("powerdns.com.");
@@ -153,9 +159,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_loop)
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
-  // Due to some non-deterministic behaviour in the recursor, this number varies.
-  // Investigate! See #9565
-  //BOOST_CHECK_EQUAL(queriesToNS, 22U);
+  BOOST_CHECK_EQUAL(queriesToNS, 16U);
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_qperq)
