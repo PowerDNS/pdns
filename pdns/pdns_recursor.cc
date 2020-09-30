@@ -4199,11 +4199,6 @@ static int serviceMain(int argc, char*argv[])
   checkLinuxIPv6Limits();
   try {
     pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
-    if (!::arg()["query-local-address6"].empty()) {
-      // TODO remove in 4.5.0
-      g_log<<Logger::Warning<<"query-local-address6 is deprecated and will be removed in a future version. Please use query-local-address for IPv6 addresses as well"<<endl;
-      pdns::parseQueryLocalAddress(::arg()["query-local-address6"]);
-    }
   }
   catch(std::exception& e) {
     g_log<<Logger::Error<<"Assigning local query addresses: "<<e.what();
@@ -5069,7 +5064,6 @@ int main(int argc, char **argv)
 #endif
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
-    ::arg().set("query-local-address6","DEPRECATED: Use query-local-address for IPv6 as well. Source IPv6 address for sending queries. IF UNSET, IPv6 WILL NOT BE USED FOR OUTGOING QUERIES")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
