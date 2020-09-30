@@ -22,6 +22,10 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+/* we need this on centos 6 for SCNu32, don't ask */
+#define __STDC_FORMAT_MACROS
+
 #include "ascii.hh"
 #include "dnsparser.hh"
 #include "sstuff.hh"
