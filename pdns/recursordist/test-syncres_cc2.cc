@@ -105,8 +105,11 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_loop)
 
   const DNSName target1("powerdns.com.");
   const DNSName target2("powerdns.org.");
+  size_t queriesToNS = 0;
 
-  sr->setAsyncCallback([target1, target2](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target1, target2, &queriesToNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesToNS++;
+
     if (isRootServer(ip)) {
       setLWResult(res, 0, false, false, true);
 
@@ -150,6 +153,9 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_loop)
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
   BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+  // Due to some non-deterministic behaviour in the recursor, this number varies.
+  // Investigate! See #9565
+  //BOOST_CHECK_EQUAL(queriesToNS, 22U);
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_qperq)
