@@ -336,7 +336,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       d_templatestep=1;
       d_templatestop=0;
 #if !defined(SCNu32)
-      static_assert(sizeof(unsiged int) == 4, "define SCNu32");
+      static_assert(sizeof(unsigned int) == 4, "define SCNu32");
       #define SCNu32 "u"
 #endif
       int extracted = sscanf(range.c_str(),"%" SCNu32 "-%" SCNu32 "/%" SCNu32, &d_templatecounter, &d_templatestop, &d_templatestep);
