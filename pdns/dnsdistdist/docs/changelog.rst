@@ -31,6 +31,12 @@ Changelog
 
     Fix building with LLVM11 (@RvdE)
 
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9555
+
+    Only add EDNS on negative answers if the query had EDNS
+
 .. changelog::
   :version: 1.5.0
   :released: 30th of July 2020
