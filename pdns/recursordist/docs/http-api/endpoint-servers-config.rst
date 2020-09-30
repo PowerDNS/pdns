@@ -1,6 +1,3 @@
-Configuration endpoint
-======================
-
 .. include:: ../common/api/endpoint-servers-config.rst
 
 .. http:put:: /api/v1/servers/:server_id/config/:config_setting_name
