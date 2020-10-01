@@ -11,17 +11,23 @@ upgrade notes if your version is older than 3.4.2.
 4.3.x to 4.4.0
 --------------
 
-``IPSECKEY`` change on secondaries
+Record type changes on secondaries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The in-database format of the ``IPSECKEY`` has changed from 'generic' format to its specialized format.
-It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have ``IPSECKEY`` or ``TYPE45`` records.
+The in-database format of the ``IPSECKEY``, ``SVCB``, ``HTTPS`` and ``APL`` records has changed from 'generic' format to its specialized format.
+It is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have records of those types, or ``TYPExx``, for numbers 42, 45, 64, 65.
 
 PostgreSQL configuration escaping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We now correctly quote/escape Postgres connection parameters.
 If you used single quotes (or some other form of escaping) around your Postgres password because it contained spaces, you now need to put your unmodified, unescaped, unquoted password in your configuration.
+
+New LMDB schema
+^^^^^^^^^^^^^^^
+
+An LMDB schema upgrade is mandatory.
+Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4.x.
 
 4.3.0 to 4.3.1
 --------------
@@ -31,6 +37,11 @@ This change was made because the default MySQL implementation for RHEL8 is Maria
 The mariadb client lib will connect to your existing MySQL servers without trouble.
 
 Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil check-all-zones`` to review your zone contents.
+
+The previous set of indexes for the gsqlite3 backend was found to be poor.
+4.3.1 ships a new schema, and a migration:
+
+.. literalinclude:: ../modules/gsqlite3backend/4.3.0_to_4.3.1_schema.sqlite3.sql
 
 4.2.x to 4.3.0
 --------------

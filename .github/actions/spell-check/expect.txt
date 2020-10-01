@@ -364,6 +364,7 @@ cppcheck
 createdb
 createslavedomain
 Cremers
+criteo
 CRn
 cron
 Cruft
@@ -639,6 +640,7 @@ execfile
 Exort
 externalrefs
 extrahead
+Exx
 Ezb
 Ezbu
 ezdns
@@ -776,6 +778,7 @@ gmysqlbackend
 gnutls
 godbc
 godbcbackend
+Godwottery
 goodmatch
 google
 googleapis
@@ -816,6 +819,7 @@ hardcoded
 hardcoding
 hardlink
 Harker
+Hausberger
 headbgcolor
 headerlink
 headfont
@@ -954,6 +958,7 @@ Jeroen
 jessie
 jj
 Joaqu
+jonathaneen
 Jong
 Jorn
 journalctl
@@ -1190,6 +1195,7 @@ minbody
 mindex
 MINFO
 minipatch
+Mischan
 misconfigured
 mjt
 mkuchar
@@ -1879,6 +1885,7 @@ stutiredboy
 stylesheet
 subdomain
 subkey
+submitters
 subnetmask
 sudo
 suffixmatchtree
@@ -1888,9 +1895,11 @@ supernotification
 supersecretpassword
 superslave
 superslaving
+supervacuus
 supervisord
 Surfnet
 SUSE
+SVCB
 swapcontext
 swe
 swoga
@@ -1968,6 +1977,7 @@ toint
 tokenuser
 tolower
 Tolstov
+Toosarani
 Toshifumi
 tostring
 Travaille
