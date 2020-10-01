@@ -74,7 +74,8 @@ package if you need a dns cache for your network.
     --enable-unit-tests \
 %if 0%{?rhel} == 6
     --without-protobuf \
-    --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
+    --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148 \
+    CPPFLAGS=-D__STDC_FORMAT_MACROS
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 %else
