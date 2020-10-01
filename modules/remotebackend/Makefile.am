@@ -37,11 +37,11 @@ clean-local:
 pkglib_LTLIBRARIES = libremotebackend.la
 
 libremotebackend_la_SOURCES = \
-	remotebackend.hh \
-	remotebackend.cc \
-	unixconnector.cc \
 	httpconnector.cc \
 	pipeconnector.cc \
+	remotebackend.cc \
+	remotebackend.hh \
+	unixconnector.cc \
 	zmqconnector.cc
 
 libremotebackend_la_LDFLAGS = -module -avoid-version
@@ -99,6 +99,8 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/auth-querycache.cc ../../pdns/auth-querycache.hh \
 	../../pdns/base32.cc \
 	../../pdns/base64.cc \
+	../../pdns/dns.hh ../../pdns/dns.cc \
+	../../pdns/dns_random_urandom.cc \
 	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
 	../../pdns/dnslabeltext.cc \
 	../../pdns/dnsname.cc ../../pdns/dnsname.hh \
@@ -106,31 +108,29 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/dnsparser.cc \
 	../../pdns/dnsrecords.cc \
 	../../pdns/dnssecinfra.cc \
-	../../pdns/ednssubnet.cc \
+	../../pdns/dnswriter.cc \
 	../../pdns/ednsoptions.cc ../../pdns/ednsoptions.hh \
+	../../pdns/ednssubnet.cc \
 	../../pdns/iputils.cc \
+	../../pdns/json.hh ../../pdns/json.cc \
 	../../pdns/logger.cc \
 	../../pdns/misc.cc \
+	../../pdns/nameserver.cc \
 	../../pdns/nsecrecords.cc \
 	../../pdns/packetcache.hh \
 	../../pdns/qtype.cc \
+	../../pdns/rcpgenerator.cc \
+	../../pdns/shuffle.hh ../../pdns/shuffle.cc \
 	../../pdns/sillyrecords.cc \
 	../../pdns/statbag.cc \
-	../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
-	../../pdns/dns.hh ../../pdns/dns.cc \
-	../../pdns/dns_random_urandom.cc \
-	../../pdns/dnswriter.cc \
-	../../pdns/nameserver.cc \
-	../../pdns/rcpgenerator.cc \
-	../../pdns/unix_utility.cc \
 	../../pdns/svc-records.cc ../../pdns/svc-records.hh \
-	../../pdns/json.hh ../../pdns/json.cc \
-	../../pdns/shuffle.hh ../../pdns/shuffle.cc \
+	../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
+	../../pdns/unix_utility.cc \
 	httpconnector.cc \
 	pipeconnector.cc \
+	remotebackend.hh remotebackend.cc \
 	unixconnector.cc \
-	zmqconnector.cc \
-	remotebackend.hh remotebackend.cc
+	zmqconnector.cc
 
 libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
 
@@ -162,43 +162,43 @@ libtestremotebackend_la_CPPFLAGS += \
 endif
 
 remotebackend_http_test_SOURCES = \
-	test-remotebackend.cc \
 	test-remotebackend-http.cc \
-	test-remotebackend-keys.hh
+	test-remotebackend-keys.hh \
+	test-remotebackend.cc
 
 remotebackend_http_test_LDADD = libtestremotebackend.la
 
 remotebackend_json_test_SOURCES = \
-	test-remotebackend.cc \
 	test-remotebackend-json.cc \
-	test-remotebackend-keys.hh
+	test-remotebackend-keys.hh \
+	test-remotebackend.cc
 
 remotebackend_json_test_LDADD = libtestremotebackend.la
 
 remotebackend_pipe_test_SOURCES = \
-	test-remotebackend.cc \
+	test-remotebackend-keys.hh \
 	test-remotebackend-pipe.cc \
-	test-remotebackend-keys.hh 
+	test-remotebackend.cc
 
 remotebackend_pipe_test_LDADD = libtestremotebackend.la
 
 remotebackend_post_test_SOURCES = \
-	test-remotebackend.cc \
+	test-remotebackend-keys.hh \
 	test-remotebackend-post.cc \
-	test-remotebackend-keys.hh
+	test-remotebackend.cc
 
 remotebackend_post_test_LDADD = libtestremotebackend.la
 
 remotebackend_unix_test_SOURCES = \
-	test-remotebackend.cc \
+	test-remotebackend-keys.hh \
 	test-remotebackend-unix.cc \
-	test-remotebackend-keys.hh
+	test-remotebackend.cc
 
 remotebackend_unix_test_LDADD = libtestremotebackend.la
 
 remotebackend_zeromq_test_SOURCES = \
-	test-remotebackend.cc \
+	test-remotebackend-keys.hh \
 	test-remotebackend-zeromq.cc \
-	test-remotebackend-keys.hh
+	test-remotebackend.cc
 
 remotebackend_zeromq_test_LDADD = libtestremotebackend.la

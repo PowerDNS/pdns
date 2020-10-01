@@ -123,33 +123,32 @@ dnsdist_SOURCES = \
 	circular_buffer.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
-	dnsdist.cc dnsdist.hh \
 	dnsdist-backend.cc \
-	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
+	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.cc \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
-	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
-	dnsdist-lua-bindings.cc \
 	dnsdist-lua-bindings-dnscrypt.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-bindings-kvs.cc \
 	dnsdist-lua-bindings-packetcache.cc \
 	dnsdist-lua-bindings-protobuf.cc \
-	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
+	dnsdist-lua-bindings.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
-	dnsdist-lua-inspection.cc \
+	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
+	dnsdist-lua-inspection.cc \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
+	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
@@ -161,15 +160,22 @@ dnsdist_SOURCES = \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc dnsdist-web.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
+	dnsdist.cc dnsdist.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
+	dnstap.cc dnstap.hh \
 	dnswriter.cc dnswriter.hh \
 	doh.hh doh.cc \
 	dolog.hh \
-	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
+	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ext/incbin/incbin.h \
+	ext/json11/json11.cpp \
+	ext/json11/json11.hpp \
+	ext/libbpf/libbpf.h \
+	ext/luawrapper/include/LuaContext.hpp \
 	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
 	htmlfiles.h \
@@ -181,32 +187,68 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	packetcache.hh \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	proxy-protocol.cc proxy-protocol.hh \
-	dnstap.cc dnstap.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
-	pollmplexer.cc \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
-	svc-records.cc svc-records.hh \
 	statnode.cc statnode.hh \
+	svc-records.cc svc-records.hh \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
 	views.hh \
-	xpf.cc xpf.hh \
-	ext/luawrapper/include/LuaContext.hpp \
-	ext/json11/json11.cpp \
-	ext/json11/json11.hpp \
-	ext/incbin/incbin.h \
-	ext/libbpf/libbpf.h
+	xpf.cc xpf.hh
 
 testrunner_SOURCES = \
 	base64.hh \
+	bpf-filter.cc bpf-filter.hh \
+	cachecleaner.hh \
+	circular_buffer.hh \
 	dns.hh \
+	dnscrypt.cc dnscrypt.hh \
+	dnsdist-backend.cc \
+	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
+	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
+	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-kvs.cc dnsdist-kvs.hh \
+	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
+	dnsdist-lua-bindings-dnsquestion.cc \
+	dnsdist-lua-bindings-kvs.cc \
+	dnsdist-lua-bindings.cc \
+	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
+	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
+	dnsdist-lua-vars.cc \
+	dnsdist-rings.hh \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
+	dnsdist.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.hh dnsparser.cc \
+	dnswriter.cc dnswriter.hh \
+	dolog.hh \
+	ednscookies.cc ednscookies.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
+	ext/luawrapper/include/LuaContext.hpp \
+	gettime.cc gettime.hh \
+	iputils.cc iputils.hh \
+	misc.cc misc.hh \
+	namespaces.hh \
+	pdnsexception.hh \
+	pollmplexer.cc \
+	proxy-protocol.cc proxy-protocol.hh \
+	qtype.cc qtype.hh \
+	sholder.hh \
+	sodcrypto.cc \
+	sstuff.hh \
+	statnode.cc statnode.hh \
+	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
@@ -221,52 +263,10 @@ testrunner_SOURCES = \
 	test-iputils_hh.cc \
 	test-mplexer.cc \
 	test-proxy_protocol_cc.cc \
-	bpf-filter.cc bpf-filter.hh \
-	cachecleaner.hh \
-	circular_buffer.hh \
-	dnsdist.hh \
-	dnsdist-backend.cc \
-	dnsdist-cache.cc dnsdist-cache.hh \
-	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
-	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
-	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-kvs.cc dnsdist-kvs.hh \
-	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
-	dnsdist-lua-bindings.cc \
-	dnsdist-lua-bindings-dnsquestion.cc \
-	dnsdist-lua-bindings-kvs.cc \
-	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
-	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
-	dnsdist-lua-vars.cc \
-	dnsdist-rings.hh \
-	dnsdist-xpf.cc dnsdist-xpf.hh \
-	dnscrypt.cc dnscrypt.hh \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.hh dnsparser.cc \
-	dnswriter.cc dnswriter.hh \
-	dolog.hh \
-	ednsoptions.cc ednsoptions.hh \
-	ednscookies.cc ednscookies.hh \
-	ednssubnet.cc ednssubnet.hh \
-	gettime.cc gettime.hh \
-	iputils.cc iputils.hh \
-	misc.cc misc.hh \
-	namespaces.hh \
-	pdnsexception.hh \
-	pollmplexer.cc \
-	proxy-protocol.cc proxy-protocol.hh \
-	qtype.cc qtype.hh \
-	sholder.hh \
-	sodcrypto.cc \
-	sstuff.hh \
-	statnode.cc statnode.hh \
-	svc-records.cc svc-records.hh \
-	threadname.hh threadname.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
-	xpf.cc xpf.hh \
-	ext/luawrapper/include/LuaContext.hpp
+	xpf.cc xpf.hh
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
