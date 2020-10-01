@@ -54,14 +54,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
           addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
         }
       }
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (type == QType::DNSKEY) {
       if (domain == g_rootdnsname || domain == DNSName("sub.powerdns.com.")) {
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
         addNSECRecordToLW(DNSName("com."), DNSName("dom."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
           addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -108,11 +108,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
           addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
           addRRSIG(keys, res->d_records, DNSName("sub.powerdns.com."), 300);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         addNSECRecordToLW(domain, DNSName("z.powerdns.com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
@@ -174,12 +174,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         if (type == QType::NS) {
@@ -218,11 +218,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
           setLWResult(res, 0, true, false, true);
           addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         addNSECRecordToLW(domain, DNSName("z.power-dns.com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
@@ -289,12 +289,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         setLWResult(res, 0, false, false, true);
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
 
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -352,11 +352,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
           }
         }
 
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -408,7 +408,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         addNSECRecordToLW(domain, DNSName("z.power-dns.com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         setLWResult(res, 0, false, false, true);
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
 
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -475,11 +475,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
           }
         }
 
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -530,7 +530,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         addNSECRecordToLW(domain, DNSName("z.power-dns.com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
@@ -541,12 +541,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -556,7 +556,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -578,7 +578,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -601,11 +601,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
             addRRSIG(keys, res->d_records, domain, 300);
           }
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -677,7 +677,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -697,11 +697,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
             addRRSIG(keys, res->d_records, domain, 300);
           }
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -756,7 +756,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -773,7 +773,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -793,11 +793,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
             /* No RRSIG, leading to bogus */
           }
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -852,7 +852,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -869,7 +869,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -889,11 +889,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
             addRRSIG(keys, res->d_records, domain, 300);
           }
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -945,7 +945,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
         addNSECRecordToLW(domain, DNSName("z.power-dns.com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("com."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
@@ -956,12 +956,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -971,7 +971,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
         addDS(DNSName("com."), 300, res->d_records, keys);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == DNSName("com.")) {
@@ -993,7 +993,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -1010,11 +1010,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
             addRecordToLW(res, domain, QType::A, targetCNameAddr.toString());
           }
         }
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1064,12 +1064,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (domain == DNSName("com.")) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::SOA, ". yop. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -1079,7 +1079,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
         addNSECRecordToLW(DNSName("com."), DNSName("com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (target == domain) {
@@ -1092,7 +1092,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
           addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
           addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -1103,11 +1103,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
           addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
         }
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1160,12 +1160,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig)
         setLWResult(res, 0, true, false, true);
         addDNSKEY(keys, domain, 300, res->d_records);
         addRRSIG(keys, res->d_records, domain, 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (domain == DNSName("com.")) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::SOA, ". yop. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
     else {
@@ -1175,7 +1175,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig)
         addNSECRecordToLW(DNSName("com."), DNSName("com."), {QType::NS}, 600, res->d_records);
         addRRSIG(keys, res->d_records, DNSName("."), 300);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
         if (target == domain) {
@@ -1188,7 +1188,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig)
           addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
           addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
         }
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (domain == target && ip == ComboAddress("192.0.2.2:53")) {
         setLWResult(res, 0, true, false, true);
@@ -1199,11 +1199,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig)
           addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
         }
         /* No RRSIG in a now (thanks to TA) Secure zone -> Bogus*/
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1263,7 +1263,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1271,10 +1271,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta)
 
       /* No DNSKEY */
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1327,10 +1327,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ta)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1379,10 +1379,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata)
     else {
 
       setLWResult(res, 0, true, false, true);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1432,10 +1432,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
     else {
 
       setLWResult(res, RCode::NXDomain, true, false, true);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;

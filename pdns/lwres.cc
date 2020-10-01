@@ -220,11 +220,10 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
 }
 #endif /* HAVE_PROTOBUF */
 
-//! returns -2 for OS limits error, -1 for permanent error that has to do with remote **transport**, 0 for timeout, 1 for success
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
+LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
@@ -270,7 +269,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   }
   lwr->d_rcode = 0;
   lwr->d_haveEDNS = false;
-  int ret;
+  LWResult::Result ret;
 
   DTime dt;
   dt.set();
@@ -296,12 +295,15 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   if(!doTCP) {
     int queryfd;
-    if(ip.sin4.sin_family==AF_INET6)
+    if (ip.sin4.sin_family==AF_INET6) {
       g_stats.ipv6queries++;
+    }
 
-    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid,
-                    domain, type, &queryfd)) < 0) {
-      return ret; // passes back the -2 EMFILE
+    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid,
+                  domain, type, &queryfd);
+
+    if (ret != LWResult::Result::Success) {
+      return ret;
     }
 
     if (queryfd == -1) {
@@ -309,9 +311,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     }
 
     // sleep until we see an answer to this, interface to mtasker
-    
-    ret=arecvfrom(buf, 0, ip, &len, qid,
-                  domain, type, queryfd, now);
+    ret = arecvfrom(buf, 0, ip, &len, qid,
+                    domain, type, queryfd, now);
   }
   else {
     try {
@@ -328,30 +329,32 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       char *lenP=(char*)&tlen;
       const char *msgP=(const char*)&*vpacket.begin();
       string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
-      
-      ret=asendtcp(packet, &s);
-      if(!(ret>0))           
+      ret = asendtcp(packet, &s);
+      if (ret != LWResult::Result::Success) {
         return ret;
+      }
       
       packet.clear();
-      ret=arecvtcp(packet, 2, &s, false);
-      if(!(ret > 0))
+      ret = arecvtcp(packet, 2, &s, false);
+      if (ret != LWResult::Result::Success) {
         return ret;
-      
+      }
+
       memcpy(&tlen, packet.c_str(), sizeof(tlen));
       len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
-      
-      ret=arecvtcp(packet, len, &s, false);
-      if(!(ret > 0))
+
+      ret = arecvtcp(packet, len, &s, false);
+      if (ret != LWResult::Result::Success) {
         return ret;
-      
+      }
+
       buf.resize(len);
       memcpy(const_cast<char*>(buf.data()), packet.c_str(), len);
 
-      ret=1;
+      ret = LWResult::Result::Success;
     }
-    catch(NetworkError& ne) {
-      ret = -2; // OS limits error
+    catch (const NetworkError& ne) {
+      ret = LWResult::Result::OSLimitError; // OS limits error
     }
   }
 
@@ -359,7 +362,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   lwr->d_usec=dt.udiff();
   *now=dt.getTimeval();
 
-  if(ret <= 0) { // includes 'timeout'
+  if (ret != LWResult::Result::Success) { // includes 'timeout'
 #ifdef HAVE_PROTOBUF
       if (outgoingLoggers) {
         logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, 0, -1, {}, queryTime, exportTypes);
@@ -390,8 +393,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
         logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
       }
 #endif
-      lwr->d_validpacket=true;
-      return 1; // this is "success", the error is set in lwr->d_rcode
+      lwr->d_validpacket = true;
+      return LWResult::Result::Success; // this is "success", the error is set in lwr->d_rcode
     }
 
     if(domain != mdp.d_qname) { 
@@ -436,32 +439,38 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 #endif
-    lwr->d_validpacket=true;
-    return 1;
+
+    lwr->d_validpacket = true;
+    return LWResult::Result::Success;
   }
-  catch(std::exception &mde) {
-    if(::arg().mustDo("log-common-errors"))
+  catch (const std::exception &mde) {
+    if (::arg().mustDo("log-common-errors")) {
       g_log<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
+    }
+
     lwr->d_rcode = RCode::FormErr;
+    lwr->d_validpacket = false;
     g_stats.serverParseError++;
+
 #ifdef HAVE_PROTOBUF
     if(outgoingLoggers) {
       logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 #endif
-    lwr->d_validpacket=false;
-    return 1; // success - oddly enough
+
+    return LWResult::Result::Success; // success - oddly enough
   }
-  catch(...) {
+  catch (...) {
     g_log<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl;
   }
   
   g_stats.serverParseError++; 
   
  out:
-  if(!lwr->d_rcode)
+  if (!lwr->d_rcode) {
     lwr->d_rcode=RCode::ServFail;
+  }
 
-  return -1;
+  return LWResult::Result::PermanentError;
 }
 

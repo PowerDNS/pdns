@@ -261,7 +261,7 @@ class SyncRes : public boost::noncopyable
 {
 public:
   enum LogMode { LogNone, Log, Store};
-  typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult *lwr, bool* chained)> asyncresolve_t;
+  typedef std::function<LWResult::Result(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult *lwr, bool* chained)> asyncresolve_t;
 
   enum class HardenNXD { No, DNSSEC, Yes };
   
@@ -835,7 +835,7 @@ private:
 
   bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret);
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const;
+  LWResult::Result asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const;
 
   boost::optional<Netmask> getEDNSSubnetMask(const DNSName&dn, const ComboAddress& rem);
 
@@ -899,9 +899,8 @@ private:
 
 class Socket;
 /* external functions, opaque to us */
-int asendtcp(const string& data, Socket* sock);
-int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
-
+LWResult::Result asendtcp(const string& data, Socket* sock);
+LWResult::Result arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
 
 struct PacketID
 {

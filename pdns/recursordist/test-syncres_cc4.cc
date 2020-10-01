@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nodata)
   sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nx)
   sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -152,10 +152,10 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
     if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   sr->setDNSSECValidationRequested(true);
@@ -216,10 +216,10 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point)
     if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard)
   sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_with_ent)
   sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -371,7 +371,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata)
   sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -418,7 +418,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only)
     queriesCount++;
     setLWResult(res, 0, true, false, true);
     addRecordToLW(res, domain, QType::A, "192.0.2.42");
-    return 1;
+    return LWResult::Result::Success;
   });
 
   /* simulate a no-RD query */
@@ -498,7 +498,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -507,10 +507,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -585,7 +585,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -595,10 +595,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
       addDNSKEY(zskeys, domain, 300, res->d_records);
       addRRSIG(kskeys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -653,7 +653,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -661,10 +661,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
 
       /* No DNSKEY */
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -729,7 +729,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -738,10 +738,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -806,7 +806,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -815,10 +815,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -892,7 +892,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -901,10 +901,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   /* === with validation enabled === */
@@ -1004,7 +1004,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1013,10 +1013,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(rrsigkeys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1071,7 +1071,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1080,10 +1080,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   SyncRes::s_maxcachettl = 86400;
@@ -1161,7 +1161,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1170,10 +1170,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1242,7 +1242,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1251,10 +1251,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1311,7 +1311,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1320,10 +1320,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1380,7 +1380,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
 
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (domain == target && type == QType::DNSKEY) {
 
@@ -1389,10 +1389,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
       addDNSKEY(keys, domain, 300, res->d_records);
       addRRSIG(keys, res->d_records, domain, 300);
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1439,8 +1439,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
     DNSName auth = domain;
 
     if (type == QType::DS || type == QType::DNSKEY) {
-      if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys) == 0) {
-        return 0;
+      if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys) == LWResult::Result::Timeout) {
+        return LWResult::Result::Timeout;
       }
 
       if (type == QType::DS && domain == target) {
@@ -1448,7 +1448,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
         res->d_records.pop_back();
       }
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
     if (isRootServer(ip)) {
@@ -1457,17 +1457,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
       /* Include the DS but omit the RRSIG*/
       addDS(DNSName("com."), 300, res->d_records, keys);
       addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-      return 1;
+      return LWResult::Result::Success;
     }
 
     if (ip == ComboAddress("192.0.2.1:53")) {
       setLWResult(res, RCode::NoError, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
       addRRSIG(keys, res->d_records, auth, 300);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1520,8 +1520,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
     DNSName auth = domain;
 
     if (type == QType::DS || type == QType::DNSKEY) {
-      if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys) == 0) {
-        return 0;
+      if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys) == LWResult::Result::Timeout) {
+        return LWResult::Result::Timeout;
       }
 
       if (type == QType::DS && domain == target) {
@@ -1529,7 +1529,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
         res->d_records.pop_back();
       }
 
-      return 1;
+      return LWResult::Result::Success;
     }
 
     if (isRootServer(ip)) {
@@ -1538,10 +1538,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
       /* Include the DS but omit the RRSIG*/
       addDS(DNSName("com."), 300, res->d_records, keys);
       addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;

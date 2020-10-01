@@ -66,6 +66,6 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
 
 void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys, map<DNSName, dsmap_t>& dsAnchors);
 
-int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut = true, boost::optional<time_t> now = boost::none, bool nsec3 = false, bool optOut = false);
+LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut = true, boost::optional<time_t> now = boost::none, bool nsec3 = false, bool optOut = false);
 
-int basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type);
+LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type);

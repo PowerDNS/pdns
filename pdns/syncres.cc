@@ -540,7 +540,7 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const
+LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -581,7 +581,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   ctx.d_auth = auth;
 #endif
 
-  int ret;
+  LWResult::Result ret;
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
     
@@ -600,16 +600,16 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
+      ret = asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
     // ednsstatus might be cleared, so do a new lookup
     ednsstatus = t_sstorage.ednsstatus.insert(ip).first;
     mode = &ednsstatus->mode;
-    if(ret < 0) {
+    if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError) {
       return ret; // transport error, nothing to learn here
     }
 
-    if(ret == 0) { // timeout, not doing anything with it now
+    if(ret == LWResult::Result::Timeout) { // timeout, not doing anything with it now
       return ret;
     }
     else if (*mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT ) {
@@ -633,7 +633,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     if (oldmode != *mode || !ednsstatus->modeSetAt)
       t_sstorage.ednsstatus.setTS(ind, ednsstatus, d_now.tv_sec);
     //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
-    return ret;
+    return LWResult::Result::Success;
   }
   return ret;
 }
@@ -855,7 +855,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
           boost::optional<Netmask> nm;
           bool chained = false;
-          res=asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained);
+          auto resolveRet = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained);
 
           d_totUsec += lwr.d_usec;
           accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
@@ -863,7 +863,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
             *fromCache = true;
           
           // filter out the good stuff from lwr.result()
-          if (res == 1) {
+          if (resolveRet == LWResult::Result::Success) {
             for(const auto& rec : lwr.d_records) {
               if(rec.d_place == DNSResourceRecord::ANSWER)
                 ret.push_back(rec);
@@ -3509,7 +3509,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated)
 {
   bool chained = false;
-  int resolveret = RCode::NoError;
+  LWResult::Result resolveret = LWResult::Result::Success;
   s_outqueries++;
   d_outqueries++;
 
@@ -3527,7 +3527,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     d_tcpoutqueries++;
   }
 
-  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, resolveret)) {
+  int preOutQueryRet = RCode::NoError;
+  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, preOutQueryRet)) {
     LOG(prefix<<qname<<": query handled by Lua"<<endl);
   }
   else {
@@ -3553,7 +3554,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   /* preoutquery killed the query by setting dq.rcode to -3 */
-  if(resolveret==-3) {
+  if (preOutQueryRet == -3) {
     throw ImmediateServFailException("Query killed by policy");
   }
 
@@ -3567,9 +3568,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     dontThrottle = dontThrottleNames->check(nsName) || dontThrottleNetmasks->match(remoteIP);
   }
 
-  if(resolveret != 1) {
+  if (resolveret != LWResult::Result::Success) {
     /* Error while resolving */
-    if(resolveret == 0) {
+    if (resolveret == LWResult::Result::Timeout) {
       /* Time out */
 
       LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
@@ -3584,7 +3585,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       if(t_timeouts)
         t_timeouts->push_back(remoteIP);
     }
-    else if(resolveret == -2) {
+    else if(resolveret == LWResult::Result::OSLimitError) {
       /* OS resource limit reached */
       LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
       g_stats.resourceLimits++;
@@ -3597,7 +3598,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix<<qname<<": error resolving from "<<remoteIP.toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<stringerror()<< endl);
     }
 
-    if(resolveret != -2 && !chained && !dontThrottle) {
+    if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
       // don't account for resource limits, they are our own fault
       // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
       t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
@@ -3608,7 +3609,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         // mark server as down
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0), s_serverdownthrottletime, 10000);
       }
-      else if (resolveret == -1) {
+      else if (resolveret == LWResult::Result::Timeout) {
         // unreachable, 1 minute or 100 queries
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 100);
       }
