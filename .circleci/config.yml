@@ -520,6 +520,17 @@ jobs:
             git --no-pager diff
             exit $(git diff | wc -l)
           working_directory: ~/project
+      - run:
+          name: Check Makefile.am SOURCES sort order
+          command: |
+            exitcode=0
+            for f in $(find . -type f -name 'Makefile.am'); do
+              ./build-scripts/test-sources-sorted.py ${f}
+              if [ $? -ne 0 ]; then
+                exitcode=1
+              fi
+            done
+            exit ${exitcode}
 
   build-auth:
     docker:
