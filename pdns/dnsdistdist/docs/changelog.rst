@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.5.1
-  :released: 30th of September 2020
+  :released: 1st of October 2020
 
   .. change::
     :tags: Improvements
