@@ -5212,6 +5212,12 @@ int main(int argc, char **argv)
     g_log.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
+    if(::arg().mustDo("version")) {
+      showProductVersion();
+      showBuildConfiguration();
+      exit(0);
+    }
+
     string configname=::arg()["config-dir"]+"/recursor.conf";
     if(::arg()["config-name"]!="") {
       configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
@@ -5280,11 +5286,6 @@ int main(int argc, char **argv)
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;
       cout<<::arg().helpstring(::arg()["help"])<<endl;
-      exit(0);
-    }
-    if(::arg().mustDo("version")) {
-      showProductVersion();
-      showBuildConfiguration();
       exit(0);
     }
 
