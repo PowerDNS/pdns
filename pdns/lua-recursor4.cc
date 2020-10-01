@@ -24,6 +24,7 @@
 #include "logger.hh"
 #include "dnsparser.hh"
 #include "syncres.hh"
+#include "resolver.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
 #include "ednsoptions.hh"
@@ -416,6 +417,19 @@ void RecursorLua4::postPrepareContext()
     if (event.discardedPolicies) {
       (*event.discardedPolicies)[policy] = true;
     }
+  });
+
+  d_lw->writeFunction("cacheLookup", [](DNSName& qname, uint16_t qtype) {
+    vector<DNSRecord> res;
+    auto ret = g_recCache->get(g_now.tv_sec, qname, QType(qtype), true, &res, ComboAddress("127.0.0.1"));
+
+    std::vector<std::pair<int, std::string> > out;
+    int n = 0;
+    for(const auto &i : res) {
+      out.push_back({n++, i.d_content->getZoneRepresentation()});
+    }
+    cout<<"res.length()="<<res.size()<<endl;
+    return out;
   });
 }
 
