@@ -752,6 +752,16 @@ TCPConnection::~TCPConnection()
 
 AtomicCounter TCPConnection::s_currentConnections;
 
+static void terminateTCPConnection(int fd)
+{
+  try {
+    t_fdm->removeReadFD(fd);
+  }
+  catch (const FDMultiplexerException& fde)
+  {
+  }
+}
+
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 // the idea is, only do things that depend on the *response* here. Incoming accounting is on incoming.
@@ -1882,11 +1892,7 @@ static void startDoResolve(void *p)
       // "Tried to remove unlisted fd" exception.  Not that an inflight < limit test
       // will not work since we do not know if the other mthread got an error or not.
       if(hadError) {
-        try {
-          t_fdm->removeReadFD(dc->d_socket);
-        }
-        catch (FDMultiplexerException &) {
-        }
+        terminateTCPConnection(dc->d_socket);
         dc->d_socket = -1;
       }
       else {
@@ -2122,12 +2128,12 @@ static bool handleTCPReadResult(int fd, ssize_t bytes)
 {
   if (bytes == 0) {
     /* EOF */
-    t_fdm->removeReadFD(fd);
+    terminateTCPConnection(fd);
     return false;
   }
   else if (bytes < 0) {
     if (errno != EAGAIN && errno != EWOULDBLOCK) {
-      t_fdm->removeReadFD(fd);
+      terminateTCPConnection(fd);
       return false;
     }
   }
@@ -2154,7 +2160,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         g_log<<Logger::Error<<"Unable to consume proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
       }
       ++g_stats.proxyProtocolInvalidCount;
-      t_fdm->removeReadFD(fd);
+      terminateTCPConnection(fd);
       return;
     }
     else if (remaining < 0) {
@@ -2174,7 +2180,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Unable to parse proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
         }
         ++g_stats.proxyProtocolInvalidCount;
-        t_fdm->removeReadFD(fd);
+        terminateTCPConnection(fd);
         return;
       }
       else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
@@ -2182,7 +2188,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Proxy protocol header in packet from TCP client "<< conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping"<< endl;
         }
         ++g_stats.proxyProtocolInvalidCount;
-        t_fdm->removeReadFD(fd);
+        terminateTCPConnection(fd);
         return;
       }
 
@@ -2195,7 +2201,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
 
         ++g_stats.unauthorizedTCP;
-        t_fdm->removeReadFD(fd);
+        terminateTCPConnection(fd);
         return;
       }
 
@@ -2252,7 +2258,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(g_logCommonErrors) {
         g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" sent an invalid question size while reading question body"<<endl;
       }
-      t_fdm->removeReadFD(fd);
+      terminateTCPConnection(fd);
       return;
     }
     conn->bytesread+=(uint16_t)bytes;
@@ -2264,8 +2270,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
-        if(g_logCommonErrors)
+        if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
+        }
+        terminateTCPConnection(fd);
         return;
       }
       dc->d_tcpConnection = conn; // carry the torch
@@ -2326,15 +2334,17 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
               }
             }
             catch(const std::exception& e)  {
-              if(g_logCommonErrors)
+              if(g_logCommonErrors) {
                 g_log<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+              }
             }
           }
         }
         catch(const std::exception& e)
         {
-          if(g_logCommonErrors)
+          if (g_logCommonErrors) {
             g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+          }
         }
       }
 
@@ -2355,40 +2365,46 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             protobufLogQuery(luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
           }
         }
-        catch(std::exception& e) {
-          if(g_logCommonErrors)
+        catch (const std::exception& e) {
+          if (g_logCommonErrors) {
             g_log<<Logger::Warning<<"Error parsing a TCP query packet for edns subnet: "<<e.what()<<endl;
+          }
         }
       }
 #endif
-      if(t_pdl) {
-        if(t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh)) {
-          if(!g_quiet)
+      if (t_pdl) {
+        if (t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh)) {
+          if (!g_quiet) {
             g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
+          }
           g_stats.policyDrops++;
+          terminateTCPConnection(fd);
           return;
         }
       }
 
-      if(dc->d_mdp.d_header.qr) {
+      if (dc->d_mdp.d_header.qr) {
         g_stats.ignoredCount++;
-        if(g_logCommonErrors) {
+        if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
+        terminateTCPConnection(fd);
         return;
       }
-      if(dc->d_mdp.d_header.opcode) {
+      if (dc->d_mdp.d_header.opcode) {
         g_stats.ignoredCount++;
-        if(g_logCommonErrors) {
+        if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
+        terminateTCPConnection(fd);
         return;
       }
       else if (dh->qdcount == 0) {
         g_stats.emptyQueriesCount++;
-        if(g_logCommonErrors) {
+        if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
         }
+        terminateTCPConnection(fd);
         return;
       }
       else {
