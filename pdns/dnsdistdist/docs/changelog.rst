@@ -2,6 +2,42 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.5.1
+  :released: 1st of October 2020
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9540
+    :tickets: 9372
+
+    Add the 'clearConsoleHistory' command
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9541
+    :tickets: 9372
+
+    Stop the related responder thread when a backend is removed
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9542
+
+    Fix getEDNSOptions() for {AN,NS}COUNT != 0 and ARCOUNT = 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9543
+
+    Fix building with LLVM11 (@RvdE)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9555
+
+    Only add EDNS on negative answers if the query had EDNS
+
+.. changelog::
   :version: 1.5.0
   :released: 30th of July 2020
 
