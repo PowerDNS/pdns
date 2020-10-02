@@ -321,6 +321,8 @@ bool TCPConnectionToBackend::reconnect()
     --d_ds->tcpCurrentConnections;
   }
 
+  d_fresh = true;
+
   do {
     vinfolog("TCP connecting to downstream %s (%d)", d_ds->getNameWithAddr(), d_downstreamFailures);
     DEBUGLOG("Opening TCP connection to backend "<<d_ds->getNameWithAddr());
