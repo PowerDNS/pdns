@@ -14,7 +14,7 @@ Cache manipulation endpoint
 
   .. versionadded:: 4.4.0
 
-  :query type: If set only flush records of the specified type name.
+  :query type: If set the recursor only flushes records of the specified type name.
 
   **Example Response:**
 
