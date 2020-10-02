@@ -164,6 +164,11 @@ public:
   void setProxyProtocolPayloadAdded(bool added);
 
 private:
+  /* waitingForResponseFromBackend is a state where we have not yet started reading the size,
+     so we can still switch to sending instead */
+  enum class State : uint8_t { idle, doingHandshake, sendingQueryToBackend, waitingForResponseFromBackend, readingResponseSizeFromBackend, readingResponseFromBackend };
+  enum class FailureReason : uint8_t { /* too many attempts */ gaveUp, timeout, unexpectedQueryID };
+
   static void handleIO(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static IOState queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
@@ -172,7 +177,7 @@ private:
   IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   uint16_t getQueryIdFromResponse();
   bool reconnect();
-  void notifyAllQueriesFailed(const struct timeval& now, bool timeout = false);
+  void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
 
   boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
@@ -204,9 +209,6 @@ private:
     return res;
   }
 
-  /* waitingForResponseFromBackend is a state where we have not yet started reading the size,
-     so we can still switch to sending instead */
-  enum class State { idle, doingHandshake, sendingQueryToBackend, waitingForResponseFromBackend, readingResponseSizeFromBackend, readingResponseFromBackend };
   static const uint16_t s_xfrID;
 
   std::vector<uint8_t> d_responseBuffer;

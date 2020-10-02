@@ -251,7 +251,8 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
     if (!reconnected) {
       /* reconnect failed, we give up */
       DEBUGLOG("reconnect failed, we give up");
-      conn->notifyAllQueriesFailed(now);
+      ++conn->d_ds->tcpGaveUp;
+      conn->notifyAllQueriesFailed(now, FailureReason::gaveUp);
     }
   }
 
@@ -375,6 +376,7 @@ bool TCPConnectionToBackend::reconnect()
 
 void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write)
 {
+  /* in some cases we could retry, here, reconnecting and sending our pending responses again */
   if (write) {
     ++d_ds->tcpWriteTimeouts;
   }
@@ -386,10 +388,10 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
     d_ioState->reset();
   }
 
-  notifyAllQueriesFailed(now, true);
+  notifyAllQueriesFailed(now, FailureReason::timeout);
 }
 
-void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, bool timeout)
+void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, FailureReason reason)
 {
   d_connectionDied = true;
 
@@ -404,8 +406,11 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, b
     return;
   }
 
-  if (timeout) {
+  if (reason == FailureReason::timeout) {
     ++clientConn->d_ci.cs->tcpDownstreamTimeouts;
+  }
+  else if (reason == FailureReason::gaveUp) {
+    ++clientConn->d_ci.cs->tcpGaveUp;
   }
 
   if (d_state == State::sendingQueryToBackend) {
@@ -462,14 +467,14 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     }
     catch (const std::exception& e) {
       DEBUGLOG("Unable to get query ID");
-      notifyAllQueriesFailed(now);
+      notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
       throw;
     }
 
     auto it = d_pendingResponses.find(queryId);
     if (it == d_pendingResponses.end()) {
       DEBUGLOG("could not find any corresponding query for ID "<<queryId<<". This is likely a duplicated ID over the same TCP connection, giving up!");
-      notifyAllQueriesFailed(now);
+      notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
       return IOState::Done;
     }
 
