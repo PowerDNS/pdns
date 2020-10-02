@@ -99,6 +99,10 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
     conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
     conn->d_currentQuery.d_buffer.clear();
 
+    if (!conn->d_usedForXFR) {
+      ++conn->d_ds->outstanding;
+    }
+
     return IOState::Done;
   }
   else {
@@ -200,6 +204,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
   }
 
   if (connectionDied) {
+
     bool reconnected = false;
     DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
 
@@ -214,6 +219,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         /* we need to resend the queries that were in flight, if any */
         for (auto& pending : conn->d_pendingResponses) {
           conn->d_pendingQueries.push_back(std::move(pending.second));
+          if (!conn->d_usedForXFR) {
+            --conn->d_ds->outstanding;
+          }
         }
         conn->d_pendingResponses.clear();
         conn->d_currentPos = 0;
@@ -383,6 +391,10 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, b
 {
   d_connectionDied = true;
 
+  if (!d_usedForXFR) {
+    d_ds->outstanding -= d_pendingResponses.size();
+  }
+
   auto& clientConn = d_clientConn;
   if (!clientConn->active()) {
     // a client timeout occured, or something like that */
@@ -421,6 +433,11 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     // a client timeout occured, or something like that */
     d_connectionDied = true;
     d_clientConn.reset();
+
+    if (!conn->d_usedForXFR) {
+      --conn->d_ds->outstanding;
+    }
+
     return IOState::Done;
   }
 
@@ -452,6 +469,10 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
       DEBUGLOG("could not find any corresponding query for ID "<<queryId<<". This is likely a duplicated ID over the same TCP connection, giving up!");
       notifyAllQueriesFailed(now);
       return IOState::Done;
+    }
+
+    if (!conn->d_usedForXFR) {
+      --conn->d_ds->outstanding;
     }
 
     auto ids = std::move(it->second.d_idstate);
