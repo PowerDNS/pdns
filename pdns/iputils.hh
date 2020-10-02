@@ -274,6 +274,18 @@ union ComboAddress {
       return "invalid "+string(gai_strerror(retval));
   }
 
+  //! Ignores any interface specifiers possibly available in the sockaddr data.
+  string toStringNoInterface() const
+  {
+    char host[1024];
+    if(sin4.sin_family == AF_INET && (nullptr != inet_ntop(sin4.sin_family, &sin4.sin_addr, host, sizeof(host))))
+      return string(host);
+    else if(sin4.sin_family == AF_INET6 && (nullptr != inet_ntop(sin4.sin_family, &sin6.sin6_addr, host, sizeof(host))))
+      return string(host);
+    else
+      return "invalid "+stringerror();
+  }
+
   string toStringWithPort() const
   {
     if(sin4.sin_family==AF_INET)
@@ -539,12 +551,12 @@ public:
 
   string toString() const
   {
-    return d_network.toString()+"/"+std::to_string((unsigned int)d_bits);
+    return d_network.toStringNoInterface()+"/"+std::to_string((unsigned int)d_bits);
   }
 
   string toStringNoMask() const
   {
-    return d_network.toString();
+    return d_network.toStringNoInterface();
   }
 
   const ComboAddress& getNetwork() const
