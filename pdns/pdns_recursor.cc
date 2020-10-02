@@ -762,6 +762,67 @@ static void terminateTCPConnection(int fd)
   }
 }
 
+static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const std::vector<uint8_t>& packet)
+{
+  char buf[2];
+  buf[0] = packet.size() / 256;
+  buf[1] = packet.size() % 256;
+
+  Utility::iovec iov[2];
+  iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
+  iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
+
+  int wret = Utility::writev(dc->d_socket, iov, 2);
+  bool hadError = true;
+
+  if (wret == 0) {
+    g_log<<Logger::Warning<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
+  } else if (wret < 0 ) {
+    int err = errno;
+    g_log << Logger::Warning << "Error writing TCP answer to " << dc->getRemote() << ": " << strerror(err) << endl;
+  } else if ((unsigned int)wret != 2 + packet.size()) {
+    g_log<<Logger::Warning<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
+  } else {
+    hadError = false;
+  }
+
+  return hadError;
+}
+
+static void sendErrorOverTCP(std::unique_ptr<DNSComboWriter>& dc, int rcode)
+{
+  std::vector<uint8_t> packet;
+  if (dc->d_mdp.d_header.qdcount == 0) {
+    /* header-only */
+    packet.resize(sizeof(dnsheader));
+  }
+  else {
+    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
+    if (dc->d_mdp.hasEDNS()) {
+      /* we try to add the EDNS OPT RR even for truncated answers,
+         as rfc6891 states:
+         "The minimal response MUST be the DNS header, question section, and an
+         OPT record.  This MUST also occur when a truncated response (using
+         the DNS header's TC bit) is returned."
+      */
+      pw.addOpt(512, 0, 0);
+      pw.commit();
+    }
+  }
+
+  dnsheader& header = reinterpret_cast<dnsheader&>(packet.at(0));;
+  header.aa = 0;
+  header.ra = 1;
+  header.qr = 1;
+  header.tc = 0;
+  header.id = dc->d_mdp.d_header.id;
+  header.rd = dc->d_mdp.d_header.rd;
+  header.cd = dc->d_mdp.d_header.cd;
+  header.rcode = rcode;
+
+  sendResponseOverTCP(dc, packet);
+}
+
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 // the idea is, only do things that depend on the *response* here. Incoming accounting is on incoming.
@@ -1860,28 +1921,8 @@ static void startDoResolve(void *p)
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }
     else {
-      char buf[2];
-      buf[0]=packet.size()/256;
-      buf[1]=packet.size()%256;
+      bool hadError = sendResponseOverTCP(dc, packet);
 
-      Utility::iovec iov[2];
-
-      iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
-      iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
-
-      int wret=Utility::writev(dc->d_socket, iov, 2);
-      bool hadError=true;
-
-      if (wret == 0) {
-        g_log<<Logger::Warning<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-      } else if (wret < 0 ) {
-        int err = errno;
-        g_log << Logger::Warning << "Error writing TCP answer to " << dc->getRemote() << ": " << strerror(err) << endl;
-      } else if ((unsigned int)wret != 2 + packet.size()) {
-        g_log<<Logger::Warning<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
-      } else {
-        hadError=false;
-      }
       // update tcp connection status, closing if needed and doing the fd multiplexer accounting
       if  (dc->d_tcpConnection->d_requestsInFlight > 0) {
         dc->d_tcpConnection->d_requestsInFlight--;
@@ -2396,7 +2437,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
-        terminateTCPConnection(fd);
+        sendErrorOverTCP(dc, RCode::NotImp);
         return;
       }
       else if (dh->qdcount == 0) {
@@ -2404,7 +2445,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
         }
-        terminateTCPConnection(fd);
+        sendErrorOverTCP(dc, RCode::NotImp);
         return;
       }
       else {

@@ -339,6 +339,20 @@ void MOADNSParser::init(bool query, const std::string& packet)
   }
 }
 
+bool MOADNSParser::hasEDNS() const
+{
+  if (d_header.arcount == 0 || d_answers.empty()) {
+    return false;
+  }
+
+  for (const auto& record : d_answers) {
+    if (record.first.d_place == DNSResourceRecord::ADDITIONAL && record.first.d_type == QType::OPT) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
