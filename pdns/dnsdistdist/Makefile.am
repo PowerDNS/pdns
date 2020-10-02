@@ -26,10 +26,9 @@ htmlfiles.h: $(srcdir)/html/*
 	@mv $@.tmp $@
 
 dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h
-	echo 'R"FFIContent(' > $@
-	cat $< >> $@
-	echo ')FFIContent"' >> $@
-
+	$(AM_V_GEN)echo 'R"FFIContent(' > $@
+	@cat $< >> $@
+	@echo ')FFIContent"' >> $@
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
 
@@ -113,6 +112,7 @@ check-local:
 endif
 
 dnsdist-web.$(OBJEXT): htmlfiles.h
+dnsdist-lua-ffi.$(OBJEXT): dnsdist-lua-ffi-interface.inc
 
 dnsdist_SOURCES = \
 	ascii.hh \
