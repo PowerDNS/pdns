@@ -178,6 +178,16 @@ public:
     return writeFDs ? d_writeCallbacks.size() : d_readCallbacks.size();
   }
 
+  void runForAllWatchedFDs(void(*watcher)(bool isRead, int fd, const funcparam_t&, struct timeval))
+  {
+    for (const auto& entry : d_readCallbacks) {
+      watcher(true, entry.d_fd, entry.d_parameter, entry.d_ttd);
+    }
+    for (const auto& entry : d_writeCallbacks) {
+      watcher(false, entry.d_fd, entry.d_parameter, entry.d_ttd);
+    }
+  }
+
 protected:
   struct FDBasedTag {};
   struct TTDOrderedTag {};
