@@ -58,9 +58,8 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
-    - run: |
-        free -m
-        cat /proc/cpuinfo
+    - name: Install dependencies
+      run: |
         sudo apt-get --no-install-recommends install -qq -y \
                 bison \
                 default-libmysqlclient-dev \
@@ -94,12 +93,16 @@ jobs:
                 ragel \
                 unixodbc-dev
 
+    - name: Build auth
+      run: |
         autoreconf -vfi
         ./configure --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' --enable-tools --enable-ixfrdist --enable-dns-over-tls --enable-experimental-pkcs11 --with-libsodium --with-protobuf --enable-lua-records CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
         make -j8 -C modules
         make -j8 -C pdns
 
+    - name: Build dnsdist
+      run: |
         cd pdns/dnsdistdist
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
@@ -107,7 +110,9 @@ jobs:
         make -j8 -C ext/yahttp
         make -j8 dnsdist
 
-        cd ../recursordist
+    - name: Build recursor
+      run: |
+        cd pdns/recursordist
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
