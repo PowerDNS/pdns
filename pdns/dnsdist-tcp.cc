@@ -935,6 +935,13 @@ static void tcpClientThread(int pipefd)
     if (g_downstreamTCPCleanupInterval > 0 && (now.tv_sec > (lastTCPCleanup + g_downstreamTCPCleanupInterval))) {
       DownstreamConnectionsManager::cleanupClosedTCPConnections();
       lastTCPCleanup = now.tv_sec;
+
+      /*
+      data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
+      {
+        cerr<<"- "<<isRead<<" "<<fd<<": "<<param.type().name()<<" "<<ttd.tv_sec<<endl;
+      });
+      */
     }
 
     if (now.tv_sec > lastTimeoutScan) {

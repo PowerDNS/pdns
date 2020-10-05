@@ -213,38 +213,44 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
       conn->d_ioState->reset();
       ioGuard.release();
 
-      if (conn->reconnect()) {
-        conn->d_ioState = make_unique<IOStateHandler>(conn->d_clientConn->getIOMPlexer(), conn->d_socket->getHandle());
+      try {
+        if (conn->reconnect()) {
+          conn->d_ioState = make_unique<IOStateHandler>(conn->d_clientConn->getIOMPlexer(), conn->d_socket->getHandle());
 
-        /* we need to resend the queries that were in flight, if any */
-        for (auto& pending : conn->d_pendingResponses) {
-          conn->d_pendingQueries.push_back(std::move(pending.second));
-          if (!conn->d_usedForXFR) {
-            --conn->d_ds->outstanding;
+          /* we need to resend the queries that were in flight, if any */
+          for (auto& pending : conn->d_pendingResponses) {
+            conn->d_pendingQueries.push_back(std::move(pending.second));
+            if (!conn->d_usedForXFR) {
+              --conn->d_ds->outstanding;
+            }
           }
-        }
-        conn->d_pendingResponses.clear();
-        conn->d_currentPos = 0;
+          conn->d_pendingResponses.clear();
+          conn->d_currentPos = 0;
 
-        if (conn->d_state == State::doingHandshake ||
-            conn->d_state == State::sendingQueryToBackend) {
-          iostate = IOState::NeedWrite;
-          // resume sending query
-        }
-        else {
-          if (conn->d_pendingQueries.empty()) {
-            throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
+          if (conn->d_state == State::doingHandshake ||
+              conn->d_state == State::sendingQueryToBackend) {
+            iostate = IOState::NeedWrite;
+            // resume sending query
+          }
+          else {
+            if (conn->d_pendingQueries.empty()) {
+              throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
+            }
+
+            iostate = queueNextQuery(conn);
           }
 
-          iostate = queueNextQuery(conn);
-        }
+          if (!conn->d_proxyProtocolPayloadAdded && !conn->d_proxyProtocolPayload.empty()) {
+            conn->d_currentQuery.d_buffer.insert(conn->d_currentQuery.d_buffer.begin(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
+            conn->d_proxyProtocolPayloadAdded = true;
+          }
 
-        if (!conn->d_proxyProtocolPayloadAdded && !conn->d_proxyProtocolPayload.empty()) {
-          conn->d_currentQuery.d_buffer.insert(conn->d_currentQuery.d_buffer.begin(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
-          conn->d_proxyProtocolPayloadAdded = true;
+          reconnected = true;
         }
-
-        reconnected = true;
+      }
+      catch (const std::exception& e) {
+        // reconnect might throw on failure, let's ignore that, we just need to know
+        // it failed
       }
     }
 
