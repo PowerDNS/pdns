@@ -108,7 +108,7 @@ jobs:
         ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext/ipcrypt
         make -j8 -C ext/yahttp
-        make -j8 dnsdist
+        make -j4 dnsdist
 
     - name: Build recursor
       run: |
