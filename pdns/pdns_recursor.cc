@@ -4183,7 +4183,7 @@ static int serviceMain(int argc, char*argv[])
   g_log.setName(s_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
   g_log.setTimestamps(::arg().mustDo("log-timestamp"));
-  g_log.setTimeFormat(::arg()["log-timeformat"]);
+  g_log.setTimestampFormat(::arg()["log-timestampformat"]);
 
   if(!::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
@@ -5013,7 +5013,7 @@ int main(int argc, char **argv)
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="6";
     ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
     ::arg().set("log-timestamp","Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already")="yes";
-    ::arg().set("log-timeformat","The strftime(3) format string used to print timestamps")=Logger::s_timeFormat;
+    ::arg().set("log-timestampformat","The strftime(3) format string used to print timestamps")=Logger::s_defaultTimestampFormat;
     ::arg().set("log-common-errors","If we should log rather common errors")="no";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security"

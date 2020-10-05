@@ -430,7 +430,7 @@ int main(int argc, char **argv)
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
     g_log.setTimestamps(::arg().mustDo("log-timestamp"));
-    g_log.setTimeFormat(::arg()["log-timeformat"]);
+    g_log.setTimestampFormat(::arg()["log-timestampformat"]);
     g_log.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
     if(::arg().mustDo("help") || ::arg().mustDo("config")) {

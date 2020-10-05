@@ -53,8 +53,14 @@ public:
   void setName(const string &);
 
   //! set lower limit of urgency needed for console display. Messages of this urgency, and higher, will be displayed
-  void toConsole(Urgency);
-  void setLoglevel( Urgency );
+  void toConsole(Urgency u)
+  {
+     consoleUrgency = u;
+  }
+  void setLoglevel(Urgency u)
+  {
+     d_loglevel = u;
+  }
 
   void disableSyslog(bool d) {
     d_disableSyslog = d;
@@ -69,9 +75,14 @@ public:
   }
 
   //! Log to a file.
-  void toFile( const string & filename );
-  
-  void resetFlags(){flags=0;open();} //!< zero the flags
+  void toFile(const string& filename);
+
+  void resetFlags() //!< zero the flags
+  {
+    flags = 0;
+    open();
+  }
+
   /** Use this to stream to your log, like this:
       \code
       g_log<<"This is an informational message"<<endl; // logged at default loglevel (Info)
@@ -79,49 +90,53 @@ public:
       g_log<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
-  Logger& operator<<(const char *s);
-  Logger& operator<<(const string &s);   //!< log a string
-  Logger& operator<<(const DNSName&); 
-  Logger& operator<<(const ComboAddress&); //!< log an address
-  Logger& operator<<(Urgency);    //!< set the urgency, << style
+  Logger& operator<<(const char *s)
+  {
+    *this << string(s);
+    return *this;
+  }
+  Logger& operator<<(const string &s)   //!< log a string
+  {
+    PerThread& pt = getPerThread();
+    pt.d_output.append(s);
+    return *this;
+  }
+  Logger& operator<<(const DNSName &d)
+  {
+    *this << d.toLogString();
+    return *this;
+  }
+  Logger& operator<<(const ComboAddress &ca)
+  {
+    *this << ca.toLogString();
+    return *this;
+  }
+  Logger& operator<<(Urgency u) //!< set the urgency, << style
+  {
+    getPerThread().d_urgency = u;
+    return *this;
+  }
 
-  // Using const & since otherwise SyncRes:: values induce (illegal) copies
+  // Using const & since otherwise SyncRes:: values induces (illegal) copies
   template<typename T> Logger & operator<<(const T & i) {
-	ostringstream tmp;
-	tmp<<i;
-	*this<<tmp.str();
-	return *this;
+    ostringstream tmp;
+    tmp << i;
+    *this << tmp.str();
+    return *this;
   }
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
 
-  static const std::string s_timeFormat;
-  std::string d_timeFormat = s_timeFormat;
+  static const std::string s_defaultTimestampFormat;
+  std::string d_timestampFormat = s_defaultTimestampFormat;
 
-  void setTimeFormat(const std::string& str)
+  void setTimestampFormat(const std::string& str)
   {
-    d_timeFormat = str;
+    d_timestampFormat = str;
   }
 
-  std::string toTimeStr(time_t t)
-  {
-    struct tm tm;
-    std::string ret(32, 0); // must be >= 26 for ctime_r fallback
-    if (strftime(&ret.at(0), ret.length(), d_timeFormat.c_str(), localtime_r(&t, &tm)) == 0) {
-      ctime_r(&t, &ret.at(0));
-      ret[strlen(ret.c_str()) - 1] = '\0'; // zap newline
-    }
-    return ret;
-  }
-
-  void toTimeStrMill(char* buffer, size_t sz)
-  {
-    struct timespec tms;
-    clock_gettime(CLOCK_REALTIME, &tms);
-    std::string tmp = toTimeStr(tms.tv_sec);
-    snprintf(buffer, sz, "%s.%03ld ", tmp.c_str(), tms.tv_nsec / 1000000);
-  }
-
+  const std::string& toTimestampString(time_t t);
+  const std::string& toTimestampStringMill();
 
 private:
   struct PerThread
@@ -129,9 +144,13 @@ private:
     PerThread() : d_urgency(Info)
     {}
     string d_output;
+    string d_timeBuffer;
     Urgency d_urgency;
   };
-  PerThread& getPerThread();
+  PerThread& getPerThread()
+  {
+    return t_perThread;
+  }
   void open();
 
   static thread_local PerThread t_perThread;

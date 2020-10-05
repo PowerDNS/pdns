@@ -34,7 +34,7 @@ extern StatBag S;
 #include "namespaces.hh"
 
 thread_local Logger::PerThread Logger::t_perThread;
-const std::string Logger::s_timeFormat = "%m-%dT%H:%M:%S";
+const std::string Logger::s_defaultTimestampFormat = "%m-%dT%H:%M:%S";
 
 Logger& getLogger()
 {
@@ -53,17 +53,11 @@ Logger& getLogger()
 
 void Logger::log(const string &msg, Urgency u) noexcept
 {
+  const static string empty;
 #ifndef RECURSOR
   bool mustAccount(false);
 #endif
   if(u<=consoleUrgency) {
-    char buffer[50];
-    if (d_timestamps) {
-      toTimeStrMill(buffer, sizeof(buffer));
-    } else {
-      buffer[0] = '\0';
-    }
-
     string prefix;
     if (d_prefixed) {
       switch(u) {
@@ -99,7 +93,12 @@ void Logger::log(const string &msg, Urgency u) noexcept
 
     static std::mutex m;
     std::lock_guard<std::mutex> l(m); // the C++-2011 spec says we need this, and OSX actually does
-    clog << string(buffer) + prefix + msg <<endl;
+    if (d_timestamps) {
+      const std::string& ts = toTimestampStringMill();
+      clog << ts << prefix << msg << endl;
+    } else {
+      clog << prefix << msg << endl;
+    }
 #ifndef RECURSOR
     mustAccount=true;
 #endif
@@ -123,17 +122,6 @@ void Logger::log(const string &msg, Urgency u) noexcept
 #endif
 }
 
-void Logger::setLoglevel( Urgency u )
-{
-  d_loglevel = u;
-}
-  
-
-void Logger::toConsole(Urgency u)
-{
-  consoleUrgency=u;
-}
-
 void Logger::open()
 {
   if(opened)
@@ -144,7 +132,7 @@ void Logger::open()
 
 void Logger::setName(const string &_name)
 {
-  name=_name;
+  name = _name;
   open();
 }
 
@@ -153,31 +141,6 @@ Logger::Logger(const string &n, int facility) :
   consoleUrgency(Error), opened(false), d_disableSyslog(false)
 {
   open();
-
-}
-
-Logger& Logger::operator<<(Urgency u)
-{
-  getPerThread().d_urgency=u;
-  return *this;
-}
-
-Logger::PerThread& Logger::getPerThread()
-{
-  return t_perThread;
-}
-
-Logger& Logger::operator<<(const string &s)
-{
-  PerThread& pt = getPerThread();
-  pt.d_output.append(s);
-  return *this;
-}
-
-Logger& Logger::operator<<(const char *s)
-{
-  *this<<string(s);
-  return *this;
 }
 
 Logger& Logger::operator<<(ostream & (&)(ostream &))
@@ -190,16 +153,29 @@ Logger& Logger::operator<<(ostream & (&)(ostream &))
   return *this;
 }
 
-Logger& Logger::operator<<(const DNSName &d)
+const std::string& Logger::toTimestampString(time_t t)
 {
-  *this<<d.toLogString();
-
-  return *this;
+  PerThread& pt = getPerThread();
+  pt.d_timeBuffer.resize(64);  // must be >= 26 + 4 for ctime_r fallback and fractional seconds
+  struct tm tm;
+  if (strftime(&pt.d_timeBuffer.at(0), pt.d_timeBuffer.capacity(), d_timestampFormat.c_str(), localtime_r(&t, &tm)) != 0) {
+    pt.d_timeBuffer.resize(strlen(pt.d_timeBuffer.c_str()));
+    return pt.d_timeBuffer;
+  }
+  ctime_r(&t, &pt.d_timeBuffer.at(0));
+  pt.d_timeBuffer.resize(strlen(pt.d_timeBuffer.c_str()));
+  pt.d_timeBuffer.pop_back(); // zap newline
+  return pt.d_timeBuffer;
 }
 
-Logger& Logger::operator<<(const ComboAddress &ca)
+const std::string& Logger::toTimestampStringMill()
 {
-  *this<<ca.toLogString();
-  return *this;
+  struct timespec tms;
+  clock_gettime(CLOCK_REALTIME, &tms);
+  toTimestampString(tms.tv_sec); // modifies pt.d_timeBuffer
+  char buf[6];
+  snprintf(buf, sizeof(buf), ".%03ld ", tms.tv_nsec / 1000000);
+  PerThread& pt = getPerThread();
+  pt.d_timeBuffer .append(buf);
+  return pt.d_timeBuffer;
 }
-

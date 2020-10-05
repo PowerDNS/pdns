@@ -123,7 +123,7 @@ void declareArguments()
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
   ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
   ::arg().set("log-timestamp","Print timestamps in log lines")="yes";
-  ::arg().set("log-timeformat","The strftime(3) format string used to print timestamps")=Logger::s_timeFormat;
+  ::arg().set("log-timestampformat","The strftime(3) format string used to print timestamps")=Logger::s_defaultTimestampFormat;
   ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
   ::arg().set("default-soa-mail","mail address to insert in the SOA record if none set in the backend")="";
   ::arg().set("distributor-threads","Default number of Distributor (backend) threads to start")="3";
