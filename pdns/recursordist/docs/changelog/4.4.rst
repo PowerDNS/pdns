@@ -1,6 +1,59 @@
 Changelogs for 4.4.x
 ====================
 .. changelog::
+  :version: 4.4.0-rc2
+  :released: 6th of October 2020
+
+   .. change::
+    :tags: Bug Fixes
+    :pullreq: 9579
+    :tickets: 9434
+
+    When deciding if we are auth in the local auth or forwarding case, DS is special.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9577
+    :tickets: 9569
+
+    Don't parse any config with `--version`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9576
+    :tickets: 9562
+
+    Expose typed cache flush via Web API.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9557
+    :tickets: 9515
+
+    Fix wipe-cache-typed.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9528
+    :tickets: 9471
+
+    Log when going Bogus because of a missing SOA in authority.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9526
+    :tickets: 9495
+
+    Watch the descriptor again after an out-of-order read timeout.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9506
+    :tickets: 9497
+
+    Raise an exception on invalid content in unknown record.
+
+.. changelog::
   :version: 4.4.0-rc1
   :released: 21st of September 2020
 
