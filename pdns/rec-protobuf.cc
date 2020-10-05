@@ -14,6 +14,9 @@ void RecProtoBufMessage::clearUDR()
 {
 #ifdef HAVE_PROTOBUF
   auto response = d_message.mutable_response();
+  if (!response) {
+    return;
+  }
   const int count = response->rrs_size();
   for (int idx = 0; idx < count; idx++) {
     auto rr = response->mutable_rrs(idx);
