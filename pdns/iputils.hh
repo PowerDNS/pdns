@@ -1440,3 +1440,5 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
 bool isTCPSocketUsable(int sock);
 
 extern template class NetmaskTree<bool>;
+ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
+

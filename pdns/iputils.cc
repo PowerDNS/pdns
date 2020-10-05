@@ -436,3 +436,43 @@ bool isTCPSocketUsable(int sock)
 
   return false;
 }
+/* mission in life: parse four cases
+   1) [2002::1]:53
+   2) 1.2.3.4
+   3) 1.2.3.4:5300
+   4) 2001::1 no port allowed
+*/
+
+ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
+{
+  if (input[0] == '[') { // case 1
+    auto both = splitField(input.substr(1), ']');
+    return ComboAddress(both.first, both.second.empty() ? port : static_cast<uint16_t>(pdns_stou(both.second.substr(1))));
+  }
+
+  string::size_type count = 0;
+  for (char c : input) {
+    if (c == ':') {
+      count++;
+    }
+    if (count > 1) {
+      break;
+    }
+  }
+  switch (count) {
+  case 0: // case 2
+    return ComboAddress(input, port);
+  case 1: { // case 3
+    string::size_type cpos = input.rfind(':');
+    pair<std::string,std::string> both;
+    both.first = input.substr(0, cpos);
+    both.second = input.substr(cpos + 1);
+
+    uint16_t newport = static_cast<uint16_t>(pdns_stou(both.second));
+    return ComboAddress(both.first, newport);
+  }
+  default: // case 4
+    return ComboAddress(input, port);
+  }
+}
+
