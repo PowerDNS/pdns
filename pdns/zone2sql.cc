@@ -114,26 +114,21 @@ static void startNewTransaction()
 static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = 0) {
   string iDomain = domain.toStringRootDot();
   if(!::arg().mustDo("slave")) {
-    if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
-      cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
-    }
+    cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
   }
-  else 
+  else
   {
-
-    if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
-      string mstrs;
-      if (masters != 0 && ! masters->empty()) {
-        for(const auto& mstr :  *masters) {
-          mstrs.append(mstr.toStringWithPortExcept(53));
-          mstrs.append(1, ' ');
-        }
+    string mstrs;
+    if (masters != 0 && ! masters->empty()) {
+      for(const auto& mstr :  *masters) {
+        mstrs.append(mstr.toStringWithPortExcept(53));
+        mstrs.append(1, ' ');
       }
-      if (mstrs.empty())
-        cout<<"insert into domains (name,type) values ("<<sqlstr(iDomain)<<",'NATIVE');"<<endl;
-      else
-        cout<<"insert into domains (name,type,master) values ("<<sqlstr(iDomain)<<",'SLAVE'"<<", '"<<mstrs<<"');"<<endl;
     }
+    if (mstrs.empty())
+      cout<<"insert into domains (name,type) values ("<<sqlstr(iDomain)<<",'NATIVE');"<<endl;
+    else
+      cout<<"insert into domains (name,type,master) values ("<<sqlstr(iDomain)<<",'SLAVE'"<<", '"<<mstrs<<"');"<<endl;
   }
 }
 
