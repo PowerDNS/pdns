@@ -4,7 +4,27 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.2.x to 4.3.0 or master
+4.3.x to 4.4.0 or master
+------------------------
+
+Parsing of unknown record types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The parsing (from zone files) of unknown records types (of the form
+``\# <length> <hex data>``) has been made more strict. Previously, invalid formatted records could produce
+inconsistent results.
+
+Deprecated and changed settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- The :ref:`setting-query-local-address` setting has been modified to be able to include both IPv4 and IPv6 addresses.
+- The :ref:`setting-query-local-address6` settings is now deprecated.
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-dns64-prefix` setting has been added, enabling common cases of DNS64 handling without having to write Lua code.
+- The :ref:`setting-proxy-protocol-from` and :ref:`setting-proxy-protocol-maximum-size` settings have been added to allow for passing of Proxy Protocol Version 2 headers between a client and the recursor.
+- The :ref:`setting-record-cache-shards` setting has been added, enabling the administrator to change the number of shards in the records cache. The value of the metric ``record-cache-contended`` divided by ``record-cache-acquired`` indicates if the record cache locks are contended. If so, increasing the number of shards can help reducing the contention.
+
+4.2.x to 4.3.0
 ------------------------
 
 Lua Netmask class methods changed
