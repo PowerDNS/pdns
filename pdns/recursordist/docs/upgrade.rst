@@ -7,6 +7,12 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.3.x to 4.4.0 or master
 ------------------------
 
+Parsing of unknown record types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The parsing (from zone files) of unknown records types (of the form
+``\# <length> <hex data>``) has been made more strict. Previously, invalid formatted records could produce
+inconsistent results.
+
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-query-local-address` setting has been modified to be able to include both IPv4 and IPv6 addresses.
