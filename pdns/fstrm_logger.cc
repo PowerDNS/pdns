@@ -84,43 +84,26 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
       throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_queue_model failed: " + std::to_string(res));
     }
 
-    if (options.find("bufferHint") != options.end() && options.at("bufferHint")) {
-      res = fstrm_iothr_options_set_buffer_hint(d_iothropt, options.at("bufferHint"));
-      if (res != fstrm_res_success) {
-        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_buffer_hint failed: " + std::to_string(res));
-      }
-    }
-    if (options.find("flushTimeout") != options.end() && options.at("flushTimeout")) {
-      res = fstrm_iothr_options_set_flush_timeout(d_iothropt, options.at("flushTimeout"));
-      if (res != fstrm_res_success) {
-        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_flush_timeout failed: " + std::to_string(res));
-      }
-    }
-    if (options.find("inputQueueSize") != options.end() && options.at("inputQueueSize")) {
-      res = fstrm_iothr_options_set_input_queue_size(d_iothropt, options.at("inputQueueSize"));
-      if (res != fstrm_res_success) {
-        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_input_queue_size failed: " + std::to_string(res));
-      }
-    }
-    if (options.find("outputQueueSize") != options.end() && options.at("outputQueueSize")) {
-      res = fstrm_iothr_options_set_output_queue_size(d_iothropt, options.at("outputQueueSize"));
-      if (res != fstrm_res_success) {
-        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_output_queue_size failed: " + std::to_string(res));
-      }
-    }
-    if (options.find("queueNotifyThreshold") != options.end() && options.at("queueNotifyThreshold")) {
-      res = fstrm_iothr_options_set_queue_notify_threshold(d_iothropt, options.at("queueNotifyThreshold"));
-      if (res != fstrm_res_success) {
-        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_queue_notify_threshold failed: " + std::to_string(res));
-      }
-    }
-    if (options.find("setReopenInterval") != options.end() && options.at("setReopenInterval")) {
-      res = fstrm_iothr_options_set_reopen_interval(d_iothropt, options.at("setReopenInterval"));
-      if (res != fstrm_res_success) {
-        throw std::runtime_error("FrameStreamLogger: fstrm_iothr_options_set_reopen_interval failed: " + std::to_string(res));
-      }
-    }
+    const struct {
+      const char *name;
+      fstrm_res (*function)(struct fstrm_iothr_options *, const unsigned int);
+    } list[] = {
+      { "bufferHint", fstrm_iothr_options_set_buffer_hint },
+      { "flushTimeout", fstrm_iothr_options_set_flush_timeout },
+      { "inputQueueSize", fstrm_iothr_options_set_input_queue_size },
+      { "outputQueueSize", fstrm_iothr_options_set_output_queue_size },
+      { "queueNotifyThreshold", fstrm_iothr_options_set_queue_notify_threshold },
+      { "setReopenInterval", fstrm_iothr_options_set_reopen_interval }
+    };
 
+    for (const auto& i : list) {
+      if (options.find(i.name) != options.end() && options.at(i.name)) {
+        fstrm_res r = i.function(d_iothropt, options.at(i.name));
+        if (r != fstrm_res_success) {
+          throw std::runtime_error("FrameStreamLogger: setting " + string(i.name) + " failed: " + std::to_string(r));
+        }
+      }
+    }
 
     if (connect) {
       d_iothr = fstrm_iothr_init(d_iothropt, &d_writer);
