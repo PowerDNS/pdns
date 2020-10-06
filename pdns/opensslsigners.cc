@@ -194,7 +194,7 @@ public:
   bool verify(const std::string& hash, const std::string& signature) const override;
   std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
-  std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>parse(std::map<std::string, std::string>& stormap, const std::string& key);
+  std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>parse(std::map<std::string, std::string>& stormap, const std::string& key) const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   bool checkKey(vector<string> *errorMessages) const override;
@@ -430,10 +430,10 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 }
 
 
-std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>OpenSSLRSADNSCryptoKeyEngine::parse(std::map<std::string, std::string>& stormap, const std::string& key)
+std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>OpenSSLRSADNSCryptoKeyEngine::parse(std::map<std::string, std::string>& stormap, const std::string& key) const
 {
-  const std::string& v = stormap[key];
-  auto n = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn((const unsigned char*)v.c_str(), v.length(), nullptr), BN_clear_free);
+  const std::string& v = stormap.at(key);
+  auto n = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn(reinterpret_cast<const unsigned char*>(v.data()), v.length(), nullptr), BN_clear_free);
 
   if (!n) {
     throw runtime_error(getName() + " parsing of " + key + " failed");
