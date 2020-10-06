@@ -38,14 +38,14 @@ Public support is available via several different channels:
   * `The mailing list <https://www.powerdns.com/mailing-lists.html>`_
   * ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
-The PowerDNS company can provide help or support you in private as well.
-For first class and rapid support, please contact powerdns.support@powerdns.com, or see the `.com website <https://www.powerdns.com/support-services-consulting.html>`__.
+The Open-Xchange/PowerDNS company can provide help or support you in private as well.
+Please `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
 
 My information is confidential, must I send it to the mailing list or discuss on IRC?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Yes, we have a support policy called `"Open Source Support: out in the open" <https://blog.powerdns.com/2016/01/18/open-source-support-out-in-the-open/>`_.
 
-If you desire privacy, please consider entering a support relationship with us, in which case we invite you to contact powerdns.support.sales@powerdns.com.
+If you desire privacy, please consider entering a support relationship with us, in which case we invite you to `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
 
 I have a question!
 ^^^^^^^^^^^^^^^^^^

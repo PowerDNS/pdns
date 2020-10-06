@@ -38,6 +38,7 @@ There are several ways to reach us:
 * The `dnsdist mailing-list <https://mailman.powerdns.com/mailman/listinfo/dnsdist>`_
 * #powerdns on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
-If you require commercial support, please see the `PowerDNS.com website <https://powerdns.com>`_ or email us at powerdns.support.sales@powerdns.com.
+The Open-Xchange/PowerDNS company can provide help or support you in private as well.
+Please `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
 
 This documentation is also available as a `PDF document <dnsdist.pdf>`_.
