@@ -194,6 +194,7 @@ public:
   bool verify(const std::string& hash, const std::string& signature) const override;
   std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
+  std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>parse(std::map<std::string, std::string>& stormap, const std::string& key) const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
   bool checkKey(vector<string> *errorMessages) const override;
@@ -429,88 +430,44 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 }
 
 
+std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>OpenSSLRSADNSCryptoKeyEngine::parse(std::map<std::string, std::string>& stormap, const std::string& key) const
+{
+  const std::string& v = stormap.at(key);
+  auto n = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_bin2bn(reinterpret_cast<const unsigned char*>(v.data()), v.length(), nullptr), BN_clear_free);
+
+  if (!n) {
+    throw runtime_error(getName() + " parsing of " + key + " failed");
+  }
+  return n;
+}
+
 void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
-  typedef map<string, BIGNUM**> places_t;
-  places_t places;
   auto key = std::unique_ptr<RSA, void(*)(RSA*)>(RSA_new(), RSA_free);
   if (!key) {
-    throw runtime_error(getName()+" allocation of key structure failed");
+    throw runtime_error(getName() + " allocation of key structure failed");
   }
 
-  BIGNUM *n, *e, *d, *p, *q, *dmp1, *dmq1, *iqmp;
-  n = BN_new();
-  if (n == nullptr) {
-    throw runtime_error(getName()+" allocation of BIGNUM n failed");
-  }
-  e = BN_new();
-  if (e == nullptr) {
-    BN_clear_free(n);
-    throw runtime_error(getName()+" allocation of BIGNUM e failed");
-  }
-  d = BN_new();
-  if (d == nullptr) {
-    BN_clear_free(n);
-    BN_clear_free(e);
-    throw runtime_error(getName()+" allocation of BIGNUM d failed");
-  }
-  RSA_set0_key(key.get(), n, e, d);
+  auto n = parse(stormap, "modulus");
+  auto e = parse(stormap, "publicexponent");
+  auto d = parse(stormap, "privateexponent");
 
-  p = BN_new();
-  if (p == nullptr) {
-    throw runtime_error(getName()+" allocation of BIGNUM p failed");
-  }
-  q = BN_new();
-  if (q == nullptr) {
-    BN_clear_free(p);
-    throw runtime_error(getName()+" allocation of BIGNUM q failed");
-  }
-  RSA_set0_factors(key.get(), p, q);
+  auto p = parse(stormap, "prime1");
+  auto q = parse(stormap, "prime2");
 
-  dmp1 = BN_new();
-  if (dmp1 == nullptr) {
-    throw runtime_error(getName()+" allocation of BIGNUM dmp1 failed");
-  }
-  dmq1 = BN_new();
-  if (dmq1 == nullptr) {
-    BN_clear_free(dmp1);
-    throw runtime_error(getName()+" allocation of BIGNUM dmq1 failed");
-  }
-  iqmp = BN_new();
-  if (iqmp == nullptr) {
-    BN_clear_free(dmq1);
-    BN_clear_free(dmp1);
-    throw runtime_error(getName()+" allocation of BIGNUM iqmp failed");
-  }
-  RSA_set0_crt_params(key.get(), dmp1, dmq1, iqmp);
-
-  places["Modulus"]=&n;
-  places["PublicExponent"]=&e;
-  places["PrivateExponent"]=&d;
-  places["Prime1"]=&p;
-  places["Prime2"]=&q;
-  places["Exponent1"]=&dmp1;
-  places["Exponent2"]=&dmq1;
-  places["Coefficient"]=&iqmp;
+  auto dmp1 = parse(stormap, "exponent1");
+  auto dmq1 = parse(stormap, "exponent2");
+  auto iqmp = parse(stormap, "coefficient");
 
   drc.d_algorithm = pdns_stou(stormap["algorithm"]);
 
-  string raw;
-  for(const places_t::value_type& val :  places) {
-    raw=stormap[toLower(val.first)];
-
-    if (!val.second)
-      continue;
-
-    *val.second = BN_bin2bn((unsigned char*) raw.c_str(), raw.length(), *val.second);
-    if (!*val.second) {
-      throw runtime_error(getName()+" error loading " + val.first);
-    }
-  }
-
   if (drc.d_algorithm != d_algorithm) {
-    throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
+    throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
   }
+  // Eveything OK, we're releasing ownership since the RSA_* functions want it
+  RSA_set0_key(key.get(), n.release(), e.release(), d.release());
+  RSA_set0_factors(key.get(), p.release(), q.release());
+  RSA_set0_crt_params(key.get(), dmp1.release(), dmq1.release(), iqmp.release());
 
   d_key = std::move(key);
 }
