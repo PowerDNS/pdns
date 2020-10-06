@@ -233,10 +233,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   uint16_t qclass = QClass::IN;
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
-  struct dnsheader dh;
-  memset(&dh, 0, sizeof(dh));
-  size_t bufferSize = 0;
-  size_t queryLen = 0;
+  std::vector<uint8_t> packet(sizeof(dnsheader));
   bool isTcp = false;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
@@ -244,7 +241,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);
@@ -291,10 +288,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   uint16_t qclass = QClass::IN;
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
-  struct dnsheader dh;
-  memset(&dh, 0, sizeof(dh));
-  size_t bufferSize = 0;
-  size_t queryLen = 0;
+  std::vector<uint8_t> packet(sizeof(dnsheader));
   bool isTcp = false;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
@@ -302,7 +296,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
   ComboAddress v4Masked(v4ToMask);
   ComboAddress v6Masked(v6ToMask);
   v4Masked.truncate(25);

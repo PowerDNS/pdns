@@ -28,8 +28,12 @@ struct DOHServerConfig;
 class DOHResponseMapEntry
 {
 public:
-  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::string& content, const boost::optional<std::vector<std::pair<std::string, std::string>>>& headers): d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
+  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::vector<uint8_t>& content, const boost::optional<std::vector<std::pair<std::string, std::string>>>& headers): d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
   {
+    if (status >= 400 && !d_content.empty() && d_content.at(d_content.size() -1) != 0) {
+      // we need to make sure it's null-terminated
+      d_content.push_back(0);
+    }
   }
 
   bool matches(const std::string& path) const
@@ -42,7 +46,7 @@ public:
     return d_status;
   }
 
-  const std::string& getContent() const
+  const std::vector<uint8_t>& getContent() const
   {
     return d_content;
   }
@@ -55,7 +59,7 @@ public:
 private:
   Regex d_regex;
   boost::optional<std::vector<std::pair<std::string, std::string>>> d_customHeaders;
-  std::string d_content;
+  std::vector<uint8_t> d_content;
   uint16_t d_status;
 };
 
@@ -185,8 +189,8 @@ struct DOHUnit
   }
 
   std::vector<std::pair<std::string, std::string>> headers;
-  std::string query;
-  std::string response;
+  std::vector<uint8_t> query;
+  std::vector<uint8_t> response;
   std::string sni;
   std::string path;
   std::string scheme;
@@ -215,7 +219,7 @@ struct DOHUnit
   std::string getHTTPScheme() const;
   std::string getHTTPQueryString() const;
   std::unordered_map<std::string, std::string> getHTTPHeaders() const;
-  void setHTTPResponse(uint16_t statusCode, const std::string& body, const std::string& contentType="");
+  void setHTTPResponse(uint16_t statusCode, std::vector<uint8_t>&& body, const std::string& contentType="");
 };
 
 #endif /* HAVE_DNS_OVER_HTTPS  */

@@ -1,9 +1,9 @@
 
 #include "dnsdist.hh"
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP)
+DNSResponse makeDNSResponseFromIDState(IDState& ids, std::vector<uint8_t>& data, bool isTCP)
 {
-  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, ids.qname.wirelength(), &ids.origDest, &ids.origRemote, dh, bufferSize, responseLen, isTCP, &ids.sentTime.d_start);
+  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, isTCP, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
   dr.ecsAdded = ids.ecsAdded;
   dr.ednsAdded = ids.ednsAdded;

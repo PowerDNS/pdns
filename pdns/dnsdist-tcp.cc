@@ -446,38 +446,18 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
     return;
   }
 
-  uint16_t responseSize = response.d_buffer.size();
-  response.d_buffer.resize(responseSize + static_cast<size_t>(512));
-  size_t responseCapacity = response.d_buffer.size();
-  auto responseAsCharArray = reinterpret_cast<char*>(&response.d_buffer.at(0));
-
   auto& ids = response.d_idstate;
-  unsigned int consumed;
-  if (!responseContentMatches(responseAsCharArray, responseSize, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), consumed)) {
+  unsigned int qnameWireLength;
+  if (!responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
     return;
   }
 
-  auto dh = reinterpret_cast<struct dnsheader*>(responseAsCharArray);
-  uint16_t addRoom = 0;
-  DNSResponse dr = makeDNSResponseFromIDState(ids, dh, responseCapacity, responseSize, true);
-  if (dr.dnsCryptQuery) {
-    addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-  }
+  DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer, true);
 
-  memcpy(&response.d_cleartextDH, dr.dh, sizeof(response.d_cleartextDH));
+  memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
-  std::vector<uint8_t> rewrittenResponse;
-  if (!processResponse(&responseAsCharArray, &responseSize, &responseCapacity, state->d_threadData.localRespRulactions, dr, addRoom, rewrittenResponse, false)) {
+  if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
     return;
-  }
-
-  if (!rewrittenResponse.empty()) {
-    /* responseSize has been updated as well but we don't really care since it will match
-       the capacity of rewrittenResponse anyway */
-    response.d_buffer = std::move(rewrittenResponse);
-  } else {
-    /* the size might have been updated (shrinked) if we removed the whole OPT RR, for example) */
-    response.d_buffer.resize(responseSize);
   }
 
   if (state->d_isXFR && !state->d_xfrStarted) {
@@ -539,26 +519,24 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
 
-  auto query = reinterpret_cast<char*>(&state->d_buffer.at(0));
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
-  auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, query, state->d_querySize, dnsCryptQuery, queryRealTime.tv_sec, true);
+  auto dnsCryptResponse = checkDNSCryptQuery(*state->d_ci.cs, state->d_buffer, dnsCryptQuery, queryRealTime.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;
-    response.d_buffer = std::move(*dnsCryptResponse);
     state->d_state = IncomingTCPConnectionState::State::idle;
     ++state->d_currentQueriesCount;
     return state->sendResponse(state, now, std::move(response));
   }
 
-  const auto& dh = reinterpret_cast<dnsheader*>(query);
+  const auto* dh = reinterpret_cast<dnsheader*>(state->d_buffer.data());
   if (!checkQueryHeaders(dh)) {
     return IOState::NeedRead;
   }
 
   uint16_t qtype, qclass;
-  unsigned int consumed = 0;
-  DNSName qname(query, state->d_querySize, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-  DNSQuestion dq(&qname, qtype, qclass, consumed, &state->d_origDest, &state->d_ci.remote, reinterpret_cast<dnsheader*>(query), state->d_buffer.size(), state->d_querySize, true, &queryRealTime);
+  unsigned int qnameWireLength = 0;
+  DNSName qname(reinterpret_cast<const char*>(state->d_buffer.data()), state->d_buffer.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
+  DNSQuestion dq(&qname, qtype, qclass, &state->d_origDest, &state->d_ci.remote, state->d_buffer, true, &queryRealTime);
   dq.dnsCryptQuery = std::move(dnsCryptQuery);
   dq.sni = state->d_handler.getServerNameIndication();
 
@@ -574,8 +552,9 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
     return IOState::Done;
   }
 
+  // the buffer might have been invalidated by now
+  dh = dq.getHeader();
   if (result == ProcessQueryResult::SendAnswer) {
-    state->d_buffer.resize(dq.len);
     TCPResponse response;
     response.d_selfGenerated = true;
     response.d_buffer = std::move(state->d_buffer);
@@ -592,18 +571,12 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   setIDStateFromDNSQuestion(ids, dq, std::move(qname));
   ids.origID = ntohs(dh->id);
 
-  const uint8_t sizeBytes[] = { static_cast<uint8_t>(dq.len / 256), static_cast<uint8_t>(dq.len % 256) };
+  uint16_t queryLen = state->d_buffer.size();
+  const uint8_t sizeBytes[] = { static_cast<uint8_t>(queryLen / 256), static_cast<uint8_t>(queryLen % 256) };
   /* prepend the size. Yes, this is not the most efficient way but it prevents mistakes
      that could occur if we had to deal with the size during the processing,
      especially alignment issues */
-  /* first we need to resize to the size that is actually used, since we allocated more to be able to insert
-     EDNS or Proxy Protocol values */
-  dq.size = state->d_buffer.size();
-  state->d_buffer.resize(dq.len);
   state->d_buffer.insert(state->d_buffer.begin(), sizeBytes, sizeBytes + 2);
-  dq.len = dq.len + 2;
-  dq.dh = reinterpret_cast<dnsheader*>(&state->d_buffer.at(0));
-  state->d_buffer.resize(dq.len);
 
   bool proxyProtocolPayloadAdded = false;
   std::string proxyProtocolPayload;
@@ -729,6 +702,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_querySize);
         if (iostate == IOState::Done) {
           DEBUGLOG("query received");
+          state->d_buffer.resize(state->d_querySize);
 
           iostate = handleQuery(state, now);
           // if the query has been passed to a backend, or dropped, we can start

@@ -29,15 +29,11 @@ std::string getProxyProtocolPayload(const DNSQuestion& dq)
 
 bool addProxyProtocol(DNSQuestion& dq, const std::string& payload)
 {
-  if ((dq.size - dq.len) < payload.size()) {
+  if (!dq.hasRoomFor(payload.size())) {
     return false;
   }
 
-  memmove(reinterpret_cast<char*>(dq.dh) + payload.size(), dq.dh, dq.len);
-  memcpy(dq.dh, payload.c_str(), payload.size());
-  dq.len += payload.size();
-
-  return true;
+  return addProxyProtocol(dq.getMutableData(), payload);
 }
 
 bool addProxyProtocol(DNSQuestion& dq)
@@ -53,9 +49,7 @@ bool addProxyProtocol(std::vector<uint8_t>& buffer, const std::string& payload)
     return false;
   }
 
-  buffer.resize(previousSize + payload.size());
-  std::copy_backward(buffer.begin(), buffer.begin() + previousSize, buffer.end());
-  std::copy(payload.begin(), payload.end(), buffer.begin());
+  buffer.insert(buffer.begin(), payload.begin(), payload.end());
 
   return true;
 }

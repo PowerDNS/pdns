@@ -124,7 +124,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     m.setTime(ts.tv_sec, ts.tv_nsec / 1000);
   }
 
-  m.setRequest(d_dq.uniqueId ? *d_dq.uniqueId : getUniqueID(), d_requestor ? *d_requestor : *d_dq.remote, d_responder ? *d_responder : *d_dq.local, d_question ? d_question->d_name : *d_dq.qname, d_question ? d_question->d_type : d_dq.qtype, d_question ? d_question->d_class : d_dq.qclass, d_dq.dh->id, d_dq.tcp, d_bytes ? *d_bytes : d_dq.len);
+  m.setRequest(d_dq.uniqueId ? *d_dq.uniqueId : getUniqueID(), d_requestor ? *d_requestor : *d_dq.remote, d_responder ? *d_responder : *d_dq.local, d_question ? d_question->d_name : *d_dq.qname, d_question ? d_question->d_type : d_dq.qtype, d_question ? d_question->d_class : d_dq.qclass, d_dq.getHeader()->id, d_dq.tcp, d_bytes ? *d_bytes : d_dq.getData().size());
 
   if (d_serverIdentity) {
     m.setServerIdentity(*d_serverIdentity);
@@ -146,8 +146,8 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   }
 
   if (d_dr != nullptr) {
-    m.setResponseCode(d_rcode ? *d_rcode : d_dr->dh->rcode);
-    m.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->dh), d_dr->len, d_includeCNAME);
+    m.setResponseCode(d_rcode ? *d_rcode : d_dr->getHeader()->rcode);
+    m.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->getData().data()), d_dr->getData().size(), d_includeCNAME);
   }
   else {
     if (d_rcode) {

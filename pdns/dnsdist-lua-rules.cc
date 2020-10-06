@@ -443,10 +443,11 @@ void setupLuaRules(LuaContext& luaCtx)
       StopWatch sw;
       sw.start();
       for(int n=0; n < times; ++n) {
-        const item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, i.qclass, 0, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false, &sw.d_start);
-        if(rule->matches(&dq))
+        item& i = items[n % items.size()];
+        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, i.packet, false, &sw.d_start);
+        if (rule->matches(&dq)) {
           matches++;
+        }
       }
       double udiff=sw.udiff();
       g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();

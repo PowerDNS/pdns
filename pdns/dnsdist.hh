@@ -62,9 +62,9 @@ typedef std::unordered_map<string, string> QTag;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, unsigned int consumed_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_):
-    qname(name), local(lc), remote(rem), dh(header), queryTime(queryTime_), size(bufferSize), consumed(consumed_), tempFailureTTL(boost::none), qtype(type), qclass(class_), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) {
-    const uint16_t* flags = getFlagsFromDNSHeader(dh);
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, std::vector<uint8_t>& data_, bool isTcp, const struct timespec* queryTime_):
+    data(data_), qname(name), local(lc), remote(rem), queryTime(queryTime_), tempFailureTTL(boost::none), qtype(type), qclass(class_), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) {
+    const uint16_t* flags = getFlagsFromDNSHeader(getHeader());
     origFlags = *flags;
   }
   DNSQuestion(const DNSQuestion&) = delete;
@@ -73,7 +73,48 @@ struct DNSQuestion
 
   std::string getTrailingData() const;
   bool setTrailingData(const std::string&);
+  const std::vector<uint8_t>& getData() const
+  {
+    return data;
+  }
+  std::vector<uint8_t>& getMutableData()
+  {
+    return data;
+  }
 
+  dnsheader* getHeader()
+  {
+    if (data.size() < sizeof(dnsheader)) {
+      throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
+    }
+    return reinterpret_cast<dnsheader*>(&data.at(0));
+  }
+
+  const dnsheader* getHeader() const
+  {
+    if (data.size() < sizeof(dnsheader)) {
+      throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
+    }
+    return reinterpret_cast<const dnsheader*>(&data.at(0));
+  }
+
+  bool hasRoomFor(size_t more) const
+  {
+    return data.size() <= getMaximumSize() && (getMaximumSize() - data.size()) >= more;
+  }
+
+  size_t getMaximumSize() const
+  {
+    if (tcp) {
+      return std::numeric_limits<uint16_t>::max();
+    }
+    return 4096;
+  }
+
+protected:
+    std::vector<uint8_t>& data;
+
+public:
   boost::optional<boost::uuids::uuid> uniqueId;
   Netmask ecs;
   boost::optional<Netmask> subnet;
@@ -87,18 +128,14 @@ struct DNSQuestion
   mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
-  struct dnsheader* dh{nullptr};
   const struct timespec* queryTime{nullptr};
   struct DOHUnit* du{nullptr};
-  size_t size;
-  unsigned int consumed{0};
   int delayMsec{0};
   boost::optional<uint32_t> tempFailureTTL;
   uint32_t cacheKeyNoECS;
   uint32_t cacheKey;
   const uint16_t qtype;
   const uint16_t qclass;
-  uint16_t len;
   uint16_t ecsPrefixLength;
   uint16_t origFlags;
   uint8_t ednsRCode{0};
@@ -116,8 +153,8 @@ struct DNSQuestion
 
 struct DNSResponse : DNSQuestion
 {
-  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, unsigned int consumed_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t responseLen, bool isTcp, const struct timespec* queryTime_):
-    DNSQuestion(name, type, class_, consumed_, lc, rem, header, bufferSize, responseLen, isTcp, queryTime_) { }
+  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, std::vector<uint8_t>& data_, bool isTcp, const struct timespec* queryTime_):
+    DNSQuestion(name, type, class_, lc, rem, data_, isTcp, queryTime_) { }
   DNSResponse(const DNSResponse&) = delete;
   DNSResponse& operator=(const DNSResponse&) = delete;
   DNSResponse(DNSResponse&&) = default;
@@ -1140,7 +1177,6 @@ extern bool g_servFailOnNoPolicy;
 extern bool g_useTCPSinglePipe;
 extern uint16_t g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
-extern bool g_preserveTrailingData;
 extern bool g_allowEmptyResponse;
 
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -1175,17 +1211,15 @@ void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ s
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
 void resetLuaSideEffect(); // reset to indeterminate state
 
-bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& consumed);
-bool processResponse(char** response, uint16_t* responseLen, size_t* responseSize, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, size_t addRoom, std::vector<uint8_t>& rewrittenResponse, bool muted);
+bool responseContentMatches(const std::vector<uint8_t>& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength);
+bool processResponse(std::vector<uint8_t>& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh);
 
 extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
-int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
-boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
-
-bool addXPF(DNSQuestion& dq, uint16_t optionCode);
+int handleDNSCryptQuery(std::vector<uint8_t>& packet, std::shared_ptr<DNSCryptQuery>& query, bool tcp, time_t now, std::vector<uint8_t>& response);
+bool checkDNSCryptQuery(const ClientState& cs, std::vector<uint8_t>& query, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
 uint16_t getRandomDNSID();
 
@@ -1203,8 +1237,8 @@ static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses la
 enum class ProcessQueryResult { Drop, SendAnswer, PassToBackend };
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP);
+DNSResponse makeDNSResponseFromIDState(IDState& ids, std::vector<uint8_t>& data, bool isTCP);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
 
 int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
-ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false);
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const std::vector<uint8_t>& request, bool healthCheck = false);

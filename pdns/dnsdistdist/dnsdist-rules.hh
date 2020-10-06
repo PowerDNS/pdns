@@ -387,7 +387,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return dq->dh->cd || (getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
+    return dq->getHeader()->cd || (getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
   }
 
   string toString() const override
@@ -667,7 +667,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return d_opcode == dq->dh->opcode;
+    return d_opcode == dq->getHeader()->opcode;
   }
   string toString() const override
   {
@@ -743,16 +743,16 @@ public:
     uint16_t count = 0;
     switch(d_section) {
     case 0:
-      count = ntohs(dq->dh->qdcount);
+      count = ntohs(dq->getHeader()->qdcount);
       break;
     case 1:
-      count = ntohs(dq->dh->ancount);
+      count = ntohs(dq->getHeader()->ancount);
       break;
     case 2:
-      count = ntohs(dq->dh->nscount);
+      count = ntohs(dq->getHeader()->nscount);
       break;
     case 3:
-      count = ntohs(dq->dh->arcount);
+      count = ntohs(dq->getHeader()->arcount);
       break;
     }
     return count >= d_minCount && count <= d_maxCount;
@@ -793,22 +793,22 @@ public:
     uint16_t count = 0;
     switch(d_section) {
     case 0:
-      count = ntohs(dq->dh->qdcount);
+      count = ntohs(dq->getHeader()->qdcount);
       break;
     case 1:
-      count = ntohs(dq->dh->ancount);
+      count = ntohs(dq->getHeader()->ancount);
       break;
     case 2:
-      count = ntohs(dq->dh->nscount);
+      count = ntohs(dq->getHeader()->nscount);
       break;
     case 3:
-      count = ntohs(dq->dh->arcount);
+      count = ntohs(dq->getHeader()->arcount);
       break;
     }
     if (count < d_minCount) {
       return false;
     }
-    count = getRecordsOfTypeCount(reinterpret_cast<const char*>(dq->dh), dq->len, d_section, d_type);
+    count = getRecordsOfTypeCount(reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), d_section, d_type);
     return count >= d_minCount && count <= d_maxCount;
   }
   string toString() const override
@@ -845,8 +845,8 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    uint16_t length = getDNSPacketLength(reinterpret_cast<const char*>(dq->dh), dq->len);
-    return length < dq->len;
+    uint16_t length = getDNSPacketLength(reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size());
+    return length < dq->getData().size();
   }
   string toString() const override
   {
@@ -902,7 +902,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return d_rcode == dq->dh->rcode;
+    return d_rcode == dq->getHeader()->rcode;
   }
   string toString() const override
   {
@@ -921,7 +921,7 @@ public:
   bool matches(const DNSQuestion* dq) const override
   {
     // avoid parsing EDNS OPT RR when not needed.
-    if (d_rcode != dq->dh->rcode) {
+    if (d_rcode != dq->getHeader()->rcode) {
       return false;
     }
 
@@ -975,8 +975,7 @@ public:
     uint16_t optStart;
     size_t optLen = 0;
     bool last = false;
-    const char * packet = reinterpret_cast<const char*>(dq->dh);
-    std::string packetStr(packet, dq->len);
+    std::string packetStr(dq->getData().begin(), dq->getData().end());
     int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
     if (res != 0) {
       // no EDNS OPT RR
@@ -987,7 +986,7 @@ public:
       return false;
     }
 
-    if (optStart < dq->len && packetStr.at(optStart) != 0) {
+    if (optStart < dq->getData().size() && packetStr.at(optStart) != 0) {
       // OPT RR Name != '.'
       return false;
     }
@@ -1010,7 +1009,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return dq->dh->rd == 1;
+    return dq->getHeader()->rd == 1;
   }
   string toString() const override
   {

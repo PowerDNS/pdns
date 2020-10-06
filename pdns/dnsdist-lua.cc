@@ -1159,8 +1159,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
-  luaCtx.writeFunction("setPreserveTrailingData", [](bool preserve) { g_preserveTrailingData = preserve; });
-
   luaCtx.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();
       auto slow = g_dynblockNMG.getCopy();

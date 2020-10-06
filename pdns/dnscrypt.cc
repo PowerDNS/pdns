@@ -384,29 +384,32 @@ void DNSCryptContext::removeInactiveCertificate(uint32_t serial)
   throw std::runtime_error("No inactive certificate found with this serial");
 }
 
-bool DNSCryptQuery::parsePlaintextQuery(const char * packet, uint16_t packetSize)
+bool DNSCryptQuery::parsePlaintextQuery(const std::vector<uint8_t>& packet)
 {
   assert(d_ctx != nullptr);
 
-  if (packetSize < sizeof(dnsheader)) {
+  if (packet.size() < sizeof(dnsheader)) {
     return false;
   }
 
-  const struct dnsheader * dh = reinterpret_cast<const struct dnsheader *>(packet);
+  const struct dnsheader * dh = reinterpret_cast<const struct dnsheader *>(packet.data());
   if (dh->qr || ntohs(dh->qdcount) != 1 || dh->ancount != 0 || dh->nscount != 0 || dh->opcode != Opcode::Query)
     return false;
 
-  unsigned int consumed;
+  unsigned int qnameWireLength;
   uint16_t qtype, qclass;
-  DNSName qname(packet, packetSize, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-  if ((packetSize - sizeof(dnsheader)) < (consumed + sizeof(qtype) + sizeof(qclass)))
+  DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
+  if ((packet.size() - sizeof(dnsheader)) < (qnameWireLength + sizeof(qtype) + sizeof(qclass))) {
     return false;
+  }
 
-  if (qtype != QType::TXT || qclass != QClass::IN)
+  if (qtype != QType::TXT || qclass != QClass::IN) {
     return false;
+  }
 
-  if (qname != d_ctx->getProviderName())
+  if (qname != d_ctx->getProviderName()) {
     return false;
+  }
 
   d_qname = qname;
   d_id = dh->id;
@@ -455,21 +458,21 @@ bool DNSCryptContext::magicMatchesAPublicKey(DNSCryptQuery& query, time_t now)
   return false;
 }
 
-bool DNSCryptQuery::isEncryptedQuery(const char * packet, uint16_t packetSize, bool tcp, time_t now)
+bool DNSCryptQuery::isEncryptedQuery(const std::vector<uint8_t>& packet, bool tcp, time_t now)
 {
   assert(d_ctx != nullptr);
 
   d_encrypted = false;
 
-  if (packetSize < sizeof(DNSCryptQueryHeader)) {
+  if (packet.size() < sizeof(DNSCryptQueryHeader)) {
     return false;
   }
 
-  if (!tcp && packetSize < DNSCryptQuery::s_minUDPLength) {
+  if (!tcp && packet.size() < DNSCryptQuery::s_minUDPLength) {
     return false;
   }
 
-  const struct DNSCryptQueryHeader* header = reinterpret_cast<const struct DNSCryptQueryHeader*>(packet);
+  const struct DNSCryptQueryHeader* header = reinterpret_cast<const struct DNSCryptQueryHeader*>(packet.data());
 
   d_header = *header;
 
@@ -482,16 +485,15 @@ bool DNSCryptQuery::isEncryptedQuery(const char * packet, uint16_t packetSize, b
   return true;
 }
 
-void DNSCryptQuery::getDecrypted(bool tcp, char* packet, uint16_t packetSize, uint16_t* decryptedQueryLen)
+void DNSCryptQuery::getDecrypted(bool tcp, std::vector<uint8_t>& packet)
 {
-  assert(decryptedQueryLen != nullptr);
   assert(d_encrypted);
   assert(d_pair != nullptr);
   assert(d_valid == false);
 
 #ifdef DNSCRYPT_STRICT_PADDING_LENGTH
-  if (tcp && ((packetSize - sizeof(DNSCryptQueryHeader)) % DNSCRYPT_PADDED_BLOCK_SIZE) != 0) {
-    vinfolog("Dropping encrypted query with invalid size of %d (should be a multiple of %d)", (packetSize - sizeof(DNSCryptQueryHeader)), DNSCRYPT_PADDED_BLOCK_SIZE);
+  if (tcp && ((packet.size() - sizeof(DNSCryptQueryHeader)) % DNSCRYPT_PADDED_BLOCK_SIZE) != 0) {
+    vinfolog("Dropping encrypted query with invalid size of %d (should be a multiple of %d)", (packet.size() - sizeof(DNSCryptQueryHeader)), DNSCRYPT_PADDED_BLOCK_SIZE);
     return;
   }
 #endif
@@ -514,17 +516,17 @@ void DNSCryptQuery::getDecrypted(bool tcp, char* packet, uint16_t packetSize, ui
   const DNSCryptExchangeVersion version = getVersion();
 
   if (version == DNSCryptExchangeVersion::VERSION1) {
-    res = crypto_box_open_easy_afternm(reinterpret_cast<unsigned char*>(packet),
-                                       reinterpret_cast<unsigned char*>(packet + sizeof(DNSCryptQueryHeader)),
-                                       packetSize - sizeof(DNSCryptQueryHeader),
+    res = crypto_box_open_easy_afternm(reinterpret_cast<unsigned char*>(packet.data()),
+                                       reinterpret_cast<unsigned char*>(&packet.at(sizeof(DNSCryptQueryHeader))),
+                                       packet.size() - sizeof(DNSCryptQueryHeader),
                                        nonce,
                                        d_sharedKey);
   }
   else if (version == DNSCryptExchangeVersion::VERSION2) {
 #ifdef HAVE_CRYPTO_BOX_CURVE25519XCHACHA20POLY1305_EASY
-    res = crypto_box_curve25519xchacha20poly1305_open_easy_afternm(reinterpret_cast<unsigned char*>(packet),
-                                                                   reinterpret_cast<unsigned char*>(packet + sizeof(DNSCryptQueryHeader)),
-                                                                   packetSize - sizeof(DNSCryptQueryHeader),
+    res = crypto_box_curve25519xchacha20poly1305_open_easy_afternm(reinterpret_cast<unsigned char*>(packet.data()),
+                                                                   reinterpret_cast<unsigned char*>(&packet.at(sizeof(DNSCryptQueryHeader))),
+                                                                   packet.size() - sizeof(DNSCryptQueryHeader),
                                                                    nonce,
                                                                    d_sharedKey);
 #else /* HAVE_CRYPTO_BOX_CURVE25519XCHACHA20POLY1305_EASY */
@@ -535,9 +537,9 @@ void DNSCryptQuery::getDecrypted(bool tcp, char* packet, uint16_t packetSize, ui
   }
 
 #else /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
-  int res = crypto_box_open_easy(reinterpret_cast<unsigned char*>(packet),
-                                 reinterpret_cast<unsigned char*>(packet + sizeof(DNSCryptQueryHeader)),
-                                 packetSize - sizeof(DNSCryptQueryHeader),
+  int res = crypto_box_open_easy(reinterpret_cast<unsigned char*>(packet.data()),
+                                 reinterpret_cast<unsigned char*>(&packet.at(sizeof(DNSCryptQueryHeader))),
+                                 packet.size() - sizeof(DNSCryptQueryHeader),
                                  nonce,
                                  d_header.clientPK,
                                  d_pair->privateKey.key);
@@ -548,22 +550,22 @@ void DNSCryptQuery::getDecrypted(bool tcp, char* packet, uint16_t packetSize, ui
     return;
   }
 
-  *decryptedQueryLen = packetSize - sizeof(DNSCryptQueryHeader) - DNSCRYPT_MAC_SIZE;
-  uint16_t pos = *decryptedQueryLen;
-  assert(pos < packetSize);
-  d_paddedLen = *decryptedQueryLen;
+  uint16_t decryptedQueryLen = packet.size() - sizeof(DNSCryptQueryHeader) - DNSCRYPT_MAC_SIZE;
+  uint16_t pos = decryptedQueryLen;
+  assert(pos < packet.size());
+  d_paddedLen = decryptedQueryLen;
 
-  while(pos > 0 && packet[pos - 1] == 0) pos--;
+  while (pos > 0 && packet.at(pos - 1) == 0) pos--;
 
-  if (pos == 0 || static_cast<uint8_t>(packet[pos - 1]) != 0x80) {
+  if (pos == 0 || packet.at(pos - 1) != 0x80) {
     vinfolog("Dropping encrypted query with invalid padding value");
     return;
   }
 
   pos--;
 
-  size_t paddingLen = *decryptedQueryLen - pos;
-  *decryptedQueryLen = pos;
+  size_t paddingLen = decryptedQueryLen - pos;
+  packet.resize(pos);
 
   if (tcp && paddingLen > DNSCRYPT_MAX_TCP_PADDING_SIZE) {
     vinfolog("Dropping encrypted query with too long padding size");
@@ -580,19 +582,16 @@ void DNSCryptQuery::getCertificateResponse(time_t now, std::vector<uint8_t>& res
   d_ctx->getCertificateResponse(now, d_qname, d_id, response);
 }
 
-void DNSCryptQuery::parsePacket(char* packet, uint16_t packetSize, bool tcp, uint16_t* decryptedQueryLen, time_t now)
+void DNSCryptQuery::parsePacket(std::vector<uint8_t>& packet, bool tcp, time_t now)
 {
-  assert(packet != nullptr);
-  assert(decryptedQueryLen != nullptr);
-
   d_valid = false;
 
   /* might be a plaintext certificate request or an authenticated request */
-  if (isEncryptedQuery(packet, packetSize, tcp, now)) {
-    getDecrypted(tcp, packet, packetSize, decryptedQueryLen);
+  if (isEncryptedQuery(packet, tcp, now)) {
+    getDecrypted(tcp, packet);
   }
   else {
-    parsePlaintextQuery(packet, packetSize);
+    parsePlaintextQuery(packet);
   }
 }
 
@@ -636,65 +635,69 @@ uint16_t DNSCryptQuery::computePaddingSize(uint16_t unpaddedLen, size_t maxLen) 
   return result;
 }
 
-int DNSCryptQuery::encryptResponse(char* response, uint16_t responseLen, uint16_t responseSize, bool tcp, uint16_t* encryptedResponseLen)
+int DNSCryptQuery::encryptResponse(std::vector<uint8_t>& response, size_t maxResponseSize, bool tcp)
 {
   struct DNSCryptResponseHeader responseHeader;
-  assert(response != nullptr);
-  assert(responseLen > 0);
-  assert(responseSize >= responseLen);
-  assert(encryptedResponseLen != nullptr);
+  assert(response.size() > 0);
+  assert(maxResponseSize >= response.size());
   assert(d_encrypted == true);
   assert(d_pair != nullptr);
 
-  if (!tcp && d_paddedLen < responseLen) {
-    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(response);
+  /* a DNSCrypt UDP response can't be larger than the (padded) DNSCrypt query */
+  if (!tcp && d_paddedLen < response.size()) {
+    /* so we need to truncate it */
     size_t questionSize = 0;
 
-    if (responseLen > sizeof(dnsheader)) {
-      unsigned int consumed = 0;
-      DNSName tempQName(response, responseLen, sizeof(dnsheader), false, 0, 0, &consumed);
-      if (consumed > 0) {
-        questionSize = consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
+    if (response.size() > sizeof(dnsheader)) {
+      unsigned int qnameWireLength = 0;
+      DNSName tempQName(reinterpret_cast<const char*>(response.data()), response.size(), sizeof(dnsheader), false, 0, 0, &qnameWireLength);
+      if (qnameWireLength > 0) {
+        questionSize = qnameWireLength + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
       }
     }
 
-    responseLen = sizeof(dnsheader) + questionSize;
+    response.resize(sizeof(dnsheader) + questionSize);
 
-    if (responseLen > d_paddedLen) {
-      responseLen = d_paddedLen;
+    if (response.size() > d_paddedLen) {
+      /* that does not seem right but let's truncate even more */
+      response.resize(d_paddedLen);
     }
+    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
     dh->ancount = dh->arcount = dh->nscount = 0;
     dh->tc = 1;
   }
 
-  size_t requiredSize = sizeof(responseHeader) + DNSCRYPT_MAC_SIZE + responseLen;
-  size_t maxSize = (responseSize > (requiredSize + DNSCRYPT_MAX_RESPONSE_PADDING_SIZE)) ? (requiredSize + DNSCRYPT_MAX_RESPONSE_PADDING_SIZE) : responseSize;
+  size_t requiredSize = sizeof(responseHeader) + DNSCRYPT_MAC_SIZE + response.size();
+  size_t maxSize = std::min(maxResponseSize, requiredSize + DNSCRYPT_MAX_RESPONSE_PADDING_SIZE);
   uint16_t paddingSize = computePaddingSize(requiredSize, maxSize);
   requiredSize += paddingSize;
 
-  if (requiredSize > responseSize)
+  if (requiredSize > maxResponseSize) {
     return ENOBUFS;
+  }
 
   memcpy(&responseHeader.nonce, &d_header.clientNonce, sizeof d_header.clientNonce);
   fillServerNonce(&(responseHeader.nonce[sizeof(d_header.clientNonce)]));
 
+  size_t responseLen = response.size();
   /* moving the existing response after the header + MAC */
-  memmove(response + sizeof(responseHeader) + DNSCRYPT_MAC_SIZE, response, responseLen);
+  response.resize(requiredSize);
+  std::copy_backward(response.begin(), response.begin() + responseLen, response.begin() + responseLen + sizeof(responseHeader) + DNSCRYPT_MAC_SIZE);
 
   uint16_t pos = 0;
   /* copying header */
-  memcpy(response + pos, &responseHeader, sizeof(responseHeader));
+  memcpy(&response.at(pos), &responseHeader, sizeof(responseHeader));
   pos += sizeof(responseHeader);
   /* setting MAC bytes to 0 */
-  memset(response + pos, 0, DNSCRYPT_MAC_SIZE);
+  memset(&response.at(pos), 0, DNSCRYPT_MAC_SIZE);
   pos += DNSCRYPT_MAC_SIZE;
   uint16_t toEncryptPos = pos;
   /* skipping response */
   pos += responseLen;
   /* padding */
-  response[pos] = static_cast<uint8_t>(0x80);
+  response.at(pos) = static_cast<uint8_t>(0x80);
   pos++;
-  memset(response + pos, 0, paddingSize - 1);
+  memset(&response.at(pos), 0, paddingSize - 1);
   pos += (paddingSize - 1);
 
   /* encrypting */
@@ -707,16 +710,16 @@ int DNSCryptQuery::encryptResponse(char* response, uint16_t responseLen, uint16_
   const DNSCryptExchangeVersion version = getVersion();
 
   if (version == DNSCryptExchangeVersion::VERSION1) {
-    res = crypto_box_easy_afternm(reinterpret_cast<unsigned char*>(response + sizeof(responseHeader)),
-                                  reinterpret_cast<unsigned char*>(response + toEncryptPos),
+    res = crypto_box_easy_afternm(reinterpret_cast<unsigned char*>(&response.at(sizeof(responseHeader))),
+                                  reinterpret_cast<unsigned char*>(&response.at(toEncryptPos)),
                                   responseLen + paddingSize,
                                   responseHeader.nonce,
                                   d_sharedKey);
   }
   else if (version == DNSCryptExchangeVersion::VERSION2) {
 #ifdef HAVE_CRYPTO_BOX_CURVE25519XCHACHA20POLY1305_EASY
-    res = crypto_box_curve25519xchacha20poly1305_easy_afternm(reinterpret_cast<unsigned char*>(response + sizeof(responseHeader)),
-                                                              reinterpret_cast<unsigned char*>(response + toEncryptPos),
+    res = crypto_box_curve25519xchacha20poly1305_easy_afternm(reinterpret_cast<unsigned char*>(&response.at(sizeof(responseHeader))),
+                                                              reinterpret_cast<unsigned char*>(&response.at(toEncryptPos)),
                                                               responseLen + paddingSize,
                                                               responseHeader.nonce,
                                                               d_sharedKey);
@@ -728,8 +731,8 @@ int DNSCryptQuery::encryptResponse(char* response, uint16_t responseLen, uint16_
     res = -1;
   }
 #else
-  int res = crypto_box_easy(reinterpret_cast<unsigned char*>(response + sizeof(responseHeader)),
-                            reinterpret_cast<unsigned char*>(response + toEncryptPos),
+  int res = crypto_box_easy(reinterpret_cast<unsigned char*>(&response.at(sizeof(responseHeader))),
+                            reinterpret_cast<unsigned char*>(&response.at(toEncryptPos)),
                             responseLen + paddingSize,
                             responseHeader.nonce,
                             d_header.clientPK,
@@ -738,20 +741,17 @@ int DNSCryptQuery::encryptResponse(char* response, uint16_t responseLen, uint16_
 
   if (res == 0) {
     assert(pos == requiredSize);
-    *encryptedResponseLen = requiredSize;
   }
 
   return res;
 }
 
-int DNSCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t querySize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, uint16_t* encryptedResponseLen, const std::shared_ptr<DNSCryptCert>& cert) const
+int DNSCryptContext::encryptQuery(std::vector<uint8_t>& packet, size_t maximumSize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, const std::shared_ptr<DNSCryptCert>& cert) const
 {
-  assert(query != nullptr);
-  assert(queryLen > 0);
-  assert(querySize >= queryLen);
-  assert(encryptedResponseLen != nullptr);
+  assert(packet.size() > 0);
   assert(cert != nullptr);
 
+  size_t queryLen = packet.size();
   unsigned char nonce[DNSCRYPT_NONCE_SIZE];
   size_t requiredSize = sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE + queryLen;
   /* this is not optimal, we should compute a random padding size, multiple of DNSCRYPT_PADDED_BLOCK_SIZE,
@@ -764,37 +764,39 @@ int DNSCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t query
     requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
-  if (requiredSize > querySize)
+  if (requiredSize > maximumSize) {
     return ENOBUFS;
+  }
 
   /* moving the existing query after the header + MAC */
-  memmove(query + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE, query, queryLen);
+  packet.resize(requiredSize);
+  std::copy_backward(packet.begin(), packet.begin() + queryLen, packet.begin() + queryLen + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE);
 
   size_t pos = 0;
   /* client magic */
-  memcpy(query + pos, cert->signedData.clientMagic, sizeof(cert->signedData.clientMagic));
+  memcpy(&packet.at(pos), cert->signedData.clientMagic, sizeof(cert->signedData.clientMagic));
   pos += sizeof(cert->signedData.clientMagic);
 
   /* client PK */
-  memcpy(query + pos, clientPublicKey, DNSCRYPT_PUBLIC_KEY_SIZE);
+  memcpy(&packet.at(pos), clientPublicKey, DNSCRYPT_PUBLIC_KEY_SIZE);
   pos += DNSCRYPT_PUBLIC_KEY_SIZE;
 
   /* client nonce */
-  memcpy(query + pos, clientNonce, DNSCRYPT_NONCE_SIZE / 2);
+  memcpy(&packet.at(pos), clientNonce, DNSCRYPT_NONCE_SIZE / 2);
   pos += DNSCRYPT_NONCE_SIZE / 2;
   size_t encryptedPos = pos;
 
   /* clear the MAC bytes */
-  memset(query + pos, 0, DNSCRYPT_MAC_SIZE);
+  memset(&packet.at(pos), 0, DNSCRYPT_MAC_SIZE);
   pos += DNSCRYPT_MAC_SIZE;
 
   /* skipping data */
   pos += queryLen;
 
   /* padding */
-  query[pos] = static_cast<uint8_t>(0x80);
+  packet.at(pos) = static_cast<uint8_t>(0x80);
   pos++;
-  memset(query + pos, 0, paddingSize - 1);
+  memset(&packet.at(pos), 0, paddingSize - 1);
   pos += paddingSize - 1;
 
   memcpy(nonce, clientNonce, DNSCRYPT_NONCE_SIZE / 2);
@@ -804,8 +806,8 @@ int DNSCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t query
   int res = -1;
 
   if (version == DNSCryptExchangeVersion::VERSION1) {
-    res = crypto_box_easy(reinterpret_cast<unsigned char*>(query + encryptedPos),
-                          reinterpret_cast<unsigned char*>(query + encryptedPos + DNSCRYPT_MAC_SIZE),
+    res = crypto_box_easy(reinterpret_cast<unsigned char*>(&packet.at(encryptedPos)),
+                          reinterpret_cast<unsigned char*>(&packet.at(encryptedPos + DNSCRYPT_MAC_SIZE)),
                           queryLen + paddingSize,
                           nonce,
                           cert->signedData.resolverPK,
@@ -813,8 +815,8 @@ int DNSCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t query
   }
   else if (version == DNSCryptExchangeVersion::VERSION2) {
 #ifdef HAVE_CRYPTO_BOX_CURVE25519XCHACHA20POLY1305_EASY
-    res = crypto_box_curve25519xchacha20poly1305_easy(reinterpret_cast<unsigned char*>(query + encryptedPos),
-                                                      reinterpret_cast<unsigned char*>(query + encryptedPos + DNSCRYPT_MAC_SIZE),
+    res = crypto_box_curve25519xchacha20poly1305_easy(reinterpret_cast<unsigned char*>(&packet.at(encryptedPos)),
+                                                      reinterpret_cast<unsigned char*>(&packet.at(encryptedPos + DNSCRYPT_MAC_SIZE)),
                                                       queryLen + paddingSize,
                                                       nonce,
                                                       cert->signedData.resolverPK,
@@ -827,7 +829,6 @@ int DNSCryptContext::encryptQuery(char* query, uint16_t queryLen, uint16_t query
 
   if (res == 0) {
     assert(pos == requiredSize);
-    *encryptedResponseLen = requiredSize;
   }
 
   return res;

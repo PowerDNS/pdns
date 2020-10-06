@@ -141,48 +141,52 @@ int g_udpTimeout{2};
 bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};
 bool g_fixupCase{false};
-bool g_preserveTrailingData{false};
 
 std::set<std::string> g_capabilitiesToRetain;
 
-static void truncateTC(char* packet, uint16_t* len, size_t responseSize, unsigned int consumed)
-try
+static size_t const s_initialUDPPacketBufferSize = s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
+
+static void truncateTC(std::vector<uint8_t>& packet, unsigned int qnameWireLength)
 {
-  bool hadEDNS = false;
-  uint16_t payloadSize = 0;
-  uint16_t z = 0;
+  try
+  {
+    bool hadEDNS = false;
+    uint16_t payloadSize = 0;
+    uint16_t z = 0;
 
-  if (g_addEDNSToSelfGeneratedResponses) {
-    hadEDNS = getEDNSUDPPayloadSizeAndZ(packet, *len, &payloadSize, &z);
+    if (g_addEDNSToSelfGeneratedResponses) {
+      hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(packet.data()), packet.size(), &payloadSize, &z);
+    }
+
+    packet.resize(static_cast<uint16_t>(sizeof(dnsheader)+qnameWireLength+DNS_TYPE_SIZE+DNS_CLASS_SIZE));
+    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet.data());
+    dh->ancount = dh->arcount = dh->nscount = 0;
+
+    if (hadEDNS) {
+      addEDNS(packet, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
+    }
   }
-
-  *len=static_cast<uint16_t>(sizeof(dnsheader)+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE);
-  struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
-  dh->ancount = dh->arcount = dh->nscount = 0;
-
-  if (hadEDNS) {
-    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
+  catch(...)
+  {
+    ++g_stats.truncFail;
   }
-}
-catch(...)
-{
-  g_stats.truncFail++;
 }
 
 struct DelayedPacket
 {
   int fd;
-  string packet;
+  std::vector<uint8_t> packet;
   ComboAddress destination;
   ComboAddress origDest;
   void operator()()
   {
     ssize_t res;
     if(origDest.sin4.sin_family == 0) {
-      res = sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
+      res = sendto(fd, packet.data(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
     }
     else {
-      res = sendfromto(fd, packet.c_str(), packet.size(), 0, origDest, destination);
+      res = sendfromto(fd, packet.data(), packet.size(), 0, origDest, destination);
     }
     if (res == -1) {
       int err = errno;
@@ -195,25 +199,18 @@ DelayPipe<DelayedPacket>* g_delay = nullptr;
 
 std::string DNSQuestion::getTrailingData() const
 {
-  const char* message = reinterpret_cast<const char*>(this->dh);
-  const uint16_t messageLen = getDNSPacketLength(message, this->len);
-  return std::string(message + messageLen, this->len - messageLen);
+  const char* message = reinterpret_cast<const char*>(this->getHeader());
+  const uint16_t messageLen = getDNSPacketLength(message, this->data.size());
+  return std::string(message + messageLen, this->getData().size() - messageLen);
 }
 
 bool DNSQuestion::setTrailingData(const std::string& tail)
 {
-  char* message = reinterpret_cast<char*>(this->dh);
-  const uint16_t messageLen = getDNSPacketLength(message, this->len);
-  const uint16_t tailLen = tail.size();
-  if (tailLen > (this->size - messageLen)) {
-    vinfolog("Trailing data update failed, the new trailing data size was %d, the existing message length was %d, packet size was %d and buffer size %d", tail.size(), messageLen, this->len, this->size);
-    return false;
-  }
-
-  /* Update length and copy data from the Lua string. */
-  this->len = messageLen + tailLen;
-  if (tailLen > 0) {
-    tail.copy(message + messageLen, tailLen);
+  const char* message = reinterpret_cast<const char*>(this->data.data());
+  const uint16_t messageLen = getDNSPacketLength(message, this->data.size());
+  this->data.resize(messageLen);
+  if (tail.size() > 0) {
+    this->data.insert(this->data.end(), tail.begin(), tail.end());
   }
   return true;
 }
@@ -238,13 +235,13 @@ void doLatencyStats(double udiff)
   doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 }
 
-bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& consumed)
+bool responseContentMatches(const std::vector<uint8_t>& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength)
 {
-  if (responseLen < sizeof(dnsheader)) {
+  if (response.size() < sizeof(dnsheader)) {
     return false;
   }
 
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response);
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response.data());
   if (dh->qr == 0) {
     ++g_stats.nonCompliantResponses;
     return false;
@@ -263,10 +260,10 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   uint16_t rqtype, rqclass;
   DNSName rqname;
   try {
-    rqname=DNSName(response, responseLen, sizeof(dnsheader), false, &rqtype, &rqclass, &consumed);
+    rqname = DNSName(reinterpret_cast<const char*>(response.data()), response.size(), sizeof(dnsheader), false, &rqtype, &rqclass, &qnameWireLength);
   }
-  catch(const std::exception& e) {
-    if(responseLen > 0 && static_cast<size_t>(responseLen) > sizeof(dnsheader)) {
+  catch (const std::exception& e) {
+    if(response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
       infolog("Backend %s sent us a response with id %d that did not parse: %s", remote.toStringWithPort(), ntohs(dh->id), e.what());
     }
     ++g_stats.nonCompliantResponses;
@@ -285,7 +282,7 @@ static void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
   static const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
   static const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
   static const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
-  uint16_t * flags = getFlagsFromDNSHeader(dh);
+  uint16_t* flags = getFlagsFromDNSHeader(dh);
   /* clear the flags we are about to restore */
   *flags &= restoreFlagsMask;
   /* only keep the flags we want to restore */
@@ -296,28 +293,28 @@ static void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
 
 static bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
 {
-  restoreFlags(dq.dh, origFlags);
+  restoreFlags(dq.getHeader(), origFlags);
 
   return addEDNSToQueryTurnedResponse(dq);
 }
 
-static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope)
+static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, bool* zeroScope)
 {
-  if (*responseLen < sizeof(dnsheader)) {
+  if (response.size() < sizeof(dnsheader)) {
     return false;
   }
 
-  struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(*response);
+  struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
   restoreFlags(dh, origFlags);
 
-  if (*responseLen == sizeof(dnsheader)) {
+  if (response.size() == sizeof(dnsheader)) {
     return true;
   }
 
   if (g_fixupCase) {
     const auto& realname = qname.getStorage();
-    if (*responseLen >= (sizeof(dnsheader) + realname.length())) {
-      memcpy(*response + sizeof(dnsheader), realname.c_str(), realname.length());
+    if (response.size() >= (sizeof(dnsheader) + realname.length())) {
+      memcpy(&response.at(sizeof(dnsheader)), realname.c_str(), realname.length());
     }
   }
 
@@ -326,7 +323,8 @@ static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* respon
     size_t optLen = 0;
     bool last = false;
 
-    const std::string responseStr(*response, *responseLen);
+#warning FIXME: save an alloc+copy
+    const std::string responseStr(reinterpret_cast<const char*>(response.data()), response.size());
     int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
 
     if (res == 0) {
@@ -346,20 +344,17 @@ static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* respon
            therefore we need to remove it entirely */
         if (last) {
           /* simply remove the last AR */
-          *responseLen -= optLen;
+          response.resize(response.size() - optLen);
+          dh = reinterpret_cast<struct dnsheader*>(response.data());
           uint16_t arcount = ntohs(dh->arcount);
           arcount--;
           dh->arcount = htons(arcount);
         }
         else {
           /* Removing an intermediary RR could lead to compression error */
+          std::vector<uint8_t> rewrittenResponse;
           if (rewriteResponseWithoutEDNS(responseStr, rewrittenResponse) == 0) {
-            *responseLen = rewrittenResponse.size();
-            if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
-              rewrittenResponse.reserve(*responseLen + addRoom);
-            }
-            *responseSize = rewrittenResponse.capacity();
-            *response = reinterpret_cast<char*>(rewrittenResponse.data());
+            response = std::move(rewrittenResponse);
           }
           else {
             warnlog("Error rewriting content");
@@ -373,18 +368,14 @@ static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* respon
           /* nothing after the OPT RR, we can simply remove the
              ECS option */
           size_t existingOptLen = optLen;
-          removeEDNSOptionFromOPT(*response + optStart, &optLen, EDNSOptionCode::ECS);
-          *responseLen -= (existingOptLen - optLen);
+          removeEDNSOptionFromOPT(reinterpret_cast<char*>(&response.at(optStart)), &optLen, EDNSOptionCode::ECS);
+          response.resize(response.size() - (existingOptLen - optLen));
         }
         else {
+          std::vector<uint8_t> rewrittenResponse;
           /* Removing an intermediary RR could lead to compression error */
           if (rewriteResponseWithoutEDNSOption(responseStr, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
-            *responseLen = rewrittenResponse.size();
-            if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
-              rewrittenResponse.reserve(*responseLen + addRoom);
-            }
-            *responseSize = rewrittenResponse.capacity();
-            *response = reinterpret_cast<char*>(rewrittenResponse.data());
+            response = std::move(rewrittenResponse);
           }
           else {
             warnlog("Error rewriting content");
@@ -398,21 +389,12 @@ static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* respon
 }
 
 #ifdef HAVE_DNSCRYPT
-static bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy)
+static bool encryptResponse(std::vector<uint8_t>& response, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery)
 {
   if (dnsCryptQuery) {
-    uint16_t encryptedResponseLen = 0;
-
-    /* save the original header before encrypting it in place */
-    if (dh != nullptr && *dh != nullptr && dhCopy != nullptr) {
-      memcpy(dhCopy, *dh, sizeof(dnsheader));
-      *dh = dhCopy;
-    }
-
-    int res = dnsCryptQuery->encryptResponse(response, *responseLen, responseSize, tcp, &encryptedResponseLen);
-    if (res == 0) {
-      *responseLen = encryptedResponseLen;
-    } else {
+    #warning FIXME should not be harcoded
+    int res = dnsCryptQuery->encryptResponse(response, tcp ? std::numeric_limits<uint16_t>::max() : 4096, tcp);
+    if (res != 0) {
       /* dropping response */
       vinfolog("Error encrypting the response, dropping.");
       return false;
@@ -441,7 +423,7 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
         return true;
         break;
       case DNSResponseAction::Action::ServFail:
-        dr.dh->rcode = RCode::ServFail;
+        dr.getHeader()->rcode = RCode::ServFail;
         return true;
         break;
         /* non-terminal actions follow */
@@ -457,18 +439,18 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
   return true;
 }
 
-bool processResponse(char** response, uint16_t* responseLen, size_t* responseSize, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, size_t addRoom, std::vector<uint8_t>& rewrittenResponse, bool muted)
+bool processResponse(std::vector<uint8_t>& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted)
 {
   if (!applyRulesToResponse(localRespRulactions, dr)) {
     return false;
   }
 
   bool zeroScope = false;
-  if (!fixUpResponse(response, responseLen, responseSize, *dr.qname, dr.origFlags, dr.ednsAdded, dr.ecsAdded, rewrittenResponse, addRoom, dr.useZeroScope ? &zeroScope : nullptr)) {
+  if (!fixUpResponse(response, *dr.qname, dr.origFlags, dr.ednsAdded, dr.ecsAdded, dr.useZeroScope ? &zeroScope : nullptr)) {
     return false;
   }
 
-  if (dr.packetCache && !dr.skipCache && *responseLen <= s_maxPacketCacheEntrySize) {
+  if (dr.packetCache && !dr.skipCache && response.size() <= s_maxPacketCacheEntrySize) {
     if (!dr.useZeroScope) {
       /* if the query was not suitable for zero-scope, for
          example because it had an existing ECS entry so the hash is
@@ -481,12 +463,12 @@ bool processResponse(char** response, uint16_t* responseLen, size_t* responseSiz
       zeroScope = false;
     }
     // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, dr.origFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, *response, *responseLen, dr.tcp, dr.dh->rcode, dr.tempFailureTTL);
+    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, dr.origFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, dr.tcp, dr.getHeader()->rcode, dr.tempFailureTTL);
   }
 
 #ifdef HAVE_DNSCRYPT
   if (!muted) {
-    if (!encryptResponse(*response, responseLen, *responseSize, dr.tcp, dr.dnsCryptQuery, nullptr, nullptr)) {
+    if (!encryptResponse(response, dr.tcp, dr.dnsCryptQuery)) {
       return false;
     }
   }
@@ -495,19 +477,19 @@ bool processResponse(char** response, uint16_t* responseLen, size_t* responseSiz
   return true;
 }
 
-static bool sendUDPResponse(int origFD, const char* response, const uint16_t responseLen, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+static bool sendUDPResponse(int origFD, const std::vector<uint8_t>& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
   if(delayMsec && g_delay) {
-    DelayedPacket dp{origFD, string(response,responseLen), origRemote, origDest};
+    DelayedPacket dp{origFD, response, origRemote, origDest};
     g_delay->submit(dp, delayMsec);
   }
   else {
     ssize_t res;
     if(origDest.sin4.sin_family == 0) {
-      res = sendto(origFD, response, responseLen, 0, reinterpret_cast<const struct sockaddr*>(&origRemote), origRemote.getSocklen());
+      res = sendto(origFD, response.data(), response.size(), 0, reinterpret_cast<const struct sockaddr*>(&origRemote), origRemote.getSocklen());
     }
     else {
-      res = sendfromto(origFD, response, responseLen, 0, origDest, origRemote);
+      res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
     }
     if (res == -1) {
       int err = errno;
@@ -541,22 +523,20 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void responderThread(std::shared_ptr<DownstreamState> dss)
-try {
+{
+  try {
   setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
-  char packet[s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
-  static_assert(sizeof(packet) <= UINT16_MAX, "Packet size should fit in a uint16_t");
+  std::vector<uint8_t> response(s_initialUDPPacketBufferSize);
+
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
   dnsheader cleartextDH;
-  vector<uint8_t> rewrittenResponse;
-
   uint16_t queryId = 0;
   std::vector<int> sockets;
   sockets.reserve(dss->sockets.size());
 
   for(;;) {
-    dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     try {
       pickBackendSocketsReadyForReceiving(dss, sockets);
       if (dss->isStopped()) {
@@ -564,9 +544,8 @@ try {
       }
 
       for (const auto& fd : sockets) {
-        ssize_t got = recv(fd, packet, sizeof(packet), 0);
-        char * response = packet;
-        size_t responseSize = sizeof(packet);
+        response.resize(s_initialUDPPacketBufferSize);
+        ssize_t got = recv(fd, response.data(), response.size(), 0);
 
         if (got == 0 && dss->isStopped()) {
           break;
@@ -576,17 +555,18 @@ try {
           continue;
         }
 
-        uint16_t responseLen = static_cast<uint16_t>(got);
+        response.resize(static_cast<size_t>(got));
+        dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
         queryId = dh->id;
 
-        if(queryId >= dss->idStates.size()) {
+        if (queryId >= dss->idStates.size()) {
           continue;
         }
 
         IDState* ids = &dss->idStates[queryId];
         int64_t usageIndicator = ids->usageIndicator;
 
-        if(!IDState::isInUse(usageIndicator)) {
+        if (!IDState::isInUse(usageIndicator)) {
           /* the corresponding state is marked as not in use, meaning that:
              - it was already cleaned up by another thread and the state is gone ;
              - we already got a response for this query and this one is a duplicate.
@@ -604,8 +584,8 @@ try {
         ids->age = 0;
         int origFD = ids->origFD;
 
-        unsigned int consumed = 0;
-        if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, dss->remote, consumed)) {
+        unsigned int qnameWireLength = 0;
+        if (!responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->remote, qnameWireLength)) {
           continue;
         }
 
@@ -630,20 +610,16 @@ try {
           continue;
         }
 
-        if(dh->tc && g_truncateTC) {
-          truncateTC(response, &responseLen, responseSize, consumed);
+        if (dh->tc && g_truncateTC) {
+          truncateTC(response, qnameWireLength);
         }
 
         dh->id = ids->origID;
 
-        uint16_t addRoom = 0;
-        DNSResponse dr = makeDNSResponseFromIDState(*ids, dh, sizeof(packet), responseLen, false);
-        if (dr.dnsCryptQuery) {
-          addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-        }
+        DNSResponse dr = makeDNSResponseFromIDState(*ids, response, false);
+        memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-        memcpy(&cleartextDH, dr.dh, sizeof(cleartextDH));
-        if (!processResponse(&response, &responseLen, &responseSize, localRespRulactions, dr, addRoom, rewrittenResponse, ids->cs && ids->cs->muted)) {
+        if (!processResponse(response, localRespRulactions, dr, ids->cs && ids->cs->muted)) {
           continue;
         }
 
@@ -651,7 +627,7 @@ try {
           if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
-            du->response = std::string(response, responseLen);
+            du->response = std::move(response);
             static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
             ssize_t sent = write(du->rsock, &du, sizeof(du));
             if (sent != sizeof(du)) {
@@ -677,7 +653,7 @@ try {
             empty.sin4.sin_family = 0;
             /* if ids->destHarvested is false, origDest holds the listening address.
                We don't want to use that as a source since it could be 0.0.0.0 for example. */
-            sendUDPResponse(origFD, response, responseLen, dr.delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+            sendUDPResponse(origFD, response, dr.delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
           }
         }
 
@@ -710,26 +686,25 @@ try {
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
         doLatencyStats(udiff);
-
-        rewrittenResponse.clear();
       }
     }
-    catch(const std::exception& e){
+    catch (const std::exception& e){
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
     }
   }
 }
-catch(const std::exception& e)
+catch (const std::exception& e)
 {
   errlog("UDP responder thread died because of exception: %s", e.what());
 }
-catch(const PDNSException& e)
+catch (const PDNSException& e)
 {
   errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason);
 }
-catch(...)
+catch (...)
 {
   errlog("UDP responder thread died because of an exception: %s", "unknown");
+}
 }
 
 std::mutex g_luamutex;
@@ -787,20 +762,20 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Nxdomain:
-    dq.dh->rcode = RCode::NXDomain;
-    dq.dh->qr=true;
+    dq.getHeader()->rcode = RCode::NXDomain;
+    dq.getHeader()->qr=true;
     ++g_stats.ruleNXDomain;
     return true;
     break;
   case DNSAction::Action::Refused:
-    dq.dh->rcode = RCode::Refused;
-    dq.dh->qr=true;
+    dq.getHeader()->rcode = RCode::Refused;
+    dq.getHeader()->qr=true;
     ++g_stats.ruleRefused;
     return true;
     break;
   case DNSAction::Action::ServFail:
-    dq.dh->rcode = RCode::ServFail;
-    dq.dh->qr=true;
+    dq.getHeader()->rcode = RCode::ServFail;
+    dq.getHeader()->qr=true;
     ++g_stats.ruleServFail;
     return true;
     break;
@@ -813,11 +788,11 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Truncate:
-    dq.dh->tc = true;
-    dq.dh->qr = true;
-    dq.dh->ra = dq.dh->rd;
-    dq.dh->aa = false;
-    dq.dh->ad = false;
+    dq.getHeader()->tc = true;
+    dq.getHeader()->qr = true;
+    dq.getHeader()->ra = dq.getHeader()->rd;
+    dq.getHeader()->aa = false;
+    dq.getHeader()->ad = false;
     return true;
     break;
   case DNSAction::Action::HeaderModify:
@@ -828,7 +803,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::NoRecurse:
-    dq.dh->rd = false;
+    dq.getHeader()->rd = false;
     return true;
     break;
     /* non-terminal actions follow */
@@ -848,7 +823,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
 
 static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const struct timespec& now)
 {
-  g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.len, *dq.dh);
+  g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.getData().size(), *dq.getHeader());
 
   if(g_qcount.enabled) {
     string qname = (*dq.qname).toLogString();
@@ -887,27 +862,27 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
         vinfolog("Query from %s turned into NXDomain because of dynamic block", dq.remote->toStringWithPort());
         updateBlockStats();
 
-        dq.dh->rcode = RCode::NXDomain;
-        dq.dh->qr=true;
+        dq.getHeader()->rcode = RCode::NXDomain;
+        dq.getHeader()->qr=true;
         return true;
 
       case DNSAction::Action::Refused:
         vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
         updateBlockStats();
       
-        dq.dh->rcode = RCode::Refused;
-        dq.dh->qr = true;
+        dq.getHeader()->rcode = RCode::Refused;
+        dq.getHeader()->qr = true;
         return true;
 
       case DNSAction::Action::Truncate:
         if(!dq.tcp) {
           updateBlockStats();
           vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
-          dq.dh->tc = true;
-          dq.dh->qr = true;
-          dq.dh->ra = dq.dh->rd;
-          dq.dh->aa = false;
-          dq.dh->ad = false;
+          dq.getHeader()->tc = true;
+          dq.getHeader()->qr = true;
+          dq.getHeader()->ra = dq.getHeader()->rd;
+          dq.getHeader()->aa = false;
+          dq.getHeader()->ad = false;
           return true;
         }
         else {
@@ -917,7 +892,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       case DNSAction::Action::NoRecurse:
         updateBlockStats();
         vinfolog("Query from %s setting rd=0 because of dynamic block", dq.remote->toStringWithPort());
-        dq.dh->rd = false;
+        dq.getHeader()->rd = false;
         return true;
       default:
         updateBlockStats();
@@ -946,26 +921,26 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
         vinfolog("Query from %s for %s turned into NXDomain because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toLogString());
         updateBlockStats();
 
-        dq.dh->rcode = RCode::NXDomain;
-        dq.dh->qr=true;
+        dq.getHeader()->rcode = RCode::NXDomain;
+        dq.getHeader()->qr=true;
         return true;
       case DNSAction::Action::Refused:
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toLogString());
         updateBlockStats();
 
-        dq.dh->rcode = RCode::Refused;
-        dq.dh->qr=true;
+        dq.getHeader()->rcode = RCode::Refused;
+        dq.getHeader()->qr=true;
         return true;
       case DNSAction::Action::Truncate:
         if(!dq.tcp) {
           updateBlockStats();
       
           vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toLogString());
-          dq.dh->tc = true;
-          dq.dh->qr = true;
-          dq.dh->ra = dq.dh->rd;
-          dq.dh->aa = false;
-          dq.dh->ad = false;
+          dq.getHeader()->tc = true;
+          dq.getHeader()->qr = true;
+          dq.getHeader()->ra = dq.getHeader()->rd;
+          dq.getHeader()->aa = false;
+          dq.getHeader()->ad = false;
           return true;
         }
         else {
@@ -975,7 +950,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       case DNSAction::Action::NoRecurse:
         updateBlockStats();
         vinfolog("Query from %s setting rd=0 because of dynamic block", dq.remote->toStringWithPort());
-        dq.dh->rd = false;
+        dq.getHeader()->rd = false;
         return true;
       default:
         updateBlockStats();
@@ -1005,19 +980,19 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   return true;
 }
 
-ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen, bool healthCheck)
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const std::vector<uint8_t>& request, bool healthCheck)
 {
   ssize_t result;
 
   if (ss->sourceItf == 0) {
-    result = send(sd, request, requestLen, 0);
+    result = send(sd, request.data(), request.size(), 0);
   }
   else {
     struct msghdr msgh;
     struct iovec iov;
     cmsgbuf_aligned cbuf;
     ComboAddress remote(ss->remote);
-    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), const_cast<char*>(request), requestLen, &remote);
+    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), const_cast<char*>(reinterpret_cast<const char *>(request.data())), request.size(), &remote);
     addCMsgSrcAddr(&msgh, &cbuf, &ss->sourceAddr, ss->sourceItf);
     result = sendmsg(sd, &msgh, 0);
   }
@@ -1068,28 +1043,25 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   return true;
 }
 
-boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
+bool checkDNSCryptQuery(const ClientState& cs, std::vector<uint8_t>& query, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
 {
   if (cs.dnscryptCtx) {
 #ifdef HAVE_DNSCRYPT
     vector<uint8_t> response;
-    uint16_t decryptedQueryLen = 0;
-
     dnsCryptQuery = std::make_shared<DNSCryptQuery>(cs.dnscryptCtx);
 
-    bool decrypted = handleDNSCryptQuery(const_cast<char*>(query), len, dnsCryptQuery, &decryptedQueryLen, tcp, now, response);
+    bool decrypted = handleDNSCryptQuery(query, dnsCryptQuery, tcp, now, response);
 
     if (!decrypted) {
       if (response.size() > 0) {
-        return response;
+        query = std::move(response);
+        return true;
       }
       throw std::runtime_error("Unable to decrypt DNSCrypt query, dropping.");
     }
-
-    len = decryptedQueryLen;
 #endif /* HAVE_DNSCRYPT */
   }
-  return boost::none;
+  return false;
 }
 
 bool checkQueryHeaders(const struct dnsheader* dh)
@@ -1112,10 +1084,10 @@ bool checkQueryHeaders(const struct dnsheader* dh)
 }
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void queueResponse(const ClientState& cs, const char* response, uint16_t responseLen, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
+static void queueResponse(const ClientState& cs, const std::vector<uint8_t>& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
   outMsg.msg_len = 0;
-  fillMSGHdr(&outMsg.msg_hdr, iov, nullptr, 0, const_cast<char*>(response), responseLen, const_cast<ComboAddress*>(&remote));
+  fillMSGHdr(&outMsg.msg_hdr, iov, nullptr, 0, const_cast<char*>(reinterpret_cast<const char *>(&response.at(0))), response.size(), const_cast<ComboAddress*>(&remote));
 
   if (dest.sin4.sin_family == 0) {
     outMsg.msg_hdr.msg_control = nullptr;
@@ -1129,7 +1101,7 @@ static void queueResponse(const ClientState& cs, const char* response, uint16_t 
 /* self-generated responses or cache hits */
 static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQuestion& dq, bool cacheHit)
 {
-  DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(dq.dh), dq.size, dq.len, dq.tcp, dq.queryTime);
+  DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, dq.getMutableData(), dq.tcp, dq.queryTime);
 
   dr.uniqueId = dq.uniqueId;
   dr.qTag = dq.qTag;
@@ -1144,7 +1116,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
 
 #ifdef HAVE_DNSCRYPT
   if (!cs.muted) {
-    if (!encryptResponse(reinterpret_cast<char*>(dq.dh), &dq.len, dq.size, dq.tcp, dq.dnsCryptQuery, nullptr, nullptr)) {
+    if (!encryptResponse(dq.getMutableData(), dq.tcp, dq.dnsCryptQuery)) {
       return false;
     }
   }
@@ -1154,7 +1126,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
     ++g_stats.cacheHits;
   }
 
-  switch (dr.dh->rcode) {
+  switch (dr.getHeader()->rcode) {
   case RCode::NXDomain:
     ++g_stats.frontendNXDomain;
     break;
@@ -1172,7 +1144,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
 
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
 {
-  const uint16_t queryId = ntohs(dq.dh->id);
+  const uint16_t queryId = ntohs(dq.getHeader()->id);
 
   try {
     /* we need an accurate ("real") value for the response and
@@ -1185,7 +1157,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       return ProcessQueryResult::Drop;
     }
 
-    if(dq.dh->qr) { // something turned it into a response
+    if (dq.getHeader()->qr) { // something turned it into a response
       fixUpQueryTurnedResponse(dq, dq.origFlags);
 
       if (!prepareOutgoingResponse(holders, cs, dq, false)) {
@@ -1204,7 +1176,6 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     const auto servers = serverPool->getServers();
     selectedBackend = policy.getSelectedBackend(*servers, dq);
 
-    uint16_t cachedResponseSize = dq.size;
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
 
     if (dq.packetCache && !dq.skipCache) {
@@ -1216,8 +1187,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
       if (dq.packetCache && !dq.skipCache && (!selectedBackend || !selectedBackend->disableZeroScope) && dq.packetCache->isECSParsingEnabled()) {
-        if (dq.packetCache->get(dq, dq.consumed, dq.dh->id, reinterpret_cast<char*>(dq.dh), &cachedResponseSize, &dq.cacheKeyNoECS, dq.subnet, dq.dnssecOK, allowExpired)) {
-          dq.len = cachedResponseSize;
+        if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKeyNoECS, dq.subnet, dq.dnssecOK, allowExpired)) {
 
           if (!prepareOutgoingResponse(holders, cs, dq, true)) {
             return ProcessQueryResult::Drop;
@@ -1232,15 +1202,14 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
         }
       }
 
-      if (!handleEDNSClientSubnet(dq, dq.ednsAdded, dq.ecsAdded, g_preserveTrailingData)) {
+      if (!handleEDNSClientSubnet(dq, dq.ednsAdded, dq.ecsAdded)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", dq.remote->toStringWithPort());
         return ProcessQueryResult::Drop;
       }
     }
 
     if (dq.packetCache && !dq.skipCache) {
-      if (dq.packetCache->get(dq, dq.consumed, dq.dh->id, reinterpret_cast<char*>(dq.dh), &cachedResponseSize, &dq.cacheKey, dq.subnet, dq.dnssecOK, allowExpired)) {
-        dq.len = cachedResponseSize;
+      if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKey, dq.subnet, dq.dnssecOK, allowExpired)) {
 
         if (!prepareOutgoingResponse(holders, cs, dq, true)) {
           return ProcessQueryResult::Drop;
@@ -1251,15 +1220,15 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       ++g_stats.cacheMisses;
     }
 
-    if(!selectedBackend) {
+    if (!selectedBackend) {
       ++g_stats.noPolicy;
 
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toLogString(), QType(dq.qtype).getName(), dq.remote->toStringWithPort());
       if (g_servFailOnNoPolicy) {
-        restoreFlags(dq.dh, dq.origFlags);
+        restoreFlags(dq.getHeader(), dq.origFlags);
 
-        dq.dh->rcode = RCode::ServFail;
-        dq.dh->qr = true;
+        dq.getHeader()->rcode = RCode::ServFail;
+        dq.getHeader()->qr = true;
 
         if (!prepareOutgoingResponse(holders, cs, dq, false)) {
           return ProcessQueryResult::Drop;
@@ -1272,19 +1241,19 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     }
 
     if (dq.addXPF && selectedBackend->xpfRRCode != 0) {
-      addXPF(dq, selectedBackend->xpfRRCode, g_preserveTrailingData);
+      addXPF(dq, selectedBackend->xpfRRCode);
     }
 
     selectedBackend->queries++;
     return ProcessQueryResult::PassToBackend;
   }
-  catch(const std::exception& e){
+  catch (const std::exception& e){
     vinfolog("Got an error while parsing a %s query from %s, id %d: %s", (dq.tcp ? "TCP" : "UDP"), dq.remote->toStringWithPort(), queryId, e.what());
   }
   return ProcessQueryResult::Drop;
 }
 
-static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
+static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, std::vector<uint8_t>& query, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
@@ -1301,13 +1270,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     gettime(&queryRealTime, true);
 
     std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
-    auto dnsCryptResponse = checkDNSCryptQuery(cs, query, len, dnsCryptQuery, queryRealTime.tv_sec, false);
+    auto dnsCryptResponse = checkDNSCryptQuery(cs, query, dnsCryptQuery, queryRealTime.tv_sec, false);
     if (dnsCryptResponse) {
-      sendUDPResponse(cs.udpFD, reinterpret_cast<char*>(dnsCryptResponse->data()), static_cast<uint16_t>(dnsCryptResponse->size()), 0, dest, remote);
+      sendUDPResponse(cs.udpFD, query, 0, dest, remote);
       return;
     }
 
-    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
+    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query.data());
     queryId = ntohs(dh->id);
 
     if (!checkQueryHeaders(dh)) {
@@ -1315,9 +1284,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     uint16_t qtype, qclass;
-    unsigned int consumed = 0;
-    DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    DNSQuestion dq(&qname, qtype, qclass, consumed, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, dh, queryBufferSize, len, false, &queryRealTime);
+    unsigned int qnameWireLength = 0;
+    DNSName qname(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
+    DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, query, false, &queryRealTime);
     dq.dnsCryptQuery = std::move(dnsCryptQuery);
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
@@ -1326,16 +1295,18 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
+    // the buffer might have been invalidated by now (resized)
+    dh = dq.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dq.delayMsec == 0 && responsesVect != nullptr) {
-        queueResponse(cs, reinterpret_cast<char*>(dq.dh), dq.len, *dq.local, *dq.remote, responsesVect[*queuedResponses], respIOV, respCBuf);
+        queueResponse(cs, query, *dq.local, *dq.remote, responsesVect[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
-      sendUDPResponse(cs.udpFD, reinterpret_cast<char*>(dq.dh), dq.len, dq.delayMsec, dest, *dq.remote);
+      sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, *dq.remote);
       return;
     }
 
@@ -1391,6 +1362,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ids->destHarvested = false;
     }
 
+    dh = dq.getHeader();
     dh->id = idOffset;
 
     if (ss->useProxyProtocol) {
@@ -1398,7 +1370,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     int fd = pickBackendSocketForSending(ss);
-    ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
+    ssize_t ret = udpClientSendRequestToBackend(ss, fd, query);
 
     if(ret < 0) {
       ++ss->sendErrors;
@@ -1417,7 +1389,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 {
   struct MMReceiver
   {
-    char packet[s_maxPacketCacheEntrySize];
+    std::vector<uint8_t> packet;
     ComboAddress remote;
     ComboAddress dest;
     struct iovec iov;
@@ -1430,7 +1402,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
      - we use it for self-generated responses (from rule or cache)
      but we only accept incoming payloads up to that size
   */
-  static_assert(s_udpIncomingBufferSize <= sizeof(MMReceiver::packet), "the incoming buffer size should not be larger than sizeof(MMReceiver::packet)");
+  static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "the incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
 
   auto recvData = std::unique_ptr<MMReceiver[]>(new MMReceiver[vectSize]);
   auto msgVec = std::unique_ptr<struct mmsghdr[]>(new struct mmsghdr[vectSize]);
@@ -1439,7 +1411,8 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   /* initialize the structures needed to receive our messages */
   for (size_t idx = 0; idx < vectSize; idx++) {
     recvData[idx].remote.sin4.sin_family = cs->local.sin4.sin_family;
-    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), recvData[idx].packet, cs->dnscryptCtx ? sizeof(recvData[idx].packet) : s_udpIncomingBufferSize, &recvData[idx].remote);
+    recvData[idx].packet.resize(s_initialUDPPacketBufferSize);
+    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(&recvData[idx].packet.at(0)), cs->dnscryptCtx ? recvData[idx].packet.size() : s_udpIncomingBufferSize, &recvData[idx].remote);
   }
 
   /* go now */
@@ -1448,8 +1421,9 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
     /* reset the IO vector, since it's also used to send the vector of responses
        to avoid having to copy the data around */
     for (size_t idx = 0; idx < vectSize; idx++) {
-      recvData[idx].iov.iov_base = recvData[idx].packet;
-      recvData[idx].iov.iov_len = sizeof(recvData[idx].packet);
+      recvData[idx].packet.resize(s_initialUDPPacketBufferSize);
+      recvData[idx].iov.iov_base = &recvData[idx].packet.at(0);
+      recvData[idx].iov.iov_len = recvData[idx].packet.size();
     }
 
     /* block until we have at least one message ready, but return
@@ -1474,8 +1448,8 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
         continue;
       }
 
-      processUDPQuery(*cs, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, static_cast<uint16_t>(got), sizeof(recvData[msgIdx].packet), outMsgVec.get(), &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
-
+      recvData[msgIdx].packet.resize(got);
+      processUDPQuery(*cs, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, outMsgVec.get(), &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
     }
 
     /* immediate (not delayed or sent to a backend) responses (mostly from a rule, dynamic block
@@ -1508,13 +1482,13 @@ try
   else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
   {
-    char packet[s_maxPacketCacheEntrySize];
+    std::vector<uint8_t> packet(s_initialUDPPacketBufferSize);
     /* the actual buffer is larger because:
        - we may have to add EDNS and/or ECS
        - we use it for self-generated responses (from rule or cache)
        but we only accept incoming payloads up to that size
     */
-    static_assert(s_udpIncomingBufferSize <= sizeof(packet), "the incoming buffer size should not be larger than sizeof(MMReceiver::packet)");
+    static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "the incoming buffer size should not be larger than sizeof(MMReceiver::packet)");
     struct msghdr msgh;
     struct iovec iov;
     /* used by HarvestDestinationAddress */
@@ -1523,9 +1497,13 @@ try
     ComboAddress remote;
     ComboAddress dest;
     remote.sin4.sin_family = cs->local.sin4.sin_family;
-    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), packet, cs->dnscryptCtx ? sizeof(packet) : s_udpIncomingBufferSize, &remote);
+    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), cs->dnscryptCtx ? packet.size() : s_udpIncomingBufferSize, &remote);
 
     for(;;) {
+      packet.resize(s_initialUDPPacketBufferSize);
+      iov.iov_base = &packet.at(0);
+      iov.iov_len = packet.size();
+
       ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
 
       if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
@@ -1533,7 +1511,8 @@ try
         continue;
       }
 
-      processUDPQuery(*cs, holders, &msgh, remote, dest, packet, static_cast<uint16_t>(got), sizeof(packet), nullptr, nullptr, nullptr, nullptr);
+      packet.resize(static_cast<size_t>(got));
+      processUDPQuery(*cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
     }
   }
 }

@@ -227,7 +227,7 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
       sock.bind(ds->sourceAddr);
     }
     sock.connect(ds->remote);
-    ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), reinterpret_cast<char*>(&packet[0]), packet.size(), true);
+    ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), packet, true);
     if (sent < 0) {
       int ret = errno;
       if (g_verboseHealthChecks)

@@ -35,8 +35,8 @@ public:
   DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t maxNegativeTTL=3600, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true, bool parseECS=false);
   ~DNSDistPacketCache();
 
-  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
-  bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnetOut, bool dnssecOK, uint32_t allowExpired=0, bool skipAging=false);
+  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<uint8_t>& response, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
+  bool get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired = 0, bool skipAging = false);
   size_t purgeExpired(size_t upTo=0);
   size_t expunge(size_t upTo=0);
   size_t expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
@@ -76,10 +76,10 @@ public:
     d_parseECS = enabled;
   }
 
-  uint32_t getKey(const DNSName::string_t& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
+  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const std::vector<uint8_t>& packet, bool tcp);
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
-  static bool getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet);
+  static bool getClientSubnet(const std::vector<uint8_t>& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
 
 private:
 

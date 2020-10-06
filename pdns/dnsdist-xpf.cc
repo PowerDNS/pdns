@@ -25,7 +25,7 @@
 #include "dnsparser.hh"
 #include "xpf.hh"
 
-bool addXPF(DNSQuestion& dq, uint16_t optionCode, bool preserveTrailingData)
+bool addXPF(DNSQuestion& dq, uint16_t optionCode)
 {
   std::string payload = generateXPFPayload(dq.tcp, *dq.remote, *dq.local);
   uint8_t root = '\0';
@@ -36,32 +36,24 @@ bool addXPF(DNSQuestion& dq, uint16_t optionCode, bool preserveTrailingData)
   drh.d_clen = htons(payload.size());
   size_t recordHeaderLen = sizeof(root) + sizeof(drh);
 
-  size_t available = dq.size - dq.len;
-
-  if ((payload.size() + recordHeaderLen) > available) {
+  if (!dq.hasRoomFor(payload.size() + recordHeaderLen)) {
     return false;
   }
 
   size_t xpfSize = sizeof(root) + sizeof(drh) + payload.size();
-  uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(dq.dh), dq.len);
-  if (realPacketLen < dq.len && preserveTrailingData) {
-    size_t toMove = dq.len - realPacketLen;
-    memmove(reinterpret_cast<char*>(dq.dh) + realPacketLen + xpfSize, reinterpret_cast<const char*>(dq.dh) + realPacketLen, toMove);
-    dq.len += xpfSize;
-  }
-  else {
-    dq.len = realPacketLen + xpfSize;
-  }
+  auto& data = dq.getMutableData();
+  uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(data.data()), data.size());
+  data.resize(realPacketLen + xpfSize);
 
   size_t pos = realPacketLen;
-  memcpy(reinterpret_cast<char*>(dq.dh) + pos, &root, sizeof(root));
+  memcpy(reinterpret_cast<char*>(&data.at(pos)), &root, sizeof(root));
   pos += sizeof(root);
-  memcpy(reinterpret_cast<char*>(dq.dh) + pos, &drh, sizeof(drh));
+  memcpy(reinterpret_cast<char*>(&data.at(pos)), &drh, sizeof(drh));
   pos += sizeof(drh);
-  memcpy(reinterpret_cast<char*>(dq.dh) + pos, payload.data(), payload.size());
+  memcpy(reinterpret_cast<char*>(&data.at(pos)), payload.data(), payload.size());
   pos += payload.size();
 
-  dq.dh->arcount = htons(ntohs(dq.dh->arcount) + 1);
+  dq.getHeader()->arcount = htons(ntohs(dq.getHeader()->arcount) + 1);
 
   return true;
 }
