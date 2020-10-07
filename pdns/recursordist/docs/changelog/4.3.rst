@@ -2,6 +2,50 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.5
+  :released: 13th of October 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9604
+
+    Backport of CVE-2020-25829: Cache pollution.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9527
+
+    Log when going Bogus because of a missing SOA in authority.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9525
+    :tickets: 9495
+
+    Watch the descriptor again after an out-of-order read timeout.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9507
+    :tickets: 9497
+
+    Raise an exception on invalid content in unknown records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9501
+    :tickets: 9070
+
+    Boost 1.73 moved boost::bind placeholders to the placeholders namespace.x
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9457
+    :tickets: 9454
+
+    Fix the parsing of `dont-throttle-netmasks` in the presence of `dont-throttle-names`.
+
+.. changelog::
   :version: 4.3.4
   :released: 8th of September 2020
 

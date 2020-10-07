@@ -2,6 +2,16 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.18
+  :released: 13th of October 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9601
+
+    Backport of CVE-2020-25829: Cache pollution.
+
+.. changelog::
   :version: 4.1.17
   :released: 1st of July 2020
 
