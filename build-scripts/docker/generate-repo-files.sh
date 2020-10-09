@@ -152,6 +152,7 @@ write_ubuntu()
 
 RELEASE=$1
 
+# It would be smarter to list the supported products per distro by now.
 if [ "$RELEASE" = "auth-40" ]; then
     write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
@@ -199,8 +200,16 @@ elif [ "$RELEASE" = "rec-42" ]; then
     write_debian buster pdns-recursor pdns_recursor
     write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
+elif [ "$RELEASE" = "rec-43" ]; then
     write_centos 6 pdns-recursor pdns_recursor
+    write_centos 7 pdns-recursor pdns_recursor
+    write_centos 8 pdns-recursor pdns_recursor
+    write_debian stretch pdns-recursor pdns_recursor
+    write_debian buster pdns-recursor pdns_recursor
+    write_ubuntu xenial pdns-recursor pdns_recursor
+    write_ubuntu bionic pdns-recursor pdns_recursor
+    write_ubuntu focal pdns-recursor pdns_recursor
+elif [ "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
     write_debian stretch pdns-recursor pdns_recursor
