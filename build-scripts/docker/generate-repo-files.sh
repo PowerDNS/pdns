@@ -24,8 +24,8 @@
 if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
     echo
-    echo "  • RELEASE: [ auth-40 | auth-41 | auth-42 | auth-43 | auth-44 | auth-master |"
-    echo "               rec-40 | rec-41 | rec-42 | rec-43 | rec-44 | rec-master |"
+    echo "  • RELEASE: [ auth-41 | auth-42 | auth-43 | auth-44 | auth-master |"
+    echo "               rec-41 | rec-42 | rec-43 | rec-44 | rec-master |"
     echo "               dnsdist-15 | dnsdist-master ]"
     exit 1
 fi
@@ -151,82 +151,136 @@ write_ubuntu()
 
 
 RELEASE=$1
+PRODUCT=$(echo $RELEASE | cut -d \- -f 1)
 
-# It would be smarter to list the supported products per distro by now.
-if [ "$RELEASE" = "auth-40" ]; then
-    write_centos 6 pdns pdns_server
-    write_centos 7 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
-elif [ "$RELEASE" = "auth-41" ]; then
-    write_centos 6 pdns pdns_server
-    write_centos 7 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
-    write_ubuntu bionic pdns-server pdns_server
-elif [ "$RELEASE" = "auth-42" ]; then
-    write_centos 6 pdns pdns_server
-    write_centos 7 pdns pdns_server
-    write_centos 8 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
-    write_debian buster pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
-    write_ubuntu bionic pdns-server pdns_server
-elif [ "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o "$RELEASE" = "auth-master" ]; then
-    if [ "$RELEASE" != "auth-44" ]; then write_centos 6 pdns pdns_server; fi
-    write_centos 7 pdns pdns_server
-    write_centos 8 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
-    write_debian buster pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
-    write_ubuntu bionic pdns-server pdns_server
-    write_ubuntu focal pdns-server pdns_server
-elif [ "$RELEASE" = "rec-40" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
-    write_centos 7 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-41" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
-    write_centos 7 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
-    write_ubuntu bionic pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-42" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
-    write_centos 7 pdns-recursor pdns_recursor
-    write_centos 8 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
-    write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
-    write_ubuntu bionic pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-43" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
-    write_centos 7 pdns-recursor pdns_recursor
-    write_centos 8 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
-    write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
-    write_ubuntu bionic pdns-recursor pdns_recursor
-    write_ubuntu focal pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
-    write_centos 7 pdns-recursor pdns_recursor
-    write_centos 8 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
-    write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
-    write_ubuntu bionic pdns-recursor pdns_recursor
-    write_ubuntu focal pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
-    write_centos 6 dnsdist dnsdist
-    write_centos 7 dnsdist dnsdist
-    write_centos 8 dnsdist dnsdist
-    write_debian stretch dnsdist dnsdist
-    write_debian buster dnsdist dnsdist
-    write_ubuntu xenial dnsdist dnsdist
-    write_ubuntu bionic dnsdist dnsdist
-    write_ubuntu focal dnsdist dnsdist
-else
-    echo "Invalid release: $RELEASE"
-    exit 1
+# For debugging:
+#echo "rel=<${RELEASE}> prd=<${PRODUCT}>"
+#exit
+
+# CentOS 6
+if [ "$RELEASE" = "auth-41" -o "$RELEASE" = "auth-42" -o     \
+     "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-master" -o \
+     "$RELEASE" = "rec-41" -o "$RELEASE" = "rec-42" -o       \
+     "$RELEASE" = "rec-43" -o                                \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_centos 6 pdns pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_centos 6 pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_centos 6 dnsdist dnsdist
+    fi
+fi
+
+# CentOS 7
+if [ "$RELEASE" = "auth-41" -o "$RELEASE" = "auth-42" -o \
+     "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o \
+     "$RELEASE" = "auth-master" -o                       \
+     "$RELEASE" = "rec-41" -o "$RELEASE" = "rec-42" -o   \
+     "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o   \
+     "$RELEASE" = "rec-master" -o                        \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_centos 7 pdns pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_centos 7 pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_centos 7 dnsdist dnsdist
+    fi
+fi
+
+# CentOS 8
+if [ "$RELEASE" = "auth-42" -o "$RELEASE" = "auth-43" -o     \
+     "$RELEASE" = "auth-44" -o "$RELEASE" = "auth-master" -o \
+     "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" -o       \
+     "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" -o   \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_centos 8 pdns pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_centos 8 pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_centos 8 dnsdist dnsdist
+    fi
+fi
+
+# Debian Stretch
+if [ "$RELEASE" = "auth-41" -o "$RELEASE" = "auth-42" -o \
+     "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o \
+     "$RELEASE" = "auth-master" -o                       \
+     "$RELEASE" = "rec-41" -o "$RELEASE" = "rec-42" -o   \
+     "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o   \
+     "$RELEASE" = "rec-master" -o                        \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_debian stretch pdns-server pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_debian stretch pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_debian stretch dnsdist dnsdist
+    fi
+fi
+
+# Debian Buster
+if [ "$RELEASE" = "auth-42" -o "$RELEASE" = "auth-43" -o     \
+     "$RELEASE" = "auth-44" -o "$RELEASE" = "auth-master" -o \
+     "$RELEASE" = "rec-42" -o "$RELEASE" = "rec-43" -o       \
+     "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" -o   \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_debian buster pdns-server pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_debian buster pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_debian buster dnsdist dnsdist
+    fi
+fi
+
+# Ubuntu Xenial
+if [ "$RELEASE" = "auth-41" -o "$RELEASE" = "auth-42" -o \
+     "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o \
+     "$RELEASE" = "auth-master" -o                       \
+     "$RELEASE" = "rec-41" -o "$RELEASE" = "rec-42" -o   \
+     "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o   \
+     "$RELEASE" = "rec-master" -o                        \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_ubuntu xenial pdns-server pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_ubuntu xenial pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_ubuntu xenial dnsdist dnsdist
+    fi
+fi
+
+# Ubuntu Bionic
+if [ "$RELEASE" = "auth-41" -o "$RELEASE" = "auth-42" -o \
+     "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o \
+     "$RELEASE" = "auth-master" -o                       \
+     "$RELEASE" = "rec-41" -o "$RELEASE" = "rec-42" -o   \
+     "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o   \
+     "$RELEASE" = "rec-master" -o                        \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_ubuntu bionic pdns-server pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_ubuntu bionic pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_ubuntu bionic dnsdist dnsdist
+    fi
+fi
+
+# Ubuntu Focal
+if [ "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o \
+     "$RELEASE" = "auth-master" -o                       \
+     "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o   \
+     "$RELEASE" = "rec-master" -o                        \
+     "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+    if [ "$PRODUCT" = "auth" ]; then
+        write_ubuntu focal pdns-server pdns_server
+    elif [ "$PRODUCT" = "rec" ]; then
+        write_ubuntu focal pdns-recursor pdns_recursor
+    elif [ "$PRODUCT" = "dnsdist" ]; then
+        write_ubuntu focal dnsdist dnsdist
+    fi
 fi
