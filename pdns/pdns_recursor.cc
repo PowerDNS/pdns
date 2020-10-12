@@ -1576,7 +1576,7 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != vState::Bogus)) {
+      if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
         if (res == RCode::NoError) {
           auto i = ret.cbegin();
           for(; i!= ret.cend(); ++i) {
@@ -1590,7 +1590,7 @@ static void startDoResolve(void *p)
             if (t_pdl && t_pdl->nodata(dq, res)) {
               shouldNotValidate = true;
             }
-            else if (g_dns64Prefix && dq.qtype == QType::AAAA && dq.validationState != vState::Bogus) {
+            else if (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState)) {
               res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
               shouldNotValidate = true;
             }
@@ -1654,7 +1654,7 @@ static void startDoResolve(void *p)
             
             pw.getHeader()->ad=0;
           }
-          else if(state == vState::Bogus) {
+          else if (vStateIsBogus(state)) {
             if(t_bogusremotes)
               t_bogusremotes->push_back(dc->d_source);
             if(t_bogusqueryring)
@@ -2619,7 +2619,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     if (cacheHit) {
-      if(valState == vState::Bogus) {
+      if (vStateIsBogus(valState)) {
         if(t_bogusremotes)
           t_bogusremotes->push_back(source);
         if(t_bogusqueryring)

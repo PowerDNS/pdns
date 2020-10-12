@@ -33,8 +33,12 @@ extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5
-enum class vState : uint8_t { Indeterminate, Bogus, Insecure, Secure, NTA, TA };
+enum class vState : uint8_t { Indeterminate, Insecure, Secure, NTA, TA, BogusNoValidDNSKEY, BogusInvalidDenial, BogusUnableToGetDSs, BogusUnableToGetDNSKEYs, BogusSelfSignedDS, BogusNoRRSIG, BogusNoValidRRSIG, BogusMissingNegativeIndication };
 const std::string& vStateToString(vState state);
+inline bool vStateIsBogus(vState state)
+{
+  return state >= vState::BogusNoValidDNSKEY;
+}
 
 // NSEC(3) results
 enum class dState : uint8_t { NODENIAL, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};

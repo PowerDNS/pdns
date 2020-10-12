@@ -1055,7 +1055,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
     if(validkeys.empty())
     {
       LOG("ended up with zero valid DNSKEYs, going Bogus"<<endl);
-      return vState::Bogus;
+      return vState::BogusNoValidDNSKEY;
     }
     LOG("situation: we have one or more valid DNSKEYs for ["<<*zoneCutIter<<"] (want ["<<zone<<"])"<<endl);
 
@@ -1086,7 +1086,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
       LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
       dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS, true, true);
       if (res == dState::INSECURE || res == dState::NXDOMAIN)
-        return vState::Bogus;
+        return vState::BogusInvalidDenial;
       if (res == dState::NXQTYPE || res == dState::OPTOUT)
         return vState::Insecure;
     }
@@ -1105,7 +1105,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
     }
   }
   // There were no zone cuts (aka, we should never get here)
-  return vState::Bogus;
+  return vState::BogusUnableToGetDNSKEYs;
 }
 
 bool isSupportedDS(const DSRecordContent& ds)
@@ -1136,7 +1136,7 @@ DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signa
 
 const std::string& vStateToString(vState state)
 {
-  static const std::vector<std::string> vStates = {"Indeterminate", "Bogus", "Insecure", "Secure", "NTA", "TA"};
+  static const std::vector<std::string> vStates = {"Indeterminate", "Insecure", "Secure", "NTA", "TA", "Bogus - No valid DNSKEY", "Bogus - Invalid denial", "Bogus - Unable to get DSs", "Bogus - Unable to get DNSKEYs", "Bogus - Self Signed DS", "Bogus - No RRSIG", "Bogus - No valid RRSIG", "Bogus - Missing negative indication" };
   return vStates.at(static_cast<size_t>(state));
 }
 
@@ -1161,14 +1161,14 @@ void updateDNSSECValidationState(vState& state, const vState stateUpdate)
   else if (stateUpdate == vState::NTA) {
     state = vState::Insecure;
   }
-  else if (stateUpdate == vState::Bogus) {
-    state = vState::Bogus;
+  else if (vStateIsBogus(stateUpdate)) {
+    state = stateUpdate;
   }
   else if (state == vState::Indeterminate) {
     state = stateUpdate;
   }
   else if (stateUpdate == vState::Insecure) {
-    if (state != vState::Bogus) {
+    if (!vStateIsBogus(state)) {
       state = vState::Insecure;
     }
   }
