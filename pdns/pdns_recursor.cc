@@ -810,7 +810,7 @@ static void sendErrorOverTCP(std::unique_ptr<DNSComboWriter>& dc, int rcode)
     }
   }
 
-  dnsheader& header = reinterpret_cast<dnsheader&>(packet.at(0));;
+  dnsheader& header = reinterpret_cast<dnsheader&>(packet.at(0));
   header.aa = 0;
   header.ra = 1;
   header.qr = 1;
