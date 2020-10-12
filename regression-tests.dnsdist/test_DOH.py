@@ -926,7 +926,8 @@ class TestDOHFFI(DNSDistDOHTest):
           end
         end
         if foundct then
-          ffi.C.dnsdist_ffi_dnsquestion_set_http_response(dq, 200, 'It works!', 'text/plain')
+          local response = 'It works!'
+          ffi.C.dnsdist_ffi_dnsquestion_set_http_response(dq, 200, response, #response, 'text/plain')
           return DNSAction.HeaderModify
         end
       end
