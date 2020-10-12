@@ -413,9 +413,14 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
 
 bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState)
 {
+  if (qt == QType::ANY || qt == QType::ADDR) {
+    // not doing that
+    return false;
+  }
+
   bool updated = false;
   uint16_t qtype = qt.getCode();
-  if (qtype != QType::ANY && qtype != QType::ADDR && !d_ecsIndex.empty()) {
+  if (!d_ecsIndex.empty()) {
     auto entry = getEntryUsingECSIndex(now, qname, qtype, requireAuth, who);
     if (entry == d_cache.end()) {
       return false;
@@ -434,8 +439,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
     i->d_state = newState;
     updated = true;
 
-    if(qtype != QType::ANY && qtype != QType::ADDR) // normally if we have a hit, we are done
-      break;
+    break;
   }
 
   return updated;
