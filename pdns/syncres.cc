@@ -952,6 +952,11 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 
 void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const
 {
+  if (qt == QType::ANY || qt == QType::ADDR) {
+    // not doing that
+    return;
+  }
+
   if (newState == Bogus) {
     t_RC->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, aa, newState, s_maxbogusttl + d_now.tv_sec);
   }
