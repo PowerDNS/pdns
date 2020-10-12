@@ -747,7 +747,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
@@ -756,7 +756,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
   BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), ne), true);
   BOOST_CHECK_EQUAL(ne.d_ttd, fixedNow + SyncRes::s_maxbogusttl);
-  BOOST_CHECK_EQUAL(ne.d_validationState, vState::Bogus);
+  BOOST_CHECK_EQUAL(ne.d_validationState, vState::BogusNoRRSIG);
   BOOST_CHECK_EQUAL(ne.authoritySOA.records.size(), 1U);
   BOOST_CHECK_EQUAL(ne.authoritySOA.signatures.size(), 1U);
   BOOST_CHECK_EQUAL(ne.DNSSECRecords.records.size(), 1U);
@@ -766,7 +766,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
@@ -1030,7 +1030,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
   sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   /* check that we correctly capped the TTD for a Bogus record after
      just-in-time validation */
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
@@ -1046,7 +1046,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
   sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);
