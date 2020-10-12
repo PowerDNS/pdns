@@ -48,9 +48,9 @@ class AXFRRetriever : public boost::noncopyable
     int d_sock;
     int d_soacount;
     ComboAddress d_remote;
+    TSIGRecordContent d_trc;
     TSIGTCPVerifier d_tsigVerifier;
 
     size_t d_receivedBytes;
     size_t d_maxReceivedBytes;
-    TSIGRecordContent d_trc;
 };
