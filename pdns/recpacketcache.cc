@@ -50,7 +50,7 @@ bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::ite
   return queryMatches(iter->d_query, queryPacket, qname, optionsToSkip);
 }
 
-bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, RecProtoBufMessage* protobufMessage)
+bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, std::string** protobufMessage)
 {
   for(auto iter = range.first ; iter != range.second ; ++iter) {
     // the possibility is VERY real that we get hits that are not right - birthday paradox
@@ -74,10 +74,10 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
 #ifdef HAVE_PROTOBUF
       if (protobufMessage) {
         if (iter->d_protobufMessage) {
-          protobufMessage->copyFrom(*(iter->d_protobufMessage));
+          *protobufMessage = &*iter->d_protobufMessage;
         }
         else {
-          *protobufMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
+          *protobufMessage = nullptr;
         }
       }
 #endif
@@ -110,7 +110,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, std::string** protobufMessage)
 {
   *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
@@ -125,7 +125,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, std::string** protobufMessage)
 {
   *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
@@ -142,7 +142,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, boost::optional<RecProtoBufMessage>&& protobufMessage)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, pdns::ProtoZero::Message* protobufMessage, std::string::size_type pbUnmutablePart)
 {
   auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,qhash));
@@ -161,7 +161,10 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     iter->d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
-      iter->d_protobufMessage = std::move(*protobufMessage);
+      std::string s(protobufMessage->movebuf());
+      s.resize(pbUnmutablePart);
+      s.shrink_to_fit();
+      iter->d_protobufMessage = boost::optional<std::string>(s);
     }
 #endif
 
@@ -179,7 +182,10 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     e.d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
-      e.d_protobufMessage = std::move(*protobufMessage);
+      std::string s(protobufMessage->movebuf());
+      s.resize(pbUnmutablePart);
+      s.shrink_to_fit();
+      e.d_protobufMessage = boost::optional<std::string>(s);
     }
 #endif
     d_packetCache.insert(e);
@@ -219,7 +225,7 @@ uint64_t RecursorPacketCache::doDump(int fd)
   for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
     count++;
     try {
-      fprintf(fp.get(), "%s %" PRId64 " %s  ; tag %d\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
+      fprintf(fp.get(), "%s %" PRId64 " %s  ; tag %d pb %zu\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag, i->d_protobufMessage ? i->d_protobufMessage->length() : 0);
     }
     catch(...) {
       fprintf(fp.get(), "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());

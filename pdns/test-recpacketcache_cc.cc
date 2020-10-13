@@ -45,16 +45,16 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   pw.commit();
   string rpacket((const char*)&packet[0], packet.size());
 
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   rpc.doPruneTo(0);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   rpc.doWipePacketCache(qname);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   uint32_t qhash2 = 0;
   bool found = rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash2);
@@ -140,11 +140,11 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   BOOST_CHECK(r1packet != r2packet);
 
   /* inserting a response for tag1 */
-  rpc.insertResponsePacket(tag1, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag1, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
 
   /* inserting a different response for tag2, should not override the first one */
-  rpc.insertResponsePacket(tag2, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag2, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 2U);
 
   /* remove all responses from the cache */
@@ -152,10 +152,10 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
   /* reinsert both */
-  rpc.insertResponsePacket(tag1, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag1, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
 
-  rpc.insertResponsePacket(tag2, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag2, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 2U);
 
   /* remove the responses by qname, should remove both */
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
   /* insert the response for tag1 */
-  rpc.insertResponsePacket(tag1, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag1, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
 
   /* we can retrieve it */
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   BOOST_CHECK_EQUAL(temphash, qhash);
 
   /* adding a response for the second tag */
-  rpc.insertResponsePacket(tag2, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag2, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, nullptr);
   BOOST_CHECK_EQUAL(rpc.size(), 2U);
 
   /* We still get the correct response for the first tag */

@@ -173,19 +173,28 @@ class PDNSPBConnHandler(object):
         if msg.HasField('initialRequestId'):
             initialrequestidstr = ', initial uuid: %s ' % (binascii.hexlify(bytearray(msg.initialRequestId)))
 
-        requestorstr = ''
+        requestorstr = '(N/A)'
         requestor = self.getRequestorSubnet(msg)
         if requestor:
             requestorstr = ' (' + requestor + ')'
 
-        deviceId = binascii.hexlify(bytearray(msg.deviceId))
-        requestorId = msg.requestorId
+        deviceId = 'N/A'
+        if msg.HasField('deviceId'):
+            deviceId = binascii.hexlify(bytearray(msg.deviceId))
+        deviceName = 'N/A'
+        if msg.HasField('deviceName'):
+            deviceName = msg.deviceName
+
+        requestorId = 'N/A'
+        if msg.HasField('requestorId'):
+            requestorId = msg.requestorId
+
         nod = 0
         if (msg.HasField('newlyObservedDomain')):
             nod = msg.newlyObservedDomain
 
-        print('[%s] %s of size %d: %s%s%s -> %s%s (%s), id: %d, uuid: %s%s '
-                  'requestorid: %s deviceid: %s serverid: %s nod: %d' % (datestr,
+        print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %d' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,
@@ -199,6 +208,7 @@ class PDNSPBConnHandler(object):
                                                     initialrequestidstr,
                                                     requestorId,
                                                     deviceId,
+                                                    deviceName,
                                                     serveridstr,
                                                     nod))
 

@@ -5,6 +5,7 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAG
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
+	-I$(top_srcdir)/ext/protozero/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES)
 
@@ -67,6 +68,7 @@ EXTRA_DIST = \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
 	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh \
+	ext/protozero/include/* \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
@@ -190,7 +192,8 @@ pdns_recursor_SOURCES = \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
 	xpf.cc xpf.hh \
-	zoneparser-tng.cc zoneparser-tng.hh
+	zoneparser-tng.cc zoneparser-tng.hh \
+	protozero.cc protozero.hh
 
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
