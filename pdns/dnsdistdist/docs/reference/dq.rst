@@ -274,9 +274,56 @@ DNSHeader (``dh``) object
 
   This object holds a representation of a DNS packet's header.
 
+  .. method:: DNSHeader:getAA() -> bool
+
+    Get authoritative answer flag.
+
+  .. method:: DNSHeader:getAD() -> bool
+
+    Get authentic data flag.
+
+  .. method:: DNSHeader:getCD() -> bool
+
+    Get checking disabled flag.
+
+  .. method:: DNSHeader:getRA() -> bool
+
+    Get recursion available flag.
+
   .. method:: DNSHeader:getRD() -> bool
 
     Get recursion desired flag.
+
+  .. method:: DNSHeader:setAA(aa)
+
+    Set authoritative answer flag.
+
+    :param bool aa: State of the AA flag
+
+  .. method:: DNSHeader:setAD(ad)
+
+    Set authentic data flag.
+
+    :param bool ad: State of the AD flag
+
+  .. method:: DNSHeader:setCD(cd)
+
+    Set checking disabled flag.
+
+    :param bool cd: State of the CD flag
+
+  .. method:: DNSHeader:setQR(qr)
+
+    Set Query/Response flag.
+    Setting QR to true means "This is an answer packet".
+
+    :param bool qr: State of the QR flag
+
+  .. method:: DNSHeader:setRA(ra)
+
+    Set recursion available flag.
+
+    :param bool ra: State of the RA flag
 
   .. method:: DNSHeader:setRD(rd)
 
@@ -289,23 +336,6 @@ DNSHeader (``dh``) object
     Set truncation flag (TC).
 
     :param bool tc: State of the TC flag
-
-  .. method:: DNSHeader:setQR(qr)
-
-    Set Query/Response flag.
-    Setting QR to true means "This is an answer packet".
-
-    :param bool qr: State of the QR flag
-
-  .. method:: DNSHeader:getCD() -> bool
-
-    Get checking disabled flag.
-
-  .. method:: DNSHeader:setCD(cd)
-
-    Set checking disabled flag.
-
-    :param bool cd: State of the CD flag
 
 .. _EDNSOptionView:
 
