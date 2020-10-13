@@ -21,6 +21,7 @@
  */
 #include <iostream>
 #include "namespaces.hh"
+#include "noinitvector.hh"
 #include "misc.hh"
 #include "base64.hh"
 #include "sodcrypto.hh"
@@ -292,6 +293,7 @@ template<typename Container> int B64Decode(const std::string& strInput, Containe
 }
 
 template int B64Decode<std::vector<uint8_t>>(const std::string& strInput, std::vector<uint8_t>& strOutput);
+template int B64Decode<PacketBuffer>(const std::string& strInput, PacketBuffer& strOutput);
 template int B64Decode<std::string>(const std::string& strInput, std::string& strOutput);
 
 /*

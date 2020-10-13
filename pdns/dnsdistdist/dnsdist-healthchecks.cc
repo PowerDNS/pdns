@@ -202,8 +202,8 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
       checkClass = std::get<2>(ret);
     }
 
-    vector<uint8_t> packet;
-    DNSPacketWriter dpw(packet, checkName, checkType, checkClass);
+    PacketBuffer packet;
+    GenericDNSPacketWriter<PacketBuffer> dpw(packet, checkName, checkType, checkClass);
     dnsheader * requestHeader = dpw.getHeader();
     *requestHeader = checkHeader;
 

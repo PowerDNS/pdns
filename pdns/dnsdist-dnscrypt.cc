@@ -24,7 +24,7 @@
 #include "dnscrypt.hh"
 
 #ifdef HAVE_DNSCRYPT
-int handleDNSCryptQuery(std::vector<uint8_t>& packet, std::shared_ptr<DNSCryptQuery>& query, bool tcp, time_t now, std::vector<uint8_t>& response)
+int handleDNSCryptQuery(PacketBuffer& packet, std::shared_ptr<DNSCryptQuery>& query, bool tcp, time_t now, PacketBuffer& response)
 {
   query->parsePacket(packet, tcp, now);
 

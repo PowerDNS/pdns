@@ -12,12 +12,12 @@ struct TCPQuery
   {
   }
 
-  TCPQuery(std::vector<uint8_t>&& buffer, IDState&& state): d_idstate(std::move(state)), d_buffer(std::move(buffer))
+  TCPQuery(PacketBuffer&& buffer, IDState&& state): d_idstate(std::move(state)), d_buffer(std::move(buffer))
   {
   }
 
   IDState d_idstate;
-  std::vector<uint8_t> d_buffer;
+  PacketBuffer d_buffer;
 };
 
 class TCPConnectionToBackend;
@@ -30,7 +30,7 @@ struct TCPResponse : public TCPQuery
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  TCPResponse(std::vector<uint8_t>&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
+  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
@@ -214,7 +214,7 @@ private:
 
   static const uint16_t s_xfrID;
 
-  std::vector<uint8_t> d_responseBuffer;
+  PacketBuffer d_responseBuffer;
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
   std::unique_ptr<Socket> d_socket{nullptr};

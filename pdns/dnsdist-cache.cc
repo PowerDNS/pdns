@@ -53,7 +53,7 @@ DNSDistPacketCache::~DNSDistPacketCache()
   }
 }
 
-bool DNSDistPacketCache::getClientSubnet(const std::vector<uint8_t>& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet)
+bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet)
 {
   uint16_t optRDPosition;
   size_t remaining = 0;
@@ -127,7 +127,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, CacheValu
   value = newValue;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<uint8_t>& response, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
 {
   if (response.size() < sizeof(dnsheader)) {
     return;
@@ -414,7 +414,7 @@ uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool
   return getDNSPacketMinTTL(packet, length, seenNoDataSOA);
 }
 
-uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const std::vector<uint8_t>& packet, bool tcp)
+uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool tcp)
 {
   uint32_t result = 0;
   /* skip the query ID */

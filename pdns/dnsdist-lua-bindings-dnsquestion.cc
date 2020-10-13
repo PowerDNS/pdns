@@ -236,7 +236,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       if (dq.du == nullptr) {
         return;
       }
-      std::vector<uint8_t> vect(body.begin(), body.end());
+      PacketBuffer vect(body.begin(), body.end());
       dq.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
     });
 #endif /* HAVE_DNS_OVER_HTTPS */

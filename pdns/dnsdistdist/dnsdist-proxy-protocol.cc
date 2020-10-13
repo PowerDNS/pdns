@@ -42,7 +42,7 @@ bool addProxyProtocol(DNSQuestion& dq)
   return addProxyProtocol(dq, payload);
 }
 
-bool addProxyProtocol(std::vector<uint8_t>& buffer, const std::string& payload)
+bool addProxyProtocol(PacketBuffer& buffer, const std::string& payload)
 {
   auto previousSize = buffer.size();
   if (payload.size() > (std::numeric_limits<size_t>::max() - previousSize)) {
@@ -54,7 +54,7 @@ bool addProxyProtocol(std::vector<uint8_t>& buffer, const std::string& payload)
   return true;
 }
 
-bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
+bool addProxyProtocol(PacketBuffer& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
 {
   auto payload = makeProxyHeader(tcp, source, destination, values);
   return addProxyProtocol(buffer, payload);

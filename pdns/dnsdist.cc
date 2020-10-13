@@ -147,7 +147,7 @@ std::set<std::string> g_capabilitiesToRetain;
 static size_t const s_initialUDPPacketBufferSize = s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
 static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
 
-static void truncateTC(std::vector<uint8_t>& packet, size_t maximumSize, unsigned int qnameWireLength)
+static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength)
 {
   try
   {
@@ -176,7 +176,7 @@ static void truncateTC(std::vector<uint8_t>& packet, size_t maximumSize, unsigne
 struct DelayedPacket
 {
   int fd;
-  std::vector<uint8_t> packet;
+  PacketBuffer packet;
   ComboAddress destination;
   ComboAddress origDest;
   void operator()()
@@ -235,7 +235,7 @@ void doLatencyStats(double udiff)
   doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 }
 
-bool responseContentMatches(const std::vector<uint8_t>& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength)
 {
   if (response.size() < sizeof(dnsheader)) {
     return false;
@@ -298,7 +298,7 @@ static bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
   return addEDNSToQueryTurnedResponse(dq);
 }
 
-static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, bool* zeroScope)
+static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, bool* zeroScope)
 {
   if (response.size() < sizeof(dnsheader)) {
     return false;
@@ -350,7 +350,7 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
         }
         else {
           /* Removing an intermediary RR could lead to compression error */
-          std::vector<uint8_t> rewrittenResponse;
+          PacketBuffer rewrittenResponse;
           if (rewriteResponseWithoutEDNS(response, rewrittenResponse) == 0) {
             response = std::move(rewrittenResponse);
           }
@@ -370,7 +370,7 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
           response.resize(response.size() - (existingOptLen - optLen));
         }
         else {
-          std::vector<uint8_t> rewrittenResponse;
+          PacketBuffer rewrittenResponse;
           /* Removing an intermediary RR could lead to compression error */
           if (rewriteResponseWithoutEDNSOption(response, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
             response = std::move(rewrittenResponse);
@@ -387,7 +387,7 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
 }
 
 #ifdef HAVE_DNSCRYPT
-static bool encryptResponse(std::vector<uint8_t>& response, size_t maximumSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery)
+static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery)
 {
   if (dnsCryptQuery) {
     int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
@@ -436,7 +436,7 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
   return true;
 }
 
-bool processResponse(std::vector<uint8_t>& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted)
+bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted)
 {
   if (!applyRulesToResponse(localRespRulactions, dr)) {
     return false;
@@ -474,7 +474,7 @@ bool processResponse(std::vector<uint8_t>& response, LocalStateHolder<vector<DNS
   return true;
 }
 
-static bool sendUDPResponse(int origFD, const std::vector<uint8_t>& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
   if(delayMsec && g_delay) {
     DelayedPacket dp{origFD, response, origRemote, origDest};
@@ -524,7 +524,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   try {
   setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
-  std::vector<uint8_t> response(s_initialUDPPacketBufferSize);
+  PacketBuffer response(s_initialUDPPacketBufferSize);
 
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -976,7 +976,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   return true;
 }
 
-ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const std::vector<uint8_t>& request, bool healthCheck)
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck)
 {
   ssize_t result;
 
@@ -1039,11 +1039,11 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   return true;
 }
 
-bool checkDNSCryptQuery(const ClientState& cs, std::vector<uint8_t>& query, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
+bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
 {
   if (cs.dnscryptCtx) {
 #ifdef HAVE_DNSCRYPT
-    vector<uint8_t> response;
+    PacketBuffer response;
     dnsCryptQuery = std::make_shared<DNSCryptQuery>(cs.dnscryptCtx);
 
     bool decrypted = handleDNSCryptQuery(query, dnsCryptQuery, tcp, now, response);
@@ -1080,7 +1080,7 @@ bool checkQueryHeaders(const struct dnsheader* dh)
 }
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void queueResponse(const ClientState& cs, const std::vector<uint8_t>& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
+static void queueResponse(const ClientState& cs, const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
   outMsg.msg_len = 0;
   fillMSGHdr(&outMsg.msg_hdr, iov, nullptr, 0, const_cast<char*>(reinterpret_cast<const char *>(&response.at(0))), response.size(), const_cast<ComboAddress*>(&remote));
@@ -1249,7 +1249,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
   return ProcessQueryResult::Drop;
 }
 
-static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, std::vector<uint8_t>& query, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
+static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
@@ -1385,7 +1385,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 {
   struct MMReceiver
   {
-    std::vector<uint8_t> packet;
+    PacketBuffer packet;
     ComboAddress remote;
     ComboAddress dest;
     struct iovec iov;
@@ -1478,7 +1478,7 @@ try
   else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
   {
-    std::vector<uint8_t> packet(s_initialUDPPacketBufferSize);
+    PacketBuffer packet(s_initialUDPPacketBufferSize);
     /* the actual buffer is larger because:
        - we may have to add EDNS and/or ECS
        - we use it for self-generated responses (from rule or cache)

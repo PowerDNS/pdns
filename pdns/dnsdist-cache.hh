@@ -26,6 +26,7 @@
 
 #include "iputils.hh"
 #include "lock.hh"
+#include "noinitvector.hh"
 
 struct DNSQuestion;
 
@@ -35,7 +36,7 @@ public:
   DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t maxNegativeTTL=3600, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true, bool parseECS=false);
   ~DNSDistPacketCache();
 
-  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<uint8_t>& response, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
+  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
   bool get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired = 0, bool skipAging = false);
   size_t purgeExpired(size_t upTo=0);
   size_t expunge(size_t upTo=0);
@@ -76,10 +77,10 @@ public:
     d_parseECS = enabled;
   }
 
-  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const std::vector<uint8_t>& packet, bool tcp);
+  uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool tcp);
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
-  static bool getClientSubnet(const std::vector<uint8_t>& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
+  static bool getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet);
 
 private:
 

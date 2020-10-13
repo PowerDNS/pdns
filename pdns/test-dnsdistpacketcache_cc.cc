@@ -31,12 +31,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       DNSName a=DNSName(std::to_string(counter))+DNSName(" hello");
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
 
-      vector<uint8_t> response;
-      DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+      PacketBuffer response;
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::A, QClass::IN, 0);
       pwR.getHeader()->rd = 1;
       pwR.getHeader()->ra = 1;
       pwR.getHeader()->qr = 1;
@@ -73,8 +73,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     size_t delcounter=0;
     for(delcounter=0; delcounter < counter/1000; ++delcounter) {
       DNSName a=DNSName(std::to_string(delcounter))+DNSName(" hello");
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
@@ -93,8 +93,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     size_t expected=counter-skipped-deleted;
     for(; delcounter < counter; ++delcounter) {
       DNSName a(DNSName(std::to_string(delcounter))+DNSName(" hello"));
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
@@ -131,12 +131,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     DNSName a = DNSName("servfail");
     BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::A, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 0;
     pwR.getHeader()->qr = 1;
@@ -180,12 +180,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
   bool dnssecOK = false;
   try {
     DNSName name("nodata");
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, name, QType::A, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, name, QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, name, QType::A, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 0;
     pwR.getHeader()->qr = 1;
@@ -232,12 +232,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
   bool dnssecOK = false;
   try {
     DNSName name("nxdomain");
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, name, QType::A, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, name, QType::A, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, name, QType::A, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->ra = 0;
     pwR.getHeader()->qr = 1;
@@ -284,12 +284,12 @@ static void threadMangler(unsigned int offset)
     bool dnssecOK = false;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
 
-      vector<uint8_t> response;
-      DNSPacketWriter pwR(response, a, QType::A, QClass::IN, 0);
+      PacketBuffer response;
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::A, QClass::IN, 0);
       pwR.getHeader()->rd = 1;
       pwR.getHeader()->ra = 1;
       pwR.getHeader()->qr = 1;
@@ -325,8 +325,8 @@ static void threadReader(unsigned int offset)
     ComboAddress remote;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));
-      vector<uint8_t> query;
-      DNSPacketWriter pwQ(query, a, QType::A, QClass::IN, 0);
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
 
       uint32_t key = 0;
@@ -393,11 +393,11 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   /* lookup for a query with a first ECS value,
      insert a corresponding response */
   {
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, qname, qtype, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, qtype, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = qid;
-    DNSPacketWriter::optvect_t ednsOptions;
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     opt.source = Netmask("10.0.59.220/32");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
@@ -413,8 +413,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     BOOST_REQUIRE(subnetOut);
     BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, qname, qtype, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, qtype, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->id = qid;
     pwR.startRecord(qname, qtype, 100, QClass::IN, DNSResourceRecord::ANSWER);
@@ -436,11 +436,11 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   /* now lookup for the same query with a different ECS value,
      we should get the same key (collision) but no match */
   {
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, qname, qtype, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, qtype, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = qid;
-    DNSPacketWriter::optvect_t ednsOptions;
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     opt.source = Netmask("10.0.167.48/32");
     ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
@@ -463,7 +463,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
   /* to be able to compute a new collision if the packet cache hashing code is updated */
   {
     DNSDistPacketCache pc(10000);
-    DNSPacketWriter::optvect_t ednsOptions;
+    GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     std::map<uint32_t, Netmask> colMap;
     size_t collisions = 0;
@@ -473,8 +473,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     for (size_t idxA = 0; idxA < 256; idxA++) {
       for (size_t idxB = 0; idxB < 256; idxB++) {
         for (size_t idxC = 0; idxC < 256; idxC++) {
-          vector<uint8_t> secondQuery;
-          DNSPacketWriter pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
+          PacketBuffer secondQuery;
+          GenericDNSPacketWriter<PacketBuffer> pwFQ(secondQuery, qname, QType::AAAA, QClass::IN, 0);
           pwFQ.getHeader()->rd = 1;
           pwFQ.getHeader()->qr = false;
           pwFQ.getHeader()->id = 0x42;
@@ -516,8 +516,8 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
      insert a corresponding response with DO set,
      check that it doesn't match without DO, but does with it */
   {
-    vector<uint8_t> query;
-    DNSPacketWriter pwQ(query, qname, qtype, QClass::IN, 0);
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, qname, qtype, QClass::IN, 0);
     pwQ.getHeader()->rd = 1;
     pwQ.getHeader()->id = qid;
     pwQ.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
@@ -530,8 +530,8 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
     bool found = PC.get(dq, 0, &key, subnetOut, true);
     BOOST_CHECK_EQUAL(found, false);
 
-    vector<uint8_t> response;
-    DNSPacketWriter pwR(response, qname, qtype, QClass::IN, 0);
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, qname, qtype, QClass::IN, 0);
     pwR.getHeader()->rd = 1;
     pwR.getHeader()->id = qid;
     pwR.startRecord(qname, qtype, 100, QClass::IN, DNSResourceRecord::ANSWER);

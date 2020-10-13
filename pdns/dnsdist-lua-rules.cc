@@ -419,7 +419,7 @@ void setupLuaRules(LuaContext& luaCtx)
       int times = times_.get_value_or(100000);
       DNSName suffix(suffix_.get_value_or("powerdns.com"));
       struct item {
-        vector<uint8_t> packet;
+        PacketBuffer packet;
         ComboAddress rem;
         DNSName qname;
         uint16_t qtype, qclass;
@@ -434,7 +434,7 @@ void setupLuaRules(LuaContext& luaCtx)
         i.qclass = 1;
         i.rem=ComboAddress("127.0.0.1");
         i.rem.sin4.sin_addr.s_addr = random();
-        DNSPacketWriter pw(i.packet, i.qname, i.qtype);
+        GenericDNSPacketWriter<PacketBuffer> pw(i.packet, i.qname, i.qtype);
         items.push_back(i);
       }
 

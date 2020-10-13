@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   uint16_t qclass = QClass::IN;
   ComboAddress lc("127.0.0.1:53");
   ComboAddress rem("192.0.2.1:42");
-  std::vector<uint8_t> packet(sizeof(dnsheader));
+  PacketBuffer packet(sizeof(dnsheader));
   bool isTcp = false;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);

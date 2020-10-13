@@ -174,7 +174,7 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult
     d_queries++;
 
     if(d_addECS) {
-      std::vector<uint8_t> query(dq->getData());
+      PacketBuffer query(dq->getData());
       bool ednsAdded = false;
       bool ecsAdded = false;
 
@@ -1309,7 +1309,7 @@ private:
 class HTTPStatusAction: public DNSAction
 {
 public:
-  HTTPStatusAction(int code, const std::vector<uint8_t>& body, const std::string& contentType): d_body(body), d_contentType(contentType), d_code(code)
+  HTTPStatusAction(int code, const PacketBuffer& body, const std::string& contentType): d_body(body), d_contentType(contentType), d_code(code)
   {
   }
 
@@ -1319,7 +1319,7 @@ public:
       return Action::None;
     }
 
-    dq->du->setHTTPResponse(d_code, std::vector<uint8_t>(d_body), d_contentType);
+    dq->du->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
     dq->getHeader()->qr = true; // for good measure
     setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
     return Action::HeaderModify;
@@ -1332,7 +1332,7 @@ public:
 
   ResponseConfig d_responseConfig;
 private:
-  std::vector<uint8_t> d_body;
+  PacketBuffer d_body;
   std::string d_contentType;
   int d_code;
 };
@@ -1811,7 +1811,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
 #ifdef HAVE_DNS_OVER_HTTPS
   luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType, boost::optional<responseParams_t> vars) {
-      auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, std::vector<uint8_t>(body.begin(), body.end()), contentType ? *contentType : ""));
+      auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : ""));
       auto hsa = std::dynamic_pointer_cast<HTTPStatusAction>(ret);
       parseResponseConfig(vars, hsa->d_responseConfig);
       return ret;

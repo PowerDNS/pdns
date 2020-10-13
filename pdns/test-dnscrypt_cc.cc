@@ -49,8 +49,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.name.");
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::TXT, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::TXT, QClass::IN, 0);
   pw.getHeader()->rd = 0;
 
   std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
   BOOST_CHECK_EQUAL(query->isValid(), true);
   BOOST_CHECK_EQUAL(query->isEncrypted(), false);
 
-  std::vector<uint8_t> response;
+  PacketBuffer response;
 
   query->getCertificateResponse(now, response);
 
@@ -88,8 +88,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
 
   DNSName name("2.name.");
 
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::A, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::A, QClass::IN, 0);
   pw.getHeader()->rd = 0;
 
   std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
@@ -111,8 +111,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
 
   DNSName name("2.WRONG.name.");
 
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::TXT, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::TXT, QClass::IN, 0);
   pw.getHeader()->rd = 0;
 
   std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
@@ -140,8 +140,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
   size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
   if (requiredSize < DNSCryptQuery::s_minUDPLength) {
@@ -194,8 +194,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
 
   int res = ctx->encryptQuery(plainQuery, /* not enough room */ plainQuery.size(), clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
@@ -221,8 +221,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
 
   size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
@@ -279,8 +279,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
-  vector<uint8_t> plainQuery;
-  DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  PacketBuffer plainQuery;
+  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
 
   size_t initialSize = plainQuery.size();

@@ -41,7 +41,7 @@ uint16_t g_ECSSourcePrefixV6 = 56;
 bool g_ECSOverride{false};
 bool g_addEDNSToSelfGeneratedResponses{true};
 
-int rewriteResponseWithoutEDNS(const std::vector<uint8_t>& initialPacket, vector<uint8_t>& newContent)
+int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent)
 {
   assert(initialPacket.size() >= sizeof(dnsheader));
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
@@ -52,7 +52,7 @@ int rewriteResponseWithoutEDNS(const std::vector<uint8_t>& initialPacket, vector
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  GenericPacketReader<std::vector<uint8_t>> pr(initialPacket);
+  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -69,7 +69,7 @@ int rewriteResponseWithoutEDNS(const std::vector<uint8_t>& initialPacket, vector
   rrtype = pr.get16BitInt();
   rrclass = pr.get16BitInt();
 
-  DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
+  GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
   pw.getHeader()->id=dh->id;
   pw.getHeader()->qr=dh->qr;
   pw.getHeader()->aa=dh->aa;
@@ -149,7 +149,7 @@ static bool addOrReplaceECSOption(std::vector<std::pair<uint16_t, std::string>>&
   return true;
 }
 
-static bool slowRewriteQueryWithExistingEDNS(const std::vector<uint8_t>& initialPacket, vector<uint8_t>& newContent, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
+static bool slowRewriteQueryWithExistingEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
 {
   assert(initialPacket.size() >= sizeof(dnsheader));
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
@@ -165,7 +165,7 @@ static bool slowRewriteQueryWithExistingEDNS(const std::vector<uint8_t>& initial
     throw std::runtime_error("slowRewriteQueryWithExistingEDNS() should not be called for queries that have no EDNS");
   }
 
-  GenericPacketReader<std::vector<uint8_t>> pr(initialPacket);
+  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -182,7 +182,7 @@ static bool slowRewriteQueryWithExistingEDNS(const std::vector<uint8_t>& initial
   rrtype = pr.get16BitInt();
   rrclass = pr.get16BitInt();
 
-  DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
+  GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
   pw.getHeader()->id=dh->id;
   pw.getHeader()->qr=dh->qr;
   pw.getHeader()->aa=dh->aa;
@@ -261,7 +261,7 @@ static bool slowRewriteQueryWithExistingEDNS(const std::vector<uint8_t>& initial
   return true;
 }
 
-static bool slowParseEDNSOptions(const std::vector<uint8_t>& packet, std::shared_ptr<std::map<uint16_t, EDNSOptionView> >& options)
+static bool slowParseEDNSOptions(const PacketBuffer& packet, std::shared_ptr<std::map<uint16_t, EDNSOptionView> >& options)
 {
   if (packet.size() < sizeof(dnsheader)) {
     return false;
@@ -317,7 +317,7 @@ static bool slowParseEDNSOptions(const std::vector<uint8_t>& packet, std::shared
   return true;
 }
 
-int locateEDNSOptRR(const std::vector<uint8_t>& packet, uint16_t * optStart, size_t * optLen, bool * last)
+int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * optLen, bool * last)
 {
   assert(optStart != NULL);
   assert(optLen != NULL);
@@ -327,7 +327,7 @@ int locateEDNSOptRR(const std::vector<uint8_t>& packet, uint16_t * optStart, siz
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
 
-  GenericPacketReader<std::vector<uint8_t>> pr(packet);
+  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -384,7 +384,7 @@ int locateEDNSOptRR(const std::vector<uint8_t>& packet, uint16_t * optStart, siz
 }
 
 /* extract the start of the OPT RR in a QUERY packet if any */
-int getEDNSOptionsStart(const std::vector<uint8_t>& packet, const size_t offset, uint16_t* optRDPosition, size_t* remaining)
+int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_t* optRDPosition, size_t* remaining)
 {
   assert(optRDPosition != nullptr);
   assert(remaining != nullptr);
@@ -437,7 +437,7 @@ void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPref
   generateEDNSOption(EDNSOptionCode::ECS, payload, res);
 }
 
-bool generateOptRR(const std::string& optRData, std::vector<uint8_t>& res, size_t maximumSize, uint16_t udpPayloadSize, uint8_t ednsrcode, bool dnssecOK)
+bool generateOptRR(const std::string& optRData, PacketBuffer& res, size_t maximumSize, uint16_t udpPayloadSize, uint8_t ednsrcode, bool dnssecOK)
 {
   const uint8_t name = 0;
   dnsrecordheader dh;
@@ -464,7 +464,7 @@ bool generateOptRR(const std::string& optRData, std::vector<uint8_t>& res, size_
   return true;
 }
 
-static bool replaceEDNSClientSubnetOption(std::vector<uint8_t>& packet, size_t maximumSize, size_t const oldEcsOptionStartPosition, size_t const oldEcsOptionSize, size_t const optRDLenPosition, const string& newECSOption)
+static bool replaceEDNSClientSubnetOption(PacketBuffer& packet, size_t maximumSize, size_t const oldEcsOptionStartPosition, size_t const oldEcsOptionSize, size_t const optRDLenPosition, const string& newECSOption)
 {
   assert(oldEcsOptionStartPosition < packet.size());
   assert(optRDLenPosition < packet.size());
@@ -536,7 +536,7 @@ bool parseEDNSOptions(const DNSQuestion& dq)
   return false;
 }
 
-static bool addECSToExistingOPT(std::vector<uint8_t>& packet, size_t maximumSize, const string& newECSOption, size_t optRDLenPosition, bool& ecsAdded)
+static bool addECSToExistingOPT(PacketBuffer& packet, size_t maximumSize, const string& newECSOption, size_t optRDLenPosition, bool& ecsAdded)
 {
   /* we need to add one EDNS0 ECS option, fixing the size of EDNS0 RDLENGTH */
   /* getEDNSOptionsStart has already checked that there is exactly one AR,
@@ -562,7 +562,7 @@ static bool addECSToExistingOPT(std::vector<uint8_t>& packet, size_t maximumSize
   return true;
 }
 
-static bool addEDNSWithECS(std::vector<uint8_t>& packet, size_t maximumSize, const string& newECSOption, bool& ednsAdded, bool& ecsAdded)
+static bool addEDNSWithECS(PacketBuffer& packet, size_t maximumSize, const string& newECSOption, bool& ednsAdded, bool& ecsAdded)
 {
   if (!generateOptRR(newECSOption, packet, maximumSize, g_EdnsUDPPayloadSize, 0, false)) {
     return false;
@@ -578,14 +578,14 @@ static bool addEDNSWithECS(std::vector<uint8_t>& packet, size_t maximumSize, con
   return true;
 }
 
-bool handleEDNSClientSubnet(std::vector<uint8_t>& packet, const size_t maximumSize, const size_t qnameWireLength, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
+bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, const size_t qnameWireLength, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
 {
   assert(qnameWireLength <= packet.size());
 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet.data());
 
   if (ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || (ntohs(dh->arcount) != 0 && ntohs(dh->arcount) != 1)) {
-    vector<uint8_t> newContent;
+    PacketBuffer newContent;
     newContent.reserve(packet.size());
 
     if (!slowRewriteQueryWithExistingEDNS(packet, newContent, ednsAdded, ecsAdded, overrideExisting, newECSOption)) {
@@ -709,7 +709,7 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   return 0;
 }
 
-bool isEDNSOptionInOpt(const std::vector<uint8_t>& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart, uint16_t* optContentLen)
+bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart, uint16_t* optContentLen)
 {
   if (optLen < optRecordMinimumSize) {
     return false;
@@ -748,7 +748,7 @@ bool isEDNSOptionInOpt(const std::vector<uint8_t>& packet, const size_t optStart
   return false;
 }
 
-int rewriteResponseWithoutEDNSOption(const std::vector<uint8_t>& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent)
+int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const uint16_t optionCodeToSkip, PacketBuffer& newContent)
 {
   assert(initialPacket.size() >= sizeof(dnsheader));
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
@@ -759,7 +759,7 @@ int rewriteResponseWithoutEDNSOption(const std::vector<uint8_t>& initialPacket, 
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  GenericPacketReader<std::vector<uint8_t>> pr(initialPacket);
+  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -776,7 +776,7 @@ int rewriteResponseWithoutEDNSOption(const std::vector<uint8_t>& initialPacket, 
   rrtype = pr.get16BitInt();
   rrclass = pr.get16BitInt();
 
-  DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
+  GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
   pw.getHeader()->id=dh->id;
   pw.getHeader()->qr=dh->qr;
   pw.getHeader()->aa=dh->aa;
@@ -845,7 +845,7 @@ int rewriteResponseWithoutEDNSOption(const std::vector<uint8_t>& initialPacket, 
   return 0;
 }
 
-bool addEDNS(std::vector<uint8_t>& packet, size_t maximumSize, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode)
+bool addEDNS(PacketBuffer& packet, size_t maximumSize, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode)
 {
   if (!generateOptRR(std::string(), packet, maximumSize, payloadSize, ednsrcode, dnssecOK)) {
     return false;

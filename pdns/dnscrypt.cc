@@ -384,7 +384,7 @@ void DNSCryptContext::removeInactiveCertificate(uint32_t serial)
   throw std::runtime_error("No inactive certificate found with this serial");
 }
 
-bool DNSCryptQuery::parsePlaintextQuery(const std::vector<uint8_t>& packet)
+bool DNSCryptQuery::parsePlaintextQuery(const PacketBuffer& packet)
 {
   assert(d_ctx != nullptr);
 
@@ -418,9 +418,9 @@ bool DNSCryptQuery::parsePlaintextQuery(const std::vector<uint8_t>& packet)
   return true;
 }
 
-void DNSCryptContext::getCertificateResponse(time_t now, const DNSName& qname, uint16_t qid, std::vector<uint8_t>& response)
+void DNSCryptContext::getCertificateResponse(time_t now, const DNSName& qname, uint16_t qid, PacketBuffer& response)
 {
-  DNSPacketWriter pw(response, qname, QType::TXT, QClass::IN, Opcode::Query);
+  GenericDNSPacketWriter<PacketBuffer> pw(response, qname, QType::TXT, QClass::IN, Opcode::Query);
   struct dnsheader * dh = pw.getHeader();
   dh->id = qid;
   dh->qr = true;
@@ -458,7 +458,7 @@ bool DNSCryptContext::magicMatchesAPublicKey(DNSCryptQuery& query, time_t now)
   return false;
 }
 
-bool DNSCryptQuery::isEncryptedQuery(const std::vector<uint8_t>& packet, bool tcp, time_t now)
+bool DNSCryptQuery::isEncryptedQuery(const PacketBuffer& packet, bool tcp, time_t now)
 {
   assert(d_ctx != nullptr);
 
@@ -485,7 +485,7 @@ bool DNSCryptQuery::isEncryptedQuery(const std::vector<uint8_t>& packet, bool tc
   return true;
 }
 
-void DNSCryptQuery::getDecrypted(bool tcp, std::vector<uint8_t>& packet)
+void DNSCryptQuery::getDecrypted(bool tcp, PacketBuffer& packet)
 {
   assert(d_encrypted);
   assert(d_pair != nullptr);
@@ -576,13 +576,13 @@ void DNSCryptQuery::getDecrypted(bool tcp, std::vector<uint8_t>& packet)
   d_valid = true;
 }
 
-void DNSCryptQuery::getCertificateResponse(time_t now, std::vector<uint8_t>& response) const
+void DNSCryptQuery::getCertificateResponse(time_t now, PacketBuffer& response) const
 {
   assert(d_ctx != nullptr);
   d_ctx->getCertificateResponse(now, d_qname, d_id, response);
 }
 
-void DNSCryptQuery::parsePacket(std::vector<uint8_t>& packet, bool tcp, time_t now)
+void DNSCryptQuery::parsePacket(PacketBuffer& packet, bool tcp, time_t now)
 {
   d_valid = false;
 
@@ -635,7 +635,7 @@ uint16_t DNSCryptQuery::computePaddingSize(uint16_t unpaddedLen, size_t maxLen) 
   return result;
 }
 
-int DNSCryptQuery::encryptResponse(std::vector<uint8_t>& response, size_t maxResponseSize, bool tcp)
+int DNSCryptQuery::encryptResponse(PacketBuffer& response, size_t maxResponseSize, bool tcp)
 {
   struct DNSCryptResponseHeader responseHeader;
   assert(response.size() > 0);
@@ -746,7 +746,7 @@ int DNSCryptQuery::encryptResponse(std::vector<uint8_t>& response, size_t maxRes
   return res;
 }
 
-int DNSCryptContext::encryptQuery(std::vector<uint8_t>& packet, size_t maximumSize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, const std::shared_ptr<DNSCryptCert>& cert) const
+int DNSCryptContext::encryptQuery(PacketBuffer& packet, size_t maximumSize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, const std::shared_ptr<DNSCryptCert>& cert) const
 {
   assert(packet.size() > 0);
   assert(cert != nullptr);

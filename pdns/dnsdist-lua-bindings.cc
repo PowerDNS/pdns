@@ -490,6 +490,6 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
         headers->push_back({ boost::to_lower_copy(header.first), header.second });
       }
     }
-    return std::make_shared<DOHResponseMapEntry>(regex, status, std::vector<uint8_t>(content.begin(), content.end()), headers);
+    return std::make_shared<DOHResponseMapEntry>(regex, status, PacketBuffer(content.begin(), content.end()), headers);
   });
 }

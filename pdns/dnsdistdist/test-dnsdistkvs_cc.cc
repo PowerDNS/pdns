@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   uint16_t qclass = QClass::IN;
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
-  std::vector<uint8_t> packet(sizeof(dnsheader));
+  PacketBuffer packet(sizeof(dnsheader));
   bool isTcp = false;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
@@ -288,7 +288,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   uint16_t qclass = QClass::IN;
   ComboAddress lc("192.0.2.1:53");
   ComboAddress rem("192.0.2.128:42");
-  std::vector<uint8_t> packet(sizeof(dnsheader));
+  PacketBuffer packet(sizeof(dnsheader));
   bool isTcp = false;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);

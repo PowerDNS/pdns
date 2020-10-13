@@ -328,7 +328,7 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
 }
 
 /* Always called from the main DoH thread */
-static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::vector<uint8_t>& response, const std::vector<std::pair<std::string, std::string>>& customResponseHeaders, const std::string& contentType, bool addContentType)
+static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const PacketBuffer& response, const std::vector<std::pair<std::string, std::string>>& customResponseHeaders, const std::string& contentType, bool addContentType)
 {
   constexpr int overwrite_if_exists = 1;
   constexpr int maybe_token = 1;
@@ -654,7 +654,7 @@ static void on_generator_dispose(void *_self)
 /* This executes in the main DoH thread.
    We allocate a DOHUnit and send it to dnsdistclient() function in the doh client thread
    via a pipe */
-static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::vector<uint8_t>&& query, const ComboAddress& local, const ComboAddress& remote, std::string&& path)
+static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, std::string&& path)
 {
   try {
     /* we only parse it there as a sanity check, we will parse it again later */
@@ -858,7 +858,7 @@ try
     else
       ++dsc->df->d_http1Stats.d_nbQueries;
 
-    std::vector<uint8_t> query;
+    PacketBuffer query;
     /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
        at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
     query.reserve(std::max(req->entity.len + 512, s_maxPacketCacheEntrySize));
@@ -885,7 +885,7 @@ try
         break;
       }
 
-      std::vector<uint8_t> decoded;
+      PacketBuffer decoded;
 
       /* rough estimate so we hopefully don't need a new allocation later */
       /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
@@ -1036,7 +1036,7 @@ std::string DOHUnit::getHTTPQueryString() const
   }
 }
 
-void DOHUnit::setHTTPResponse(uint16_t statusCode, std::vector<uint8_t>&& body_, const std::string& contentType_)
+void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const std::string& contentType_)
 {
   status_code = statusCode;
   response = std::move(body_);

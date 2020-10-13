@@ -356,7 +356,7 @@ void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, ui
   }
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  std::vector<uint8_t> bodyVect(body, body + bodyLen);
+  PacketBuffer bodyVect(body, body + bodyLen);
   dq->dq->du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
   dq->dq->getHeader()->qr = true;
 #endif
