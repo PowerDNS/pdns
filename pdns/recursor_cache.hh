@@ -200,7 +200,7 @@ private:
   bool entryMatches(OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
   std::pair<NameOnlyHashedTagIterator_t, NameOnlyHashedTagIterator_t> getEntries(const DNSName &qname, const QType& qt);
   cache_t::const_iterator getEntryUsingECSIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
-  int32_t handleHit(OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
+  int32_t handleHit(OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth);
 
 public:
   void preRemoval(const CacheEntry& entry)

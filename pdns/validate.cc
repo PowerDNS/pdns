@@ -1098,3 +1098,24 @@ DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signa
 
   return DNSName();
 }
+
+void updateDNSSECValidationState(vState& state, const vState stateUpdate)
+{
+  if (stateUpdate == vState::TA) {
+    state = vState::Secure;
+  }
+  else if (stateUpdate == vState::NTA) {
+    state = vState::Insecure;
+  }
+  else if (stateUpdate == vState::Bogus) {
+    state = vState::Bogus;
+  }
+  else if (state == vState::Indeterminate) {
+    state = stateUpdate;
+  }
+  else if (stateUpdate == vState::Insecure) {
+    if (state != vState::Bogus) {
+      state = vState::Insecure;
+    }
+  }
+}
