@@ -79,7 +79,39 @@ size_t MemRecursorCache::bytes()
   return ret;
 }
 
-int32_t MemRecursorCache::handleHit(MapCombo& map, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
+static void updateDNSSECValidationStateFromCache(boost::optional<vState>& state, const vState stateUpdate)
+{
+  // if there was no state it's easy */
+  if (state == boost::none) {
+    state = stateUpdate;
+    return;
+  }
+
+  if (stateUpdate == vState::TA) {
+    state = vState::Secure;
+  }
+  else if (stateUpdate == vState::NTA) {
+    state = vState::Insecure;
+  }
+  else if (stateUpdate == vState::Bogus) {
+    state = stateUpdate;
+  }
+  else if (stateUpdate == vState::Indeterminate) {
+    state = stateUpdate;
+  }
+  else if (stateUpdate == vState::Insecure) {
+    if (*state != vState::Bogus && *state != vState::Indeterminate) {
+      state = stateUpdate;
+    }
+  }
+  else if (stateUpdate == vState::Secure) {
+    if (*state != vState::Bogus && *state != vState::Indeterminate) {
+      state = stateUpdate;
+    }
+  }
+}
+
+int32_t MemRecursorCache::handleHit(MapCombo& map, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth)
 {
   // MUTEX SHOULD BE ACQUIRED
   int32_t ttd = entry->d_ttd;
@@ -104,20 +136,18 @@ int32_t MemRecursorCache::handleHit(MapCombo& map, MemRecursorCache::OrderedTagI
     }
   }
 
-  if(signatures) { // if you do an ANY lookup you are hosed XXXX
-    *signatures = entry->d_signatures;
+  if (signatures) {
+    signatures->insert(signatures->end(), entry->d_signatures.begin(), entry->d_signatures.end());
   }
 
-  if(authorityRecs) {
-    *authorityRecs = entry->d_authorityRecs;
+  if (authorityRecs) {
+    authorityRecs->insert(authorityRecs->end(), entry->d_authorityRecs.begin(), entry->d_authorityRecs.end());
   }
 
-  if (state) {
-    *state = entry->d_state;
-  }
+  updateDNSSECValidationStateFromCache(state, entry->d_state);
 
   if (wasAuth) {
-    *wasAuth = entry->d_auth;
+    *wasAuth = *wasAuth && entry->d_auth;
   }
 
   moveCacheItemToBack<SequencedTag>(map.d_map, entry);
@@ -218,12 +248,18 @@ bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entr
 // returns -1 for no hits
 int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {
+  boost::optional<vState> cachedState{boost::none};
   time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
   if(res) {
     res->clear();
   }
   const uint16_t qtype = qt.getCode();
+  if (wasAuth) {
+    // we might retrieve more than one entry, we need to set that to true
+    // so it will be set to false if at least one entry is not auth
+    *wasAuth = true;
+  }
 
   auto& map = getMap(qname);
   const lock l(map);
@@ -236,23 +272,32 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 
       auto entryA = getEntryUsingECSIndex(map, now, qname, QType::A, requireAuth, who);
       if (entryA != map.d_map.end()) {
-        ret = handleHit(map, entryA, qname, res, signatures, authorityRecs, variable, state, wasAuth);
+        ret = handleHit(map, entryA, qname, res, signatures, authorityRecs, variable, cachedState, wasAuth);
       }
       auto entryAAAA = getEntryUsingECSIndex(map, now, qname, QType::AAAA, requireAuth, who);
       if (entryAAAA != map.d_map.end()) {
-        int32_t ttdAAAA = handleHit(map, entryAAAA, qname, res, signatures, authorityRecs, variable, state, wasAuth);
+        int32_t ttdAAAA = handleHit(map, entryAAAA, qname, res, signatures, authorityRecs, variable, cachedState, wasAuth);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
         } else {
           ret = ttdAAAA;
         }
       }
+
+      if (state && cachedState) {
+        *state = *cachedState;
+      }
+
       return ret > 0 ? static_cast<int32_t>(ret-now) : ret;
     }
     else {
       auto entry = getEntryUsingECSIndex(map, now, qname, qtype, requireAuth, who);
       if (entry != map.d_map.end()) {
-        return static_cast<int32_t>(handleHit(map, entry, qname, res, signatures, authorityRecs, variable, state, wasAuth) - now);
+        int32_t ret = handleHit(map, entry, qname, res, signatures, authorityRecs, variable, cachedState, wasAuth);
+        if (state && cachedState) {
+          *state = *cachedState;
+        }
+        return static_cast<int32_t>(ret-now);
       }
       return -1;
     }
@@ -274,11 +319,14 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
           continue;
         }
 
-        ttd = handleHit(map, firstIndexIterator, qname, res, signatures, authorityRecs, variable, state, wasAuth);
+        ttd = handleHit(map, firstIndexIterator, qname, res, signatures, authorityRecs, variable, cachedState, wasAuth);
 
         if (qt.getCode() != QType::ANY && qt.getCode() != QType::ADDR) { // normally if we have a hit, we are done
           break;
         }
+      }
+      if (state && cachedState) {
+        *state = *cachedState;
       }
       return static_cast<int32_t>(ttd-now);
     }
@@ -299,11 +347,14 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         continue;
       }
 
-      ttd = handleHit(map, firstIndexIterator, qname, res, signatures, authorityRecs, variable, state, wasAuth);
+      ttd = handleHit(map, firstIndexIterator, qname, res, signatures, authorityRecs, variable, cachedState, wasAuth);
 
       if (qt.getCode() != QType::ANY && qt.getCode() != QType::ADDR) { // normally if we have a hit, we are done
         break;
       }
+    }
+    if (state && cachedState) {
+      *state = *cachedState;
     }
     return static_cast<int32_t>(ttd-now);
   }
@@ -494,12 +545,19 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
 
 bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
 {
+  uint16_t qtype = qt.getCode();
+  if (qtype == QType::ANY) {
+    throw std::runtime_error("Trying to update the DNSSEC validation status of all (via ANY) records for " + qname.toLogString());
+  }
+  if (qtype == QType::ADDR) {
+    throw std::runtime_error("Trying to update the DNSSEC validation status of several (via ADDR) records for " + qname.toLogString());
+  }
+
   auto& map = getMap(qname);
   const lock l(map);
 
   bool updated = false;
-  uint16_t qtype = qt.getCode();
-  if (qtype != QType::ANY && qtype != QType::ADDR && !map.d_ecsIndex.empty() && !routingTag) {
+  if (!map.d_ecsIndex.empty() && !routingTag) {
     auto entry = getEntryUsingECSIndex(map, now, qname, qtype, requireAuth, who);
     if (entry == map.d_map.end()) {
       return false;
@@ -527,8 +585,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
     }
     updated = true;
 
-    if(qtype != QType::ANY && qtype != QType::ADDR) // normally if we have a hit, we are done
-      break;
+    break;
   }
 
   return updated;
