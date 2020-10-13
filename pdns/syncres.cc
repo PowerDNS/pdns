@@ -1303,6 +1303,11 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
 
 void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const
 {
+  if (qt == QType::ANY || qt == QType::ADDR) {
+    // not doing that
+    return;
+  }
+
   if (newState == vState::Bogus) {
     g_recCache->updateValidationStatus(d_now.tv_sec, qname, qt, d_cacheRemote, d_routingTag, aa, newState, s_maxbogusttl + d_now.tv_sec);
   }
@@ -1546,6 +1551,20 @@ static void reapRecordsFromNegCacheEntryForValidation(tcache_t& tcache, const ve
   }
 }
 
+static void reapRecordsForValidation(std::map<uint16_t, CacheEntry>& entries, const vector<DNSRecord>& records)
+{
+  for (const auto& rec : records) {
+    entries[rec.d_type].records.push_back(rec);
+  }
+}
+
+static void reapSignaturesForValidation(std::map<uint16_t, CacheEntry>& entries, const vector<std::shared_ptr<RRSIGRecordContent>>& signatures)
+{
+  for (const auto& sig : signatures) {
+    entries[sig->d_type].signatures.push_back(sig);
+  }
+}
+
 /*!
  * Convenience function to push the records from records into ret with a new TTL
  *
@@ -1743,7 +1762,25 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
           cachedState = validateDNSKeys(sqname, cset, signatures, depth);
         }
         else {
-          cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
+          if (sqt == QType::ANY) {
+            std::map<uint16_t, CacheEntry> types;
+            reapRecordsForValidation(types, cset);
+            reapSignaturesForValidation(types, signatures);
+
+            for (const auto& type : types) {
+              vState cachedRecordState;
+              if (type.first == QType::DNSKEY) {
+                cachedRecordState = validateDNSKeys(sqname, type.second.records, type.second.signatures, depth);
+              }
+              else {
+                cachedRecordState = SyncRes::validateRecordsWithSigs(depth, sqname, QType(type.first), sqname, type.second.records, type.second.signatures);
+              }
+              updateDNSSECValidationState(cachedState, cachedRecordState);
+            }
+          }
+          else {
+            cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
+          }
         }
       }
       else {
@@ -1755,7 +1792,9 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         if (cachedState == vState::Bogus) {
           capTTL = s_maxbogusttl;
         }
-        updateValidationStatusInCache(sqname, sqt, wasCachedAuth, cachedState);
+        if (sqt != QType::ANY && sqt != QType::ADDR) {
+          updateValidationStatusInCache(sqname, sqt, wasCachedAuth, cachedState);
+        }
       }
     }
 
@@ -2239,24 +2278,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
 void SyncRes::updateValidationState(vState& state, const vState stateUpdate)
 {
   LOG(d_prefix<<"validation state was "<<state<<", state update is "<<stateUpdate);
-
-  if (stateUpdate == vState::TA) {
-    state = vState::Secure;
-  }
-  else if (stateUpdate == vState::NTA) {
-    state = vState::Insecure;
-  }
-  else if (stateUpdate == vState::Bogus) {
-    state = vState::Bogus;
-  }
-  else if (state == vState::Indeterminate) {
-    state = stateUpdate;
-  }
-  else if (stateUpdate == vState::Insecure) {
-    if (state != vState::Bogus) {
-      state = vState::Insecure;
-    }
-  }
+  updateDNSSECValidationState(state, stateUpdate);
   LOG(", validation state is now "<<state<<endl);
 }
 
@@ -2671,7 +2693,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     recordcontents.insert(record.d_content);
   }
 
-  LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<endl);
+  LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<"|"<<qtype.getName()<<endl);
   if (validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, false)) {
     LOG(d_prefix<<"Secure!"<<endl);
     return vState::Secure;

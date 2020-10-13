@@ -1055,4 +1055,102 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
+{
+  /*
+    Validation is optional, and the first two queries (A, AAAA) do not ask for it,
+    so the answer are cached as Indeterminate.
+    The third query asks for validation, and is for ANY, so the answer should be marked as
+    Secure, after just-in-time validation.
+    The last query also requests validation but is for AAAA only.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
+    }
+    else {
+      if (domain == target && type == QType::A) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, target, QType::A, "192.0.2.1");
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        return 1;
+      }
+      else if (domain == target && type == QType::AAAA) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, target, QType::AAAA, "2001:db8::1");
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        return 1;
+      }
+    }
+
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  /* first query does not require validation */
+  sr->setDNSSECValidationRequested(false);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  ret.clear();
+  /* second query does not require validation either */
+  sr->setDNSSECValidationRequested(false);
+  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  ret.clear();
+  /* third one _does_ require validation */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+
+  ret.clear();
+  /* last one also requires validation */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
