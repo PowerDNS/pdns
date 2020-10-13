@@ -147,7 +147,7 @@ std::set<std::string> g_capabilitiesToRetain;
 static size_t const s_initialUDPPacketBufferSize = s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
 static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
 
-static void truncateTC(std::vector<uint8_t>& packet, unsigned int qnameWireLength)
+static void truncateTC(std::vector<uint8_t>& packet, size_t maximumSize, unsigned int qnameWireLength)
 {
   try
   {
@@ -164,7 +164,7 @@ static void truncateTC(std::vector<uint8_t>& packet, unsigned int qnameWireLengt
     dh->ancount = dh->arcount = dh->nscount = 0;
 
     if (hadEDNS) {
-      addEDNS(packet, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
+      addEDNS(packet, maximumSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
     }
   }
   catch(...)
@@ -323,19 +323,17 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
     size_t optLen = 0;
     bool last = false;
 
-#warning FIXME: save an alloc+copy
-    const std::string responseStr(reinterpret_cast<const char*>(response.data()), response.size());
-    int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
+    int res = locateEDNSOptRR(response, &optStart, &optLen, &last);
 
     if (res == 0) {
       if (zeroScope) { // this finds if an EDNS Client Subnet scope was set, and if it is 0
         size_t optContentStart = 0;
         uint16_t optContentLen = 0;
         /* we need at least 4 bytes after the option length (family: 2, source prefix-length: 1, scope prefix-length: 1) */
-        if (isEDNSOptionInOpt(responseStr, optStart, optLen, EDNSOptionCode::ECS, &optContentStart, &optContentLen) && optContentLen >= 4) {
+        if (isEDNSOptionInOpt(response, optStart, optLen, EDNSOptionCode::ECS, &optContentStart, &optContentLen) && optContentLen >= 4) {
           /* see if the EDNS Client Subnet SCOPE PREFIX-LENGTH byte in position 3 is set to 0, which is the only thing
              we care about. */
-          *zeroScope = responseStr.at(optContentStart + 3) == 0;
+          *zeroScope = response.at(optContentStart + 3) == 0;
         }
       }
 
@@ -353,7 +351,7 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
         else {
           /* Removing an intermediary RR could lead to compression error */
           std::vector<uint8_t> rewrittenResponse;
-          if (rewriteResponseWithoutEDNS(responseStr, rewrittenResponse) == 0) {
+          if (rewriteResponseWithoutEDNS(response, rewrittenResponse) == 0) {
             response = std::move(rewrittenResponse);
           }
           else {
@@ -374,7 +372,7 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
         else {
           std::vector<uint8_t> rewrittenResponse;
           /* Removing an intermediary RR could lead to compression error */
-          if (rewriteResponseWithoutEDNSOption(responseStr, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
+          if (rewriteResponseWithoutEDNSOption(response, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
             response = std::move(rewrittenResponse);
           }
           else {
@@ -389,11 +387,10 @@ static bool fixUpResponse(std::vector<uint8_t>& response, const DNSName& qname, 
 }
 
 #ifdef HAVE_DNSCRYPT
-static bool encryptResponse(std::vector<uint8_t>& response, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery)
+static bool encryptResponse(std::vector<uint8_t>& response, size_t maximumSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery)
 {
   if (dnsCryptQuery) {
-    #warning FIXME should not be harcoded
-    int res = dnsCryptQuery->encryptResponse(response, tcp ? std::numeric_limits<uint16_t>::max() : 4096, tcp);
+    int res = dnsCryptQuery->encryptResponse(response, maximumSize, tcp);
     if (res != 0) {
       /* dropping response */
       vinfolog("Error encrypting the response, dropping.");
@@ -468,7 +465,7 @@ bool processResponse(std::vector<uint8_t>& response, LocalStateHolder<vector<DNS
 
 #ifdef HAVE_DNSCRYPT
   if (!muted) {
-    if (!encryptResponse(response, dr.tcp, dr.dnsCryptQuery)) {
+    if (!encryptResponse(response, dr.getMaximumSize(), dr.tcp, dr.dnsCryptQuery)) {
       return false;
     }
   }
@@ -610,13 +607,12 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           continue;
         }
 
-        if (dh->tc && g_truncateTC) {
-          truncateTC(response, qnameWireLength);
-        }
-
         dh->id = ids->origID;
 
         DNSResponse dr = makeDNSResponseFromIDState(*ids, response, false);
+        if (dh->tc && g_truncateTC) {
+          truncateTC(response, dr.getMaximumSize(), qnameWireLength);
+        }
         memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
         if (!processResponse(response, localRespRulactions, dr, ids->cs && ids->cs->muted)) {
@@ -1116,7 +1112,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
 
 #ifdef HAVE_DNSCRYPT
   if (!cs.muted) {
-    if (!encryptResponse(dq.getMutableData(), dq.tcp, dq.dnsCryptQuery)) {
+    if (!encryptResponse(dq.getMutableData(), dq.getMaximumSize(), dq.tcp, dq.dnsCryptQuery)) {
       return false;
     }
   }

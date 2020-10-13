@@ -206,7 +206,7 @@ struct DOHServerConfig
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
 
   LocalHolders holders;
-  std::unordered_set<std::string> paths;
+  std::set<std::string> paths;
   h2o_globalconf_t h2o_config;
   h2o_context_t h2o_ctx;
   std::shared_ptr<DOHAcceptContext> accept_ctx{nullptr};
@@ -831,15 +831,18 @@ try
       ++dsc->cs->tlsUnknownqueries;
   }
 
-  #warning turn these into string_view?
-  string path(req->path.base, req->path.len);
-  string pathOnly(req->path_normalized.base, req->path_normalized.len);
-
+  // would be nice to be able to use a pdns_string_view there, but we would need heterogeneous lookups
+  // (having string in the set and compare them to string_view, for example. Note that comparing
+  // two boost::string_view uses the pointer, not the content).
+  const std::string pathOnly(req->path_normalized.base, req->path_normalized.len);
   if (dsc->paths.count(pathOnly) == 0) {
     h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
     return 0;
   }
 
+  // would be nice to be able to use a pdns_string_view there,
+  // but regex (called by matches() internally) requires a null-terminated string
+  string path(req->path.base, req->path.len);
   for (const auto& entry : dsc->df->d_responsesMap) {
     if (entry->matches(path)) {
       const auto& customHeaders = entry->getHeaders();
@@ -882,7 +885,7 @@ try
         break;
       }
 
-      std::string decoded;
+      std::vector<uint8_t> decoded;
 
       /* rough estimate so we hopefully don't need a new allocation later */
       /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
@@ -901,9 +904,7 @@ try
         else
           ++dsc->df->d_http1Stats.d_nbQueries;
 
-#warning FIXME: performance
-        auto vect = std::vector<uint8_t>(decoded.begin(), decoded.end());
-        doh_dispatch_query(dsc, self, req, std::move(vect), local, remote, std::move(path));
+        doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote, std::move(path));
       }
     }
     else
@@ -1084,13 +1085,11 @@ static void dnsdistclient(int qsock)
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data()));
 
       if (!dh->arcount) {
-        std::string res;
-        generateOptRR(std::string(), res, 4096, 0, false);
-
-        du->query.insert(du->query.end(), res.begin(), res.end());
-        dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data())); // may have reallocated
-        dh->arcount = htons(1);
-        du->ednsAdded = true;
+        if (generateOptRR(std::string(), du->query, 4096, 4096, 0, false)) {
+          dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data())); // may have reallocated
+          dh->arcount = htons(1);
+          du->ednsAdded = true;
+        }
       }
       else {
         // we leave existing EDNS in place

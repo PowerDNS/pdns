@@ -635,7 +635,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   dq->getHeader()->ancount = htons(dq->getHeader()->ancount);
 
   if (hadEDNS && raw == false) {
-    addEDNS(dq->getMutableData(), dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
+    addEDNS(dq->getMutableData(), dq->getMaximumSize(), dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
   }
 
   return Action::HeaderModify;
@@ -658,16 +658,10 @@ public:
     std::string optRData;
     generateEDNSOption(d_code, mac, optRData);
 
-    std::string res;
-    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, 0, false);
-
-    if (!dq->hasRoomFor(res.length())) {
-      return Action::None;
-    }
-
-    dq->getHeader()->arcount = htons(1);
     auto& data = dq->getMutableData();
-    data.insert(data.end(), res.begin(), res.end());
+    if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
+      dq->getHeader()->arcount = htons(1);
+    }
 
     return Action::None;
   }

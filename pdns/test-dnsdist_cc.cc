@@ -901,7 +901,7 @@ BOOST_AUTO_TEST_CASE(removeEDNSWhenFirst) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNS(std::string((const char *) response.data(), response.size()), newResponse);
+  int res = rewriteResponseWithoutEDNS(response, newResponse);
   BOOST_CHECK_EQUAL(res, 0);
 
   unsigned int consumed = 0;
@@ -933,7 +933,7 @@ BOOST_AUTO_TEST_CASE(removeEDNSWhenIntermediary) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNS(std::string((const char *) response.data(), response.size()), newResponse);
+  int res = rewriteResponseWithoutEDNS(response, newResponse);
   BOOST_CHECK_EQUAL(res, 0);
 
   unsigned int consumed = 0;
@@ -963,7 +963,7 @@ BOOST_AUTO_TEST_CASE(removeEDNSWhenLast) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNS(std::string((const char *) response.data(), response.size()), newResponse);
+  int res = rewriteResponseWithoutEDNS(response, newResponse);
 
   BOOST_CHECK_EQUAL(res, 0);
 
@@ -1004,7 +1004,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenOnlyOption) {
   size_t optLen = 0;
   bool last = false;
 
-  int res = locateEDNSOptRR(std::string((char *) response.data(), response.size()), &optStart, &optLen, &last);
+  int res = locateEDNSOptRR(response, &optStart, &optLen, &last);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK_EQUAL(last, true);
 
@@ -1056,7 +1056,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenFirstOption) {
   size_t optLen = 0;
   bool last = false;
 
-  int res = locateEDNSOptRR(std::string((char *) response.data(), response.size()), &optStart, &optLen, &last);
+  int res = locateEDNSOptRR(response, &optStart, &optLen, &last);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK_EQUAL(last, true);
 
@@ -1112,7 +1112,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenIntermediaryOption) {
   size_t optLen = 0;
   bool last = false;
 
-  int res = locateEDNSOptRR(std::string((char *) response.data(), response.size()), &optStart, &optLen, &last);
+  int res = locateEDNSOptRR(response, &optStart, &optLen, &last);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK_EQUAL(last, true);
 
@@ -1164,7 +1164,7 @@ BOOST_AUTO_TEST_CASE(removeECSWhenLastOption) {
   size_t optLen = 0;
   bool last = false;
 
-  int res = locateEDNSOptRR(std::string((char *) response.data(), response.size()), &optStart, &optLen, &last);
+  int res = locateEDNSOptRR(response, &optStart, &optLen, &last);
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK_EQUAL(last, true);
 
@@ -1208,7 +1208,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenOnlyOption) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNSOption(std::string((const char *) response.data(), response.size()), EDNSOptionCode::ECS, newResponse);
+  int res = rewriteResponseWithoutEDNSOption(response, EDNSOptionCode::ECS, newResponse);
   BOOST_CHECK_EQUAL(res, 0);
 
   BOOST_CHECK_EQUAL(newResponse.size(), response.size() - (origECSOptionStr.size() + 4));
@@ -1250,7 +1250,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenFirstOption) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNSOption(std::string((const char *) response.data(), response.size()), EDNSOptionCode::ECS, newResponse);
+  int res = rewriteResponseWithoutEDNSOption(response, EDNSOptionCode::ECS, newResponse);
   BOOST_CHECK_EQUAL(res, 0);
 
   BOOST_CHECK_EQUAL(newResponse.size(), response.size() - (origECSOptionStr.size() + 4));
@@ -1294,7 +1294,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenIntermediaryOption) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNSOption(std::string((const char *) response.data(), response.size()), EDNSOptionCode::ECS, newResponse);
+  int res = rewriteResponseWithoutEDNSOption(response, EDNSOptionCode::ECS, newResponse);
   BOOST_CHECK_EQUAL(res, 0);
 
   BOOST_CHECK_EQUAL(newResponse.size(), response.size() - (origECSOptionStr.size() + 4));
@@ -1336,7 +1336,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenLastOption) {
   pw.commit();
 
   vector<uint8_t> newResponse;
-  int res = rewriteResponseWithoutEDNSOption(std::string((const char *) response.data(), response.size()), EDNSOptionCode::ECS, newResponse);
+  int res = rewriteResponseWithoutEDNSOption(response, EDNSOptionCode::ECS, newResponse);
   BOOST_CHECK_EQUAL(res, 0);
 
   BOOST_CHECK_EQUAL(newResponse.size(), response.size() - (origECSOptionStr.size() + 4));
@@ -1670,8 +1670,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
     uint16_t optStart;
     size_t optLen;
     bool last = false;
-    std::string packetStr(reinterpret_cast<const char*>(query.data()), query.size());
-    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
+    int res = locateEDNSOptRR(query, &optStart, &optLen, &last);
     if (res != 0) {
       // no EDNS OPT RR
       return false;
@@ -1681,12 +1680,12 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
       return false;
     }
 
-    if (optStart < query.size() && packetStr.at(optStart) != 0) {
+    if (optStart < query.size() && query.at(optStart) != 0) {
       // OPT RR Name != '.'
       return false;
     }
 
-    return isEDNSOptionInOpt(packetStr, optStart, optLen, code, optContentStart, optContentLen);
+    return isEDNSOptionInOpt(query, optStart, optLen, code, optContentStart, optContentLen);
   };
 
   const DNSName qname("www.powerdns.com.");

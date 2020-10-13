@@ -975,8 +975,7 @@ public:
     uint16_t optStart;
     size_t optLen = 0;
     bool last = false;
-    std::string packetStr(dq->getData().begin(), dq->getData().end());
-    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
+    int res = locateEDNSOptRR(dq->getData(), &optStart, &optLen, &last);
     if (res != 0) {
       // no EDNS OPT RR
       return false;
@@ -986,12 +985,12 @@ public:
       return false;
     }
 
-    if (optStart < dq->getData().size() && packetStr.at(optStart) != 0) {
+    if (optStart < dq->getData().size() && dq->getData().at(optStart) != 0) {
       // OPT RR Name != '.'
       return false;
     }
 
-    return isEDNSOptionInOpt(packetStr, optStart, optLen, d_optcode);
+    return isEDNSOptionInOpt(dq->getData(), optStart, optLen, d_optcode);
   }
   string toString() const override
   {

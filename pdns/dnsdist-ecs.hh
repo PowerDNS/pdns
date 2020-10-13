@@ -27,15 +27,15 @@ static const size_t optRecordMinimumSize = 11;
 extern size_t g_EdnsUDPPayloadSize;
 extern uint16_t g_PayloadSizeSelfGenAnswers;
 
-int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>& newContent);
-int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * optLen, bool * last);
-void generateOptRR(const std::string& optRData, string& res, uint16_t udpPayloadSize, uint8_t ednsrcode, bool dnssecOK);
+int rewriteResponseWithoutEDNS(const std::vector<uint8_t>& initialPacket, vector<uint8_t>& newContent);
+int locateEDNSOptRR(const std::vector<uint8_t> & packet, uint16_t * optStart, size_t * optLen, bool * last);
+bool generateOptRR(const std::string& optRData, std::vector<uint8_t>& res, size_t maximumSize, uint16_t udpPayloadSize, uint8_t ednsrcode, bool dnssecOK);
 void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength);
 int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove);
-int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent);
+int rewriteResponseWithoutEDNSOption(const std::vector<uint8_t>& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent);
 int getEDNSOptionsStart(const std::vector<uint8_t>& packet, const size_t offset, uint16_t* optRDPosition, size_t * remaining);
-bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart = nullptr, uint16_t* optContentLen = nullptr);
-bool addEDNS(std::vector<uint8_t>& packet, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode);
+bool isEDNSOptionInOpt(const std::vector<uint8_t>& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart = nullptr, uint16_t* optContentLen = nullptr);
+bool addEDNS(std::vector<uint8_t>& packet, size_t maximumSize, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode);
 bool addEDNSToQueryTurnedResponse(DNSQuestion& dq);
 bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum);
 

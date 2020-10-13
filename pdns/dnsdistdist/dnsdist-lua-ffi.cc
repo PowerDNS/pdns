@@ -99,10 +99,20 @@ uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dq)
   return dq->dq->getData().size();
 }
 
-#warning FIXME : we need to provide a way to resize
 size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dq)
 {
   return dq->dq->getData().size();
+}
+
+bool dnsdist_ffi_dnsquestion_set_size(dnsdist_ffi_dnsquestion_t* dq, size_t newSize)
+{
+  try {
+    dq->dq->getMutableData().resize(newSize);
+    return true;
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
 }
 
 uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq)
