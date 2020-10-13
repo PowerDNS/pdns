@@ -744,6 +744,7 @@ getaddrinfo
 getaddrs
 getalldomainmetadata
 getbeforeandafternamesabsolute
+getcarbonhostname
 getdomaininfo
 getdomainkeys
 getdomainmetadata

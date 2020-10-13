@@ -1,5 +1,43 @@
 Changelogs for 4.2.x
 ====================
+
+.. changelog::
+  :version: 4.2.5
+  :released: 13th of October 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9603
+
+    Backport of CVE-2020-25829: Cache pollution.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9508
+    :tickets: 9497
+
+    Raise an exception on invalid content in unknown records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9502
+    :tickets: 9070
+
+    Boost 1.73 moved boost::bind placeholders to the placeholders namespace.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9456
+    :tickets: 9454
+
+    Fix the parsing of `dont-throttle-netmasks` in the presence of `dont-throttle-names`.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9368
+
+    Resize hostname to final size in getcarbonhostname().
+
 .. changelog::
   :version: 4.2.4
   :released: 17th of July 2020
