@@ -583,6 +583,10 @@ public:
   }
   NSECBitmap& operator=(const NSECBitmap& rhs)
   {
+    if (this == &rhs) {
+      return *this;
+    }
+
     d_set = rhs.d_set;
 
     if (rhs.d_bitset) {
