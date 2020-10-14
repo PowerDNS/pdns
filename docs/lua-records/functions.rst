@@ -6,21 +6,34 @@ LUA rules run within the same environment as described in
 
 The Lua snippets can query the following variables:
 
-``who``
-~~~~~~~
-IP address of requesting resolver
+Query variables
+~~~~~~~~~~~~~~~
+``dh``
+  The :class:`DNSHeader` of the received query.
+``dnssecOK``
+  A boolean describing if the DNSSEC OK (DO) bit was set in the query.
+``ednsPKTSize``
+  The advertised EDNS buffer size.
+``qname``
+  The name of the requested record. This is a :class:`DNSName`.
+``zone``
+  The zone this LUA record is in. This is a :class:`DNSName`.
+``zoneid``
+  The id of the zone. This is an integer.
+``tcp``
+  Whether or not the query was received over TCP.
 
-
+Client variables
+~~~~~~~~~~~~~~~~
 ``ecswho``
-~~~~~~~~~~~
-The EDNS Client Subnet, should one have been set on the query. Unset
-otherwise.
-
+  The EDNS Client Subnet, should one have been set on the query. Unset
+  otherwise. This is a :class:`ComboAddress`.
 ``bestwho``
-~~~~~~~~~~~~
-In absence of ECS, this is set to the IP address of requesting resolver.
-Otherwise set to the network part of the EDNS Client Subnet supplied by the
-resolver.
+  In absence of ECS, this is set to the IP address of requesting resolver.
+  Otherwise set to the network part of the EDNS Client Subnet supplied by the
+  resolver. A :class:`ComboAddress`
+``who``
+  IP address of requesting resolver as a :class:`ComboAddress`.
 
 Functions available
 -------------------
