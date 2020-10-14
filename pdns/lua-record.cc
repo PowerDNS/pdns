@@ -921,7 +921,7 @@ static void setupLuaRecords()
       try {
         rec = DNSName(record) + s_lua_record_ctx->zone;
       } catch (const std::exception &e){
-        g_log<<Logger::Error<<"Included record cannot be loaded, the name ("<<record<<")is malformed: "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Included record cannot be loaded, the name ("<<record<<") is malformed: "<<e.what()<<endl;
         return;
       }
       try {
