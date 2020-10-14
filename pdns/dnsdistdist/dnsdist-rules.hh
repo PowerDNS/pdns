@@ -1177,3 +1177,38 @@ public:
 private:
   func_t d_func;
 };
+
+class ProxyProtocolValueRule : public DNSRule
+{
+public:
+  ProxyProtocolValueRule(uint8_t type, boost::optional<std::string> value): d_value(value), d_type(type)
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    if (!dq->proxyProtocolValues) {
+      return false;
+    }
+
+    for (const auto& entry : *dq->proxyProtocolValues) {
+      if (entry.type == d_type && (!d_value || entry.content == *d_value)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  string toString() const override
+  {
+    if (d_value) {
+      return "proxy protocol value of type " + std::to_string(d_type) + " matches";
+    }
+    return "proxy protocol value of type " + std::to_string(d_type) + " is present";
+  }
+
+private:
+  boost::optional<std::string> d_value;
+  uint8_t d_type;
+};

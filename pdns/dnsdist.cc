@@ -474,6 +474,30 @@ bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResp
   return true;
 }
 
+static size_t getInitialUDPPacketBufferSize()
+{
+  static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
+
+  if (g_proxyProtocolACL.empty()) {
+    return s_initialUDPPacketBufferSize;
+  }
+
+  return s_initialUDPPacketBufferSize + g_proxyProtocolMaximumSize;
+}
+
+static size_t getMaximumIncomingPacketSize(const ClientState& cs)
+{
+  if (cs.dnscryptCtx) {
+    return getInitialUDPPacketBufferSize();
+  }
+
+  if (g_proxyProtocolACL.empty()) {
+    return s_udpIncomingBufferSize;
+  }
+
+  return s_udpIncomingBufferSize + g_proxyProtocolMaximumSize;
+}
+
 static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
   if(delayMsec && g_delay) {
@@ -482,7 +506,7 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
   }
   else {
     ssize_t res;
-    if(origDest.sin4.sin_family == 0) {
+    if (origDest.sin4.sin_family == 0) {
       res = sendto(origFD, response.data(), response.size(), 0, reinterpret_cast<const struct sockaddr*>(&origRemote), origRemote.getSocklen());
     }
     else {
@@ -496,7 +520,6 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
 
   return true;
 }
-
 
 int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state)
 {
@@ -524,7 +547,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   try {
   setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
-  PacketBuffer response(s_initialUDPPacketBufferSize);
+  const size_t initialBufferSize = getInitialUDPPacketBufferSize();
+  PacketBuffer response(initialBufferSize);
 
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -541,7 +565,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
       }
 
       for (const auto& fd : sockets) {
-        response.resize(s_initialUDPPacketBufferSize);
+        response.resize(initialBufferSize);
         ssize_t got = recv(fd, response.data(), response.size(), 0);
 
         if (got == 0 && dss->isStopped()) {
@@ -647,9 +671,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           else {
             ComboAddress empty;
             empty.sin4.sin_family = 0;
-            /* if ids->destHarvested is false, origDest holds the listening address.
-               We don't want to use that as a source since it could be 0.0.0.0 for example. */
-            sendUDPResponse(origFD, response, dr.delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+            sendUDPResponse(origFD, response, dr.delayMsec, ids->hopLocal, ids->hopRemote);
           }
         }
 
@@ -1010,7 +1032,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
   return result;
 }
 
-static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest)
+static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol)
 {
   if (msgh->msg_flags & MSG_TRUNC) {
     /* message was too large for our buffer */
@@ -1019,14 +1041,12 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     return false;
   }
 
-  if(!holders.acl->match(remote)) {
+  expectProxyProtocol = expectProxyProtocolFrom(remote);
+  if (!holders.acl->match(remote) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
     ++g_stats.aclDrops;
     return false;
   }
-
-  cs.queries++;
-  ++g_stats.queries;
 
   if (HarvestDestinationAddress(msgh, &dest)) {
     /* we don't get the port, only the address */
@@ -1035,6 +1055,9 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   else {
     dest.sin4.sin_family = 0;
   }
+
+  cs.queries++;
+  ++g_stats.queries;
 
   return true;
 }
@@ -1253,9 +1276,19 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
+  ComboAddress proxiedRemote = remote;
+  ComboAddress proxiedDestination = dest;
 
   try {
-    if (!isUDPQueryAcceptable(cs, holders, msgh, remote, dest)) {
+    bool expectProxyProtocol = false;
+    if (!isUDPQueryAcceptable(cs, holders, msgh, remote, dest, expectProxyProtocol)) {
+      return;
+    }
+    /* dest might have been updated, if we managed to harvest the destination address */
+    proxiedDestination = dest;
+
+    std::vector<ProxyProtocolValue> proxyProtocolValues;
+    if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, proxiedRemote, proxiedDestination, proxyProtocolValues)) {
       return;
     }
 
@@ -1282,8 +1315,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     uint16_t qtype, qclass;
     unsigned int qnameWireLength = 0;
     DNSName qname(reinterpret_cast<const char*>(query.data()), query.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
-    DNSQuestion dq(&qname, qtype, qclass, dest.sin4.sin_family != 0 ? &dest : &cs.local, &remote, query, false, &queryRealTime);
+    DNSQuestion dq(&qname, qtype, qclass, proxiedDestination.sin4.sin_family != 0 ? &proxiedDestination : &cs.local, &proxiedRemote, query, false, &queryRealTime);
     dq.dnsCryptQuery = std::move(dnsCryptQuery);
+    if (!proxyProtocolValues.empty()) {
+      dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
+    }
+    dq.hopRemote = &remote;
+    dq.hopLocal = &dest;
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
 
@@ -1296,13 +1334,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     if (result == ProcessQueryResult::SendAnswer) {
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dq.delayMsec == 0 && responsesVect != nullptr) {
-        queueResponse(cs, query, *dq.local, *dq.remote, responsesVect[*queuedResponses], respIOV, respCBuf);
+        queueResponse(cs, query, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
-      sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, *dq.remote);
+      sendUDPResponse(cs.udpFD, query, dq.delayMsec, dest, remote);
       return;
     }
 
@@ -1343,19 +1381,11 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->origID = dh->id;
     setIDStateFromDNSQuestion(*ids, dq, std::move(qname));
 
-    /* If we couldn't harvest the real dest addr, still
-       write down the listening addr since it will be useful
-       (especially if it's not an 'any' one).
-       We need to keep track of which one it is since we may
-       want to use the real but not the listening addr to reply.
-    */
     if (dest.sin4.sin_family != 0) {
       ids->origDest = dest;
-      ids->destHarvested = true;
     }
     else {
       ids->origDest = cs.local;
-      ids->destHarvested = false;
     }
 
     dh = dq.getHeader();
@@ -1373,10 +1403,10 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ++g_stats.downstreamSendErrors;
     }
 
-    vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toLogString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
+    vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toLogString(), QType(ids->qtype).getName(), proxiedRemote.toStringWithPort(), ss->getName());
   }
   catch(const std::exception& e){
-    vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
+    vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", proxiedRemote.toStringWithPort(), queryId, e.what());
   }
 }
 
@@ -1393,22 +1423,24 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
     cmsgbuf_aligned cbuf;
   };
   const size_t vectSize = g_udpVectorSize;
-  /* the actual buffer is larger because:
-     - we may have to add EDNS and/or ECS
-     - we use it for self-generated responses (from rule or cache)
-     but we only accept incoming payloads up to that size
-  */
-  static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "the incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
 
   auto recvData = std::unique_ptr<MMReceiver[]>(new MMReceiver[vectSize]);
   auto msgVec = std::unique_ptr<struct mmsghdr[]>(new struct mmsghdr[vectSize]);
   auto outMsgVec = std::unique_ptr<struct mmsghdr[]>(new struct mmsghdr[vectSize]);
 
+  /* the actual buffer is larger because:
+     - we may have to add EDNS and/or ECS
+     - we use it for self-generated responses (from rule or cache)
+     but we only accept incoming payloads up to that size
+  */
+  const size_t initialBufferSize = getInitialUDPPacketBufferSize();
+  const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*cs);
+
   /* initialize the structures needed to receive our messages */
   for (size_t idx = 0; idx < vectSize; idx++) {
     recvData[idx].remote.sin4.sin_family = cs->local.sin4.sin_family;
-    recvData[idx].packet.resize(s_initialUDPPacketBufferSize);
-    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(&recvData[idx].packet.at(0)), cs->dnscryptCtx ? recvData[idx].packet.size() : s_udpIncomingBufferSize, &recvData[idx].remote);
+    recvData[idx].packet.resize(initialBufferSize);
+    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), reinterpret_cast<char*>(&recvData[idx].packet.at(0)), maxIncomingPacketSize, &recvData[idx].remote);
   }
 
   /* go now */
@@ -1417,7 +1449,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
     /* reset the IO vector, since it's also used to send the vector of responses
        to avoid having to copy the data around */
     for (size_t idx = 0; idx < vectSize; idx++) {
-      recvData[idx].packet.resize(s_initialUDPPacketBufferSize);
+      recvData[idx].packet.resize(initialBufferSize);
       recvData[idx].iov.iov_base = &recvData[idx].packet.at(0);
       recvData[idx].iov.iov_len = recvData[idx].packet.size();
     }
@@ -1465,65 +1497,70 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
 static void udpClientThread(ClientState* cs)
-try
 {
-  setThreadName("dnsdist/udpClie");
-  LocalHolders holders;
+  try
+  {
+    setThreadName("dnsdist/udpClie");
+    LocalHolders holders;
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-  if (g_udpVectorSize > 1) {
-    MultipleMessagesUDPClientThread(cs, holders);
-
-  }
-  else
+    if (g_udpVectorSize > 1) {
+      MultipleMessagesUDPClientThread(cs, holders);
+    }
+    else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-  {
-    PacketBuffer packet(s_initialUDPPacketBufferSize);
-    /* the actual buffer is larger because:
-       - we may have to add EDNS and/or ECS
-       - we use it for self-generated responses (from rule or cache)
-       but we only accept incoming payloads up to that size
-    */
-    static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "the incoming buffer size should not be larger than sizeof(MMReceiver::packet)");
-    struct msghdr msgh;
-    struct iovec iov;
-    /* used by HarvestDestinationAddress */
-    cmsgbuf_aligned cbuf;
+    {
+      /* the actual buffer is larger because:
+         - we may have to add EDNS and/or ECS
+         - we use it for self-generated responses (from rule or cache)
+         but we only accept incoming payloads up to that size
+      */
+      const size_t initialBufferSize = getInitialUDPPacketBufferSize();
+      const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*cs);
+      PacketBuffer packet(initialBufferSize);
 
-    ComboAddress remote;
-    ComboAddress dest;
-    remote.sin4.sin_family = cs->local.sin4.sin_family;
-    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), cs->dnscryptCtx ? packet.size() : s_udpIncomingBufferSize, &remote);
+      struct msghdr msgh;
+      struct iovec iov;
+      /* used by HarvestDestinationAddress */
+      cmsgbuf_aligned cbuf;
 
-    for(;;) {
-      packet.resize(s_initialUDPPacketBufferSize);
-      iov.iov_base = &packet.at(0);
-      iov.iov_len = packet.size();
+      ComboAddress remote;
+      ComboAddress dest;
+      remote.sin4.sin_family = cs->local.sin4.sin_family;
+      fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&packet.at(0)), maxIncomingPacketSize, &remote);
 
-      ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
+      for(;;) {
+        packet.resize(initialBufferSize);
+        iov.iov_base = &packet.at(0);
+        iov.iov_len = packet.size();
 
-      if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-        ++g_stats.nonCompliantQueries;
-        continue;
+        ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
+
+        if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+          ++g_stats.nonCompliantQueries;
+          continue;
+        }
+
+        packet.resize(static_cast<size_t>(got));
+
+        processUDPQuery(*cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
       }
-
-      packet.resize(static_cast<size_t>(got));
-      processUDPQuery(*cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
     }
   }
+  catch(const std::exception &e)
+  {
+    errlog("UDP client thread died because of exception: %s", e.what());
+  }
+  catch(const PDNSException &e)
+  {
+    errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
+  }
+  catch(...)
+  {
+    errlog("UDP client thread died because of an exception: %s", "unknown");
+  }
 }
-catch(const std::exception &e)
-{
-  errlog("UDP client thread died because of exception: %s", e.what());
-}
-catch(const PDNSException &e)
-{
-  errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
-}
-catch(...)
-{
-  errlog("UDP client thread died because of an exception: %s", "unknown");
-}
+
 
 uint16_t getRandomDNSID()
 {

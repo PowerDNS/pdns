@@ -411,6 +411,7 @@ void IncomingTCPConnectionState::sendOrQueueResponse(std::shared_ptr<IncomingTCP
   // if we were already reading a query (not the query size, mind you), or sending a response we need to queue the response
   // otherwise we can start sending it right away
   if (state->d_state == IncomingTCPConnectionState::State::idle ||
+      state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
       state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
 
     auto iostate = sendResponse(state, now, std::move(response));
@@ -536,9 +537,12 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   uint16_t qtype, qclass;
   unsigned int qnameWireLength = 0;
   DNSName qname(reinterpret_cast<const char*>(state->d_buffer.data()), state->d_buffer.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
-  DNSQuestion dq(&qname, qtype, qclass, &state->d_origDest, &state->d_ci.remote, state->d_buffer, true, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, &state->d_proxiedDestination, &state->d_proxiedRemote, state->d_buffer, true, &queryRealTime);
   dq.dnsCryptQuery = std::move(dnsCryptQuery);
   dq.sni = state->d_handler.getServerNameIndication();
+  if (state->d_proxyProtocolValues) {
+    dq.proxyProtocolValues = std::move(state->d_proxyProtocolValues);
+  }
 
   state->d_isXFR = (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR);
   if (state->d_isXFR) {
@@ -607,7 +611,7 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   }
 
   ++state->d_currentQueriesCount;
-  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
+  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).getName(), state->d_proxiedRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
   downstreamConnection->queueQuery(TCPQuery(std::move(state->d_buffer), std::move(ids)), downstreamConnection);
 
   return IOState::NeedRead;
@@ -664,11 +668,62 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           }
 
           state->d_handshakeDoneTime = now;
-          state->d_state = IncomingTCPConnectionState::State::readingQuerySize;
+          if (expectProxyProtocolFrom(state->d_ci.remote)) {
+            state->d_state = IncomingTCPConnectionState::State::readingProxyProtocolHeader;
+            state->d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
+            state->d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+          }
+          else {
+            state->d_state = IncomingTCPConnectionState::State::readingQuerySize;
+          }
         }
         else {
           wouldBlock = true;
         }
+      }
+
+      if (state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
+        DEBUGLOG("reading proxy protocol header");
+        do {
+          iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_proxyProtocolNeed);
+          if (iostate == IOState::Done) {
+            state->d_buffer.resize(state->d_currentPos);
+            ssize_t remaining = isProxyHeaderComplete(state->d_buffer);
+            if (remaining == 0) {
+              vinfolog("Unable to consume proxy protocol header in packet from TCP client %s", state->d_ci.remote.toStringWithPort());
+              ++g_stats.proxyProtocolInvalid;
+              break;
+            }
+            else if (remaining < 0) {
+              state->d_proxyProtocolNeed += -remaining;
+              state->d_buffer.resize(state->d_currentPos + state->d_proxyProtocolNeed);
+              /* we need to keep reading, since we might have buffered data */
+              iostate = IOState::NeedRead;
+            }
+            else {
+              /* proxy header received */
+              std::vector<ProxyProtocolValue> proxyProtocolValues;
+              if (!handleProxyProtocol(state->d_ci.remote, true, *state->d_threadData.holders.acl, state->d_buffer, state->d_proxiedRemote, state->d_proxiedDestination, proxyProtocolValues)) {
+                vinfolog("Error handling the Proxy Protocol received from TCP client %s", state->d_ci.remote.toStringWithPort());
+                break;
+              }
+
+              if (!proxyProtocolValues.empty()) {
+                state->d_proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
+              }
+
+              state->d_state = IncomingTCPConnectionState::State::readingQuerySize;
+              state->d_buffer.resize(sizeof(uint16_t));
+              state->d_currentPos = 0;
+              state->d_proxyProtocolNeed = 0;
+              break;
+            }
+          }
+          else {
+            wouldBlock = true;
+          }
+        }
+        while (!wouldBlock);
       }
 
       if (state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
@@ -750,6 +805,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 
       if (state->d_state != IncomingTCPConnectionState::State::idle &&
           state->d_state != IncomingTCPConnectionState::State::doingHandshake &&
+          state->d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader &&
           state->d_state != IncomingTCPConnectionState::State::readingQuerySize &&
           state->d_state != IncomingTCPConnectionState::State::readingQuery &&
           state->d_state != IncomingTCPConnectionState::State::sendingResponse) {
@@ -763,6 +819,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
       */
       if (state->d_state == IncomingTCPConnectionState::State::idle ||
           state->d_state == IncomingTCPConnectionState::State::doingHandshake ||
+          state->d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
           state->d_state == IncomingTCPConnectionState::State::readingQuerySize ||
           state->d_state == IncomingTCPConnectionState::State::readingQuery) {
         ++state->d_ci.cs->tcpDiedReadingQuery;

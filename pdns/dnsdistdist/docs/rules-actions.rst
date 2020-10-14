@@ -762,6 +762,16 @@ These ``DNSRule``\ s be one of the following items:
 
   :param double probability: Probability of a match
 
+.. function:: ProxyProtocolValueRule(type [, value])
+
+  .. versionadded:: 1.6.0
+
+  Matches queries that have a proxy protocol TVL value of the specified type. If ``value`` is set,
+  the content of the value should also match the content of ``value``.
+
+  :param int type: The type of the value, ranging from 0 to 255 (both included)
+  :param str value: The optional binary-safe value to match
+
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
@@ -964,6 +974,19 @@ Actions
 :ref:`RulesIntro` need to be combined with an action for them to actually do something with the matched packets.
 Some actions allow further processing of rules, this is noted in their description.
 The following actions exist.
+
+.. function:: AddProxyProtocolValueAction(type, value)
+
+  .. versionadded:: 1.6.0
+
+  Add a Proxy-Protocol Type-Length value to be sent to the server along with this query. It does not replace any
+  existing value with the same type but adds a new value.
+  Be careful that Proxy Protocol values are sent once at the beginning of the TCP connection for TCP and DoT queries.
+  That means that values received on an incoming TCP connection will be inherited by subsequent queries received over
+  the same incoming TCP connection, if any, but values set to a query will not be inherited by subsequent queries.
+
+  :param int type: The type of the value to send, ranging from 0 to 255 (both included)
+  :param str value: The binary-safe value
 
 .. function:: AllowAction()
 

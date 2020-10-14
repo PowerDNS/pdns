@@ -599,4 +599,8 @@ void setupLuaRules(LuaContext& luaCtx)
   luaCtx.writeFunction("LuaFFIRule", [](LuaFFIRule::func_t func) {
       return std::shared_ptr<DNSRule>(new LuaFFIRule(func));
     });
+
+  luaCtx.writeFunction("ProxyProtocolValueRule", [](uint8_t type, boost::optional<std::string> value) {
+      return std::shared_ptr<DNSRule>(new ProxyProtocolValueRule(type, value));
+    });
 }

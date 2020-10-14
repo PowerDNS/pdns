@@ -23,9 +23,16 @@
 
 #include "dnsdist.hh"
 
+extern NetmaskGroup g_proxyProtocolACL;
+extern size_t g_proxyProtocolMaximumSize;
+extern bool g_applyACLToProxiedClients;
+
 std::string getProxyProtocolPayload(const DNSQuestion& dq);
 
 bool addProxyProtocol(DNSQuestion& dq);
 bool addProxyProtocol(DNSQuestion& dq, const std::string& payload);
 bool addProxyProtocol(PacketBuffer& buffer, const std::string& payload);
 bool addProxyProtocol(PacketBuffer& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);
+
+bool expectProxyProtocolFrom(const ComboAddress& remote);
+bool handleProxyProtocol(const ComboAddress& remote, bool isTCP, const NetmaskGroup& acl, PacketBuffer& query, ComboAddress& realRemote, ComboAddress& realDestination, std::vector<ProxyProtocolValue>& values);

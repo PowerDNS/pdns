@@ -124,6 +124,11 @@ public:
   const DNSName* qname{nullptr};
   const ComboAddress* local{nullptr};
   const ComboAddress* remote{nullptr};
+  /* this is the address dnsdist received the packet on,
+     which might not match local when support for incoming proxy protocol
+     is enabled */
+  const ComboAddress* hopLocal{nullptr};  /* the address dnsdist received the packet from, see above */
+  const ComboAddress* hopRemote{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
   mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
@@ -322,6 +327,7 @@ struct DNSDistStats
   stat_t securityStatus{0};
   stat_t dohQueryPipeFull{0};
   stat_t dohResponsePipeFull{0};
+  stat_t proxyProtocolInvalid{0};
 
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
@@ -644,6 +650,8 @@ struct IDState
   std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
+  ComboAddress hopRemote;
+  ComboAddress hopLocal;
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};

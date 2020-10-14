@@ -65,6 +65,8 @@ public:
     if (getsockname(d_ci.fd, reinterpret_cast<sockaddr*>(&d_origDest), &socklen)) {
       d_origDest = d_ci.cs->local;
     }
+    d_proxiedDestination = d_origDest;
+    d_proxiedRemote = d_ci.remote;
   }
 
   IncomingTCPConnectionState(const IncomingTCPConnectionState& rhs) = delete;
@@ -137,36 +139,6 @@ public:
     return false;
   }
 
-#if 0
-  void dump() const
-  {
-    static std::mutex s_mutex;
-
-    struct timeval now;
-    gettimeofday(&now, 0);
-
-    {
-      std::lock_guard<std::mutex> lock(s_mutex);
-      fprintf(stderr, "State is %p\n", this);
-      cerr << "Current state is " << static_cast<int>(d_state) << ", got "<<d_queriesCount<<" queries so far" << endl;
-      cerr << "Current time is " << now.tv_sec << " - " << now.tv_usec << endl;
-      cerr << "Connection started at " << d_connectionStartTime.tv_sec << " - " << d_connectionStartTime.tv_usec << endl;
-      if (d_state > State::doingHandshake) {
-        cerr << "Handshake done at " << d_handshakeDoneTime.tv_sec << " - " << d_handshakeDoneTime.tv_usec << endl;
-      }
-      if (d_state > State::readingQuerySize) {
-        cerr << "Got first query size at " << d_firstQuerySizeReadTime.tv_sec << " - " << d_firstQuerySizeReadTime.tv_usec << endl;
-      }
-      if (d_state > State::readingQuerySize) {
-        cerr << "Got query size at " << d_querySizeReadTime.tv_sec << " - " << d_querySizeReadTime.tv_usec << endl;
-      }
-      if (d_state > State::readingQuery) {
-        cerr << "Got query at " << d_queryReadTime.tv_sec << " - " << d_queryReadTime.tv_usec << endl;
-      }
-    }
-  }
-#endif
-
   std::shared_ptr<TCPConnectionToBackend> getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds);
   std::shared_ptr<TCPConnectionToBackend> getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const struct timeval& now);
   void registerActiveDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn);
@@ -196,7 +168,7 @@ public:
     return d_ioState != nullptr;
   }
 
-  enum class State { doingHandshake, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
+  enum class State { doingHandshake, readingProxyProtocolHeader, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
   std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
   PacketBuffer d_buffer;
@@ -205,14 +177,18 @@ public:
   TCPResponse d_currentResponse;
   ConnectionInfo d_ci;
   ComboAddress d_origDest;
+  ComboAddress d_proxiedRemote;
+  ComboAddress d_proxiedDestination;
   TCPIOHandler d_handler;
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
+  std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValues{nullptr};
   struct timeval d_connectionStartTime;
   struct timeval d_handshakeDoneTime;
   struct timeval d_firstQuerySizeReadTime;
   struct timeval d_querySizeReadTime;
   struct timeval d_queryReadTime;
   size_t d_currentPos{0};
+  size_t d_proxyProtocolNeed{0};
   size_t d_queriesCount{0};
   size_t d_currentQueriesCount{0};
   unsigned int d_remainingTime{0};

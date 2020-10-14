@@ -23,6 +23,9 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, bool is
     dr.dnsCryptQuery = std::move(ids.dnsCryptQuery);
   }
 
+  dr.hopRemote = &ids.hopRemote;
+  dr.hopLocal = &ids.hopLocal;
+
   return dr;
 }
 
@@ -48,6 +51,20 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.qTag = dq.qTag;
   ids.dnssecOK = dq.dnssecOK;
   ids.uniqueId = std::move(dq.uniqueId);
+
+  if (dq.hopRemote) {
+    ids.hopRemote = *dq.hopRemote;
+  }
+  else {
+    ids.hopRemote.sin4.sin_family = 0;
+  }
+
+  if (dq.hopLocal) {
+    ids.hopLocal = *dq.hopLocal;
+  }
+  else {
+    ids.hopLocal.sin4.sin_family = 0;
+  }
 
   ids.dnsCryptQuery = std::move(dq.dnsCryptQuery);
 }

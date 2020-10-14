@@ -21,6 +21,11 @@
  */
 
 #include "dnsdist-proxy-protocol.hh"
+#include "dolog.hh"
+
+NetmaskGroup g_proxyProtocolACL;
+size_t g_proxyProtocolMaximumSize = 512;
+bool g_applyACLToProxiedClients = false;
 
 std::string getProxyProtocolPayload(const DNSQuestion& dq)
 {
@@ -58,4 +63,45 @@ bool addProxyProtocol(PacketBuffer& buffer, bool tcp, const ComboAddress& source
 {
   auto payload = makeProxyHeader(tcp, source, destination, values);
   return addProxyProtocol(buffer, payload);
+}
+
+bool expectProxyProtocolFrom(const ComboAddress& remote)
+{
+  return g_proxyProtocolACL.match(remote);
+}
+
+bool handleProxyProtocol(const ComboAddress& remote, bool isTCP, const NetmaskGroup& acl, PacketBuffer& query, ComboAddress& realRemote, ComboAddress& realDestination, std::vector<ProxyProtocolValue>& values)
+{
+  bool tcp;
+  bool proxyProto;
+
+  ssize_t used = parseProxyHeader(query, proxyProto, realRemote, realDestination, tcp, values);
+  if (used <= 0) {
+    ++g_stats.proxyProtocolInvalid;
+    vinfolog("Ignoring invalid proxy protocol (%d, %d) query over %s from %s", query.size(), used, (isTCP ? "TCP" : "UDP"), remote.toStringWithPort());
+    return false;
+  }
+  else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+    vinfolog("Proxy protocol header in %s packet from %s is larger than proxy-protocol-maximum-size (%d), dropping", (isTCP ? "TCP" : "UDP"), remote.toStringWithPort(), used);
+    ++g_stats.proxyProtocolInvalid;
+    return false;
+  }
+
+  query.erase(query.begin(), query.begin() + used);
+
+  /* on TCP we have not read the actual query yet */
+  if (!isTCP && query.size() < sizeof(struct dnsheader)) {
+    ++g_stats.nonCompliantQueries;
+    return false;
+  }
+
+  if (proxyProto && g_applyACLToProxiedClients) {
+    if (!acl.match(realRemote)) {
+      vinfolog("Query from %s dropped because of ACL", realRemote.toStringWithPort());
+      ++g_stats.aclDrops;
+      return false;
+    }
+  }
+
+  return true;
 }

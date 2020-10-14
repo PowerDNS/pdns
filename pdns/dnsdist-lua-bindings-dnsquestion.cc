@@ -118,16 +118,38 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     });
 
   luaCtx.registerFunction<void(DNSQuestion::*)(std::vector<std::pair<uint8_t, std::string>>)>("setProxyProtocolValues", [](DNSQuestion& dq, const std::vector<std::pair<uint8_t, std::string>>& values) {
-      if (!dq.proxyProtocolValues) {
-        dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
-      }
+    if (!dq.proxyProtocolValues) {
+      dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+    }
 
-      dq.proxyProtocolValues->clear();
-      dq.proxyProtocolValues->reserve(values.size());
-      for (const auto& value : values) {
-        dq.proxyProtocolValues->push_back({value.second, value.first});
-      }
-    });
+    dq.proxyProtocolValues->clear();
+    dq.proxyProtocolValues->reserve(values.size());
+    for (const auto& value : values) {
+      dq.proxyProtocolValues->push_back({value.second, value.first});
+    }
+  });
+
+  luaCtx.registerFunction<void(DNSQuestion::*)(uint8_t, std::string)>("addProxyProtocolValue", [](DNSQuestion& dq, uint8_t type, std::string value) {
+    if (!dq.proxyProtocolValues) {
+      dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+    }
+
+    dq.proxyProtocolValues->push_back({value, type});
+  });
+
+  luaCtx.registerFunction<std::vector<std::pair<uint8_t, std::string>>(DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {
+    if (!dq.proxyProtocolValues) {
+      return std::vector<std::pair<uint8_t, std::string>>();
+    }
+
+    std::vector<std::pair<uint8_t, std::string>> result;
+    result.resize(dq.proxyProtocolValues->size());
+    for (const auto& value : *dq.proxyProtocolValues) {
+      result.push_back({ value.type, value.content });
+    }
+
+    return result;
+  });
 
   /* LuaWrapper doesn't support inheritance */
   luaCtx.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });

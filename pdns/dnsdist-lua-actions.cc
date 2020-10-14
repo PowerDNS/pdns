@@ -1444,6 +1444,34 @@ private:
   std::vector<ProxyProtocolValue> d_values;
 };
 
+class AddProxyProtocolValueAction : public DNSAction
+{
+public:
+  AddProxyProtocolValueAction(uint8_t type, const std::string& value): d_value(value), d_type(type)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (!dq->proxyProtocolValues) {
+      dq->proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+    }
+
+    dq->proxyProtocolValues->push_back({ d_value, d_type });
+
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "add a Proxy-Protocol value of type " + std::to_string(d_type);
+  }
+
+private:
+  std::string d_value;
+  uint8_t d_type;
+};
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
@@ -1832,4 +1860,8 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("SetProxyProtocolValuesAction", [](const std::vector<std::pair<uint8_t, std::string>>& values) {
       return std::shared_ptr<DNSAction>(new SetProxyProtocolValuesAction(values));
     });
+
+  luaCtx.writeFunction("AddProxyProtocolValueAction", [](uint8_t type, const std::string& value) {
+    return std::shared_ptr<DNSAction>(new AddProxyProtocolValueAction(type, value));
+  });
 }
