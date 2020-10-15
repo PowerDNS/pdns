@@ -628,10 +628,11 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
         t_sstorage.ednsstatus.setMode(ind, ednsstatus, EDNSStatus::EDNSOK);
 	//	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
       }
-      
     }
-    if (oldmode != *mode || !ednsstatus->modeSetAt)
+
+    if (oldmode != *mode || !ednsstatus->modeSetAt) {
       t_sstorage.ednsstatus.setTS(ind, ednsstatus, d_now.tv_sec);
+    }
     //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return LWResult::Result::Success;
   }
@@ -3506,7 +3507,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3622,13 +3623,40 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     return false;
   }
 
-  /* we got an answer */
-  if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
-    LOG(prefix<<qname<<": "<<nsName<<" ("<<remoteIP.toString()<<") returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
+  if (lwr.d_validpacket == false) {
+    LOG(prefix<<qname<<": "<<nsName<<" ("<<remoteIP.toString()<<") returned a packet we could not parse over " << (doTCP ? "TCP" : "UDP") << ", trying sibling IP or NS"<<endl);
     if (!chained && !dontThrottle) {
-      t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+
+      // let's make sure we prefer a different server for some time, if there is one available
+      t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
+
+      if (doTCP) {
+        // we can be more heavy-handed over TCP
+        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 10);
+      }
+      else {
+        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 10, 2);
+      }
     }
     return false;
+  }
+  else {
+    /* we got an answer */
+    if (lwr.d_rcode != RCode::NoError && lwr.d_rcode != RCode::NXDomain) {
+      LOG(prefix<<qname<<": "<<nsName<<" ("<<remoteIP.toString()<<") returned a "<< RCode::to_s(lwr.d_rcode) << ", trying sibling IP or NS"<<endl);
+      if (!chained && !dontThrottle) {
+        if (wasForwarded && lwr.d_rcode == RCode::ServFail) {
+          // rather than throttling what could be the only server we have for this destination, let's make sure we try a different one if there is one available
+          // on the other hand, we might keep hammering a server under attack if there is no other alternative, or the alternative is overwhelmed as well, but
+          // at the very least we will detect that if our packets stop being answered
+          t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, d_now); // 1 sec
+        }
+        else {
+          t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+        }
+      }
+      return false;
+    }
   }
 
   /* this server sent a valid answer, mark it backup up if it was down */
@@ -3956,11 +3984,11 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           bool truncated = false;
-          bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery,
+          bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                              tns->first, *remoteIP, false, &truncated);
           if (gotAnswer && truncated ) {
             /* retry, over TCP this time */
-            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery,
+            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, true, &truncated);
           }
 

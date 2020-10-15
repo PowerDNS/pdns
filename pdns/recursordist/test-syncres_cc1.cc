@@ -414,6 +414,242 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_all_nss_send_tc_then_garbage_over_tcp) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  std::set<ComboAddress> downServers;
+
+  sr->setAsyncCallback([&downServers](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "lock-up.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    if (!doTCP) {
+      setLWResult(res, 0, false, true, false);
+      return LWResult::Result::Success;
+    }
+    else {
+      downServers.insert(ip);
+
+      setLWResult(res, RCode::FormErr, false, false, false);
+      res->d_validpacket = false;
+      return LWResult::Result::Success;
+    }
+  });
+
+  DNSName target("www.lock-up.");
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(downServers.size(), 2U);
+
+  for (const auto& server : downServers) {
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName("a.gtld-servers.net."), server), 1000000U);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_all_nss_send_garbage_over_udp) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  std::set<ComboAddress> downServers;
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&queriesCount, &downServers](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "lock-up.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    ++queriesCount;
+    downServers.insert(ip);
+
+    setLWResult(res, RCode::FormErr, false, false, false);
+    res->d_validpacket = false;
+    return LWResult::Result::Success;
+  });
+
+  DNSName target("www.lock-up.");
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(downServers.size(), 2U);
+  /* two queries with EDNS, that's it */
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  for (const auto& server : downServers) {
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName("a.gtld-servers.net."), server), 1000000U);
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSIGNORANT);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_regular_ns_send_refused) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  std::set<ComboAddress> downServers;
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&queriesCount, &downServers](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "refused.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    ++queriesCount;
+    downServers.insert(ip);
+
+    setLWResult(res, RCode::Refused, false, false, true);
+
+    return LWResult::Result::Success;
+  });
+
+  DNSName target("www.refused.");
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(downServers.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  for (const auto& server : downServers) {
+    /* same as any other server */
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName("a.gtld-servers.net."), server), 0U);
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_forward_ns_send_refused) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  std::set<ComboAddress> downServers;
+  size_t queriesCount = 0;
+
+  const DNSName target("www.refused.");
+
+  SyncRes::AuthDomain ad;
+  const std::vector<ComboAddress> forwardedNSs { ComboAddress("192.0.2.42:53"), ComboAddress("192.0.2.43:53") };
+  ad.d_rdForward = false;
+  ad.d_servers = forwardedNSs;
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
+
+  sr->setAsyncCallback([&queriesCount, &downServers](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "refused.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    ++queriesCount;
+    downServers.insert(ip);
+
+    setLWResult(res, RCode::Refused, false, false, true);
+
+    return LWResult::Result::Success;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(downServers.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  for (const auto& server : forwardedNSs) {
+    BOOST_CHECK_EQUAL(downServers.count(server), 1U);
+    /* same as any other server */
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName("a.gtld-servers.net."), server), 0U);
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  std::set<ComboAddress> downServers;
+  size_t queriesCount = 0;
+
+  const DNSName target("www.refused.");
+
+  SyncRes::AuthDomain ad;
+  const std::vector<ComboAddress> forwardedNSs { ComboAddress("192.0.2.42:53"), ComboAddress("192.0.2.43:53") };
+  ad.d_rdForward = false;
+  ad.d_servers = forwardedNSs;
+  (*SyncRes::t_sstorage.domainmap)[DNSName("refused.")] = ad;
+
+  sr->setAsyncCallback([&queriesCount, &downServers](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "refused.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    ++queriesCount;
+    downServers.insert(ip);
+
+    setLWResult(res, RCode::ServFail, false, false, true);
+
+    return LWResult::Result::Success;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(downServers.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  for (const auto& server : forwardedNSs) {
+    BOOST_CHECK_EQUAL(downServers.count(server), 1U);
+    /* on servfail from a server we forward to we only increase the NS speed so
+       that a different server might be tried instead, but we don't throttle */
+    BOOST_CHECK(!SyncRes::isThrottled(time(nullptr), server, target, QType::A));
+    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName(server.toStringWithPort()), server), 1000000U);
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_only_one_ns_up_resolving_itself_with_glue)
 {
   std::unique_ptr<SyncRes> sr;
