@@ -388,6 +388,9 @@ public:
   {
     return d_tsigPos;
   }
+
+  bool hasEDNS() const;
+
 private:
   void init(bool query, const std::string& packet);
   uint16_t d_tsigPos;
