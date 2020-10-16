@@ -3,3 +3,4 @@ built_pkgs
 .git
 Dockerfile-*
 .dockerignore
+Makefile.docker
