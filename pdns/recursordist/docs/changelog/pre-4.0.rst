@@ -4,6 +4,9 @@ Changelogs for all pre 4.0 releases
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 Hence, this changelog starts at version 3.0.
 
+**Note**: pre-4.0 releases are End of Life and no longer supported.
+See :doc:`EOL Statements <../appendices/EOL>`.
+
 PowerDNS Recursor 3.6.4
 -----------------------
 

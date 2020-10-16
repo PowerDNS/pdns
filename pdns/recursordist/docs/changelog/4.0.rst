@@ -3,6 +3,9 @@ Changelogs for 4.0.x
 
 This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 
+**Note**: 4.0.x and earlier releases are End of Life and no longer supported.
+See :doc:`EOL Statements <../appendices/EOL>`.
+
 PowerDNS Recursor 4.0.9
 -----------------------
 
