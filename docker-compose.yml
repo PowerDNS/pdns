@@ -1,0 +1,39 @@
+---
+version: '2.0'
+services:
+  recursor:
+    build:
+      context: .
+      dockerfile: Dockerfile-recursor
+    environment:
+      - PDNS_RECURSOR_API_KEY
+    ports:
+      - "2053:53"
+      - "2053:53/udp"
+      - "8082:8082"
+
+  dnsdist:
+    build:
+      context: .
+      dockerfile: Dockerfile-dnsdist
+    environment:
+      - DNSDIST_API_KEY
+    links:
+      - recursor
+      - auth
+    ports:
+      - "3053:53"
+      - "3053:53/udp"
+      - "5199:5199"
+      - "8083:8083"
+
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile-auth
+    environment:
+      - PDNS_AUTH_API_KEY
+    ports:
+      - "1053:53"
+      - "1053:53/udp"
+      - "8081:8081"
