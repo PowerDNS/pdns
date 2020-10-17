@@ -98,6 +98,7 @@ endif
 pdns_recursor_SOURCES = \
 	arguments.cc \
 	ascii.hh \
+	axfr-retriever.hh axfr-retriever.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	cachecleaner.hh \
@@ -127,8 +128,8 @@ pdns_recursor_SOURCES = \
 	lock.hh \
 	logger.hh logger.cc \
 	lua-base4.cc lua-base4.hh \
-	lua-recursor4.cc lua-recursor4.hh \
 	lua-recursor4-ffi.hh \
+	lua-recursor4.cc lua-recursor4.hh \
 	lwres.cc lwres.hh \
 	misc.hh misc.cc \
 	mplexer.hh \
@@ -159,9 +160,8 @@ pdns_recursor_SOURCES = \
 	recursor_cache.cc recursor_cache.hh \
 	reczones.cc \
 	remote_logger.cc remote_logger.hh \
-	resolver.hh resolver.cc \
-	axfr-retriever.hh axfr-retriever.cc \
 	resolve-context.hh \
+	resolver.hh resolver.cc \
 	responsestats.hh responsestats.cc \
 	root-addresses.hh \
 	root-dnssec.hh \
@@ -248,11 +248,11 @@ testrunner_SOURCES = \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
 	mtasker_context.cc \
-	negcache.hh negcache.cc \
 	namespaces.hh \
+	negcache.hh negcache.cc \
 	nsecrecords.cc \
-	pdnsexception.hh \
 	opensslsigners.cc opensslsigners.hh \
+	pdnsexception.hh \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
@@ -261,13 +261,13 @@ testrunner_SOURCES = \
 	rec-protobuf.cc rec-protobuf.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
-	responsestats.cc \
-	rpzloader.cc rpzloader.hh \
 	resolver.hh resolver.cc \
+	responsestats.cc \
 	root-dnssec.hh \
+	rpzloader.cc rpzloader.hh \
 	secpoll.cc \
-	sillyrecords.cc \
 	sholder.hh \
+	sillyrecords.cc \
 	sstuff.hh \
 	stable-bloom.hh \
 	svc-records.cc svc-records.hh \
@@ -276,18 +276,18 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-common.hh \
-	test-dnsrecordcontent.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_hh.cc \
+	test-dnsrecordcontent.cc \
 	test-dnsrecords_cc.cc \
 	test-ednsoptions_cc.cc \
 	test-filterpo_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
-	test-mtasker.cc \
 	test-mplexer.cc \
+	test-mtasker.cc \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
@@ -296,9 +296,10 @@ testrunner_SOURCES = \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-signers.cc \
-	test-syncres_cc.hh \
 	test-syncres_cc.cc \
+	test-syncres_cc.hh \
 	test-syncres_cc1.cc \
+	test-syncres_cc10.cc \
 	test-syncres_cc2.cc \
 	test-syncres_cc3.cc \
 	test-syncres_cc4.cc \
@@ -307,15 +308,14 @@ testrunner_SOURCES = \
 	test-syncres_cc7.cc \
 	test-syncres_cc8.cc \
 	test-syncres_cc9.cc \
-	test-syncres_cc10.cc \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
-	validate.cc validate.hh \
 	validate-recursor.cc validate-recursor.hh \
+	validate.cc validate.hh \
 	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -432,8 +432,8 @@ endif
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
-	dnsname.hh dnsname.cc \
 	dnslabeltext.cc \
+	dnsname.hh dnsname.cc \
 	logger.cc \
 	misc.cc \
 	qtype.cc \

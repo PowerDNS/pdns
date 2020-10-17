@@ -143,10 +143,11 @@ EXTRA_PROGRAMS = \
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
 	ascii.hh \
-	auth-carbon.cc \
 	auth-caches.cc auth-caches.hh \
+	auth-carbon.cc \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
+	axfr-retriever.cc axfr-retriever.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
 	backends/gsql/ssql.hh \
 	base32.cc base32.hh \
@@ -185,8 +186,8 @@ pdns_server_SOURCES = \
 	json.cc json.hh \
 	lock.hh \
 	logger.cc logger.hh \
-	lua-base4.cc lua-base4.hh \
 	lua-auth4.cc lua-auth4.hh \
+	lua-base4.cc lua-base4.hh \
 	mastercommunicator.cc \
 	misc.cc misc.hh \
 	nameserver.cc nameserver.hh \
@@ -199,14 +200,12 @@ pdns_server_SOURCES = \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	receiver.cc \
 	resolver.cc resolver.hh \
-	axfr-retriever.cc axfr-retriever.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
-	secpoll.cc secpoll.hh \
 	secpoll-auth.cc secpoll-auth.hh \
+	secpoll.cc secpoll.hh \
 	serialtweaker.cc \
 	sha.hh \
 	shuffle.cc shuffle.hh \
@@ -215,16 +214,17 @@ pdns_server_SOURCES = \
 	slavecommunicator.cc \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
+	svc-records.cc svc-records.hh \
 	tcpreceiver.cc tcpreceiver.hh \
 	threadname.hh threadname.cc \
-	tsigverifier.cc tsigverifier.hh \
-	tsigutils.hh tsigutils.cc \
 	tkey.cc \
+	tsigutils.hh tsigutils.cc \
+	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
-	uuid-utils.hh uuid-utils.cc \
 	unix_semaphore.cc \
 	unix_utility.cc \
 	utility.hh \
+	uuid-utils.hh uuid-utils.cc \
 	version.cc version.hh \
 	views.hh \
 	webserver.cc webserver.hh \
@@ -290,13 +290,13 @@ pdnsutil_SOURCES = \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	dbdnsseckeeper.cc \
-	dnsbackend.cc \
 	dns.cc \
+	dns_random.cc \
+	dnsbackend.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnspacket.cc \
 	dnsparser.cc dnsparser.hh \
-	dns_random.cc \
 	dnsrecords.cc \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnssecsigner.cc \
@@ -316,7 +316,6 @@ pdnsutil_SOURCES = \
 	pdnsutil.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	serialtweaker.cc \
 	shuffle.cc shuffle.hh \
 	signingpipe.cc \
@@ -324,6 +323,7 @@ pdnsutil_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	stubresolver.cc stubresolver.hh \
+	svc-records.cc svc-records.hh \
 	threadname.hh threadname.cc \
 	tsigutils.hh tsigutils.cc \
 	ueberbackend.cc \
@@ -381,8 +381,8 @@ zone2sql_SOURCES = \
 	bindparserclasses.hh \
 	dns.cc \
 	dns_random_urandom.cc \
-	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -392,9 +392,9 @@ zone2sql_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	zone2sql.cc \
 	zoneparser-tng.cc
@@ -420,9 +420,9 @@ zone2json_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	zone2json.cc \
 	zoneparser-tng.cc
@@ -447,8 +447,8 @@ zone2ldap_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dns_random_urandom.cc \
-	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -457,9 +457,9 @@ zone2ldap_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	zone2ldap.cc \
 	zoneparser-tng.cc
@@ -483,11 +483,11 @@ sdig_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sdig.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 sdig_LDADD = $(LIBCRYPTO_LIBS)
@@ -516,10 +516,10 @@ calidns_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 calidns_LDADD = $(LIBCRYPTO_LIBS) \
@@ -534,18 +534,18 @@ dumresp_SOURCES = \
 	iputils.cc iputils.hh \
 	logger.cc \
 	misc.cc misc.hh \
+	qtype.cc \
 	statbag.cc \
-	unix_utility.cc \
-	qtype.cc 
+	unix_utility.cc
 
 kvresp_SOURCES = \
 	dnslabeltext.cc dnsname.cc dnsname.hh \
 	kvresp.cc \
 	logger.cc \
 	misc.cc misc.hh \
+	qtype.cc \
 	statbag.cc \
-	unix_utility.cc \
-	qtype.cc 
+	unix_utility.cc
 
 stubquery_SOURCES = \
 	arguments.cc arguments.hh \
@@ -563,11 +563,11 @@ stubquery_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
-	stubresolver.cc stubresolver.hh \
 	stubquery.cc \
+	stubresolver.cc stubresolver.hh \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 stubquery_LDADD = $(LIBCRYPTO_LIBS)
@@ -589,11 +589,11 @@ saxfr_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	saxfr.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 saxfr_LDADD = $(LIBCRYPTO_LIBS)
@@ -606,6 +606,7 @@ endif
 
 ixfrdist_SOURCES = \
 	arguments.cc \
+	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
@@ -618,24 +619,23 @@ ixfrdist_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
-	ixfrdist.cc \
-	ixfrutils.cc ixfrutils.hh \
 	ixfrdist-stats.hh ixfrdist-stats.cc \
 	ixfrdist-web.hh ixfrdist-web.cc \
+	ixfrdist.cc \
+	ixfrutils.cc ixfrutils.hh \
 	logger.cc logger.hh\
 	misc.cc misc.hh \
 	mplexer.hh \
 	nsecrecords.cc \
-	query-local-address.hh query-local-address.cc \
-	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
-	resolver.cc \
-	axfr-retriever.cc \
 	pollmplexer.cc \
+	qtype.cc \
+	query-local-address.hh query-local-address.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
@@ -663,6 +663,7 @@ endif
 
 ixplore_SOURCES = \
 	arguments.cc \
+	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
@@ -674,21 +675,20 @@ ixplore_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	iputils.cc \
-	logger.cc \
-	misc.cc misc.hh \
-	nsecrecords.cc \
-	query-local-address.hh query-local-address.cc \
-	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
-	resolver.cc \
-	axfr-retriever.cc \
 	ixfr.cc ixfr.hh \
 	ixfrutils.cc ixfrutils.hh \
 	ixplore.cc \
+	logger.cc \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	query-local-address.hh query-local-address.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
@@ -715,10 +715,10 @@ dnstcpbench_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	threadname.hh threadname.cc \
 	unix_utility.cc
 
@@ -734,8 +734,8 @@ dnstcpbench_LDADD = \
 nsec3dig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
-	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
@@ -747,10 +747,10 @@ nsec3dig_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 nsec3dig_LDADD = $(LIBCRYPTO_LIBS)
@@ -765,8 +765,8 @@ toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns_random_urandom.cc \
-	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
@@ -779,16 +779,16 @@ toysdig_SOURCES = \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
 	qtype.cc \
-	root-dnssec.hh \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	rec-lua-conf.hh \
 	recursor_cache.hh \
+	root-dnssec.hh \
 	sholder.hh \
 	sillyrecords.cc \
 	sortlist.hh \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	toysdig.cc \
 	unix_utility.cc \
 	validate.cc validate.hh
@@ -804,8 +804,8 @@ toysdig_LDADD += $(P11KIT1_LIBS)
 endif
 
 tsig_tests_SOURCES = \
-	axfr-retriever.cc \
 	arguments.cc \
+	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
 	digests.hh \
@@ -821,14 +821,14 @@ tsig_tests_SOURCES = \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
-	query-local-address.cc \
 	qtype.cc \
+	query-local-address.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	resolver.cc \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	tsig-tests.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc
@@ -849,17 +849,17 @@ speedtest_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	speedtest.cc \
 	statbag.cc \
-	unix_utility.cc \
-	iputils.cc
+	svc-records.cc svc-records.hh \
+	unix_utility.cc
 
 speedtest_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 speedtest_LDADD = $(LIBCRYPTO_LIBS) \
@@ -884,8 +884,10 @@ dnswasher_LDFLAGS = 	$(AM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(LIBCRYPTO_
 dnswasher_LDADD = 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBCRYPTO_LIBS) $(IPCRYPT_LIBS)
 
 dnsbulktest_SOURCES = \
+	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc \
+	dns_random.cc dns_random.hh \
 	dnsbulktest.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -897,12 +899,10 @@ dnsbulktest_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
-	unix_utility.cc \
-	arguments.cc arguments.hh \
-	dns_random.cc dns_random.hh
+	svc-records.cc svc-records.hh \
+	unix_utility.cc
 
 dnsbulktest_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -928,9 +928,9 @@ comfun_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -960,9 +960,9 @@ dnsscan_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -991,9 +991,9 @@ dnsreplay_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -1022,9 +1022,9 @@ nproxy_SOURCES = \
 	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 nproxy_LDFLAGS = \
@@ -1041,6 +1041,7 @@ pdns_notify_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
+	dns_random.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -1053,11 +1054,10 @@ pdns_notify_SOURCES = \
 	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
-	unix_utility.cc \
-	dns_random.cc
+	svc-records.cc svc-records.hh \
+	unix_utility.cc
 
 pdns_notify_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1091,10 +1091,10 @@ dnsscope_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	statnode.cc statnode.hh \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -1122,9 +1122,9 @@ dnsgram_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -1150,9 +1150,9 @@ dnsdemog_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -1181,9 +1181,9 @@ dnspcap2calidns_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -1224,9 +1224,9 @@ dnspcap2protobuf_SOURCES = \
 	protobuf.cc protobuf.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh \
 	uuid-utils.hh uuid-utils.cc
@@ -1271,8 +1271,8 @@ testrunner_SOURCES = \
 	dnssecinfra.cc \
 	dnssecsigner.cc \
 	dnswriter.cc \
-	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
+	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	ipcipher.cc ipcipher.hh \
@@ -1281,7 +1281,6 @@ testrunner_SOURCES = \
 	logger.cc \
 	lua-auth4.hh lua-auth4.cc \
 	lua-base4.hh lua-base4.cc \
-	stubresolver.hh stubresolver.cc \
 	misc.cc \
 	nameserver.cc \
 	nsecrecords.cc \
@@ -1290,24 +1289,25 @@ testrunner_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc \
-	svc-records.cc svc-records.hh \
-	responsestats.cc \
 	responsestats-auth.cc \
+	responsestats.cc \
 	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	statbag.cc \
+	stubresolver.hh stubresolver.cc \
+	svc-records.cc svc-records.hh \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-common.hh \
-	test-dnsrecordcontent.cc \
 	test-digests_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_cc.cc \
 	test-dnsparser_hh.cc \
+	test-dnsrecordcontent.cc \
 	test-dnsrecords_cc.cc \
 	test-dnswriter_cc.cc \
 	test-ipcrypt_cc.cc \
@@ -1385,15 +1385,15 @@ endif
 
 pdns_control_SOURCES = \
 	arguments.cc \
+	dnslabeltext.cc \
+	dnsname.cc \
 	dynloader.cc \
 	dynmessenger.cc \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
 	statbag.cc \
-	unix_utility.cc \
-	dnsname.cc \
-	dnslabeltext.cc
+	unix_utility.cc
 
 if UNIT_TESTS
 
@@ -1442,7 +1442,6 @@ fuzz_targets_ldflags = \
 fuzz_targets_deps = standalone_fuzz_target_runner.o
 
 fuzz_target_moadnsparser_SOURCES = \
-	fuzz_moadnsparser.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
@@ -1450,14 +1449,15 @@ fuzz_target_moadnsparser_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
+	fuzz_moadnsparser.cc \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc  \
 	qtype.cc qtype.hh \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc statbag.hh \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh
 
@@ -1466,15 +1466,15 @@ fuzz_target_moadnsparser_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_moadnsparser_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_packetcache_SOURCES = \
-	fuzz_packetcache.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	ednsoptions.cc ednsoptions.hh \
+	fuzz_packetcache.cc \
 	misc.cc misc.hh \
-	svc-records.cc svc-records.hh \
 	packetcache.hh \
 	qtype.cc qtype.hh \
-	statbag.cc statbag.hh
+	statbag.cc statbag.hh \
+	svc-records.cc svc-records.hh
 
 fuzz_target_packetcache_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_packetcache_LDFLAGS = $(fuzz_targets_ldflags)
@@ -1491,7 +1491,6 @@ fuzz_target_proxyprotocol_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_proxyprotocol_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_dnsdistcache_SOURCES = \
-	fuzz_dnsdistcache.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnslabeltext.cc \
@@ -1501,6 +1500,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	doh.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	fuzz_dnsdistcache.cc \
 	iputils.cc iputils.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
@@ -1512,7 +1512,6 @@ fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_dnsdistcache_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_zoneparsertng_SOURCES = \
-	fuzz_zoneparsertng.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
@@ -1520,14 +1519,15 @@ fuzz_target_zoneparsertng_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
+	fuzz_zoneparsertng.cc \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc  \
 	qtype.cc qtype.hh \
 	rcpgenerator.cc rcpgenerator.hh \
-	svc-records.cc svc-records.hh \
 	sillyrecords.cc \
 	statbag.cc statbag.hh \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc \
 	utility.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
