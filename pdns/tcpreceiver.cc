@@ -1142,7 +1142,6 @@ TCPNameserver::TCPNameserver()
   d_maxTCPConnections = ::arg().asNum( "max-tcp-connections" );
 
   vector<string>locals;
-  stringtok(locals,::arg()["local-ipv6"]," ,");
   stringtok(locals,::arg()["local-address"]," ,");
   if(locals.empty())
     throw PDNSException("No local addresses specified");

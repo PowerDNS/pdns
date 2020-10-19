@@ -1309,8 +1309,7 @@ the network).
 ``query-local-address6``
 ------------------------
 .. deprecated:: 4.4.0
-  Use :ref:`setting-query-local-address`. The default has been changed
-  from '::' to unset.
+  Removed. Use :ref:`setting-query-local-address`.
 
 -  IPv6 Address
 -  Default: unset
