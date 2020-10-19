@@ -37,7 +37,6 @@
 #include <boost/utility.hpp>
 #include <csignal>
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 
 typedef int ProtocolType; //!< Supported protocol types

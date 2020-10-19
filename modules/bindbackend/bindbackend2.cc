@@ -53,7 +53,6 @@
 #include "pdns/misc.hh"
 #include "pdns/dynlistener.hh"
 #include "pdns/lock.hh"
-#include "pdns/namespaces.hh"
 
 /* 
    All instances of this backend share one s_state, which is indexed by zone name and zone id.
