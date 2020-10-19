@@ -121,8 +121,6 @@ void declareArguments()
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
   ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
   ::arg().set("log-timestamp","Print timestamps in log lines")="yes";
-  ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
-  ::arg().set("default-soa-mail","mail address to insert in the SOA record if none set in the backend")="";
   ::arg().set("distributor-threads","Default number of Distributor (backend) threads to start")="3";
   ::arg().set("signing-threads","Default number of signer threads to start")="3";
   ::arg().set("receiver-threads","Default number of receiver threads to start")="1";
@@ -175,11 +173,8 @@ void declareArguments()
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
   ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
-  ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
-  ::arg().set("soa-retry-default","Default SOA retry")="3600";
-  ::arg().set("soa-expire-default","Default SOA expire")="604800";
+  ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.powerdns.server hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";

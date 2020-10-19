@@ -126,12 +126,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
-  ::arg().set("default-soa-mail","mail address to insert in the SOA record if none set in the backend")="";
-  ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
-  ::arg().set("soa-retry-default","Default SOA retry")="3600";
-  ::arg().set("soa-expire-default","Default SOA expire")="604800";
-  ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
+  ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.powerdns.server hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("chroot","Switch to this chroot jail")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
   ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";
@@ -1236,12 +1231,10 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   rr.ttl = ::arg().asNum("default-ttl");
   rr.qtype = "SOA";
 
-  string soa = (boost::format("%s %s 1")
-                % (nsname.empty() ? ::arg()["default-soa-name"] : nsname.toString())
-                % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zone).toString() : ::arg()["default-soa-mail"])
-  ).str();
+  string soa = ::arg()["default-soa-content"];
+  boost::replace_all(soa, "@", zone.toStringNoDot());
   SOAData sd;
-  fillSOAData(soa, sd);  // fills out default values for us
+  fillSOAData(soa, sd);
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
