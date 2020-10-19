@@ -264,7 +264,6 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
   if(!sd.hostmaster.countLabels()) {
     if (!arg().isEmpty("default-soa-mail")) {
       sd.hostmaster= DNSName(arg()["default-soa-mail"]);
-      // attodot(sd.hostmaster); FIXME400
     }
     else
       sd.hostmaster=DNSName("hostmaster")+domain;

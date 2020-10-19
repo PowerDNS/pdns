@@ -122,7 +122,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (rrType == QType::NSEC3PARAM) {
       g_log<<Logger::Notice<<msgPrefix<<"Adding/updating NSEC3PARAM for zone, resetting ordernames."<<endl;
 
-      *ns3pr = NSEC3PARAMRecordContent(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
+      *ns3pr = NSEC3PARAMRecordContent(rr->d_content->getZoneRepresentation(), di->zone);
       *narrow = false; // adding a NSEC3 will cause narrow mode to be dropped, as you cannot specify that in a NSEC3PARAM record
       d_dk.setNSEC3PARAM(di->zone, *ns3pr, (*narrow));
       *haveNSEC3 = true;
@@ -336,7 +336,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
               ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, *qname)));
 
             if (*narrow)
-              di->backend->updateDNSSECOrderNameAndAuth(di->id, rr->d_name, DNSName(), auth); // FIXME400 no *qname here?
+              di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, DNSName(), auth);
             else
               di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, ordername, auth);
 
@@ -366,7 +366,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       if (rr->d_class == QClass::ANY)
         d_dk.unsetNSEC3PARAM(rr->d_name);
       else if (rr->d_class == QClass::NONE) {
-        NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
+        NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone);
         if (*haveNSEC3 && ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
           d_dk.unsetNSEC3PARAM(rr->d_name);
         else
