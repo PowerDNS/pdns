@@ -18,6 +18,7 @@
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "arguments.hh"
+#include "auth-domaincache.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
 #include "zoneparser-tng.hh"
@@ -40,6 +41,7 @@
 StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
+AuthDomainCache g_domainCache;
 
 namespace po = boost::program_options;
 po::variables_map g_vm;

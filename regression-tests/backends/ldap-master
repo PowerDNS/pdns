@@ -31,6 +31,7 @@ __EOF__
 			--query-logging --dnsupdate=yes \
       --expand-alias=yes --outgoing-axfr-expand-alias=yes \
       --resolver=$RESOLVERIP \
+      --domain-cache-ttl=0 \
 			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"

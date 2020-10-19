@@ -95,6 +95,7 @@ BUILT_SOURCES = ../../pdns/dnslabeltext.cc
 
 libtestremotebackend_la_SOURCES = \
 	../../pdns/arguments.hh ../../pdns/arguments.cc \
+	../../pdns/auth-domaincache.cc ../../pdns/auth-domaincache.hh \
 	../../pdns/auth-packetcache.cc ../../pdns/auth-packetcache.hh \
 	../../pdns/auth-querycache.cc ../../pdns/auth-querycache.hh \
 	../../pdns/base32.cc \

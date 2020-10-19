@@ -26,6 +26,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "auth-querycache.hh"
+#include "auth-domaincache.hh"
 #include "utility.hh"
 
 
@@ -47,6 +48,7 @@
 #include "logger.hh"
 #include "statbag.hh"
 
+extern AuthDomainCache g_domainCache;
 extern StatBag S;
 
 vector<UeberBackend *>UeberBackend::instances;
@@ -120,12 +122,18 @@ bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool get
 
 bool UeberBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
+  bool success = false;
+  int zoneId;
   for(DNSBackend* mydb :  backends) {
-    if(mydb->createDomain(domain, kind, masters, account)) {
-      return true;
+    if(mydb->createDomain(domain, kind, masters, account, &zoneId)) {
+      success = true;
+      break;
     }
   }
-  return false;
+  if (success) {
+    g_domainCache.add(domain, zoneId);  // make new domain visible
+  }
+  return success;
 }
 
 bool UeberBackend::doesDNSSEC()
@@ -273,9 +281,26 @@ void UeberBackend::reload()
   }
 }
 
+void UeberBackend::updateDomainCache() {
+  if (!g_domainCache.isEnabled()) {
+    return;
+  }
+
+  vector<tuple<DNSName, int>> domain_indices;
+
+  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
+  {
+    vector<DomainInfo> domains;
+    (*i)->getAllDomains(&domains, false);
+    for(const auto& di: domains) {
+      domain_indices.push_back({di.zone, (int)di.id});  // this cast should not be necessary
+    }
+  }
+  g_domainCache.replace(domain_indices);
+}
+
 void UeberBackend::rediscover(string *status)
 {
-  
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     string tmpstr;
@@ -283,6 +308,8 @@ void UeberBackend::rediscover(string *status)
     if(status) 
       *status+=tmpstr + (i!=backends.begin() ? "\n" : "");
   }
+
+  updateDomainCache();
 }
 
 
@@ -322,20 +349,39 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   // of them has a more specific zone but don't bother asking this specific
   // backend again for b.c.example.com., c.example.com. and example.com.
   // If a backend has no match it may respond with an empty qname.
-
   bool found = false;
   int cstat;
   DNSName shorter(target);
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
   do {
+    int zoneId{-1};
+    if(cachedOk && g_domainCache.isEnabled()) {
+      if (g_domainCache.getEntry(shorter, zoneId)) {
+        // Zone exists in domain cache, directly lookup SOA.
+        // XXX: this code path and the cache lookup below should be merged; but that needs the code path below to also use ANY.
+        // Or it should just also use lookup().
+        DNSZoneRecord zr;
+        lookup(QType(QType::SOA), shorter, zoneId, nullptr);
+        if (!get(zr)) {
+          throw PDNSException("Backend returned no SOA for existing domain '"+shorter.toLogString()+"'");
+        }
+        sd->qname = zr.dr.d_name;
+        fillSOAData(zr, *sd);
+        // leave database handle in a consistent state
+        while (get(zr))
+          ;
+        goto found;
+      }
+      // domain does not exist, try again with shorter name
+      continue;
+    }
 
     d_question.qtype = QType::SOA;
     d_question.qname = shorter;
-    d_question.zoneId = -1;
+    d_question.zoneId = zoneId;
 
     // Check cache
     if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
-
       cstat = cacheHas(d_question,d_answers);
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
@@ -400,7 +446,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DLOG(g_log<<Logger::Error<<"add pos cache entry: "<<sd->qname<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
-        d_question.zoneId = -1;
+        d_question.zoneId = zoneId;
 
         DNSZoneRecord rr;
         rr.dr.d_name = sd->qname;

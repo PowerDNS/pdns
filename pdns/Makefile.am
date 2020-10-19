@@ -185,6 +185,7 @@ pdns_server_SOURCES = \
 	ascii.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
+	auth-domaincache.cc auth-domaincache.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	axfr-retriever.cc axfr-retriever.hh \
@@ -321,6 +322,7 @@ endif
 pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
+	auth-domaincache.cc auth-domaincache.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
@@ -1304,6 +1306,7 @@ pdns.conf-dist: pdns_server
 testrunner_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
+	auth-domaincache.cc auth-domaincache.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	base32.cc \

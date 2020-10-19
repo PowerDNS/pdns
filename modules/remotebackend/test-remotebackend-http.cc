@@ -32,10 +32,12 @@
 #include "pdns/arguments.hh"
 #include "pdns/json.hh"
 #include "pdns/statbag.hh"
+#include "pdns/auth-domaincache.hh"
 #include "pdns/auth-packetcache.hh"
 #include "pdns/auth-querycache.hh"
 
 StatBag S;
+AuthDomainCache g_domainCache;
 AuthPacketCache PC;
 AuthQueryCache QC;
 ArgvMap& arg()

@@ -624,6 +624,12 @@ int main(int argc, char **argv)
       }
     }
 
+    g_domainCache.setTTL(::arg().asNum("domain-cache-ttl"));
+    {
+      UeberBackend B;
+      B.updateDomainCache();
+    }
+
     UeberBackend::go();
     N=std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
     g_udpReceivers.push_back(N);
