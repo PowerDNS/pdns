@@ -917,15 +917,22 @@ static void setupLuaRecords()
 
 
   lua.writeFunction("include", [&lua](string record) {
+      DNSName rec;
       try {
-        vector<DNSZoneRecord> drs = lookup(DNSName(record) + s_lua_record_ctx->zone, QType::LUA, s_lua_record_ctx->zoneid);
+        rec = DNSName(record) + s_lua_record_ctx->zone;
+      } catch (const std::exception &e){
+        g_log<<Logger::Error<<"Included record cannot be loaded, the name ("<<record<<") is malformed: "<<e.what()<<endl;
+        return;
+      }
+      try {
+        vector<DNSZoneRecord> drs = lookup(rec, QType::LUA, s_lua_record_ctx->zoneid);
         for(const auto& dr : drs) {
           auto lr = getRR<LUARecordContent>(dr.dr);
           lua.executeCode(lr->getCode());
         }
       }
       catch(std::exception& e) {
-        g_log<<Logger::Error<<"Failed to load include record for LUArecord "<<(DNSName(record)+s_lua_record_ctx->zone)<<": "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Failed to load include record for LUArecord "<<rec<<": "<<e.what()<<endl;
       }
     });
 }
