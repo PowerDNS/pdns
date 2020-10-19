@@ -97,10 +97,12 @@ void declareArguments()
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="no";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0, ::";
+  ::arg().set("local-ipv6","DEPRECATED, will be removed, move your IPs to local-address")="";
   ::arg().setSwitch("local-address-nonexist-fail","Fail to start if one or more of the local-address's do not exist on this server")="yes";
   ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
   ::arg().setSwitch("reuseport","Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket")="no";
   ::arg().set("query-local-address","Source IP addresses for sending queries")="0.0.0.0 ::";
+  ::arg().set("query-local-address6","DEPRECATED: Use query-local-address. Source IPv6 address for sending queries")="";
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
 
@@ -632,6 +634,10 @@ void mainthread()
   }
 
   pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
+  if (!::arg()["query-local-address6"].empty()) {
+    g_log<<Logger::Warning<<"query-local-address6 is deprecated and will be removed in a future version. Please use query-local-address for IPv6 addresses as well"<<endl;
+    pdns::parseQueryLocalAddress(::arg()["query-local-address6"]);
+  }
 
   // NOW SAFE TO CREATE THREADS!
   dl->go();
