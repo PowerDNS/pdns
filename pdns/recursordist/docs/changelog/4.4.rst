@@ -1,6 +1,16 @@
 Changelogs for 4.4.x
 ====================
 .. changelog::
+  :version: 4.4.0
+  :released: 19th of October 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9605
+
+    Backport of CVE-2020-25829: Cache pollution.
+
+.. changelog::
   :version: 4.4.0-rc2
   :released: 6th of October 2020
 

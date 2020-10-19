@@ -1,5 +1,7 @@
 Changelogs for 4.1.x
 ====================
+**Note**: 4.1.x and earlier releases are End of Life and no longer supported.
+See :doc:`EOL Statements <../appendices/EOL>`.
 
 .. changelog::
   :version: 4.1.18
