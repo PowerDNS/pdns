@@ -117,7 +117,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         # validate generated SOA
-        expected_soa = "a.misconfigured.powerdns.server. hostmaster." + name + " " + \
+        expected_soa = "a.misconfigured.dns.server.invalid. hostmaster." + name + " " + \
                        str(payload['serial']) + " 10800 3600 604800 3600"
         self.assertEquals(
             get_first_rec(data, name, 'SOA')['content'],
@@ -930,7 +930,7 @@ $ORIGIN %NAME%
         self.assertIn('zone', data)
         expected_data = [name + '\t3600\tIN\tNS\tns1.foo.com.',
                          name + '\t3600\tIN\tNS\tns2.foo.com.',
-                         name + '\t3600\tIN\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
+                         name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
         self.assertEquals(data['zone'].strip().split('\n'), expected_data)
 
@@ -944,7 +944,7 @@ $ORIGIN %NAME%
         data = r.text.strip().split("\n")
         expected_data = [name + '\t3600\tIN\tNS\tns1.foo.com.',
                          name + '\t3600\tIN\tNS\tns2.foo.com.',
-                         name + '\t3600\tIN\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
+                         name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
         self.assertEquals(data, expected_data)
 
@@ -1739,7 +1739,7 @@ $ORIGIN %NAME%
             {u'content': u'ns2.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
-            {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
+            {u'content': u'a.misconfigured.dns.server.invalid. hostmaster.'+name+' 22 10800 3600 604800 3600',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
@@ -1769,7 +1769,7 @@ $ORIGIN %NAME%
             {u'content': u'ns2.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
-            {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
+            {u'content': u'a.misconfigured.dns.server.invalid. hostmaster.'+name+' 22 10800 3600 604800 3600',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
@@ -2007,7 +2007,7 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
         rec = get_first_rec(data, '.', 'SOA')
         self.assertEquals(
             rec['content'],
-            "a.misconfigured.powerdns.server. hostmaster. " + str(payload['serial']) +
+            "a.misconfigured.dns.server.invalid. hostmaster. " + str(payload['serial']) +
             " 10800 3600 604800 3600"
         )
         # Regression test: verify zone list works
