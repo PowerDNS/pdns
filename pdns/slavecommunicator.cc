@@ -643,7 +643,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       const auto failedEntry = d_failedSlaveRefresh.find(domain);
       if (failedEntry != d_failedSlaveRefresh.end())
         newCount = d_failedSlaveRefresh[domain].first + 1;
-      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("soa-retry-default"));
+      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       d_failedSlaveRefresh[domain] = {newCount, nextCheck};
       g_log<<Logger::Error<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (resolver): "<<re.reason<<" (This was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time. Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
     }
@@ -920,12 +920,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       const auto failedEntry = d_failedSlaveRefresh.find(di.zone);
       if (failedEntry != d_failedSlaveRefresh.end())
         newCount = d_failedSlaveRefresh[di.zone].first + 1;
-      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("soa-retry-default"));
+      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       d_failedSlaveRefresh[di.zone] = {newCount, nextCheck};
       if (newCount == 1) {
         g_log<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<
           ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x "<<
-          d_tickinterval<<" seconds', with a maximum of "<<(uint64_t)::arg().asNum("soa-retry-default")<<" seconds. Skipping SOA checks until "<<nextCheck<<endl;
+          d_tickinterval<<" seconds', with a maximum of "<<(uint64_t)::arg().asNum("default-ttl")<<" seconds. Skipping SOA checks until "<<nextCheck<<endl;
       } else if (newCount % 10 == 0) {
         g_log<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<", this was the "<<std::to_string(newCount)<<"th time. Skipping SOA checks until "<<nextCheck<<endl;
       }

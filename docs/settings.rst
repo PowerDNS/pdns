@@ -403,6 +403,18 @@ See the :ref:`metadata-publish-cdnskey-publish-cds` docs for more information.
 The default PUBLISH-CDS value for zones that do not have one individually specified.
 See the :ref:`metadata-publish-cdnskey-publish-cds` docs for more information.
 
+.. _setting-default-soa-content:
+
+``default-soa-content``
+--------------------
+
+-  String
+-  Default: a.misconfigured.powerdns.server hostmaster.@ 0 10800 3600 604800 3600
+
+.. versionadded:: 4.4.0
+
+This value is used when a zone is created without providing a SOA record. @ is replaced by the zone name.
+
 .. _setting-default-soa-edit:
 
 ``default-soa-edit``
@@ -434,7 +446,7 @@ Overrides :ref:`setting-default-soa-edit`
 -  String
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.4.0
+  This setting has been removed in 4.4.0
 
 Mail address to insert in the SOA record if none set in the backend.
 
@@ -447,7 +459,7 @@ Mail address to insert in the SOA record if none set in the backend.
 -  Default: a.misconfigured.powerdns.server
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.4.0
+  This setting has been removed in 4.4.0
 
 Name to insert in the SOA record if none set in the backend.
 
@@ -1544,7 +1556,7 @@ See :ref:`metadata-slave-renotify` to set this per-zone.
 -  Default: 604800
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.4.0
+  This setting has been removed in 4.4.0
 
 Default :ref:`types-soa` expire.
 
@@ -1557,7 +1569,7 @@ Default :ref:`types-soa` expire.
 -  Default: 3600
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.4.0
+  This setting has been removed in 4.4.0
 
 Default :ref:`types-soa` minimum ttl.
 
@@ -1570,7 +1582,7 @@ Default :ref:`types-soa` minimum ttl.
 -  Default: 10800
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.4.0
+  This setting has been removed in 4.4.0
 
 Default :ref:`types-soa` refresh.
 
@@ -1583,7 +1595,7 @@ Default :ref:`types-soa` refresh.
 -  Default: 3600
 
 .. deprecated:: 4.2.0
-  This setting has been deprecated and will be removed in 4.4.0
+  This setting has been removed in 4.4.0
 
 Default :ref:`types-soa` retry.
 

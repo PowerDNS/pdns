@@ -53,8 +53,6 @@ using json11::Json;
 extern StatBag S;
 
 static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp);
-static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs);
-static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr);
 
 // QTypes that MUST NOT have multiple records of the same type in a given RRset.
 static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::DNAME, QType::SOA };
@@ -519,7 +517,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
+static void gatherRecords(UeberBackend& B, const string& logprefix, const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -553,23 +551,6 @@ static void gatherRecords(UeberBackend& B, const string& logprefix, const Json c
     catch(std::exception& e)
     {
       throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+content+"': "+e.what());
-    }
-
-    if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
-        boolFromJson(record, "set-ptr", false) == true) {
-
-      g_log<<Logger::Warning<<logprefix<<"API call uses deprecated set-ptr feature, please remove it"<<endl;
-
-      DNSResourceRecord ptr;
-      makePtr(rr, &ptr);
-
-      // verify that there's a zone for the PTR
-      SOAData sd;
-      if (!B.getAuth(ptr.qname, QType(QType::PTR), &sd, false))
-        throw ApiException("Could not find domain for PTR '"+ptr.qname.toString()+"' requested for '"+ptr.content+"'");
-
-      ptr.domain_id = sd.domain_id;
-      new_ptrs.push_back(ptr);
     }
 
     new_records.push_back(rr);
@@ -1603,7 +1584,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     bool have_zone_ns = false;
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
-    vector<DNSResourceRecord> new_ptrs;
 
     if (rrsets.is_array()) {
       for (const auto& rrset : rrsets.array_items()) {
@@ -1616,7 +1596,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         }
         if (rrset["records"].is_array()) {
           int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records, new_ptrs);
+          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -1649,13 +1629,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
       // synthesize a SOA record so the zone "really" exists
-      string soa = (boost::format("%s %s %ul")
-        % ::arg()["default-soa-name"]
-        % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zonename).toString() : ::arg()["default-soa-mail"])
-        % document["serial"].int_value()
-      ).str();
+      string soa = ::arg()["default-soa-content"];
+      boost::replace_all(soa, "@", zonename.toStringNoDot());
       SOAData sd;
-      fillSOAData(soa, sd);  // fills out default values for us
+      fillSOAData(soa, sd);
+      sd.serial=document["serial"].int_value();
       autorr.qtype = QType::SOA;
       autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
       increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
@@ -1727,8 +1705,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     updateDomainSettingsFromDocument(B, di, zonename, document, false);
 
     di.backend->commitTransaction();
-
-    storeChangedPTRs(B, new_ptrs);
 
     fillZone(B, zonename, resp, shouldDoRRSets(req));
     resp->status = 201;
@@ -1922,74 +1898,6 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   resp->setSuccessResult("Rectified");
 }
 
-static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
-  if (rr.qtype.getCode() == QType::A) {
-    uint32_t ip;
-    if (!IpToU32(rr.content, &ip)) {
-      throw ApiException("PTR: Invalid IP address given");
-    }
-    ptr->qname = DNSName((boost::format("%u.%u.%u.%u.in-addr.arpa.")
-                  % ((ip >> 24) & 0xff)
-                  % ((ip >> 16) & 0xff)
-                  % ((ip >>  8) & 0xff)
-                  % ((ip      ) & 0xff)
-                         ).str());
-  } else if (rr.qtype.getCode() == QType::AAAA) {
-    ComboAddress ca(rr.content);
-    char buf[3];
-    ostringstream ss;
-    for (int octet = 0; octet < 16; ++octet) {
-      if (snprintf(buf, sizeof(buf), "%02x", ca.sin6.sin6_addr.s6_addr[octet]) != (sizeof(buf)-1)) {
-        // this should be impossible: no byte should give more than two digits in hex format
-        throw PDNSException("Formatting IPv6 address failed");
-      }
-      ss << buf[0] << '.' << buf[1] << '.';
-    }
-    string tmp = ss.str();
-    tmp.resize(tmp.size()-1); // remove last dot
-    // reverse and append arpa domain
-    ptr->qname = DNSName(string(tmp.rbegin(), tmp.rend())) + DNSName("ip6.arpa.");
-  } else {
-    throw ApiException("Unsupported PTR source '" + rr.qname.toString() + "' type '" + rr.qtype.getName() + "'");
-  }
-
-  ptr->qtype = "PTR";
-  ptr->ttl = rr.ttl;
-  ptr->disabled = rr.disabled;
-  ptr->content = rr.qname.toStringRootDot();
-}
-
-static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs) {
-  for(const DNSResourceRecord& rr :  new_ptrs) {
-    SOAData sd;
-    if (!B.getAuth(rr.qname, QType(QType::PTR), &sd, false))
-      throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
-
-    string soa_edit_api_kind;
-    string soa_edit_kind;
-    bool soa_changed = false;
-    DNSResourceRecord soarr;
-    sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT-API", soa_edit_api_kind);
-    sd.db->getDomainMetadataOne(sd.qname, "SOA-EDIT", soa_edit_kind);
-    if (!soa_edit_api_kind.empty()) {
-      soa_changed = makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, soarr);
-    }
-
-    sd.db->startTransaction(sd.qname);
-    if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
-      sd.db->abortTransaction();
-      throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
-    }
-
-    if (soa_changed) {
-      sd.db->replaceRRSet(sd.domain_id, soarr.qname, soarr.qtype, vector<DNSResourceRecord>(1, soarr));
-    }
-
-    sd.db->commitTransaction();
-    purgeAuthCachesExact(rr.qname);
-  }
-}
-
 static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
   bool zone_disabled;
   SOAData sd;
@@ -2060,8 +1968,8 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
         if (replace_records) {
           // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
           int ttl = intFromJson(rrset, "ttl");
-          // new_ptrs is merged.
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records, new_ptrs);
+
+          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
 
           for(DNSResourceRecord& rr : new_records) {
             rr.domain_id = di.id;
@@ -2172,9 +2080,6 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
   di.backend->commitTransaction();
 
   purgeAuthCaches(zonename.toString() + "$");
-
-  // now the PTRs
-  storeChangedPTRs(B, new_ptrs);
 
   resp->body = "";
   resp->status = 204; // No Content, but indicate success

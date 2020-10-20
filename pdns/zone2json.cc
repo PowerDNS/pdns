@@ -103,11 +103,6 @@ try
     ::arg().set("zone","Zonefile to parse")="";
     ::arg().set("zone-name","Specify an $ORIGIN in case it is not present")="";
     ::arg().set("named-conf","Bind 8/9 named.conf to parse")="";
-    
-    ::arg().set("soa-minimum-ttl","Do not change")="0";
-    ::arg().set("soa-refresh-default","Do not change")="0";
-    ::arg().set("soa-retry-default","Do not change")="0";
-    ::arg().set("soa-expire-default","Do not change")="0";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
