@@ -209,7 +209,7 @@ public:
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   bool unsetNSEC3PARAM(const DNSName& zname);
-  bool getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname, const DNSName& wildcardname, const QType& qtype, DNSResourceRecord::Place, vector<DNSZoneRecord>& rrsigs, uint32_t signTTL);
+  void getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, uint32_t signTTL);
   bool isPresigned(const DNSName& zname, bool useCache=true);
   bool setPresigned(const DNSName& zname);
   bool unsetPresigned(const DNSName& zname);

@@ -142,7 +142,7 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
   vector<RRSIGRecordContent> rrcs;
   if(dk.isPresigned(signer)) {
     //cerr<<"Doing presignatures"<<endl;
-    dk.getPreRRSIGs(db, signer, signQName, wildcardname, QType(signQType), signPlace, outsigned, origTTL); // does it all
+    dk.getPreRRSIGs(db, outsigned, origTTL); // does it all
   }
   else {
     if(getRRSIGsForRRSET(dk, signer, wildcardname.countLabels() ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {

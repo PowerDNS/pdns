@@ -605,29 +605,30 @@ bool DNSSECKeeper::checkKeys(const DNSName& zone, vector<string>* errorMessages)
   return retval;
 }
 
-bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,
-        const DNSName& wildcardname, const QType& qtype,
-        DNSResourceRecord::Place signPlace, vector<DNSZoneRecord>& rrsigs, uint32_t signTTL)
+void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, uint32_t signTTL)
 {
-  // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
-        SOAData sd;
-        if(!db.getSOAUncached(signer, sd)) {
-                DLOG(g_log<<"Could not get SOA for domain"<<endl);
-                return false;
-        }
-        db.lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, sd.domain_id);
-        DNSZoneRecord rr;
-        while(db.get(rr)) {
-          auto rrsig = getRR<RRSIGRecordContent>(rr.dr);
-          if(rrsig->d_type == qtype.getCode() && rrsig->d_signer==signer) {
-            if (wildcardname.countLabels())
-              rr.dr.d_name = qname;
-            rr.dr.d_place = signPlace;
-            rr.dr.d_ttl = signTTL;
-            rrsigs.push_back(rr);
-          }
-        }
-        return true;
+  if(rrs.empty()) {
+    return;
+  }
+
+  const auto& rr = *rrs.rbegin();
+
+  DNSZoneRecord dzr;
+  std::shared_ptr<RRSIGRecordContent> rrsig;
+
+  db.lookup(QType(QType::RRSIG), !rr.wildcardname.empty() ? rr.wildcardname : rr.dr.d_name, rr.domain_id);
+  while(db.get(dzr)) {
+    rrsig = std::move(getRR<RRSIGRecordContent>(dzr.dr));
+    if(rrsig->d_type == rr.dr.d_type) {
+      if(!rr.wildcardname.empty()) {
+        dzr.dr.d_name = rr.dr.d_name;
+      }
+      dzr.dr.d_place = rr.dr.d_place;
+      dzr.dr.d_ttl = signTTL;
+
+      rrs.emplace_back(std::move(dzr));
+    }
+  }
 }
 
 bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
