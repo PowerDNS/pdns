@@ -27,10 +27,10 @@
 void pdns::ProtoZero::Message::encodeComboAddress(const protozero::pbf_tag_type type, const ComboAddress& ca)
 {
   if (ca.sin4.sin_family == AF_INET) {
-    d_pbf.add_bytes(type, reinterpret_cast<const char*>(&ca.sin4.sin_addr.s_addr), sizeof(ca.sin4.sin_addr.s_addr));
+    d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin4.sin_addr.s_addr), sizeof(ca.sin4.sin_addr.s_addr));
   }
   else if (ca.sin4.sin_family == AF_INET6) {
-    d_pbf.add_bytes(type, reinterpret_cast<const char*>(&ca.sin6.sin6_addr.s6_addr), sizeof(ca.sin6.sin6_addr.s6_addr));
+    d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin6.sin6_addr.s6_addr), sizeof(ca.sin6.sin6_addr.s6_addr));
   }
 }
 
@@ -40,10 +40,10 @@ void pdns::ProtoZero::Message::encodeNetmask(const protozero::pbf_tag_type type,
     ComboAddress ca(subnet.getNetwork());
     ca.truncate(mask);
     if (ca.sin4.sin_family == AF_INET) {
-      d_pbf.add_bytes(type, reinterpret_cast<const char*>(&ca.sin4.sin_addr.s_addr), sizeof(ca.sin4.sin_addr.s_addr));
+      d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin4.sin_addr.s_addr), sizeof(ca.sin4.sin_addr.s_addr));
     }
     else if (ca.sin4.sin_family == AF_INET6) {
-      d_pbf.add_bytes(type, reinterpret_cast<const char*>(&ca.sin6.sin6_addr.s6_addr), sizeof(ca.sin6.sin6_addr.s6_addr));
+      d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin6.sin6_addr.s6_addr), sizeof(ca.sin6.sin6_addr.s6_addr));
     }
   }
 }
@@ -94,9 +94,9 @@ void pdns::ProtoZero::Message::addRR(const DNSRecord& record, const std::set<uin
     return;
   }
 
-  protozero::pbf_writer pbf_rr{*d_response, 2};
+  protozero::pbf_writer pbf_rr{d_response, 2};
 
-  encodeDNSName(pbf_rr, d_buffer, 1, record.d_name);
+  encodeDNSName(pbf_rr, d_rspbuf, 1, record.d_name);
   pbf_rr.add_uint32(2, record.d_type);
   pbf_rr.add_uint32(3, record.d_class);
   pbf_rr.add_uint32(4, record.d_ttl);
