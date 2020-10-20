@@ -4,6 +4,10 @@ cleandig secure-delegated.dnssec-parent.com CDS dnssec
 cleandig secure-delegated.dnssec-parent.com CDNSKEY dnssec
 cleandig secure-delegated.dnssec-parent.com ANY dnssec tcp | grep 'CDS\|CDNSKEY' | grep -v 'NSEC'
 
+cleandig dnssec-parent.com CDS dnssec
+cleandig dnssec-parent.com CDNSKEY dnssec
+cleandig dnssec-parent.com ANY dnssec tcp | grep 'CDS\|CDNSKEY' | grep -v 'NSEC'
+
 # We only want to know if we get these records when the default secure-zone is use
 # This means a single ZSK, we don't care about the contents
 cleandig cdnskey-cds-test.com CDS dnssec | perl -pe 's!86400.*!86400!g'
