@@ -827,9 +827,6 @@ Fail to start if one or more of the
 
 ``local-ipv6``
 --------------
-.. versionchanged:: 4.4.0
-  removed, use :ref:`setting-local-address`
-
 .. deprecated:: 4.3.0
   This setting has been deprecated, use :ref:`setting-local-address`
 
@@ -1321,7 +1318,8 @@ the network).
 ``query-local-address6``
 ------------------------
 .. deprecated:: 4.4.0
-  Removed. Use :ref:`setting-query-local-address`.
+  Use :ref:`setting-query-local-address`. The default has been changed
+  from '::' to unset.
 
 -  IPv6 Address
 -  Default: unset
