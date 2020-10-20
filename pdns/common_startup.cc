@@ -635,7 +635,7 @@ void mainthread()
 
   pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
   if (!::arg()["query-local-address6"].empty()) {
-    g_log<<Logger::Warning<<"query-local-address6 is deprecated and will be removed in a future version. Please use query-local-address for IPv6 addresses as well"<<endl;
+    g_log<<Logger::Error<<"NOTE: query-local-address6 is deprecated and will be removed in a future version. Please use query-local-address for IPv6 addresses as well"<<endl;
     pdns::parseQueryLocalAddress(::arg()["query-local-address6"]);
   }
 
