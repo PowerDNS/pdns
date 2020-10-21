@@ -3201,6 +3201,14 @@ static void usr2Handler(int)
   ::arg().set("quiet")=g_quiet ? "" : "no";
 }
 
+static int ratePercentage(uint64_t nom, uint64_t denom)
+{
+  if (denom == 0) {
+    return 0;
+  }
+  return round(100.0 * nom / denom);
+}
+
 static void doStats(void)
 {
   static time_t lastOutputTime;
@@ -3217,7 +3225,7 @@ static void doStats(void)
     g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
       cacheSize << " cache entries, "<<
       negCacheSize<<" negative entries, "<<
-      (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl;
+      ratePercentage(cacheHits, cacheHits + cacheMisses)<<"% cache hits"<<endl;
     g_log << Logger::Notice<< "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
 
     g_log<<Logger::Notice<<"stats: throttle map: "
@@ -3225,17 +3233,16 @@ static void doStats(void)
       << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize)<<", failed ns: "
       << broadcastAccFunction<uint64_t>(pleaseGetFailedServersSize)<<", ednsmap: "
       <<broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)<<endl;
-    g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
-    g_log<<Logger::Notice<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
+    g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)<<"%";
+    g_log<<Logger::Notice<<", "<<ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries+SyncRes::s_throttledqueries)<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
     g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
-    //g_log<<Logger::Notice<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
-      //g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
-
-    g_log<<Logger::Notice<<"stats: " <<  broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize) <<
-    " packet cache entries, "<<(int)(100.0*broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits)/SyncRes::s_queries) << "% packet cache hits"<<endl;
+    uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
+    uint64_t pcHits = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
+    g_log<<Logger::Notice<<"stats: " <<  pcSize <<
+      " packet cache entries, "<< ratePercentage(pcHits, SyncRes::s_queries) << "% packet cache hits"<<endl;
 
     size_t idx = 0;
     for (const auto& threadInfo : s_threadInfos) {
