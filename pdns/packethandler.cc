@@ -520,7 +520,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
           continue;
       }
       if(content.isPartOf(soadata.qname)) {
-        lookup.emplace(std::move(content));
+        lookup.emplace(content);
       }
     }
   }
