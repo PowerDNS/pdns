@@ -1812,6 +1812,7 @@ static void startDoResolve(void *p)
 #ifdef HAVE_PROTOBUF
         if (t_protobufServers) {
 #ifdef NOD_ENABLED
+          // if (g_udrEnabled) ?
           pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
 #else
           pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes);
@@ -1876,6 +1877,7 @@ static void startDoResolve(void *p)
         pbMessage->getResponseBuf(),
         !appliedPolicy.getName().empty() || !dc->d_policyTags.empty()});
 #ifdef NOD_ENABLED
+      // if (g_udrEnabled) ??
       pbMessage->clearUDR(pbDataForCache->d_response);
 #endif
       // Below are the fields that are not stored in the packet cache and will be appended here and on a cache hit
