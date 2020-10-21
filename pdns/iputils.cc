@@ -238,6 +238,27 @@ bool IsAnyAddress(const ComboAddress& addr)
   
   return false;
 }
+int sendOnNBSocket(int fd, const struct msghdr *msgh)
+{
+  int sendErr = 0;
+#ifdef __OpenBSD__
+  for (int i = 0; i < 10; i++) {
+    if (sendmsg(fd, msgh, 0) != -1) {
+      sendErr = 0;
+      break;
+    }
+    sendErr = errno;
+    if (sendErr != EAGAIN) {
+      break;
+    }
+  }
+#else
+  if (sendmsg(fd, msgh, 0) == -1) {
+    sendErr = errno;
+  }
+#endif
+  return sendErr;
+}
 
 ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
