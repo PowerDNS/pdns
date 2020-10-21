@@ -611,7 +611,7 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
     return;
   }
 
-  const auto& rr = *rrs.rbegin();
+  const auto rr = *rrs.rbegin();
 
   DNSZoneRecord dzr;
   std::shared_ptr<RRSIGRecordContent> rrsig;
