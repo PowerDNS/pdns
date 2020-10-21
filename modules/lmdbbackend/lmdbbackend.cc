@@ -741,29 +741,29 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
       return false;
     }
 
-    if (d_currentrrsetpos >= d_currentrrset.size()) {
+    string_view key;
+
+    if (d_currentrrset.empty()) {
       d_getcursor->current(d_currentKey, d_currentVal);
 
-      d_currentrrset.clear();
-      serFromString(d_currentVal.get<string>(), d_currentrrset);
-      d_currentrrsetpos = 0;
-
-      auto key = d_currentKey.get<string_view>();
+      key = d_currentKey.get<string_view>();
       rr.dr.d_type = compoundOrdername::getQType(key).getCode();
 
       if(rr.dr.d_type == QType::NSEC3) {
         // Hit a magic NSEC3 skipping
-        d_currentrrset.clear();
         if(d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
           d_getcursor.reset();
         }
-
         continue;
       }
+
+      serFromString(d_currentVal.get<string>(), d_currentrrset);
+      d_currentrrsetpos = 0;
+    } else {
+      key = d_currentKey.get<string_view>();
     }
-    auto key = d_currentKey.get<string_view>();
-    DNSResourceRecord drr = d_currentrrset[d_currentrrsetpos];
-    d_currentrrsetpos++;
+
+    const auto& drr = d_currentrrset[d_currentrrsetpos++];
 
     rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
     rr.domain_id = compoundOrdername::getDomainID(key);
@@ -772,8 +772,11 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
     rr.dr.d_content = deserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
     rr.auth = drr.auth;
 
-    if(d_currentrrsetpos >= d_currentrrset.size() && (d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0)) {
-      d_getcursor.reset();
+    if(d_currentrrsetpos >= d_currentrrset.size()) {
+      d_currentrrset.clear();
+      if(d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
+        d_getcursor.reset();
+      }
     }
 
     break;
