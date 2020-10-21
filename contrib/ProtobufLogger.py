@@ -96,6 +96,10 @@ class PDNSPBConnHandler(object):
                 policystr = ', Applied policy: ' + response.appliedPolicy
                 if response.HasField('appliedPolicyType'):
                     policystr = policystr + ' (' + self.getAppliedPolicyTypeAsString(response.appliedPolicyType) + ')'
+                if response.HasField('appliedPolicyTrigger'):
+                    policystr = policystr + ', Trigger = ' + response.appliedPolicyTrigger
+                if response.HasField('appliedPolicyHit'):
+                    policystr = policystr + ', Hit = ' + response.appliedPolicyHit
 
             tagsstr = ''
             if response.tags:
