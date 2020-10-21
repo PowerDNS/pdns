@@ -163,5 +163,19 @@ void pdns::ProtoZero::Message::addRR(const DNSRecord& record, const std::set<uin
   }
 #ifdef NOD_ENABLED
   pbf_rr.add_bool(6, udr);
+  pbf_rr.commit();
+
+  // Save the offset of the byte containing the just added bool. We can do this since
+  // we know a bit about how protobuf's encoding works.
+  offsets.push_back(d_rspbuf.length() - 1);
 #endif
 }
+
+#ifdef NOD_ENABLED
+void pdns::ProtoZero::Message::clearUDR(std::string& str)
+{
+  for (auto i : offsets) {
+    str.at(i) = 0;
+  }
+}
+#endif

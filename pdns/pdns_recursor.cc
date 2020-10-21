@@ -895,10 +895,10 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   m.setDeviceName(deviceName);
 
   if (!policyTags.empty()) {
-    m.setPolicyTags(policyTags);
+    m.addPolicyTags(policyTags);
   }
 
-  std::string msg(m.movebuf());
+  std::string msg(m.finishAndMoveBuf());
   for (auto& server : *t_protobufServers) {
     server->queueData(msg);
   }
@@ -910,7 +910,7 @@ static void protobufLogResponse(pdns::ProtoZero::Message& message)
     return;
   }
 
-  std::string msg(message.movebuf());
+  std::string msg(message.finishAndMoveBuf());
   for (auto& server : *t_protobufServers) {
     server->queueData(msg);
   }
@@ -1867,15 +1867,17 @@ static void startDoResolve(void *p)
         pbMessage->setAppliedPolicyTrigger(appliedPolicy.d_trigger);
         pbMessage->setAppliedPolicyHit(appliedPolicy.d_hit);
       }
-      // XXX if (nod) 
-      pbMessage->setPolicyTags(dc->d_policyTags);
+      pbMessage->addPolicyTags(dc->d_policyTags);
       pbMessage->setInBytes(packet.size());
 
+      // Take s snap of the current protobuf buffer state to store in the PC
       pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
-        pbMessage->getmsgbuf(), 
-        pbMessage->getrspbuf(),
+        pbMessage->getMessageBuf(),
+        pbMessage->getResponseBuf(),
         !appliedPolicy.getName().empty() || !dc->d_policyTags.empty()});
-
+#ifdef NOD_ENABLED
+      pbMessage->clearUDR(pbDataForCache->d_response);
+#endif
       // Below are the fields that are not stored in the packet cache and will be appended here and on a cache hit
       if (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec) {
         pbMessage->setQueryTime(dc->d_kernelTimestamp.tv_sec, dc->d_kernelTimestamp.tv_usec);
@@ -1913,18 +1915,8 @@ static void startDoResolve(void *p)
       if (dc->d_logResponse) {
         protobufLogResponse(*pbMessage);
       }
-#ifdef NOD_ENABLED
-      if (g_nodEnabled) {
-        pbMessage->setNewlyObservedDomain(false);
-        pbMessage->clearUDR();
-        if (nod)
-          pbMessage->removePolicyTag(g_nod_pbtag);
-        if (hasUDR)
-          pbMessage->removePolicyTag(g_udr_pbtag);
-      }
-#endif /* NOD_ENABLED */
     }
-#endif
+#endif /* HAVE_PROTOBUF */
     if(!dc->d_tcp) {
       struct msghdr msgh;
       struct iovec iov;
@@ -2749,6 +2741,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         pbMessage->setDeviceName(deviceName);
         pbMessage->setFromPort(source.getPort());
         pbMessage->setToPort(destination.getPort());
+#ifdef NOD_ENABLED
+        if (g_nodEnabled) {
+          pbMessage->setNewlyObservedDomain(false);
+        }
+#endif
         protobufLogResponse(*pbMessage);
       }
 #endif /* HAVE_PROTOBUF */

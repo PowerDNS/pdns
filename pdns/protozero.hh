@@ -37,35 +37,31 @@ namespace pdns {
       // Start a new messagebug, constaining separate data for the response part
       Message(std::string::size_type sz1, std::string::size_type sz2) : d_message{d_msgbuf}, d_response{d_rspbuf}
       {
-        if (d_msgbuf.capacity() < sz1) {
-          d_msgbuf.reserve(sz1);
-        }
-        if (d_rspbuf.capacity() < sz2) {
-          d_rspbuf.reserve(sz2);
-        }
+        // This is extra space in addition to what's already there
+        // Different from what string.reserve() does
+        d_message.reserve(sz1);
+        d_response.reserve(sz2);
       }
 
       // Construct a Message with (partially) constructed content
       Message(const std::string& buf1, const std::string& buf2, std::string::size_type sz1, std::string::size_type sz2) :
         d_msgbuf{buf1}, d_rspbuf{buf2}, d_message{d_msgbuf}, d_response{d_rspbuf}
       {
-        // We expect to grow the buffer
-        if (d_msgbuf.capacity() - d_msgbuf.length() < sz1) {
-          d_msgbuf.reserve(d_msgbuf.length() + sz1);
-        }
-        if (d_rspbuf.capacity() - d_rspbuf.length() < sz2) {
-          d_msgbuf.reserve(d_rspbuf.length() + sz2);
-        }
+        // We expect to grow the buffers
+        // This is extra space in addition to what's already there
+        // Different from what string.reserve() does
+        d_message.reserve(sz1);
+        d_response.reserve(sz2);
       }
-      const std::string& getmsgbuf() const
+      const std::string& getMessageBuf() const
       {
         return d_msgbuf;
       }
-      const std::string& getrspbuf() const
+      const std::string& getResponseBuf() const
       {
         return d_rspbuf;
       }
-      std::string&& movebuf()
+      std::string&& finishAndMoveBuf()
       {
         if (!d_rspbuf.empty()) {
           d_message.add_message(13, d_rspbuf);
@@ -184,14 +180,11 @@ namespace pdns {
 #else
       void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes);
 #endif
-      void clearUDR()
-      {
-      }
       void setAppliedPolicy(const std::string& policy)
       {
         d_response.add_string(3, policy);
       }
-      void setPolicyTags(const std::unordered_set<std::string>& tags)
+      void addPolicyTags(const std::unordered_set<std::string>& tags)
       {
         for (const auto& tag : tags) {
           d_response.add_string(4, tag);
@@ -199,9 +192,7 @@ namespace pdns {
       }
       void addPolicyTag(const string& tag)
       {
-      }
-      void removePolicyTag(const string& tag)
-      {
+        d_response.add_string(4, tag);
       }
       void setQueryTime(uint32_t sec, uint32_t usec)
       {
@@ -245,11 +236,19 @@ namespace pdns {
         d_response.add_string(9, hit);
       }
 
+#ifdef NOD_ENABLED      
+      void clearUDR(std::string&);
+#endif
+
     private:
       std::string d_msgbuf;
       std::string d_rspbuf;
       protozero::pbf_writer d_message;
       protozero::pbf_writer d_response;
+
+#ifdef NOD_ENABLED
+      vector<std::string::size_type> offsets;
+#endif
     };
   };
 };
