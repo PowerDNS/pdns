@@ -43,7 +43,6 @@
 #include "statbag.hh"
 #include "misc.hh"
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 ArgvMap &arg()
 {
