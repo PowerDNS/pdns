@@ -611,7 +611,7 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
     return;
   }
 
-  const auto& rr = *rrs.rbegin();
+  const auto rr = *rrs.rbegin();
 
   DNSZoneRecord dzr;
   std::shared_ptr<RRSIGRecordContent> rrsig;
@@ -626,7 +626,7 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
       dzr.dr.d_place = rr.dr.d_place;
       dzr.dr.d_ttl = signTTL;
 
-      rrs.emplace_back(std::move(dzr));
+      rrs.emplace_back(dzr);
     }
   }
 }

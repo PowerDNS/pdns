@@ -406,7 +406,7 @@ See the :ref:`metadata-publish-cdnskey-publish-cds` docs for more information.
 .. _setting-default-soa-content:
 
 ``default-soa-content``
---------------------
+-----------------------
 
 -  String
 -  Default: a.misconfigured.powerdns.server hostmaster.@ 0 10800 3600 604800 3600
