@@ -107,7 +107,7 @@ static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Reque
 
 void WebServer::registerBareHandler(const string& url, HandlerFunction handler)
 {
-  YaHTTP::THandlerFunction f = boost::bind(&bareHandlerWrapper, handler, _1, _2);
+  YaHTTP::THandlerFunction f = std::bind(&bareHandlerWrapper, handler, std::placeholders::_1, std::placeholders::_2);
   YaHTTP::Router::Any(url, f);
 }
 
@@ -170,7 +170,7 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2, d_apikey);
+  HandlerFunction f = std::bind(&apiWrapper, handler, std::placeholders::_1, std::placeholders::_2, d_apikey);
   registerBareHandler(url, f);
   d_registerApiHandlerCalled = true;
 }
@@ -188,7 +188,7 @@ static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2, d_webserverPassword);
+  HandlerFunction f = std::bind(&webWrapper, handler, std::placeholders::_1, std::placeholders::_2, d_webserverPassword);
   registerBareHandler(url, f);
 }
 
