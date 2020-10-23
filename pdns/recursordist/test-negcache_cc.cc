@@ -444,19 +444,19 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   size_t len = 0;
   ssize_t read;
 
-  for (const auto& str : expected) {
+  for (auto str : expected) {
     read = getline(&line, &len, fp.get());
     if (read == -1)
       BOOST_FAIL("Unable to read a line from the temp file");
-    BOOST_CHECK_EQUAL(line, str);
+    // The clock might have ticked so the 600 becomes 599
+    auto pos = str.find("600");
+    BOOST_CHECK(line == str || line == str.replace(pos, 3, "599"));
   }
 
-  if (line != nullptr) {
-    /* getline() allocates a buffer when called with a nullptr,
-       then reallocates it when needed, but we need to free the
-       last allocation if any. */
-    free(line);
-  }
+  /* getline() allocates a buffer when called with a nullptr,
+     then reallocates it when needed, but we need to free the
+     last allocation if any. */
+  free(line);
 }
 
 BOOST_AUTO_TEST_CASE(test_count)
