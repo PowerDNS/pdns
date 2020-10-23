@@ -24,7 +24,10 @@ compiler at the right directory using CPPFLAGS.
 On Debian and Ubuntu, the following will get you the dependencies:
 
 ```sh
-apt-get install libboost-dev libboost-serialization-dev libboost-system-dev libboost-thread-dev libboost-context-dev libssl-dev g++ make pkg-config libluajit-5.1-dev
+apt-get install libboost-dev libboost-filesystem-dev libboost-serialization-dev \
+  libboost-system-dev libboost-thread-dev libboost-context-dev libboost-test-dev \
+  libssl-dev libboost-test-dev g++ make automake libtool pkg-config libluajit-5.1-dev \
+  ragel curl virtualenv
 ```
 
 Compiling from git checkout
