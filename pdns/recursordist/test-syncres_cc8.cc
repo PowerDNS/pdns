@@ -667,10 +667,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
       addRRSIG(keys, res->d_records, domain, 300);
       addNSECRecordToLW(domain, DNSName("z."), {QType::NSEC, QType::RRSIG}, 600, res->d_records);
       addRRSIG(keys, res->d_records, domain, 1, false, boost::none, boost::none, fixedNow);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -735,10 +735,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity)
       addRRSIG(keys, res->d_records, domain, 86400);
       addNSECRecordToLW(domain, DNSName("z."), {QType::NSEC, QType::RRSIG}, 86400, res->d_records);
       /* no RRSIG */
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   SyncRes::s_maxnegttl = 3600;
@@ -805,10 +805,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
       setLWResult(res, RCode::NoError, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
       addRRSIG(keys, res->d_records, domain, 1, false, boost::none, boost::none, tnow);
-      return 1;
+      return LWResult::Result::Success;
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -871,11 +871,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, target, QType::A, "192.0.2.1");
         addRRSIG(keys, res->d_records, DNSName("."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -936,11 +936,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure)
       if (domain == target && type == QType::A) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, target, QType::A, "192.0.2.1");
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -1003,11 +1003,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus)
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, target, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, 86400);
         /* no RRSIG */
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   SyncRes::s_maxbogusttl = 3600;
@@ -1091,17 +1091,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, target, QType::A, "192.0.2.1");
         addRRSIG(keys, res->d_records, DNSName("."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
       else if (domain == target && type == QType::AAAA) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, target, QType::AAAA, "2001:db8::1");
         addRRSIG(keys, res->d_records, DNSName("."), 300);
-        return 1;
+        return LWResult::Result::Success;
       }
     }
 
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;

@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
         addRecordToLW(res, "ns1.powerdns.com.", QType::AAAA, "2001:DB8:1::53", DNSResourceRecord::ADDITIONAL, 3600);
         addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
       }
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (ip == ComboAddress("192.0.2.1:53")) {
       setLWResult(res, 0, true, false, false);
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::A, "192.0.2.2");
       }
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (ip == ComboAddress("[2001:DB8:1::53]:53")) {
       setLWResult(res, 0, true, false, false);
@@ -43,9 +43,9 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only)
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::A, "192.0.2.2");
       }
-      return 1;
+      return LWResult::Result::Success;
     }
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -77,16 +77,16 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v4_only_no_A_in_delegation)
         addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
         addRecordToLW(res, "ns1.powerdns.com.", QType::AAAA, "2001:DB8:1::53", DNSResourceRecord::ADDITIONAL, 3600);
       }
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (ip == ComboAddress("[2001:DB8:1::53]:53")) {
       setLWResult(res, 0, true, false, false);
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::A, "192.0.2.2");
       }
-      return 1;
+      return LWResult::Result::Success;
     }
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
@@ -115,16 +115,16 @@ BOOST_AUTO_TEST_CASE(test_outgoing_v6_only_no_AAAA_in_delegation)
         addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
         addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
       }
-      return 1;
+      return LWResult::Result::Success;
     }
     else if (ip == ComboAddress("192.0.2.1:53")) {
       setLWResult(res, 0, true, false, false);
       if (domain == DNSName("powerdns.com.")) {
         addRecordToLW(res, domain, QType::A, "192.0.2.2");
       }
-      return 1;
+      return LWResult::Result::Success;
     }
-    return 0;
+    return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;

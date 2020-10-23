@@ -66,11 +66,13 @@ try
       msg = str.str();
     }
 
-    int ret=asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect
-    if(ret < 0)
-      g_log<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;
-    if(ret==0)
+    auto ret = asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect
+    if (ret == LWResult::Result::Timeout) {
       g_log<<Logger::Warning<<"Timeout connecting/writing carbon data to "<<remote.toStringWithPort()<<endl;
+    }
+    else if (ret != LWResult::Result::Success) {
+      g_log<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;
+    }
   }
  }
 catch(PDNSException& e)

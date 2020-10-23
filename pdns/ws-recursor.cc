@@ -701,8 +701,8 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     string data;
     try {
       while(!req.complete) {
-        int bytes = arecvtcp(data, 16384, client.get(), true);
-        if (bytes > 0) {
+        auto ret = arecvtcp(data, 16384, client.get(), true);
+        if (ret == LWResult::Result::Success) {
           req.complete = yarl.feed(data);
         } else {
           // read error OR EOF
@@ -729,7 +729,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     logResponse(resp, remote, logprefix);
 
     // now send the reply
-    if (asendtcp(reply, client.get()) == -1 || reply.empty()) {
+    if (asendtcp(reply, client.get()) != LWResult::Result::Success || reply.empty()) {
       g_log<<Logger::Error<<logprefix<<"Failed sending reply to HTTP client"<<endl;
     }
   }
