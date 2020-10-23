@@ -1945,9 +1945,8 @@ static void startDoResolve(void *p)
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                                             min(minTTL,SyncRes::s_packetcachettl),
                                             dq.validationState,
-                                            pbDataForCache);
+                                            std::move(pbDataForCache));
       }
-      //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }
     else {
       bool hadError = sendResponseOverTCP(dc, packet);
@@ -2715,13 +2714,21 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         std::unique_ptr<pdns::ProtoZero::Message> pbMessage;
         if (pbData) {
           // We take the inmutable string form the cache an are appending a few values
-          pbMessage = make_unique<pdns::ProtoZero::Message>(pbData->d_message, pbData->d_response, 128, 128); // The extra bytes we are going to add
+          pbMessage = make_unique<pdns::ProtoZero::Message>(pbData->d_message, pbData->d_response, 64, 10); // The extra bytes we are going to add
         } else {
-          pbMessage = make_unique<pdns::ProtoZero::Message>(128, 128);
+          pbMessage = make_unique<pdns::ProtoZero::Message>(64, 10);
           pbMessage->setType(2); // Response
           pbMessage->setServerIdentity(SyncRes::s_serverID);
         }
 
+        // In response part
+        if (g_useKernelTimestamp && tv.tv_sec) {
+          pbMessage->setQueryTime(tv.tv_sec, tv.tv_usec);
+        }
+        else {
+          pbMessage->setQueryTime(g_now.tv_sec, g_now.tv_usec);
+        }
+        // In message part
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         ComboAddress requestor = requestorNM.getMaskedNetwork();
         pbMessage->setMessageIdentity(uniqueId);
@@ -2731,12 +2738,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         pbMessage->setId(dh->id);
 
         pbMessage->setTime();
-        if (g_useKernelTimestamp && tv.tv_sec) {
-          pbMessage->setQueryTime(tv.tv_sec, tv.tv_usec);
-        }
-        else {
-          pbMessage->setQueryTime(g_now.tv_sec, g_now.tv_usec);
-        }
         pbMessage->setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         pbMessage->setRequestorId(requestorId);
         pbMessage->setDeviceId(deviceId);

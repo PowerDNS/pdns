@@ -47,10 +47,10 @@ namespace pdns {
       Message(const std::string& buf1, const std::string& buf2, std::string::size_type sz1, std::string::size_type sz2) :
         d_msgbuf{buf1}, d_rspbuf{buf2}, d_message{d_msgbuf}, d_response{d_rspbuf}
       {
-        // We expect to grow the buffers
+        // We expect to grow the buffers, in the end the d_message will contains the (grown) d_response
         // This is extra space in addition to what's already there
         // Different from what string.reserve() does
-        d_message.reserve(sz1);
+        d_message.reserve(sz1 + d_rspbuf.length() + sz2);
         d_response.reserve(sz2);
       }
       const std::string& getMessageBuf() const

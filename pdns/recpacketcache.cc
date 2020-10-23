@@ -141,7 +141,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, const OptPBData& pbdata)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata)
 {
   auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,qhash));
@@ -160,7 +160,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     iter->d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (pbdata) {
-      iter->d_pbdata = *pbdata;
+      iter->d_pbdata = std::move(*pbdata);
     }
 #endif
 
@@ -178,7 +178,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     e.d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (pbdata) {
-      e.d_pbdata = *pbdata;
+      e.d_pbdata = std::move(*pbdata);
     }
 #endif
     d_packetCache.insert(e);
