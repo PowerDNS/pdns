@@ -126,7 +126,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.powerdns.server hostmaster.@ 0 10800 3600 604800 3600";
+  ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("chroot","Switch to this chroot jail")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
   ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";

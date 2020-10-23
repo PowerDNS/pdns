@@ -409,7 +409,7 @@ See the :ref:`metadata-publish-cdnskey-publish-cds` docs for more information.
 -----------------------
 
 -  String
--  Default: a.misconfigured.powerdns.server hostmaster.@ 0 10800 3600 604800 3600
+-  Default: a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600
 
 .. versionadded:: 4.4.0
 
@@ -456,7 +456,7 @@ Mail address to insert in the SOA record if none set in the backend.
 --------------------
 
 -  String
--  Default: a.misconfigured.powerdns.server
+-  Default: a.misconfigured.dns.server.invalid
 
 .. deprecated:: 4.2.0
   This setting has been removed in 4.4.0
