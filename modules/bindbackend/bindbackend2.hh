@@ -298,6 +298,7 @@ private:
   int d_transaction_id;
   static bool s_ignore_broken_records;
   bool d_hybrid;
+  bool d_upgradeContent;
 
   BB2DomainInfo createDomainEntry(const DNSName& domain, const string &filename); //!< does not insert in s_state
 

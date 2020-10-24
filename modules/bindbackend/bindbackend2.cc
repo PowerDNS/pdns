@@ -485,7 +485,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
     nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
 
   auto records = std::make_shared<recordstorage_t>();
-  ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
+  ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory, d_upgradeContent);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   DNSResourceRecord rr;
   string hashed;
@@ -725,6 +725,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   d_hybrid=mustDo("hybrid");
   d_transaction_id=0;
   s_ignore_broken_records=mustDo("ignore-broken-records");
+  d_upgradeContent=::arg().mustDo("upgrade-unknown-types");
 
   if (!loadZones && d_hybrid)
     return;

@@ -26,74 +26,56 @@
 
 #include "namespaces.hh"
 
-class UnknownRecordContent : public DNSRecordContent
+UnknownRecordContent::UnknownRecordContent(const string& zone) 
 {
-public:
-  UnknownRecordContent(const DNSRecord& dr, PacketReader& pr) 
-    : d_dr(dr)
-  {
-    pr.copyRecord(d_record, dr.d_clen);
+  // parse the input
+  vector<string> parts;
+  stringtok(parts, zone);
+  // we need exactly 3 parts, except if the length field is set to 0 then we only need 2
+  if (parts.size() != 3 && !(parts.size() == 2 && equals(parts.at(1), "0"))) {
+    throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got " + std::to_string(parts.size()) + ": " + zone);
   }
 
-  UnknownRecordContent(const string& zone) 
-  {
-    // parse the input
-    vector<string> parts;
-    stringtok(parts, zone);
-    // we need exactly 3 parts, except if the length field is set to 0 then we only need 2
-    if (parts.size() != 3 && !(parts.size() == 2 && equals(parts.at(1), "0"))) {
-      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got " + std::to_string(parts.size()) + ": " + zone);
-    }
-
-    if (parts.at(0) != "\\#") {
-      throw MOADNSException("Unknown record was stored incorrectly, first part should be '\\#', got '" + parts.at(0) + "'");
-    }
-
-    const string& relevant = (parts.size() > 2) ? parts.at(2) : "";
-    unsigned int total = pdns_stou(parts.at(1));
-    if (relevant.size() % 2 || (relevant.size() / 2) != total) {
-      throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
-    }
-
-    string out;
-    out.reserve(total + 1);
-
-    for (unsigned int n = 0; n < total; ++n) {
-      int c;
-      if (sscanf(&relevant.at(2*n), "%02x", &c) != 1) {
-        throw MOADNSException("unable to read data at position " + std::to_string(2 * n) + " from unknown record of size " + std::to_string(relevant.size()));
-      }
-      out.append(1, (char)c);
-    }
-
-    d_record.insert(d_record.end(), out.begin(), out.end());
+  if (parts.at(0) != "\\#") {
+    throw MOADNSException("Unknown record was stored incorrectly, first part should be '\\#', got '" + parts.at(0) + "'");
   }
 
-  string getZoneRepresentation(bool noDot) const override
-  {
-    ostringstream str;
-    str<<"\\# "<<(unsigned int)d_record.size()<<" ";
-    char hex[4];
-    for(size_t n=0; n<d_record.size(); ++n) {
-      snprintf(hex, sizeof(hex), "%02x", d_record.at(n));
-      str << hex;
+  const string& relevant = (parts.size() > 2) ? parts.at(2) : "";
+  unsigned int total = pdns_stou(parts.at(1));
+  if (relevant.size() % 2 || (relevant.size() / 2) != total) {
+    throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
+  }
+
+  string out;
+  out.reserve(total + 1);
+
+  for (unsigned int n = 0; n < total; ++n) {
+    int c;
+    if (sscanf(&relevant.at(2*n), "%02x", &c) != 1) {
+      throw MOADNSException("unable to read data at position " + std::to_string(2 * n) + " from unknown record of size " + std::to_string(relevant.size()));
     }
-    return str.str();
+    out.append(1, (char)c);
   }
 
-  void toPacket(DNSPacketWriter& pw) override
-  {
-    pw.xfrBlob(string(d_record.begin(),d_record.end()));
-  }
+  d_record.insert(d_record.end(), out.begin(), out.end());
+}
 
-  uint16_t getType() const override
-  {
-    return d_dr.d_type;
+string UnknownRecordContent::getZoneRepresentation(bool noDot) const
+{
+  ostringstream str;
+  str<<"\\# "<<(unsigned int)d_record.size()<<" ";
+  char hex[4];
+  for (size_t n=0; n<d_record.size(); ++n) {
+    snprintf(hex, sizeof(hex), "%02x", d_record.at(n));
+    str << hex;
   }
-private:
-  DNSRecord d_dr;
-  vector<uint8_t> d_record;
-};
+  return str.str();
+}
+
+void UnknownRecordContent::toPacket(DNSPacketWriter& pw)
+{
+  pw.xfrBlob(string(d_record.begin(),d_record.end()));
+}
 
 shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname, uint16_t qtype, const string& serialized)
 {
@@ -177,6 +159,12 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
   return i->second(dr, pr);
 }
 
+string DNSRecordContent::upgradeContent(const DNSName& qname, const QType qtype, const string& content) {
+  // seamless upgrade for previously unsupported but now implemented types.
+  UnknownRecordContent unknown_content(content);
+  shared_ptr<DNSRecordContent> rc = DNSRecordContent::deserialize(qname, qtype.getCode(), unknown_content.serialize(qname));
+  return rc->getZoneRepresentation();
+}
 
 DNSRecordContent::typemap_t& DNSRecordContent::getTypemap()
 {
