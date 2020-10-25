@@ -1250,7 +1250,7 @@ StatNode
 
 .. class:: StatNode
 
-  Represent metrics about a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRul` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`. Note that some nodes includes the metrics for their children as well as their own.
+  Represent metrics about a given node, for the visitor functions used with :meth:`DynBlockRulesGroup:setSuffixMatchRule` and :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`. Note that some nodes includes the metrics for their children as well as their own.
 
   .. attribute:: StatNode.bytes
 
