@@ -92,6 +92,7 @@ bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
 bool SyncRes::s_qnameminimization;
 SyncRes::HardenNXD SyncRes::s_hardenNXD;
+unsigned int SyncRes::s_refresh_ttlperc;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -1091,7 +1092,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
         // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
         // Once IPv6 adoption matters, this needs to be revisited
         res_t cset;
-        if (g_recCache->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote, d_routingTag) > 0) {
+        if (g_recCache->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
           for (const auto &i : cset) {
             if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
@@ -1175,7 +1176,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(g_recCache->get(d_now.tv_sec, subdomain, QType(QType::NS), false, &ns, d_cacheRemote, d_routingTag) > 0) {
+    if(g_recCache->get(d_now.tv_sec, subdomain, QType(QType::NS), false, &ns, d_cacheRemote, d_refresh, d_routingTag) > 0) {
       bestns.reserve(ns.size());
 
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
@@ -1191,7 +1192,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt,
-                                                                    false, doLog() ? &aset : 0, d_cacheRemote, d_routingTag) > 5)) {
+                                                                          false, doLog() ? &aset : 0, d_cacheRemote, d_refresh, d_routingTag) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -1393,7 +1394,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
   LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
   /* we don't require auth data for forward-recurse lookups */
-  if (g_recCache->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
+  if (g_recCache->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
     foundName = qname;
     foundQT = QType(QType::CNAME);
   }
@@ -1410,7 +1411,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
         break;
       }
-      if (g_recCache->get(d_now.tv_sec, dnameName, QType(QType::DNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
+      if (g_recCache->get(d_now.tv_sec, dnameName, QType(QType::DNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth, &authZone) > 0) {
         foundName = dnameName;
         foundQT = QType(QType::DNAME);
         break;
@@ -1799,7 +1800,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth;
 
-  if(g_recCache->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
+  if(g_recCache->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 

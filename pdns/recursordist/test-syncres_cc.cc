@@ -4,6 +4,7 @@
 #include "base32.hh"
 #include "lua-recursor4.hh"
 #include "root-dnssec.hh"
+#include "rec-taskqueue.hh"
 #include "test-syncres_cc.hh"
 
 RecursorStats g_stats;
@@ -529,4 +530,8 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
     return LWResult::Result::Success;
   }
   return LWResult::Result::Timeout;
+}
+
+void pushTask(const DNSName& qname, uint16_t qtype, time_t deadline)
+{
 }

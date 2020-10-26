@@ -1414,6 +1414,20 @@ contention as reported by
 ``record-cache-contented/record-cache-acquired``, you can try to
 enlarge this value or run with fewer threads.
 
+.. _setting-refresh-on-ttl-perc:
+
+``refresh-on-ttl-perc``
+-----------------------
+.. versionadded: 4.5.0
+
+-  Integer
+-  Default: 0
+
+Sets the "refresh almost expired" percentage of the record cache. Whenever a record is fetched from the packet or record cache
+and only ``refresh-on-ttl-perc`` percent or less of its original TTL is left, a task is queued to refetch the name/type combination to
+update the record cache. In most cases this causes future queries to always see a non-expired record cache entry.
+A typical value is 10. If the value is zero, this functionality is disabled.
+
 .. _setting-reuseport:
 
 ``reuseport``

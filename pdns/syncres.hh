@@ -610,6 +610,13 @@ public:
     return old;
   }
 
+  bool setRefreshAlmostExpired(bool doit)
+  {
+    auto old = d_refresh;
+    d_refresh = doit;
+    return old;
+  }
+
   void setQNameMinimization(bool state=true)
   {
     d_qNameMinimization=state;
@@ -760,6 +767,7 @@ public:
   static bool s_nopacketcache;
   static bool s_qnameminimization;
   static HardenNXD s_hardenNXD;
+  static unsigned int s_refresh_ttlperc;
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
@@ -892,6 +900,7 @@ private:
   bool d_qNameMinimization{false};
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};
+  bool d_refresh{false};
 
   LogMode d_lm;
 };

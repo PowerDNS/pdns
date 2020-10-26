@@ -822,7 +822,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity)
   const ComboAddress who;
   vector<DNSRecord> cached;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  BOOST_REQUIRE_EQUAL(g_recCache->get(tnow, target, QType(QType::A), true, &cached, who, boost::none, &signatures), 1);
+  BOOST_REQUIRE_EQUAL(g_recCache->get(tnow, target, QType(QType::A), true, &cached, who, 0, boost::none, &signatures), 1);
   BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_EQUAL(signatures.size(), 1U);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - tnow), 1);
