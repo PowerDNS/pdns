@@ -154,4 +154,15 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_tng_upgrade) {
+  reportAllTypes();
+
+  ZoneParserTNG zp(std::vector<std::string>({"foo.test. 86400 IN TYPE1 \\# 4 c0000304"}), DNSName("test"), true);
+  DNSResourceRecord rr;
+  zp.get(rr);
+
+  BOOST_CHECK_EQUAL(rr.qtype.getName(), QType(QType::A).getName());
+  BOOST_CHECK_EQUAL(rr.content, std::string("192.0.3.4"));
+}
+
 BOOST_AUTO_TEST_SUITE_END();
