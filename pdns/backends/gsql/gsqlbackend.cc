@@ -1853,7 +1853,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
   r.qtype=row[3];
 
-  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3])) {
+  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3]) && r.qtype.isSupportedType()) {
     r.content = DNSRecordContent::upgradeContent(r.qname, r.qtype, row[0]);
   }
   else if (r.qtype==QType::MX || r.qtype==QType::SRV) {
