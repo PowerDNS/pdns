@@ -411,4 +411,5 @@ protected:
   std::unique_ptr<SSql> d_db{nullptr};
   bool d_dnssecQueries;
   bool d_inTransaction{false};
+  bool d_upgradeContent{false};
 };

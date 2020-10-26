@@ -52,7 +52,6 @@
 */
     
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 class MOADNSException : public runtime_error
 {
@@ -195,6 +194,7 @@ public:
   static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
   static std::shared_ptr<DNSRecordContent> mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
+  static string upgradeContent(const DNSName& qname, const QType qtype, const string& content);
 
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
   virtual ~DNSRecordContent() {}
@@ -247,13 +247,18 @@ public:
     getZmakermap().erase(key);
   }
 
+  static bool isUnknownType(const string& name)
+  {
+    return boost::starts_with(name, "TYPE") || boost::starts_with(name, "type");
+  }
+
   static uint16_t TypeToNumber(const string& name)
   {
     n2typemap_t::const_iterator iter = getN2Typemap().find(toUpper(name));
     if(iter != getN2Typemap().end())
       return iter->second.second;
     
-    if(boost::starts_with(name, "TYPE") || boost::starts_with(name, "type"))
+    if (isUnknownType(name))
       return (uint16_t) pdns_stou(name.substr(4));
     
     throw runtime_error("Unknown DNS type '"+name+"'");
@@ -357,6 +362,28 @@ struct DNSZoneRecord
   DNSRecord dr;
 };
 
+class UnknownRecordContent : public DNSRecordContent
+{
+public:
+  UnknownRecordContent(const DNSRecord& dr, PacketReader& pr)
+    : d_dr(dr)
+  {
+    pr.copyRecord(d_record, dr.d_clen);
+  }
+
+  UnknownRecordContent(const string& zone);
+
+  string getZoneRepresentation(bool noDot) const override;
+  void toPacket(DNSPacketWriter& pw) override;
+  uint16_t getType() const override
+  {
+    return d_dr.d_type;
+  }
+
+private:
+  DNSRecord d_dr;
+  vector<uint8_t> d_record;
+};
 
 //! This class can be used to parse incoming packets, and is copyable
 class MOADNSParser : public boost::noncopyable

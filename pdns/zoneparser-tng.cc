@@ -39,17 +39,18 @@
 
 static string g_INstr("IN");
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir) : d_reldir(reldir), 
-                                                                                               d_zonename(zname), d_defaultttl(3600), 
-                                                                                               d_templatecounter(0), d_templatestop(0),
-                                                                                               d_templatestep(0), d_havedollarttl(false){
+ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir, bool upgradeContent):
+  d_reldir(reldir), d_zonename(zname), d_defaultttl(3600), 
+  d_templatecounter(0), d_templatestop(0), d_templatestep(0),
+  d_havedollarttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
+{
   stackFile(fname);
 }
 
-ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname):
+ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname, bool upgradeContent):
   d_zonename(zname), d_zonedata(zonedata), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
-  d_havedollarttl(false), d_fromfile(false)
+  d_havedollarttl(false), d_fromfile(false), d_upgradeContent(upgradeContent)
 {
   d_zonedataline = d_zonedata.begin();
 }
@@ -387,7 +388,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   string nextpart;
   
   rr.ttl=d_defaultttl;
-  bool haveTTL=0, haveQTYPE=0;
+  bool haveTTL{false}, haveQTYPE{false};
+  string qtypeString;
   pair<string::size_type, string::size_type> range;
 
   while(!d_parts.empty()) {
@@ -419,9 +421,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       break;
 
     try {
-      rr.qtype=DNSRecordContent::TypeToNumber(nextpart);
+      rr.qtype = DNSRecordContent::TypeToNumber(nextpart);
       // cout<<"Got qtype ("<<rr.qtype.getCode()<<")\n";
-      haveQTYPE=1;
+      qtypeString = nextpart;
+      haveQTYPE = true;
       continue;
     }
     catch(...) {
@@ -456,6 +459,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
   }
   trim_if(rr.content, is_any_of(" \r\n\t\x1a"));
+
+  if (d_upgradeContent && DNSRecordContent::isUnknownType(qtypeString)) {
+    rr.content = DNSRecordContent::upgradeContent(rr.qname, rr.qtype, rr.content);
+  }
 
   vector<string> recparts;
   switch(rr.qtype.getCode()) {

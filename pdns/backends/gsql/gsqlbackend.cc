@@ -44,13 +44,18 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_db = nullptr;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
 
-  try
-  {
+  try {
     d_dnssecQueries = mustDo("dnssec");
   }
-  catch (const ArgException&)
-  {
+  catch (const ArgException&) {
     d_dnssecQueries = false;
+  }
+
+  try {
+    d_upgradeContent = ::arg().mustDo("upgrade-unknown-types");
+  }
+  catch (const ArgException&) {
+    d_upgradeContent = false;
   }
 
   d_NoIdQuery=getArg("basic-query");
@@ -1848,7 +1853,10 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
   r.qtype=row[3];
 
-  if (r.qtype==QType::MX || r.qtype==QType::SRV) {
+  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3])) {
+    r.content = DNSRecordContent::upgradeContent(r.qname, r.qtype, row[0]);
+  }
+  else if (r.qtype==QType::MX || r.qtype==QType::SRV) {
     r.content.reserve(row[2].size() + row[0].size() + 1);
     r.content=row[2]+" "+row[0];
   }
