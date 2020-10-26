@@ -1443,6 +1443,14 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     }
 
     if (qt != QType::ANY) {
+      if (d_upgradeContent) {
+        d_DeleteRRSetQuery_stmt->
+          bind("domain_id", domain_id)->
+          bind("qname", qname)->
+          bind("qtype", "TYPE"+itoa(qt.getCode()))->
+          execute()->
+          reset();
+      }
       d_DeleteRRSetQuery_stmt->
         bind("domain_id", domain_id)->
         bind("qname", qname)->
