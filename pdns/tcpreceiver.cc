@@ -643,19 +643,33 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
       // generate CDS and CDNSKEY records
       if(entryPointIds.count(value.second.id) > 0){
-        if(publishCDNSKEY == "1") {
+        if(!publishCDNSKEY.empty()) {
           zrr.dr.d_type=QType::CDNSKEY;
-          zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-          cdnskey.push_back(zrr);
+          if (publishCDNSKEY == "0") {
+            if (cdnskey.empty()) {
+              zrr.dr.d_content=PacketHandler::s_deleteCDNSKEYContent;
+              cdnskey.push_back(zrr);
+            }
+          } else {
+            zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
+            cdnskey.push_back(zrr);
+          }
         }
 
         if(!publishCDS.empty()){
           zrr.dr.d_type=QType::CDS;
           vector<string> digestAlgos;
           stringtok(digestAlgos, publishCDS, ", ");
-          for(auto const &digestAlgo : digestAlgos) {
-            zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
-            cds.push_back(zrr);
+          if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) {
+            if(cds.empty()) {
+              zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
+              cds.push_back(zrr);
+            }
+          } else {
+            for(auto const &digestAlgo : digestAlgos) {
+              zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
+              cds.push_back(zrr);
+            }
           }
         }
       }

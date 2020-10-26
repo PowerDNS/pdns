@@ -57,6 +57,10 @@ set<string> PacketHandler::s_forwardNotify;
 
 extern string s_programname;
 
+// See https://www.rfc-editor.org/rfc/rfc8078.txt and https://www.rfc-editor.org/errata/eid5049 for details
+const std::shared_ptr<CDNSKEYRecordContent> PacketHandler::s_deleteCDNSKEYContent = std::make_shared<CDNSKEYRecordContent>("0 3 0 AA==");
+const std::shared_ptr<CDSRecordContent> PacketHandler::s_deleteCDSContent = std::make_shared<CDSRecordContent>("0 0 0 00");
+
 PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
 {
   ++s_count;
@@ -108,23 +112,29 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, cons
 {
   string publishCDNSKEY;
   d_dk.getPublishCDNSKEY(p.qdomain,publishCDNSKEY);
-  if (publishCDNSKEY != "1")
+  if (publishCDNSKEY.empty())
     return false;
 
   DNSZoneRecord rr;
-  bool haveOne=false;
+  rr.dr.d_type=QType::CDNSKEY;
+  rr.dr.d_ttl=sd.minimum;
+  rr.dr.d_name=p.qdomain;
+  rr.auth=true;
 
+  if (publishCDNSKEY == "0") { // delete DS via CDNSKEY
+    rr.dr.d_content=s_deleteCDNSKEYContent;
+    r->addRecord(std::move(rr));
+    return true;
+  }
+
+  bool haveOne=false;
   DNSSECKeeper::keyset_t entryPoints = d_dk.getEntryPoints(p.qdomain);
   for(const auto& value: entryPoints) {
     if (!value.second.published) {
       continue;
     }
-    rr.dr.d_type=QType::CDNSKEY;
-    rr.dr.d_ttl=sd.minimum;
-    rr.dr.d_name=p.qdomain;
     rr.dr.d_content=std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-    rr.auth=true;
-    r->addRecord(std::move(rr));
+    r->addRecord(DNSZoneRecord(rr));
     haveOne=true;
   }
 
@@ -204,6 +214,12 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const SO
   rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
+
+  if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) { // delete DS via CDS
+    rr.dr.d_content=s_deleteCDSContent;
+    r->addRecord(std::move(rr));
+    return true;
+  }
 
   bool haveOne=false;
 
@@ -553,7 +569,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const SOAData& sd, c
         nrc.set(QType::DNSKEY);
         string publishCDNSKEY;
         d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
-        if (publishCDNSKEY == "1")
+        if (! publishCDNSKEY.empty())
           nrc.set(QType::CDNSKEY);
         string publishCDS;
         d_dk.getPublishCDS(name, publishCDS);
@@ -608,7 +624,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const SOAData& sd, 
           n3rc.set(QType::DNSKEY);
           string publishCDNSKEY;
           d_dk.getPublishCDNSKEY(name, publishCDNSKEY);
-          if (publishCDNSKEY == "1")
+          if (! publishCDNSKEY.empty())
             n3rc.set(QType::CDNSKEY);
           string publishCDS;
           d_dk.getPublishCDS(name, publishCDS);

@@ -116,9 +116,11 @@ unset-nsec3 *ZONE*
 set-publish-cds *ZONE* [*DIGESTALGOS*]
     Set *ZONE* to respond to queries for its CDS records. the optional
     argument *DIGESTALGOS* should be a comma-separated list of DS
-    algorithms to use. By default, this is 2 (SHA-256).
-set-publish-cdnskey *ZONE*
-    Set *ZONE* to publish CDNSKEY records.
+    algorithms to use. By default, this is 2 (SHA-256). 0 will publish a
+    CDS with a DNSSEC delete algorithm.
+set-publish-cdnskey *ZONE* [**delete**]
+    Set *ZONE* to publish CDNSKEY records. Add 'delete' to publish a CDNSKEY
+    with a DNSSEC delete algorithm.
 unset-publish-cds *ZONE*
     Set *ZONE* to stop responding to queries for its CDS records.
 unset-publish-cdnskey *ZONE*

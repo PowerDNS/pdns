@@ -147,6 +147,10 @@ securezone ()
 			$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
 			$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
 		fi
+		if [ "$zone" = "dnssec-parent.com" ]; then
+			$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 0 2>&1
+			$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone delete 2>&1
+		fi
 	fi
 }
 

@@ -2169,7 +2169,8 @@ try
     cout<<"set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT"<<endl;
     cout<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
-    cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
+    cout<<"set-publish-cdnskey ZONE [delete]  Enable sending CDNSKEY responses for ZONE. Add 'delete' to publish a CDNSKEY with a"<<endl;
+    cout<<"                                   DNSSEC delete algorithm"<<endl;
     cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
     cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, it is '2' by default"<<endl;
     cout<<"add-meta ZONE KIND VALUE           Add zone metadata, this adds to the existing KIND"<<endl;
@@ -2760,11 +2761,11 @@ try
     return 0;
   }
   else if(cmds[0]=="set-publish-cdnskey") {
-    if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnsutil set-publish-cdnskey ZONE"<<endl;
+    if(cmds.size() < 2 || (cmds.size() == 3 && cmds[2] != "delete")) {
+      cerr<<"Syntax: pdnsutil set-publish-cdnskey ZONE [delete]"<<endl;
       return 0;
     }
-    if (! dk.setPublishCDNSKEY(DNSName(cmds[1]))) {
+    if (! dk.setPublishCDNSKEY(DNSName(cmds[1]), (cmds.size() == 3 && cmds[2] == "delete"))) {
       cerr << "Could not set publishing for CDNSKEY records for "<< cmds[1]<<endl;
       return 1;
     }

@@ -461,10 +461,10 @@ bool DNSSECKeeper::unsetPublishCDS(const DNSName& zname)
  * @param zname        DNSName of the zone
  * @return             true if the data was inserted, false otherwise
  */
-bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
+bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname, bool deleteAlg)
 {
   vector<string> meta;
-  meta.push_back("1");
+  meta.push_back(deleteAlg ? "0" : "1");
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta) && clearMetaCache(zname);
 }
 
