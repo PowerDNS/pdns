@@ -310,7 +310,7 @@ Name of this virtual configuration - will rename the binary image. See
 .. _setting-consistent-backends:
 
 ``consistent-backends``
---------------------
+-----------------------
 
 -  Boolean
 -  Default: no
