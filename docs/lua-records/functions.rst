@@ -283,8 +283,8 @@ Reverse DNS functions
   
   Example records::
   
-    *.1.0.0.2.ip6.arpa IN    LUA    PTR "createReverse('%33%.static6.example.com')"
-    *.2.0.0.2.ip6.arpa IN    LUA    PTR "createReverse('%34%.%35%.static6.example.com')"
+    *.1.0.0.2.ip6.arpa IN    LUA    PTR "createReverse6('%33%.static6.example.com')"
+    *.2.0.0.2.ip6.arpa IN    LUA    PTR "createReverse6('%34%.%35%.static6.example.com')"
  
   When queried::
   
