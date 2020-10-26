@@ -938,11 +938,14 @@ void Bind2Backend::loadConfig(string* status)
         bbd.d_masters=i->masters;
         bbd.d_also_notify=i->alsoNotify;
 
-        bbd.d_kind = DomainInfo::Native;
+        DomainInfo::DomainKind kind = DomainInfo::Native;
         if (i->type == "master")
-          bbd.d_kind = DomainInfo::Master;
+          kind = DomainInfo::Master;
         if (i->type == "slave")
-          bbd.d_kind = DomainInfo::Slave;
+          kind = DomainInfo::Slave;
+
+        bool kindChanged = (bbd.d_kind!=kind);
+        bbd.d_kind = kind;
 
         newnames.insert(bbd.d_name);
         if(filenameChanged || !bbd.d_loaded || !bbd.current()) {
@@ -987,7 +990,7 @@ void Bind2Backend::loadConfig(string* status)
             rejected++;
           }
           safePutBBDomainInfo(bbd);
-        } else if(addressesChanged) {
+        } else if(addressesChanged || kindChanged) {
           safePutBBDomainInfo(bbd);
         }
       }
