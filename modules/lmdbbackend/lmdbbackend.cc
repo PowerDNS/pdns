@@ -926,6 +926,7 @@ void LMDBBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
     } else if(!include_disabled) {
       continue;
     }
+    di.backend = this;
     domains->push_back(di);
   }
 }
@@ -965,6 +966,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
     DomainInfo di=*iter;    
     di.id = iter.getID();
     di.serial = serial;
+    di.backend = this;
 
     domains->push_back(di);
   }
