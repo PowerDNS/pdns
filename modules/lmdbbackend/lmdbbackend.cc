@@ -850,7 +850,7 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-bool LMDBBackend::getSerial(DomainInfo& di)
+bool LMDBBackend::fillDomainInfoExtra(DomainInfo& di)
 {
   auto txn = getRecordsROTransaction(di.id);
   compoundOrdername co;
@@ -858,6 +858,7 @@ bool LMDBBackend::getSerial(DomainInfo& di)
   if (!txn->txn->get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
     LMDBResourceRecord lrr;
     serFromString(val.get<string_view>(), lrr);
+    di.zoneContentAvailable = !lrr.disabled;
     if (lrr.content.size() >= 5 * sizeof(uint32_t)) {
       uint32_t serial;
       // a SOA has five 32 bit fields, the first of which is the serial
@@ -881,7 +882,7 @@ bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool gets
   }
 
   if (getserial) {
-    getSerial(di);
+    fillDomainInfoExtra(di);
   }
 
   return true;
@@ -981,7 +982,7 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabl
     DomainInfo di = *iter;
     di.id = iter.getID();
 
-    if (!getSerial(di) && !include_disabled) {
+    if (!fillDomainInfoExtra(di) && !include_disabled) {
       continue;
     }
 
@@ -1005,6 +1006,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
     compoundOrdername co;
     MDBOutVal val;
     uint32_t serial = 0;
+    bool zoneContentAvailable = false;
     if (!txn2->txn->get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
       LMDBResourceRecord lrr;
       serFromString(val.get<string_view>(), lrr);
@@ -1017,14 +1019,17 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
       }
       //      cout << di.last_check <<" + " <<sdata.refresh<<" > = " << now << "\n";
       serial = ntohl(st.serial);
+      zoneContentAvailable = true;
     }
     else {
       //      cout << "Could not find SOA for "<<iter->zone<<" with id "<<iter.getID()<<endl;
       serial = 0;
+      zoneContentAvailable = false;
     }
     DomainInfo di = *iter;
     di.id = iter.getID();
     di.serial = serial;
+    di.zoneContentAvailable = zoneContentAvailable;
     di.backend = this;
 
     domains->push_back(di);

@@ -285,7 +285,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
 bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
 {
   /* fill DomainInfo from database info:
-     id,name,master IP(s),last_check,notified_serial,type,account */
+     id,name,master IP(s),last_check,notified_serial,type,account,soa-content */
   try {
     reconnectIfNeeded();
 
@@ -303,7 +303,7 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   if(!numanswers)
     return false;
 
-  ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 7);
+  ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 8);
 
   di.id=pdns_stou(d_result[0][0]);
   try {
@@ -324,16 +324,15 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   di.backend=this;
 
   di.serial = 0;
-  if(getSerial) {
+  if(!d_result[0][7].empty()) {
+    di.zoneContentAvailable = true;
     try {
       SOAData sd;
-      if(!getSOA(domain, sd))
-        g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-      else
-        di.serial = sd.serial;
+      fillSOAData(d_result[0][7], sd);
+      di.serial = sd.serial;
     }
-    catch(PDNSException &ae){
-      g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    catch(...) {
+      g_log<<Logger::Warning<<"Error while parsing SOA data for zone '"<<di.zone<<"', skipping"<<endl;
     }
   }
 
@@ -342,8 +341,8 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
 
 void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
-  /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
-     id,name,master IP,serial */
+  /* list all domains that need refreshing for which we are a secondary:
+     id,name,masters,last_check,soa-content */
   try {
     reconnectIfNeeded();
 
@@ -353,16 +352,14 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
   }
 
-  vector<DomainInfo> allSlaves;
-
+  time_t now = time(nullptr);
   bool loggedAssertRowColumns = false;
-  for(const auto& row : d_result) { // id,name,master,last_check
-    DomainInfo sd;
+  for(const auto& row : d_result) { // id,name,master,last_check,soa-contents
+    DomainInfo di;
     try {
-      ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
+      ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 5);
     } catch(const PDNSException &e) {
       if (!loggedAssertRowColumns) {
         g_log<<Logger::Warning<<e.reason<<endl;
@@ -372,16 +369,40 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
 
     try {
-      sd.zone = DNSName(row[1]);
+      di.zone = DNSName(row[1]);
     } catch(const std::runtime_error &e) {
       g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.what()<<endl;
       continue;
     }
 
     try {
-      sd.id=pdns_stou(row[0]);
+      di.last_check=pdns_stou(row[3]);
     } catch (const std::exception &e) {
-      g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<di.zone<<"' into an integer: "<<e.what()<<endl;
+      continue;
+    }
+
+    if (!row[4].empty()) {
+      di.zoneContentAvailable = true;
+      try {
+        SOAData sd;
+        fillSOAData(row[4], sd);
+        di.serial = sd.serial;
+
+        if(static_cast<time_t>(di.last_check + sd.refresh) >= now) { // still fresh
+          continue;
+        }
+      }
+      catch(...) {
+        g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<di.zone<<"', skipping"<<endl;
+        continue;
+      }
+    }
+
+    try {
+      di.id=pdns_stou(row[0]);
+    } catch (const std::exception &e) {
+      g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<di.zone<<"' into an integer: "<<e.what()<<endl;
       continue;
     }
 
@@ -389,47 +410,19 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     stringtok(masters, row[2], ", \t");
     for(const auto& m : masters) {
       try {
-        sd.masters.emplace_back(m, 53);
+        di.masters.emplace_back(m, 53);
       } catch(const PDNSException &e) {
-        g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<sd.zone<<"': "<<e.reason<<endl;
+        g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<di.zone<<"': "<<e.reason<<endl;
       }
     }
-    if (sd.masters.empty()) {
-      g_log<<Logger::Warning<<"No masters for slave zone '"<<sd.zone<<"' found in the database"<<endl;
+    if (di.masters.empty()) {
+      g_log<<Logger::Warning<<"No masters for slave zone '"<<di.zone<<"' found in the database"<<endl;
       continue;
     }
 
-    try {
-      sd.last_check=pdns_stou(row[3]);
-    } catch (const std::exception &e) {
-      g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
-      continue;
-    }
-
-    sd.backend=this;
-    sd.kind=DomainInfo::Slave;
-    allSlaves.push_back(sd);
-  }
-
-  for (auto& slave : allSlaves) {
-    try {
-      SOAData sdata;
-      sdata.serial=0;
-      sdata.refresh=0;
-      getSOA(slave.zone, sdata);
-      if(static_cast<time_t>(slave.last_check + sdata.refresh) < time(nullptr)) {
-        slave.serial=sdata.serial;
-        unfreshDomains->push_back(slave);
-      }
-    }
-    catch(const std::exception& exp) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"': "<<exp.what()<<endl;
-      continue;
-    }
-    catch(...) {
-      g_log<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone<<"', skipping"<<endl;
-      continue;
-    }
+    di.backend=this;
+    di.kind=DomainInfo::Slave;
+    unfreshDomains->push_back(di);
   }
 }
 
@@ -458,6 +451,9 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
 
   for( size_t n = 0; n < numanswers; ++n ) { // id, name, notified_serial, content
     ASSERT_ROW_COLUMNS( "info-all-master-query", d_result[n], 4 );
+    if (!d_result[n][3].empty()) {
+      di.zoneContentAvailable = true;
+    }
 
     parts.clear();
     stringtok( parts, d_result[n][3] );
@@ -1427,6 +1423,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       }
 
       if(!row[2].empty()) {
+        di.zoneContentAvailable = true;
+
         SOAData sd;
         fillSOAData(row[2], sd);
         di.serial = sd.serial;
@@ -1438,9 +1436,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
         continue;
       }
       di.account = row[7];
-
       di.backend = this;
-  
       domains->push_back(di);
     }
     d_getAllDomainsQuery_stmt->reset();

@@ -927,6 +927,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       // Backend for di still doesn't exist and this might cause us to
       // SEGFAULT on the setFresh command later on
       di.backend = tempdi.backend;
+      di.serial = tempdi.serial;
+      di.zoneContentAvailable = tempdi.zoneContentAvailable;
     }
 
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
@@ -972,11 +974,15 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     uint32_t ourserial = sd.serial;
     const ComboAddress remote = *di.masters.begin();
 
-    if(hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial"))  {
+    if (!di.zoneContentAvailable) {
+      g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is empty, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
+      addSuckRequest(di.zone, remote);
+    }
+    else if(rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial"))  {
       g_log<<Logger::Warning<<"Domain '" << di.zone << "' more recent than master " << remote.toStringWithPortExcept(53) << ", our serial "<< ourserial<< " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
-    else if(hasSOA && theirserial == ourserial) {
+    else if(theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
         B->lookup(QType(QType::RRSIG), di.zone, di.id); // can't use DK before we are done with this lookup!
@@ -1015,12 +1021,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
     }
     else {
-      if (hasSOA) {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
-      }
-      else {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is empty, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
-      }
+      g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
       addSuckRequest(di.zone, remote);
     }
   }
