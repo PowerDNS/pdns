@@ -363,7 +363,8 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     return;
   }
 
-  time_t refresh;
+  // If oldZone failed to load its getRefresh() returns 0, protect against that
+  uint32_t refresh = std::max(refreshFromConf ? refreshFromConf : oldZone->getRefresh(), 10U);
   DNSName zoneName = oldZone->getDomain();
   std::string polName = oldZone->getName().empty() ? oldZone->getName() : zoneName.toString();
 
@@ -374,12 +375,10 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& master : masters) {
       try {
-        refresh = refreshFromConf ? refreshFromConf : 10U;
         sr = loadRPZFromServer(master, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
         newZone->setSerial(sr->d_st.serial);
         newZone->setRefresh(sr->d_st.refresh);
-        // This period gets used below this loop
-        oldZone->setRefresh(sr->d_st.refresh);
+        refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 1U);
         setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
 
         g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
@@ -408,7 +407,6 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     }
   }
 
-  refresh = std::max(refreshFromConf ? refreshFromConf :  oldZone->getRefresh(), 1U);
   bool skipRefreshDelay = isPreloaded;
 
   for(;;) {
@@ -536,7 +534,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
       if (!dumpZoneFileName.empty()) {
         dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
       }
-      refresh = std::max(refreshFromConf ? refreshFromConf :  newZone->getRefresh(), 1U);
+      refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 1U);
     }
     catch (const std::exception& e) {
       g_log << Logger::Error << "Error while applying the update received over XFR for "<<zoneName<<", skipping the update: "<< e.what() <<endl;
