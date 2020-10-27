@@ -907,14 +907,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       // Do not overwrite received DI just to make sure it exists in backend:
       // di.masters should contain the picked master (as first entry)!
       DomainInfo tempdi;
-      if (!B->getDomainInfo(di.zone, tempdi)) {
+      if (!B->getDomainInfo(di.zone, tempdi, false)) {
         g_log<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
         continue;
       }
       // Backend for di still doesn't exist and this might cause us to
       // SEGFAULT on the setFresh command later on
       di.backend = tempdi.backend;
-      di.serial = tempdi.serial;
     }
 
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
@@ -942,15 +941,29 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         d_failedSlaveRefresh.erase(di.zone);
     }
 
+    bool hasSOA = false;
+    SOAData sd;
+    try {
+      // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
+      B->lookup(QType(QType::SOA), di.zone, di.id, nullptr);
+      DNSZoneRecord zr;
+      hasSOA = B->get(zr);
+      if (hasSOA) {
+        fillSOAData(zr, sd);
+        while(B->get(zr));
+      }
+    }
+    catch(...) {}
+
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
-    uint32_t ourserial = di.serial;
+    uint32_t ourserial = sd.serial;
     const ComboAddress remote = *di.masters.begin();
 
-    if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0 && !::arg().mustDo("axfr-lower-serial"))  {
+    if(hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial"))  {
       g_log<<Logger::Error<<"Domain '" << di.zone << "' more recent than master " << remote.toStringWithPortExcept(53) << ", our serial "<< ourserial<< " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
-    else if(ourserial != 0 && theirserial == ourserial) {
+    else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
         B->lookup(QType(QType::RRSIG), di.zone, di.id); // can't use DK before we are done with this lookup!
@@ -989,10 +1002,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
     }
     else {
-      if (ourserial == 0) {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' has serial zero, forcing transfer, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
-      } else {
+      if (hasSOA) {
         g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
+      }
+      else {
+        g_log<<Logger::Warning<<"Domain '"<< di.zone << "' is empty, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
       }
       addSuckRequest(di.zone, remote);
     }
