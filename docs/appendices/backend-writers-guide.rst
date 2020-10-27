@@ -533,7 +533,7 @@ the IP address of the master is.
 A slave zone is pulled from a master, after which it is 'fresh', but
 this is only temporary. In the SOA record of a zone there is a field
 which specifies the 'refresh' interval. After that interval has elapsed,
-the slave nameserver needs to check at the master ff the serial number
+the slave nameserver needs to check at the master if the serial number
 there is higher than what is stored in the backend locally.
 
 If this is the case, PowerDNS dubs the domain 'stale', and schedules a

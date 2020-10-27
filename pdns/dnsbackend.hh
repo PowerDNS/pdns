@@ -46,7 +46,7 @@ class DNSPacket;
 class DNSBackend;  
 struct DomainInfo
 {
-  DomainInfo() : last_check(0), backend(NULL), id(0), notified_serial(0), serial(0), kind(DomainInfo::Native) {}
+  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), serial(0), kind(DomainInfo::Native) {}
 
   DNSName zone;
   time_t last_check;

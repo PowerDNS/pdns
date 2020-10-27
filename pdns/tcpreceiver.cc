@@ -426,7 +426,6 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
   SOAData sd;
   if(s_P->getBackend()->getSOAUncached(q->qdomain,sd)) {
     // cerr<<"got backend and SOA"<<endl;
-    DNSBackend *B=sd.db;
     vector<string> acl;
     s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
     for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
@@ -437,9 +436,10 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
         DNSResourceRecord rr;
         set<DNSName> nsset;
 
-        B->lookup(QType(QType::NS),q->qdomain,sd.domain_id);
-        while(B->get(rr)) 
+        sd.db->lookup(QType(QType::NS), q->qdomain, sd.domain_id);
+        while (sd.db->get(rr)) {
           nsset.insert(DNSName(rr.content));
+        }
         for(const auto & j: nsset) {
           vector<string> nsips=fns.lookup(j, s_P->getBackend());
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
