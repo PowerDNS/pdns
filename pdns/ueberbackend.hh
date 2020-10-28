@@ -87,6 +87,7 @@ public:
     //! Index of the current backend within the backends vector
     unsigned int i;
     QType qtype;
+    int zoneId;
 
   private:
 
@@ -147,13 +148,14 @@ private:
   }d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  int d_domain_id;
-  int d_ancount;
+  uint16_t d_qtype;
 
   bool d_negcached;
   bool d_cached;
+  static AtomicCounter* s_backendQueries;
   static bool d_go;
   bool d_stale;
+  static bool s_doANYLookupsOnly;
 
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q);
