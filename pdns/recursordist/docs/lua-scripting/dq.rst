@@ -96,7 +96,7 @@ The DNSQuestion object contains at least the following fields:
 
         The trigger (left-hand) part of the RPZ rule that was matched
 
-  .. attribute:: DNSQuestion.appliedPolicy.policyHit
+    .. attribute:: DNSQuestion.appliedPolicy.policyHit
 
         The value that was matched. This is a string representing a name or an address.
 
