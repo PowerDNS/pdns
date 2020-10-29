@@ -618,7 +618,7 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
 
   db.lookup(QType(QType::RRSIG), !rr.wildcardname.empty() ? rr.wildcardname : rr.dr.d_name, rr.domain_id);
   while(db.get(dzr)) {
-    rrsig = std::move(getRR<RRSIGRecordContent>(dzr.dr));
+    rrsig = getRR<RRSIGRecordContent>(dzr.dr);
     if(rrsig->d_type == rr.dr.d_type) {
       if(!rr.wildcardname.empty()) {
         dzr.dr.d_name = rr.dr.d_name;
