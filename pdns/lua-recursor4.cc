@@ -355,6 +355,13 @@ void RecursorLua4::postPrepareContext()
         {"BogusNoRRSIG", static_cast<unsigned int>(vState::BogusNoRRSIG) },
         {"BogusNoValidRRSIG", static_cast<unsigned int>(vState::BogusNoValidRRSIG) },
         {"BogusMissingNegativeIndication", static_cast<unsigned int>(vState::BogusMissingNegativeIndication) },
+        {"BogusSignatureNotYetValid", static_cast<unsigned int>(vState::BogusSignatureNotYetValid)},
+        {"BogusSignatureExpired", static_cast<unsigned int>(vState::BogusSignatureExpired)},
+        {"BogusUnsupportedDNSKEYAlgo", static_cast<unsigned int>(vState::BogusUnsupportedDNSKEYAlgo)},
+        {"BogusUnsupportedDSDigestType", static_cast<unsigned int>(vState::BogusUnsupportedDSDigestType)},
+        {"BogusNoZoneKeyBitSet", static_cast<unsigned int>(vState::BogusNoZoneKeyBitSet)},
+        {"BogusRevokedDNSKEY", static_cast<unsigned int>(vState::BogusRevokedDNSKEY)},
+        {"BogusInvalidDNSKEYProtocol", static_cast<unsigned int>(vState::BogusInvalidDNSKEYProtocol)},
         {"Insecure", static_cast<unsigned int>(vState::Insecure) },
         {"Secure", static_cast<unsigned int>(vState::Secure) },
   }});

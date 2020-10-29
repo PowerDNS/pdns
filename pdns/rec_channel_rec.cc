@@ -1208,6 +1208,13 @@ void registerAllStats()
   addGetStat("dnssec-result-bogus-no-rrsig", &g_stats.dnssecResults[vState::BogusNoRRSIG]);
   addGetStat("dnssec-result-bogus-no-valid-rrsig", &g_stats.dnssecResults[vState::BogusNoValidRRSIG]);
   addGetStat("dnssec-result-bogus-missing-negative-indication", &g_stats.dnssecResults[vState::BogusMissingNegativeIndication]);
+  addGetStat("dnssec-result-bogus-signature-not-yet-valid", &g_stats.dnssecResults[vState::BogusSignatureNotYetValid]);
+  addGetStat("dnssec-result-bogus-signature-expired", &g_stats.dnssecResults[vState::BogusSignatureExpired]);
+  addGetStat("dnssec-result-bogus-unsupported-dnskey-algo", &g_stats.dnssecResults[vState::BogusUnsupportedDNSKEYAlgo]);
+  addGetStat("dnssec-result-bogus-unsupported-ds-digest-type", &g_stats.dnssecResults[vState::BogusUnsupportedDSDigestType]);
+  addGetStat("dnssec-result-bogus-no-zone-key-bit-set", &g_stats.dnssecResults[vState::BogusNoZoneKeyBitSet]);
+  addGetStat("dnssec-result-bogus-revoked-dnskey", &g_stats.dnssecResults[vState::BogusRevokedDNSKEY]);
+  addGetStat("dnssec-result-bogus-invalid-dnskey-protocol", &g_stats.dnssecResults[vState::BogusInvalidDNSKEYProtocol]);
   addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[vState::Indeterminate]);
   addGetStat("dnssec-result-nta", &g_stats.dnssecResults[vState::NTA]);
 
