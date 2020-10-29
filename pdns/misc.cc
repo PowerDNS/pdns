@@ -1510,7 +1510,7 @@ size_t getPipeBufferSize(int fd)
 bool setPipeBufferSize(int fd, size_t size)
 {
 #ifdef F_SETPIPE_SZ
-  if (size > std::numeric_limits<int>::max()) {
+  if (size > static_cast<size_t>(std::numeric_limits<int>::max())) {
     errno = EINVAL;
     return false;
   }
