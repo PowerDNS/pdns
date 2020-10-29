@@ -2594,6 +2594,14 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
         return state;
       }
     }
+    else {
+      LOG(d_prefix<<": we have "<<std::to_string(dnskeys.size())<<" DNSKEYs but the zone ("<<zone<<") is not part of the signer ("<<signer<<"), going Bogus!"<<endl);
+      return vState::BogusNoValidRRSIG;
+    }
+  }
+  else {
+    LOG(d_prefix<<": we have "<<std::to_string(dnskeys.size())<<" DNSKEYs but no signature, going Bogus!"<<endl);
+    return vState::BogusNoRRSIG;
   }
 
   skeyset_t tentativeKeys;
@@ -2611,7 +2619,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
 
   LOG(d_prefix<<": trying to validate "<<std::to_string(tentativeKeys.size())<<" DNSKEYs with "<<std::to_string(ds.size())<<" DS"<<endl);
   skeyset_t validatedKeys;
-  validateDNSKeysAgainstDS(d_now.tv_sec, zone, ds, tentativeKeys, toSign, signatures, validatedKeys);
+  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, ds, tentativeKeys, toSign, signatures, validatedKeys);
 
   LOG(d_prefix<<": we now have "<<std::to_string(validatedKeys.size())<<" DNSKEYs"<<endl);
 
@@ -2621,10 +2629,10 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
      covering this set, this looks Bogus. */
   if (validatedKeys.size() != tentativeKeys.size()) {
     LOG(d_prefix<<": returning Bogus state from "<<__func__<<"("<<zone<<")"<<endl);
-    return vState::BogusNoValidDNSKEY;
+    return state;
   }
 
-  return vState::Secure;
+  return state;
 }
 
 vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth)
@@ -2694,13 +2702,14 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   }
 
   LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<"|"<<qtype.getName()<<endl);
-  if (validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, false)) {
+  vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, false);
+  if (state == vState::Secure) {
     LOG(d_prefix<<"Secure!"<<endl);
     return vState::Secure;
   }
 
-  LOG(d_prefix<<"Bogus!"<<endl);
-  return vState::BogusNoValidRRSIG;
+  LOG(d_prefix<<vStateToString(state)<<"!"<<endl);
+  return state;
 }
 
 static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
