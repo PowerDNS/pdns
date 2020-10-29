@@ -205,6 +205,7 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
   }
 
   d_transaction_id=id;
+  d_transaction_qname=qname;
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(id, &bbd)) {
     d_transaction_tmpname = bbd.d_filename + "XXXXXX";
@@ -267,26 +268,25 @@ bool Bind2Backend::abortTransaction()
 
 bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3)
 {
-  BB2DomainInfo bbd;
-  if (!safeGetBBDomainInfo(d_transaction_id, &bbd))
-    return false;
+  if (d_transaction_id < 1) {
+    throw DBException("Bind2Backend::feedRecord() called outside of transaction");
+  }
 
   string qname;
-  string name = bbd.d_name.toString();
-  if (bbd.d_name.empty()) {
+  if (d_transaction_qname.empty()) {
     qname = rr.qname.toString();
   }
-  else if (rr.qname.isPartOf(bbd.d_name)) {
-    if (rr.qname == bbd.d_name) {
+  else if (rr.qname.isPartOf(d_transaction_qname)) {
+    if (rr.qname == d_transaction_qname) {
       qname = "@";
     }
     else {
-      DNSName relName = rr.qname.makeRelative(bbd.d_name);
+      DNSName relName = rr.qname.makeRelative(d_transaction_qname);
       qname = relName.toStringNoDot();
     }
   }
   else {
-    throw DBException("out-of-zone data '"+rr.qname.toLogString()+"' during AXFR of zone '"+bbd.d_name.toLogString()+"'");
+    throw DBException("out-of-zone data '"+rr.qname.toLogString()+"' during AXFR of zone '"+d_transaction_qname.toLogString()+"'");
   }
 
   shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
@@ -299,7 +299,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordern
   case QType::CNAME:
   case QType::DNAME:
   case QType::NS:
-    stripDomainSuffix(&content, name);
+    stripDomainSuffix(&content, d_transaction_qname.toString());
     // fallthrough
   default:
     if (d_of && *d_of) {
