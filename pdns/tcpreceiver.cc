@@ -79,7 +79,7 @@ std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> TCPNameserver::s
 
 void TCPNameserver::go()
 {
-  g_log<<Logger::Error<<"Creating backend connection for TCP"<<endl;
+  g_log<<Logger::Info<<"Creating backend connection for TCP"<<endl;
   s_P.reset();
   try {
     s_P=make_unique<PacketHandler>();
@@ -346,7 +346,7 @@ void TCPNameserver::doConnection(int fd)
       {
         std::lock_guard<std::mutex> l(s_plock);
         if(!s_P) {
-          g_log<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
+          g_log<<Logger::Info<<"TCP server is without backend connections, launching"<<endl;
           s_P=make_unique<PacketHandler>();
         }
 
@@ -405,18 +405,18 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
 
     DNSSECKeeper dk(s_P->getBackend());
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
-      g_log<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access to zone"<<endl;
+      g_log<<Logger::Warning<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access to zone"<<endl;
       return false;
     }
     else {
-      g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
+      g_log<<Logger::Info<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
       return true;
     }
   }
   
   // cerr<<"checking allow-axfr-ips"<<endl;
   if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( (ComboAddress *) &q->d_remote )) {
-    g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in allow-axfr-ips"<<endl;
+    g_log<<Logger::Info<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in allow-axfr-ips"<<endl;
     return true;
   }
 
@@ -447,7 +447,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
             if(*k == q->getRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
-              g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in NSset"<<endl;
+              g_log<<Logger::Info<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in NSset"<<endl;
               return true;
             }
           }
@@ -458,7 +458,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
         Netmask nm = Netmask(*i);
         if(nm.match( (ComboAddress *) &q->d_remote ))
         {
-          g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in per-domain ACL"<<endl;
+          g_log<<Logger::Info<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in per-domain ACL"<<endl;
           // cerr<<"hit!"<<endl;
           return true;
         }
@@ -469,11 +469,11 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
   extern CommunicatorClass Communicator;
 
   if(Communicator.justNotified(q->qdomain, q->getRemote().toString())) { // we just notified this ip
-    g_log<<Logger::Warning<<"Approved AXFR of '"<<q->qdomain<<"' from recently notified slave "<<q->getRemote()<<endl;
+    g_log<<Logger::Info<<"Approved AXFR of '"<<q->qdomain<<"' from recently notified slave "<<q->getRemote()<<endl;
     return true;
   }
 
-  g_log<<Logger::Error<<"AXFR of domain '"<<q->qdomain<<"' denied: client IP "<<q->getRemote()<<" has no permission"<<endl;
+  g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: client IP "<<q->getRemote()<<" has no permission"<<endl;
   return false;
 }
 
@@ -503,7 +503,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
-  g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
+  g_log<<Logger::Info<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
@@ -511,7 +511,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     std::lock_guard<std::mutex> l(s_plock);
     DLOG(g_log<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
     if(!s_P) {
-      g_log<<Logger::Error<<"TCP server is without backend connections in doAXFR, launching"<<endl;
+      g_log<<Logger::Info<<"TCP server is without backend connections in doAXFR, launching"<<endl;
       s_P=make_unique<PacketHandler>();
     }
 
@@ -551,13 +551,13 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(securedZone && dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
-      g_log<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
+      g_log<<Logger::Info<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
 
   if(noAXFRBecauseOfNSEC3Narrow) {
-    g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
+    g_log<<Logger::Warning<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
     outpacket->setRcode(RCode::Refused);
     // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
     sendPacket(outpacket,outsock);
@@ -1009,7 +1009,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   sendPacket(outpacket, outsock);
   
   DLOG(g_log<<"last packet - close"<<endl);
-  g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
+  g_log<<Logger::Info<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
   return 1;
 }
@@ -1051,7 +1051,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     }
   }
 
-  g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
+  g_log<<Logger::Info<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
 
   // determine if zone exists, XFR is allowed, and if IXFR can proceed using existing backend before spawning a new backend.
   SOAData sd;
@@ -1061,7 +1061,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     std::lock_guard<std::mutex> l(s_plock);
     DLOG(g_log<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
     if(!s_P) {
-      g_log<<Logger::Error<<"TCP server is without backend connections in doIXFR, launching"<<endl;
+      g_log<<Logger::Info<<"TCP server is without backend connections in doIXFR, launching"<<endl;
       s_P=make_unique<PacketHandler>();
     }
 
@@ -1079,8 +1079,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     securedZone = dk.isSecuredZone(q->qdomain);
     if(dk.getNSEC3PARAM(q->qdomain, nullptr, &narrow)) {
       if(narrow) {
-        g_log<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
-        g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
+        g_log<<Logger::Info<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
+        g_log<<Logger::Warning<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
         outpacket->setRcode(RCode::Refused);
         sendPacket(outpacket,outsock);
         return 0;
@@ -1131,12 +1131,12 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
     sendPacket(outpacket, outsock);
 
-    g_log<<Logger::Error<<"IXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
+    g_log<<Logger::Info<<"IXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
     return 1;
   }
 
-  g_log<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<q->qdomain<<"' our serial "<<sd.serial<<endl;
+  g_log<<Logger::Info<<"IXFR fallback to AXFR for domain '"<<q->qdomain<<"' our serial "<<sd.serial<<endl;
   return doAXFR(q->qdomain, q, outsock);
 }
 
@@ -1201,7 +1201,7 @@ TCPNameserver::TCPNameserver()
       int err = errno;
       close(s);
       if( err == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
-        g_log<<Logger::Error<<"Address " << local.toString() << " does not exist on this server - skipping TCP bind" << endl;
+        g_log<<Logger::Warning<<"Address " << local.toString() << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
         g_log<<Logger::Error<<"Unable to bind to TCP socket " << local.toStringWithPort() << ": "<<stringerror(err)<<endl;
@@ -1210,7 +1210,7 @@ TCPNameserver::TCPNameserver()
     }
 
     listen(s, 128);
-    g_log<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
+    g_log<<Logger::Info<<"TCP server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
