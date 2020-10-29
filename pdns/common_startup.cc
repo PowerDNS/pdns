@@ -687,9 +687,17 @@ void mainthread()
 
     domainCacheUpdateSince += slept;
     if (domainCacheUpdateSince >= g_domainCache.getTTL()) {
-      domainCacheUpdateSince = 0;
-      UeberBackend B;
-      B.updateDomainCache();
+      try {
+        UeberBackend B;
+        B.updateDomainCache();
+        domainCacheUpdateSince = 0;
+      }
+      catch(PDNSException &e) {
+        g_log<<Logger::Error<<"PDNSException while updating domain cache: "<<e.reason<<endl;
+      }
+      catch(std::exception &e) {
+        g_log<<Logger::Error<<"STL Exception while updating domain cache: "<<e.what()<<endl;
+      }
     }
 
     secpollSince += slept;
