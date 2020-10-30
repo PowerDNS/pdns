@@ -1,6 +1,5 @@
 builder/tmp
 built_pkgs
-.git
 Dockerfile-*
 .dockerignore
 Makefile.docker

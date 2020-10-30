@@ -7,7 +7,7 @@ FROM debian:10-slim AS builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
 # import everything - this could be pdns.git OR a dnsdist tarball!
 COPY . /source
@@ -24,7 +24,7 @@ ENV MAKEFLAGS ${MAKEFLAGS:--j2}
 
 RUN touch dnsdist.1 # avoid having to install pandoc and venv
 
-RUN autoreconf -vfi
+RUN BUILDER_MODULES=dnsdist autoreconf -vfi
 
 RUN mkdir /build && \
     ./configure \

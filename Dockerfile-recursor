@@ -35,7 +35,7 @@ ENV MAKEFLAGS ${MAKEFLAGS:--j2}
 # Manpage prevent
 RUN touch pdns_recursor.1 rec_control.1 # avoid installing pandoc
 
-RUN autoreconf -vfi
+RUN BUILDER_MODULES=recursor autoreconf -vfi
 
 RUN mkdir /build && \
     ./configure \
