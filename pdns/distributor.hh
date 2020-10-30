@@ -101,8 +101,8 @@ public:
     }
 
     Question Q;
-    callback_t callback;
-    int id;
+    callback_t callback{nullptr};
+    int id{0};
   };
 
   bool isOverloaded() override
