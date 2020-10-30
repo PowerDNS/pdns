@@ -146,6 +146,7 @@ pdns_recursor_SOURCES = \
 	pdnsexception.hh \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
+	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	pubsuffix.hh pubsuffix.cc \
 	pubsuffixloader.cc \
@@ -192,8 +193,7 @@ pdns_recursor_SOURCES = \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
 	xpf.cc xpf.hh \
-	zoneparser-tng.cc zoneparser-tng.hh \
-	protozero.cc protozero.hh
+	zoneparser-tng.cc zoneparser-tng.hh
 
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
