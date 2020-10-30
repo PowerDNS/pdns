@@ -50,8 +50,12 @@ using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
-  map<string,string> stats = getAllStatsMap(StatComponent::API);
-  out.swap(stats);
+  auto stats = getAllStatsMap(StatComponent::API);
+  map<string,string> ret;
+  for (const auto& entry: stats) {
+    ret.insert(make_pair(entry.first, entry.second.d_value));
+  }
+  out.swap(ret);
 }
 
 boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
@@ -434,17 +438,14 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
 
     registerAllStats();
 
-
     std::ostringstream output;
-    typedef map <string, string> varmap_t;
-    
+
     // Argument controls blacklisting of any stats. So
     // stats-api-blacklist will be used to block returned stats.
-    // Second arg tells to use the prometheus names.
-    varmap_t varmap = getAllStatsMap(StatComponent::API, true);
-    for (const auto &tup :  varmap) {
+    auto varmap = getAllStatsMap(StatComponent::API);
+    for (const auto& tup : varmap) {
         std::string metricName = tup.first;
-        std::string prometheusMetricName = "pdns_recursor_" + metricName;
+        std::string prometheusMetricName = tup.second.d_prometheusName;
 
         MetricDefinition metricDetails;
 
@@ -460,7 +461,7 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
           output << "# HELP " << prometheusMetricName << " " << metricDetails.description << "\n";
           output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
         }
-        output << prometheusMetricName << " " << tup.second << "\n";
+        output << prometheusMetricName << " " << tup.second.d_value << "\n";
     }
 
     output << "# HELP pdns_recursor_info " << "Info from pdns_recursor, value is always 1" << "\n";
@@ -470,7 +471,6 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
     resp->body = output.str();
     resp->headers["Content-Type"] = "text/plain";
     resp->status = 200;
-
 }
 
 

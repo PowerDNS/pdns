@@ -54,14 +54,13 @@ try
     s.connect(remote);  // we do the connect so the first attempt happens while we gather stats
  
     if(msg.empty()) {
-      typedef map<string,string> all_t;
-      all_t all=getAllStatsMap(StatComponent::Carbon);
+      auto all = getAllStatsMap(StatComponent::Carbon);
       
       ostringstream str;
       time_t now=time(0);
       
-      for(const all_t::value_type& val :  all) {
-        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
+      for(const auto& val : all) {
+        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second.d_value<<' '<<now<<"\r\n";
       }
       msg = str.str();
     }
