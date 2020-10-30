@@ -34,7 +34,7 @@ namespace pdns {
   namespace ProtoZero {
     class Message {
     public:
-      // Start a new messagebug, constaining separate data for the response part
+      // Start a new messagebuf, containing separate data for the response part
       Message(std::string::size_type sz1, std::string::size_type sz2) : d_message{d_msgbuf}, d_response{d_rspbuf}
       {
         // This is extra space in addition to what's already there
@@ -71,8 +71,8 @@ namespace pdns {
       void encodeComboAddress(protozero::pbf_tag_type type, const ComboAddress& ca);
       void encodeNetmask(protozero::pbf_tag_type type, const Netmask& subnet, uint8_t mask);
       void encodeDNSName(protozero::pbf_writer& pbf, std::string& buffer, protozero::pbf_tag_type type, const DNSName& name);
-      void request(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len);
-      void response(const DNSName& qname, uint16_t qtype, uint16_t qclass);
+      void setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len);
+      void setResponse(const DNSName& qname, uint16_t qtype, uint16_t qclass);
 
       void setType(int mtype)
       {
@@ -175,11 +175,9 @@ namespace pdns {
       {
         d_response.add_uint32(1, rcode);
       }
-#ifdef NOD_ENABLED
+
       void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr);
-#else
-      void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes);
-#endif
+
       void setAppliedPolicy(const std::string& policy)
       {
         d_response.add_string(3, policy);

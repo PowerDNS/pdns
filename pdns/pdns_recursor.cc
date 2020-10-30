@@ -887,7 +887,7 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   requestor.setPort(remote.getPort());
 
   pdns::ProtoZero::Message m{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // XXX guesses at sizes
-  m.request(uniqueId, requestor, local, qname, qtype, qclass, id, tcp, len);
+  m.setRequest(uniqueId, requestor, local, qname, qtype, qclass, id, tcp, len);
   m.setServerIdentity(SyncRes::s_serverID);
   m.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? maskV4 : maskV6);
   m.setRequestorId(requestorId);
@@ -1409,7 +1409,7 @@ static void startDoResolve(void *p)
 #ifdef HAVE_PROTOBUF
     if (checkProtobufExport(luaconfsLocal)) {
       pbMessage = make_unique<pdns::ProtoZero::Message>(128, 128); // XXX guess at sizes
-      pbMessage->response(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
+      pbMessage->setResponse(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
       pbMessage->setServerIdentity(SyncRes::s_serverID);
 
       // RRSets added below
@@ -1800,23 +1800,18 @@ static void startDoResolve(void *p)
         }
         needCommit = true;
 
-#ifdef NOD_ENABLED
 	bool udr = false;
+#ifdef NOD_ENABLED
 	if (g_udrEnabled) {
 	  udr = udrCheckUniqueDNSRecord(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, *i);
           if (!hasUDR && udr)
             hasUDR = true;
 	}
-#endif /* NOD ENABLED */    
+#endif /* NOD ENABLED */
 
 #ifdef HAVE_PROTOBUF
         if (t_protobufServers) {
-#ifdef NOD_ENABLED
-          // if (g_udrEnabled) ?
           pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
-#else
-          pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes);
-#endif /* NOD_ENABLED */
         }
 #endif
       }

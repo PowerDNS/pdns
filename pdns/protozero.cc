@@ -57,7 +57,7 @@ void pdns::ProtoZero::Message::encodeDNSName(protozero::pbf_writer& pbf, std::st
   // leaving the block will cause the sub writer to compute how much was written based on the new size and update the size accordingly
 }
 
-void pdns::ProtoZero::Message::request(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len)
+void pdns::ProtoZero::Message::setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len)
 {
   setType(1);
   setMessageIdentity(uniqueId);
@@ -73,18 +73,14 @@ void pdns::ProtoZero::Message::request(const boost::uuids::uuid& uniqueId, const
   setToPort(local.getPort());
 }
 
-void pdns::ProtoZero::Message::response(const DNSName& qname, uint16_t qtype, uint16_t qclass)
+void pdns::ProtoZero::Message::setResponse(const DNSName& qname, uint16_t qtype, uint16_t qclass)
 {
   setType(2);
   setQuestion(qname, qtype, qclass);
 }
 
 
-#ifdef NOD_ENABLED
 void pdns::ProtoZero::Message::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr)
-#else
-void pdns::ProtoZero::Message::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes)
-#endif /* NOD_ENABLED */
 {
   if (record.d_place != DNSResourceRecord::ANSWER || record.d_class != QClass::IN) {
     return;
