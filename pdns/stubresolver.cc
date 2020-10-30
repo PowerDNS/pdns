@@ -141,7 +141,8 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
 
     string reply;
 
-    waitForData(sock.getHandle(), 2, 0);
+    // error handled after this
+    (void)waitForData(sock.getHandle(), 2, 0);
     try {
     retry:
       sock.read(reply); // this calls recv
