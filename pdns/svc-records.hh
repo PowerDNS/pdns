@@ -42,7 +42,7 @@ class SvcParam {
     };
 
   //! empty Param, unusable
-  SvcParam();
+  SvcParam() = delete;
 
   //! To create a value-less SvcParam (like no-default-alpn)
   SvcParam(const SvcParamKey &key);
