@@ -469,7 +469,7 @@ UeberBackend::UeberBackend(const string &pname)
   d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
-
+  d_qtype = 0;
   d_stale = false;
 
   backends=BackendMakers().all(pname=="key-only");
@@ -682,6 +682,7 @@ UeberBackend::handle::handle()
   d_hinterBackend=NULL;
   pkt_p=NULL;
   i=0;
+  zoneId = -1;
 }
 
 UeberBackend::handle::~handle()
