@@ -34,22 +34,27 @@ namespace pdns {
   namespace ProtoZero {
     class Message {
     public:
+      Message() : d_message{d_msgbuf}, d_response{d_rspbuf}
+      {
+      }
       // Start a new messagebuf, containing separate data for the response part
       Message(std::string::size_type sz1, std::string::size_type sz2) : d_message{d_msgbuf}, d_response{d_rspbuf}
       {
-        if (d_msgbuf.capacity() < d_msgbuf.size() + sz1) {
-          // This is extra space in addition to what's already there
-          // Different from what string.reserve() does.
-          d_message.reserve(sz1);
-        }
-        if (d_rspbuf.capacity() < d_rspbuf.size() + sz2) {
-          d_response.reserve(sz2);
-        }
+        reserve(sz1, sz2);
       }
 
       // Construct a Message with (partially) constructed content
       Message(const std::string& buf1, const std::string& buf2, std::string::size_type sz1, std::string::size_type sz2) :
         d_msgbuf{buf1}, d_rspbuf{buf2}, d_message{d_msgbuf}, d_response{d_rspbuf}
+      {
+        reserve(sz1, sz2);
+      }
+      Message(const Message&) = delete;
+      Message(Message&&) = delete;
+      Message& operator=(const Message&) = delete;
+      Message& operator=(Message&&) = delete;
+
+      void reserve(std::string::size_type sz1, std::string::size_type sz2)
       {
         // We expect to grow the buffers, in the end the d_message will contains the (grown) d_response
         // This is extra space in addition to what's already there
