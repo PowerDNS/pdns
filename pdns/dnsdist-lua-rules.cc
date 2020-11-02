@@ -86,11 +86,12 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
 typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > ruleparams_t;
 
 template<typename T>
-static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::optional<ruleparams_t> vars) {
-  setLuaNoSideEffect();
-  int num=0;
+static std::string rulesToString(const std::vector<T>& rules, boost::optional<ruleparams_t> vars)
+{
+  int num = 0;
   bool showUUIDs = false;
   size_t truncateRuleWidth = string::npos;
+  std::string result;
 
   if (vars) {
     if (vars->count("showUUIDs")) {
@@ -101,25 +102,33 @@ static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::opti
     }
   }
 
-  auto rules = someRulActions->getLocal();
   if (showUUIDs) {
     boost::format fmt("%-3d %-38s %9d %9d %-56s %s\n");
-    g_outputBuffer += (fmt % "#" % "UUID" % "Cr. Order" % "Matches" % "Rule" % "Action").str();
-    for(const auto& lim : *rules) {
+    result += (fmt % "#" % "UUID" % "Cr. Order" % "Matches" % "Rule" % "Action").str();
+    for(const auto& lim : rules) {
       string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
-      g_outputBuffer += (fmt % num % boost::uuids::to_string(lim.d_id) % lim.d_creationOrder % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
+      result += (fmt % num % boost::uuids::to_string(lim.d_id) % lim.d_creationOrder % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
       ++num;
     }
   }
   else {
     boost::format fmt("%-3d %9d %-56s %s\n");
-    g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
-    for(const auto& lim : *rules) {
+    result += (fmt % "#" % "Matches" % "Rule" % "Action").str();
+    for(const auto& lim : rules) {
       string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
-      g_outputBuffer += (fmt % num % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
+      result += (fmt % num % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
       ++num;
     }
   }
+  return result;
+}
+
+template<typename T>
+static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::optional<ruleparams_t> vars) {
+  setLuaNoSideEffect();
+
+  auto rules = someRulActions->getLocal();
+  g_outputBuffer += rulesToString(*rules, vars);
 }
 
 template<typename T>
@@ -147,7 +156,7 @@ static void rmRule(GlobalStateHolder<vector<T> > *someRulActions, boost::variant
 }
 
 template<typename T>
-static void topRule(GlobalStateHolder<vector<T> > *someRulActions) {
+static void moveRuleToTop(GlobalStateHolder<vector<T> > *someRulActions) {
   setLuaSideEffect();
   auto rules = someRulActions->getCopy();
   if(rules.empty())
@@ -178,6 +187,38 @@ static void mvRule(GlobalStateHolder<vector<T> > *someRespRulActions, unsigned i
   someRespRulActions->setState(std::move(rules));
 }
 
+template<typename T>
+static std::vector<T> getTopRules(const std::vector<T>& rules, unsigned int top)
+{
+  std::vector<std::pair<size_t, size_t>> counts;
+  counts.reserve(rules.size());
+
+  size_t pos = 0;
+  for (const auto& rule : rules) {
+    counts.push_back({rule.d_rule->d_matches.load(), pos});
+    pos++;
+  }
+
+  sort(counts.begin(), counts.end(), [](const decltype(counts)::value_type& a,
+                                        const decltype(counts)::value_type& b) {
+    return b.first < a.first;
+  });
+
+  std::vector<T> results;
+  results.reserve(top);
+
+  size_t count = 0;
+  for (const auto& entry : counts) {
+    results.emplace_back(rules.at(entry.second));
+    ++count;
+    if (count == top) {
+      break;
+    }
+  }
+
+  return results;
+}
+
 void setupLuaRules(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("makeRule", makeRule);
@@ -192,8 +233,8 @@ void setupLuaRules(LuaContext& luaCtx)
       rmRule(&g_resprulactions, id);
     });
 
-  luaCtx.writeFunction("topResponseRule", []() {
-      topRule(&g_resprulactions);
+  luaCtx.writeFunction("mvResponseRuleToTop", []() {
+      moveRuleToTop(&g_resprulactions);
     });
 
   luaCtx.writeFunction("mvResponseRule", [](unsigned int from, unsigned int to) {
@@ -208,8 +249,8 @@ void setupLuaRules(LuaContext& luaCtx)
       rmRule(&g_cachehitresprulactions, id);
     });
 
-  luaCtx.writeFunction("topCacheHitResponseRule", []() {
-      topRule(&g_cachehitresprulactions);
+  luaCtx.writeFunction("mvCacheHitResponseRuleToTop", []() {
+      moveRuleToTop(&g_cachehitresprulactions);
     });
 
   luaCtx.writeFunction("mvCacheHitResponseRule", [](unsigned int from, unsigned int to) {
@@ -224,8 +265,8 @@ void setupLuaRules(LuaContext& luaCtx)
       rmRule(&g_selfansweredresprulactions, id);
     });
 
-  luaCtx.writeFunction("topSelfAnsweredResponseRule", []() {
-      topRule(&g_selfansweredresprulactions);
+  luaCtx.writeFunction("mvSelfAnsweredResponseRuleToTop", []() {
+      moveRuleToTop(&g_selfansweredresprulactions);
     });
 
   luaCtx.writeFunction("mvSelfAnsweredResponseRule", [](unsigned int from, unsigned int to) {
@@ -236,8 +277,8 @@ void setupLuaRules(LuaContext& luaCtx)
       rmRule(&g_rulactions, id);
     });
 
-  luaCtx.writeFunction("topRule", []() {
-      topRule(&g_rulactions);
+  luaCtx.writeFunction("mvRuleToTop", []() {
+      moveRuleToTop(&g_rulactions);
     });
 
   luaCtx.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
@@ -264,6 +305,54 @@ void setupLuaRules(LuaContext& luaCtx)
           }
         });
     });
+
+  luaCtx.writeFunction("getTopRules", [](boost::optional<unsigned int> top) {
+    setLuaNoSideEffect();
+    auto rules = g_rulactions.getLocal();
+    return getTopRules(*rules, top.get_value_or(10));
+  });
+
+  luaCtx.writeFunction("topRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+    setLuaNoSideEffect();
+    auto rules = g_rulactions.getLocal();
+    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+  });
+
+  luaCtx.writeFunction("getCacheHitResponseRules", [](boost::optional<unsigned int> top) {
+    setLuaNoSideEffect();
+    auto rules = g_cachehitresprulactions.getLocal();
+    return getTopRules(*rules, top.get_value_or(10));
+  });
+
+  luaCtx.writeFunction("topCacheHitRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+    setLuaNoSideEffect();
+    auto rules = g_cachehitresprulactions.getLocal();
+    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+  });
+
+  luaCtx.writeFunction("getTopResponseRules", [](boost::optional<unsigned int> top) {
+    setLuaNoSideEffect();
+    auto rules = g_resprulactions.getLocal();
+    return getTopRules(*rules, top.get_value_or(10));
+  });
+
+  luaCtx.writeFunction("topResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+    setLuaNoSideEffect();
+    auto rules = g_resprulactions.getLocal();
+    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+  });
+
+  luaCtx.writeFunction("getTopSelfAnsweredResponseRules", [](boost::optional<unsigned int> top) {
+    setLuaNoSideEffect();
+    auto rules = g_selfansweredresprulactions.getLocal();
+    return getTopRules(*rules, top.get_value_or(10));
+  });
+
+  luaCtx.writeFunction("topSelfAnsweredResponseRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+    setLuaNoSideEffect();
+    auto rules = g_selfansweredresprulactions.getLocal();
+    return rulesToString(getTopRules(*rules, top.get_value_or(10)), vars);
+  });
 
   luaCtx.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc, boost::optional<int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, burst.get_value_or(qps), ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64), expiration.get_value_or(300), cleanupDelay.get_value_or(60), scanFraction.get_value_or(10)));
