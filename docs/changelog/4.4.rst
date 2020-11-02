@@ -2,6 +2,110 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.0-alpha2
+  :released: 3rd of November 2020
+
+  This is version 4.4.0-alpha2 of the Authoritative Server.
+  This release drops GSS/TSIG support, please see :doc:`PowerDNS Security Advisory 2020-06 <../security-advisories/powerdns-advisory-2020-06>`.
+
+  Version 4.4.0 brings a bunch of exciting changes:
+
+  * the LMDB backend now supports long record content, making it production ready for everybody
+  * the SVCB and HTTPS record types are supported, with limited additional processing
+  * transaction handling in the 2136 handler and the HTTP API was again improved a lot, avoiding various spurious issues users may have noticed if they do a lot of changes
+  * a new setting (:ref:`setting-consistent-backends`) offers a roughly 30% speedup, subject to conditions
+  * we finally emit Prometheus metrics!
+
+  We want to specifically thank Robin Geuze, Kees Monshouwer, Mischan Toosarani-Hausberger, and Chris Hofstaedtler for their contributions to this release.
+  We are also grateful to all other reporters of bugs, issues, feature requests, and submitters of smaller fixes and features.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9656, 9483
+
+    When :ref:`setting-consistent-backends` is enabled, use ANY queries toward backends whenever possible. (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9625, 9552
+
+    Deprecate :ref:`setting-local-ipv6` and :ref:`setting-query-local-address6`, to prepare for removal in 4.5.0 (Chris Hofstaedtler, Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9611
+
+    pdns: bind-backend speedup feedRecord() (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9568
+
+    auth: Speedup presigned signature lookups. (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9645
+
+    auth: bindbackend: 'rediscover' changes to 'type' (Roald Stolte)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9647
+
+    auth lmdb: fill di.backend in getUnfreshSlaveInfos and getAllDomains (this makes the right serial appear in API calls)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9623
+
+    gsql,bind: allow seamless serving of newly-supported TYPExx records (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9631
+
+    auth: add support for dnssec removal to CDS/CDNSKEY (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9627
+
+    auth: change "misconfigured" SOA MNAME to not mention powerdns and be RFC6761 compliant
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 9593
+
+    Auth: remove SOA autofilling, remove set-ptr feature from API (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9613
+
+    LUA records: handle a potentially uncaught exception
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9580, 9550
+
+    Fixes for APL records pointing to fe80 (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9549
+
+    pdns_control: add show <prefix> (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9544
+
+    svc-records: Initialize d_port
+
+.. changelog::
   :version: 4.4.0-alpha1
   :released: 30th of September 2020
 

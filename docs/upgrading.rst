@@ -29,6 +29,12 @@ New LMDB schema
 An LMDB schema upgrade is mandatory.
 Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4.x.
 
+Removed features
+^^^^^^^^^^^^^^^^
+
+SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API set-ptr feature, that both were deprecated in earlier releases, have now been removed.
+Please run ``pdnsutil check-all-zones`` to check for incomplete SOAs.
+
 4.3.0 to 4.3.1
 --------------
 
