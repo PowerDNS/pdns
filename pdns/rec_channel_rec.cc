@@ -1169,7 +1169,21 @@ void registerAllStats()
   addGetStat("dnssec-validations", &g_stats.dnssecValidations);
   addGetStat("dnssec-result-insecure", &g_stats.dnssecResults[vState::Insecure]);
   addGetStat("dnssec-result-secure", &g_stats.dnssecResults[vState::Secure]);
-  addGetStat("dnssec-result-bogus", &g_stats.dnssecResults[vState::Bogus]);
+  addGetStat("dnssec-result-bogus-no-valid-dnskey", &g_stats.dnssecResults[vState::BogusNoValidDNSKEY]);
+  addGetStat("dnssec-result-bogus-invalid-denial", &g_stats.dnssecResults[vState::BogusInvalidDenial]);
+  addGetStat("dnssec-result-bogus-unable-to-get-dss", &g_stats.dnssecResults[vState::BogusUnableToGetDSs]);
+  addGetStat("dnssec-result-bogus-unable-to-get-dnskeys", &g_stats.dnssecResults[vState::BogusUnableToGetDNSKEYs]);
+  addGetStat("dnssec-result-bogus-self-signed-ds", &g_stats.dnssecResults[vState::BogusSelfSignedDS]);
+  addGetStat("dnssec-result-bogus-no-rrsig", &g_stats.dnssecResults[vState::BogusNoRRSIG]);
+  addGetStat("dnssec-result-bogus-no-valid-rrsig", &g_stats.dnssecResults[vState::BogusNoValidRRSIG]);
+  addGetStat("dnssec-result-bogus-missing-negative-indication", &g_stats.dnssecResults[vState::BogusMissingNegativeIndication]);
+  addGetStat("dnssec-result-bogus-signature-not-yet-valid", &g_stats.dnssecResults[vState::BogusSignatureNotYetValid]);
+  addGetStat("dnssec-result-bogus-signature-expired", &g_stats.dnssecResults[vState::BogusSignatureExpired]);
+  addGetStat("dnssec-result-bogus-unsupported-dnskey-algo", &g_stats.dnssecResults[vState::BogusUnsupportedDNSKEYAlgo]);
+  addGetStat("dnssec-result-bogus-unsupported-ds-digest-type", &g_stats.dnssecResults[vState::BogusUnsupportedDSDigestType]);
+  addGetStat("dnssec-result-bogus-no-zone-key-bit-set", &g_stats.dnssecResults[vState::BogusNoZoneKeyBitSet]);
+  addGetStat("dnssec-result-bogus-revoked-dnskey", &g_stats.dnssecResults[vState::BogusRevokedDNSKEY]);
+  addGetStat("dnssec-result-bogus-invalid-dnskey-protocol", &g_stats.dnssecResults[vState::BogusInvalidDNSKEYProtocol]);
   addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[vState::Indeterminate]);
   addGetStat("dnssec-result-nta", &g_stats.dnssecResults[vState::NTA]);
 
