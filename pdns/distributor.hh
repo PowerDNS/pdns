@@ -181,6 +181,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
 // start of a new thread
 template<class Answer, class Question, class Backend>void MultiThreadDistributor<Answer,Question,Backend>::distribute(int ournum)
 {
+  // this is the longest name we can use, not a typo
   setThreadName("pdns/distributo");
 
   try {
