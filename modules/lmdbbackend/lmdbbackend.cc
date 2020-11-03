@@ -485,18 +485,18 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   MDBOutVal key, val;
   string match =co(domain_id, qname.makeRelative(di.zone), qt.getCode());
   if(!cursor.find(match, key, val)) {
-    do {
-      cursor.del();
-    } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
+    cursor.del();
   }
 
-  vector<DNSResourceRecord> adjustedRRSet;
-  for(auto rr : rrset) {
-    rr.content = serializeContent(rr.qtype.getCode(), rr.qname, rr.content);
-    rr.qname.makeUsRelative(di.zone);
-    adjustedRRSet.push_back(rr);
+  if(!rrset.empty()) {
+    vector<DNSResourceRecord> adjustedRRSet;
+    for(auto rr : rrset) {
+      rr.content = serializeContent(rr.qtype.getCode(), rr.qname, rr.content);
+      rr.qname.makeUsRelative(di.zone);
+      adjustedRRSet.push_back(rr);
+    }
+    txn->txn->put(txn->db->dbi, match, serToString(adjustedRRSet));
   }
-  txn->txn->put(txn->db->dbi, match, serToString(adjustedRRSet));
 
   if(needCommit)
     txn->txn->commit();
