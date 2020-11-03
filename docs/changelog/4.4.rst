@@ -2,10 +2,13 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
-  :version: 4.4.0-alpha2
-  :released: 3rd of November 2020
+  :version: 4.4.0-alpha3
+  :released: 5th of November 2020
 
-  This is version 4.4.0-alpha2 of the Authoritative Server.
+  This is version 4.4.0-alpha3 of the Authoritative Server.
+
+  Alpha 2 was not released due to the LMDB encoding bug mentioned below, found shortly after starting the Alpha 2 release process.
+
   This release drops GSS/TSIG support, please see :doc:`PowerDNS Security Advisory 2020-06 <../security-advisories/powerdns-advisory-2020-06>`.
 
   Version 4.4.0 brings a bunch of exciting changes:
@@ -20,6 +23,12 @@ Changelogs for 4.4.x
   We are also grateful to all other reporters of bugs, issues, feature requests, and submitters of smaller fixes and features.
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9664, 9665
+
+    LMDB: Fix encoding of deleted RRsets (Kees Monshouwer)
 
   .. change::
     :tags: Improvements
