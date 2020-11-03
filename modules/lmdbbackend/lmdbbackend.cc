@@ -763,7 +763,7 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
       key = d_currentKey.get<string_view>();
     }
 
-    const auto& drr = d_currentrrset[d_currentrrsetpos++];
+    const auto& drr = d_currentrrset.at(d_currentrrsetpos++);
 
     rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
     rr.domain_id = compoundOrdername::getDomainID(key);
