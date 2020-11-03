@@ -112,9 +112,9 @@ void CommunicatorClass::mainloop()
   try {
     setThreadName("pdns/comm-main");
     signal(SIGPIPE,SIG_IGN);
-    g_log<<Logger::Error<<"Master/slave communicator launching"<<endl;
+    g_log<<Logger::Error<<"Primary/secondary communicator launching"<<endl;
     PacketHandler P;
-    d_tickinterval=::arg().asNum("slave-cycle-interval");
+    d_tickinterval=min(::arg().asNum("slave-cycle-interval"), ::arg().asNum("replication-cycle-interval"));
     makeNotifySockets();
 
     int rc;

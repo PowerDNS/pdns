@@ -141,15 +141,19 @@ void declareArguments()
   ::arg().set("also-notify", "When notifying a domain, also notify these nameservers")="";
   ::arg().set("allow-notify-from","Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.")="0.0.0.0/0,::/0";
   ::arg().set("slave-cycle-interval","Schedule slave freshness checks once every .. seconds")="60";
+  ::arg().set("replication-cycle-interval","Schedule primary/secondary replication freshness checks once every .. seconds")="60";
 
   ::arg().set("tcp-control-address","If set, PowerDNS can be controlled over TCP on this address")="";
   ::arg().set("tcp-control-port","If set, PowerDNS can be controlled over TCP on this address")="53000";
   ::arg().set("tcp-control-secret","If set, PowerDNS can be controlled over TCP after passing this secret")="";
   ::arg().set("tcp-control-range","If set, remote control of PowerDNS is possible over these networks only")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
   
-  ::arg().setSwitch("slave","Act as a slave")="no";
-  ::arg().setSwitch("master","Act as a master")="no";
-  ::arg().setSwitch("superslave", "Act as a superslave")="no";
+  ::arg().setSwitch("slave","Act as a secondary")="no";
+  ::arg().setSwitch("secondary","Act as a secondary")="no";
+  ::arg().setSwitch("master","Act as a primary")="no";
+  ::arg().setSwitch("primary","Act as a primary")="no";
+  ::arg().setSwitch("superslave", "Act as a autosecondary (formerly superslave)")="no";
+  ::arg().setSwitch("autosecondary", "Act as an autosecondary")="no";
   ::arg().setSwitch("disable-axfr-rectify","Disable the rectify step during an outgoing AXFR. Only required for regression testing.")="no";
   ::arg().setSwitch("guardian","Run within a guardian process")="no";
   ::arg().setSwitch("prevent-self-notification","Don't send notifications to what we think is ourself")="yes";
@@ -184,7 +188,8 @@ void declareArguments()
   ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
-  ::arg().set("slave-renotify", "If we should send out notifications for slaved updates")="no";
+  ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates")="no";
+  ::arg().set("secondary-renotify", "If we should send out notifications for secondaried updates")="no";
   ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of master or slave settings")="";
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
@@ -573,7 +578,7 @@ void mainthread()
      }
 #endif
      triggerLoadOfLibraries();
-     if(::arg().mustDo("master") || ::arg().mustDo("slave"))
+     if(::arg().mustDo("master") || ::arg().mustDo("slave") || ::arg().mustDo("primary") || ::arg().mustDo("secondary"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
@@ -650,7 +655,7 @@ void mainthread()
   if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
 
-  if(::arg().mustDo("slave") || ::arg().mustDo("master") || !::arg()["forward-notify"].empty())
+  if(::arg().mustDo("slave") || ::arg().mustDo("master") || ::arg().mustDo("primary") || ::arg().mustDo("secondary")|| !::arg()["forward-notify"].empty())
     Communicator.go(); 
 
   TN->go(); // tcp nameserver launch

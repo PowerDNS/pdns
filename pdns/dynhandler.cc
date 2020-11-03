@@ -289,8 +289,8 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=3)
     return "syntax: notify-host domain ip";
-  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
-      return "PowerDNS not configured as master or slave with re-notifications";
+  if(!(::arg().mustDo("master") || ::arg().mustDo("primary")) && !((::arg().mustDo("slave") || ::arg().mustDo("secondary")) && ::arg().mustDo("slave-renotify")))
+      return "PowerDNS not configured as primary (master), or secondary (slave) with re-notifications";
 
   DNSName domain;
   try {
@@ -317,8 +317,8 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
-      return "PowerDNS not configured as master or slave with re-notifications";
+  if(!(::arg().mustDo("master") || ::arg().mustDo("primary")) && !((::arg().mustDo("slave") || ::arg().mustDo("secondary")) && ::arg().mustDo("slave-renotify")))
+      return "PowerDNS not configured as primary (master), or secondary (slave) with re-notifications";
   g_log<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
 
   if (parts[1] == "*") {
@@ -384,9 +384,9 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream ret;
   int kindFilter = -1;
   if (parts.size() > 1) {
-    if (toUpper(parts[1]) == "MASTER")
+    if (toUpper(parts[1]) == "MASTER" || toUpper(parts[1]) == "PRIMARY")
       kindFilter = 0;
-    else if (toUpper(parts[1]) == "SLAVE")
+    else if (toUpper(parts[1]) == "SLAVE" || toUpper(parts[1]) == "SECONDARY")
       kindFilter = 1;
     else if (toUpper(parts[1]) == "NATIVE")
       kindFilter = 2;

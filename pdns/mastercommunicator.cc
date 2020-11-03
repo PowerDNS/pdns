@@ -138,7 +138,7 @@ void NotificationQueue::dump()
 
 void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
 {
-  if(!::arg().mustDo("master"))
+  if(!::arg().mustDo("master") && !::arg().mustDo("primary"))
     return; 
 
   UeberBackend *B=P->getBackend();
