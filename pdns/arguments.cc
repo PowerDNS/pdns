@@ -418,7 +418,7 @@ bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
     return false;
 
   while(getline(f,pline)) {
-    trim_right(pline);
+    boost::trim_right(pline);
     
     if(!pline.empty() && pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
@@ -436,7 +436,7 @@ bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
     }
 
     // strip trailing spaces
-    trim_right(line);
+    boost::trim_right(line);
 
     // strip leading spaces
     if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)

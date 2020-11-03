@@ -41,7 +41,7 @@ std::mutex g_carbon_config_lock;
 
 static map<string, const uint32_t*> d_get32bitpointers;
 static map<string, const std::atomic<uint64_t>*> d_getatomics;
-static map<string, function< uint64_t() > >  d_get64bitmembers;
+static map<string, std::function< uint64_t() > >  d_get64bitmembers;
 static std::mutex d_dynmetricslock;
 struct dynmetrics {
   std::atomic<unsigned long> *d_ptr;
@@ -82,7 +82,7 @@ static void addGetStat(const string& name, const std::atomic<uint64_t>* place)
   d_getatomics[name]=place;
 }
 
-static void addGetStat(const string& name, function<uint64_t ()> f )
+static void addGetStat(const string& name, std::function<uint64_t ()> f )
 {
   d_get64bitmembers[name]=f;
 }
@@ -114,9 +114,9 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   return ret.d_ptr;
 }
 
-static optional<uint64_t> get(const string& name)
+static boost::optional<uint64_t> get(const string& name)
 {
-  optional<uint64_t> ret;
+  boost::optional<uint64_t> ret;
 
   if(d_get32bitpointers.count(name))
     return *d_get32bitpointers.find(name)->second;
@@ -133,7 +133,7 @@ static optional<uint64_t> get(const string& name)
   return ret;
 }
 
-optional<uint64_t> getStatByName(const std::string& name)
+boost::optional<uint64_t> getStatByName(const std::string& name)
 {
   return get(name);
 }
@@ -188,7 +188,7 @@ static string doGet(T begin, T end)
   string ret;
 
   for(T i=begin; i != end; ++i) {
-    optional<uint64_t> num=get(*i);
+    boost::optional<uint64_t> num=get(*i);
     if(num)
       ret+=std::to_string(*num)+"\n";
     else
@@ -1383,7 +1383,7 @@ static string doGenericTopRemotes(pleaseremotefunc_t func)
 
   ostringstream ret;
   ret<<"Over last "<<total<<" entries:\n";
-  format fmt("%.02f%%\t%s\n");
+  boost::format fmt("%.02f%%\t%s\n");
   int limit=0, accounted=0;
   if(total) {
     for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
@@ -1451,7 +1451,7 @@ static string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSNam
 
   ostringstream ret;
   ret<<"Over last "<<total<<" entries:\n";
-  format fmt("%.02f%%\t%s\n");
+  boost::format fmt("%.02f%%\t%s\n");
   int limit=0, accounted=0;
   if(total) {
     for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {

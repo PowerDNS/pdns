@@ -2078,7 +2078,7 @@ try
 #endif
       break;
     case 'l':
-      g_cmdLine.locals.push_back(trim_copy(string(optarg)));
+      g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
       break;
     case 'u':
       g_cmdLine.uid=optarg;

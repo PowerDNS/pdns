@@ -42,7 +42,6 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <algorithm>
-#include <boost/optional.hpp>
 #include <poll.h>
 #include <iomanip>
 #include <netinet/tcp.h>
@@ -1468,7 +1467,7 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
 
   string line;
   while(std::getline(ifs, line)) {
-    boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
+    boost::trim_right_if(line, boost::is_any_of(" \r\n\x1a"));
     boost::trim_left(line); // leading spaces, let's be nice
 
     string::size_type tpos = line.find_first_of(";#");

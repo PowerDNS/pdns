@@ -295,7 +295,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(!getTemplateLine() && !getLine())
     return false;
 
-  boost::trim_right_if(d_line, is_any_of(" \t\r\n\x1a"));
+  boost::trim_right_if(d_line, boost::is_any_of(" \t\r\n\x1a"));
   if(comment)
     comment->clear();
   if(comment && d_line.find(';') != string::npos)
@@ -313,7 +313,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(d_line[0]=='$') { 
     string command=makeString(d_line, d_parts[0]);
     if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
-      d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), is_any_of(";")));
+      d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), boost::is_any_of(";")));
       d_havedollarttl=true;
     }
     else if(pdns_iequals(command,"$INCLUDE") && d_parts.size() > 1 && d_fromfile) {
@@ -439,7 +439,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   //  rr.content=d_line.substr(range.first);
   rr.content.assign(d_line, range.first, string::npos);
   chopComment(rr.content);
-  trim_if(rr.content, is_any_of(" \r\n\t\x1a"));
+  trim_if(rr.content, boost::is_any_of(" \r\n\t\x1a"));
 
   if(rr.content.size()==1 && rr.content[0]=='@')
     rr.content=d_zonename.toString();
@@ -447,9 +447,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
       while(getLine()) {
-        trim_right(d_line);
+        boost::trim_right(d_line);
         chopComment(d_line);
-        trim(d_line);
+        boost::trim(d_line);
         
         bool ended = findAndElide(d_line, ')');
         rr.content+=" "+d_line;
@@ -458,7 +458,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       }
     }
   }
-  trim_if(rr.content, is_any_of(" \r\n\t\x1a"));
+  boost::trim_if(rr.content, boost::is_any_of(" \r\n\t\x1a"));
 
   if (d_upgradeContent && DNSRecordContent::isUnknownType(qtypeString)) {
     rr.content = DNSRecordContent::upgradeContent(rr.qname, rr.qtype, rr.content);

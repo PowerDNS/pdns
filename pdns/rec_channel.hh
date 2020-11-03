@@ -33,6 +33,7 @@
 #include "dnsname.hh"
 #include "sholder.hh"
 #include <atomic>
+#include <boost/optional.hpp>
 
 extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;

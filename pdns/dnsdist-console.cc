@@ -23,6 +23,7 @@
 #include <fstream>
 #include <pwd.h>
 #include <thread>
+#include <boost/scoped_array.hpp>
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 // If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h

@@ -72,7 +72,7 @@ struct SendReceive
   typedef int Identifier;
   typedef DNSResult Answer; // ip 
   int d_socket;
-  deque<uint16_t> d_idqueue;
+  std::deque<uint16_t> d_idqueue;
     
   typedef accumulator_set<
         double
@@ -298,7 +298,7 @@ try
     if(limit && domains.size() >= limit)
       break;
 
-    trim_right(line);
+    boost::trim_right(line);
     if(line.empty() || line[0] == '#')
       continue;
     split=splitField(line,',');

@@ -4,6 +4,7 @@
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
+#include <boost/optional.hpp>
 #endif
 
 struct ResolveContext {

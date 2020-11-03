@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <boost/utility.hpp>
+#include <boost/shared_array.hpp>
 
 #include "iputils.hh"
 #include "dnsname.hh"
@@ -43,7 +44,7 @@ class AXFRRetriever : public boost::noncopyable
     int getLength(uint16_t timeout);
     void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
 
-    shared_array<char> d_buf;
+    boost::shared_array<char> d_buf;
     string d_domain;
     int d_sock;
     int d_soacount;

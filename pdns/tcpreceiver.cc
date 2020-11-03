@@ -247,7 +247,7 @@ void TCPNameserver::doConnection(int fd)
   setNonBlocking(fd);
   try {
     int mesgsize=65535;
-    scoped_array<char> mesg(new char[mesgsize]);
+    boost::scoped_array<char> mesg(new char[mesgsize]);
     
     DLOG(g_log<<"TCP Connection accepted on fd "<<fd<<endl);
     bool logDNSQueries= ::arg().mustDo("log-dns-queries");

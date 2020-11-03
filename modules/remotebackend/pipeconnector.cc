@@ -61,7 +61,7 @@ void PipeConnector::launch() {
   if (d_pid > 0 && checkStatus()) return;
 
   std::vector <std::string> v;
-  split(v, command, is_any_of(" "));
+  split(v, command, boost::is_any_of(" "));
 
   std::vector<const char *>argv(v.size()+1);
   argv[v.size()]=0;

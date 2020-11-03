@@ -268,7 +268,7 @@ try
   pair<string, string> q;
   string line;
   while(stringfgets(fp.get(), line)) {
-    trim_right(line);
+    boost::trim_right(line);
     q=splitField(line, ' ');
     g_queries.push_back(BenchQuery(q.first, DNSRecordContent::TypeToNumber(q.second)));
   }

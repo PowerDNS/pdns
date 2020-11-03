@@ -379,7 +379,7 @@ void RecursorLua4::postPrepareContext()
 
   d_lw->writeFunction("getStat", [](const std::string& str) {
       uint64_t result = 0;
-      optional<uint64_t> value = getStatByName(str);
+      boost::optional<uint64_t> value = getStatByName(str);
       if (value) {
         result = *value;
       }

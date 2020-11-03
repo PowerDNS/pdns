@@ -32,7 +32,7 @@ UnknownRecordContent::UnknownRecordContent(const string& zone)
   vector<string> parts;
   stringtok(parts, zone);
   // we need exactly 3 parts, except if the length field is set to 0 then we only need 2
-  if (parts.size() != 3 && !(parts.size() == 2 && equals(parts.at(1), "0"))) {
+  if (parts.size() != 3 && !(parts.size() == 2 && boost::equals(parts.at(1), "0"))) {
     throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got " + std::to_string(parts.size()) + ": " + zone);
   }
 

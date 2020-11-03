@@ -42,7 +42,7 @@
 
 CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd): d_infd(infd), d_outfd(outfd), d_timeout(timeout)
 {
-  split(d_params, command, is_any_of(" "));
+  split(d_params, command, boost::is_any_of(" "));
 
   d_argv.resize(d_params.size()+1);
   d_argv[d_params.size()]=nullptr;
@@ -206,7 +206,7 @@ void CoProcess::receive(string &received)
   }
 
   received.resize(eolPos);
-  trim_right(received);
+  boost::trim_right(received);
 }
 
 void CoProcess::sendReceive(const string &snd, string &rcv)
@@ -246,7 +246,7 @@ void UnixRemote::receive(string& line)
 {
   line.clear();
   stringfgets(d_fp.get(), line);
-  trim_right(line);
+  boost::trim_right(line);
 }
 
 void UnixRemote::sendReceive(const string &snd, string &rcv)
