@@ -764,7 +764,7 @@ void CommunicatorClass::addTrySuperMasterRequest(const DNSPacket& p)
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   // not unless we are slave
-  if (!::arg().mustDo("slave") && !::arg().mustDo("secondary")) return;
+  if (!::arg().mustDo("secondary")) return;
 
   UeberBackend *B=P->getBackend();
   vector<DomainInfo> rdomains;

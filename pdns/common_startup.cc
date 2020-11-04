@@ -578,7 +578,7 @@ void mainthread()
      }
 #endif
      triggerLoadOfLibraries();
-     if(::arg().mustDo("master") || ::arg().mustDo("slave") || ::arg().mustDo("primary") || ::arg().mustDo("secondary"))
+     if(::arg().mustDo("primary") || ::arg().mustDo("secondary"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
@@ -655,7 +655,7 @@ void mainthread()
   if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
 
-  if(::arg().mustDo("slave") || ::arg().mustDo("master") || ::arg().mustDo("primary") || ::arg().mustDo("secondary")|| !::arg()["forward-notify"].empty())
+  if(::arg().mustDo("primary") || ::arg().mustDo("secondary")|| !::arg()["forward-notify"].empty())
     Communicator.go(); 
 
   TN->go(); // tcp nameserver launch
