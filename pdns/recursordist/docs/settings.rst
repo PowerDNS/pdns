@@ -1549,12 +1549,21 @@ If set to true and PowerDNS has been compiled with SNMP support, it will registe
 
 ``snmp-master-socket``
 ----------------------
+
 .. versionadded:: 4.1.0
+.. deprecated:: 4.5.0
+  Use :ref:`setting-snmp-daemon-socket`.
+
+.. _setting-snmp-daemon-socket:
+
+``snmp-daemon-socket``
+----------------------
+.. versionadded:: 4.5.0
 
 -  String
 -  Default: empty
 
-If not empty and ``snmp-agent`` is set to true, indicates how PowerDNS should contact the SNMP master to register as an SNMP agent.
+If not empty and ``snmp-agent`` is set to true, indicates how PowerDNS should contact the SNMP daemon to register as an SNMP agent.
 
 .. _setting-socket-dir:
 

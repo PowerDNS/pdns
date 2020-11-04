@@ -4881,7 +4881,11 @@ static int serviceMain(int argc, char*argv[])
   blacklistStats(StatComponent::SNMP, ::arg()["stats-snmp-blacklist"]);
 
   if (::arg().mustDo("snmp-agent")) {
-    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
+    string setting =  ::arg()["snmp-daemon-socket"];
+    if (setting.empty()) {
+      setting = ::arg()["snmp-master-socket"];
+    }
+    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", setting);
     g_snmpAgent->run();
   }
 
@@ -5372,7 +5376,8 @@ int main(int argc, char **argv)
     ::arg().setSwitch("reuseport","Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address")="no";
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
-    ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
+    ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)")="";
+    ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon")="";
 
     std::string defaultBlacklistedStats = "cache-bytes, packetcache-bytes, special-memory-usage";
     for (size_t idx = 0; idx < 32; idx++) {
