@@ -459,7 +459,7 @@ Queries to addresses for zones as configured in any of the settings `forward-zon
 List of requestor netmasks for which the requestor IP Address should be used as the :rfc:`EDNS Client Subnet <7871>` for outgoing queries. Outgoing queries for requestors that do not match this list will use the `ecs-scope-zero-address`_ instead.
 Valid incoming ECS values from `use-incoming-edns-subnet`_ are not replaced.
 
-Regardless of the value of this setting, ECS values are only sent for outgoing queries matching the conditions in the `edns-subnet-whitelist`_ setting. This setting only controls the actual value being sent.
+Regardless of the value of this setting, ECS values are only sent for outgoing queries matching the conditions in the `edns-subnet-allow-list`_ setting. This setting only controls the actual value being sent.
 
 This defaults to not using the requestor address inside RFC1918 and similar "private" IP address spaces.
 
@@ -547,7 +547,7 @@ That is, only if both the limits apply, the record will not be cached.
 - Default: empty
 
 The IP address sent via EDNS Client Subnet to authoritative servers listed in
-`edns-subnet-whitelist`_ when `use-incoming-edns-subnet`_ is set and the query has
+`edns-subnet-allow-list`_ when `use-incoming-edns-subnet`_ is set and the query has
 an ECS source prefix-length set to 0.
 The default is to look for the first usable (not an ``any`` one) address in
 `query-local-address`_ (starting with IPv4). If no suitable address is
@@ -575,6 +575,15 @@ Lower this if you experience timeouts.
 
 ``edns-subnet-whitelist``
 -------------------------
+.. deprecated:: 4.5.0
+ Use :ref:`setting-edns-subnet-allow-list`.
+ 
+.. _setting-edns-subnet-allow-list:
+
+``edns-subnet-allow-list``
+--------------------------
+.. versionadded:: 4.5.0
+
 -  Comma separated list of domain names and netmasks
 -  Default: (none)
 
@@ -1174,6 +1183,14 @@ from this directory.
 ``new-domain-whitelist``
 ------------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.5.0
+  Use :ref:`setting-new-domain-ignore-list`.
+
+.. _setting-new-domain-ignore-list:
+
+``new-domain-ignore-list``
+--------------------------
+.. versionadded:: 4.5.0
 
 - List of Domain Names, comma separated
 - Example: xyz.com, abc.com
@@ -1181,7 +1198,7 @@ from this directory.
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered a new domain. For example, if the domain
 'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv' will never be
-considered a new domain. One use-case for the whitelist is to never
+considered a new domain. One use-case for the ignore list is to never
 reveal details of internal subdomains via the new-domain-lookup
 feature.
 
@@ -1616,6 +1633,14 @@ Use 0 to disable.
 ``stats-api-blacklist``
 -----------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.5.0
+  Use :ref:`setting-stats-api-disabled-list`.
+
+.. _setting-stats-api-disabled-list:
+
+``stats-api-disabled-list``
+---------------------------
+.. versionadded:: 4.5.0
 
 -  String
 -  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
@@ -1628,6 +1653,14 @@ These statistics can still be retrieved individually by specifically asking for 
 ``stats-carbon-blacklist``
 --------------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.5.0
+  Use :ref:`setting-stats-carbon-disabled-list`.
+  
+.. _setting-stats-carbon-disabled-list:
+
+``stats-carbon-disabled-list``
+------------------------------
+.. versionadded:: 4.5.0
 
 -  String
 -  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
@@ -1639,6 +1672,14 @@ A list of comma-separated statistic names, that are prevented from being exporte
 ``stats-rec-control-blacklist``
 -------------------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.5.0
+  Use :ref:`setting-stats-rec-control-disabled-list`.
+
+.. _setting-stats-rec-control-disabled-list:
+
+``stats-rec-control-disabled-list``
+------------------------------------
+.. versionadded:: 4.5.0
 
 -  String
 -  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
@@ -1661,6 +1702,14 @@ Can be read out using ``rec_control top-remotes``.
 ``stats-snmp-blacklist``
 ------------------------
 .. versionadded:: 4.2.0
+.. deprecated:: 4.5.0
+  Use :ref:`setting-stats-snmp-disabled-list`.
+
+.. _setting-stats-snmp-disabled-list:
+
+``stats-snmp-disabled-list``
+----------------------------
+.. versionadded:: 4.5.0
 
 -  String
 -  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
@@ -1849,7 +1898,7 @@ a unique DNS response is observed.
 -  Default: no
 
 Whether to process and pass along a received EDNS Client Subnet to authoritative servers.
-The ECS information will only be sent for netmasks and domains listed in `edns-subnet-whitelist`_ and will be truncated if the received scope exceeds `ecs-ipv4-bits`_ for IPv4 or `ecs-ipv6-bits`_ for IPv6.
+The ECS information will only be sent for netmasks and domains listed in `edns-subnet-allow-list`_ and will be truncated if the received scope exceeds `ecs-ipv4-bits`_ for IPv4 or `ecs-ipv6-bits`_ for IPv6.
 
 .. _setting-version:
 

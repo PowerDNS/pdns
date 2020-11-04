@@ -4381,6 +4381,7 @@ static void setupNODGlobal()
   g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
   g_nodLog = ::arg().mustDo("new-domain-log");
   parseNODWhitelist(::arg()["new-domain-whitelist"]);
+  parseNODWhitelist(::arg()["new-domain-ignore-list"]);
 
   // Setup Unique DNS Response subsystem
   g_udrEnabled = ::arg().mustDo("unique-response-tracking");
@@ -4619,6 +4620,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
+  SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-allow-list"]);
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
@@ -4879,6 +4881,11 @@ static int serviceMain(int argc, char*argv[])
   blacklistStats(StatComponent::Carbon, ::arg()["stats-carbon-blacklist"]);
   blacklistStats(StatComponent::RecControl, ::arg()["stats-rec-control-blacklist"]);
   blacklistStats(StatComponent::SNMP, ::arg()["stats-snmp-blacklist"]);
+
+  blacklistStats(StatComponent::API, ::arg()["stats-api-disabled-list"]);
+  blacklistStats(StatComponent::Carbon, ::arg()["stats-carbon-disabled-list"]);
+  blacklistStats(StatComponent::RecControl, ::arg()["stats-rec-control-disabled-list"]);
+  blacklistStats(StatComponent::SNMP, ::arg()["stats-snmp-disabled-list"]);
 
   if (::arg().mustDo("snmp-agent")) {
     string setting =  ::arg()["snmp-daemon-socket"];
@@ -5350,9 +5357,10 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv6-cache-bits", "Maximum number of bits of IPv6 mask to cache ECS response")="56";
     ::arg().set("ecs-minimum-ttl-override", "The minimum TTL for records in ECS-specific answers")="1";
     ::arg().set("ecs-cache-limit-ttl", "Minimum TTL to cache ECS response")="0";
-    ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
+    ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for (deprecated)")="";
+    ::arg().set("edns-subnet-allow-list", "List of netmasks and domains that we should enable EDNS subnet for")="";
     ::arg().set("ecs-add-for", "List of client netmasks for which EDNS Client Subnet will be added")="0.0.0.0/0, ::/0, " LOCAL_NETS_INVERSE;
-    ::arg().set("ecs-scope-zero-address", "Address to send to whitelisted authoritative servers for incoming queries with ECS prefix-length source of 0")="";
+    ::arg().set("ecs-scope-zero-address", "Address to send to allow-listed authoritative servers for incoming queries with ECS prefix-length source of 0")="";
     ::arg().setSwitch( "use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information")="no";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="yes";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="yes";
@@ -5386,10 +5394,15 @@ int main(int argc, char **argv)
     for (size_t idx = 0; idx < 128; idx++) {
       defaultBlacklistedStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultBlacklistedStats;
-    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon")=defaultBlacklistedStats;
-    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all")=defaultBlacklistedStats;
-    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
+    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultBlacklistedStats;
+    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defaultBlacklistedStats;
+    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)")=defaultBlacklistedStats;
+    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)")=defaultBlacklistedStats;
+
+    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultBlacklistedStats;
+    ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon")=defaultBlacklistedStats;
+    ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all")=defaultBlacklistedStats;
+    ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
@@ -5423,7 +5436,8 @@ int main(int argc, char **argv)
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";
     ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain")="";
     ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts")=string(NODCACHEDIR)+"/nod";
-    ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
+    ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain (deprecated)")="";
+    ::arg().set("new-domain-ignore-list", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
     ::arg().set("new-domain-db-size", "Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864")="67108864";
     ::arg().set("new-domain-pb-tag", "If protobuf is configured, the tag to use for messages containing newly observed domains. Defaults to 'pdns-nod'")="pdns-nod";
     ::arg().set("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).")="no";
