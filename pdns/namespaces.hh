@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 #include <iostream>
@@ -28,8 +29,12 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <tuple>
 #include <vector>
+
+// We have a few paces where boost::tuple is used, and other places where an unscoped tuple is used
+// use the boost one for now. We might want to switch to std::tuple  one day.
+using boost::make_tuple;
+using boost::tuple;
 
 using std::cerr;
 using std::clog;
@@ -37,7 +42,6 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::make_pair;
-using std::make_tuple;
 using std::map;
 using std::max;
 using std::min;
@@ -50,6 +54,5 @@ using std::set;
 using std::shared_ptr;
 using std::string;
 using std::tie;
-using std::tuple;
 using std::unique_ptr;
 using std::vector;
