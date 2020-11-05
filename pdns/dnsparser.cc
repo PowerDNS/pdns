@@ -160,7 +160,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
   return i->second(dr, pr);
 }
 
-string DNSRecordContent::upgradeContent(const DNSName& qname, const QType qtype, const string& content) {
+string DNSRecordContent::upgradeContent(const DNSName& qname, const QType& qtype, const string& content) {
   // seamless upgrade for previously unsupported but now implemented types.
   UnknownRecordContent unknown_content(content);
   shared_ptr<DNSRecordContent> rc = DNSRecordContent::deserialize(qname, qtype.getCode(), unknown_content.serialize(qname));
@@ -693,7 +693,7 @@ string simpleCompress(const string& elabel, const string& root)
 }
 
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
-void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)> visitor)
+void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor)
 {
   if(length < sizeof(dnsheader))
     return;

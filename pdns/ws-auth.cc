@@ -516,7 +516,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -556,7 +556,7 @@ static void gatherRecords(UeberBackend& B, const string& logprefix, const Json c
   }
 }
 
-static void gatherComments(const Json container, const DNSName& qname, const QType qtype, vector<Comment>& new_comments) {
+static void gatherComments(const Json& container, const DNSName& qname, const QType& qtype, vector<Comment>& new_comments) {
   Comment c;
   c.qname = qname;
   c.qtype = qtype;
@@ -598,7 +598,7 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 
-static void extractDomainInfoFromDocument(const Json document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
@@ -628,7 +628,7 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
   }
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<string> account;
@@ -1051,7 +1051,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
 }
 
 // Throws 404 if the key with inquireKeyId does not exist
-static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, DNSSECKeeper *dk) {
+static void apiZoneCryptoKeysCheckKeyExists(const DNSName& zonename, int inquireKeyId, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
   bool found = false;
   for(const auto& value : keyset) {
@@ -1065,7 +1065,7 @@ static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, 
   }
 }
 
-static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
 
   bool inquireSingleKey = inquireKeyId >= 0;
@@ -1131,7 +1131,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  * Case 3: the key or zone does not exist.
  *      The server returns 404 Not Found
  * */
-static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysDELETE(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   if (dk->removeKey(zonename, inquireKeyId)) {
     resp->body = "";
     resp->status = 204;
@@ -1176,7 +1176,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *    The server returns 201 Created and all public data about the added cryptokey
  */
 
-static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   auto document = req->json();
   string privatekey_fieldname = "privatekey";
   auto privatekey = document["privatekey"];
@@ -1277,7 +1277,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
  * Case 3: the backend returns false on de/activation. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"
  * */
-static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPUT(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   //throws an exception if the Body is empty
   auto document = req->json();
   //throws an exception if the key does not exist or is not a bool
@@ -1350,7 +1350,7 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   }
 }
 
-static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, DNSName zonename) {
+static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, const DNSName& zonename) {
   DNSResourceRecord rr;
   vector<string> zonedata;
   stringtok(zonedata, zonestring, "\r\n");

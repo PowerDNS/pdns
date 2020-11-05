@@ -28,6 +28,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <utility>
 #include "arguments.hh"
 #include "lock.hh"
 #include "iputils.hh"
@@ -131,7 +132,7 @@ void StatBag::declare(const string &key, const string &descrip, StatBag::func_t 
     throw PDNSException("Attempt to re-declare func statbag '"+key+"'");
   }
 
-  d_funcstats[key]=func;
+  d_funcstats[key]=std::move(func);
   d_keyDescrips[key]=descrip;
   d_statTypes[key]=statType;
 }

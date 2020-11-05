@@ -144,7 +144,7 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
 }
 
 
-bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, const DNSPacket& packet) {
+bool AuthLua4::updatePolicy(const DNSName &qname, const QType& qtype, const DNSName &zonename, const DNSPacket& packet) {
   // default decision is all goes
   if (d_update_policy == nullptr) return true;
 

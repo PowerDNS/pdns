@@ -25,6 +25,7 @@
 #include "dns_random.hh"
 #include "ipcipher.hh"
 #include <fstream>
+#include <utility>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
 #ifdef HAVE_LIBSODIUM
@@ -1011,7 +1012,7 @@ static int editZone(const DNSName &zone) {
     unixDie("Making temporary filename in "+string(tmpnam));
   struct deleteme {
     ~deleteme() { unlink(d_name.c_str()); }
-    deleteme(string name) : d_name(name) {}
+    deleteme(string name) : d_name(std::move(name)) {}
     string d_name;
   } dm(tmpnam);
 
@@ -1218,7 +1219,7 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
 }
 
 
-static int loadZone(DNSName zone, const string& fname) {
+static int loadZone(const DNSName& zone, const string& fname) {
   UeberBackend B;
   DomainInfo di;
 

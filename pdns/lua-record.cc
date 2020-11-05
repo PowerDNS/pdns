@@ -2,6 +2,7 @@
 #include <future>
 #include <mutex>
 #include <boost/format.hpp>
+#include <utility>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lua-auth4.hh"
@@ -507,7 +508,7 @@ static vector<ComboAddress> convIplist(const iplist_t& src)
   return ret;
 }
 
-static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wiplist_t > src)
+static vector<pair<int, ComboAddress> > convWIplist(const std::unordered_map<int, wiplist_t >& src)
 {
   vector<pair<int,ComboAddress> > ret;
 
@@ -823,7 +824,7 @@ static void setupLuaRecords()
    * @example pickwrandom({ {100, '1.2.3.4'}, {50, '5.4.3.2'}, {1, '192.168.1.0'} })
    */
   lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) {
-      vector<pair<int,ComboAddress> > conv = convWIplist(ips);
+      vector<pair<int,ComboAddress> > conv = convWIplist(std::move(ips));
 
       return pickwrandom(conv).toString();
     });
