@@ -60,7 +60,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get --no-install-recommends install -qq -y \
+        sudo apt-get update && sudo apt-get --no-install-recommends install -qq -y \
                 bison \
                 default-libmysqlclient-dev \
                 flex \
