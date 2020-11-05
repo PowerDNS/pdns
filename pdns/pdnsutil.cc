@@ -2637,7 +2637,7 @@ try
   }
   else if(cmds[0] == "add-record") {
     if(cmds.size() < 5) {
-      cerr<<"Syntax: pdnsutil add-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      cerr<<R"(Syntax: pdnsutil add-record ZONE name type [ttl] "content" ["content"...])"<<endl;
       return 0;
     }
     return addOrReplaceRecord(true, cmds);
@@ -2651,7 +2651,7 @@ try
   }
   else if(cmds[0] == "replace-rrset") {
     if(cmds.size() < 5) {
-      cerr<<"Syntax: pdnsutil replace-rrset ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      cerr<<R"(Syntax: pdnsutil replace-rrset ZONE name type [ttl] "content" ["content"...])"<<endl;
       return 0;
     }
     return addOrReplaceRecord(false , cmds);

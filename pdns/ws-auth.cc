@@ -186,7 +186,7 @@ void AuthWebServer::printvars(ostringstream &ret)
 
 void AuthWebServer::printargs(ostringstream &ret)
 {
-  ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
+  ret<<R"(<table border=1><tr><td colspan=3 bgcolor="#0000ff"><font color="#ffffff">Arguments</font></td>)"<<endl;
 
   vector<string>entries=arg().list();
   for(const auto & entrie : entries) {
@@ -222,18 +222,18 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"<!DOCTYPE html>"<<endl;
   ret<<"<html><head>"<<endl;
   ret<<"<title>PowerDNS Authoritative Server Monitor</title>"<<endl;
-  ret<<"<link rel=\"stylesheet\" href=\"style.css\"/>"<<endl;
+  ret<<R"(<link rel="stylesheet" href="style.css"/>)"<<endl;
   ret<<"</head><body>"<<endl;
 
   ret<<"<div class=\"row\">"<<endl;
   ret<<"<div class=\"headl columns\">";
-  ret<<"<a href=\"/\" id=\"appname\">PowerDNS "<<htmlescape(VERSION);
+  ret<<R"(<a href="/" id="appname">PowerDNS )"<<htmlescape(VERSION);
   if(!arg()["config-name"].empty()) {
     ret<<" ["<<htmlescape(arg()["config-name"])<<"]";
   }
   ret<<"</a></div>"<<endl;
   ret<<"<div class=\"headr columns\"></div></div>";
-  ret<<"<div class=\"row\"><div class=\"all columns\">";
+  ret<<R"(<div class="row"><div class="all columns">)";
 
   time_t passed=time(nullptr)-s_starttime;
 
