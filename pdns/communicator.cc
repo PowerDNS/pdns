@@ -40,7 +40,7 @@
 #include "threadname.hh"
 
 // there can be MANY OF THESE
-void CommunicatorClass::retrievalLoopThread(void)
+void CommunicatorClass::retrievalLoopThread()
 {
   setThreadName("pdns/comm-retre");
   for(;;) {
@@ -107,7 +107,7 @@ void CommunicatorClass::go()
   loadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
-void CommunicatorClass::mainloop(void)
+void CommunicatorClass::mainloop()
 {
   try {
     setThreadName("pdns/comm-main");

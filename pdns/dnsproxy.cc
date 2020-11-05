@@ -184,7 +184,7 @@ int DNSProxy::getID_locked()
   }
 }
 
-void DNSProxy::mainloop(void)
+void DNSProxy::mainloop()
 {
   setThreadName("pdns/dnsproxy");
   try {

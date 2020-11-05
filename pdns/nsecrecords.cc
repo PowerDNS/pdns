@@ -164,7 +164,7 @@ string NSECBitmap::getZoneRepresentation() const
   return ret;
 }
 
-void NSECRecordContent::report(void)
+void NSECRecordContent::report()
 {
   regist(1, 47, &make, &make, "NSEC");
 }
@@ -213,7 +213,7 @@ string NSECRecordContent::getZoneRepresentation(bool noDot) const
 
 ////// begin of NSEC3
 
-void NSEC3RecordContent::report(void)
+void NSEC3RecordContent::report()
 {
   regist(1, 50, &make, &make, "NSEC3");
 }
@@ -286,7 +286,7 @@ string NSEC3RecordContent::getZoneRepresentation(bool noDot) const
 }
 
 
-void NSEC3PARAMRecordContent::report(void)
+void NSEC3PARAMRecordContent::report()
 {
   regist(1, 51, &make, &make, "NSEC3PARAM");
   regist(254, 51, &make, &make, "NSEC3PARAM");

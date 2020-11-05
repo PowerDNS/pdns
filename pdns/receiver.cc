@@ -101,7 +101,7 @@ const char *funnytext=
 This file is where it all happens - main is here, as are the two pivotal threads qthread() and athread()
 */
 
-static void daemonize(void)
+static void daemonize()
 {
   if(fork())
     exit(0); // bye bye
@@ -129,7 +129,7 @@ static void takedown(int i)
   }
 }
 
-static void writePid(void)
+static void writePid()
 {
   if(!::arg().mustDo("write-pid"))
     return;

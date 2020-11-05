@@ -298,7 +298,7 @@ static uint64_t getLatency(const std::string& str)
   return round(avg_latency);
 }
 
-void declareStats(void)
+void declareStats()
 {
   S.declare("udp-queries","Number of UDP queries received");
   S.declare("udp-do-queries","Number of UDP queries received with DO bit");

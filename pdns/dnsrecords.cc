@@ -418,7 +418,7 @@ boilerplate_conv(RKEY, 57,
 RKEYRecordContent::RKEYRecordContent() {}
 
 /* EUI48 start */
-void EUI48RecordContent::report(void) 
+void EUI48RecordContent::report()
 {
   regist(1, QType::EUI48, &make, &make, "EUI48");
 }
@@ -461,7 +461,7 @@ string EUI48RecordContent::getZoneRepresentation(bool noDot) const
 
 /* EUI64 start */
 
-void EUI64RecordContent::report(void)
+void EUI64RecordContent::report()
 {
   regist(1, QType::EUI64, &make, &make, "EUI64");
 }
@@ -506,7 +506,7 @@ string EUI64RecordContent::getZoneRepresentation(bool noDot) const
 
 /* APL start */
 /* https://tools.ietf.org/html/rfc3123 */
-void APLRecordContent::report(void)
+void APLRecordContent::report()
 {
   regist(1, QType::APL, &make, &make, "APL");
 }

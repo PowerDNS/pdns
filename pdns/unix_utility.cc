@@ -166,7 +166,7 @@ void Utility::dropUserPrivs( uid_t uid )
 
 
 // Returns the current process id.
-Utility::pid_t Utility::getpid( void )
+Utility::pid_t Utility::getpid( )
 {
   return ::getpid();
 }
@@ -179,7 +179,7 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
 }
 
 // Sets the random seed.
-void Utility::srandom(void)
+void Utility::srandom()
 {
   struct timeval tv;
   gettimeofday(&tv, 0);
