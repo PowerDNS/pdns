@@ -224,7 +224,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   bool result = true;
 
   B.getAllDomains(&domainInfo);
-  for(DomainInfo di :  domainInfo) {
+  for(const DomainInfo& di :  domainInfo) {
     if (!quiet) {
       cerr<<"Rectifying "<<di.zone<<": ";
     }
@@ -1824,7 +1824,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       cout << "keys: "<<endl;
     }
 
-    for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
+    for(const DNSSECKeeper::keyset_t::value_type& value :  keyset) {
       string algname = DNSSECKeeper::algorithm2name(value.first.d_algorithm);
       if (!exportDS) {
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
@@ -2751,7 +2751,7 @@ try
     B.getAllDomains(&domainInfo);
 
     unsigned int zonesSecured=0, zoneErrors=0;
-    for(DomainInfo di :  domainInfo) {
+    for(const DomainInfo& di :  domainInfo) {
       if(!dk.isSecuredZone(di.zone)) {
         cout<<"Securing "<<di.zone<<": ";
         if (secureZone(dk, di.zone)) {
@@ -3215,7 +3215,7 @@ try
        return 1;
      }
      bool found = false;
-     for(std::string tmpname :  meta) {
+     for(const std::string& tmpname :  meta) {
           if (tmpname == name) { found = true; break; }
      }
      if (!found) meta.push_back(name);

@@ -562,7 +562,7 @@ static void gatherComments(const Json container, const DNSName& qname, const QTy
   c.qtype = qtype;
 
   time_t now = time(nullptr);
-  for (auto comment : container["comments"].array_items()) {
+  for (const auto& comment : container["comments"].array_items()) {
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
@@ -607,7 +607,7 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
 
   if (document["masters"].is_array()) {
     masters = vector<ComboAddress>();
-    for(auto value : document["masters"].array_items()) {
+    for(const auto& value : document["masters"].array_items()) {
       string master = value.string_value();
       if (master.empty())
         throw ApiException("Master can not be an empty string");
@@ -795,7 +795,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (!document["master_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(auto value : document["master_tsig_key_ids"].array_items()) {
+    for(const auto& value : document["master_tsig_key_ids"].array_items()) {
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
@@ -811,7 +811,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(auto value : document["slave_tsig_key_ids"].array_items()) {
+    for(const auto& value : document["slave_tsig_key_ids"].array_items()) {
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
@@ -916,7 +916,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
     for (const auto& i : md) {
       Json::array entries;
-      for (string j : i.second)
+      for (const string& j : i.second)
         entries.push_back(j);
 
       Json::object key {
@@ -1657,7 +1657,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     // create NS records if nameservers are given
-    for (auto value : nameservers.array_items()) {
+    for (const auto& value : nameservers.array_items()) {
       const string& nameserver = value.string_value();
       if (nameserver.empty())
         throw ApiException("Nameservers must be non-empty strings");

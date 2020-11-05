@@ -288,7 +288,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   }
   storvect.push_back(make_pair("Algorithm", algorithm));
 
-  for(outputs_t::value_type value :  outputs) {
+  for(const outputs_t::value_type& value :  outputs) {
     std::string tmp;
     tmp.resize(BN_num_bytes(value.second));
     int len = BN_bn2bin(value.second, reinterpret_cast<unsigned char*>(&tmp.at(0)));
