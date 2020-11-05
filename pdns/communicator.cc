@@ -62,9 +62,9 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
 {
   vector<string> parts;
   stringtok(parts, ::arg()[listname], ", \t");
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+  for (const auto & part : parts) {
     try {
-      ComboAddress caIp(*iter, 53);
+      ComboAddress caIp(part, 53);
       listset.insert(caIp.toStringWithPort());
     }
     catch(PDNSException &e) {

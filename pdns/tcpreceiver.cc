@@ -430,9 +430,9 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
     // cerr<<"got backend and SOA"<<endl;
     vector<string> acl;
     s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
-    for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
+    for (const auto & i : acl) {
       // cerr<<"matching against "<<*i<<endl;
-      if(pdns_iequals(*i, "AUTO-NS")) {
+      if(pdns_iequals(i, "AUTO-NS")) {
         // cerr<<"AUTO-NS magic please!"<<endl;
 
         DNSResourceRecord rr;
@@ -444,9 +444,9 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
         }
         for(const auto & j: nsset) {
           vector<string> nsips=fns.lookup(j, s_P->getBackend());
-          for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          for(const auto & nsip : nsips) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
-            if(*k == q->getRemote().toString())
+            if(nsip == q->getRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
               g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in NSset"<<endl;
@@ -457,7 +457,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
       }
       else
       {
-        Netmask nm = Netmask(*i);
+        Netmask nm = Netmask(i);
         if(nm.match( (ComboAddress *) &q->d_remote ))
         {
           g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in per-zone ACL"<<endl;
@@ -1000,8 +1000,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
   uint32_t serial = 0;
   MOADNSParser mdp(false, q->getString());
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto & d_answer : mdp.d_answers) {
+    const DNSRecord *rr = &d_answer.first;
     if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());

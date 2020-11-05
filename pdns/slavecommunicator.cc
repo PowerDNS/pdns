@@ -257,24 +257,24 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
       first=false;
     }
 
-    for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
-      i->qname.makeUsLowerCase();
-      if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
+    for(auto & rec : recs) {
+      rec.qname.makeUsLowerCase();
+      if(rec.qtype.getCode() == QType::OPT || rec.qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
         continue;
 
-      if(!i->qname.isPartOf(domain)) {
-        g_log<<Logger::Warning<<logPrefix<<"primary tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<", ignoring"<<endl;
+      if(!rec.qname.isPartOf(domain)) {
+        g_log<<Logger::Warning<<logPrefix<<"primary tried to sneak in out-of-zone data '"<<rec.qname<<"'|"<<rec.qtype.getName()<<", ignoring"<<endl;
         continue;
       }
 
       vector<DNSResourceRecord> out;
-      if(!pdl || !pdl->axfrfilter(raddr, domain, *i, out)) {
-        out.push_back(*i); // if axfrfilter didn't do anything, we put our record in 'out' ourselves
+      if(!pdl || !pdl->axfrfilter(raddr, domain, rec, out)) {
+        out.push_back(rec); // if axfrfilter didn't do anything, we put our record in 'out' ourselves
       }
 
-      for(DNSResourceRecord& rr :  out) {
+      for(auto& rr :  out) {
         if(!rr.qname.isPartOf(domain)) {
-          g_log<<Logger::Error<<logPrefix<<"axfrfilter() filter tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<", ignoring"<<endl;
+          g_log<<Logger::Error<<logPrefix<<"axfrfilter() filter tried to sneak in out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.getName()<<", ignoring"<<endl;
           continue;
         }
         if(!processRecordForZS(domain, firstNSEC3, rr, zs))

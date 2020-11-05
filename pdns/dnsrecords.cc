@@ -646,9 +646,9 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
   auto ret=std::make_shared<APLRecordContent>();
 
   boost::split(elements, zone, boost::is_any_of(" "));
-  for (std::vector<std::string>::iterator elem = elements.begin() ; elem != elements.end(); ++elem) {
-    if (!elem->empty()) {
-      ard = ret->parseAPLElement(*elem);
+  for (auto & element : elements) {
+    if (!element.empty()) {
+      ard = ret->parseAPLElement(element);
       ret->aplrdata.push_back(ard);
     }
   }
@@ -658,17 +658,17 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
 
 // DNSRecord to Packet conversion
 void APLRecordContent::toPacket(DNSPacketWriter& pw) {
-  for (std::vector<APLRDataElement>::iterator ard = aplrdata.begin() ; ard != aplrdata.end(); ++ard) {
-    pw.xfr16BitInt(ard->d_family);
-    pw.xfr8BitInt(ard->d_prefix);
-    pw.xfr8BitInt((ard->d_n << 7) + ard->d_afdlength);
-    if (ard->d_family == APL_FAMILY_IPV4) {
-      for (int i=0; i<ard->d_afdlength; i++) {
-        pw.xfr8BitInt(ard->d_ip.d_ip4[i]);
+  for (auto & ard : aplrdata) {
+    pw.xfr16BitInt(ard.d_family);
+    pw.xfr8BitInt(ard.d_prefix);
+    pw.xfr8BitInt((ard.d_n << 7) + ard.d_afdlength);
+    if (ard.d_family == APL_FAMILY_IPV4) {
+      for (int i=0; i<ard.d_afdlength; i++) {
+        pw.xfr8BitInt(ard.d_ip.d_ip4[i]);
       }
-    } else if (ard->d_family == APL_FAMILY_IPV6) {
-      for (int i=0; i<ard->d_afdlength; i++) {
-        pw.xfr8BitInt(ard->d_ip.d_ip6[i]);
+    } else if (ard.d_family == APL_FAMILY_IPV6) {
+      for (int i=0; i<ard.d_afdlength; i++) {
+        pw.xfr8BitInt(ard.d_ip.d_ip6[i]);
       }
     }
   }

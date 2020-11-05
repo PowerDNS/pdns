@@ -1243,23 +1243,23 @@ bool GSQLBackend::superMasterAdd(const string &ip, const string &nameserver, con
 bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)
 {
   // check if we know the ip/ns couple in the database
-  for(vector<DNSResourceRecord>::const_iterator i=nsset.begin();i!=nsset.end();++i) {
+  for(const auto & i : nsset) {
     try {
       reconnectIfNeeded();
 
       d_SuperMasterInfoQuery_stmt->
         bind("ip", ip)->
-        bind("nameserver", i->content)->
+        bind("nameserver", i.content)->
         execute()->
         getResult(d_result)->
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a supermaster with IP " + ip + " and nameserver name '" + i->content + "' for domain '" + domain.toLogString() + "': "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for a supermaster with IP " + ip + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': "+e.txtReason());
     }
     if(!d_result.empty()) {
       ASSERT_ROW_COLUMNS("supermaster-query", d_result[0], 1);
-      *nameserver=i->content;
+      *nameserver=i.content;
       *account=d_result[0][0];
       *ddb=this;
       return true;

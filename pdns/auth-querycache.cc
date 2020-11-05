@@ -157,8 +157,8 @@ map<char,uint64_t> AuthQueryCache::getCounts()
   for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
     
-    for(cmap_t::const_iterator iter = mc.d_map.begin() ; iter != mc.d_map.end(); ++iter) {
-      if(iter->drs.empty())
+    for(const auto & iter : mc.d_map) {
+      if(iter.drs.empty())
         negQueryCacheEntries++;
       else
         queryCacheEntries++;

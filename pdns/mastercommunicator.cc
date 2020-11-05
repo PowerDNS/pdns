@@ -57,25 +57,25 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
     while(B->get(rr))
       nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
 
-    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-      vector<string> nsips=fns.lookup(DNSName(*j), B);
+    for(const auto & j : nsset) {
+      vector<string> nsips=fns.lookup(DNSName(j), B);
       if(nsips.empty())
         g_log<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"': nameservers do not resolve!"<<endl;
       else
-        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
-          const ComboAddress caIp(*k, 53);
+        for(const auto & nsip : nsips) {
+          const ComboAddress caIp(nsip, 53);
           if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
             if(!d_onlyNotify.match(&caIp))
-              g_log<<Logger::Notice<<"Skipped notification of domain '"<<di.zone<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+              g_log<<Logger::Notice<<"Skipped notification of domain '"<<di.zone<<"' to "<<j<<" because it does not match only-notify."<<endl;
             else
               ips.insert(caIp.toStringWithPort());
           }
         }
     }
 
-    for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-      g_log<<Logger::Notice<<"Queued notification of domain '"<<di.zone<<"' to "<<*j<<endl;
-      d_nq.add(di.zone,*j);
+    for(const auto & ip : ips) {
+      g_log<<Logger::Notice<<"Queued notification of domain '"<<di.zone<<"' to "<<ip<<endl;
+      d_nq.add(di.zone,ip);
       hasQueuedItem=true;
     }
   }
@@ -93,9 +93,9 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
   set<string> alsoNotify(d_alsoNotify);
   B->alsoNotifies(di.zone, &alsoNotify);
 
-  for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
+  for(const auto & j : alsoNotify) {
     try {
-      const ComboAddress caIp(*j, 53);
+      const ComboAddress caIp(j, 53);
       g_log<<Logger::Notice<<"Queued also-notification of domain '"<<di.zone<<"' to "<<caIp.toStringWithPort()<<endl;
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());

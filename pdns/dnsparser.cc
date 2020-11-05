@@ -65,8 +65,8 @@ string UnknownRecordContent::getZoneRepresentation(bool noDot) const
   ostringstream str;
   str<<"\\# "<<(unsigned int)d_record.size()<<" ";
   char hex[4];
-  for (size_t n=0; n<d_record.size(); ++n) {
-    snprintf(hex, sizeof(hex), "%02x", d_record.at(n));
+  for (unsigned char n : d_record) {
+    snprintf(hex, sizeof(hex), "%02x", n);
     str << hex;
   }
   return str.str();
@@ -450,17 +450,17 @@ static string txtEscape(const string &name)
   string ret;
   char ebuf[5];
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if((unsigned char) *i >= 127 || (unsigned char) *i < 32) {
-      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)*i);
+  for(char i : name) {
+    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
+      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
       ret += ebuf;
     }
-    else if(*i=='"' || *i=='\\'){
+    else if(i=='"' || i=='\\'){
       ret += '\\';
-      ret += *i;
+      ret += i;
     }
     else
-      ret += *i;
+      ret += i;
   }
   return ret;
 }
@@ -679,14 +679,14 @@ string simpleCompress(const string& elabel, const string& root)
   vstringtok(parts, label, ".");
   string ret;
   ret.reserve(label.size()+4);
-  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, 1 + label.length() - i->first)) { // also match trailing 0, hence '1 +'
+  for(const auto & part : parts) {
+    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + part.first, 1 + label.length() - part.first)) { // also match trailing 0, hence '1 +'
       const unsigned char rootptr[2]={0xc0,0x11};
       ret.append((const char *) rootptr, 2);
       return ret;
     }
-    ret.append(1, (char)(i->second - i->first));
-    ret.append(label.c_str() + i->first, i->second - i->first);
+    ret.append(1, (char)(part.second - part.first));
+    ret.append(label.c_str() + part.first, part.second - part.first);
   }
   ret.append(1, (char)0);
   return ret;

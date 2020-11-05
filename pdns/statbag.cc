@@ -373,10 +373,10 @@ string StatBag::getRingTitle(const string &name)
 vector<string>StatBag::listRings()
 {
   vector<string> ret;
-  for(auto i=d_rings.begin();i!=d_rings.end();++i)
-    ret.push_back(i->first);
-  for(auto i=d_comboRings.begin();i!=d_comboRings.end();++i)
-    ret.push_back(i->first);
+  for(auto & d_ring : d_rings)
+    ret.push_back(d_ring.first);
+  for(auto & d_comboRing : d_comboRings)
+    ret.push_back(d_comboRing.first);
   for(const auto &i : d_dnsnameqtyperings)
     ret.push_back(i.first);
 

@@ -110,8 +110,8 @@ void AuthWebServer::statThread()
 
 static string htmlescape(const string &s) {
   string result;
-  for(string::const_iterator it=s.begin(); it!=s.end(); ++it) {
-    switch (*it) {
+  for(char it : s) {
+    switch (it) {
     case '&':
       result += "&amp;";
       break;
@@ -125,7 +125,7 @@ static string htmlescape(const string &s) {
       result += "&quot;";
       break;
     default:
-      result += *it;
+      result += it;
     }
   }
   return result;
@@ -137,8 +137,8 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
   int entries=0;
   vector<pair <string,unsigned int> >ring=S.getRing(ringname);
 
-  for(vector<pair<string, unsigned int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {
-    tot+=i->second;
+  for(const auto & i : ring) {
+    tot+=i.second;
     entries++;
   }
 
@@ -177,8 +177,8 @@ void AuthWebServer::printvars(ostringstream &ret)
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
   vector<string>entries=S.getEntries();
-  for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
-    ret<<"<tr><td>"<<*i<<"</td><td>"<<S.read(*i)<<"</td><td>"<<S.getDescrip(*i)<<"</td>"<<endl;
+  for(const auto & entrie : entries) {
+    ret<<"<tr><td>"<<entrie<<"</td><td>"<<S.read(entrie)<<"</td><td>"<<S.getDescrip(entrie)<<"</td>"<<endl;
   }
 
   ret<<"</table></div>"<<endl;
@@ -189,8 +189,8 @@ void AuthWebServer::printargs(ostringstream &ret)
   ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
 
   vector<string>entries=arg().list();
-  for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
-    ret<<"<tr><td>"<<*i<<"</td><td>"<<arg()[*i]<<"</td><td>"<<arg().getHelp(*i)<<"</td>"<<endl;
+  for(const auto & entrie : entries) {
+    ret<<"<tr><td>"<<entrie<<"</td><td>"<<arg()[entrie]<<"</td><td>"<<arg().getHelp(entrie)<<"</td>"<<endl;
   }
 }
 

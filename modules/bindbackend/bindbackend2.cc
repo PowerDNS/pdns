@@ -315,15 +315,15 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   {
     ReadLock rl(&s_state_lock);
 
-    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-      if(i->d_kind != DomainInfo::Master && this->alsoNotify.empty() && i->d_also_notify.empty())
+    for(const auto & i : s_state) {
+      if(i.d_kind != DomainInfo::Master && this->alsoNotify.empty() && i.d_also_notify.empty())
         continue;
 
       DomainInfo di;
-      di.id=i->d_id;
-      di.zone=i->d_name;
-      di.last_check=i->d_lastcheck;
-      di.notified_serial=i->d_lastnotified;
+      di.id=i.d_id;
+      di.zone=i.d_name;
+      di.last_check=i.d_lastcheck;
+      di.notified_serial=i.d_lastnotified;
       di.backend=this;
       di.kind=DomainInfo::Master;
       consider.push_back(std::move(di));
@@ -362,13 +362,13 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
     ReadLock rl(&s_state_lock);
     domains->reserve(s_state.size());
 
-    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
+    for(const auto & i : s_state) {
       DomainInfo di;
-      di.id=i->d_id;
-      di.zone=i->d_name;
-      di.last_check=i->d_lastcheck;
-      di.kind=i->d_kind;
-      di.masters=i->d_masters;
+      di.id=i.d_id;
+      di.zone=i.d_name;
+      di.last_check=i.d_lastcheck;
+      di.kind=i.d_kind;
+      di.masters=i.d_masters;
       di.backend=this;
       domains->push_back(std::move(di));
     };
@@ -393,14 +393,14 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   {
     ReadLock rl(&s_state_lock);
     domains.reserve(s_state.size());
-    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-      if(i->d_kind != DomainInfo::Slave)
+    for(const auto & i : s_state) {
+      if(i.d_kind != DomainInfo::Slave)
         continue;
       DomainInfo sd;
-      sd.id=i->d_id;
-      sd.zone=i->d_name;
-      sd.masters=i->d_masters;
-      sd.last_check=i->d_lastcheck;
+      sd.id=i.d_id;
+      sd.zone=i.d_name;
+      sd.masters=i.d_masters;
+      sd.last_check=i.d_lastcheck;
       sd.backend=this;
       sd.kind=DomainInfo::Slave;
       domains.push_back(std::move(sd));
@@ -452,8 +452,8 @@ bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool get
 void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
 {
   // combine global list with local list
-  for(set<string>::iterator i = this->alsoNotify.begin(); i != this->alsoNotify.end(); i++) {
-    (*ips).insert(*i);
+  for(const auto & i : this->alsoNotify) {
+    (*ips).insert(i);
   }
   // check metadata too if available
   vector<string> meta;
@@ -463,10 +463,10 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
     }
   }
   ReadLock rl(&s_state_lock);
-  for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(i->d_name == domain) {
-      for(set<string>::iterator it = i->d_also_notify.begin(); it != i->d_also_notify.end(); it++) {
-        (*ips).insert(*it);
+  for(const auto & i : s_state) {
+    if(i.d_name == domain) {
+      for(const auto & it : i.d_also_notify) {
+        (*ips).insert(it);
       }
       return;
     }
@@ -585,8 +585,8 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
   }
   else {
     ReadLock rl(&s_state_lock);
-    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-      ret<< i->d_name << ": "<< (i->d_loaded ? "": "[rejected]") <<"\t"<<i->d_status<<"\n";
+    for(const auto & i : s_state) {
+      ret<< i.d_name << ": "<< (i.d_loaded ? "": "[rejected]") <<"\t"<<i.d_status<<"\n";
     }
   }
 
@@ -663,9 +663,9 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
 {
   ostringstream ret;
   ReadLock rl(&s_state_lock);
-  for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(!i->d_loaded)
-      ret<<i->d_name<<"\t"<<i->d_status<<endl;
+  for(const auto & i : s_state) {
+    if(!i.d_loaded)
+      ret<<i.d_name<<"\t"<<i.d_status<<endl;
   }
   return ret.str();
 }
@@ -760,8 +760,8 @@ void Bind2Backend::rediscover(string *status)
 void Bind2Backend::reload()
 {
   WriteLock rwl(&s_state_lock);
-  for(state_t::iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    i->d_checknow=true; // being a bit cheeky here, don't index state_t on this (mutable)
+  for(const auto & i : s_state) {
+    i.d_checknow=true; // being a bit cheeky here, don't index state_t on this (mutable)
   }
 }
 
@@ -892,29 +892,27 @@ void Bind2Backend::loadConfig(string* status)
 
     struct stat st;
       
-    for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) 
+    for(auto & domain : domains) 
     {
-      if(stat(i->filename.c_str(), &st) == 0) {
-        i->d_dev = st.st_dev;
-        i->d_ino = st.st_ino;
+      if(stat(domain.filename.c_str(), &st) == 0) {
+        domain.d_dev = st.st_dev;
+        domain.d_ino = st.st_ino;
       }
     }
 
     sort(domains.begin(), domains.end()); // put stuff in inode order
-    for(vector<BindDomainInfo>::const_iterator i=domains.begin();
-        i!=domains.end();
-        ++i)
+    for(const auto & domain : domains)
       {
-        if (!(i->hadFileDirective)) {
-          g_log<<Logger::Warning<<d_logprefix<<" Zone '"<<i->name<<"' has no 'file' directive set in "<<getArg("config")<<endl;
+        if (!(domain.hadFileDirective)) {
+          g_log<<Logger::Warning<<d_logprefix<<" Zone '"<<domain.name<<"' has no 'file' directive set in "<<getArg("config")<<endl;
           rejected++;
           continue;
         }
 
-        if(i->type == "")
-          g_log<<Logger::Notice<<d_logprefix<<" Zone '"<<i->name<<"' has no type specified, assuming 'native'"<<endl;
-        if(i->type!="master" && i->type!="slave" && i->type != "native" && i->type != "") {
-          g_log<<Logger::Warning<<d_logprefix<<" Warning! Skipping zone '"<<i->name<<"' because type '"<<i->type<<"' is invalid"<<endl;
+        if(domain.type == "")
+          g_log<<Logger::Notice<<d_logprefix<<" Zone '"<<domain.name<<"' has no type specified, assuming 'native'"<<endl;
+        if(domain.type!="master" && domain.type!="slave" && domain.type != "native" && domain.type != "") {
+          g_log<<Logger::Warning<<d_logprefix<<" Warning! Skipping zone '"<<domain.name<<"' because type '"<<domain.type<<"' is invalid"<<endl;
           rejected++;
           continue;
         }
@@ -922,7 +920,7 @@ void Bind2Backend::loadConfig(string* status)
         BB2DomainInfo bbd;
         bool isNew = false;
 
-        if(!safeGetBBDomainInfo(i->name, &bbd)) { 
+        if(!safeGetBBDomainInfo(domain.name, &bbd)) { 
           isNew = true;
           bbd.d_id=domain_id++;
           bbd.setCheckInterval(getArgAsNum("check-interval"));
@@ -931,17 +929,17 @@ void Bind2Backend::loadConfig(string* status)
         }
         
         // overwrite what we knew about the domain
-        bbd.d_name=i->name;
-        bool filenameChanged = (bbd.d_filename!=i->filename);
-        bool addressesChanged = (bbd.d_masters!=i->masters || bbd.d_also_notify!=i->alsoNotify);
-        bbd.d_filename=i->filename;
-        bbd.d_masters=i->masters;
-        bbd.d_also_notify=i->alsoNotify;
+        bbd.d_name=domain.name;
+        bool filenameChanged = (bbd.d_filename!=domain.filename);
+        bool addressesChanged = (bbd.d_masters!=domain.masters || bbd.d_also_notify!=domain.alsoNotify);
+        bbd.d_filename=domain.filename;
+        bbd.d_masters=domain.masters;
+        bbd.d_also_notify=domain.alsoNotify;
 
         DomainInfo::DomainKind kind = DomainInfo::Native;
-        if (i->type == "master")
+        if (domain.type == "master")
           kind = DomainInfo::Master;
-        if (i->type == "slave")
+        if (domain.type == "slave")
           kind = DomainInfo::Slave;
 
         bool kindChanged = (bbd.d_kind!=kind);
@@ -949,14 +947,14 @@ void Bind2Backend::loadConfig(string* status)
 
         newnames.insert(bbd.d_name);
         if(filenameChanged || !bbd.d_loaded || !bbd.current()) {
-          g_log<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+          g_log<<Logger::Info<<d_logprefix<<" parsing '"<<domain.name<<"' from file '"<<domain.filename<<"'"<<endl;
 
           try {
             parseZoneFile(&bbd);
           }
           catch(PDNSException &ae) {
             ostringstream msg;
-            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
+            msg<<" error at "+nowTime()+" parsing '"<<domain.name<<"' from file '"<<domain.filename<<"': "<<ae.reason;
 
             if(status)
               *status+=msg.str();
@@ -967,10 +965,10 @@ void Bind2Backend::loadConfig(string* status)
           }
           catch(std::system_error &ae) {
             ostringstream msg;
-            if (ae.code().value() == ENOENT && isNew && i->type == "slave")
-              msg<<" error at "+nowTime()<<" no file found for new slave domain '"<<i->name<<"'. Has not been AXFR'd yet";
+            if (ae.code().value() == ENOENT && isNew && domain.type == "slave")
+              msg<<" error at "+nowTime()<<" no file found for new slave domain '"<<domain.name<<"'. Has not been AXFR'd yet";
             else
-              msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
+              msg<<" error at "+nowTime()+" parsing '"<<domain.name<<"' from file '"<<domain.filename<<"': "<<ae.what();
 
             if(status)
               *status+=msg.str();
@@ -980,7 +978,7 @@ void Bind2Backend::loadConfig(string* status)
           }
           catch(std::exception &ae) {
             ostringstream msg;
-            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
+            msg<<" error at "+nowTime()+" parsing '"<<domain.name<<"' from file '"<<domain.filename<<"': "<<ae.what();
 
             if(status)
               *status+=msg.str();
@@ -1418,20 +1416,20 @@ bool Bind2Backend::searchRecords(const string &pattern, int maxResults, vector<D
   {
     ReadLock rl(&s_state_lock);
 
-    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
+    for(const auto & i : s_state) {
       BB2DomainInfo h;
-      if (!safeGetBBDomainInfo(i->d_id, &h)) {
+      if (!safeGetBBDomainInfo(i.d_id, &h)) {
         continue;
       }
 
       shared_ptr<const recordstorage_t> rhandle = h.d_records.get();
 
       for(recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != rhandle->end(); ri++) {
-        DNSName name = ri->qname.empty() ? i->d_name : (ri->qname+i->d_name);
+        DNSName name = ri->qname.empty() ? i.d_name : (ri->qname+i.d_name);
         if (sm.match(name) || sm.match(ri->content)) {
           DNSResourceRecord r;
           r.qname=name;
-          r.domain_id=i->d_id;
+          r.domain_id=i.d_id;
           r.content=ri->content;
           r.qtype=ri->qtype;
           r.ttl=ri->ttl;

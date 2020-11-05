@@ -1003,9 +1003,9 @@ int PacketHandler::processNotify(const DNSPacket& p)
 
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
-    for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
-      g_log<<Logger::Notice<<"Relaying notification of domain "<<p.qdomain<<" from "<<p.getRemote()<<" to "<<*j<<endl;
-      Communicator.notify(p.qdomain,*j);
+    for(const auto & j : forwardNotify) {
+      g_log<<Logger::Notice<<"Relaying notification of domain "<<p.qdomain<<" from "<<p.getRemote()<<" to "<<j<<endl;
+      Communicator.notify(p.qdomain,j);
     }
   }
 

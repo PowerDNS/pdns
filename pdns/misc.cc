@@ -466,9 +466,9 @@ void stripLine(string &line)
 string urlEncode(const string &text)
 {
   string ret;
-  for(string::const_iterator i=text.begin();i!=text.end();++i)
-    if(*i==' ')ret.append("%20");
-    else ret.append(1,*i);
+  for(char i : text)
+    if(i==' ')ret.append("%20");
+    else ret.append(1,i);
   return ret;
 }
 
@@ -565,8 +565,8 @@ string makeHexDump(const string& str)
   string ret;
   ret.reserve((int)(str.size()*2.2));
 
-  for(string::size_type n=0;n<str.size();++n) {
-    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)str[n]);
+  for(char n : str) {
+    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)n);
     ret+=tmp;
   }
   return ret;
@@ -1109,8 +1109,8 @@ string getMACAddress(const ComboAddress& ca)
       if (sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5) != 6) {
         return ret;
       }
-      for(int i = 0 ; i< 6 ; ++i)
-        ret.append(1, (char)tmp[i]);
+      for(unsigned int i : tmp)
+        ret.append(1, (char)i);
       return ret;
     }
   }

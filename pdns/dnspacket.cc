@@ -132,8 +132,8 @@ void DNSPacket::addRecord(DNSZoneRecord&& rr)
     std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
     auto hash = boost::hash< std::pair<DNSName, std::string> >()({rr.dr.d_name, ser});
     if(d_dedup.count(hash)) { // might be a dup
-      for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
-        if(rr.dr == i->dr)  // XXX SUPER SLOW
+      for(auto & d_rr : d_rrs) {
+        if(rr.dr == d_rr.dr)  // XXX SUPER SLOW
           return;
       }
     }
@@ -147,16 +147,14 @@ vector<DNSZoneRecord*> DNSPacket::getAPRecords()
 {
   vector<DNSZoneRecord*> arrs;
 
-  for(vector<DNSZoneRecord>::iterator i=d_rrs.begin();
-      i!=d_rrs.end();
-      ++i)
+  for(auto & d_rr : d_rrs)
     {
-      if(i->dr.d_place!=DNSResourceRecord::ADDITIONAL &&
-         (i->dr.d_type==QType::MX ||
-          i->dr.d_type==QType::NS ||
-          i->dr.d_type==QType::SRV))
+      if(d_rr.dr.d_place!=DNSResourceRecord::ADDITIONAL &&
+         (d_rr.dr.d_type==QType::MX ||
+          d_rr.dr.d_type==QType::NS ||
+          d_rr.dr.d_type==QType::SRV))
         {
-          arrs.push_back(&*i);
+          arrs.push_back(&d_rr);
         }
     }
   return arrs;
@@ -166,12 +164,10 @@ vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
 {
   vector<DNSZoneRecord*> arrs;
 
-  for(vector<DNSZoneRecord>::iterator i=d_rrs.begin();
-      i!=d_rrs.end();
-      ++i)
+  for(auto & d_rr : d_rrs)
     {
-      if(i->dr.d_place!=DNSResourceRecord::ADDITIONAL)
-        arrs.push_back(&*i);
+      if(d_rr.dr.d_place!=DNSResourceRecord::ADDITIONAL)
+        arrs.push_back(&d_rr);
     }
   return arrs;
 }
@@ -441,16 +437,16 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
     return false;
   
   bool gotit=false;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    if(i->first.d_type == QType::TSIG && i->first.d_class == QType::ANY) {
+  for(const auto & d_answer : mdp.d_answers) {          
+    if(d_answer.first.d_type == QType::TSIG && d_answer.first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
+      shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(d_answer.first.d_content);
       if (!content) {
         g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *trc = *content;
-      *keyname = i->first.d_name;
+      *keyname = d_answer.first.d_name;
       gotit=true;
     }
   }
@@ -469,21 +465,21 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
   MOADNSParser mdp(d_isQuery, d_rawpacket);
   bool gotit=false;
 
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+  for(const auto & d_answer : mdp.d_answers) {
     if (gotit) {
       g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl;
       return false;
     }
 
-    if(i->first.d_type == QType::TKEY) {
+    if(d_answer.first.d_type == QType::TKEY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(d_answer.first.d_content);
       if (!content) {
         g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *tr = *content;
-      *keyname = i->first.d_name;
+      *keyname = d_answer.first.d_name;
       gotit=true;
     }
   }
@@ -528,14 +524,12 @@ try
     if(edo.d_extFlags & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 
-    for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-        iter != edo.d_options.end(); 
-        ++iter) {
-      if(iter->first == EDNSOptionCode::NSID) {
+    for(const auto & d_option : edo.d_options) {
+      if(d_option.first == EDNSOptionCode::NSID) {
         d_wantsnsid=true;
       }
-      else if(s_doEDNSSubnetProcessing && (iter->first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
-        if(getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
+      else if(s_doEDNSSubnetProcessing && (d_option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
+        if(getEDNSSubnetOptsFromString(d_option.second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
         } 

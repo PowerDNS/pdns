@@ -76,13 +76,13 @@ static string sqlstr(const string &name)
   
   string a;
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='\'' || *i=='\\'){
+  for(char i : name) {
+    if(i=='\'' || i=='\\'){
       a+='\\';
-      a+=*i;
+      a+=i;
     }
     else
-      a+=*i;
+      a+=i;
   }
   if(g_mode == POSTGRES)
     return "E'"+a+"'";
@@ -270,10 +270,10 @@ try
     
       vector<BindDomainInfo> domains=BP.getDomains();
       struct stat st;
-      for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) {
-        if(stat(i->filename.c_str(), &st) == 0) {
-          i->d_dev = st.st_dev;
-          i->d_ino = st.st_ino;
+      for(auto & domain : domains) {
+        if(stat(domain.filename.c_str(), &st) == 0) {
+          domain.d_dev = st.st_dev;
+          domain.d_ino = st.st_ino;
         }
       }
       
@@ -282,20 +282,18 @@ try
       int numdomains=domains.size();
       int tick=numdomains/100;
     
-      for(vector<BindDomainInfo>::const_iterator i=domains.begin();
-          i!=domains.end();
-          ++i)
+      for(const auto & domain : domains)
         {
-          if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+          if(domain.type!="master" && domain.type!="slave") {
+            cerr<<" Warning! Skipping '"<<domain.type<<"' zone '"<<domain.name<<"'"<<endl;
             continue;
           }
           try {
             startNewTransaction();
             
-            emitDomain(i->name, &(i->masters));
+            emitDomain(domain.name, &(domain.masters));
             
-            ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+            ZoneParserTNG zpt(domain.filename, domain.name, BP.getDirectory());
             zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
             DNSResourceRecord rr;
             bool seenSOA=false;
@@ -306,7 +304,7 @@ try
               if(rr.qtype.getCode() == QType::SOA)
                 seenSOA=true;
 
-              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+              emitRecord(domain.name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
             }
             num_domainsdone++;
           }
@@ -325,7 +323,7 @@ try
 
           
           if(!tick || !((count++)%tick))
-            cerr<<"\r"<<count*100/numdomains<<"% done ("<<i->filename<<")\033\133\113";
+            cerr<<"\r"<<count*100/numdomains<<"% done ("<<domain.filename<<")\033\133\113";
         }
       cerr<<"\r100% done\033\133\113"<<endl;
     }

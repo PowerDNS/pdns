@@ -112,8 +112,8 @@ void UeberBackend::go(void)
 
 bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
 {
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getDomainInfo(domain, di, getSerial))
+  for(auto backend : backends)
+    if(backend->getDomainInfo(domain, di, getSerial))
       return true;
   return false;
 }
@@ -267,9 +267,9 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 
 void UeberBackend::reload()
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    ( *i )->reload();
+    backend->reload();
   }
 }
 
@@ -288,9 +288,9 @@ void UeberBackend::rediscover(string *status)
 
 void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    ( *i )->getUnfreshSlaveInfos( domains );
+    backend->getUnfreshSlaveInfos( domains );
   }  
 }
 
@@ -298,9 +298,9 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
 void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    ( *i )->getUpdatedMasters( domains );
+    backend->getUpdatedMasters( domains );
   }
 }
 
@@ -432,8 +432,8 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
   d_question.qname=domain;
   d_question.zoneId=-1;
 
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getSOA(domain, sd)) {
+  for(auto backend : backends)
+    if(backend->getSOA(domain, sd)) {
       if(domain != sd.qname) {
         throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '"+domain.toLogString()+"', answer: '"+sd.qname.toLogString()+"'");
       }
@@ -458,16 +458,16 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
 
 bool UeberBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account) 
 {
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->superMasterAdd(ip, nameserver, account)) 
+  for(auto backend : backends)
+    if(backend->superMasterAdd(ip, nameserver, account)) 
       return true;
   return false;
 }
 
 bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->superMasterBackend(ip, domain, nsset, nameserver, account, db))
+  for(auto backend : backends)
+    if(backend->superMasterBackend(ip, domain, nsset, nameserver, account, db))
       return true;
   return false;
 }
@@ -556,8 +556,8 @@ void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
-    (*i)->alsoNotifies(domain,ips);
+  for (auto & backend : backends)
+    backend->alsoNotifies(domain,ips);
 }
 
 UeberBackend::~UeberBackend()
@@ -626,9 +626,9 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
-  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    (*i)->getAllDomains(domains, include_disabled);
+    backend->getAllDomains(domains, include_disabled);
   }
 }
 
