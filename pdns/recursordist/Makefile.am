@@ -118,6 +118,7 @@ pdns_recursor_SOURCES = \
 	dnssecinfra.hh dnssecinfra.cc \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
+	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \

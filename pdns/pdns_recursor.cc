@@ -88,6 +88,7 @@
 #include "validate-recursor.hh"
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
+#include "ednsextendederror.hh"
 #include "gettime.hh"
 #include "proxy-protocol.hh"
 #include "pubsuffix.hh"
@@ -245,6 +246,7 @@ static std::set<uint16_t> s_avoidUdpSourcePorts;
 static uint16_t s_minUdpSourcePort;
 static uint16_t s_maxUdpSourcePort;
 static double s_balancingFactor;
+static bool s_addExtendedDNSErrors;
 
 RecursorControlChannel s_rcc; // only active in the handler thread
 RecursorStats g_stats;
@@ -1847,11 +1849,73 @@ static void startDoResolve(void *p)
       sa.reset();
       sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
       eo.scope = Netmask(sa, 0);
+      auto ecsPayload = makeEDNSSubnetOptsString(eo);
 
-      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+      maxanswersize -= 2 + 2 + ecsPayload.size();
+
+      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
     }
 
     if (haveEDNS) {
+      auto state = sr.getValidationState();
+      if (s_addExtendedDNSErrors && vStateIsBogus(state) && pw.size() < maxanswersize && (maxanswersize - pw.size()) > (2 + 2 + 2)) {
+        EDNSExtendedError::code code;
+
+        switch (state) {
+        case vState::BogusNoValidDNSKEY:
+          code = EDNSExtendedError::code::DNSKEYMissing;
+          break;
+        case vState::BogusInvalidDenial:
+          code = EDNSExtendedError::code::NSECMissing;
+          break;
+        case vState::BogusUnableToGetDSs:
+          code = EDNSExtendedError::code::DNSSECBogus;
+          break;
+        case vState::BogusUnableToGetDNSKEYs:
+          code = EDNSExtendedError::code::DNSKEYMissing;
+          break;
+        case vState::BogusSelfSignedDS:
+          code = EDNSExtendedError::code::DNSSECBogus;
+          break;
+        case vState::BogusNoRRSIG:
+          code = EDNSExtendedError::code::RRSIGsMissing;
+          break;
+        case vState::BogusNoValidRRSIG:
+          code = EDNSExtendedError::code::DNSSECBogus;
+          break;
+        case vState::BogusMissingNegativeIndication:
+          code = EDNSExtendedError::code::NSECMissing;
+          break;
+        case vState::BogusSignatureNotYetValid:
+          code = EDNSExtendedError::code::SignatureNotYetValid;
+          break;
+        case vState::BogusSignatureExpired:
+          code = EDNSExtendedError::code::SignatureExpired;
+          break;
+        case vState::BogusUnsupportedDNSKEYAlgo:
+          code = EDNSExtendedError::code::UnsupportedDNSKEYAlgorithm;
+          break;
+        case vState::BogusUnsupportedDSDigestType:
+          code = EDNSExtendedError::code::UnsupportedDSDigestType;
+          break;
+        case vState::BogusNoZoneKeyBitSet:
+          code = EDNSExtendedError::code::NoZoneKeyBitSet;
+          break;
+        case vState::BogusRevokedDNSKEY:
+          code = EDNSExtendedError::code::DNSSECBogus;
+          break;
+        case vState::BogusInvalidDNSKEYProtocol:
+          code = EDNSExtendedError::code::DNSSECBogus;
+          break;
+        default:
+          throw std::runtime_error("Bogus validation state not handled: " + vStateToString(state));
+        }
+
+        EDNSExtendedError eee;
+        eee.infoCode = static_cast<uint16_t>(code);
+        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee)));
+      }
+
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
          "The minimal response MUST be the DNS header, question section, and an
@@ -4576,11 +4640,12 @@ static int serviceMain(int argc, char*argv[])
   } else {
     TCPConnection::s_maxInFlight = maxInFlight;
   }
-    
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
   g_statisticsInterval = ::arg().asNum("statistics-interval");
+
+  s_addExtendedDNSErrors = ::arg().mustDo("extended-errors");
 
   {
     SuffixMatchNode dontThrottleNames;
@@ -5322,6 +5387,9 @@ int main(int argc, char **argv)
     ::arg().set("unique-response-db-size", "Size of the DB used to track unique responses in terms of number of cells. Defaults to 67108864")="67108864";
     ::arg().set("unique-response-pb-tag", "If protobuf is configured, the tag to use for messages containing unique DNS responses. Defaults to 'pdns-udr'")="pdns-udr";
 #endif /* NOD_ENABLED */
+
+    ::arg().setSwitch("extended-errors", "If set, send the EDNS Extended Error extension on DNSSEC validation failures")="no";
+
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
