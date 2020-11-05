@@ -39,14 +39,14 @@ Webserver-related objects
 
   Represent a HTTP response.
 
-  .. attribute:: WebRequest.body
+  .. attribute:: WebResponse.body
 
     The body of this response, as a string.
 
-  .. attribute:: WebRequest.headers
+  .. attribute:: WebResponse.headers
 
     The HTTP headers of this response, as a table whose keys and values are strings.
 
-  .. attribute:: WebRequest.status
+  .. attribute:: WebResponse.status
 
     The HTTP status code of this response, as an integer.
