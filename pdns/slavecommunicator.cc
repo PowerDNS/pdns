@@ -756,7 +756,7 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
 void CommunicatorClass::addTrySuperMasterRequest(const DNSPacket& p)
 {
   std::lock_guard<std::mutex> l(d_lock);
-  DNSPacket ours = p;
+  const DNSPacket& ours = p;
   if(d_potentialsupermasters.insert(ours).second)
     d_any_sem.post(); // kick the loop!
 }

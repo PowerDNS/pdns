@@ -582,8 +582,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   for (const auto &svcb : svcbTargets) {
-    auto name = std::get<0>(svcb);
-    auto target = std::get<2>(svcb);
+    const auto& name = std::get<0>(svcb);
+    const auto& target = std::get<2>(svcb);
     auto prio = std::get<1>(svcb);
 
     if (name == target) {
@@ -606,8 +606,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   for (const auto &httpsRecord : httpsTargets) {
-    auto name = std::get<0>(httpsRecord);
-    auto target = std::get<2>(httpsRecord);
+    const auto& name = std::get<0>(httpsRecord);
+    const auto& target = std::get<2>(httpsRecord);
     auto prio = std::get<1>(httpsRecord);
 
     if (name == target) {

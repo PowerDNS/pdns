@@ -1658,7 +1658,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     // create NS records if nameservers are given
     for (auto value : nameservers.array_items()) {
-      string nameserver = value.string_value();
+      const string& nameserver = value.string_value();
       if (nameserver.empty())
         throw ApiException("Nameservers must be non-empty strings");
       if (!isCanonical(nameserver))
