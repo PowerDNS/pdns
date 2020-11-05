@@ -488,6 +488,7 @@ static vector<string> convIpListToString(const vector<ComboAddress> &comboAddres
 {
   vector<string> ret;
 
+  ret.reserve(comboAddresses.size());
   for (const auto& c : comboAddresses) {
     ret.emplace_back(c.toString());
   }
@@ -510,6 +511,7 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
 {
   vector<pair<int,ComboAddress> > ret;
 
+  ret.reserve(src.size());
   for(const auto& i : src) {
     ret.emplace_back(atoi(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
   }
@@ -834,6 +836,7 @@ static void setupLuaRecords()
   lua.writeFunction("pickwhashed", [](std::unordered_map<int, wiplist_t > ips) {
       vector<pair<int,ComboAddress> > conv;
 
+      conv.reserve(ips.size());
       for(auto& i : ips)
         conv.emplace_back(atoi(i.second[1].c_str()), ComboAddress(i.second[2]));
 

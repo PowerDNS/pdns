@@ -56,6 +56,7 @@ ArgvMap &arg()
 
 static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec) {
   vector<string> strs;
+  strs.reserve(vec.size());
   for (const auto& ca : vec) {
     strs.push_back(ca.toStringWithPortExcept(53));
   }

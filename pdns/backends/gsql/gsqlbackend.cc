@@ -226,6 +226,7 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 bool GSQLBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &masters)
 {
   vector<string> masters_s;
+  masters_s.reserve(masters.size());
   for (const auto& master : masters) {
     masters_s.push_back(master.toStringWithPortExcept(53));
   }
@@ -1271,6 +1272,7 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
 bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
   vector<string> masters_s;
+  masters_s.reserve(masters.size());
   for (const auto& master : masters) {
     masters_s.push_back(master.toStringWithPortExcept(53));
   }
