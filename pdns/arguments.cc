@@ -337,12 +337,12 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     val=arg.substr(pos+2);
     incremental = true;
   }
-  else if(arg.find("--") == 0 && (pos=arg.find("="))!=string::npos)  // this is a --port=25 case
+  else if(arg.find("--") == 0 && (pos=arg.find('='))!=string::npos)  // this is a --port=25 case
   {
     var=arg.substr(2,pos-2);
     val=arg.substr(pos+1);
   }
-  else if(arg.find("--") == 0 && (arg.find("=")==string::npos))  // this is a --daemon case
+  else if(arg.find("--") == 0 && (arg.find('=')==string::npos))  // this is a --daemon case
   {
     var=arg.substr(2);
     val="";
@@ -428,7 +428,7 @@ bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
       line+=pline;
 
     // strip everything after a #
-    if((pos=line.find("#"))!=string::npos) {
+    if((pos=line.find('#'))!=string::npos) {
       // make sure it's either first char or has whitespace before
       // fixes issue #354
       if (pos == 0 || std::isspace(line[pos-1]))

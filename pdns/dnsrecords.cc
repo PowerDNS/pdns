@@ -568,7 +568,7 @@ APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
     record = element;
   }
 
-  if (record.find("/") == string::npos) { // Required by RFC section 5
+  if (record.find('/') == string::npos) { // Required by RFC section 5
     throw MOADNSException("Asked to decode '"+element+"' as an APL record, but missing subnet mask");
   }
 

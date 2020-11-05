@@ -130,7 +130,7 @@ void BackendMakerClass::load(const string &module)
 {
   bool res;
 
-  if(module.find(".")==string::npos)
+  if(module.find('.')==string::npos)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/lib"+module+"backend.so");
   else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
     res=UeberBackend::loadmodule(module);
