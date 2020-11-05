@@ -85,7 +85,7 @@ DNSProxy::DNSProxy(const string &remote)
 
 void DNSProxy::go()
 {
-  std::thread t(std::bind(&DNSProxy::mainloop, this));
+  std::thread t([this](){mainloop();});
   t.detach();
 }
 

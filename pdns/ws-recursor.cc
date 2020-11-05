@@ -525,7 +525,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->bind();
 
   // legacy dispatch
-  d_ws->registerApiHandler("/jsonstat", std::bind(&RecursorWebServer::jsonstat, this, std::placeholders::_1, std::placeholders::_2), true);
+  d_ws->registerApiHandler("/jsonstat", [this](HttpRequest* req, HttpResponse* resp){jsonstat(req, resp);}, true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
@@ -679,7 +679,7 @@ void AsyncServerNewConnectionMT(void *p) {
 void AsyncServer::asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback)
 {
   d_asyncNewConnectionCallback = callback;
-  fdm->addReadFD(d_server_socket.getHandle(), std::bind(&AsyncServer::newConnection, this));
+  fdm->addReadFD(d_server_socket.getHandle(), [this] (int, boost::any&){ newConnection();});
 }
 
 void AsyncServer::newConnection()
@@ -762,5 +762,5 @@ void AsyncWebServer::go() {
   auto server = std::dynamic_pointer_cast<AsyncServer>(d_server);
   if (!server)
     return;
-  server->asyncWaitForConnections(d_fdm, std::bind(&AsyncWebServer::serveConnection, this, std::placeholders::_1));
+  server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& c){serveConnection(c);});
 }

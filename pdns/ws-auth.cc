@@ -83,9 +83,9 @@ AuthWebServer::AuthWebServer() :
 void AuthWebServer::go()
 {
   S.doRings();
-  std::thread webT(std::bind(&AuthWebServer::webThread, this));
+  std::thread webT([this](){webThread();});
   webT.detach();
-  std::thread statT(std::bind(&AuthWebServer::statThread, this));
+  std::thread statT([this](){statThread();});
   statT.detach();
 }
 
@@ -2327,8 +2327,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api", &apiDiscovery);
     }
     if (::arg().mustDo("webserver")) {
-      d_ws->registerWebHandler("/style.css", std::bind(&AuthWebServer::cssfunction, this, std::placeholders::_1, std::placeholders::_2));
-      d_ws->registerWebHandler("/", std::bind(&AuthWebServer::indexfunction, this, std::placeholders::_1, std::placeholders::_2));
+      d_ws->registerWebHandler("/style.css", [this](HttpRequest *req, HttpResponse *resp){cssfunction(req, resp);});
+      d_ws->registerWebHandler("/", [this](HttpRequest *req, HttpResponse *resp){indexfunction(req, resp);});
       d_ws->registerWebHandler("/metrics", prometheusMetrics);
     }
     d_ws->go();

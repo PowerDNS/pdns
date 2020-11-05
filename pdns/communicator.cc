@@ -84,11 +84,11 @@ void CommunicatorClass::go()
     _exit(1);
   }
 
-  std::thread mainT(std::bind(&CommunicatorClass::mainloop, this));
+  std::thread mainT([this](){mainloop();});
   mainT.detach();
 
   for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n) {
-    std::thread retrieve(std::bind(&CommunicatorClass::retrievalLoopThread, this));
+    std::thread retrieve([this](){retrievalLoopThread();});
     retrieve.detach();
   }
 

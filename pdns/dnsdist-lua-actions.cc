@@ -160,7 +160,7 @@ TeeAction::TeeAction(const ComboAddress& ca, bool addECS) : d_remote(ca), d_addE
   try {
     SConnect(d_fd, d_remote);
     setNonBlocking(d_fd);
-    d_worker=std::thread(std::bind(&TeeAction::worker, this));
+    d_worker=std::thread([this](){worker();});
   }
   catch (...) {
     if (d_fd != -1) {
