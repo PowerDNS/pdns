@@ -362,6 +362,26 @@ Webserver configuration
   - ...
   But not queries for /foobar or /foo/bar.
 
+  A sample handler function could be:
+
+  .. code-block:: lua
+
+    function customHTTPHandler(req, resp)
+      local get = req.getvars
+      local headers = req.headers
+
+      if req.path ~= '/foo' or req.version ~= 11 or req.method ~= 'GET' or get['param'] ~= '42' or headers['customheader'] ~= 'foobar' then
+        resp.status = 500
+        return
+      end
+
+      resp.status = 200
+      resp.body = 'It works!'
+      resp.headers = { ['Foo']='Bar'}
+    end
+
+    registerWebHandler('/foo', customHTTPHandler)
+
   :param str path: Path to register the handler for.
   :param function handler: The Lua function to register.
 
