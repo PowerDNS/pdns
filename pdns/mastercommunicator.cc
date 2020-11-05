@@ -263,7 +263,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
       trc.d_algoName = DNSName(tsigalgorithm.toStringNoDot() + ".sig-alg.reg.int.");
     else
       trc.d_algoName = tsigalgorithm;
-    trc.d_time = time(0);
+    trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(id);
     trc.d_eRcode=0;
@@ -282,7 +282,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
 void CommunicatorClass::drillHole(const DNSName &domain, const string &ip)
 {
   std::lock_guard<std::mutex> l(d_holelock);
-  d_holes[make_pair(domain,ip)]=time(0);
+  d_holes[make_pair(domain,ip)]=time(nullptr);
 }
 
 bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
@@ -291,7 +291,7 @@ bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
   if(d_holes.find(make_pair(domain,ip))==d_holes.end()) // no hole
     return false;
 
-  if(d_holes[make_pair(domain,ip)]>time(0)-900)    // recent hole
+  if(d_holes[make_pair(domain,ip)]>time(nullptr)-900)    // recent hole
     return true;
 
   // do we want to purge this? XXX FIXME 

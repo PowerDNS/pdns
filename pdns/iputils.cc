@@ -184,7 +184,7 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 {
 #ifdef SO_TIMESTAMP
   struct cmsghdr *cmsg;
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
     if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && 
 	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
@@ -202,7 +202,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 #else
   const struct cmsghdr* cmsg;
 #endif
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
      if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
         struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
@@ -280,7 +280,7 @@ ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const Comb
     addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
   }
   else {
-    msgh.msg_control=NULL;
+    msgh.msg_control=nullptr;
   }
   return sendmsg(sock, &msgh, flags);
 }

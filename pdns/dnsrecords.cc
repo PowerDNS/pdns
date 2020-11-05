@@ -831,9 +831,9 @@ void reportBasicTypes()
 #ifdef HAVE_LUA_RECORDS
   LUARecordContent::report();
 #endif
-  DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
-  DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
-  DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");
+  DNSRecordContent::regist(QClass::IN, QType::ANY, nullptr, nullptr, "ANY");
+  DNSRecordContent::regist(QClass::IN, QType::AXFR, nullptr, nullptr, "AXFR");
+  DNSRecordContent::regist(QClass::IN, QType::IXFR, nullptr, nullptr, "IXFR");
 }
 
 void reportOtherTypes()

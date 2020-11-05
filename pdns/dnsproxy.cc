@@ -138,7 +138,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     ce.id       = r->d.id;
     ce.remote =   r->d_remote;
     ce.outsock  = r->getSocket();
-    ce.created  = time( NULL );
+    ce.created  = time( nullptr );
     ce.qtype = r->qtype.getCode();
     ce.qname = target;
     ce.anyLocal = r->d_anyLocal;
@@ -171,7 +171,7 @@ int DNSProxy::getID_locked()
     if(i==d_conntrack.end()) {
       return n;
     }
-    else if(i->second.created<time(0)-60) {
+    else if(i->second.created<time(nullptr)-60) {
       if(i->second.created) {
         g_log<<Logger::Warning<<"Recursive query for remote "<<
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
@@ -282,7 +282,7 @@ void DNSProxy::mainloop()
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;
         msgh.msg_namelen = i->second.remote.getSocklen();
-        msgh.msg_control=NULL;
+        msgh.msg_control=nullptr;
 
         if(i->second.anyLocal) {
           addCMsgSrcAddr(&msgh, &cbuf, i->second.anyLocal.get_ptr(), 0);

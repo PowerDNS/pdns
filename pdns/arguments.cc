@@ -212,7 +212,7 @@ mode_t ArgvMap::asMode(const string &arg)
 {
   mode_t mode;
   const char *cptr_orig;
-  char *cptr_ret = NULL;
+  char *cptr_ret = nullptr;
 
   if(!parmIsset(arg))
    throw ArgException(string("Undefined but needed argument: '")+arg+"'");
@@ -228,7 +228,7 @@ gid_t ArgvMap::asGid(const string &arg)
 {
   gid_t gid;
   const char *cptr_orig;
-  char *cptr_ret = NULL;
+  char *cptr_ret = nullptr;
 
   if(!parmIsset(arg))
    throw ArgException(string("Undefined but needed argument: '")+arg+"'");
@@ -238,7 +238,7 @@ gid_t ArgvMap::asGid(const string &arg)
   if (gid == 0 && cptr_ret == cptr_orig) {
     // try to resolve
     struct group *group = getgrnam(params[arg].c_str());
-    if (group == NULL)
+    if (group == nullptr)
      throw ArgException("'" + arg + string("' contains invalid group"));
     gid = group->gr_gid;
    }
@@ -249,7 +249,7 @@ uid_t ArgvMap::asUid(const string &arg)
 {
   uid_t uid;
   const char *cptr_orig;
-  char *cptr_ret = NULL;
+  char *cptr_ret = nullptr;
 
   if(!parmIsset(arg))
    throw ArgException(string("Undefined but needed argument: '")+arg+"'");
@@ -259,7 +259,7 @@ uid_t ArgvMap::asUid(const string &arg)
   if (uid == 0 && cptr_ret == cptr_orig) {
     // try to resolve
     struct passwd *pwent = getpwnam(params[arg].c_str());
-    if (pwent == NULL)
+    if (pwent == nullptr)
      throw ArgException("'" + arg + string("' contains invalid group"));
     uid = pwent->pw_uid;
    }
@@ -270,7 +270,7 @@ int ArgvMap::asNum(const string &arg, int def)
 {
   int retval;
   const char *cptr_orig;
-  char *cptr_ret = NULL;
+  char *cptr_ret = nullptr;
 
   if(!parmIsset(arg))
     throw ArgException(string("Undefined but needed argument: '")+arg+"'");
@@ -298,7 +298,7 @@ double ArgvMap::asDouble(const string &arg)
 {
   double retval;
   const char *cptr_orig;
-  char *cptr_ret = NULL;
+  char *cptr_ret = nullptr;
 
   if(!parmIsset(arg))
     throw ArgException(string("Undefined but needed argument: '")+arg+"'");
@@ -503,7 +503,7 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
   }
 
   struct dirent *ent;
-  while ((ent = readdir(dir)) != NULL) {
+  while ((ent = readdir(dir)) != nullptr) {
     if (ent->d_name[0] == '.')
       continue; // skip any dots
     if (boost::ends_with(ent->d_name, ".conf")) {

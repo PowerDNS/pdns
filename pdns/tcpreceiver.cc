@@ -101,7 +101,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
   time_t start = 0;
   unsigned int remainingTotal = totalTimeout;
   if (totalTimeout) {
-    start = time(NULL);
+    start = time(nullptr);
   }
   while(bytes) {
     ret=read(fd, ptr, bytes);
@@ -127,7 +127,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
     ptr += ret;
     bytes -= ret;
     if (totalTimeout) {
-      time_t now = time(NULL);
+      time_t now = time(nullptr);
       unsigned int elapsed = now - start;
       if (elapsed >= remainingTotal) {
         throw NetworkError("Timeout while reading data");
@@ -200,7 +200,7 @@ static void incTCPAnswerCount(const ComboAddress& remote)
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
 {
   if (maxConnectionDuration) {
-    time_t elapsed = time(NULL) - start;
+    time_t elapsed = time(nullptr) - start;
     if (elapsed >= maxConnectionDuration) {
       return true;
     }
@@ -229,7 +229,7 @@ void TCPNameserver::doConnection(int fd)
   size_t transactions = 0;
   time_t start = 0;
   if (d_maxConnectionDuration) {
-    start = time(NULL);
+    start = time(nullptr);
   }
 
   if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {

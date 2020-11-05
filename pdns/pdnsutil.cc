@@ -238,7 +238,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   return result;
 }
 
-static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
+static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr)
 {
   uint64_t numerrors=0, numwarnings=0;
 
@@ -3471,7 +3471,7 @@ try
     }
 
     DNSBackend *src,*tgt;
-    src = tgt = NULL;
+    src = tgt = nullptr;
 
     for(DNSBackend *b : BackendMakers().all()) {
       if (b->getPrefix() == cmds[1]) src = b;
@@ -3571,7 +3571,7 @@ try
     }
 
     DNSBackend *db;
-    db = NULL;
+    db = nullptr;
 
     for(DNSBackend *b : BackendMakers().all()) {
       if (b->getPrefix() == cmds[1]) db = b;

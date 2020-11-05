@@ -235,7 +235,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"<div class=\"headr columns\"></div></div>";
   ret<<"<div class=\"row\"><div class=\"all columns\">";
 
-  time_t passed=time(0)-s_starttime;
+  time_t passed=time(nullptr)-s_starttime;
 
   ret<<"<p>Uptime: "<<
     humanDuration(passed)<<
@@ -496,7 +496,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   }
 
   // add uptime
-  out["uptime"] = std::to_string(time(0) - s_starttime);
+  out["uptime"] = std::to_string(time(nullptr) - s_starttime);
 }
 
 boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
@@ -561,7 +561,7 @@ static void gatherComments(const Json container, const DNSName& qname, const QTy
   c.qname = qname;
   c.qtype = qtype;
 
-  time_t now = time(0);
+  time_t now = time(nullptr);
   for (auto comment : container["comments"].array_items()) {
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");

@@ -66,7 +66,7 @@ bool UeberBackend::loadmodule(const string &name)
 
   void *dlib=dlopen(name.c_str(), RTLD_NOW);
 
-  if(dlib == NULL) {
+  if(dlib == nullptr) {
     g_log<<Logger::Error <<"Unable to load module '"<<name<<"': "<<dlerror() << endl;
     return false;
   }
@@ -692,9 +692,9 @@ UeberBackend::handle::handle()
 {
   //  g_log<<Logger::Warning<<"Handle instances: "<<instances<<endl;
   ++instances;
-  parent=NULL;
-  d_hinterBackend=NULL;
-  pkt_p=NULL;
+  parent=nullptr;
+  d_hinterBackend=nullptr;
+  pkt_p=nullptr;
   i=0;
   zoneId = -1;
 }

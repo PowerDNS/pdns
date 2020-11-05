@@ -148,7 +148,7 @@ void PipeBackend::launch()
  */
 void PipeBackend::cleanup()
 {
-  d_coproc.reset(0);
+  d_coproc.reset(nullptr);
   d_regex.reset();
   d_regexstr = string();
   d_abiVersion = 0;
@@ -253,7 +253,7 @@ DNSBackend *PipeBackend::maker()
    }
    catch(...) {
       g_log<<Logger::Error<<kBackendId<<" Unable to instantiate a pipebackend!"<<endl;
-      return 0;
+      return nullptr;
    }
 }
 

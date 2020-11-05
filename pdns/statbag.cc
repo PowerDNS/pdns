@@ -156,7 +156,7 @@ unsigned long StatBag::readZero(const string &key)
 {
   exists(key);
   unsigned long tmp=*d_stats[key];
-  d_stats[key]=0;
+  d_stats[key]=nullptr;
   return tmp;
 }
 

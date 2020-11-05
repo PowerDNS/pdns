@@ -59,7 +59,7 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
     return (old_serial + (inception / (7*86400)));
   }
   else if(pdns_iequals(kind,"EPOCH")) {
-    return time(0);
+    return time(nullptr);
   }
   else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
     uint32_t inception = getStartOfWeek();
@@ -107,10 +107,10 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
     return old_serial + 1;
   }
   else if (pdns_iequals(increaseKind, "EPOCH")) {
-    return time(0);
+    return time(nullptr);
   }
   else if (pdns_iequals(increaseKind, "DEFAULT")) {
-    time_t now = time(0);
+    time_t now = time(nullptr);
     uint32_t new_serial = localtime_format_YYYYMMDDSS(now, 1);
     if (new_serial <= old_serial) {
         new_serial = old_serial + 1;

@@ -545,7 +545,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 {
   static int ttl = ::arg().asNum("dnssec-key-cache-ttl");
-  unsigned int now = time(0);
+  unsigned int now = time(nullptr);
 
   if(!((++s_ops) % 100000)) {
     cleanup();
@@ -937,7 +937,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
 void DNSSECKeeper::cleanup()
 {
   struct timeval now;
-  Utility::gettimeofday(&now, 0);
+  Utility::gettimeofday(&now, nullptr);
 
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {

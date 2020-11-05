@@ -88,7 +88,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
-  di.backend=0;
+  di.backend=nullptr;
   //  bool transaction=false;
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
@@ -109,7 +109,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
 
     DNSRecord drsoa;
     drsoa.d_content = std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st);
-    auto deltas = getIXFRDeltas(remote, domain, drsoa, tt, laddr.sin4.sin_family ? &laddr : 0, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
+    auto deltas = getIXFRDeltas(remote, domain, drsoa, tt, laddr.sin4.sin_family ? &laddr : nullptr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
     zs.numDeltas=deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
     
@@ -245,7 +245,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 {
   uint16_t axfr_timeout=::arg().asNum("axfr-fetch-timeout");
   vector<DNSResourceRecord> rrs;
-  AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
+  AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? nullptr : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
   Resolver::res_t recs;
   bool first=true;
   bool firstNSEC3{true};
@@ -314,7 +314,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
-  di.backend=0;
+  di.backend=nullptr;
   bool transaction=false;
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
@@ -647,7 +647,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       // still succeed, we would constantly try to AXFR the zone. To avoid this, we add the zone to the list of
       // failed slave-checks. This will suspend slave-checks (and subsequent AXFR) for this zone for some time.
       uint64_t newCount = 1;
-      time_t now = time(0);
+      time_t now = time(nullptr);
       const auto failedEntry = d_failedSlaveRefresh.find(domain);
       if (failedEntry != d_failedSlaveRefresh.end())
         newCount = d_failedSlaveRefresh[domain].first + 1;
@@ -736,7 +736,7 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
 {
   std::lock_guard<std::mutex> l(d_lock);
   DomainInfo ours = di;
-  ours.backend = 0;
+  ours.backend = nullptr;
 
   // When adding a check, if the remote addr from which notification was
   // received is a master, clear all other masters so we can be sure the
@@ -813,7 +813,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   {
     std::lock_guard<std::mutex> l(d_lock);
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
-    time_t now = time(0);
+    time_t now = time(nullptr);
 
     for(DomainInfo& di :  rdomains) {
       const auto failed = d_failedSlaveRefresh.find(di.zone);
@@ -910,7 +910,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     g_log<<Logger::Info<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zone"<<addS(ssr.d_freshness.size())<<endl;
   }
 
-  time_t now = time(0);
+  time_t now = time(nullptr);
   for(auto& val : sdomains) {
     DomainInfo& di(val.di);
     // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,

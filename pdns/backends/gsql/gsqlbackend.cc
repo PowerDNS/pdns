@@ -129,66 +129,66 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SearchRecordsQuery = getArg("search-records-query");
   d_SearchCommentsQuery = getArg("search-comments-query");
 
-  d_query_stmt = NULL;
-  d_NoIdQuery_stmt = NULL;
-  d_IdQuery_stmt = NULL;
-  d_ANYNoIdQuery_stmt = NULL;
-  d_ANYIdQuery_stmt = NULL;
-  d_listQuery_stmt = NULL;
-  d_listSubZoneQuery_stmt = NULL;
-  d_InfoOfDomainsZoneQuery_stmt = NULL;
-  d_InfoOfAllSlaveDomainsQuery_stmt = NULL;
-  d_SuperMasterInfoQuery_stmt = NULL;
-  d_GetSuperMasterIPs_stmt = NULL;
-  d_AddSuperMaster_stmt = NULL;
-  d_InsertZoneQuery_stmt = NULL;
-  d_InsertRecordQuery_stmt = NULL;
-  d_InsertEmptyNonTerminalOrderQuery_stmt = NULL;
-  d_UpdateMasterOfZoneQuery_stmt = NULL;
-  d_UpdateKindOfZoneQuery_stmt = NULL;
-  d_UpdateSerialOfZoneQuery_stmt = NULL;
-  d_UpdateLastCheckofZoneQuery_stmt = NULL;
-  d_UpdateAccountOfZoneQuery_stmt = NULL;
-  d_InfoOfAllMasterDomainsQuery_stmt = NULL;
-  d_DeleteDomainQuery_stmt = NULL;
-  d_DeleteZoneQuery_stmt = NULL;
-  d_DeleteRRSetQuery_stmt = NULL;
-  d_DeleteNamesQuery_stmt = NULL;
-  d_firstOrderQuery_stmt = NULL;
-  d_beforeOrderQuery_stmt = NULL;
-  d_afterOrderQuery_stmt = NULL;
-  d_lastOrderQuery_stmt = NULL;
-  d_updateOrderNameAndAuthQuery_stmt = NULL;
-  d_updateOrderNameAndAuthTypeQuery_stmt = NULL;
-  d_nullifyOrderNameAndUpdateAuthQuery_stmt = NULL;
-  d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = NULL;
-  d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = NULL;
-  d_DeleteEmptyNonTerminalQuery_stmt = NULL;
-  d_AddDomainKeyQuery_stmt = NULL;
-  d_GetLastInsertedKeyIdQuery_stmt = NULL;
-  d_ListDomainKeysQuery_stmt = NULL;
-  d_GetAllDomainMetadataQuery_stmt = NULL;
-  d_GetDomainMetadataQuery_stmt = NULL;
-  d_ClearDomainMetadataQuery_stmt = NULL;
-  d_ClearDomainAllMetadataQuery_stmt = NULL;
-  d_SetDomainMetadataQuery_stmt = NULL;
-  d_RemoveDomainKeyQuery_stmt = NULL;
-  d_ActivateDomainKeyQuery_stmt = NULL;
-  d_DeactivateDomainKeyQuery_stmt = NULL;
-  d_PublishDomainKeyQuery_stmt = NULL;
-  d_UnpublishDomainKeyQuery_stmt = NULL;
-  d_ClearDomainAllKeysQuery_stmt = NULL;
-  d_getTSIGKeyQuery_stmt = NULL;
-  d_setTSIGKeyQuery_stmt = NULL;
-  d_deleteTSIGKeyQuery_stmt = NULL;
-  d_getTSIGKeysQuery_stmt = NULL;
-  d_getAllDomainsQuery_stmt = NULL;
-  d_ListCommentsQuery_stmt = NULL;
-  d_InsertCommentQuery_stmt = NULL;
-  d_DeleteCommentRRsetQuery_stmt = NULL;
-  d_DeleteCommentsQuery_stmt = NULL;
-  d_SearchRecordsQuery_stmt = NULL;
-  d_SearchCommentsQuery_stmt = NULL;
+  d_query_stmt = nullptr;
+  d_NoIdQuery_stmt = nullptr;
+  d_IdQuery_stmt = nullptr;
+  d_ANYNoIdQuery_stmt = nullptr;
+  d_ANYIdQuery_stmt = nullptr;
+  d_listQuery_stmt = nullptr;
+  d_listSubZoneQuery_stmt = nullptr;
+  d_InfoOfDomainsZoneQuery_stmt = nullptr;
+  d_InfoOfAllSlaveDomainsQuery_stmt = nullptr;
+  d_SuperMasterInfoQuery_stmt = nullptr;
+  d_GetSuperMasterIPs_stmt = nullptr;
+  d_AddSuperMaster_stmt = nullptr;
+  d_InsertZoneQuery_stmt = nullptr;
+  d_InsertRecordQuery_stmt = nullptr;
+  d_InsertEmptyNonTerminalOrderQuery_stmt = nullptr;
+  d_UpdateMasterOfZoneQuery_stmt = nullptr;
+  d_UpdateKindOfZoneQuery_stmt = nullptr;
+  d_UpdateSerialOfZoneQuery_stmt = nullptr;
+  d_UpdateLastCheckofZoneQuery_stmt = nullptr;
+  d_UpdateAccountOfZoneQuery_stmt = nullptr;
+  d_InfoOfAllMasterDomainsQuery_stmt = nullptr;
+  d_DeleteDomainQuery_stmt = nullptr;
+  d_DeleteZoneQuery_stmt = nullptr;
+  d_DeleteRRSetQuery_stmt = nullptr;
+  d_DeleteNamesQuery_stmt = nullptr;
+  d_firstOrderQuery_stmt = nullptr;
+  d_beforeOrderQuery_stmt = nullptr;
+  d_afterOrderQuery_stmt = nullptr;
+  d_lastOrderQuery_stmt = nullptr;
+  d_updateOrderNameAndAuthQuery_stmt = nullptr;
+  d_updateOrderNameAndAuthTypeQuery_stmt = nullptr;
+  d_nullifyOrderNameAndUpdateAuthQuery_stmt = nullptr;
+  d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = nullptr;
+  d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = nullptr;
+  d_DeleteEmptyNonTerminalQuery_stmt = nullptr;
+  d_AddDomainKeyQuery_stmt = nullptr;
+  d_GetLastInsertedKeyIdQuery_stmt = nullptr;
+  d_ListDomainKeysQuery_stmt = nullptr;
+  d_GetAllDomainMetadataQuery_stmt = nullptr;
+  d_GetDomainMetadataQuery_stmt = nullptr;
+  d_ClearDomainMetadataQuery_stmt = nullptr;
+  d_ClearDomainAllMetadataQuery_stmt = nullptr;
+  d_SetDomainMetadataQuery_stmt = nullptr;
+  d_RemoveDomainKeyQuery_stmt = nullptr;
+  d_ActivateDomainKeyQuery_stmt = nullptr;
+  d_DeactivateDomainKeyQuery_stmt = nullptr;
+  d_PublishDomainKeyQuery_stmt = nullptr;
+  d_UnpublishDomainKeyQuery_stmt = nullptr;
+  d_ClearDomainAllKeysQuery_stmt = nullptr;
+  d_getTSIGKeyQuery_stmt = nullptr;
+  d_setTSIGKeyQuery_stmt = nullptr;
+  d_deleteTSIGKeyQuery_stmt = nullptr;
+  d_getTSIGKeysQuery_stmt = nullptr;
+  d_getAllDomainsQuery_stmt = nullptr;
+  d_ListCommentsQuery_stmt = nullptr;
+  d_InsertCommentQuery_stmt = nullptr;
+  d_DeleteCommentRRsetQuery_stmt = nullptr;
+  d_DeleteCommentsQuery_stmt = nullptr;
+  d_SearchRecordsQuery_stmt = nullptr;
+  d_SearchCommentsQuery_stmt = nullptr;
 }
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -213,7 +213,7 @@ void GSQLBackend::setFresh(uint32_t domain_id)
     reconnectIfNeeded();
 
     d_UpdateLastCheckofZoneQuery_stmt->
-      bind("last_check", time(0))->
+      bind("last_check", time(nullptr))->
       bind("domain_id", domain_id)->
       execute()->
       reset();
@@ -1216,7 +1216,7 @@ skiprow:
   } catch (SSqlException &e) {
       throw PDNSException("GSQLBackend get: "+e.txtReason());
   }
-  d_query_stmt = NULL;
+  d_query_stmt = nullptr;
   return false;
 }
 
@@ -1675,7 +1675,7 @@ bool GSQLBackend::getComment(Comment& comment)
       } catch(SSqlException &e) {
         throw PDNSException("GSQLBackend comment get: "+e.txtReason());
       }
-      d_query_stmt = NULL;
+      d_query_stmt = nullptr;
       return false;
     }
 

@@ -127,9 +127,9 @@ void CommunicatorClass::mainloop()
       
       tick = min (tick, d_tickinterval); 
       
-      next=time(0)+tick;
+      next=time(nullptr)+tick;
 
-      while(time(0) < next) {
+      while(time(nullptr) < next) {
         rc=d_any_sem.tryWait();
 
         if(rc) {

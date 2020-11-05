@@ -229,7 +229,7 @@ void UDPNameserver::send(DNSPacket& p)
 
   fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p.d_remote);
 
-  msgh.msg_control=NULL;
+  msgh.msg_control=nullptr;
   if(p.d_anyLocal) {
     addCMsgSrcAddr(&msgh, &cbuf, p.d_anyLocal.get_ptr(), 0);
   }

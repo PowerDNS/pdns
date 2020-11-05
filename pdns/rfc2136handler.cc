@@ -648,7 +648,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
-  if (this->d_update_policy_lua == NULL) {
+  if (this->d_update_policy_lua == nullptr) {
 
     // Check permissions - IP based
     vector<string> allowedRanges;
@@ -719,7 +719,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   }
 
   DomainInfo di;
-  di.backend=0;
+  di.backend=nullptr;
   if(!B.getDomainInfo(p.qdomain, di) || !di.backend) {
     g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p.qdomain<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
@@ -866,7 +866,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       const DNSRecord *rr = &d_answer.first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
-        if (this->d_update_policy_lua != NULL) {
+        if (this->d_update_policy_lua != nullptr) {
           if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Not permitted by policy"<<endl;
             continue;

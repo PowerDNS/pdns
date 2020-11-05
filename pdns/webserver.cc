@@ -436,7 +436,7 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     g_log<<Logger::Error<<logprefix<<"HTTP Exception: "<<e.reason<<endl;
   }
   catch(std::exception &e) {
-    if(strstr(e.what(), "timeout")==0)
+    if(strstr(e.what(), "timeout")==nullptr)
       g_log<<Logger::Error<<logprefix<<"HTTP STL Exception: "<<e.what()<<endl;
   }
   catch(...) {

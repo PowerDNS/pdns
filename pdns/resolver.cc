@@ -147,7 +147,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       trc.d_algoName = tsigalgorithm + DNSName("sig-alg.reg.int");
     else
       trc.d_algoName = tsigalgorithm;
-    trc.d_time = time(0);
+    trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(randomid);
     trc.d_eRcode=0;

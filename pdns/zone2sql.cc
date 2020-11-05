@@ -111,7 +111,7 @@ static void startNewTransaction()
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
-static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = 0) {
+static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = nullptr) {
   string iDomain = domain.toStringRootDot();
   if(!::arg().mustDo("slave")) {
     cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
@@ -119,7 +119,7 @@ static void emitDomain(const DNSName& domain, const vector<ComboAddress> *master
   else
   {
     string mstrs;
-    if (masters != 0 && ! masters->empty()) {
+    if (masters != nullptr && ! masters->empty()) {
       for(const auto& mstr :  *masters) {
         mstrs.append(mstr.toStringWithPortExcept(53));
         mstrs.append(1, ' ');
@@ -177,7 +177,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
     " from domains where name="<<toLower(sqlstr(zname))<<";\n";
 
   if(!recordcomment.empty()) {
-    cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(stripDot(qname)))<<", "<<sqlstr(qtype)<<", "<<time(0)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zname))<<";\n";
+    cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(stripDot(qname)))<<", "<<sqlstr(qtype)<<", "<<time(nullptr)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zname))<<";\n";
   }
 }
 

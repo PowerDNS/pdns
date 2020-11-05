@@ -71,7 +71,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
-    d_pdl = NULL;
+    d_pdl = nullptr;
   }
   else
   {
@@ -81,7 +81,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
   {
-    d_update_policy_lua = NULL;
+    d_update_policy_lua = nullptr;
   }
   else
   {
@@ -1196,7 +1196,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p.d_remote);
-    return 0;
+    return nullptr;
   }
 
   if(p.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
@@ -1204,7 +1204,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p.d_remote);
-    return 0;
+    return nullptr;
   }
 
   if (p.hasEDNS() && p.getEDNSVersion() > 0) {
@@ -1276,7 +1276,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           r->setOpcode(Opcode::Notify);
           return r;
         }
-        return 0;
+        return nullptr;
       }
       
       g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemote()<<" for "<<p.qdomain<<endl;
@@ -1376,7 +1376,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
 
     // this TRUMPS a cname!
-    if(d_dnssec && p.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.qname, 0)) {
+    if(d_dnssec && p.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.qname, nullptr)) {
       addNSEC(p, r, target, DNSName(), 5);
       if (!r->isEmpty())
         goto sendit;
@@ -1496,7 +1496,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(!haveAlias.empty() && (!weDone || p.qtype.getCode() == QType::ANY)) {
       DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
       DP->completePacket(r, haveAlias, target, aliasScopeMask);
-      return 0;
+      return nullptr;
     }
 
 

@@ -629,7 +629,7 @@ void RecordTextWriter::xfrIP6(const std::string& val)
   
   val.copy(tmpbuf,16);
 
-  if (inet_ntop(AF_INET6, tmpbuf, addrbuf, sizeof addrbuf) == NULL)
+  if (inet_ntop(AF_INET6, tmpbuf, addrbuf, sizeof addrbuf) == nullptr)
     throw RecordTextException("Unable to convert to ipv6 address");
   
   d_string += std::string(addrbuf);

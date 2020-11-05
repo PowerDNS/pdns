@@ -106,7 +106,7 @@ bool BB2DomainInfo::current()
   if(!d_checkinterval) 
     return true;
 
-  if(time(0) - d_lastcheck < d_checkinterval) 
+  if(time(nullptr) - d_lastcheck < d_checkinterval) 
     return true;
   
   if(d_filename.empty())
@@ -121,7 +121,7 @@ time_t BB2DomainInfo::getCtime()
   
   if(d_filename.empty() || stat(d_filename.c_str(),&buf)<0)
     return 0; 
-  d_lastcheck=time(0);
+  d_lastcheck=time(nullptr);
   return buf.st_ctime;
 }
 
@@ -188,7 +188,7 @@ void Bind2Backend::setFresh(uint32_t domain_id)
 {
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(domain_id, &bbd)) {
-    bbd.d_lastcheck=time(0);
+    bbd.d_lastcheck=time(nullptr);
     safePutBBDomainInfo(bbd);
   }
 }
@@ -417,7 +417,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
     catch(...){}
     sd.serial=soadata.serial;
-    if(sd.last_check+soadata.refresh < (unsigned int)time(0))
+    if(sd.last_check+soadata.refresh < (unsigned int)time(nullptr))
       unfreshDomains->push_back(std::move(sd));
   }
 }
@@ -705,20 +705,20 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
 
 Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
-  d_getAllDomainMetadataQuery_stmt = NULL;
-  d_getDomainMetadataQuery_stmt = NULL;
-  d_deleteDomainMetadataQuery_stmt = NULL;
-  d_insertDomainMetadataQuery_stmt = NULL;
-  d_getDomainKeysQuery_stmt = NULL;
-  d_deleteDomainKeyQuery_stmt = NULL;
-  d_insertDomainKeyQuery_stmt = NULL;
-  d_GetLastInsertedKeyIdQuery_stmt = NULL;
-  d_activateDomainKeyQuery_stmt = NULL;
-  d_deactivateDomainKeyQuery_stmt = NULL;
-  d_getTSIGKeyQuery_stmt = NULL;
-  d_setTSIGKeyQuery_stmt = NULL;
-  d_deleteTSIGKeyQuery_stmt = NULL;
-  d_getTSIGKeysQuery_stmt = NULL;
+  d_getAllDomainMetadataQuery_stmt = nullptr;
+  d_getDomainMetadataQuery_stmt = nullptr;
+  d_deleteDomainMetadataQuery_stmt = nullptr;
+  d_insertDomainMetadataQuery_stmt = nullptr;
+  d_getDomainKeysQuery_stmt = nullptr;
+  d_deleteDomainKeyQuery_stmt = nullptr;
+  d_insertDomainKeyQuery_stmt = nullptr;
+  d_GetLastInsertedKeyIdQuery_stmt = nullptr;
+  d_activateDomainKeyQuery_stmt = nullptr;
+  d_deactivateDomainKeyQuery_stmt = nullptr;
+  d_getTSIGKeyQuery_stmt = nullptr;
+  d_setTSIGKeyQuery_stmt = nullptr;
+  d_deleteTSIGKeyQuery_stmt = nullptr;
+  d_getTSIGKeysQuery_stmt = nullptr;
 
   setArgPrefix("bind"+suffix);
   d_logprefix="[bind"+suffix+"backend]";
