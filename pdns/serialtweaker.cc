@@ -155,7 +155,7 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
   rrout.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rrout.qtype = QType::SOA;
   rrout.domain_id = sd.domain_id;
-  rrout.auth = 1;
+  rrout.auth = true;
   rrout.ttl = sd.ttl;
 
   return true;

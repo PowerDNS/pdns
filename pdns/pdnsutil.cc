@@ -1277,7 +1277,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
 
   DNSResourceRecord rr;
   rr.qname = zone;
-  rr.auth = 1;
+  rr.auth = true;
   rr.ttl = ::arg().asNum("default-ttl");
   rr.qtype = "SOA";
 
@@ -1365,7 +1365,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
     return EXIT_FAILURE;
   }
-  rr.auth = 1;
+  rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
   DNSResourceRecord oldrr;
@@ -1528,7 +1528,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
   rr.qname=DNSName("blah")+zone;
   rr.qtype=QType::A;
   rr.ttl=3600;
-  rr.auth=1;
+  rr.auth=true;
   rr.qclass = QClass::IN;
 
   UeberBackend db("key-only");
@@ -1538,7 +1538,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
     throw runtime_error("No backends available for DNSSEC key storage");
   }
 
-  ChunkedSigningPipe csp(DNSName(zone), 1, cores);
+  ChunkedSigningPipe csp(DNSName(zone), true, cores);
 
   vector<DNSZoneRecord> signatures;
   uint32_t rnd;
@@ -1986,7 +1986,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   rr.qname=zone;
   rr.ttl=86400;
   rr.domain_id=di.id;
-  rr.auth=1;
+  rr.auth=true;
   rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
   cout<<"Feeding SOA"<<endl;
   db->feedRecord(rr, DNSName());
@@ -2023,7 +2023,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   rr.qname=zone;
   rr.ttl=86400;
   rr.domain_id=di.id;
-  rr.auth=1;
+  rr.auth=true;
   rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
   cout<<"Feeding SOA"<<endl;
   db->feedRecord(rr, DNSName());
@@ -3026,13 +3026,13 @@ try
       else if(pdns_iequals(cmds[n], "KSK"))
         dpk.d_flags = 257;
       else if(pdns_iequals(cmds[n], "active"))
-        active = 1;
+        active = true;
       else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive")) // passive eventually needs to be removed
-        active = 0;
+        active = false;
       else if(pdns_iequals(cmds[n], "published"))
-        published = 1;
+        published = true;
       else if(pdns_iequals(cmds[n], "unpublished"))
-        published = 0;
+        published = false;
       else {
         cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
         return 1;

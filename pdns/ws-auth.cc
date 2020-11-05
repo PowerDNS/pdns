@@ -520,7 +520,7 @@ static void gatherRecords(UeberBackend& B, const string& logprefix, const Json c
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
-  rr.auth = 1;
+  rr.auth = true;
   rr.ttl = ttl;
 
   validateGatheredRRType(rr);
@@ -1640,7 +1640,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // synthesize RRs as needed
     DNSResourceRecord autorr;
     autorr.qname = zonename;
-    autorr.auth = 1;
+    autorr.auth = true;
     autorr.ttl = ::arg().asNum("default-ttl");
 
     if (!have_soa && zonekind != DomainInfo::Slave) {

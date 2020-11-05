@@ -64,7 +64,7 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
   pair<string, string> lookup(rc->getPubKeyHash(), getLookupKey(msg));  // this hash is a memory saving exercise
 
-  bool doCache=1;
+  bool doCache=true;
   if(doCache)
   {
     ReadLock l(&g_signatures_lock);

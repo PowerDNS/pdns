@@ -354,7 +354,7 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &ta
       rr.dr.d_type = QType::CNAME;
       rr.dr.d_name = prefix + rr.dr.d_name;
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
-      rr.auth = 0; // don't sign CNAME
+      rr.auth = false; // don't sign CNAME
       target= getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr); 
     }
@@ -1180,7 +1180,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   set<DNSName> authSet;
 
   vector<DNSZoneRecord> rrset;
-  bool weDone=0, weRedirected=0, weHaveUnauth=0, doSigs=0;
+  bool weDone=false, weRedirected=false, weHaveUnauth=false, doSigs=false;
   DNSName haveAlias;
   uint8_t aliasScopeMask;
 
@@ -1431,9 +1431,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
                 rrset.push_back(rr);
               }
               if(rec->d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
-                weRedirected = 1;
+                weRedirected = true;
               else
-                weDone = 1;
+                weDone = true;
             }
           }
           catch(std::exception &e) {
@@ -1455,13 +1455,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.dr.d_type == p.qtype)<<", "<<rr.dr.d_type.getName()<<endl;
       if((p.qtype.getCode() == QType::ANY || rr.dr.d_type == p.qtype.getCode()) && rr.auth) 
-        weDone=1;
+        weDone=true;
       // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
       if((rr.dr.d_type == p.qtype.getCode() && !rr.auth) || (rr.dr.d_type == QType::NS && (!rr.auth || !(d_sd.qname==rr.dr.d_name))))
-        weHaveUnauth=1;
+        weHaveUnauth=true;
 
       if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME) 
-        weRedirected=1;
+        weRedirected=true;
 
       if(DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY)) {
         if (!d_doExpandALIAS) {

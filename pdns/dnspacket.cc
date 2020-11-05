@@ -358,7 +358,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->setRemote(&d_remote);
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
-  r->setRA(0); // no recursion available
+  r->setRA(false); // no recursion available
   r->setRD(d.rd); // if you wanted to recurse, answer will say you wanted it 
   r->setID(d.id);
   r->setOpcode(d.opcode);

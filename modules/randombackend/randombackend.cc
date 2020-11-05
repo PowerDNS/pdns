@@ -83,7 +83,7 @@ public:
     }
     rr.qclass=QClass::IN;   // Internet class randomness.
     rr.ttl=5;               // 5 seconds
-    rr.auth = 1;            // it may be random.. but it is auth!
+    rr.auth = true;            // it may be random.. but it is auth!
     rr.content = d_answer;
 
     d_answer.clear();       // this was the last answer

@@ -479,8 +479,8 @@ UeberBackend::UeberBackend(const string &pname)
     instances.push_back(this); // report to the static list of ourself
   }
 
-  d_negcached=0;
-  d_cached=0;
+  d_negcached=false;
+  d_cached=false;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
   d_qtype = 0;

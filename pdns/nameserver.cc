@@ -278,7 +278,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
         if(errno != EAGAIN)
           g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<stringerror()<<endl;
-        return 0;
+        return false;
       }
       break;
     }
@@ -291,7 +291,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
 
   if(remote.sin4.sin_port == 0) // would generate error on responding. sin4 also works for ipv6
-    return 0;
+    return false;
   
   packet.setSocket(sock);
   packet.setRemote(&remote);

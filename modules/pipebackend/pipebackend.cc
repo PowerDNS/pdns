@@ -307,7 +307,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
            r.auth = (parts[2] == "1");
          } else {
            r.scopeMask = 0;
-           r.auth = 1;
+           r.auth = true;
          }
          r.qname=DNSName(parts[1+extraFields]);
          r.qtype=parts[3+extraFields];

@@ -103,7 +103,7 @@ static void startNewTransaction()
       cout<<"COMMIT;"<<endl;
     }
   }
-  g_intransaction=1;
+  g_intransaction=true;
   
   if(g_mode == MYSQL)
     cout<<"BEGIN;"<<endl;

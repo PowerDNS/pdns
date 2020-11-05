@@ -1881,7 +1881,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   if(d_dnssecQueries)
     r.auth = !row[7].empty() && row[7][0]=='1';
   else
-    r.auth = 1;
+    r.auth = true;
 
   r.disabled = !row[5].empty() && row[5][0]=='1';
 
