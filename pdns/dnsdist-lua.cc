@@ -2332,6 +2332,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaInspection(luaCtx);
   setupLuaRules(luaCtx);
   setupLuaVars(luaCtx);
+  setupLuaWeb(luaCtx);
 
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());

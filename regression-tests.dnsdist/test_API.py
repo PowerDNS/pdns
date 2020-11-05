@@ -553,3 +553,61 @@ class TestAPIACL(DNSDistTest):
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEquals(r.status_code, 200)
+
+class TestCustomLuaEndpoint(DNSDistTest):
+
+    _webTimeout = 2.0
+    _webServerPort = 8083
+    _webServerBasicAuthPassword = 'secret'
+    _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer{address="127.0.0.1:%s"}
+    webserver("127.0.0.1:%s", "%s")
+
+    function customHTTPHandler(req, resp)
+      if req.path ~= '/foo' then
+        resp.status = 500
+        return
+      end
+
+      if req.version ~= 11 then
+        resp.status = 501
+        return
+      end
+
+      if req.method ~= 'GET' then
+        resp.status = 502
+        return
+      end
+
+      local get = req.getvars
+      if get['param'] ~= '42' then
+        resp.status = 503
+        return
+      end
+
+      local headers = req.headers
+      if headers['customheader'] ~= 'foobar' then
+        resp.status = 504
+        return
+      end
+
+      resp.body = 'It works!'
+      resp.status = 200
+      resp.headers = { ['Foo']='Bar'}
+    end
+    registerWebHandler('/foo', customHTTPHandler)
+    """
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword']
+
+    def testBasic(self):
+        """
+        Custom Web Handler
+        """
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/foo?param=42'
+        headers = {'customheader': 'foobar'}
+        r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout, headers=headers)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(r.content, b'It works!')
+        self.assertEquals(r.headers.get('foo'), "Bar")

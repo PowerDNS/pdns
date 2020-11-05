@@ -53,6 +53,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-web.hh"
 #include "dnsdist-xpf.hh"
 
 #include "base64.hh"
@@ -2188,6 +2189,7 @@ try
     consoleACL.addMask(mask);
   }
   g_consoleACL.setState(consoleACL);
+  registerBuiltInWebHandlers();
 
   if (g_cmdLine.checkConfig) {
     setupLua(g_lua, false, true, g_cmdLine.config);

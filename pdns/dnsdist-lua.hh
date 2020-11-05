@@ -105,4 +105,5 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 void setupLuaRules(LuaContext& luaCtx);
 void setupLuaInspection(LuaContext& luaCtx);
 void setupLuaVars(LuaContext& luaCtx);
+void setupLuaWeb(LuaContext& luaCtx);
 void setupLuaLoadBalancingContext(LuaContext& luaCtx);
