@@ -21,7 +21,7 @@ BUILT_SOURCES=htmlfiles.h \
 	dnsdist-lua-ffi-interface.inc \
 	dnslabeltext.cc
 
-htmlfiles.h: $(srcdir)/html/*
+htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
 	@mv $@.tmp $@
 
