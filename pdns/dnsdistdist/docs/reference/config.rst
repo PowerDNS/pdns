@@ -370,7 +370,7 @@ Webserver configuration
       local get = req.getvars
       local headers = req.headers
 
-      if req.path ~= '/foo' or req.version ~= 11 or req.method ~= 'GET' or get['param'] ~= '42' or headers['customheader'] ~= 'foobar' then
+      if req.path ~= '/foo' or req.version ~= 11 or req.method ~= 'GET' or get['param'] ~= '42' or headers['custom'] ~= 'foobar' then
         resp.status = 500
         return
       end
