@@ -1488,7 +1488,7 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (policyOverride) {
+      if (!policyOverride) {
         /* No RPZ or gettag overrides it anyway */
         ret = std::move(dc->d_records);
         res = *dc->d_rcode;
