@@ -1352,7 +1352,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
       if (newTarget.isPartOf(qname)) {
         // a.b.c. CNAME x.a.b.c will go to great depths with QM on
-        string msg = "got a CNAME referral (from cache) to child, switching off QM";
+        string msg = "got a CNAME referral (from cache) to child, disabling QM";
         LOG(prefix<<qname<<": "<<msg<<endl);
         setQNameMinimization(false);
       }
