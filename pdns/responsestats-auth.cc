@@ -23,9 +23,12 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP) {
   static AtomicCounter &tcpbytesanswered6=*S.getPointer("tcp6-answers-bytes");
 
   if(p.d.aa) {
-    if (p.d.rcode==RCode::NXDomain)
+    if (p.d.rcode==RCode::NXDomain) {
+      S.inc("nxdomain-packets");
       S.ringAccount("nxdomain-queries", p.qdomain, p.qtype);
+    }
   } else if (p.d.rcode == RCode::Refused) {
+    S.inc("unauth-packets");
     S.ringAccount("unauth-queries", p.qdomain, p.qtype);
     S.ringAccount("remotes-unauth",p.d_remote);
   }

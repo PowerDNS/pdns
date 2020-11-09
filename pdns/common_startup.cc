@@ -364,7 +364,10 @@ void declareStats(void)
   S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
   S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize, StatType::gauge);
 
+  S.declare("nxdomain-packets","Number of times an NXDOMAIN packet was sent out");
+  S.declare("noerror-packets","Number of times a NOERROR packet was sent out");
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
+  S.declare("unauth-packets","Number of times a domain we are not auth for was queried");
   S.declare("latency","Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling", StatType::gauge);

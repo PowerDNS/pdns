@@ -26,6 +26,15 @@ $SDIG ::1 $port random.example.com A tcp >&2 >/dev/null
 $SDIG ::1 $port example.com SOA >&2 >/dev/null
 $SDIG ::1 $port example.com SOA tcp >&2 >/dev/null
 
+# NXDOMAIN
+$SDIG 127.0.0.1 $port nx.example.com A >&2 >/dev/null
+
+# NOERROR
+$SDIG 127.0.0.1 $port example.com SRV >&2 >/dev/null
+
+# unauth
+$SDIG 127.0.0.1 $port example.invalid MX >&2 >/dev/null
+
 $PDNSCONTROL --config-name= --no-config --socket-dir=./ 'show *' | \
   tr ',' '\n'| grep -v -E '(user-msec|sys-msec|cpu-iowait|cpu-steal|uptime|udp-noport-errors|udp-in-errors|real-memory-usage|special-memory-usage|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss|fd-usage|latency|backend-queries)' | LC_ALL=C sort
 
