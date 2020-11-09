@@ -525,3 +525,59 @@ class PDNSFeaturesTest(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
+    """Tests that we can generate answers from gettag"""
+
+    _confdir = 'gettaganswers'
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+      typedef struct pdns_ffi_param pdns_ffi_param_t;
+
+      typedef enum
+      {
+        answer = 1,
+        authority = 2,
+        additional = 3
+      } pdns_record_place_t;
+
+      const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref);
+      void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode);
+      bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentSize, pdns_record_place_t place);
+    ]]
+
+    function gettag_ffi(obj)
+      local qname = ffi.string(ffi.C.pdns_ffi_param_get_qname(obj))
+      if qname == 'gettag-answers.powerdns.com' then
+         ffi.C.pdns_ffi_param_set_rcode(obj, 0)
+         ffi.C.pdns_ffi_param_add_record(obj, nil, pdns.A, 60, '192.0.2.1', 9, 1);
+         ffi.C.pdns_ffi_param_add_record(obj, "not-powerdns.com.", pdns.A, 60, '192.0.2.2', 9, 3);
+      end
+    end
+
+    function preresolve (dq)
+      -- refused everything if it comes that far
+      dq.rcode = pdns.REFUSED
+      return true
+    end
+    """
+
+    def testGettag(self):
+        expectedAnswerRecords = [
+            dns.rrset.from_text('gettag-answers.powerdns.com.', 60, dns.rdataclass.IN, 'A', '192.0.2.1'),
+        ]
+        expectedAdditionalRecords = [
+            dns.rrset.from_text('not-powerdns.com.', 60, dns.rdataclass.IN, 'A', '192.0.2.2'),
+        ]
+        query = dns.message.make_query('gettag-answers.powerdns.com.', 'A')
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(len(res.authority), 0)
+        self.assertEqual(len(res.additional), 1)
+        self.assertEquals(res.answer, expectedAnswerRecords)
+        self.assertEquals(res.additional, expectedAdditionalRecords)
