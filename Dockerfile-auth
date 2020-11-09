@@ -10,7 +10,7 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
 # import everything - this could be pdns.git OR an auth tarball!
-COPY . /source
+COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/authoritative/debian-buster/control && \
@@ -18,6 +18,16 @@ RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-instal
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/
+
+COPY pdns /source/pdns
+COPY modules /source/modules
+COPY codedocs /source/codedocs
+COPY docs /source/docs
+COPY build-aux /source/build-aux
+COPY m4 /source/m4
+COPY ext /source/ext
+COPY .git /source/.git
+ADD configure.ac Makefile.am /source/
 
 ARG MAKEFLAGS=
 ENV MAKEFLAGS ${MAKEFLAGS:--j2}
@@ -64,9 +74,7 @@ RUN apt install -y /tmp/equivs-dummy_1.0_all.deb && apt clean
 # Start script
 COPY dockerdata/startup.py /usr/local/sbin/pdns_server-startup
 
-# Config file(s) from builder
-# Should not grab this from builder - since it isn't being built
-COPY --from=builder /source/dockerdata/pdns.conf /etc/powerdns/
+COPY dockerdata/pdns.conf /etc/powerdns/
 RUN mkdir -p /etc/powerdns/pdns.d /var/run/pdns /var/lib/powerdns /etc/powerdns/templates.d
 
 # Work with pdns user - not root

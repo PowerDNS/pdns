@@ -9,12 +9,17 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
-# import everything - this could be pdns.git OR a dnsdist tarball!
-COPY . /source
+COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-buster/control && \
     apt-get clean
+
+COPY pdns /source/pdns
+COPY build-aux /source/build-aux
+COPY m4 /source/m4
+COPY ext /source/ext
+COPY .git /source/.git
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/dnsdistdist
@@ -66,7 +71,7 @@ RUN apt install -y /tmp/equivs-dummy_1.0_all.deb && apt clean
 
 # Config
 RUN mkdir -p /etc/dnsdist/conf.d /etc/dnsdist/templates.d
-COPY --from=builder /source/dockerdata/dnsdist.conf /etc/dnsdist/
+COPY dockerdata/dnsdist.conf /etc/dnsdist/
 
 # Start script
 COPY dockerdata/startup.py /usr/local/bin/dnsdist-startup
@@ -86,7 +91,7 @@ EXPOSE 8083/tcp
 
 WORKDIR /etc/dnsdist
 
-COPY --from=builder /source/dockerdata/dnsdist-resolver.lua /etc/dnsdist/
-COPY --from=builder /source/dockerdata/dnsdist-resolver.py /usr/local/bin/dnsdist-resolver
+COPY dockerdata/dnsdist-resolver.lua /etc/dnsdist/
+COPY dockerdata/dnsdist-resolver.py /usr/local/bin/dnsdist-resolver
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/dnsdist-startup"]
