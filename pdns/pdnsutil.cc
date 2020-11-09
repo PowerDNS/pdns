@@ -1318,7 +1318,6 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 
   UeberBackend B;
   DomainInfo di;
-
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
     return EXIT_FAILURE;
@@ -3159,6 +3158,11 @@ try
         return 1;
      }
      UeberBackend B("default");
+     DomainInfo di;
+     if (!B.getDomainInfo(zname, di)) {
+       cerr << "Domain '" << zname << "' does not exist" << endl;
+       return 1;
+     }
      std::vector<std::string> meta;
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
@@ -3194,6 +3198,11 @@ try
      }
 
      UeberBackend B("default");
+     DomainInfo di;
+     if (!B.getDomainInfo(zname, di)) {
+       cerr << "Domain '" << zname << "' does not exist" << endl;
+       return 1;
+     }
      std::vector<std::string> meta;
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
@@ -3217,8 +3226,8 @@ try
     }
     DNSName zone(cmds[1]);
     vector<string> keys;
-    DomainInfo di;
 
+    DomainInfo di;
     if (!B.getDomainInfo(zone, di)) {
        cerr << "Invalid zone '" << zone << "'" << endl;
        return 1;
