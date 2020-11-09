@@ -14,11 +14,15 @@ Create a custom metric with:
 
   myMetric=getMetric("myspecialmetric")
 
-.. function:: getMetric(name) -> Metric
+.. function:: getMetric(name [, prometheusName]) -> Metric
 
   Returns the :class:`Metric` object with the name ``name``, creating the metric if it does not exist.
 
   :param str name: The metric to retrieve
+
+  .. versionadded:: 4.5.0
+
+  :param string prometheusName: The optional Prometheus specific name.
 
 .. class:: Metric
 

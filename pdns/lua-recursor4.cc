@@ -368,8 +368,8 @@ void RecursorLua4::postPrepareContext()
 
   d_pd.push_back({"now", &g_now});
 
-  d_lw->writeFunction("getMetric", [](const std::string& str) {
-      return DynMetric{getDynMetric(str)};
+  d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<std::string> prometheusName) {
+    return DynMetric{getDynMetric(str, prometheusName ? *prometheusName : "")};
     });
 
   d_lw->registerFunction("inc", &DynMetric::inc);
