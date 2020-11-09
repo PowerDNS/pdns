@@ -2391,6 +2391,12 @@ try
       cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
       return 1;
     }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
+      return 1;
+    }
     if (!dk.activateKey(zone, id)) {
       cerr<<"Activation of key failed"<<endl;
       return 1;
@@ -2407,6 +2413,12 @@ try
     if(!id)
     {
       cerr<<"Invalid KEY-ID"<<endl;
+      return 1;
+    }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
       return 1;
     }
     if (!dk.deactivateKey(zone, id)) {
@@ -2427,6 +2439,12 @@ try
       cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
       return 1;
     }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
+      return 1;
+    }
     if (!dk.publishKey(zone, id)) {
       cerr<<"Publishing of key failed"<<endl;
       return 1;
@@ -2443,6 +2461,12 @@ try
     if(!id)
     {
       cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
+      return 1;
+    }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
       return 1;
     }
     if (!dk.unpublishKey(zone, id)) {
