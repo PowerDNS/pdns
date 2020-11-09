@@ -54,3 +54,4 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid);
 string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid);
+string DLSuckRequests(const vector<string> &parts, Utility::pid_t ppid);

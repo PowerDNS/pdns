@@ -428,3 +428,11 @@ string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
   }
 #endif
 }
+
+string DLSuckRequests(const vector<string> &parts, Utility::pid_t ppid) {
+  string ret;
+  for (auto const &d: Communicator.getSuckRequests()) {
+    ret += d.first.toString() + " " + d.second.toString() + "\n";
+  }
+  return ret;
+}

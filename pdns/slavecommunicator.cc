@@ -1012,3 +1012,18 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
   }
 }
+
+vector<pair<DNSName, ComboAddress> > CommunicatorClass::getSuckRequests() {
+  vector<pair<DNSName, ComboAddress> > ret;
+  std::lock_guard<std::mutex> l(d_lock);
+  ret.reserve(d_suckdomains.size());
+  for (auto const &d : d_suckdomains) {
+    ret.push_back(make_pair(d.domain, d.master));
+  }
+  return ret;
+}
+
+size_t CommunicatorClass::getSuckRequestsWaiting() {
+  std::lock_guard<std::mutex> l(d_lock);
+  return d_suckdomains.size();
+}
