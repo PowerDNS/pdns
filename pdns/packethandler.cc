@@ -1064,6 +1064,7 @@ void PacketHandler::makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
     addNSECX(p, r, target, wildcard, sd.qname, mode);
   }
 
+  S.inc("noerror-packets");
   S.ringAccount("noerror-queries", p.qdomain, p.qtype);
 }
 
