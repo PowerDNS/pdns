@@ -9,6 +9,9 @@ local _M = {}
 -- do not set name, address, id
 _M.servers = {}
 
+-- Whether or not we should log everything we do
+_M.verbose = false
+
 -- these are the servers we have
 -- key = name
 -- value = {address, serverObject} (should make these named members)
@@ -35,8 +38,10 @@ local function setServer(name, ip)
     local existing = ourservers[name]
     if existing ~= nil
     then
+        if _M.verbose then
+          infolog(string.format("existing[1] [%s] == ip [%s] ??", existing[1], ip))
+        end
         -- it exists, check IP
-        infolog(string.format("existing[1] [%s] == ip [%s] ??", existing[1], ip))
         if existing[1] == ip
         then
             -- IP is correct, done!
@@ -86,10 +91,12 @@ function _M.maintenance()
 
     for name, ips in pairs(resout)
     do
-        infolog("name="..name)
-        for _, ip in ipairs(ips)
-        do
-            infolog("  ip="..ip)
+        if _M.verbose then
+          infolog("name="..name)
+          for _, ip in ipairs(ips)
+          do
+              infolog("  ip="..ip)
+          end
         end
 
         if #ips == 0
