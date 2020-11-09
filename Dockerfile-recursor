@@ -59,8 +59,8 @@ FROM debian:10-slim
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
-# Ensure python3 is present (for startup script), and tini for signal management
-RUN apt-get install -y python3 tini libcap2-bin && apt-get clean
+# Ensure python3 and jinja2 is present (for startup script), and tini for signal management
+RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin && apt-get clean
 
 # Executables from builder
 COPY --from=builder /build /
@@ -78,13 +78,11 @@ COPY dockerdata/startup.py /usr/local/sbin/pdns_recursor-startup
 COPY --from=builder /source/dockerdata/recursor.conf /etc/powerdns/
 
 # Is recursor.d necessary if we copy the config into recursor.conf? (see above)
-RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor
-RUN touch /etc/powerdns-api.conf && chown 953 /etc/powerdns-api.conf
-RUN ln -s /etc/powerdns-api.conf /etc/powerdns/recursor.d/api.conf
+RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor /etc/powerdns/templates.d
 
 # Work with pdns user - not root
 RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /var/run/pdns-recursor
+RUN chown pdns:pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
 USER pdns
 
 # DNS ports
