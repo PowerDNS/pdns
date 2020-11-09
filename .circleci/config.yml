@@ -494,6 +494,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
 
     steps:
       - checkout-shallow
@@ -505,6 +508,9 @@ jobs:
   check-formatting:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - run:
           name: Install dependencies
@@ -535,6 +541,9 @@ jobs:
   build-auth:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
 
     steps:
       - get-workspace
@@ -582,6 +591,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run:
@@ -613,6 +625,9 @@ jobs:
   test-auth-regress-odbc-mssql:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
       - image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
         environment:
           - ACCEPT_EULA: Y
@@ -674,6 +689,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run:
@@ -694,7 +712,13 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
       - image: circleci/mysql:5      # for the hybrid test
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run:
@@ -731,7 +755,13 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
       - image: circleci/mysql:5
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run:
@@ -765,7 +795,13 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
       - image: circleci/postgres:9
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
         environment:
           POSTGRES_USER: root
           POSTGRES_HOST_AUTH_METHOD: trust
@@ -797,9 +833,15 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
         environment:
           LDAPHOST: ldap://ldapserver/
       - image: powerdns/ldap-regress:1.2.4-1 # OpenLDAP 2.4.47
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
         name: ldapserver
         command: '--loglevel debug'
         environment:
@@ -822,6 +864,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -833,6 +878,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run: apt-get install -y -qq jq
@@ -852,6 +900,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run:
@@ -863,6 +914,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install virtualenv sqlite3
@@ -879,6 +933,9 @@ jobs:
   build-recursor:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - restore-cache-ccache:
           product: recursor
@@ -954,6 +1011,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc virtualenv protobuf-compiler
@@ -977,6 +1037,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
@@ -1185,6 +1248,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y virtualenv pdns-tools
@@ -1202,6 +1268,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - get-workspace
       - install-doc-deps
@@ -1212,6 +1281,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - get-workspace
       - install-doc-deps
@@ -1224,6 +1296,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - get-workspace
       - install-doc-deps
@@ -1234,6 +1309,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - get-workspace
       - install-doc-deps
@@ -1246,6 +1324,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - get-workspace
       - install-doc-deps
@@ -1256,6 +1337,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - get-workspace
       - install-doc-deps
@@ -1266,6 +1350,9 @@ jobs:
   coverity-auth:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - install-auth-dev-deps
       - install-coverity-tools
@@ -1309,6 +1396,9 @@ jobs:
   coverity-dnsdist:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - run:
           name: Install dependencies
@@ -1388,6 +1478,9 @@ jobs:
   coverity-recursor:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
     steps:
       - run:
           name: Install dependencies
@@ -1459,6 +1552,9 @@ jobs:
   build-dnsdist:
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
@@ -1543,6 +1639,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
@@ -1570,6 +1669,9 @@ jobs:
 
     docker:
       - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
