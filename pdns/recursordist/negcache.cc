@@ -253,11 +253,9 @@ void NegCache::prune(size_t maxEntries)
  *
  * \param fp A pointer to an open FILE object
  */
-size_t NegCache::dumpToFile(FILE* fp) const
+size_t NegCache::dumpToFile(FILE* fp, const struct timeval& now) const
 {
   size_t ret = 0;
-  struct timeval now;
-  Utility::gettimeofday(&now, nullptr);
 
   for (const auto& m : d_maps) {
     const lock l(m);

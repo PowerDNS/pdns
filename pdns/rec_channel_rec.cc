@@ -229,7 +229,10 @@ static uint64_t dumpNegCache(int fd)
     return 0;
   }
   fprintf(fp.get(), "; negcache dump follows\n;\n");
-  return g_negCache->dumpToFile(fp.get());
+
+  struct timeval now;
+  Utility::gettimeofday(&now, nullptr);
+  return g_negCache->dumpToFile(fp.get(), now);
 }
 
 static uint64_t* pleaseDump(int fd)
