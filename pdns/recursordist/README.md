@@ -26,8 +26,7 @@ On Debian and Ubuntu, the following will get you the dependencies:
 ```sh
 apt-get install libboost-dev libboost-filesystem-dev libboost-serialization-dev \
   libboost-system-dev libboost-thread-dev libboost-context-dev libboost-test-dev \
-  libssl-dev libboost-test-dev g++ make automake libtool pkg-config libluajit-5.1-dev \
-  ragel curl virtualenv
+  libssl-dev libboost-test-dev g++ make pkg-config libluajit-5.1-dev
 ```
 
 Compiling from git checkout
@@ -42,7 +41,7 @@ This repository contains the sources for the PowerDNS Recursor, the PowerDNS
 Authoritative Server, and dnsdist (a powerful DNS loadbalancer). The sources for
 the recursor are located in the `pdns/recursordist` subdirectory of the repository.
 
-To compile from a git checkout, install ragel, automake, autoconf, libtool and curl.
+To compile from a git checkout, install the dependencies above plus ragel, automake, autoconf, libtool, virtualenv and curl.
 Then run
 
 ```sh
