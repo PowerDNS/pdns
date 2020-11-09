@@ -70,7 +70,7 @@ public:
     if (d_dolog) {
       g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": Statement: " << d_query << endl;
       if (d_paridx) {
-        // Log message is similar, bot not exactly the same as the postgres server log.
+        // Log message is similar, but not exactly the same as the postgres server log.
         std::stringstream log_message;
         log_message<< "Query "<<((long)(void*)this)<<": Parameters: ";
         for (int i = 0; i < d_paridx; i++) {
