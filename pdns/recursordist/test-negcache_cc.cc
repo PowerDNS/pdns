@@ -437,7 +437,7 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   if (!fp)
     BOOST_FAIL("Temporary file could not be opened");
 
-  cache.dumpToFile(fp.get());
+  cache.dumpToFile(fp.get(), now);
 
   rewind(fp.get());
   char* line = nullptr;
@@ -449,8 +449,7 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
     if (read == -1)
       BOOST_FAIL("Unable to read a line from the temp file");
     // The clock might have ticked so the 600 becomes 599
-    auto pos = str.find("600");
-    BOOST_CHECK(line == str || line == str.replace(pos, 3, "599"));
+    BOOST_CHECK(line == str);
   }
 
   /* getline() allocates a buffer when called with a nullptr,

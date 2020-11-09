@@ -75,7 +75,7 @@ public:
   size_t count(const DNSName& qname, const QType qtype) const;
   void prune(size_t maxEntries);
   void clear();
-  size_t dumpToFile(FILE* fd) const;
+  size_t dumpToFile(FILE* fd, const struct timeval& now) const;
   size_t wipe(const DNSName& name, bool subtree = false);
   size_t size() const;
 
