@@ -66,6 +66,9 @@ void BindParser::parse(const string &fname)
 void BindParser::setDirectory(const string &dir)
 {
 	d_dir=dir;
+	if (d_dir.back() == '/') {
+		d_dir.pop_back();
+	}
 	bind_directory=d_dir.c_str();
 }
 
