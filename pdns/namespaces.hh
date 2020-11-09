@@ -32,9 +32,10 @@
 #include <vector>
 
 // We have a few paces where boost::tuple is used, and other places where an unscoped tuple is used
-// use the boost one for now. We might want to switch to std::tuple  one day.
+// prefer the boost one for now. We might want to switch to std::tuple one day. Same for tie.
 using boost::make_tuple;
 using boost::tuple;
+using boost::tie;
 
 using std::cerr;
 using std::clog;
@@ -53,6 +54,5 @@ using std::runtime_error;
 using std::set;
 using std::shared_ptr;
 using std::string;
-using std::tie;
 using std::unique_ptr;
 using std::vector;

@@ -27,6 +27,7 @@
 #include <atomic>
 #include <thread>
 #include <unordered_set>
+#include <deque>
 #include "inflighter.cc"
 //#include "malloctrace.hh"
 StatBag S;
@@ -62,7 +63,7 @@ struct SendReceive
   typedef int Identifier;
   typedef DNSResult Answer; // ip 
   int d_socket;
-  deque<uint16_t> d_idqueue;
+  std::deque<uint16_t> d_idqueue;
     
   SendReceive(map<ComboAddress, namecount, ComboAddress::addressOnlyLessThan>& res) : d_res(res)
   {
@@ -191,7 +192,7 @@ struct SendReceiveRes
   typedef int Identifier;
   typedef RESResult Answer; // ip 
   int d_socket;
-  deque<uint16_t> d_idqueue;
+  std::deque<uint16_t> d_idqueue;
   map<DNSName, vector<ComboAddress>>& d_out;
   SendReceiveRes(const ComboAddress& remote, map<DNSName,vector<ComboAddress>>& out) : d_out(out)
   {

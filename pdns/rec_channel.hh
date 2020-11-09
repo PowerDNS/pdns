@@ -91,7 +91,7 @@ std::vector<ComboAddress>* pleaseGetLargeAnswerRemotes();
 std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName);
-optional<uint64_t> getStatByName(const std::string& name);
+boost::optional<uint64_t> getStatByName(const std::string& name);
 bool isStatBlacklisted(StatComponent component, const std::string& name);
 void blacklistStat(StatComponent component, const string& name);
 void blacklistStats(StatComponent component, const string& stats);
