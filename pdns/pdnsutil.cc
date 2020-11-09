@@ -808,8 +808,8 @@ static int deleteZone(const DNSName &zone) {
 
 static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
   if (printHeader) {
-    cout<<"Zone                          Type    Size    Algorithm    ID   Location    Keytag"<<endl;
-    cout<<"----------------------------------------------------------------------------------"<<endl;
+    cout<<"Zone                          Type    Size    Algorithm       ID   Location    Keytag"<<endl;
+    cout<<"-------------------------------------------------------------------------------------"<<endl;
   }
   unsigned int spacelen = 0;
   for (auto const &key : dk.getKeys(di.zone)) {
@@ -830,7 +830,7 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
     }
 
     string algname = DNSSECKeeper::algorithm2name(key.first.d_algorithm);
-    spacelen = (algname.length() >= 13) ? 1 : 13 - algname.length();
+    spacelen = (algname.length() >= 16) ? 1 : 16 - algname.length();
     cout<<algname<<string(spacelen, ' ');
 
     spacelen = (std::to_string(key.second.id).length() > 5) ? 1 : 5 - std::to_string(key.second.id).length();
