@@ -2706,9 +2706,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
 #ifdef HAVE_PROTOBUF
       if(t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) { // XXX
-        pdns::ProtoZero::Message pbMessage(pbData->d_message, pbData->d_response, 64, 10); // The extra bytes we are going to add
+        pdns::ProtoZero::Message pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
         if (pbData) {
-          // We take the unmutable string from the cache an are appending a few values
+          // We take the inmutable string from the cache and are appending a few values
         } else {
           pbMessage.setType(2); // Response
           pbMessage.setServerIdentity(SyncRes::s_serverID);
