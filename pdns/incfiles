@@ -1,0 +1,11 @@
+#!/bin/sh
+
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
+for a in $@
+do
+	c=$(echo $a | tr "/.-" "___")
+	echo "INCBIN(${c}, \"${a}\");"
+	echo "static const string g_${c}{(const char*)g${c}Data, g${c}Size};"
+done

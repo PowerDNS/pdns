@@ -33,6 +33,12 @@ jobs:
     - run: git checkout HEAD^2
       if: ${{ github.event_name == 'pull_request' }}
 
+    # Python and virtualenv are required for building the Authoritative server
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '2.7'
+    - run: pip install virtualenv
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1

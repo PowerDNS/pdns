@@ -23,6 +23,9 @@ extraction:
       - "sed -i 's/codedocs docs//' Makefile.am"
       - "autoreconf -vi"
       - "./configure --with-modules='bind gsqlite3 gmysql gpgsql ldap'"
+      - "pushd pdns"
+      - "touch .venv api-swagger.yaml api-swagger.json"
+      - "popd"
     index:
       build_command:
       - "pushd pdns/dnsdistdist"

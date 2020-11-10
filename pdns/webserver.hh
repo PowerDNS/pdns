@@ -33,6 +33,7 @@ class HttpRequest : public YaHTTP::Request {
 public:
   HttpRequest(const string& logprefix_="") : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false), logprefix(logprefix_) { };
 
+  bool accept_yaml;
   bool accept_json;
   bool accept_html;
   bool complete;
@@ -49,7 +50,10 @@ public:
   HttpResponse() : YaHTTP::Response() { };
   HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
 
-  void setBody(const json11::Json& document);
+  void setPlainBody(const string& document);
+  void setYamlBody(const string& document);
+  void setJsonBody(const string& document);
+  void setJsonBody(const json11::Json& document);
   void setErrorResult(const std::string& message, const int status);
   void setSuccessResult(const std::string& message, const int status = 200);
 };
