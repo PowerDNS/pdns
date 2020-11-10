@@ -1443,6 +1443,14 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     }
 
     if (qt != QType::ANY) {
+      if (d_upgradeContent) {
+        d_DeleteRRSetQuery_stmt->
+          bind("domain_id", domain_id)->
+          bind("qname", qname)->
+          bind("qtype", "TYPE"+itoa(qt.getCode()))->
+          execute()->
+          reset();
+      }
       d_DeleteRRSetQuery_stmt->
         bind("domain_id", domain_id)->
         bind("qname", qname)->
@@ -1853,7 +1861,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
   r.qtype=row[3];
 
-  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3])) {
+  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3]) && r.qtype.isSupportedType()) {
     r.content = DNSRecordContent::upgradeContent(r.qname, r.qtype, row[0]);
   }
   else if (r.qtype==QType::MX || r.qtype==QType::SRV) {
