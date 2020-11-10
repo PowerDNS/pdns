@@ -1158,6 +1158,7 @@ Mamane
 Mandriva
 manpage
 mapasync
+Mapbox
 mariadb
 Markmann
 maskv
@@ -1522,6 +1523,7 @@ Proba
 progid
 protobuf
 PROTOC
+protozero
 providername
 proxyprotocol
 proxyprotocolvalues

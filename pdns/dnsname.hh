@@ -90,6 +90,7 @@ public:
   bool operator!=(const DNSName& other) const { return !(*this == other); }
 
   std::string toString(const std::string& separator=".", const bool trailing=true) const;              //!< Our human-friendly, escaped, representation
+  void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const;
   std::string toLogString() const; //!< like plain toString, but returns (empty) on empty names
   std::string toStringNoDot() const { return toString(".", false); }
   std::string toStringRootDot() const { if(isRoot()) return "."; else return toString(".", false); }

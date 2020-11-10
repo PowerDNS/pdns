@@ -5,6 +5,7 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAG
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
+	-I$(top_srcdir)/ext/protozero/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES)
 
@@ -67,6 +68,7 @@ EXTRA_DIST = \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
 	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh \
+	ext/protozero/include/* \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
@@ -144,6 +146,7 @@ pdns_recursor_SOURCES = \
 	pdnsexception.hh \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
+	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	pubsuffix.hh pubsuffix.cc \
 	pubsuffixloader.cc \

@@ -162,15 +162,25 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
 
 std::string DNSName::toString(const std::string& separator, const bool trailing) const
 {
+  std::string ret;
+  toString(ret, separator, trailing);
+  return ret;
+}
+
+void DNSName::toString(std::string& output, const std::string& separator, const bool trailing) const
+{
   if (empty()) {
     throw std::out_of_range("Attempt to print an unset dnsname");
   }
 
-  if(isRoot())
-    return trailing ? separator : "";
+  if (isRoot()) {
+    output += (trailing ? separator : "");
+    return;
+  }
 
-  std::string ret;
-  ret.reserve(d_storage.size());
+  if (output.capacity() < (output.size() + d_storage.size())) {
+    output.reserve(output.size() + d_storage.size());
+  }
 
   {
     // iterate over the raw labels
@@ -178,15 +188,15 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
     const char* end = p + d_storage.size();
 
     while (p < end && *p) {
-      appendEscapedLabel(ret, p + 1, static_cast<size_t>(*p));
-      ret += separator;
+      appendEscapedLabel(output, p + 1, static_cast<size_t>(*p));
+      output += separator;
       p += *p + 1;
     }
   }
+
   if (!trailing) {
-    ret.resize(ret.size() - separator.size());
+    output.resize(output.size() - separator.size());
   }
-  return ret;
 }
 
 std::string DNSName::toLogString() const
