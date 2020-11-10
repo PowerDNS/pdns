@@ -121,6 +121,7 @@ static const oid qnameMinFallbackSuccessOID[] = { RECURSOR_STATS_OID, 100 };
 static const oid proxyProtocolInvalidOID[] = { RECURSOR_STATS_OID, 101 };
 static const oid recordCacheContendedOID[] = { RECURSOR_STATS_OID, 102 };
 static const oid recordCacheAcquiredOID[] = { RECURSOR_STATS_OID, 103 };
+static const oid nodLookupsDroppedOversizeOID[] = { RECURSOR_STATS_OID, 104 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -333,5 +334,6 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("proxy-protocol-invalid", proxyProtocolInvalidOID, OID_LENGTH(proxyProtocolInvalidOID));
   registerCounter64Stat("record-cache-contended", recordCacheContendedOID, OID_LENGTH(recordCacheContendedOID));
   registerCounter64Stat("record-cache-acquired", recordCacheAcquiredOID, OID_LENGTH(recordCacheAcquiredOID));
+  registerCounter64Stat("nod-lookups-dropped-oversize", nodLookupsDroppedOversizeOID, OID_LENGTH(nodLookupsDroppedOversizeOID));
 #endif /* HAVE_NET_SNMP */
 }

@@ -863,6 +863,14 @@ recordCacheAcquired OBJECT-TYPE
         "Number of record cache lock acquisitions"
     ::= { stats 103 }
 
+nodLookupsDroppedOversize OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of NOD lookups dropped because they would exceed the maximum name length"
+    ::= { stats 104 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1009,7 +1017,8 @@ recGroup OBJECT-GROUP
         qnameMinFallbackSuccess,
         proxyProtocolInvalid,
         recordCacheContended,
-        recordCacheAcquired
+        recordCacheAcquired,
+        nodLookupsDroppedOversize
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

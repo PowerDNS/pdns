@@ -1012,6 +1012,7 @@ struct RecursorStats
   std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
   std::atomic<uint64_t> rebalancedQueries{0};
   std::atomic<uint64_t> proxyProtocolInvalidCount{0};
+  std::atomic<uint64_t> nodLookupsDroppedOversize{0};
 };
 
 //! represents a running TCP/IP client session

@@ -1218,7 +1218,14 @@ static void sendNODLookup(const DNSName& dname)
     // Send a DNS A query to <domain>.g_nodLookupDomain
     static const QType qt(QType::A);
     static const uint16_t qc(QClass::IN);
-    DNSName qname = dname + g_nodLookupDomain;
+    DNSName qname;
+    try {
+      qname = dname + g_nodLookupDomain;
+    }
+    catch(const std::range_error &e) {
+      ++g_stats.nodLookupsDroppedOversize;
+      return;
+    }
     vector<DNSRecord> dummy;
     directResolve(qname, qt, qc, dummy);
   }

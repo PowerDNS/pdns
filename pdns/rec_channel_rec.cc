@@ -1220,6 +1220,8 @@ void registerAllStats()
 
   addGetStat("proxy-protocol-invalid", &g_stats.proxyProtocolInvalidCount);
 
+  addGetStat("nod-lookups-dropped-oversize", &g_stats.nodLookupsDroppedOversize);
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
