@@ -1497,6 +1497,13 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         throw ImmediateServFailException(msg);
       }
 
+      if (newTarget.isPartOf(qname)) {
+        // a.b.c. CNAME x.a.b.c will go to great depths with QM on
+        string msg = "got a CNAME referral (from cache) to child, disabling QM";
+        LOG(prefix<<qname<<": "<<msg<<endl);
+        setQNameMinimization(false);
+      }
+
       // Check to see if we already have seen the new target as a previous target
       if (scanForCNAMELoop(newTarget, ret)) {
         string msg = "got a CNAME referral (from cache) that causes a loop";
@@ -3661,6 +3668,11 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
     ret.clear();
     rcode = RCode::ServFail;
     return;
+  }
+  if (newtarget.isPartOf(qname)) {
+    // a.b.c. CNAME x.a.b.c will go to great depths with QM on
+    LOG(prefix<<qname<<": status=got a CNAME referral to child, disabling QM"<<endl);
+    setQNameMinimization(false);
   }
 
   if (depth > 10) {
