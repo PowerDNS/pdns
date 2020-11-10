@@ -40,6 +40,8 @@ class DNS64RecursorTest(RecursorTest):
 www 3600 IN A 192.0.2.42
 www 3600 IN TXT "does exist"
 aaaa 3600 IN AAAA 2001:db8::1
+cname 3600 IN CNAME cname2.example.dns64.
+cname2 3600 IN CNAME www.example.dns64.
 """.format(soa=cls._SOA))
 
         authzonepath = os.path.join(confdir, 'in-addr.arpa.zone')
@@ -93,8 +95,26 @@ aaaa 3600 IN AAAA 2001:db8::1
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
 
+    # there is a CNAME from that name to a second one, then to a name for which this type (AAAA)
+    # does not exist, but an A record does, so we should get a DNS64-wrapped AAAA
+    def testCNAMEToA(self):
+        qname = 'cname.example.dns64.'
+        expectedResults = [
+            dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'CNAME', 'cname2.example.dns64.'),
+            dns.rrset.from_text('cname2.example.dns64.', 0, dns.rdataclass.IN, 'CNAME', 'www.example.dns64.'),
+            dns.rrset.from_text('www.example.dns64.', 0, dns.rdataclass.IN, 'AAAA', '64:ff9b::c000:22a')
+        ]
+
+        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            for expected in expectedResults:
+                self.assertRRsetInAnswer(res, expected)
+
     # this type (AAAA) does not exist for this name and there is no A record either, we should get a NXDomain
-    def testNonExistingAAAA(self):
+    def testNXD(self):
         qname = 'nxd.example.dns64.'
 
         query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
