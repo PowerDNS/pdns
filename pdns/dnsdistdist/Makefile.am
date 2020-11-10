@@ -148,6 +148,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
+	dnsdist-lua-web.cc \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \

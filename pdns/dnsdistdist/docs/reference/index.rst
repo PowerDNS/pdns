@@ -23,3 +23,4 @@ These chapters contain extensive information on all functions and object availab
   tuning
   kvs
   logging
+  web

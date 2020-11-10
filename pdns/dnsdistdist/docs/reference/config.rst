@@ -349,6 +349,42 @@ Webserver configuration
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
 
+.. function:: registerWebHandler(path, handler)
+
+  .. versionadded: 1.6.0
+
+  Register a function named ``handler`` that will be called for every query sent to the exact ``path`` path. The function will receive a :class:`WebRequest` object
+  and a :class:`WebResponse` object, representing respectively the HTTP request received and the HTTP response to send.
+  For example an handler registered for '/foo' will receive these queries:
+  - GET /foo
+  - POST /foo
+  - GET /foo?param=1
+  - ...
+  But not queries for /foobar or /foo/bar.
+
+  A sample handler function could be:
+
+  .. code-block:: lua
+
+    function customHTTPHandler(req, resp)
+      local get = req.getvars
+      local headers = req.headers
+
+      if req.path ~= '/foo' or req.version ~= 11 or req.method ~= 'GET' or get['param'] ~= '42' or headers['custom'] ~= 'foobar' then
+        resp.status = 500
+        return
+      end
+
+      resp.status = 200
+      resp.body = 'It works!'
+      resp.headers = { ['Foo']='Bar'}
+    end
+
+    registerWebHandler('/foo', customHTTPHandler)
+
+  :param str path: Path to register the handler for.
+  :param function handler: The Lua function to register.
+
 Access Control Lists
 ~~~~~~~~~~~~~~~~~~~~
 
