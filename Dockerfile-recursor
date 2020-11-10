@@ -13,15 +13,18 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get install -y --no-install-recommends devscripts equivs git curl && apt-get clean
 
-# import everything - this could be pdns.git OR a recursor tarball!
-COPY . /source
-
-# TODO: make sure /source looks roughly the same from git or tar
+COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
     apt-get clean
 # RUN apt-get -y install protobuf-compiler && apt-get clean
+
+COPY pdns /source/pdns
+COPY build-aux /source/build-aux
+COPY m4 /source/m4
+COPY ext /source/ext
+COPY .git /source/.git
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/recursordist
@@ -59,8 +62,8 @@ FROM debian:10-slim
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
-# Ensure python3 is present (for startup script), and tini for signal management
-RUN apt-get install -y python3 tini libcap2-bin && apt-get clean
+# Ensure python3 and jinja2 is present (for startup script), and tini for signal management
+RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin && apt-get clean
 
 # Executables from builder
 COPY --from=builder /build /
@@ -74,17 +77,14 @@ RUN apt install -y /tmp/equivs-dummy_1.0_all.deb && apt clean
 COPY dockerdata/startup.py /usr/local/sbin/pdns_recursor-startup
 
 # Config file(s) from builder
-# Should not grab this from builder - since it isn't being built
-COPY --from=builder /source/dockerdata/recursor.conf /etc/powerdns/
+COPY dockerdata/recursor.conf /etc/powerdns/
 
 # Is recursor.d necessary if we copy the config into recursor.conf? (see above)
-RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor
-RUN touch /etc/powerdns-api.conf && chown 953 /etc/powerdns-api.conf
-RUN ln -s /etc/powerdns-api.conf /etc/powerdns/recursor.d/api.conf
+RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor /etc/powerdns/templates.d
 
 # Work with pdns user - not root
 RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /var/run/pdns-recursor
+RUN chown pdns:pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
 USER pdns
 
 # DNS ports
