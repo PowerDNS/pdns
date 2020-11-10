@@ -401,6 +401,9 @@ int bpf_qname_filter(struct __sk_buff *skb)
 int bpf_dns_filter(struct __sk_buff *skb) {
   u8 ip_proto;
   int proto_off;
+  /* nh_off will contain a negative offset, used in BPF to get access to
+     the MAC/network layers, as positive values are used to get access to
+     the transport layer */
   int nh_off = BPF_LL_OFF + ETH_HLEN;
 
   if (skb->protocol == ntohs(0x0800)) {
@@ -457,7 +460,10 @@ int bpf_dns_filter(struct __sk_buff *skb) {
   }
 
   struct QNameKey qkey = { 0 };
-  int dns_off = proto_off + sizeof(struct udphdr);
+  /* switch to positive offsets here, as we have seen some issues
+     when accessing the content of the transport layer with negative offsets
+     https://github.com/PowerDNS/pdns/issues/9626 */
+  int dns_off = sizeof(struct udphdr);
   int qname_off = dns_off + sizeof(struct dnsheader);
   skb->cb[0] = (uint32_t) qname_off;
   u16 qtype;
