@@ -243,6 +243,7 @@ testrunner_SOURCES = \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	ednscookies.cc ednscookies.hh \
+	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \

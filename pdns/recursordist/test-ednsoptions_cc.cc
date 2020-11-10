@@ -10,6 +10,7 @@
 #include "dnsname.hh"
 #include "dnswriter.hh"
 #include "ednscookies.hh"
+#include "ednsextendederror.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "iputils.hh"
@@ -162,7 +163,6 @@ static void checkECSOptionValidity(const std::string& sourceStr, uint8_t sourceM
 
 BOOST_AUTO_TEST_CASE(test_makeEDNSSubnetOptsString)
 {
-
   checkECSOptionValidity("192.0.2.255", 0, 0);
   checkECSOptionValidity("192.0.2.255", 8, 0);
   checkECSOptionValidity("255.255.255.255", 9, 0);
@@ -172,6 +172,44 @@ BOOST_AUTO_TEST_CASE(test_makeEDNSSubnetOptsString)
   checkECSOptionValidity("2001:DB8::FFFF", 32, 0);
   checkECSOptionValidity("2001:DB8::FFFF", 127, 0);
   checkECSOptionValidity("2001:DB8::FFFF", 128, 0);
+}
+
+static void checkExtendedErrorOptionValidity(EDNSExtendedError::code code, const std::string& extra)
+{
+  EDNSExtendedError eee;
+  eee.infoCode = static_cast<uint16_t>(code);
+  eee.extraText = extra;
+
+  const auto optionStr = makeEDNSExtendedErrorOptString(eee);
+  BOOST_REQUIRE_EQUAL(optionStr.size(), sizeof(code) + extra.size());
+
+  uint16_t u;
+  memcpy(&u, optionStr.c_str(), sizeof(u));
+  BOOST_CHECK_EQUAL(ntohs(u), static_cast<uint16_t>(code));
+  BOOST_CHECK_EQUAL(optionStr.substr(2), extra);
+
+  EDNSExtendedError parsed;
+  BOOST_REQUIRE(getEDNSExtendedErrorOptFromString(optionStr, parsed));
+  BOOST_CHECK_EQUAL(parsed.infoCode, static_cast<uint16_t>(code));
+  BOOST_CHECK_EQUAL(parsed.extraText, extra);
+}
+
+BOOST_AUTO_TEST_CASE(test_makeEDNSExtendedErrorOptString)
+{
+  checkExtendedErrorOptionValidity(EDNSExtendedError::code::Other, "");
+  checkExtendedErrorOptionValidity(static_cast<EDNSExtendedError::code>(255), "");
+
+  checkExtendedErrorOptionValidity(EDNSExtendedError::code::UnsupportedDNSKEYAlgorithm, "");
+  checkExtendedErrorOptionValidity(EDNSExtendedError::code::UnsupportedDSDigestType, "The digest type of this DS is not supported!");
+
+  std::string extra;
+  /* the size of an EDNS option is limited to 2^16-1, and in this case the code already adds 2 bytes */
+  extra.resize(65535);
+  BOOST_CHECK_THROW(checkExtendedErrorOptionValidity(EDNSExtendedError::code::Other, extra), std::runtime_error);
+
+  EDNSExtendedError parsed;
+  std::string empty;
+  BOOST_CHECK(!getEDNSExtendedErrorOptFromString(empty, parsed));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

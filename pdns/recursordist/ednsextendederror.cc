@@ -38,7 +38,7 @@ static bool getEDNSExtendedErrorOptFromString(const pdns_string_view option, EDN
 
 bool getEDNSExtendedErrorOptFromString(const string& option, EDNSExtendedError& eee)
 {
-  return getEDNSExtendedErrorOptFromString(option, eee);
+  return getEDNSExtendedErrorOptFromString(pdns_string_view(option), eee);
 }
 
 bool getEDNSExtendedErrorOptFromString(const char* option, unsigned int len, EDNSExtendedError& eee)
@@ -48,6 +48,10 @@ bool getEDNSExtendedErrorOptFromString(const char* option, unsigned int len, EDN
 
 string makeEDNSExtendedErrorOptString(const EDNSExtendedError& eee)
 {
+  if (eee.extraText.size() > static_cast<size_t>(std::numeric_limits<uint16_t>::max() - 2)) {
+    throw std::runtime_error("Trying to create an EDNS Extended Error option with an extra text of size " + std::to_string(eee.extraText.size()));
+  }
+
   string ret;
   ret.reserve(sizeof(uint16_t) + eee.extraText.size());
   ret.resize(sizeof(uint16_t));
