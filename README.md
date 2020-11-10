@@ -1,4 +1,4 @@
-PowerDNS is copyright © 2001-2019 by PowerDNS.COM BV and lots of
+PowerDNS is copyright © 2001-2020 by PowerDNS.COM BV and lots of
 contributors, using the GNU GPLv2 license (see NOTICE for the
 exact license and exception used).
 
@@ -14,6 +14,12 @@ To file bugs, head towards:
 https://github.com/PowerDNS/pdns/issues
 
 But please check if the issue is already reported there first.
+
+DOCKER
+------
+
+This README is mirrored from GitHub to dockerhub.
+For information about our Docker images, please refer to https://github.com/PowerDNS/pdns/blob/master/Docker-README.md
 
 SOURCE CODE / GIT
 -----------------
