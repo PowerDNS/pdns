@@ -399,8 +399,8 @@ private:
         "Number of responses that were marked as 'variable'")},
 
     {"x-our-latency",
-      MetricDefinition(PrometheusMetricType::counter,
-        "How much time was spent within PowerDNS in microseconds")},
+      MetricDefinition(PrometheusMetricType::gauge,
+        "Shows the averaged time spent within PowerDNS, in microseconds, exponentially weighted over past 'latency-statistic-size' packets")},
     {"x-ourtime0-1",
       MetricDefinition(PrometheusMetricType::counter,
         "Counts responses where between 0 and 1 milliseconds was spent within the Recursor")},
