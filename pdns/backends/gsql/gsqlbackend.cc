@@ -1501,7 +1501,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
       prio=pdns_stou(content.substr(0,pos));
       boost::erase_head(content, pos);
     }
-    trim_left(content);
+    boost::trim_left(content);
   }
 
   try {

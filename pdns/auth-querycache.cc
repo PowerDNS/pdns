@@ -194,7 +194,7 @@ uint64_t AuthQueryCache::purge(const string &match)
 {
   uint64_t delcount = 0;
 
-  if(ends_with(match, "$")) {
+  if(boost::ends_with(match, "$")) {
     delcount = purgeLockedCollectionsVector<NameTag>(d_maps, match);
     *d_statnumentries -= delcount;
   }

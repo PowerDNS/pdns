@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <stack>
+#include <deque>
 
 #include "namespaces.hh"
 
@@ -36,7 +37,7 @@ public:
   ~ZoneParserTNG();
   bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
-  typedef deque<pair<string::size_type, string::size_type> > parts_t;
+  typedef std::deque<pair<string::size_type, string::size_type> > parts_t;
   DNSName getZoneName();
   string getLineOfFile(); // for error reporting purposes
   pair<string,int> getLineNumAndFile(); // idem

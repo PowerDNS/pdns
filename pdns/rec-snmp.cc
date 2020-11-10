@@ -147,7 +147,7 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  optional<uint64_t> value = getStatByName(it->second);
+  boost::optional<uint64_t> value = getStatByName(it->second);
   if (value) {
     return RecursorSNMPAgent::setCounter64Value(requests, *value);
   } else {

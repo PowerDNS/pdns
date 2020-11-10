@@ -84,7 +84,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecor
 
   while(std::getline(str, sline)) {
     tie(key,value)=splitField(sline, ':');
-    trim(value);
+    boost::trim(value);
     if(pdns_iequals(key,"algorithm")) {
       algorithm = pdns_stou(value);
       stormap["algorithm"]=std::to_string(algorithm);
@@ -267,7 +267,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
 
     while(std::getline(str, sline)) {
       tie(key,value)=splitField(sline, ':');
-      trim(value);
+      boost::trim(value);
       if(pdns_iequals(key,"algorithm")) {
         algorithm = pdns_stou(value);
         stormap["algorithm"]=std::to_string(algorithm);

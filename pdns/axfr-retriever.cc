@@ -51,7 +51,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     d_sock = makeQuerySocket(local, false); // make a TCP socket
     if (d_sock < 0)
       throw ResolverException("Error creating socket for AXFR request to "+d_remote.toStringWithPort());
-    d_buf = shared_array<char>(new char[65536]);
+    d_buf = boost::shared_array<char>(new char[65536]);
     d_remote = remote; // mostly for error reporting
     this->connect(timeout);
     d_soacount = 0;

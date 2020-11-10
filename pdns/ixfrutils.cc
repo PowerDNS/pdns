@@ -94,7 +94,7 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret)
 {
   uint16_t t=QType::SOA;
 
-  auto found = records.equal_range(tie(g_rootdnsname, t));
+  auto found = records.equal_range(boost::tie(g_rootdnsname, t));
 
   for(auto iter = found.first; iter != found.second; ++iter) {
     auto soa = std::dynamic_pointer_cast<SOARecordContent>(iter->d_content);

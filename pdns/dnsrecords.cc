@@ -26,7 +26,6 @@
 #include "dnsrecords.hh"
 #include "iputils.hh"
 
-
 void DNSResourceRecord::setContent(const string &cont) {
   content = cont;
   switch(qtype.getCode()) {

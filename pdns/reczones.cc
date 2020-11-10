@@ -372,8 +372,8 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
       if ((*iter).find('=') == string::npos)
         throw PDNSException("Error parsing '" + *iter + "', missing =");
       pair<string,string> headers=splitField(*iter, '=');
-      trim(headers.first);
-      trim(headers.second);
+      boost::trim(headers.first);
+      boost::trim(headers.second);
       // headers.first=toCanonic("", headers.first);
       if(n==0) {
         ad.d_rdForward = false;
@@ -429,14 +429,14 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
     int linenum=0;
     uint64_t before = newMap->size();
     while(linenum++, stringfgets(fp.get(), line)) {
-      trim(line);
+      boost::trim(line);
       if (line[0] == '#') // Comment line, skip to the next line
         continue;
       string domain, instructions;
       tie(domain, instructions)=splitField(line, '=');
       instructions = splitField(instructions, '#').first; // Remove EOL comments
-      trim(domain);
-      trim(instructions);
+      boost::trim(domain);
+      boost::trim(instructions);
       if(domain.empty() && instructions.empty()) { // empty line
         continue;
       }
@@ -478,7 +478,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
         pos=line.find('#');
         if(pos!=string::npos)
           line.resize(pos);
-        trim(line);
+        boost::trim(line);
         if(line.empty())
           continue;
         parts.clear();

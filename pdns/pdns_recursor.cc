@@ -58,6 +58,7 @@
 #include <fstream>
 #include "sortlist.hh"
 #include "sstuff.hh"
+#include <boost/any.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/shared_array.hpp>
@@ -145,7 +146,7 @@ thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 #endif /* NOD_ENABLED */
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
-typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
+typedef vector<pair<int, boost::function< void(int, boost::any&) > > > deferredAdd_t;
 
 // for communicating with our threads
 // effectively readonly after startup
@@ -444,7 +445,7 @@ LWResult::Result arecvtcp(string& data, const size_t len, Socket* sock, const bo
 
 static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID pident=*any_cast<PacketID>(&var);
+  PacketID pident=*boost::any_cast<PacketID>(&var);
   char resp[512];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
@@ -690,7 +691,7 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
 LWResult::Result arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
                            uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now)
 {
-  static optional<unsigned int> nearMissLimit;
+  static boost::optional<unsigned int> nearMissLimit;
   if(!nearMissLimit)
     nearMissLimit=::arg().asNum("spoof-nearmiss-max");
 
@@ -2216,7 +2217,7 @@ static bool handleTCPReadResult(int fd, ssize_t bytes)
 
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
-  shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
+  shared_ptr<TCPConnection> conn=boost::any_cast<shared_ptr<TCPConnection> >(var);
 
   if (conn->state == TCPConnection::PROXYPROTOCOLHEADER) {
     ssize_t bytes = recv(conn->getFD(), &conn->data.at(conn->proxyProtocolGot), conn->proxyProtocolNeed, 0);
@@ -3771,10 +3772,10 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 
 static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID* pident=any_cast<PacketID>(&var);
+  PacketID* pident=boost::any_cast<PacketID>(&var);
   //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident->inNeeded: "<<pident->inNeeded<<", "<<pident->sock->getHandle()<<endl;
 
-  shared_array<char> buffer(new char[pident->inNeeded]);
+  boost::shared_array<char> buffer(new char[pident->inNeeded]);
 
   ssize_t ret=recv(fd, buffer.get(), pident->inNeeded,0);
   if(ret > 0) {
@@ -3802,7 +3803,7 @@ static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID* pid=any_cast<PacketID>(&var);
+  PacketID* pid=boost::any_cast<PacketID>(&var);
   ssize_t ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
   if(ret > 0) {
     pid->outPos+=(ssize_t)ret;
@@ -3838,7 +3839,7 @@ static void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const st
 
 static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID pid=any_cast<PacketID>(var);
+  PacketID pid=boost::any_cast<PacketID>(var);
   ssize_t len;
   std::string packet;
   packet.resize(g_outgoingEDNSBufsize);
@@ -4098,7 +4099,7 @@ void parseACLs()
       pos=line.find('#');
       if(pos!=string::npos)
         line.resize(pos);
-      trim(line);
+      boost::trim(line);
       if(line.empty())
         continue;
 
@@ -4163,8 +4164,8 @@ static std::map<unsigned int, std::set<int> > parseCPUMap()
 
     try {
       auto headers = splitField(part, '=');
-      trim(headers.first);
-      trim(headers.second);
+      boost::trim(headers.first);
+      boost::trim(headers.second);
 
       unsigned int threadId = pdns_stou(headers.first);
       std::vector<std::string> cpus;
@@ -5026,7 +5027,7 @@ try
       expired_t expired=t_fdm->getTimeouts(g_now);
 
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
-        shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(i->second);
+        shared_ptr<TCPConnection> conn=boost::any_cast<shared_ptr<TCPConnection> >(i->second);
         if(g_logCommonErrors)
           g_log<<Logger::Warning<<"Timeout from remote TCP client "<< conn->d_remote.toStringWithPort() <<endl;
         t_fdm->removeReadFD(i->first);

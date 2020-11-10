@@ -20,7 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "misc.hh"
+
+#include <boost/scoped_array.hpp>
+
 #include "dnspacket.hh"
 
 class ResponseStats

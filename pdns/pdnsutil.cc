@@ -188,7 +188,7 @@ static void dbBench(const std::string& fname)
     }
     string line;
     while(getline(ifs,line)) {
-      trim(line);
+      boost::trim(line);
       domains.push_back(line);
     }
   }
@@ -2918,7 +2918,7 @@ try
     while(getline(ifs, line)) {
       if(line[0]=='-')
         continue;
-      trim(line);
+      boost::trim(line);
       interim += line;
     }
     B64Decode(interim, raw);

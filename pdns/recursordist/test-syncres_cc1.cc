@@ -585,7 +585,7 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_refused)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(downServers.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 
@@ -636,7 +636,7 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK_EQUAL(downServers.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 

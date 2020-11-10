@@ -65,7 +65,7 @@ static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, 
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
       boost::erase_head(content, pos);
-    trim_left(content);
+    boost::trim_left(content);
   }
 
   Json::object dict;

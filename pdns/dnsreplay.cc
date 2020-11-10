@@ -159,7 +159,7 @@ public:
   }
 
 private:
-  deque<uint16_t> d_available;
+  std::deque<uint16_t> d_available;
   
 } s_idmanager;
 
@@ -493,8 +493,8 @@ static void pruneQids()
 
 static void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
 {
-  format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
-  format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
+  boost::format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
+  boost::format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
 
   cerr<<headerfmt;
   cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);

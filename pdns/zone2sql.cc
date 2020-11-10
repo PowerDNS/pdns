@@ -167,7 +167,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
       boost::erase_head(content, pos);
-    trim_left(content);
+    boost::trim_left(content);
   }
 
   cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<

@@ -35,9 +35,9 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto alpn = v.begin()->getALPN();
-        BOOST_CHECK_EQUAL(alpn.size(), 1);
+        BOOST_CHECK_EQUAL(alpn.size(), 1U);
         auto val = alpn.begin();
         BOOST_CHECK_EQUAL(*val, "h2");
 
@@ -51,9 +51,9 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
         source = "alpn=h2,h3";
         RecordTextReader rtr2(source);
         rtr2.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         alpn = v.begin()->getALPN();
-        BOOST_CHECK_EQUAL(alpn.size(), 2);
+        BOOST_CHECK_EQUAL(alpn.size(), 2U);
         val = alpn.begin();
         BOOST_CHECK_EQUAL(*val, "h2");
         val++;
@@ -71,9 +71,9 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_mandatory) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto m = v.begin()->getMandatory();
-        BOOST_CHECK_EQUAL(m.size(), 1);
+        BOOST_CHECK_EQUAL(m.size(), 1U);
         auto val = m.begin();
         BOOST_CHECK(*val == SvcParam::alpn);
 
@@ -87,9 +87,9 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_mandatory) {
         source = "mandatory=alpn,ipv4hint";
         RecordTextReader rtr2("mandatory=alpn,ipv4hint");
         rtr2.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         m = v.begin()->getMandatory();
-        BOOST_CHECK_EQUAL(m.size(), 2);
+        BOOST_CHECK_EQUAL(m.size(), 2U);
         val = m.begin();
         BOOST_CHECK(*val == SvcParam::alpn);
         val++;
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_no_default_alpn) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::no_default_alpn);
 
@@ -127,11 +127,11 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::ipv4hint);
         auto val = v.begin()->getIPHints();
-        BOOST_CHECK_EQUAL(val.size(), 1);
+        BOOST_CHECK_EQUAL(val.size(), 1U);
         BOOST_CHECK_EQUAL(val.begin()->toString(), "192.0.2.1");
 
         // Check the writer
@@ -144,12 +144,12 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
         source = "ipv4hint=192.0.2.1,192.0.2.2,192.0.2.3";
         RecordTextReader rtr2(source);
         rtr2.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::ipv4hint);
 
         val = v.begin()->getIPHints();
-        BOOST_CHECK_EQUAL(val.size(), 3);
+        BOOST_CHECK_EQUAL(val.size(), 3U);
         auto valit = val.begin();
         BOOST_CHECK_EQUAL(valit->toString(), "192.0.2.1");
         valit++;
@@ -177,11 +177,11 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::ipv6hint);
         auto val = v.begin()->getIPHints();
-        BOOST_CHECK_EQUAL(val.size(), 1);
+        BOOST_CHECK_EQUAL(val.size(), 1U);
         BOOST_CHECK_EQUAL(val.begin()->toString(), "2001:db8::1");
 
         // Check the writer
@@ -194,12 +194,12 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv6hint) {
         source = "ipv6hint=2001:db8::1,2001:db8::2,2001:db8::3";
         RecordTextReader rtr2(source);
         rtr2.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::ipv6hint);
 
         val = v.begin()->getIPHints();
-        BOOST_CHECK_EQUAL(val.size(), 3);
+        BOOST_CHECK_EQUAL(val.size(), 3U);
         auto valit = val.begin();
         BOOST_CHECK_EQUAL(valit->toString(), "2001:db8::1");
         valit++;
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_port) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::port);
         auto val = v.begin()->getPort();
@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
         BOOST_CHECK(k == 666);
         auto val = v.begin()->getValue();
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
         source = "key666=\"blablabla\"";
         RecordTextReader rtr4(source);
         rtr4.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::keyFromString("key666"));
         val = v.begin()->getValue();
@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
         RecordTextReader rtr("key666=foobar echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 alpn=h2,h3 mandatory=alpn ipv4hint=192.0.2.1,192.0.2.2"); // out of order, resulting set should be in-order
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 6);
+        BOOST_CHECK_EQUAL(v.size(), 6U);
         auto vit = v.begin();
 
         // Check ordering
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(v.size(), 1);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::echconfig);
         auto val = v.begin()->getEchConfig();
