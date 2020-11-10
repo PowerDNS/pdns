@@ -70,7 +70,7 @@ private:
   static ReadWriteLock s_state_lock;
 
   void initialize();
-  string format2str(string format, const Netmask &addr, GeoIPNetmask& gl);
+  string format2str(string format, const Netmask &addr, GeoIPNetmask& gl, const GeoIPDomain &dom);
   bool d_dnssec;
   bool hasDNSSECkey(const DNSName& name);
   bool lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const Netmask &addr, GeoIPNetmask& gl);
