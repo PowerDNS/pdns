@@ -27,7 +27,7 @@ gsql_master()
             securezone $zone ${backend}
             if [ $zone = hiddencryptokeys.org ]
             then
-                keyid=$($PDNSUTIL --config-dir=. --config-name=$backend list-keys $zone | grep hiddencryptokeys.org | awk '{ print $5 }')
+                keyid=$($PDNSUTIL --config-dir=. --config-name=$backend list-keys $zone | grep hiddencryptokeys.org | awk '{ print $7 }')
                 $PDNSUTIL --config-dir=. --config-name=$backend unpublish-zone-key $zone $keyid
             fi
             if [ $zone = cryptokeys.org ]

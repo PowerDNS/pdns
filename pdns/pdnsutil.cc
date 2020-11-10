@@ -808,8 +808,8 @@ static int deleteZone(const DNSName &zone) {
 
 static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
   if (printHeader) {
-    cout<<"Zone                          Type    Size    Algorithm    ID   Location    Keytag"<<endl;
-    cout<<"----------------------------------------------------------------------------------"<<endl;
+    cout<<"Zone                          Type Act Pub Size    Algorithm       ID   Location    Keytag"<<endl;
+    cout<<"------------------------------------------------------------------------------------------"<<endl;
   }
   unsigned int spacelen = 0;
   for (auto const &key : dk.getKeys(di.zone)) {
@@ -819,7 +819,19 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
     else
       cout<<string(30 - di.zone.toStringNoDot().length(), ' ');
 
-    cout<<DNSSECKeeper::keyTypeToString(key.second.keyType)<<"     ";
+    cout<<DNSSECKeeper::keyTypeToString(key.second.keyType)<<"  ";
+
+    if (key.second.active) {
+      cout << "Act ";
+    } else {
+      cout << "    ";
+    }
+
+    if (key.second.published) {
+      cout << "Pub ";
+    } else {
+      cout << "    ";
+    }
 
     spacelen = (std::to_string(key.first.getKey()->getBits()).length() >= 8) ? 1 : 8 - std::to_string(key.first.getKey()->getBits()).length();
     if (key.first.getKey()->getBits() < 1) {
@@ -830,7 +842,7 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
     }
 
     string algname = DNSSECKeeper::algorithm2name(key.first.d_algorithm);
-    spacelen = (algname.length() >= 13) ? 1 : 13 - algname.length();
+    spacelen = (algname.length() >= 16) ? 1 : 16 - algname.length();
     cout<<algname<<string(spacelen, ' ');
 
     spacelen = (std::to_string(key.second.id).length() > 5) ? 1 : 5 - std::to_string(key.second.id).length();
@@ -1313,7 +1325,6 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 
   UeberBackend B;
   DomainInfo di;
-
   if(!B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
     return EXIT_FAILURE;
@@ -2391,6 +2402,12 @@ try
       cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
       return 1;
     }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
+      return 1;
+    }
     if (!dk.activateKey(zone, id)) {
       cerr<<"Activation of key failed"<<endl;
       return 1;
@@ -2407,6 +2424,12 @@ try
     if(!id)
     {
       cerr<<"Invalid KEY-ID"<<endl;
+      return 1;
+    }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
       return 1;
     }
     if (!dk.deactivateKey(zone, id)) {
@@ -2427,6 +2450,12 @@ try
       cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
       return 1;
     }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
+      return 1;
+    }
     if (!dk.publishKey(zone, id)) {
       cerr<<"Publishing of key failed"<<endl;
       return 1;
@@ -2443,6 +2472,12 @@ try
     if(!id)
     {
       cerr<<"Invalid KEY-ID '"<<cmds[2]<<"'"<<endl;
+      return 1;
+    }
+    try {
+      dk.getKeyById(zone, id);
+    } catch (std::exception& e) {
+      cerr<<e.what()<<endl;
       return 1;
     }
     if (!dk.unpublishKey(zone, id)) {
@@ -3130,6 +3165,11 @@ try
         return 1;
      }
      UeberBackend B("default");
+     DomainInfo di;
+     if (!B.getDomainInfo(zname, di)) {
+       cerr << "Domain '" << zname << "' does not exist" << endl;
+       return 1;
+     }
      std::vector<std::string> meta;
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
@@ -3165,6 +3205,11 @@ try
      }
 
      UeberBackend B("default");
+     DomainInfo di;
+     if (!B.getDomainInfo(zname, di)) {
+       cerr << "Domain '" << zname << "' does not exist" << endl;
+       return 1;
+     }
      std::vector<std::string> meta;
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
@@ -3188,8 +3233,8 @@ try
     }
     DNSName zone(cmds[1]);
     vector<string> keys;
-    DomainInfo di;
 
+    DomainInfo di;
     if (!B.getDomainInfo(zone, di)) {
        cerr << "Invalid zone '" << zone << "'" << endl;
        return 1;

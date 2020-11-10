@@ -31,7 +31,7 @@ __EOF__
                     securezone $zone lmdb
                     if [ $zone = hiddencryptokeys.org ]
                     then
-                        keyid=$($PDNSUTIL --config-dir=. --config-name=lmdb list-keys $zone | grep hiddencryptokeys.org | awk '{ print $5 }')
+                        keyid=$($PDNSUTIL --config-dir=. --config-name=lmdb list-keys $zone | grep hiddencryptokeys.org | awk '{ print $7 }')
                         $PDNSUTIL --config-dir=. --config-name=lmdb unpublish-zone-key $zone $keyid
                     fi
                     if [ $zone = cryptokeys.org ]
