@@ -1272,7 +1272,16 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret)
 {
-  int rcode = directResolve(qname, QType(QType::A), QClass::IN, ret);
+  /* we pass a separate vector of records because we will be resolving the initial qname
+     again, possibly encountering the same CNAME(s), and we don't want to trigger the CNAME
+     loop detection. */
+  vector<DNSRecord> newRecords;
+  int rcode = directResolve(qname, QType(QType::A), QClass::IN, newRecords);
+
+  ret.reserve(ret.size() + newRecords.size());
+  for (auto& record : newRecords) {
+    ret.push_back(std::move(record));
+  }
 
   // Remove double CNAME records
   std::set<DNSName> seenCNAMEs;
