@@ -717,10 +717,11 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 {
   DLOG(g_log<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
-  SOAData sd;
-  if(!B.getSOAUncached(auth, sd)) {
-    DLOG(g_log<<"Could not get SOA for domain");
-    return;
+  if (d_sd.db == nullptr) {
+    if(!B.getSOAUncached(auth, d_sd)) {
+      DLOG(g_log<<"Could not get SOA for domain");
+      return;
+    }
   }
 
   bool doNextcloser = false;
@@ -739,15 +740,15 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(g_log<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-    getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after, mode);
+    getNSEC3Hashes(narrow, d_sd.db, d_sd.domain_id,  hashed, false, unhashed, before, after, mode);
 
     if (((mode == 0 && ns3rc.d_flags) ||  mode == 1) && (hashed != before)) {
       DLOG(g_log<<"No matching NSEC3, do closest (provable) encloser"<<endl);
 
       bool doBreak = false;
       DNSZoneRecord rr;
-      while( closest.chopOff() && (closest != sd.qname))  { // stop at SOA
-        B.lookup(QType(QType::ANY), closest, sd.domain_id, &p);
+      while( closest.chopOff() && (closest != d_sd.qname))  { // stop at SOA
+        B.lookup(QType(QType::ANY), closest, d_sd.domain_id, &p);
         while(B.get(rr))
           if (rr.auth)
             doBreak = true;
@@ -759,12 +760,12 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
       hashed=hashQNameWithSalt(ns3rc, unhashed);
       DLOG(g_log<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-      getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
+      getNSEC3Hashes(narrow, d_sd.db, d_sd.domain_id,  hashed, false, unhashed, before, after);
     }
 
     if (!after.empty()) {
       DLOG(g_log<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-      emitNSEC3(r, sd, ns3rc, unhashed, before, after, mode);
+      emitNSEC3(r, d_sd, ns3rc, unhashed, before, after, mode);
     }
   }
 
@@ -779,9 +780,9 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(g_log<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-    getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after);
+    getNSEC3Hashes(narrow, d_sd.db, d_sd.domain_id,  hashed, true, unhashed, before, after);
     DLOG(g_log<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-    emitNSEC3( r, sd, ns3rc, unhashed, before, after, mode);
+    emitNSEC3( r, d_sd, ns3rc, unhashed, before, after, mode);
   }
 
   // wildcard denial
@@ -791,9 +792,9 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(g_log<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-    getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
+    getNSEC3Hashes(narrow, d_sd.db, d_sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
     DLOG(g_log<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-    emitNSEC3( r, sd, ns3rc, unhashed, before, after, mode);
+    emitNSEC3( r, d_sd, ns3rc, unhashed, before, after, mode);
   }
 }
 
@@ -801,15 +802,17 @@ void PacketHandler::addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const D
 {
   DLOG(g_log<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
-  SOAData sd;
-  if(!B.getSOAUncached(auth, sd)) {
-    DLOG(g_log<<"Could not get SOA for domain"<<endl);
-    return;
+  if (d_sd.db == nullptr) {
+    if(!B.getSOAUncached(auth, d_sd)) {
+      DLOG(g_log<<"Could not get SOA for domain"<<endl);
+      return;
+    }
   }
+
   DNSName before,after;
-  sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
+  d_sd.db->getBeforeAndAfterNames(d_sd.domain_id, auth, target, before, after);
   if (mode != 5 || before == target)
-    emitNSEC(r, sd, before, after, mode);
+    emitNSEC(r, d_sd, before, after, mode);
 
   if (mode == 2 || mode == 4) {
     // wildcard NO-DATA or wildcard denial
@@ -819,8 +822,8 @@ void PacketHandler::addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const D
       closest.chopOff();
       closest.prependRawLabel("*");
     }
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, closest, before, after);
-    emitNSEC(r, sd, before, after, mode);
+    d_sd.db->getBeforeAndAfterNames(d_sd.domain_id, auth, closest, before, after);
+    emitNSEC(r, d_sd, before, after, mode);
   }
   return;
 }
@@ -1342,6 +1345,8 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     authSet.insert(sd.qname);
     d_dnssec=(p.d_dnssecOk && d_dk.isSecuredZone(sd.qname));
     doSigs |= d_dnssec;
+
+    d_sd = sd; // Room for improvement, use d_sd everywhere
 
     if(!retargetcount) r->qdomainzone=sd.qname;
 
