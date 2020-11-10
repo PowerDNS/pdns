@@ -174,7 +174,7 @@ AS_IF([test "x$pdns_configure_args" != "x"],
   [summary_conf_opts=$pdns_configure_args],
   [summary_conf_opts="(no options)"]
 )
-AC_MSG_NOTICE([PowerDNS Recursor configured with: $summary_conf_opts])
+AC_MSG_NOTICE([PowerDNS Recursor $VERSION configured with: $summary_conf_opts])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([CC: $CC])
 AC_MSG_NOTICE([CXX: $CXX])

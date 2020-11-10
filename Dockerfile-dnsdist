@@ -19,6 +19,7 @@ COPY pdns /source/pdns
 COPY build-aux /source/build-aux
 COPY m4 /source/m4
 COPY ext /source/ext
+COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 COPY .git /source/.git
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
@@ -27,9 +28,15 @@ WORKDIR /source/pdns/dnsdistdist
 ARG MAKEFLAGS=
 ENV MAKEFLAGS ${MAKEFLAGS:--j2}
 
+ARG DOCKER_FAKE_RELEASE=NO
+ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
+
 RUN touch dnsdist.1 # avoid having to install pandoc and venv
 
-RUN BUILDER_MODULES=dnsdist autoreconf -vfi
+RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
+      BUILDER_VERSION="$(BUILDER_MODULES=dnsdist ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')" set-configure-ac-version.sh;\
+    fi && \
+    BUILDER_MODULES=dnsdist autoreconf -vfi
 
 RUN mkdir /build && \
     ./configure \
