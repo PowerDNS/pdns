@@ -28,11 +28,18 @@ COPY m4 /source/m4
 COPY ext /source/ext
 COPY .git /source/.git
 ADD configure.ac Makefile.am /source/
+COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 ARG MAKEFLAGS=
 ENV MAKEFLAGS ${MAKEFLAGS:--j2}
 
-RUN BUILDER_MODULES=authoritative autoreconf -vfi
+ARG DOCKER_FAKE_RELEASE=NO
+ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
+
+RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
+      BUILDER_VERSION="$(BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')" set-configure-ac-version.sh;\
+    fi && \
+    BUILDER_MODULES=authoritative autoreconf -vfi
 
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
