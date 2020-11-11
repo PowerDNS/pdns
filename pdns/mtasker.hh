@@ -81,7 +81,7 @@ public:
     EventKey key;
     std::shared_ptr<pdns_ucontext_t> context;
     struct timeval ttd;
-    int tid;    
+    int tid;
   };
 
   typedef multi_index_container<
