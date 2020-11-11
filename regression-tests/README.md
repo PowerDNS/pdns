@@ -103,6 +103,8 @@ docker run -p 3306:3306 --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=1 mariadb
 GMYSQLHOST=127.0.0.1 ./start-test-stop 5300 gmysql
 ```
 
+(`mysql:5` and `mysql:8` work too. Version 8 may need `--default-authentication-plugin=mysql_native_password` at the end if your client is older.)
+
 Postgres:
 ```sh
 docker run -p 5432:5432 --rm -e POSTGRES_HOST_AUTH_METHOD=trust -d postgres
