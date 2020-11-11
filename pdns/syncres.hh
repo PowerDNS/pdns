@@ -926,7 +926,7 @@ int arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
 
 struct PacketID
 {
-  PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1)
+  PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1), closed(false)
   {
     remote.reset();
   }
@@ -948,6 +948,7 @@ struct PacketID
   mutable chain_t chain;
   mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
   int fd;
+  mutable bool closed; // Processing already started, don't accept new chained ids
 
   bool operator<(const PacketID& b) const
   {
