@@ -587,16 +587,18 @@ private:
       throw PDNSException("Making a socket for resolver (family = " + std::to_string(family) + "): " + stringerror());
     }
 
-#ifndef __OpenBSD__
+    // The loop below runs the body with [tries-1 tries-2 ... 1]. Last iteration with tries == 1 is special: it uses a kernel
+    // allocated UDP port.
+#if !defined( __OpenBSD__)
     int tries = 10;
 #else
-    int tries = 2; // hit the reliable kernel random case for OpenBSD, using sysctl net.inet.udp.baddynamic to exclude ports
+    int tries = 2; // hit the reliable kernel random case for OpenBSD immediately, using sysctl net.inet.udp.baddynamic to exclude ports
 #endif
     ComboAddress sin;
     while (--tries) {
       in_port_t port;
 
-      if (tries == 1) {  // fall back to kernel 'random'
+      if (tries == 1) {  // last iteration: fall back to kernel 'random'
         port = 0;
       } else {
         do {
