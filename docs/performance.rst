@@ -81,11 +81,6 @@ Not all backends may benefit from the packet cache. If your backend is
 memory based and does not lead to context switches, the packet cache may
 actually hurt performance.
 
-.. versionchanged:: 4.1.0
-  The maximum size of the packet cache is controlled by the
-  :ref:`setting-max-packet-cache-entries` entries. Before that both the
-  query cache and the packet cache used the :ref:`setting-max-cache-entries` setting.
-
 .. _query-cache:
 
 Query Cache

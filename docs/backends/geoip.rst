@@ -50,12 +50,6 @@ defaults suit you.
 ``geoip-database-files``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionchanged:: 4.2.0
-  The syntax of the argument has been changed.
-
-.. versionchanged:: 4.2.0
-  Support for MMDB has been added.
-
 Comma, tab or space separated list of files to open. You can use
 `geoip-cvs-to-dat <https://github.com/dankamongmen/sprezzos-world/blob/master/packaging/geoip/debian/src/geoip-csv-to-dat.cpp>`__.
 to generate your own.
@@ -76,18 +70,6 @@ Drivers and options
 
   :mode: The caching mode for data, only ``mmap`` is supported
   :language: The language to use, ``en`` by default
-
-``geoip-database-cache``
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. deprecated:: 4.2.0
-
-  This setting is removed
-
-Specifies the kind of caching that is done on the database. This is one
-of "standard", "memory", "index" or "mmap". These options map to the
-caching options described
-`here <https://github.com/maxmind/geoip-api-c/blob/master/README.md#memory-caching-and-other-options>`__
 
 .. _setting-geoip-zones-file:
 
@@ -232,19 +214,6 @@ Following placeholder allows custom mapping:
 
   - %mp to expand user defined custom formats.
 
-.. versionadded:: 4.2.0
-
-  These placeholders have been added in version 4.2.0:
-
-  - %lat, %lon, %loc to expand for geographic location, if available in backend. %loc in particular can be safely used with LOC record type.
-  - %ip4 and %ip6 that will expand to the IP address when AFI matches, and empty otherwise. Can be particularly used with A and AAAA record types.
-
-.. versionadded:: 4.1.0
-
-  These placeholders have been added in version 4.1.0:
-
-  - %cc = 2 letter country code
-
 Using the ``weight`` attribute
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -280,11 +249,6 @@ For instance, this configuration will send the correct response for both A and S
 If your services match wildcard records in your zone file then these will be returned as CNAMEs.
 This will only be an issue if you are trying to use a service record at the apex of your domain where you need other record types to be present (such as NS and SOA records).
 Per :rfc:`2181`, CNAME records cannot appear in the same label as NS or SOA records.
-
-.. versionchanged:: 4.2.0
-
-  Before, a record expanded to an empty value would cause a SERVFAIL response.
-  Since 4.2.0 such expansions for non-TXT record types are not included in response.
 
 Caching and the GeoIP Backend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

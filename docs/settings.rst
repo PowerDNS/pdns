@@ -22,8 +22,6 @@ means ``yes``.
 -  Boolean
 -  Default: no
 
-.. versionadded:: 4.0.0
-
 Allow 8 bit DNS queries.
 
 .. _setting-allow-axfr-ips:
@@ -63,21 +61,6 @@ Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DN
 Allow AXFR NOTIFY from these IP ranges. Setting this to an empty string
 will drop all incoming notifies.
 
-.. _setting-allow-recursion:
-
-``allow-recursion``
--------------------
-
--  IP ranges, separated by commas
--  Default: 0.0.0.0/0
-
-.. deprecated:: 4.1.0
-  Recursion has been removed, see :doc:`guides/recursion`
-
-By specifying ``allow-recursion``, recursion can be restricted to
-netmasks specified. The default is to allow recursion from everywhere.
-Example: ``allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4``.
-
 .. _setting-allow-unsigned-notify:
 
 ``allow-unsigned-notify``
@@ -85,8 +68,6 @@ Example: ``allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4``.
 
 -  Boolean
 -  Default: yes
-
-.. versionadded:: 4.0.0
 
 Turning this off requires all notifications that are received to be
 signed by valid TSIG signature for the zone.
@@ -98,8 +79,6 @@ signed by valid TSIG signature for the zone.
 
 -  Boolean
 -  Default: yes
-
-.. versionadded:: 4.0.0
 
 Turning this off requires all supermaster notifications to be signed by
 valid TSIG signature. It will accept any existing key on slave.
@@ -124,9 +103,6 @@ the list in :ref:`setting-only-notify`.
 -  Boolean
 -  Default: yes
 
-.. versionchanged:: 4.0.1
-  was 'no' before.
-
 Answer questions for the ANY on UDP with a truncated packet that refers
 the remote server to TCP. Useful for mitigating reflection attacks.
 
@@ -147,23 +123,7 @@ Enable/disable the :doc:`http-api/index`.
 
 -  String
 
-.. versionadded:: 4.0.0
-
 Static pre-shared authentication key for access to the REST API.
-
-.. _setting-api-readonly:
-
-``api-readonly``
-----------------
-
--  Boolean
--  Default: no
-
-.. versionadded:: 4.0.0
-.. versionchanged:: 4.2.0
-  This setting has been removed in 4.2.0.
-
-Disallow data modification through the REST API when set.
 
 .. _setting-axfr-fetch-timeout:
 
@@ -185,8 +145,6 @@ Maximum time in seconds for inbound AXFR to start or be idle after starting.
 -  Boolean
 -  Default: no
 
-.. versionadded:: 4.0.4
-
 Also AXFR a zone from a master with a lower serial.
 
 .. _setting-cache-ttl:
@@ -206,8 +164,6 @@ Seconds to store packets in the :ref:`packet-cache`. A value of 0 will disable t
 
 -  String
 -  Default: auth
-
-.. versionadded:: 4.2.0
 
 Set the instance or third string of the metric key. Be careful not to include
 any dots in this setting, unless you know what you are doing.
@@ -231,8 +187,6 @@ See :ref:`metricscarbon`.
 
 -  String
 -  Default: pdns
-
-.. versionadded:: 4.2.0
 
 Set the namespace or first string of the metric key. Be careful not to include
 any dots in this setting, unless you know what you are doing.
@@ -347,8 +301,6 @@ Operate as a daemon.
 -  Boolean
 -  Default: yes
 
-.. versionadded:: 4.2.0
-
 The value of :ref:`metadata-api-rectify` if it is not set on the zone.
 
 .. note::
@@ -362,9 +314,6 @@ The value of :ref:`metadata-api-rectify` if it is not set on the zone.
 
 -  String
 -  Default: ecdsa256
-
-.. versionchanged:: 4.1.0
-  Renamed from ``default-ksk-algorithms``. No longer supports multiple algorithm names.
 
 The algorithm that should be used for the KSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
@@ -498,9 +447,6 @@ TTL to use when none is provided.
 -  String
 -  Default: (empty)
 
-.. versionchanged:: 4.1.0
-  Renamed from ``default-zsk-algorithms``. Does no longer support multiple algorithm names.
-
 The algorithm that should be used for the ZSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
@@ -575,19 +521,6 @@ inside a supervisor that handles logging (like systemd).
 .. warning::
   Do not use this setting in combination with :ref:`setting-daemon` as all
   logging will disappear.
-
-.. _setting-disable-tcp:
-
-``disable-tcp``
----------------
-
--  Boolean
--  Default: no
-
-.. versionchanged:: 4.2.0
-  This setting has been removed
-
-Do not listen to TCP queries. Breaks RFC compliance.
 
 .. _setting-distributor-threads:
 
@@ -675,8 +608,6 @@ Enables EDNS subnet processing, for backends that support it.
 -  One of ``no``, ``yes`` (or empty), or ``shared``, String
 -  Default: no
 
-.. versionadded:: 4.2.0
-
 Globally enable the :doc:`LUA records <lua-records/index>` feature.
 
 To use shared LUA states, set this to ``shared``, see :ref:`lua-records-shared-state`.
@@ -698,8 +629,6 @@ Entropy source file to use.
 
 -  Boolean
 -  Default: no
-
-.. versionadded:: 4.1.0
 
 If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA).
@@ -909,8 +838,6 @@ to at least 5 to see the logs.
 - Bool
 - Default: yes
 
-.. versionadded:: 4.1.0
-
 When printing log lines to stdout, prefix them with timestamps.
 Disable this if the process supervisor timestamps these lines already.
 
@@ -943,8 +870,6 @@ e.g. error = 3, warning = 4, notice = 5, info = 6
 
 -  String
 -  Default: empty
-
-.. versionadded:: 4.1.0
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
@@ -1014,11 +939,6 @@ Turn on master support. See :ref:`master-operation`.
 -  Integer
 -  Default: 1000000
 
-.. versionchanged:: 4.1.0
-  The packet and query caches are distinct. Previously, this setting was used for
-  both the packet and query caches. See :ref:`setting-max-packet-cache-entries` for
-  the packet-cache setting.
-
 Maximum number of entries in the query cache. 1 million (the default)
 will generally suffice for most installations.
 
@@ -1037,8 +957,6 @@ protection measure to avoid database explosion due to long names.
 
 ``max-generate-steps``
 ----------------------
-
-.. versionadded:: 4.3.0
 
 -  Integer
 -  Default: 0
@@ -1066,8 +984,6 @@ For more information see :ref:`dnssec-operational-nsec-modes-params`.
 
 -  Integer
 -  Default: 1000000
-
-.. versionadded:: 4.1.0
 
 Maximum number of entries in the packet cache. 1 million (the default)
 will generally suffice for most installations.
@@ -1239,25 +1155,6 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 
     only-notify=0.0.0.0/0
 
-.. _setting-out-of-zone-additional-processing:
-
-``out-of-zone-additional-processing``
--------------------------------------
-
--  Boolean
--  Default: yes
-
-.. deprecated:: 4.2.0
-  This setting has been removed.
-
-Do out of zone additional processing. This means that if a malicious
-user adds a '.com' zone to your server, it is not used for other domains
-and will not contaminate answers. Do not enable this setting if you run
-a public DNS service with untrusted users.
-
-The docs had previously indicated that the default was "no", but the
-default has been "yes" since 2005.
-
 .. _setting-outgoing-axfr-expand-alias:
 
 ``outgoing-axfr-expand-alias``
@@ -1372,44 +1269,6 @@ Maximum number of milliseconds to queue a query. See :doc:`performance`.
 -  Default: 1
 
 Number of receiver (listening) threads to start. See :doc:`performance`.
-
-.. _setting-recursive-cache-ttl:
-
-``recursive-cache-ttl``
------------------------
-
--  Integer
--  Default: 10
-
-.. deprecated:: 4.1.0
-  Recursion has been removed, see :doc:`guides/recursion`
-
-Seconds to store recursive packets in the :ref:`packet-cache`.
-
-.. _setting-recursor:
-
-``recursor``
-------------
-
--  IP Address
-
-.. deprecated:: 4.1.0
-  Recursion has been removed, see :doc:`guides/recursion`
-
-If set, recursive queries will be handed to the recursor specified here.
-
-.. _setting-resolver:
-
-``resolver``
-------------
-
--  IP Addresses with optional port, separated by commas
-
-.. versionadded:: 4.1.0
-
-Use these resolver addresses for ALIAS and the internal stub resolver.
-If this is not set, ``/etc/resolv.conf`` is parsed for upstream
-resolvers.
 
 .. _setting-retrieval-threads:
 
@@ -1636,13 +1495,6 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 -  Boolean
 -  Default: no
 
-.. versionadded:: 4.1.9
-  In versions before 4.1.9, this setting did not exist and supermaster support
-  was enabled by default.
-
-.. versionchanged:: 4.2.0
-  Before 4.2.0, the default was yes.
-
 Turn on supermaster support. See :ref:`supermaster-operation`.
 
 .. _setting-tcp-control-address:
@@ -1690,8 +1542,6 @@ Password for TCP control.
 -  Integer
 -  Default: 0 (Disabled)
 
-.. versionadded:: 4.1.0
-
 Enable TCP Fast Open support, if available, on the listening sockets.
 The numerical value supplied is used as the queue size, 0 meaning
 disabled.
@@ -1731,9 +1581,6 @@ IP address of incoming notification proxy
 
 ``udp-truncation-threshold``
 ----------------------------
-.. versionchanged:: 4.2.0
-  Before 4.2.0, the default was 1680
-
 -  Integer
 -  Default: 1232
 
@@ -1793,9 +1640,6 @@ can set this response to a custom value as well.
 
 Start a webserver for monitoring. See :doc:`performance`".
 
-.. versionchanged:: 4.1.0
-  It was necessary to enable the webserver to use the REST API, this is no longer the case.
-
 .. _setting-webserver-address:
 
 ``webserver-address``
@@ -1814,17 +1658,12 @@ IP Address for webserver/API to listen on.
 -  IP ranges, separated by commas or whitespace
 -  Default: 127.0.0.1,::1
 
-.. versionchanged:: 4.1.0
-
-    Default is now 127.0.0.1,::1, was 0.0.0.0/0,::/0 before.
-
 Webserver/API access is only allowed from these subnets.
 
 .. _setting-webserver-loglevel:
 
 ``webserver-loglevel``
 ----------------------
-.. versionadded:: 4.2.0
 
 -  String, one of "none", "normal", "detailed"
 
@@ -1865,7 +1704,6 @@ The value between the hooks is a UUID that is generated for each request. This c
 
 ``webserver-max-bodysize``
 --------------------------
-.. versionadded:: 4.2.0
 
 -  Integer
 -  Default: 2

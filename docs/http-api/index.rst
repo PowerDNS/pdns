@@ -304,10 +304,6 @@ Add these lines to the ``pdns.conf``::
   api=yes
   api-key=changeme
 
-.. versionchanged:: 4.1.0
-
-  Setting :ref:`setting-api` also implicitly enables the webserver.
-
 And restart, the following examples should start working::
 
   curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost | jq .

@@ -10,8 +10,6 @@ Statistics endpoint
 
   :param server_id: The name of the server
 
-  .. versionadded:: 4.2.0
-
   :query statistic: If set to the name of a specific statistic, only this value is returned. If no statistic with that name exists, the response has a 422 status and an error message
 
   **Example response:**
