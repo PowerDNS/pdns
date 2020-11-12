@@ -33,9 +33,9 @@ namespace pdns {
       try {
         g_trustedNotificationProxies.addMask(Netmask(a));
       } catch (const PDNSException &e) {
-        throw PDNSException("Unable to add address " + a + " as a trusted-notification-proxy: " + e.reason);
+        throw PDNSException("Unable to add network " + a + " as a trusted-notification-proxy: " + e.reason);
       } catch (const std::exception &e) {
-        throw PDNSException("Unable to add address " + a + " as a trusted-notification-proxy: " + e.what());
+        throw PDNSException("Unable to add network " + a + " as a trusted-notification-proxy: " + e.what());
       }
     }
   }

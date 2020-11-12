@@ -1724,7 +1724,7 @@ Enable the Linux-only traceback handler.
 ------------------------------
 
 .. versionchanged:: 4.4.0
-   This option now accepts a comma-separated list of IP ranges. This was a single IP address as a string before
+   This option now accepts a comma-separated list of IP ranges. This was a list of IP addresses before.
 
 -  IP ranges, separated by commas
 
