@@ -196,7 +196,7 @@ typedef vector<int> tcpListenSockets_t;
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
 
 static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
-static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism
+static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism (without actually using sendfromto())
 static AtomicCounter counter;
 static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
@@ -590,50 +590,52 @@ private:
   // returns -1 for errors which might go away, throws for ones that won't
   static int makeClientSocket(int family)
   {
-    int ret=socket(family, SOCK_DGRAM, 0 ); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
+    int ret = socket(family, SOCK_DGRAM, 0); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
 
-    if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
+    if (ret < 0 && errno ==  EMFILE) { // this is not a catastrophic error
       return ret;
+    }
+    if (ret < 0) {
+      throw PDNSException("Making a socket for resolver (family = " + std::to_string(family) + "): " + stringerror());
+    }
 
-    if(ret<0)
-      throw PDNSException("Making a socket for resolver (family = "+std::to_string(family)+"): "+stringerror());
-
-    //    setCloseOnExec(ret); // we're not going to exec
-
-    int tries=10;
+    // The loop below runs the body with [tries-1 tries-2 ... 1]. Last iteration with tries == 1 is special: it uses a kernel
+    // allocated UDP port.
+#if !defined( __OpenBSD__)
+    int tries = 10;
+#else
+    int tries = 2; // hit the reliable kernel random case for OpenBSD immediately (because it will match tries==1 below), using sysctl net.inet.udp.baddynamic to exclude ports
+#endif
     ComboAddress sin;
-    while(--tries) {
-      uint16_t port;
+    while (--tries) {
+      in_port_t port;
 
-      if(tries==1)  // fall back to kernel 'random'
+      if (tries == 1) {  // last iteration: fall back to kernel 'random'
         port = 0;
-      else {
+      } else {
         do {
           port = s_minUdpSourcePort + dns_random(s_maxUdpSourcePort - s_minUdpSourcePort + 1);
-        }
-        while (s_avoidUdpSourcePorts.count(port));
+        } while (s_avoidUdpSourcePorts.count(port));
       }
 
-      sin=pdns::getQueryLocalAddress(family, port); // does htons for us
-
-      if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0)
+      sin = pdns::getQueryLocalAddress(family, port); // does htons for us
+      if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin), sin.getSocklen()) >= 0)
         break;
     }
 
-    if(!tries) {
+    if (!tries) {
       closesocket(ret);
-      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
+      throw PDNSException("Resolver binding to local query client socket on " + sin.toString() + ": " + stringerror());
     }
 
     try {
       setReceiveSocketErrors(ret, family);
       setNonBlocking(ret);
     }
-    catch(...) {
+    catch (...) {
       closesocket(ret);
       throw;
     }
-
     return ret;
   }
 };
@@ -1941,10 +1943,10 @@ static void startDoResolve(void *p)
       if(g_fromtosockets.count(dc->d_socket)) {
         addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
       }
-      if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) {
-        int err = errno;
+      int sendErr = sendOnNBSocket(dc->d_socket, &msgh);
+      if (sendErr && g_logCommonErrors) {
         g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
-              << strerror(err) << endl;
+              << strerror(sendErr) << endl;
       }
 
       if(variableAnswer || sr.wasVariable()) {
@@ -2777,11 +2779,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       if(g_fromtosockets.count(fd)) {
         addCMsgSrcAddr(&msgh, &cbuf, &destaddr, 0);
       }
-      if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors) {
-        int err = errno;
+      int sendErr = sendOnNBSocket(fd, &msgh);
+      if (sendErr && g_logCommonErrors) {
         g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
               << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
-              << strerror(err) << endl;
+              << strerror(sendErr) << endl;
       }
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader tmpdh;

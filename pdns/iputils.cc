@@ -238,6 +238,28 @@ bool IsAnyAddress(const ComboAddress& addr)
   
   return false;
 }
+int sendOnNBSocket(int fd, const struct msghdr *msgh)
+{
+  int sendErr = 0;
+#ifdef __OpenBSD__
+  // OpenBSD can and does return EAGAIN on non-blocking datagram sockets
+  for (int i = 0; i < 10; i++) { // Arbitrary upper bound
+    if (sendmsg(fd, msgh, 0) != -1) {
+      sendErr = 0;
+      break;
+    }
+    sendErr = errno;
+    if (sendErr != EAGAIN) {
+      break;
+    }
+  }
+#else
+  if (sendmsg(fd, msgh, 0) == -1) {
+    sendErr = errno;
+  }
+#endif
+  return sendErr;
+}
 
 ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
@@ -475,4 +497,3 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
     return ComboAddress(input, port);
   }
 }
-
