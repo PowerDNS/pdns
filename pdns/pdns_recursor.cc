@@ -592,7 +592,7 @@ private:
 #if !defined( __OpenBSD__)
     int tries = 10;
 #else
-    int tries = 2; // hit the reliable kernel random case for OpenBSD immediately, using sysctl net.inet.udp.baddynamic to exclude ports
+    int tries = 2; // hit the reliable kernel random case for OpenBSD immediately (because it will match tries==1 below), using sysctl net.inet.udp.baddynamic to exclude ports
 #endif
     ComboAddress sin;
     while (--tries) {

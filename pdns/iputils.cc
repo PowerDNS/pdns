@@ -242,7 +242,7 @@ int sendOnNBSocket(int fd, const struct msghdr *msgh)
 {
   int sendErr = 0;
 #ifdef __OpenBSD__
-  // OpenBSD can and does return EAGIN on non-blocking datagram sockets
+  // OpenBSD can and does return EAGAIN on non-blocking datagram sockets
   for (int i = 0; i < 10; i++) { // Arbitrary upper bound
     if (sendmsg(fd, msgh, 0) != -1) {
       sendErr = 0;
@@ -497,4 +497,3 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
     return ComboAddress(input, port);
   }
 }
-
