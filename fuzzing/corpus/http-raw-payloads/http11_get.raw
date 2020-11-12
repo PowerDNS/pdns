@@ -1,0 +1,10 @@
+GET /foo?param=42a HTTP/1.1
+Host: 127.0.0.1:8085
+User-Agent: HTTPie/2.3.0
+Accept-Encoding: gzip, deflate
+Accept: */*
+Connection: keep-alive
+X-API-Key: redacted
+customheader: foobar
+Authorization: Basic YTpzdXBlcnNlY3JldA==
+

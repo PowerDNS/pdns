@@ -1574,8 +1574,9 @@ fuzz_targets_programs =  \
 	fuzz_target_moadnsparser \
 	fuzz_target_packetcache \
 	fuzz_target_proxyprotocol \
-	fuzz_target_zoneparsertng \
-	fuzz_target_dnslabeltext_parseRFC1035CharString
+	fuzz_target_dnslabeltext_parseRFC1035CharString \
+	fuzz_target_yahttp \
+	fuzz_target_zoneparsertng
 
 fuzz_targets: $(fuzz_targets_programs)
 
@@ -1666,6 +1667,14 @@ fuzz_target_dnsdistcache_SOURCES = \
 fuzz_target_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_dnsdistcache_LDADD = $(fuzz_targets_libs)
+
+fuzz_target_yahttp_SOURCES = \
+	fuzz_yahttp.cc
+
+fuzz_target_yahttp_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_yahttp_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_yahttp_LDADD = $(fuzz_targets_libs) \
+	$(YAHTTP_LIBS)
 
 fuzz_target_zoneparsertng_SOURCES = \
 	base32.cc base32.hh \
