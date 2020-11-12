@@ -11,6 +11,26 @@ upgrade notes if your version is older than 3.4.2.
 4.3.x to 4.4.0
 --------------
 
+MySQL character set detection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before 4.4.0, the gmysql backend told the MySQL (or MariaDB) client libraries to automatically detect the client character set and collation, based on the environment locale.
+(Look for 'autodetect' in https://dev.mysql.com/doc/refman/5.7/en/charset-connection.html to know more).
+On some systems, this autodetection makes choices that are incompatible with MySQL Server 8 defaults.
+On all systems, this autodetection can make choices that vary depending on how PowerDNS is started.
+In other words, the autodetection provides unpredictable results.
+
+In 4.4.0, the autodetection has been removed.
+The MySQL/MariaDB client lib will now use its default settings, unless overridden in ``my.cnf``, for example::
+
+  [client]
+  default-character-set = latin1
+
+If you have trouble connecting to your database with 4.4.0 or up, you can override the character set in ``my.cnf``.
+
+Before upgrading, please check your database for any non-ASCII content.
+The interpretation of the non-ASCII bytes in those fields might change because of a different charset suddenly being used.
+
 Record type changes on secondaries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
