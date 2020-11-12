@@ -173,11 +173,34 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("followupPrefix", &DNSQuestion::followupPrefix);
   d_lw->registerMember("followupName", &DNSQuestion::followupName);
   d_lw->registerMember("data", &DNSQuestion::data);
+  d_lw->registerMember<uint16_t (DNSQuestion::*)>("extendedErrorCode", [](const DNSQuestion& dq) -> uint16_t {
+      if (dq.extendedErrorCode && *dq.extendedErrorCode) {
+        return *(*dq.extendedErrorCode);
+      }
+      return 0;
+    },
+    [](DNSQuestion& dq, uint16_t newCode) {
+      if (dq.extendedErrorCode) {
+        *dq.extendedErrorCode = newCode;
+      }
+    });
+  d_lw->registerMember<std::string (DNSQuestion::*)>("extendedErrorExtra", [](const DNSQuestion& dq) -> std::string {
+      if (dq.extendedErrorExtra) {
+        return *dq.extendedErrorExtra;
+      }
+      return "";
+    },
+    [](DNSQuestion& dq, const std::string& newExtra) {
+      if (dq.extendedErrorExtra) {
+        *dq.extendedErrorExtra = newExtra;
+      }
+    });
   d_lw->registerMember("udpQuery", &DNSQuestion::udpQuery);
   d_lw->registerMember("udpAnswer", &DNSQuestion::udpAnswer);
   d_lw->registerMember("udpQueryDest", &DNSQuestion::udpQueryDest);
   d_lw->registerMember("udpCallback", &DNSQuestion::udpCallback);
   d_lw->registerMember("appliedPolicy", &DNSQuestion::appliedPolicy);
+
   d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyName",
     [](const DNSFilterEngine::Policy& pol) -> std::string {
       return pol.getName();
@@ -219,6 +242,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction("getProxyProtocolValues", &DNSQuestion::getProxyProtocolValues);
   d_lw->registerFunction("getEDNSFlags", &DNSQuestion::getEDNSFlags);
   d_lw->registerFunction("getEDNSFlag", &DNSQuestion::getEDNSFlag);
+  
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
@@ -578,7 +602,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -601,7 +625,9 @@ public:
   std::string& deviceId;
   std::string& deviceName;
   std::string& routingTag;
+  std::string& extendedErrorExtra;
   boost::optional<int>& rcode;
+  boost::optional<uint16_t>& extendedErrorCode;
   uint32_t& ttlCap;
   bool& variable;
   bool& logQuery;
@@ -613,10 +639,10 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords, boost::optional<uint16_t>& extendedErrorCode, std::string& extendedErrorExtra) const
 {
   if (d_gettag_ffi) {
-    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, tcp, logQuery, logResponse, followCNAMERecords);
+    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, tcp, logQuery, logResponse, followCNAMERecords, extendedErrorCode, extendedErrorExtra);
 
     auto ret = d_gettag_ffi(&param);
     if (ret) {
@@ -928,6 +954,16 @@ void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode)
 void pdns_ffi_param_set_follow_cname_records(pdns_ffi_param_t* ref, bool follow)
 {
   ref->followCNAMERecords = follow;
+}
+
+void pdns_ffi_param_set_extended_error_code(pdns_ffi_param_t* ref, uint16_t code)
+{
+  ref->extendedErrorCode = code;
+}
+
+void pdns_ffi_param_set_extended_error_extra(pdns_ffi_param_t* ref, size_t len, const char* extra)
+{
+  ref->extendedErrorExtra = std::string(extra, len);
 }
 
 bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentSize, pdns_record_place_t place)

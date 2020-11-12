@@ -344,6 +344,8 @@ struct DNSComboWriter {
   LuaContext::LuaObject d_data;
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
+  boost::optional<uint16_t> d_extendedErrorCode{boost::none};
+  string d_extendedErrorExtra;
   boost::optional<int> d_rcode{boost::none};
   int d_socket{-1};
   unsigned int d_tag{0};
@@ -1526,6 +1528,8 @@ static void startDoResolve(void *p)
     dq.deviceName = dc->d_deviceName;
 #endif
     dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
+    dq.extendedErrorCode = &dc->d_extendedErrorCode;
+    dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
 
     if(ednsExtRCode != 0) {
       goto sendit;
@@ -1858,62 +1862,73 @@ static void startDoResolve(void *p)
 
     if (haveEDNS) {
       auto state = sr.getValidationState();
-      if (s_addExtendedDNSErrors && vStateIsBogus(state) && pw.size() < maxanswersize && (maxanswersize - pw.size()) > (2 + 2 + 2)) {
+      if (s_addExtendedDNSErrors && (dc->d_extendedErrorCode || vStateIsBogus(state))) {
         EDNSExtendedError::code code;
+        std::string extra;
 
-        switch (state) {
-        case vState::BogusNoValidDNSKEY:
-          code = EDNSExtendedError::code::DNSKEYMissing;
-          break;
-        case vState::BogusInvalidDenial:
-          code = EDNSExtendedError::code::NSECMissing;
-          break;
-        case vState::BogusUnableToGetDSs:
-          code = EDNSExtendedError::code::DNSSECBogus;
-          break;
-        case vState::BogusUnableToGetDNSKEYs:
-          code = EDNSExtendedError::code::DNSKEYMissing;
-          break;
-        case vState::BogusSelfSignedDS:
-          code = EDNSExtendedError::code::DNSSECBogus;
-          break;
-        case vState::BogusNoRRSIG:
-          code = EDNSExtendedError::code::RRSIGsMissing;
-          break;
-        case vState::BogusNoValidRRSIG:
-          code = EDNSExtendedError::code::DNSSECBogus;
-          break;
-        case vState::BogusMissingNegativeIndication:
-          code = EDNSExtendedError::code::NSECMissing;
-          break;
-        case vState::BogusSignatureNotYetValid:
-          code = EDNSExtendedError::code::SignatureNotYetValid;
-          break;
-        case vState::BogusSignatureExpired:
-          code = EDNSExtendedError::code::SignatureExpired;
-          break;
-        case vState::BogusUnsupportedDNSKEYAlgo:
-          code = EDNSExtendedError::code::UnsupportedDNSKEYAlgorithm;
-          break;
-        case vState::BogusUnsupportedDSDigestType:
-          code = EDNSExtendedError::code::UnsupportedDSDigestType;
-          break;
-        case vState::BogusNoZoneKeyBitSet:
-          code = EDNSExtendedError::code::NoZoneKeyBitSet;
-          break;
-        case vState::BogusRevokedDNSKEY:
-          code = EDNSExtendedError::code::DNSSECBogus;
-          break;
-        case vState::BogusInvalidDNSKEYProtocol:
-          code = EDNSExtendedError::code::DNSSECBogus;
-          break;
-        default:
-          throw std::runtime_error("Bogus validation state not handled: " + vStateToString(state));
+        if (dc->d_extendedErrorCode) {
+          code = static_cast<EDNSExtendedError::code>(*dc->d_extendedErrorCode);
+          extra = std::move(dc->d_extendedErrorExtra);
+        }
+        else {
+          switch (state) {
+          case vState::BogusNoValidDNSKEY:
+            code = EDNSExtendedError::code::DNSKEYMissing;
+            break;
+          case vState::BogusInvalidDenial:
+            code = EDNSExtendedError::code::NSECMissing;
+            break;
+          case vState::BogusUnableToGetDSs:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusUnableToGetDNSKEYs:
+            code = EDNSExtendedError::code::DNSKEYMissing;
+            break;
+          case vState::BogusSelfSignedDS:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusNoRRSIG:
+            code = EDNSExtendedError::code::RRSIGsMissing;
+            break;
+          case vState::BogusNoValidRRSIG:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusMissingNegativeIndication:
+            code = EDNSExtendedError::code::NSECMissing;
+            break;
+          case vState::BogusSignatureNotYetValid:
+            code = EDNSExtendedError::code::SignatureNotYetValid;
+            break;
+          case vState::BogusSignatureExpired:
+            code = EDNSExtendedError::code::SignatureExpired;
+            break;
+          case vState::BogusUnsupportedDNSKEYAlgo:
+            code = EDNSExtendedError::code::UnsupportedDNSKEYAlgorithm;
+            break;
+          case vState::BogusUnsupportedDSDigestType:
+            code = EDNSExtendedError::code::UnsupportedDSDigestType;
+            break;
+          case vState::BogusNoZoneKeyBitSet:
+            code = EDNSExtendedError::code::NoZoneKeyBitSet;
+            break;
+          case vState::BogusRevokedDNSKEY:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusInvalidDNSKEYProtocol:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          default:
+            throw std::runtime_error("Bogus validation state not handled: " + vStateToString(state));
+          }
         }
 
         EDNSExtendedError eee;
         eee.infoCode = static_cast<uint16_t>(code);
-        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee)));
+        eee.extraText = std::move(extra);
+
+        if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (2 + 2 + 2 + eee.extraText.size())) {
+          returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee)));
+        }
       }
 
       /* we try to add the EDNS OPT RR even for truncated answers,
@@ -2474,7 +2489,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra);
               }
               else if (t_pdl->d_gettag) {
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_proxyProtocolValues);
@@ -2700,7 +2715,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool ecsFound = false;
   bool ecsParsed = false;
   std::vector<DNSRecord> records;
+  std::string extendedErrorExtra;
   boost::optional<int> rcode = boost::none;
+  boost::optional<uint16_t> extendedErrorCode{boost::none};
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   bool followCNAMEs = false;
@@ -2739,7 +2756,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra);
             }
             else if (t_pdl->d_gettag) {
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
@@ -2910,6 +2927,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #endif
   dc->d_proxyProtocolValues = std::move(proxyProtocolValues);
   dc->d_routingTag = std::move(routingTag);
+  dc->d_extendedErrorCode = extendedErrorCode;
+  dc->d_extendedErrorExtra = std::move(extendedErrorExtra);
 
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;

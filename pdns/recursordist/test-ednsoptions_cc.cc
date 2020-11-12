@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(test_makeEDNSExtendedErrorOptString)
 
   std::string extra;
   /* the size of an EDNS option is limited to 2^16-1, and in this case the code already adds 2 bytes */
-  extra.resize(65535);
+  extra.resize(65534);
   BOOST_CHECK_THROW(checkExtendedErrorOptionValidity(EDNSExtendedError::code::Other, extra), std::runtime_error);
 
   EDNSExtendedError parsed;
