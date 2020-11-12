@@ -94,3 +94,5 @@ private:
   Ewma d_qcachehits, d_qcachemisses;
   WebServer *d_ws{nullptr};
 };
+
+void apiDocs(HttpRequest* req, HttpResponse* resp);

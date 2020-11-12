@@ -120,7 +120,7 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
   vector<string> entries;
   t_allowFrom->toStringVector(&entries);
 
-  resp->setBody(Json::object {
+  resp->setJsonBody(Json::object {
     { "name", "allow-from" },
     { "value", entries },
   });
@@ -161,7 +161,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
     { "records", records }
   };
 
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 static void doCreateZone(const Json document)
@@ -300,7 +300,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
       { "recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward }
     });
   }
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
@@ -376,7 +376,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       });
     }
   }
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
@@ -393,7 +393,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   int count = g_recCache->doWipeCache(canon, subtree, qtype);
   count += broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(canon, subtree, qtype);});
   count += g_negCache->wipe(canon, subtree);
-  resp->setBody(Json::object {
+  resp->setJsonBody(Json::object {
     { "count", count },
     { "result", "Flushed cache." }
   });
@@ -426,7 +426,7 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
     };
     ret[name] = zoneInfo;
   }
-  resp->setBody(ret);
+  resp->setJsonBody(ret);
 }
 
 
@@ -595,7 +595,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
         (int)(queries.size() - totIncluded), "", ""
       });
     }
-    resp->setBody(Json::object { { "entries", entries } });
+    resp->setJsonBody(Json::object { { "entries", entries } });
     return;
   }
   else if(command == "get-remote-ring") {
@@ -641,7 +641,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       });
     }
 
-    resp->setBody(Json::object { { "entries", entries } });
+    resp->setJsonBody(Json::object { { "entries", entries } });
     return;
   } else {
     resp->setErrorResult("Command '"+command+"' not found", 404);

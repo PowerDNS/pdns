@@ -50,12 +50,17 @@ EXTRA_DIST = \
 	ixfrdist.example.yml \
 	lua-record.cc \
 	minicurl.cc \
-	minicurl.hh
+	minicurl.hh \
+	api-swagger.yaml \
+	api-swagger.json \
+	requirements.txt \
+	incfiles
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
 	bindparser.h \
-	dnslabeltext.cc
+	dnslabeltext.cc \
+	apidocfiles.h
 
 CLEANFILES = \
 	*.gcda \
@@ -65,7 +70,34 @@ CLEANFILES = \
 	backends/gsql/gsqlbackend.gcno \
 	backends/gsql/gsqlbackend.gcov \
 	dnsmessage.pb.cc dnsmessage.pb.h \
-	pdns.conf-dist
+	pdns.conf-dist \
+	apidocfiles.h \
+	api-swagger.yaml \
+	api-swagger.json
+
+# use a $(wildcard) wrapper here to allow build to proceed if output
+# file is present but input file is not (e.g. in a dist tarball)
+api-swagger.yaml: $(wildcard ../docs/http-api/swagger/authoritative-api-swagger.yaml)
+	cp $< $@
+
+if HAVE_VIRTUALENV
+.venv: requirements.txt
+	virtualenv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git
+	.venv/bin/pip install -r requirements.txt
+
+api-swagger.json: api-swagger.yaml .venv
+	.venv/bin/python -c "import sys, json, yaml; y = yaml.safe_load(sys.stdin.read()); json.dump(y, sys.stdout, indent=2, separators=(',', ': '))" < $< > $@
+else # if HAVE_VIRTUALENV
+if !HAVE_API_SWAGGER_JSON
+api-swagger.json:
+	echo "You need virtualenv to generate the JSON API document"
+	exit 1
+endif
+endif
+
+apidocfiles.h: api-swagger.yaml api-swagger.json
+	./incfiles $^ > $@
 
 noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist

@@ -114,7 +114,7 @@ void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
   };
   Json doc = Json::array { version1 };
 
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 void apiServer(HttpRequest* req, HttpResponse* resp) {
@@ -122,14 +122,14 @@ void apiServer(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   Json doc = Json::array {getServerDetail()};
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  resp->setBody(getServerDetail());
+  resp->setJsonBody(getServerDetail());
 }
 
 void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
@@ -151,7 +151,7 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
       { "value", value },
     });
   }
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
@@ -172,7 +172,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
       { "value", std::to_string(*stat) },
     });
 
-    resp->setBody(doc);
+    resp->setJsonBody(doc);
 
     return;
   }
@@ -273,7 +273,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   }
 #endif
 
-  resp->setBody(doc);
+  resp->setJsonBody(doc);
 }
 
 DNSName apiNameToDNSName(const string& name) {

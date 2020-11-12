@@ -9,4 +9,5 @@ DIST_SUBDIRS = \
 	yahttp
 
 EXTRA_DIST = \
-	luawrapper/include/LuaContext.hpp
+	luawrapper/include/LuaContext.hpp \
+	incbin/incbin.h

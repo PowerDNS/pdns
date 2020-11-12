@@ -55,7 +55,10 @@ version_generated.h
 /pubsuffix.cc
 /calidns
 /dumresp
-/htmlfiles.h
+/apidocfiles.h
+/api-swagger.yaml
+/api-swagger.json
+/.venv
 effective_tld_names.dat
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
