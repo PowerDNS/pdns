@@ -13,6 +13,7 @@ The current targets cover:
   fuzz_target_dnsdistcache) ;
 - MOADNSParser (fuzz_target_moadnsparser) ;
 - the Proxy Protocol parser (fuzz_target_proxyprotocol) ;
+- the HTTP parser we use (YaHTTP, fuzz_target_yahttp) ;
 - ZoneParserTNG (fuzz_target_zoneparsertng).
 
 By default the targets are linked against a standalone target,
@@ -40,6 +41,8 @@ This directory contains a few files used for continuous fuzzing
 of the PowerDNS products.
 
 The 'corpus' directory contains three sub-directories:
+- http-raw-payloads/ contains HTTP payloads of queries, used by
+  fuzz_target_yahttp ;
 - proxy-protocol-raw-packets/ contains DNS queries prefixed with a Proxy
   Protocol v2 header, used by fuzz_target_proxyprotocol ;
 - raw-dns-packets/ contains DNS queries and responses as captured on
