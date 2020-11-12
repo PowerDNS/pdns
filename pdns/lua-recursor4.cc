@@ -36,7 +36,16 @@ RecursorLua4::RecursorLua4() { prepareContext(); }
 
 static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
-  int rcode=directResolve(qname, QType(QType::A), 1, ret);
+  /* we pass a separate vector of records because we will be resolving the initial qname
+     again, possibly encountering the same CNAME(s), and we don't want to trigger the CNAME
+     loop detection. */
+  std::vector<DNSRecord> newRecords;
+  int rcode=directResolve(qname, QType(QType::A), 1, newRecords);
+
+  ret.reserve(ret.size() + newRecords.size());
+  for (auto& record : newRecords) {
+    ret.push_back(std::move(record));
+  }
 
   ComboAddress prefixAddress(prefix);
 
