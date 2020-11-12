@@ -62,7 +62,7 @@ do
 		SKIPIT=1
 		result="	Skipped test $a"
 	else
-		for reason in $skipreasons $context
+		for reason in $skipreasons $context $backend
 		do
 			if [ -e $a/skip.$reason ]
 			then
@@ -74,7 +74,7 @@ do
 	fi
 
 	FAIL=0
-	for reason in $skipreasons $context
+	for reason in $skipreasons $context $backend
 	do
 		if [ -e $a/fail.$reason ]
 		then

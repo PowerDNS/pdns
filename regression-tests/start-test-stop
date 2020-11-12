@@ -326,6 +326,7 @@ export port
 export context
 export extracontexts
 export skipreasons
+export backend
 export testsdir
 export optout
 
@@ -343,6 +344,7 @@ then
 	export port
 	export context
 	export skipreasons
+	export backend
 
 	dotests RETVAL
 fi
