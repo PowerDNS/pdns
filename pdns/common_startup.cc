@@ -32,6 +32,7 @@
 #include "threadname.hh"
 #include "misc.hh"
 #include "query-local-address.hh"
+#include "trusted-notification-proxy.hh"
 
 #include <thread>
 
@@ -640,6 +641,8 @@ void mainthread()
     g_log<<Logger::Error<<"NOTE: query-local-address6 is deprecated and will be removed in a future version. Please use query-local-address for IPv6 addresses as well"<<endl;
     pdns::parseQueryLocalAddress(::arg()["query-local-address6"]);
   }
+
+  pdns::parseTrustedNotificationProxy(::arg()["trusted-notification-proxy"]);
 
   // NOW SAFE TO CREATE THREADS!
   dl->go();

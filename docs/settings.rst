@@ -1723,9 +1723,12 @@ Enable the Linux-only traceback handler.
 ``trusted-notification-proxy``
 ------------------------------
 
--  String
+.. versionchanged:: 4.4.0
+   This option now accepts a comma-separated list of IP ranges. This was a single IP address as a string before
 
-IP address of incoming notification proxy
+-  IP ranges, separated by commas
+
+IP ranges of incoming notification proxies.
 
 .. _setting-udp-truncation-threshold:
 
