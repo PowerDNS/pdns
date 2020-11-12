@@ -79,6 +79,8 @@ public:
     /* shared by all the policies from a single zone */
     std::unordered_set<std::string> d_tags;
     std::string d_name;
+    std::string d_extendedErrorExtra;
+    boost::optional<uint16_t> d_extendedErrorCode{boost::none};
     Priority d_priority{maximumPriority};
     bool d_policyOverridesGettag{true};
   };
@@ -211,6 +213,15 @@ public:
     {
       d_zoneData->d_policyOverridesGettag = flag;
     }
+    void setExtendedErrorCode(uint16_t code)
+    {
+      d_zoneData->d_extendedErrorCode = code;
+    }
+    void setExtendedErrorExtra(const std::string& extra)
+    {
+      d_zoneData->d_extendedErrorExtra = extra;
+    }
+
     const std::string& getName() const
     {
       return d_zoneData->d_name;

@@ -630,7 +630,7 @@ An entry called 'server1.home' will be stored as 'server1.home', regardless of t
 -  Boolean
 -  Default: no
 
-If set, the recursor will add an EDNS Extended Error to responses failing DNSSEC validation, explaining the failure.
+If set, the recursor will add an EDNS Extended Error (:rfc:`8914`) to responses failing DNSSEC validation, explaining the failure. Enabling this setting will also allow setting custom error codes from Lua or from a RPZ hit.
 
 .. _setting-forward-zones:
 

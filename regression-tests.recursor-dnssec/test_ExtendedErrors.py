@@ -22,6 +22,9 @@ log-common-errors=yes
     _config_template = """
     extended-errors=yes
     """
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", extendedErrorCode=15, extendedErrorExtra='Blocked by RPZ!'})
+    """ % (_confdir)
     _lua_dns_script_file = """
     function preresolve(dq)
       if dq.qname == newDN('fromlua.extended.') then
@@ -82,6 +85,13 @@ log-common-errors=yes
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+*.rpz.extended.zone.rpz. 60 IN CNAME .
+""".format(soa=cls._SOA))
+
         super(ExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
 
     def testNotIncepted(self):
@@ -111,7 +121,7 @@ log-common-errors=yes
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
 
     def testBogus(self):
-        qname = 'unknownalgorithm.bad-dnssec.wb.sidnlabs.nl.'
+        qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -161,6 +171,19 @@ log-common-errors=yes
             self.assertEqual(len(res.options), 1)
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b'Extra text from Lua FFI!'))
+
+    def testRPZ(self):
+        qname = 'sub.rpz.extended.'
+        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query, timeout=5.0)
+            self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+            self.assertEqual(res.edns, 0)
+            self.assertEqual(len(res.options), 1)
+            self.assertEqual(res.options[0].otype, 15)
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(15, b'Blocked by RPZ!'))
 
     def testTooLarge(self):
         qname = 'toolarge.extended.'

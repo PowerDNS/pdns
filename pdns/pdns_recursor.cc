@@ -983,6 +983,11 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
     g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
   }
 
+  if (appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
+    dc->d_extendedErrorCode = *appliedPolicy.d_zoneData->d_extendedErrorCode;
+    dc->d_extendedErrorExtra = appliedPolicy.d_zoneData->d_extendedErrorExtra;
+  }
+
   switch (appliedPolicy.d_kind) {
 
   case DNSFilterEngine::PolicyKind::NoAction:
@@ -1670,6 +1675,10 @@ static void startDoResolve(void *p)
       dq.validationState = sr.getValidationState();
       appliedPolicy = sr.d_appliedPolicy;
       dc->d_policyTags = std::move(sr.d_policyTags);
+      if (appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
+        dc->d_extendedErrorCode = *appliedPolicy.d_zoneData->d_extendedErrorCode;
+        dc->d_extendedErrorExtra = appliedPolicy.d_zoneData->d_extendedErrorExtra;
+      }
 
       // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
       if (res == -2) { // XXX This block should be macro'd, it is repeated post-resolve.
