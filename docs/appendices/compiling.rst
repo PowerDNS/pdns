@@ -45,12 +45,12 @@ By default, the PowerDNS Authoritative Server requires the following libraries a
 * `Boost <http://boost.org/>`_ 1.35 or newer
 * `OpenSSL <https://openssl.org>`_
 
-To build from git, the following dependencies are also required:
+To build from a Git repository clone, the following dependencies are also required:
 
 * `ragel <http://www.colm.net/open-source/ragel/>`_
 * `bison <https://www.gnu.org/software/bison/>`_
 * `flex <https://github.com/westes/flex>`_
-* `virtualenv <https://pypi.python.org/pypi/virtualenv>`_
+* `Python <https://python.org>`_ 3.6 or newer, with the 'venv' package
 
 Optional dependencies
 ---------------------

@@ -33,11 +33,10 @@ jobs:
     - run: git checkout HEAD^2
       if: ${{ github.event_name == 'pull_request' }}
 
-    # Python and virtualenv are required for building the Authoritative server
+    # Python is required for building the Authoritative server
     - uses: actions/setup-python@v2
       with:
-        python-version: '2.7'
-    - run: pip install virtualenv
+        python-version: '3.8'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -64,9 +63,12 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
+    - name: Update repository metadata
+      run: |
+        sudo apt-get update
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get --no-install-recommends install -qq -y \
+        sudo apt-get -qq -y --no-install-recommends install \
                 bison \
                 default-libmysqlclient-dev \
                 flex \

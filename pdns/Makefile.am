@@ -54,7 +54,8 @@ EXTRA_DIST = \
 	api-swagger.yaml \
 	api-swagger.json \
 	requirements.txt \
-	incfiles
+	incfiles \
+	convert-yaml-to-json.py
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
@@ -80,18 +81,18 @@ CLEANFILES = \
 api-swagger.yaml: $(wildcard ../docs/http-api/swagger/authoritative-api-swagger.yaml)
 	cp $< $@
 
-if HAVE_VIRTUALENV
+if HAVE_VENV
 .venv: requirements.txt
-	virtualenv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git
+	$(PYTHON) -m venv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git wheel
 	.venv/bin/pip install -r requirements.txt
 
 api-swagger.json: api-swagger.yaml .venv
-	.venv/bin/python -c "import sys, json, yaml; y = yaml.safe_load(sys.stdin.read()); json.dump(y, sys.stdout, indent=2, separators=(',', ': '))" < $< > $@
-else # if HAVE_VIRTUALENV
+	.venv/bin/python convert-yaml-to-json.py $< $@
+else # if HAVE_VENV
 if !HAVE_API_SWAGGER_JSON
 api-swagger.json:
-	echo "You need virtualenv to generate the JSON API document"
+	echo "You need Python 3 and the 'venv' module to generate the JSON API document"
 	exit 1
 endif
 endif

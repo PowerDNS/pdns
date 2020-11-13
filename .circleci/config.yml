@@ -222,7 +222,7 @@ commands:
               libsodium23 \
               patch \
               protobuf-compiler \
-              virtualenv
+              python3-venv
 
   install-ixfrdist-deps:
     description: "Install all libraries needed for testing ixfrdist"
@@ -235,7 +235,7 @@ commands:
               libboost-all-dev \
               libsystemd0 \
               libyaml-cpp0.6 \
-              virtualenv
+              python3-venv
 
   install-auth-dev-deps:
     description: Install all packages needed to build the auth
@@ -274,7 +274,7 @@ commands:
               sqlite3 \
               systemd \
               unixodbc-dev \
-              virtualenv \
+              python3-venv \
               wget
 
   add-auth-repo:
@@ -376,7 +376,7 @@ commands:
             pkg-config \
             ragel \
             rsync \
-            virtualenv
+            python3-venv
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
               apt-get update && apt-get -qq -y install \
                 texlive-full
@@ -919,7 +919,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
-      - run: apt-get -y -qq install virtualenv sqlite3
+      - run: apt-get -y -qq install python3-venv sqlite3
       - run:
           name: Run API tests
           workdir: ~/project/regression-tests.api
@@ -965,7 +965,7 @@ jobs:
             protobuf-compiler \
             ragel \
             systemd \
-            virtualenv
+            python3-venv
       - get-workspace
       - run:
           name: autoconf
@@ -1016,7 +1016,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc virtualenv protobuf-compiler
+      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler
       - install-recursor-deps
       - run:
           name: Set up authbind
@@ -1253,7 +1253,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y virtualenv pdns-tools
+      - run: apt-get --no-install-recommends install -qq -y python3-venv pdns-tools
       - install-recursor-deps
       - get-workspace
       - run:
@@ -1431,7 +1431,7 @@ jobs:
             pkg-config \
             protobuf-compiler \
             ragel \
-            virtualenv
+            python3-venv
       - install-coverity-tools
       - checkout-shallow
       - run:
@@ -1508,7 +1508,7 @@ jobs:
             pkg-config \
             protobuf-compiler \
             ragel \
-            virtualenv
+            python3-venv
       - install-coverity-tools
       - checkout-shallow
       - run:
@@ -1588,7 +1588,7 @@ jobs:
             protobuf-compiler \
             ragel \
             systemd \
-            virtualenv
+            python3-venv
       - get-workspace
       - run:
           name: autoconf
