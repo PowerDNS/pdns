@@ -51,7 +51,7 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
   return iter->second;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, uint16_t, uint32_t, std::string, std::vector<std::pair<int, std::string>> > > rpzOptions_t;
+typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>> > > rpzOptions_t;
 
 static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngine::Zone>& zone, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL)
 {
@@ -97,7 +97,12 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
     zone->setPolicyOverridesGettag(boost::get<bool>(have["overridesGettag"]));
   }
   if (have.count("extendedErrorCode")) {
-    zone->setExtendedErrorCode(boost::get<uint16_t>(have["extendedErrorCode"]));
+    auto code = boost::get<uint32_t>(have["extendedErrorCode"]);
+    if (code > std::numeric_limits<uint16_t>::max()) {
+      throw std::runtime_error("Invalid extendedErrorCode value " + std::to_string(code) + " in RPZ configuration");
+    }
+
+    zone->setExtendedErrorCode(static_cast<uint16_t>(code));
     if (have.count("extendedErrorExtra")) {
       zone->setExtendedErrorExtra(boost::get<std::string>(have["extendedErrorExtra"]));
     }
