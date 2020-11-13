@@ -237,9 +237,10 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEquals(msg.response.rcode, 65536)
 
     def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
-        self.assertTrue(msg.HasField('requestorId'))
-        self.assertTrue(msg.HasField('deviceId'))
-        self.assertTrue(msg.HasField('deviceName'))
+        print(msg)
+        self.assertTrue((requestorId == '') == (not msg.HasField('requestorId')))
+        self.assertTrue((deviceId == b'') == (not msg.HasField('deviceId')))
+        self.assertTrue((deviceName == '') == (not msg.HasField('deviceName')))
         self.assertEquals(msg.requestorId, requestorId)
         self.assertEquals(msg.deviceId, deviceId)
         self.assertEquals(msg.deviceName, deviceName)
@@ -342,7 +343,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         rr = msg.response.rrs[0]
         # we don't want to check the TTL for the A record, it has been cached by the previous test
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15)
-        self.assertEquals(rr.rdata, 'a.example.')
+        self.assertEquals(rr.rdata, b'a.example.')
         rr = msg.response.rrs[1]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
@@ -695,16 +696,16 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
                 self.assertEquals(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::1')
             elif rr.type == dns.rdatatype.TXT:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.TXT, name, 15)
-                self.assertEquals(rr.rdata, '"Lorem ipsum dolor sit amet"')
+                self.assertEquals(rr.rdata, b'"Lorem ipsum dolor sit amet"')
             elif rr.type == dns.rdatatype.MX:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.MX, name, 15)
-                self.assertEquals(rr.rdata, 'a.example.')
+                self.assertEquals(rr.rdata, b'a.example.')
             elif rr.type == dns.rdatatype.SPF:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.SPF, name, 15)
-                self.assertEquals(rr.rdata, '"v=spf1 -all"')
+                self.assertEquals(rr.rdata, b'"v=spf1 -all"')
             elif rr.type == dns.rdatatype.SRV:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.SRV, name, 15)
-                self.assertEquals(rr.rdata, 'a.example.')
+                self.assertEquals(rr.rdata, b'a.example.')
 
         self.checkNoRemainingMessage()
 
@@ -745,7 +746,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf messages corresponding to the UDP query and answer
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
-        self.checkProtobufIdentity(msg, '', '', '')
+        self.checkProtobufIdentity(msg, '', b'', '')
 
         # then the response
         msg = self.getFirstProtobufMessage()
@@ -755,7 +756,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
-        self.checkProtobufIdentity(msg, '', '', '')
+        self.checkProtobufIdentity(msg, '', b'', '')
         self.checkNoRemainingMessage()
 
     def testTagged(self):
@@ -769,7 +770,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf messages corresponding to the UDP query and answer
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
-        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId, self._deviceName)
+        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId.encode('ascii'), self._deviceName)
 
         # then the response
         msg = self.getFirstProtobufMessage()
@@ -779,7 +780,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
-        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId, self._deviceName)
+        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId.encode('ascii'), self._deviceName)
         self.checkNoRemainingMessage()
 
 class ProtobufTaggedExtraFieldsFFITest(ProtobufTaggedExtraFieldsTest):

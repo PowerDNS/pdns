@@ -250,8 +250,7 @@ class UDPLargeResponder(DatagramProtocol):
         # This is an authoritative answer
         response.flags |= dns.flags.AA
         # We pretend to do EDNS with a 4096 buffer size
-        response.edns = 0
-        response.payload = 4096
+        response.use_edns(payload=4096)
 
         # What we use to fill the TXT records
         # Test number + 64, so 01 = 'A', 02 = 'B' etc...

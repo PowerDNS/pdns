@@ -22,12 +22,18 @@ class CookiesOption(dns.edns.Option):
         self.client = client
         self.server = server
 
-    def to_wire(self, file):
+    def to_wire(self, file=None):
         """Create EDNS packet as defined in draft-ietf-dnsop-cookies-09."""
 
-        file.write(self.client)
         if self.server and len(self.server) > 0:
-            file.write(self.server)
+            data = self.client + self.server
+        else:
+            data = self.client
+
+        if file:
+            file.write(data)
+        else:
+            return data
 
     def from_wire(cls, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-ietf-dnsop-cookies-09.
@@ -50,12 +56,31 @@ class CookiesOption(dns.edns.Option):
 
     from_wire = classmethod(from_wire)
 
+    # needed in 2.0.0
+    @classmethod
+    def from_wire_parser(cls, otype, parser):
+        data = parser.get_remaining()
+
+        if len(data) != 8 and (len(data) < 16 or len(data) > 40):
+            raise Exception('Invalid EDNS Cookies option')
+
+        client = data[:8]
+        if len(data) > 8:
+            server = data[8:]
+        else:
+            server = None
+
+        return cls(client, server)
+
     def __repr__(self):
         return '%s(%s, %s)' % (
             self.__class__.__name__,
             self.client,
             self.server
         )
+
+    def to_text(self):
+        return self.__repr__()
 
     def __eq__(self, other):
         if not isinstance(other, CookiesOption):
@@ -71,4 +96,3 @@ class CookiesOption(dns.edns.Option):
 
 
 dns.edns._type_to_class[0x000A] = CookiesOption
-
