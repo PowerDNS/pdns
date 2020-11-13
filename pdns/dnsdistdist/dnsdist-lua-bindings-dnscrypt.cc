@@ -30,7 +30,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx)
 {
 #ifdef HAVE_DNSCRYPT
     /* DNSCryptContext bindings */
-    luaCtx.registerFunction<std::string(DNSCryptContext::*)()>("getProviderName", [](const DNSCryptContext& ctx) { return ctx.getProviderName().toStringNoDot(); });
+    luaCtx.registerFunction<std::string(DNSCryptContext::*)()const>("getProviderName", [](const DNSCryptContext& ctx) { return ctx.getProviderName().toStringNoDot(); });
     luaCtx.registerFunction("markActive", &DNSCryptContext::markActive);
     luaCtx.registerFunction("markInactive", &DNSCryptContext::markInactive);
     luaCtx.registerFunction("removeInactiveCertificate", &DNSCryptContext::removeInactiveCertificate);
@@ -92,7 +92,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx)
       throw std::runtime_error("This DNSCrypt context has no certificate at index " + std::to_string(idx));
     });
 
-    luaCtx.registerFunction<std::string(std::shared_ptr<DNSCryptContext>::*)()>("printCertificates", [](const std::shared_ptr<DNSCryptContext> ctx) {
+    luaCtx.registerFunction<std::string(std::shared_ptr<DNSCryptContext>::*)()const>("printCertificates", [](const std::shared_ptr<DNSCryptContext> ctx) {
       ostringstream ret;
 
       if (ctx != nullptr) {
@@ -127,13 +127,13 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx)
     });
 
     /* DNSCryptCertificatePair */
-    luaCtx.registerFunction<const DNSCryptCert(std::shared_ptr<DNSCryptCertificatePair>::*)()>("getCertificate", [](const std::shared_ptr<DNSCryptCertificatePair> pair) {
+    luaCtx.registerFunction<const DNSCryptCert(std::shared_ptr<DNSCryptCertificatePair>::*)()const>("getCertificate", [](const std::shared_ptr<DNSCryptCertificatePair> pair) {
       if (pair == nullptr) {
         throw std::runtime_error("DNSCryptCertificatePair::getCertificate() called on a nil value");
       }
       return pair->cert;
     });
-    luaCtx.registerFunction<bool(std::shared_ptr<DNSCryptCertificatePair>::*)()>("isActive", [](const std::shared_ptr<DNSCryptCertificatePair> pair) {
+    luaCtx.registerFunction<bool(std::shared_ptr<DNSCryptCertificatePair>::*)()const>("isActive", [](const std::shared_ptr<DNSCryptCertificatePair> pair) {
       if (pair == nullptr) {
         throw std::runtime_error("DNSCryptCertificatePair::isActive() called on a nil value");
       }
@@ -141,14 +141,14 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx)
     });
 
     /* DNSCryptCert */
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()>("getMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.magic), sizeof(cert.magic)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()>("getEsVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.esVersion), sizeof(cert.esVersion)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()>("getProtocolMinorVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.protocolMinorVersion), sizeof(cert.protocolMinorVersion)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()>("getSignature", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signature), sizeof(cert.signature)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()>("getResolverPublicKey", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.resolverPK), sizeof(cert.signedData.resolverPK)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()>("getClientMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.clientMagic), sizeof(cert.signedData.clientMagic)); });
-    luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()>("getSerial", [](const DNSCryptCert& cert) { return cert.getSerial(); });
-    luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()>("getTSStart", [](const DNSCryptCert& cert) { return ntohl(cert.getTSStart()); });
-    luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()>("getTSEnd", [](const DNSCryptCert& cert) { return ntohl(cert.getTSEnd()); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.magic), sizeof(cert.magic)); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getEsVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.esVersion), sizeof(cert.esVersion)); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getProtocolMinorVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.protocolMinorVersion), sizeof(cert.protocolMinorVersion)); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getSignature", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signature), sizeof(cert.signature)); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getResolverPublicKey", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.resolverPK), sizeof(cert.signedData.resolverPK)); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getClientMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.clientMagic), sizeof(cert.signedData.clientMagic)); });
+    luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getSerial", [](const DNSCryptCert& cert) { return cert.getSerial(); });
+    luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getTSStart", [](const DNSCryptCert& cert) { return ntohl(cert.getTSStart()); });
+    luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getTSEnd", [](const DNSCryptCert& cert) { return ntohl(cert.getTSEnd()); });
 #endif
 }

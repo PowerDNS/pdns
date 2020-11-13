@@ -1936,12 +1936,20 @@ class TestAdvancedLuaRule(DNSDistTest):
     _config_template = """
 
     function luarulefunction(dq)
-      if dq.qname:toString() == 'lua-rule.advanced.tests.powerdns.com.' then
-        return true
+      if dq:getTag('a-tag') ~= 'a-value' then
+        print('invalid tag value')
+        return false
       end
-      return false
+
+      if dq.qname:toString() ~= 'lua-rule.advanced.tests.powerdns.com.' then
+        print('invalid qname')
+        return false
+      end
+
+      return true
     end
 
+    addAction(AllRule(), TagAction('a-tag', 'a-value'))
     addAction(LuaRule(luarulefunction), RCodeAction(DNSRCode.NOTIMP))
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
     -- newServer{address="127.0.0.1:%s"}

@@ -42,7 +42,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     });
 
   /* Exceptions */
-  luaCtx.registerFunction<string(std::exception_ptr::*)()>("__tostring", [](const std::exception_ptr& eptr) {
+  luaCtx.registerFunction<string(std::exception_ptr::*)()const>("__tostring", [](const std::exception_ptr& eptr) {
       try {
         if (eptr) {
           std::rethrow_exception(eptr);
@@ -102,8 +102,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       g_pools.setState(localPools);
       s->pools.erase(pool);
     });
-  luaCtx.registerFunction<uint64_t(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
-  luaCtx.registerFunction<double(DownstreamState::*)()>("getLatency", [](const DownstreamState& s) { return s.latencyUsec; });
+  luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
+  luaCtx.registerFunction<double(DownstreamState::*)()const>("getLatency", [](const DownstreamState& s) { return s.latencyUsec; });
   luaCtx.registerFunction("isUp", &DownstreamState::isUp);
   luaCtx.registerFunction("setDown", &DownstreamState::setDown);
   luaCtx.registerFunction("setUp", &DownstreamState::setUp);
@@ -113,8 +113,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
       s.setAuto();
     });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()>("getName", [](const DownstreamState& s) { return s.getName(); });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getName", [](const DownstreamState& s) { return s.getName(); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
   luaCtx.registerMember("upStatus", &DownstreamState::upStatus);
   luaCtx.registerMember<int (DownstreamState::*)>("weight",
     [](const DownstreamState& s) -> int {return s.weight;},
@@ -122,7 +122,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   );
   luaCtx.registerMember("order", &DownstreamState::order);
   luaCtx.registerMember<const std::string(DownstreamState::*)>("name", [](const DownstreamState& backend) -> const std::string { return backend.getName(); }, [](DownstreamState& backend, const std::string& newName) { backend.setName(newName); });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(s.id); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(s.id); });
 
   /* dnsheader */
   luaCtx.registerFunction<void(dnsheader::*)(bool)>("setRD", [](dnsheader& dh, bool v) {
@@ -199,40 +199,40 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
                                         }
                                         return ComboAddress();
                                       });
-  luaCtx.registerFunction<string(ComboAddress::*)()>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
-  luaCtx.registerFunction<string(ComboAddress::*)()>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
-  luaCtx.registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
-  luaCtx.registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
-  luaCtx.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
+  luaCtx.registerFunction<string(ComboAddress::*)()const>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
+  luaCtx.registerFunction<string(ComboAddress::*)()const>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
+  luaCtx.registerFunction<string(ComboAddress::*)()const>("toString", [](const ComboAddress& ca) { return ca.toString(); });
+  luaCtx.registerFunction<string(ComboAddress::*)()const>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
+  luaCtx.registerFunction<uint16_t(ComboAddress::*)()const>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
   luaCtx.registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& ca, unsigned int bits) { ca.truncate(bits); });
-  luaCtx.registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
-  luaCtx.registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
-  luaCtx.registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
-  luaCtx.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
+  luaCtx.registerFunction<bool(ComboAddress::*)()const>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
+  luaCtx.registerFunction<bool(ComboAddress::*)()const>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
+  luaCtx.registerFunction<bool(ComboAddress::*)()const>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
+  luaCtx.registerFunction<ComboAddress(ComboAddress::*)()const>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
   luaCtx.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
 
   /* DNSName */
   luaCtx.registerFunction("isPartOf", &DNSName::isPartOf);
   luaCtx.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
-  luaCtx.registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
-  luaCtx.registerFunction<size_t(DNSName::*)()>("hash", [](const DNSName& name) { return name.hash(); });
-  luaCtx.registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
-  luaCtx.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
-  luaCtx.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
-  luaCtx.registerFunction<string(DNSName::*)()>("toDNSString", [](const DNSName&dn ) { return dn.toDNSString(); });
+  luaCtx.registerFunction<unsigned int(DNSName::*)()const>("countLabels", [](const DNSName& name) { return name.countLabels(); });
+  luaCtx.registerFunction<size_t(DNSName::*)()const>("hash", [](const DNSName& name) { return name.hash(); });
+  luaCtx.registerFunction<size_t(DNSName::*)()const>("wirelength", [](const DNSName& name) { return name.wirelength(); });
+  luaCtx.registerFunction<string(DNSName::*)()const>("tostring", [](const DNSName&dn ) { return dn.toString(); });
+  luaCtx.registerFunction<string(DNSName::*)()const>("toString", [](const DNSName&dn ) { return dn.toString(); });
+  luaCtx.registerFunction<string(DNSName::*)()const>("toDNSString", [](const DNSName&dn ) { return dn.toDNSString(); });
   luaCtx.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   luaCtx.writeFunction("newDNSNameFromRaw", [](const std::string& name) { return DNSName(name.c_str(), name.size(), 0, false); });
   luaCtx.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
   luaCtx.writeFunction("newDNSNameSet", []() { return DNSNameSet(); });
 
   /* DNSNameSet */
-  luaCtx.registerFunction<string(DNSNameSet::*)()>("toString", [](const DNSNameSet&dns ) { return dns.toString(); });
+  luaCtx.registerFunction<string(DNSNameSet::*)()const>("toString", [](const DNSNameSet&dns ) { return dns.toString(); });
   luaCtx.registerFunction<void(DNSNameSet::*)(DNSName&)>("add", [](DNSNameSet& dns, DNSName& dn) { dns.insert(dn); });
   luaCtx.registerFunction<bool(DNSNameSet::*)(DNSName&)>("check", [](DNSNameSet& dns, DNSName& dn) { return dns.find(dn) != dns.end(); });
   luaCtx.registerFunction("delete",(size_t (DNSNameSet::*)(const DNSName&)) &DNSNameSet::erase);
   luaCtx.registerFunction("size",(size_t (DNSNameSet::*)() const) &DNSNameSet::size);
   luaCtx.registerFunction("clear",(void (DNSNameSet::*)()) &DNSNameSet::clear);
-  luaCtx.registerFunction("empty",(bool (DNSNameSet::*)()) &DNSNameSet::empty);
+  luaCtx.registerFunction("empty",(bool (DNSNameSet::*)() const) &DNSNameSet::empty);
 
   /* SuffixMatchNode */
   luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name) {
@@ -309,8 +309,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   });
   luaCtx.registerFunction("empty", &Netmask::empty);
   luaCtx.registerFunction("getBits", &Netmask::getBits);
-  luaCtx.registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
-  luaCtx.registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
+  luaCtx.registerFunction<ComboAddress(Netmask::*)()const>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
+  luaCtx.registerFunction<ComboAddress(Netmask::*)()const>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
   luaCtx.registerFunction("isIpv4", &Netmask::isIPv4);
   luaCtx.registerFunction("isIPv4", &Netmask::isIPv4);
   luaCtx.registerFunction("isIpv6", &Netmask::isIPv6);
@@ -336,14 +336,14 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   luaCtx.registerFunction("size", &NetmaskGroup::size);
   luaCtx.registerFunction("clear", &NetmaskGroup::clear);
-  luaCtx.registerFunction<string(NetmaskGroup::*)()>("toString", [](const NetmaskGroup& nmg ) { return "NetmaskGroup " + nmg.toString(); });
+  luaCtx.registerFunction<string(NetmaskGroup::*)()const>("toString", [](const NetmaskGroup& nmg ) { return "NetmaskGroup " + nmg.toString(); });
 
   /* QPSLimiter */
   luaCtx.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
   luaCtx.registerFunction("check", &QPSLimiter::check);
 
   /* ClientState */
-  luaCtx.registerFunction<std::string(ClientState::*)()>("toString", [](const ClientState& fe) {
+  luaCtx.registerFunction<std::string(ClientState::*)()const>("toString", [](const ClientState& fe) {
       setLuaNoSideEffect();
       return fe.local.toStringWithPort();
     });
@@ -392,7 +392,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
     });
 
-  luaCtx.registerFunction<std::string(std::shared_ptr<BPFFilter>::*)()>("getStats", [](const std::shared_ptr<BPFFilter> bpf) {
+  luaCtx.registerFunction<std::string(std::shared_ptr<BPFFilter>::*)()const>("getStats", [](const std::shared_ptr<BPFFilter> bpf) {
       setLuaNoSideEffect();
       std::string res;
       if (bpf) {
@@ -470,10 +470,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 #endif /* HAVE_EBPF */
 
   /* EDNSOptionView */
-  luaCtx.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
+  luaCtx.registerFunction<size_t(EDNSOptionView::*)()const>("count", [](const EDNSOptionView& option) {
       return option.values.size();
     });
-  luaCtx.registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+  luaCtx.registerFunction<std::vector<string>(EDNSOptionView::*)()const>("getValues", [] (const EDNSOptionView& option) {
     std::vector<string> values;
     for (const auto& value : option.values) {
       values.push_back(std::string(value.content, value.size));

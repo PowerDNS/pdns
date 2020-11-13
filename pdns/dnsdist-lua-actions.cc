@@ -1549,7 +1549,7 @@ void setupLuaActions(LuaContext& luaCtx)
       addAction(&g_selfansweredresprulactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
-  luaCtx.registerFunction<void(DNSAction::*)()>("printStats", [](const DNSAction& ta) {
+  luaCtx.registerFunction<void(DNSAction::*)()const>("printStats", [](const DNSAction& ta) {
       setLuaNoSideEffect();
       auto stats = ta.getStats();
       for(const auto& s : stats) {
