@@ -31,13 +31,14 @@
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest(const string& logprefix_="") : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false), logprefix(logprefix_) { };
+  HttpRequest(const string& logprefix_="") : YaHTTP::Request(), logprefix(logprefix_) { };
 
-  bool accept_yaml;
-  bool accept_json;
-  bool accept_html;
-  bool complete;
   string logprefix;
+  bool accept_yaml{false};
+  bool accept_json{false};
+  bool accept_html{false};
+  bool complete{false};
+
   json11::Json json();
 
   // checks password _only_.
