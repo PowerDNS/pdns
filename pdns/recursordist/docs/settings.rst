@@ -514,10 +514,10 @@ That is, only if both the limits apply, the record will not be cached.
 ``ecs-minimum-ttl-override``
 ----------------------------
 -  Integer
--  Default: 0 (disabled)
+-  Default: 1
 
 This setting artificially raises the TTLs of records in the ANSWER section of ECS-specific answers to be at least this long.
-While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
+Setting this to a value greater than 1 technically is an RFC violation, but might improve performance a lot.
 Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 
 .. _setting-ecs-cache-limit-ttl:
@@ -1064,10 +1064,10 @@ returning back to normal processing and handling other events.
 ``minimum-ttl-override``
 ------------------------
 -  Integer
--  Default: 0 (disabled)
+-  Default: 1
 
 This setting artificially raises all TTLs to be at least this long.
-While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
+Setting this to a value greater than 1 technically is an RFC violation, but might improve performance a lot.
 Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 
 .. _setting-new-domain-tracking:
