@@ -165,7 +165,7 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
 
-        #return # remove this line to peek at cache
+        return # remove this line to peek at cache
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache x']
