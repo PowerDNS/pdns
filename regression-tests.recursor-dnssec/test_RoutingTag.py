@@ -170,7 +170,7 @@ end
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache x']
         try:
-            expected = 'dumped 7 records\n'
+            expected = b'dumped 7 records\n'
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertEqual(ret, expected)
 
@@ -302,6 +302,6 @@ class UDPRoutingResponder(DatagramProtocol):
             response.additional.append(additional)
 
         if ecso:
-            response.options = [ecso]
+            response.use_edns(options = [ecso])
 
         self.transport.write(response.to_wire(), address)
