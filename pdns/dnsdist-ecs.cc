@@ -493,7 +493,7 @@ static bool replaceEDNSClientSubnetOption(char * const packet, const size_t pack
 
 /* This function looks for an OPT RR, return true if a valid one was found (even if there was no options)
    and false otherwise. */
-bool parseEDNSOptions(DNSQuestion& dq)
+bool parseEDNSOptions(const DNSQuestion& dq)
 {
   assert(dq.dh != nullptr);
   assert(dq.consumed <= dq.len);

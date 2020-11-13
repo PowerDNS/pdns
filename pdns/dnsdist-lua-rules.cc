@@ -223,7 +223,7 @@ void setupLuaRules(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("makeRule", makeRule);
 
-  luaCtx.registerFunction<string(std::shared_ptr<DNSRule>::*)()>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
+  luaCtx.registerFunction<string(std::shared_ptr<DNSRule>::*)()const>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
 
   luaCtx.writeFunction("showResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_resprulactions, vars);

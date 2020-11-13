@@ -86,7 +86,7 @@ struct DNSQuestion
   const ComboAddress* remote{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   std::unique_ptr<std::vector<ProxyProtocolValue>> proxyProtocolValues{nullptr};
-  std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
+  mutable std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   struct dnsheader* dh{nullptr};

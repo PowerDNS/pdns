@@ -52,10 +52,10 @@ static void parseFSTRMOptions(const boost::optional<std::unordered_map<std::stri
 void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 {
 #ifdef HAVE_LIBCRYPTO
-  luaCtx.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
+  luaCtx.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)const>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
       return encryptCA(ca, key);
     });
-  luaCtx.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
+  luaCtx.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)const>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
       return decryptCA(ca, key);
     });
 
@@ -88,7 +88,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setTime(sec, usec); });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
-  luaCtx.registerFunction<std::string(DNSDistProtoBufMessage::*)()>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
+  luaCtx.registerFunction<std::string(DNSDistProtoBufMessage::*)()const>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
       message.setRequestor(addr);
       if (port) {
@@ -117,7 +117,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       message.setServerIdentity(str);
     });
 
-  luaCtx.registerFunction<std::string(DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
+  luaCtx.registerFunction<std::string(DnstapMessage::*)()const>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
   luaCtx.registerFunction<void(DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
       message.setExtra(str);
     });
@@ -158,7 +158,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_FSTRM */
     });
 
-  luaCtx.registerFunction<std::string(std::shared_ptr<RemoteLoggerInterface>::*)()>("toString", [](const std::shared_ptr<RemoteLoggerInterface>& logger) {
+  luaCtx.registerFunction<std::string(std::shared_ptr<RemoteLoggerInterface>::*)()const>("toString", [](const std::shared_ptr<RemoteLoggerInterface>& logger) {
       if (logger) {
         return logger->toString();
       }

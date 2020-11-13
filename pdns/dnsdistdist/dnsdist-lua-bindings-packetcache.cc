@@ -98,13 +98,13 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
 
       return res;
     });
-  luaCtx.registerFunction<std::string(std::shared_ptr<DNSDistPacketCache>::*)()>("toString", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
+  luaCtx.registerFunction<std::string(std::shared_ptr<DNSDistPacketCache>::*)()const>("toString", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
       if (cache) {
         return cache->toString();
       }
       return std::string();
     });
-  luaCtx.registerFunction<bool(std::shared_ptr<DNSDistPacketCache>::*)()>("isFull", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
+  luaCtx.registerFunction<bool(std::shared_ptr<DNSDistPacketCache>::*)()const>("isFull", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
       if (cache) {
         return cache->isFull();
       }
@@ -138,7 +138,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
                   g_outputBuffer="Expunged " + std::to_string(cache->expungeByName(qname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
                 }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
+  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()const>("printStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
       if (cache) {
         g_outputBuffer="Entries: " + std::to_string(cache->getEntriesCount()) + "/" + std::to_string(cache->getMaxEntries()) + "\n";
         g_outputBuffer+="Hits: " + std::to_string(cache->getHits()) + "\n";
@@ -150,7 +150,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
       }
     });
-  luaCtx.registerFunction<std::unordered_map<std::string, uint64_t>(std::shared_ptr<DNSDistPacketCache>::*)()>("getStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
+  luaCtx.registerFunction<std::unordered_map<std::string, uint64_t>(std::shared_ptr<DNSDistPacketCache>::*)()const>("getStats", [](const std::shared_ptr<DNSDistPacketCache>& cache) {
       std::unordered_map<std::string, uint64_t> stats;
       if (cache) {
         stats["entries"] = cache->getEntriesCount();
@@ -165,7 +165,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
       }
       return stats;
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname) {
+  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname) {
       if (cache) {
 
         int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
