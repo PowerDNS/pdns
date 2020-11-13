@@ -121,7 +121,14 @@ AS_IF([test "x$enable_hardening" != "xno"], [
 
 PDNS_ENABLE_SANITIZERS
 
-PDNS_CHECK_VIRTUALENV
+PDNS_CHECK_PYTHON_VENV
+
+AM_CONDITIONAL([HAVE_MANPAGES], [test -e "$srcdir/dnsdist.1"])
+AM_COND_IF([HAVE_MANPAGES],[],[
+  AM_COND_IF([HAVE_VENV],[],[
+    AC_MSG_WARN([Python 3 and/or venv module are not available, documentation will not be built.])
+  ])
+])
 
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 

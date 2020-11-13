@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 
 if [ ! -d .venv ]; then
-  if [ -z "$PYTHON" ]; then
-    if [ ! -z "$(python3 --version | egrep '^Python 3.[6789]' 2>/dev/null)" ]; then
-      # found python3.6 or better
-      PYTHON=python3
-    else
-      # until we have better Linux distribution detection.
-      PYTHON=python2
-    fi
-  fi
-
-  virtualenv -p ${PYTHON} .venv
+  python3 -m venv .venv
 fi
 . .venv/bin/activate
 python -V
