@@ -687,7 +687,7 @@ static void connectionThread(int sock, ComboAddress remote)
                 output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownKeyExchangeType\"} " << errorCounters->d_unknownKeyExchangeType << "\n";
                 output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownProtocol\"} " << errorCounters->d_unknownProtocol << "\n";
                 output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedEC\"} " << errorCounters->d_unsupportedEC << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedProtocol{\"} " << errorCounters->d_unsupportedProtocol << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedProtocol\"} " << errorCounters->d_unsupportedProtocol << "\n";
               }
             }
           }
