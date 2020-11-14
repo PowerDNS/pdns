@@ -61,7 +61,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
     if(errno == EAFNOSUPPORT && local.sin4.sin_family == AF_INET6) {
         return -1;
     }
-    unixDie("Creating local resolver socket for "+ourLocal.toString());
+    unixDie("Creating local resolver socket for address '"+ourLocal.toString()+"'");
   }
 
   setCloseOnExec(sock);
@@ -82,7 +82,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
 
     if(!tries) {
       closesocket(sock);
-      throw PDNSException("Resolver binding to local UDP socket on "+ourLocal.toString()+": "+stringerror());
+      throw PDNSException("Resolver binding to local UDP socket on '"+ourLocal.toString()+"': "+stringerror());
     }
   }
   else {
@@ -90,7 +90,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
     ourLocal.sin4.sin_port = 0;
     if(::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) < 0) {
       closesocket(sock);
-      throw PDNSException("Resolver binding to local TCP socket on "+ourLocal.toString()+": "+stringerror());
+      throw PDNSException("Resolver binding to local TCP socket on '"+ourLocal.toString()+"': "+stringerror());
     }
   }
   return sock;
@@ -175,7 +175,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
       // try to make socket
       sock = makeQuerySocket(local, true);
       if (sock < 0)
-        throw ResolverException("Unable to create local socket on "+lstr+" to "+remote.toStringWithPort()+": "+stringerror());
+        throw ResolverException("Unable to create local socket on '"+lstr+"'' to '"+remote.toStringWithPort()+"': "+stringerror());
       setNonBlocking( sock );
       locals[lstr] = sock;
     }
@@ -185,7 +185,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     *localsock = sock;
   }
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
-    throw ResolverException("Unable to ask query of "+remote.toStringWithPort()+": "+stringerror());
+    throw ResolverException("Unable to ask query of '"+remote.toStringWithPort()+"': "+stringerror());
   }
   return randomid;
 }
@@ -327,7 +327,7 @@ int Resolver::resolve(const ComboAddress& to, const DNSName &domain, int type, R
       throw ResolverException("recvfrom error waiting for answer: "+stringerror());
 
     if (from != to) {
-      throw ResolverException("Got answer from the wrong peer while resolving ("+from.toStringWithPort()+" instead of "+to.toStringWithPort()+", discarding");
+      throw ResolverException("Got answer from the wrong peer while resolving ('"+from.toStringWithPort()+"' instead of '"+to.toStringWithPort()+"', discarding");
     }
 
     MOADNSParser mdp(false, buffer, len);
