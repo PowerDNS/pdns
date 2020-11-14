@@ -17,7 +17,7 @@ The set can be filled by func:`DNSNameSet:add`::
 Functions and methods of a ``DNSNameSet``
 -----------------------------------------
 
-.. function:: newDNSNameSet(name) -> DNSNameSet
+.. function:: newDNSNameSet() -> DNSNameSet
 
   Returns the :class:`DNSNameSet`.
 
