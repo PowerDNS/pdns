@@ -504,7 +504,7 @@ jobs:
           name: Check formatting
           command: |
             ./build-scripts/format-code pdns/recursordist/*.[ch][ch]
-            git diff
+            git --no-pager diff
             exit $(git diff | wc -l)
           working_directory: ~/project
 
