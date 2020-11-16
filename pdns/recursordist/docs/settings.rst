@@ -513,6 +513,9 @@ That is, only if both the limits apply, the record will not be cached.
 
 ``ecs-minimum-ttl-override``
 ----------------------------
+.. versionchanged:: 4.5.0
+  Old versions used default 0.
+
 -  Integer
 -  Default: 1
 
@@ -1063,6 +1066,9 @@ returning back to normal processing and handling other events.
 
 ``minimum-ttl-override``
 ------------------------
+.. versionchanged:: 4.5.0
+  Old versions used default 0.
+
 -  Integer
 -  Default: 1
 
