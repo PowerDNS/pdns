@@ -2501,7 +2501,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra);
+                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra);
+                dc->d_tag = t_pdl->gettag_ffi(params);
               }
               else if (t_pdl->d_gettag) {
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_proxyProtocolValues);
@@ -2768,22 +2769,26 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra);
+              RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra);
+
+              ctag = t_pdl->gettag_ffi(params);
             }
             else if (t_pdl->d_gettag) {
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
             }
           }
-          catch(const std::exception& e)  {
-            if(g_logCommonErrors)
+          catch (const std::exception& e)  {
+            if (g_logCommonErrors) {
               g_log<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+            }
           }
         }
       }
-      catch(const std::exception& e)
+      catch (const std::exception& e)
       {
-        if(g_logCommonErrors)
+        if (g_logCommonErrors) {
           g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+        }
       }
     }
 
