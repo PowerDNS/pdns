@@ -644,7 +644,7 @@ int asendto(const char *data, size_t len, int flags,
   pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain=MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
   for(; chain.first != chain.second; chain.first++) {
-    if(chain.first->key.fd > -1) { // don't chain onto existing chained waiter!
+    if(chain.first->key.fd > -1 && !chain.first->key.closed) { // don't chain onto existing chained waiter or a chain already processed
       /*
       cerr<<"Orig: "<<pident.domain<<", "<<pident.remote.toString()<<", id="<<id<<endl;
       cerr<<"Had hit: "<< chain.first->key.domain<<", "<<chain.first->key.remote.toString()<<", id="<<chain.first->key.id
@@ -3727,6 +3727,9 @@ static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 // resend event to everybody chained onto it
 static void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& content)
 {
+  // We close the chain for new entries, since they won't be processed anyway
+  iter->key.closed = true;
+
   if(iter->key.chain.empty())
     return;
   //  cerr<<"doResends called!\n";
