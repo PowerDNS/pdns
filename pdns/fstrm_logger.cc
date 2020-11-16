@@ -85,7 +85,7 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
     }
 
     const struct {
-      const char *name;
+      const std::string name;
       fstrm_res (*function)(struct fstrm_iothr_options *, const unsigned int);
     } list[] = {
       { "bufferHint", fstrm_iothr_options_set_buffer_hint },
