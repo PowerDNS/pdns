@@ -41,6 +41,9 @@ struct EDNSOptionView
   std::vector<EDNSOptionViewValue> values;
 };
 
+static constexpr size_t EDNSOptionCodeSize = 2;
+static constexpr size_t EDNSOptionLengthSize = 2;
+
 typedef std::map<uint16_t, EDNSOptionView> EDNSOptionViewMap;
 
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */

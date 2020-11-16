@@ -1414,12 +1414,11 @@ static void startDoResolve(void *p)
           dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
         } else if (o.first == EDNSOptionCode::NSID) {
           const static string mode_server_id = ::arg()["server-id"];
-          if(mode_server_id != "disabled" && !mode_server_id.empty() &&
-              maxanswersize > (2 + 2 + mode_server_id.size())) {
+          if (mode_server_id != "disabled" && !mode_server_id.empty() &&
+              maxanswersize > (EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size())) {
             returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
             variableAnswer = true; // Can't packetcache an answer with NSID
-            // Option Code and Option Length are both 2
-            maxanswersize -= 2 + 2 + mode_server_id.size();
+            maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size();
           }
         }
       }
@@ -1854,8 +1853,7 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
-    if(g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable() && !variableAnswer) {
-      //      cerr<<"Stuffing in a 0 scope because answer is static"<<endl;
+    if (g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable() && !variableAnswer) {
       EDNSSubnetOpts eo;
       eo.source = dc->d_ednssubnet.source;
       ComboAddress sa;
@@ -1864,9 +1862,14 @@ static void startDoResolve(void *p)
       eo.scope = Netmask(sa, 0);
       auto ecsPayload = makeEDNSSubnetOptsString(eo);
 
-      maxanswersize -= 2 + 2 + ecsPayload.size();
+      // if we don't have enough space available let's just not set that scope of zero,
+      // it will prevent some caching, mostly from dnsdist, but that's fine
+      if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size())) {
 
-      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
+        maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size();
+
+        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
+      }
     }
 
     if (haveEDNS) {
@@ -1935,7 +1938,7 @@ static void startDoResolve(void *p)
         eee.infoCode = static_cast<uint16_t>(code);
         eee.extraText = std::move(extra);
 
-        if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (2 + 2 + 2 + eee.extraText.size())) {
+        if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(eee.infoCode) + eee.extraText.size())) {
           returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee)));
         }
       }
