@@ -290,9 +290,9 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 
 static bool handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now)
 {
-  --state->d_currentQueriesCount;
-
   if (!state->d_isXFR) {
+    --state->d_currentQueriesCount;
+
     const auto& currentResponse = state->d_currentResponse;
     if (state->d_selfGeneratedResponse == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
       const auto& ds = currentResponse.d_connection->getDS();
@@ -410,7 +410,7 @@ IOState IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConn
 /* called when handling a response or error coming from a backend */
 void IncomingTCPConnectionState::sendOrQueueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
 {
-  // if we already reading a query (not the query size, mind you), or sending a response we need to either queue the response
+  // if we were already reading a query (not the query size, mind you), or sending a response we need to queue the response
   // otherwise we can start sending it right away
   if (state->d_state == IncomingTCPConnectionState::State::idle ||
       state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {

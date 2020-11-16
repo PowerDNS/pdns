@@ -110,7 +110,7 @@ public:
     return d_enableFastOpen;
   }
 
-  /* whether we can acept new queries FOR THE SAME CLIENT */
+  /* whether we can accept new queries FOR THE SAME CLIENT */
   bool canAcceptNewQueries() const
   {
     if (d_usedForXFR || d_connectionDied) {
