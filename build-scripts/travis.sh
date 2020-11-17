@@ -629,7 +629,7 @@ test_dnsdist(){
   run "cd regression-tests.dnsdist"
   export SKIP_DOH_TESTS=1
   export SKIP_PROMETHEUS_TESTS=1
-  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v --ignore-files='(?:^\.|^_,|^setup\.py$|^test_TLSSessionResumption\.py$)'"
+  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v --ignore-files='(?:^\.|^_,|^setup\.py$|^test_(TLSSessionResumption|Dnstap|Protobuf)\.py$)'"
   run "rm -f ./DNSCryptResolver.cert ./DNSCryptResolver.key"
   run "cd .."
 }

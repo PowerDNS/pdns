@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 from __future__ import print_function
 import xml.etree.ElementTree
@@ -39,4 +39,3 @@ for child in root:
                 print("==============> STDOUT LOG FROM XML <==============")
                 print(elem.text)
                 print("==============> END STDOUT LOG FROM XML <==============")
-           
