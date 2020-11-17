@@ -260,7 +260,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         std::string polName("rpzFile");
         std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
         uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-        zone->setPolicyOverridesGettag(true);
         if (options) {
           auto& have = *options;
           parseRPZParameters(have, zone, polName, defpol, defpolOverrideLocal, maxTTL);
@@ -307,7 +306,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
         if (options) {
           auto& have = *options;
-          zone->setPolicyOverridesGettag(true);
           parseRPZParameters(have, zone, polName, defpol, defpolOverrideLocal, maxTTL);
 
           if(have.count("tsigname")) {
