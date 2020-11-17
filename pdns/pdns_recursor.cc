@@ -693,9 +693,7 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
 LWResult::Result arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
                            uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now)
 {
-  static boost::optional<unsigned int> nearMissLimit;
-  if(!nearMissLimit)
-    nearMissLimit=::arg().asNum("spoof-nearmiss-max");
+  static const boost::optional<unsigned int> nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
 
   PacketID pident;
   pident.fd=fd;
@@ -718,7 +716,7 @@ LWResult::Result arecvfrom(std::string& packet, int flags, const ComboAddress& f
     if (*nearMissLimit && pident.nearMisses > *nearMissLimit) {
       g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
-      return LWResult::Result::PermanentError;
+      return LWResult::Result::Spoofed;
     }
 
     return LWResult::Result::Success;

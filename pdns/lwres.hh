@@ -55,7 +55,7 @@ class LWResult
 public:
   LWResult() : d_usec(0) {}
 
-  enum class Result : uint8_t { Timeout=0, Success=1, PermanentError=2 /* not transport related */, OSLimitError=3 };
+  enum class Result : uint8_t { Timeout=0, Success=1, PermanentError=2 /* not transport related */, OSLimitError=3, Spoofed=4 /* Spoofing attempt (too many near-misses) */ };
 
   vector<DNSRecord> d_records;
   int d_rcode{0};
