@@ -23,13 +23,12 @@ class EDNSTest(RecursorTest):
         Ensure the recursor does not reply with an unknown option when one is
         sent in the query
         """
-        query = dns.message.make_query('version.bind.', 'TXT', 'CH', use_edns=0,
-                                       payload=4096)
         unknownOpt = dns.edns.GenericOption(65005, b'1234567890')
-        query.options = [unknownOpt]
+        query = dns.message.make_query('version.bind.', 'TXT', 'CH', use_edns=0,
+                                       payload=4096, options=[unknownOpt])
         response = self.sendUDPQuery(query)
         self.assertRcodeEqual(response, dns.rcode.NOERROR)
-        self.assertEqual(response.options, [])
+        self.assertEqual(response.options, ())
 
     def testEDNSBadVers(self):
         """

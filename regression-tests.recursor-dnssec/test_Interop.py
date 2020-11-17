@@ -144,7 +144,8 @@ class UDPResponder(DatagramProtocol):
 
         if request.edns != -1:
             response.set_rcode(dns.rcode.FORMERR)
-            response.edns = -1
+            response.use_edns(edns=-1)
+
             response.additional = []
         else:
             if request.question[0].name == dns.name.from_text('host1.insecure-formerr.example.') and request.question[0].rdtype == dns.rdatatype.A:

@@ -140,7 +140,15 @@ AX_AVAILABLE_SYSTEMD
 AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 PDNS_WITH_SERVICE_USER([pdns-recursor])
-PDNS_CHECK_VIRTUALENV
+
+PDNS_CHECK_PYTHON_VENV
+
+AM_CONDITIONAL([HAVE_MANPAGES], [test -e "$srcdir/pdns_recursor.1"])
+AM_COND_IF([HAVE_MANPAGES],[],[
+  AM_COND_IF([HAVE_VENV],[],[
+    AC_MSG_WARN([Python 3 and/or venv module are not available, documentation will not be built.])
+  ])
+])
 
 AC_SUBST(LIBS)
 

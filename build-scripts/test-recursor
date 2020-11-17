@@ -59,7 +59,7 @@ sleep 3
 ./clean.sh
 
 cd ../regression-tests.recursor-dnssec
-./runtests -e SNMP || EXIT=1
+./runtests -e 'SNMP|Dnstap|Protobuf' || EXIT=1
 ./printlogs.py || true
 
 exit $EXIT

@@ -390,15 +390,15 @@ MANPAGES=dnsdist.1
 
 dist_man_MANS=$(MANPAGES)
 
-if HAVE_VIRTUALENV
+if HAVE_VENV
 if !HAVE_MANPAGES
 $(MANPAGES): %: docs/manpages/%.rst .venv
 	$(AM_V_GEN).venv/bin/python -msphinx -b man docs . $<
 endif # if !HAVE_MANPAGES
 
 .venv: docs/requirements.txt
-	virtualenv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git
+	$(PYTHON) -m venv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git wheel
 	.venv/bin/pip install -r $<
 
 latex/dnsdist.pdf: docs/** .venv
@@ -420,17 +420,17 @@ upload-docs: all-docs
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html-docs.tar.bz2 web1.powerdns.com:/srv/www/dnsdist.org
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./dnsdist.pdf web1.powerdns.com:/srv/www/dnsdist.org
 
-else # if HAVE_VIRTUALENV
+else # if HAVE_VENV
 $(MANPAGES):
-	@echo "You need virtualenv to generate the manpages"
+	@echo "You need Python 3 and the 'venv' module to generate the manpages"
 	exit 1
 
 html-docs: %: docs/manpages/%.rst .venv
-	@echo "You need virtualenv to generate the HTML documentation"
+	@echo "You need Python 3 and the 'venv' module to generate the HTML docs"
 	exit 1
 
 dnsdist.pdf:
-	@echo "You need virtualenv to generate the pdf documentation"
+	@echo "You need Python 3 and the 'venv' module to generate the PDF"
 	exit 1
 endif
 

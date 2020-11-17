@@ -468,15 +468,15 @@ MANPAGES=pdns_recursor.1 \
 
 dist_man_MANS=$(MANPAGES)
 
-if HAVE_VIRTUALENV
+if HAVE_VENV
 if !HAVE_MANPAGES
 $(MANPAGES): %: docs/manpages/%.rst .venv
 	.venv/bin/python -msphinx -b man docs . $<
 endif # if !HAVE_MANPAGES
 
 .venv: docs/requirements.txt
-	virtualenv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git
+	$(PYTHON) -m venv .venv
+	.venv/bin/pip install -U pip setuptools setuptools-git wheel
 	.venv/bin/pip install -r docs/requirements.txt
 
 html-docs: docs/** .venv
@@ -498,17 +498,17 @@ upload-docs: all-docs
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html-docs.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/recursor/
 	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./PowerDNS-Recursor.pdf web1.powerdns.com:/srv/www/doc.powerdns.com/recursor/
 
-else # if HAVE_VIRTUALENV
+else # if HAVE_VENV
 $(MANPAGES):
-	echo "You need virtualenv to generate the manpages"
+	@echo "You need Python 3 and the 'venv' module to generate the manpages"
 	exit 1
 
 PowerDNS-Recursor.pdf:
-	echo "You need virtualenv to generate the PDF"
+	@echo "You need Python 3 and the 'venv' module to generate the PDF"
 	exit 1
 
 html-docs:
-	echo "You need virtualenv to generate the HTML docs"
+	@echo "You need Python 3 and the 'venv' module to generate the HTML docs"
 	exit 1
 endif
 

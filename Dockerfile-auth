@@ -7,7 +7,7 @@ FROM debian:10-slim AS builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git python3-venv && apt-get clean
 
 # import everything - this could be pdns.git OR an auth tarball!
 COPY builder-support /source/builder-support

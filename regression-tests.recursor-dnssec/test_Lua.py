@@ -490,9 +490,9 @@ class PDNSRandomTest(RecursorTest):
         ans = set()
 
         ret = self.sendUDPQuery(query)
-        ans.add(ret.answer[0])
+        ans.add(ret.answer[0][0])
         ret = self.sendUDPQuery(query)
-        ans.add(ret.answer[0])
+        ans.add(ret.answer[0][0])
 
         self.assertEqual(len(ans), 2)
 

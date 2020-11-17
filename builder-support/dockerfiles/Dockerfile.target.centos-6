@@ -10,6 +10,10 @@ RUN touch /var/lib/rpm/* && yum clean all
 RUN touch /var/lib/rpm/* && yum install -y --verbose epel-release centos-release-scl-rh && \
     yum install -y --nogpgcheck devtoolset-7-gcc-c++
 
+# Enable IUS Community Repository (for Python 3.6)
+RUN curl https://setup.ius.io/ | sh
+RUN touch /var/lib/rpm/* && yum install -y --verbose python36 && ln -s python36 /usr/bin/python3
+
 # Do the actual rpm build
 @INCLUDE Dockerfile.rpmbuild
 

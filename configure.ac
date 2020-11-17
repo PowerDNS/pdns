@@ -126,7 +126,22 @@ PDNS_ENABLE_FUZZ_TARGETS
 
 PDNS_WITH_SQLITE3
 
-PDNS_CHECK_VIRTUALENV
+PDNS_CHECK_PYTHON_VENV
+
+AM_CONDITIONAL([HAVE_API_SWAGGER_JSON], [test -e "$srcdir/pdns/api-swagger.json"])
+AM_COND_IF([HAVE_API_SWAGGER_JSON],[],[
+  AM_COND_IF([HAVE_VENV],[],[
+    AC_MSG_ERROR([Python 3 and/or venv module are not available, Authoritative Server cannot be built.])
+  ])
+])
+
+AM_CONDITIONAL([HAVE_MANPAGES], [test -e "$srcdir/docs/pdns_server.1"])
+AM_COND_IF([HAVE_MANPAGES],[],[
+  AM_COND_IF([HAVE_VENV],[],[
+    AC_MSG_WARN([Python 3 and/or venv module are not available, documentation will not be built.])
+  ])
+])
+
 PDNS_FROM_GIT
 
 dnl Checks for library functions.

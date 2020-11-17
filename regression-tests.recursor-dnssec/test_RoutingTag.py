@@ -165,12 +165,12 @@ end
         query = dns.message.make_query(nameECS, 'TXT', 'IN')
         self.sendECSQuery(query, expected2)
 
-        #return # remove this line to peek at cache
+        return # remove this line to peek at cache
         rec_controlCmd = [os.environ['RECCONTROL'],
                           '--config-dir=%s' % 'configs/' + self._confdir,
                           'dump-cache x']
         try:
-            expected = 'dumped 7 records\n'
+            expected = b'dumped 7 records\n'
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertEqual(ret, expected)
 
@@ -302,6 +302,6 @@ class UDPRoutingResponder(DatagramProtocol):
             response.additional.append(additional)
 
         if ecso:
-            response.options = [ecso]
+            response.use_edns(options = [ecso])
 
         self.transport.write(response.to_wire(), address)

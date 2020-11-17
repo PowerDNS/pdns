@@ -11,7 +11,7 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get -y --no-install-recomme
     texlive-font-utils \
     texlive-fonts-extra \
     texlive-latex-extra \
-    virtualenv
+    python3-venv
 
 RUN mkdir -p /pdns /dist /sdist
 

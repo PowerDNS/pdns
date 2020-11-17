@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-readonly PYTHON=${PYTHON:-python2}
-
 if [ ! -d .venv ]; then
-    virtualenv -p ${PYTHON} .venv
+    python3 -m venv .venv
 fi
 
 . .venv/bin/activate

@@ -108,7 +108,7 @@ version-string=%s
         response = self.sendUDPQuery(query)
 
         self.assertEqual(len(response.options), 1)
-        self.assertEqual(response.options[0].data, self._servername)
+        self.assertEqual(response.options[0].data, self._servername.encode('ascii'))
 
     def testNSIDTCP(self):
         """
@@ -119,4 +119,4 @@ version-string=%s
         response = self.sendTCPQuery(query)
 
         self.assertEqual(len(response.options), 1)
-        self.assertEqual(response.options[0].data, self._servername)
+        self.assertEqual(response.options[0].data, self._servername.encode('ascii'))
