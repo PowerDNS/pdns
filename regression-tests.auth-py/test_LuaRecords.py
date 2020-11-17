@@ -307,7 +307,8 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
-        time.sleep(1)
+        # the timeout in the LUA health checker is 1 second, so we make sure to wait slightly longer here
+        time.sleep(2)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
