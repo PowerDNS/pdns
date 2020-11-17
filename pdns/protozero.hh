@@ -235,9 +235,33 @@ namespace pdns {
         writer.add_uint64(static_cast<protozero::pbf_tag_type>(type), value);
       }
 
-      static void add_bytes(protozero::pbf_writer& writer, Field type, const char* data, size_t len)
+      void setAppliedPolicyKind(const DNSFilterEngine::PolicyKind& kind)
       {
-        writer.add_bytes(static_cast<protozero::pbf_tag_type>(type), data, len);
+        uint32_t k;
+
+        switch(kind) {
+	case DNSFilterEngine::PolicyKind::NoAction:
+          k = 1;
+          break;
+	case DNSFilterEngine::PolicyKind::Drop:
+          k = 2;
+          break;
+	case DNSFilterEngine::PolicyKind::NXDOMAIN:
+          k = 3;
+          break;
+	case DNSFilterEngine::PolicyKind::NODATA:
+          k = 4;
+          break;
+	case DNSFilterEngine::PolicyKind::Truncate:
+          k = 5;
+          break;
+	case DNSFilterEngine::PolicyKind::Custom:
+          k = 6;
+          break;
+        default:
+          throw std::runtime_error("Unsupported protobuf policy kind");
+        }
+        d_response.add_uint32(10, k);
       }
 
       static void add_string(protozero::pbf_writer& writer, Field type, const std::string& str)

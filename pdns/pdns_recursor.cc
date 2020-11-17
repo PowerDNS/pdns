@@ -2055,6 +2055,7 @@ static void startDoResolve(void *p)
         pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
         pbMessage.setAppliedPolicyTrigger(appliedPolicy.d_trigger);
         pbMessage.setAppliedPolicyHit(appliedPolicy.d_hit);
+        pbMessage.setAppliedPolicyKind(appliedPolicy.d_kind);
       }
       pbMessage.addPolicyTags(dc->d_policyTags);
       pbMessage.setInBytes(packet.size());
