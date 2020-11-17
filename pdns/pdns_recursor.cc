@@ -246,7 +246,7 @@ static std::set<uint16_t> s_avoidUdpSourcePorts;
 static uint16_t s_minUdpSourcePort;
 static uint16_t s_maxUdpSourcePort;
 static double s_balancingFactor;
-static bool s_addExtendedDNSErrors;
+static bool s_addExtendedResolutionDNSErrors;
 
 RecursorControlChannel s_rcc; // only active in the handler thread
 RecursorStats g_stats;
@@ -1874,7 +1874,7 @@ static void startDoResolve(void *p)
 
     if (haveEDNS) {
       auto state = sr.getValidationState();
-      if (s_addExtendedDNSErrors && (dc->d_extendedErrorCode || vStateIsBogus(state))) {
+      if (dc->d_extendedErrorCode || (s_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
         EDNSExtendedError::code code;
         std::string extra;
 
@@ -4681,7 +4681,7 @@ static int serviceMain(int argc, char*argv[])
 
   g_statisticsInterval = ::arg().asNum("statistics-interval");
 
-  s_addExtendedDNSErrors = ::arg().mustDo("extended-errors");
+  s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
   {
     SuffixMatchNode dontThrottleNames;
@@ -5424,7 +5424,7 @@ int main(int argc, char **argv)
     ::arg().set("unique-response-pb-tag", "If protobuf is configured, the tag to use for messages containing unique DNS responses. Defaults to 'pdns-udr'")="pdns-udr";
 #endif /* NOD_ENABLED */
 
-    ::arg().setSwitch("extended-errors", "If set, send the EDNS Extended Error extension on DNSSEC validation failures")="no";
+    ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

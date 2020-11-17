@@ -20,7 +20,7 @@ disable-syslog=yes
 log-common-errors=yes
 """
     _config_template = """
-    extended-errors=yes
+    extended-resolution-errors=yes
     """
     _lua_config_file = """
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", extendedErrorCode=15, extendedErrorExtra='Blocked by RPZ!'})
@@ -220,7 +220,7 @@ disable-syslog=yes
 log-common-errors=yes
 """
     _config_template = """
-    extended-errors=no
+    extended-resolution-errors=no
     """
     _roothints = None
 
