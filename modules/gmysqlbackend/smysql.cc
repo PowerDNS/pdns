@@ -465,10 +465,6 @@ void SMySQL::connect()
     }
 #endif
 
-#if MYSQL_VERSION_ID >= 50500
-    mysql_options(&d_db, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
-#endif
-
     if (d_setIsolation && (retry == 1))
       mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
 
