@@ -468,6 +468,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
 
     if(rr.qname==zone) {
+      // apex checks
       if (rr.qtype.getCode() == QType::NS) {
         hasNsAtApex=true;
       } else if (rr.qtype.getCode() == QType::DS) {
@@ -475,6 +476,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         numwarnings++;
       }
     } else {
+      // non-apex checks
       if (rr.qtype.getCode() == QType::SOA) {
         cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
         numerrors++;
@@ -489,10 +491,14 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         checkOcclusion.insert({rr.qname, rr.qtype});
       } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
         glue.insert(rr.qname);
-      } else if (rr.qtype == QType::DNAME) {
-        checkOcclusion.insert({rr.qname, rr.qtype});
       }
     }
+
+    // DNAMEs can occur both at the apex and below it
+    if (rr.qtype == QType::DNAME) {
+      checkOcclusion.insert({rr.qname, rr.qtype});
+    }
+
     if((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) && !rr.qname.isWildcard() && !rr.qname.isHostname())
       cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.getName()<<"' is not a valid hostname."<<endl;
 
@@ -637,10 +643,24 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
   for( const auto &qname : checkOcclusion ) {
     for( const auto &rr : records ) {
+      // a name does not occlude itself in the following situations:
+      // NS does not occlude DS+NS
+      // a DNAME does not occlude itself
       if( qname.first == rr.qname && ((( rr.qtype == QType::NS || rr.qtype == QType::DS ) && qname.second == QType::NS ) || ( rr.qtype == QType::DNAME && qname.second == QType::DNAME ) ) ) {
         continue;
       }
+
+      // for most types, X occludes X and (type-dependent) almost everything under X
       if( rr.qname.isPartOf( qname.first ) ) {
+
+        // but a DNAME does not occlude anything at its name, only the things under it
+        if( qname.second == QType::DNAME && rr.qname == qname.first ) {
+          continue;
+        }
+
+        // the record under inspection is:
+        // occluded by a DNAME, or
+        // occluded by a delegation, and is not glue or ENTs leading towards that glue
         if( qname.second == QType::DNAME || ( rr.qtype != QType::ENT && rr.qtype.getCode() != QType::A && rr.qtype.getCode() != QType::AAAA ) ) {
           cout << "[Warning] '" << rr.qname << "|" << rr.qtype.getName() << "' in zone '" << zone << "' is occluded by a ";
           if( qname.second == QType::NS ) {
