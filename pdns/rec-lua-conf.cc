@@ -53,12 +53,12 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>> > > rpzOptions_t;
 
-static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL, size_t& zoneSizeHint, std::unordered_set<std::string>& tags, bool& overridesGettag)
+static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngine::Zone>& zone, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL)
 {
-  if(have.count("policyName")) {
+  if (have.count("policyName")) {
     polName = boost::get<std::string>(have["policyName"]);
   }
-  if(have.count("defpol")) {
+  if (have.count("defpol")) {
     defpol=DNSFilterEngine::Policy();
     defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
     defpol->setName(polName);
@@ -76,20 +76,36 @@ static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::
       defpolOverrideLocal = boost::get<bool>(have["defpolOverrideLocalData"]);
     }
   }
-  if(have.count("maxTTL")) {
+  if (have.count("maxTTL")) {
     maxTTL = boost::get<uint32_t>(have["maxTTL"]);
   }
-  if(have.count("zoneSizeHint")) {
-    zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
+  if (have.count("zoneSizeHint")) {
+    auto zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
+    if (zoneSizeHint > 0) {
+      zone->reserve(zoneSizeHint);
+    }
   }
   if (have.count("tags")) {
     const auto tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
+    std::unordered_set<std::string> tags;
     for (const auto& tag : tagsTable) {
       tags.insert(tag.second);
     }
+    zone->setTags(std::move(tags));
   }
   if (have.count("overridesGettag")) {
-    overridesGettag = boost::get<bool>(have["overridesGettag"]);
+    zone->setPolicyOverridesGettag(boost::get<bool>(have["overridesGettag"]));
+  }
+  if (have.count("extendedErrorCode")) {
+    auto code = boost::get<uint32_t>(have["extendedErrorCode"]);
+    if (code > std::numeric_limits<uint16_t>::max()) {
+      throw std::runtime_error("Invalid extendedErrorCode value " + std::to_string(code) + " in RPZ configuration");
+    }
+
+    zone->setExtendedErrorCode(static_cast<uint16_t>(code));
+    if (have.count("extendedErrorExtra")) {
+      zone->setExtendedErrorExtra(boost::get<std::string>(have["extendedErrorExtra"]));
+    }
   }
 }
 
@@ -244,20 +260,12 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         std::string polName("rpzFile");
         std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
         uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-        bool overridesGettag = true;
-        if(options) {
+        if (options) {
           auto& have = *options;
-          size_t zoneSizeHint = 0;
-          std::unordered_set<std::string> tags;
-          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint, tags, overridesGettag);
-          if (zoneSizeHint > 0) {
-            zone->reserve(zoneSizeHint);
-          }
-          zone->setTags(std::move(tags));
+          parseRPZParameters(have, zone, polName, defpol, defpolOverrideLocal, maxTTL);
         }
         g_log<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         zone->setName(polName);
-        zone->setPolicyOverridesGettag(overridesGettag);
         loadRPZFromFile(filename, zone, defpol, defpolOverrideLocal, maxTTL);
         lci.dfe.addZone(zone);
         g_log<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
@@ -298,15 +306,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
         if (options) {
           auto& have = *options;
-          size_t zoneSizeHint = 0;
-          std::unordered_set<std::string> tags;
-          bool overridesGettag = true;
-          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint, tags, overridesGettag);
-          if (zoneSizeHint > 0) {
-            zone->reserve(zoneSizeHint);
-          }
-          zone->setTags(std::move(tags));
-          zone->setPolicyOverridesGettag(overridesGettag);
+          parseRPZParameters(have, zone, polName, defpol, defpolOverrideLocal, maxTTL);
 
           if(have.count("tsigname")) {
             tt.name=DNSName(toLower(boost::get<string>(have["tsigname"])));

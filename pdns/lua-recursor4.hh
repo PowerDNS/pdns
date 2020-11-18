@@ -78,6 +78,8 @@ public:
     std::unordered_set<std::string>* policyTags{nullptr};
     const std::vector<ProxyProtocolValue>* proxyProtocolValues{nullptr};
     std::unordered_map<std::string, bool>* discardedPolicies{nullptr};
+    std::string* extendedErrorExtra{nullptr};
+    boost::optional<uint16_t>* extendedErrorCode{nullptr};
     std::string requestorId;
     std::string deviceId;
     std::string deviceName;
@@ -129,8 +131,42 @@ public:
     std::unordered_map<std::string, bool>* discardedPolicies{nullptr};
   };
 
+  struct FFIParams
+  {
+  public:
+    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_): data(data_), qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
+    {
+    }
+
+    LuaContext::LuaObject& data;
+    const DNSName& qname;
+    const ComboAddress& local;
+    const ComboAddress& remote;
+    const Netmask& ednssubnet;
+    std::unordered_set<std::string>& policyTags;
+    std::vector<DNSRecord>& records;
+    const EDNSOptionViewMap& ednsOptions;
+    const std::vector<ProxyProtocolValue>& proxyProtocolValues;
+    std::string& requestorId;
+    std::string& deviceId;
+    std::string& deviceName;
+    std::string& routingTag;
+    std::string& extendedErrorExtra;
+    boost::optional<int>& rcode;
+    boost::optional<uint16_t>& extendedErrorCode;
+    uint32_t& ttlCap;
+    bool& variable;
+    bool& logQuery;
+    bool& logResponse;
+    bool& followCNAMERecords;
+
+    unsigned int tag{0};
+    uint16_t qtype;
+    bool tcp;
+  };
+
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const;
-  unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, const std::vector<ProxyProtocolValue>& proxyProtocolValues, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const;
+  unsigned int gettag_ffi(FFIParams&) const;
 
   void maintenance() const;
   bool prerpz(DNSQuestion& dq, int& ret) const;

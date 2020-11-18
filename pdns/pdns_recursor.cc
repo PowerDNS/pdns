@@ -88,6 +88,7 @@
 #include "validate-recursor.hh"
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
+#include "ednsextendederror.hh"
 #include "gettime.hh"
 #include "proxy-protocol.hh"
 #include "pubsuffix.hh"
@@ -245,6 +246,7 @@ static std::set<uint16_t> s_avoidUdpSourcePorts;
 static uint16_t s_minUdpSourcePort;
 static uint16_t s_maxUdpSourcePort;
 static double s_balancingFactor;
+static bool s_addExtendedResolutionDNSErrors;
 
 RecursorControlChannel s_rcc; // only active in the handler thread
 RecursorStats g_stats;
@@ -342,6 +344,8 @@ struct DNSComboWriter {
   LuaContext::LuaObject d_data;
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
+  boost::optional<uint16_t> d_extendedErrorCode{boost::none};
+  string d_extendedErrorExtra;
   boost::optional<int> d_rcode{boost::none};
   int d_socket{-1};
   unsigned int d_tag{0};
@@ -979,6 +983,11 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
     g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
   }
 
+  if (appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
+    dc->d_extendedErrorCode = *appliedPolicy.d_zoneData->d_extendedErrorCode;
+    dc->d_extendedErrorExtra = appliedPolicy.d_zoneData->d_extendedErrorExtra;
+  }
+
   switch (appliedPolicy.d_kind) {
 
   case DNSFilterEngine::PolicyKind::NoAction:
@@ -1405,12 +1414,11 @@ static void startDoResolve(void *p)
           dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
         } else if (o.first == EDNSOptionCode::NSID) {
           const static string mode_server_id = ::arg()["server-id"];
-          if(mode_server_id != "disabled" && !mode_server_id.empty() &&
-              maxanswersize > (2 + 2 + mode_server_id.size())) {
+          if (mode_server_id != "disabled" && !mode_server_id.empty() &&
+              maxanswersize > (EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size())) {
             returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
             variableAnswer = true; // Can't packetcache an answer with NSID
-            // Option Code and Option Length are both 2
-            maxanswersize -= 2 + 2 + mode_server_id.size();
+            maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size();
           }
         }
       }
@@ -1524,6 +1532,8 @@ static void startDoResolve(void *p)
     dq.deviceName = dc->d_deviceName;
 #endif
     dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
+    dq.extendedErrorCode = &dc->d_extendedErrorCode;
+    dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
 
     if(ednsExtRCode != 0) {
       goto sendit;
@@ -1664,6 +1674,10 @@ static void startDoResolve(void *p)
       dq.validationState = sr.getValidationState();
       appliedPolicy = sr.d_appliedPolicy;
       dc->d_policyTags = std::move(sr.d_policyTags);
+      if (appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
+        dc->d_extendedErrorCode = *appliedPolicy.d_zoneData->d_extendedErrorCode;
+        dc->d_extendedErrorExtra = appliedPolicy.d_zoneData->d_extendedErrorExtra;
+      }
 
       // During lookup, an NSDNAME or NSIP trigger was hit in RPZ
       if (res == -2) { // XXX This block should be macro'd, it is repeated post-resolve.
@@ -1839,19 +1853,96 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
-    if(g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable() && !variableAnswer) {
-      //      cerr<<"Stuffing in a 0 scope because answer is static"<<endl;
+    if (g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable() && !variableAnswer) {
       EDNSSubnetOpts eo;
       eo.source = dc->d_ednssubnet.source;
       ComboAddress sa;
       sa.reset();
       sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
       eo.scope = Netmask(sa, 0);
+      auto ecsPayload = makeEDNSSubnetOptsString(eo);
 
-      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+      // if we don't have enough space available let's just not set that scope of zero,
+      // it will prevent some caching, mostly from dnsdist, but that's fine
+      if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size())) {
+
+        maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + ecsPayload.size();
+
+        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
+      }
     }
 
     if (haveEDNS) {
+      auto state = sr.getValidationState();
+      if (dc->d_extendedErrorCode || (s_addExtendedResolutionDNSErrors && vStateIsBogus(state))) {
+        EDNSExtendedError::code code;
+        std::string extra;
+
+        if (dc->d_extendedErrorCode) {
+          code = static_cast<EDNSExtendedError::code>(*dc->d_extendedErrorCode);
+          extra = std::move(dc->d_extendedErrorExtra);
+        }
+        else {
+          switch (state) {
+          case vState::BogusNoValidDNSKEY:
+            code = EDNSExtendedError::code::DNSKEYMissing;
+            break;
+          case vState::BogusInvalidDenial:
+            code = EDNSExtendedError::code::NSECMissing;
+            break;
+          case vState::BogusUnableToGetDSs:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusUnableToGetDNSKEYs:
+            code = EDNSExtendedError::code::DNSKEYMissing;
+            break;
+          case vState::BogusSelfSignedDS:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusNoRRSIG:
+            code = EDNSExtendedError::code::RRSIGsMissing;
+            break;
+          case vState::BogusNoValidRRSIG:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusMissingNegativeIndication:
+            code = EDNSExtendedError::code::NSECMissing;
+            break;
+          case vState::BogusSignatureNotYetValid:
+            code = EDNSExtendedError::code::SignatureNotYetValid;
+            break;
+          case vState::BogusSignatureExpired:
+            code = EDNSExtendedError::code::SignatureExpired;
+            break;
+          case vState::BogusUnsupportedDNSKEYAlgo:
+            code = EDNSExtendedError::code::UnsupportedDNSKEYAlgorithm;
+            break;
+          case vState::BogusUnsupportedDSDigestType:
+            code = EDNSExtendedError::code::UnsupportedDSDigestType;
+            break;
+          case vState::BogusNoZoneKeyBitSet:
+            code = EDNSExtendedError::code::NoZoneKeyBitSet;
+            break;
+          case vState::BogusRevokedDNSKEY:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          case vState::BogusInvalidDNSKEYProtocol:
+            code = EDNSExtendedError::code::DNSSECBogus;
+            break;
+          default:
+            throw std::runtime_error("Bogus validation state not handled: " + vStateToString(state));
+          }
+        }
+
+        EDNSExtendedError eee;
+        eee.infoCode = static_cast<uint16_t>(code);
+        eee.extraText = std::move(extra);
+
+        if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize + sizeof(eee.infoCode) + eee.extraText.size())) {
+          returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(eee)));
+        }
+      }
+
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
          "The minimal response MUST be the DNS header, question section, and an
@@ -2410,7 +2501,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
+                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra);
+                dc->d_tag = t_pdl->gettag_ffi(params);
               }
               else if (t_pdl->d_gettag) {
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_proxyProtocolValues);
@@ -2636,7 +2728,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool ecsFound = false;
   bool ecsParsed = false;
   std::vector<DNSRecord> records;
+  std::string extendedErrorExtra;
   boost::optional<int> rcode = boost::none;
+  boost::optional<uint16_t> extendedErrorCode{boost::none};
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   bool followCNAMEs = false;
@@ -2675,22 +2769,26 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
+              RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra);
+
+              ctag = t_pdl->gettag_ffi(params);
             }
             else if (t_pdl->d_gettag) {
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
             }
           }
-          catch(const std::exception& e)  {
-            if(g_logCommonErrors)
+          catch (const std::exception& e)  {
+            if (g_logCommonErrors) {
               g_log<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+            }
           }
         }
       }
-      catch(const std::exception& e)
+      catch (const std::exception& e)
       {
-        if(g_logCommonErrors)
+        if (g_logCommonErrors) {
           g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+        }
       }
     }
 
@@ -2846,6 +2944,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #endif
   dc->d_proxyProtocolValues = std::move(proxyProtocolValues);
   dc->d_routingTag = std::move(routingTag);
+  dc->d_extendedErrorCode = extendedErrorCode;
+  dc->d_extendedErrorExtra = std::move(extendedErrorExtra);
 
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;
@@ -4576,11 +4676,12 @@ static int serviceMain(int argc, char*argv[])
   } else {
     TCPConnection::s_maxInFlight = maxInFlight;
   }
-    
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
   g_statisticsInterval = ::arg().asNum("statistics-interval");
+
+  s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
   {
     SuffixMatchNode dontThrottleNames;
@@ -5322,6 +5423,9 @@ int main(int argc, char **argv)
     ::arg().set("unique-response-db-size", "Size of the DB used to track unique responses in terms of number of cells. Defaults to 67108864")="67108864";
     ::arg().set("unique-response-pb-tag", "If protobuf is configured, the tag to use for messages containing unique DNS responses. Defaults to 'pdns-udr'")="pdns-udr";
 #endif /* NOD_ENABLED */
+
+    ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
+
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");

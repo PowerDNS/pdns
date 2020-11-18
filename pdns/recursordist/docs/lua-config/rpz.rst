@@ -111,6 +111,18 @@ defttl
 the TTL of the CNAME field to be synthesized for the default policy.
 The default is to use the zone's TTL,
 
+extendedErrorCode
+^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5.0
+
+An extended error code (:rfc:`8914`) to set on RPZ hits. See :ref:`extended-errors`.
+
+extendedErrorExtra
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5.0
+
+An extended error extra text (:rfc:`8914`) to set on RPZ hits. See :ref:`extended-errors`.
+
 maxTTL
 ^^^^^^
 The maximum TTL value of the synthesized records, overriding a higher value from ``defttl`` or the zone. Default is unlimited.

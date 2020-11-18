@@ -11,6 +11,22 @@ The DNSQuestion object contains at least the following fields:
   An object that contains everything about the current query.
   This object has the following attributes:
 
+  .. attribute:: DNSQuestion.extendedErrorCode
+
+      .. versionadded:: 4.5.0
+
+      The current extended error code, if any. See :ref:`extended-errors`.
+
+  .. attribute:: DNSQuestion.extendedErrorExtra
+
+      .. versionadded:: 4.5.0
+
+      The current extended error extra text, as a string, if any. See :ref:`extended-errors`.
+
+  .. attribute:: DNSQuestion.qname
+
+      :class:`DNSName` of the name this query is for.
+
   .. attribute:: DNSQuestion.qname
 
       :class:`DNSName` of the name this query is for.

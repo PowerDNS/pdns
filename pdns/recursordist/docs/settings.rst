@@ -621,6 +621,17 @@ If set, all hostnames in the `export-etc-hosts`_ file are loaded in canonical fo
 So an entry called 'pc' with ``export-etc-hosts-search-suffix='home.com'`` will lead to the generation of 'pc.home.com' within the recursor.
 An entry called 'server1.home' will be stored as 'server1.home', regardless of this setting.
 
+.. _setting-extended-resolution-errors:
+
+``extended-resolution-errors``
+------------------------------
+.. versionadded:: 4.5.0
+
+-  Boolean
+-  Default: no
+
+If set, the recursor will add an EDNS Extended Error (:rfc:`8914`) to responses when resolution failed, like DNSSEC validation errors, explaining the reason it failed. This setting is not needed to allow setting custom error codes from Lua or from a RPZ hit.
+
 .. _setting-forward-zones:
 
 ``forward-zones``
