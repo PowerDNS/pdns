@@ -251,6 +251,7 @@ pdns_server_SOURCES = \
 	tcpreceiver.cc tcpreceiver.hh \
 	threadname.hh threadname.cc \
 	tkey.cc \
+	trusted-notification-proxy.hh trusted-notification-proxy.cc \
 	tsigutils.hh tsigutils.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
@@ -1359,11 +1360,13 @@ testrunner_SOURCES = \
 	test-signers.cc \
 	test-statbag_cc.cc \
 	test-svc_records_cc.cc \
+	test-trusted-notification-proxy_cc.cc \
 	test-tsig.cc \
 	test-ueberbackend_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
+	trusted-notification-proxy.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \

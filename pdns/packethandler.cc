@@ -45,6 +45,7 @@
 #include "dnsproxy.hh"
 #include "version.hh"
 #include "common_startup.hh"
+#include "trusted-notification-proxy.hh"
 
 #if 0
 #undef DLOG
@@ -864,7 +865,7 @@ int PacketHandler::trySuperMaster(const DNSPacket& p, const DNSName& tsigkeyname
 int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname)
 {
   ComboAddress remote = p.getRemote();
-  if(p.hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
+  if(p.hasEDNSSubnet() && pdns::isAddressTrustedNotificationProxy(remote)) {
     remote = p.getRealRemote().getNetwork();
   }
   remote.setPort(53);
@@ -980,7 +981,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
     return RCode::Refused;
   }
 
-  if(::arg().contains("trusted-notification-proxy", p.getRemote().toString())) {
+  if(pdns::isAddressTrustedNotificationProxy(p.getRemote())) {
     g_log<<Logger::Error<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<< p.getRemote()<<endl;
     if(di.masters.empty()) {
       g_log<<Logger::Error<<"However, "<<p.qdomain<<" does not have any masters defined (Refused)"<<endl;
