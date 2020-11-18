@@ -811,6 +811,25 @@ bool LMDBBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   if(!(di.id=txn.get<0>(domain, di)))
     return false;
   di.backend = this;
+
+  di.serial = 0;
+
+  if(getSerial) {
+    auto txn2 = getRecordsROTransaction(di.id);
+    compoundOrdername co;
+    MDBOutVal val;
+
+    if(!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
+      DNSResourceRecord rr;
+      serFromString(val.get<string_view>(), rr);
+
+      if(rr.content.size() >= 5 * sizeof(uint32_t)) {
+        uint32_t serial = *reinterpret_cast<uint32_t*>(&rr.content[rr.content.size() - (5 * sizeof(uint32_t))]);
+        di.serial = ntohl(serial);
+      }
+    }
+  }
+
   return true;
 }
 
