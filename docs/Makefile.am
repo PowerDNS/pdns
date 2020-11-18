@@ -87,7 +87,11 @@ mans/.complete: .venv
 	html-docs.tar.bz2
 
 clean-local:
+if !HAVE_MANPAGES
+# don't clean these files if they were present
+# at 'configure' time (e.g. from a source dist)
 	rm -f latex/PowerDNS-Authoritative.pdf $(MANPAGES_DIST) html-docs.tar.bz2
+endif
 	rm -rf mans
 
 html-docs: common/** manpages/** .venv *.rst

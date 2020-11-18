@@ -72,9 +72,15 @@ CLEANFILES = \
 	backends/gsql/gsqlbackend.gcov \
 	dnsmessage.pb.cc dnsmessage.pb.h \
 	pdns.conf-dist \
-	apidocfiles.h \
+	apidocfiles.h
+
+if !HAVE_API_SWAGGER_JSON
+# don't clean these files if they were present
+# at 'configure' time (e.g. from a source dist)
+CLEANFILES += \
 	api-swagger.yaml \
 	api-swagger.json
+endif
 
 # use a $(wildcard) wrapper here to allow build to proceed if output
 # file is present but input file is not (e.g. in a dist tarball)
