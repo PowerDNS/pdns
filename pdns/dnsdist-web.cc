@@ -298,6 +298,7 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
       {"id", num++},
       {"creationOrder", (double)a.d_creationOrder},
       {"uuid", boost::uuids::to_string(a.d_id)},
+      {"name", a.d_name},
       {"matches", (double)a.d_rule->d_matches},
       {"rule", a.d_rule->toString()},
       {"action", a.d_action->toString()},
@@ -307,7 +308,15 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   return responseRules;
 }
 
-using namespace json11;
+template<typename T>
+static void addRulesToPrometheusOutput(std::ostringstream& output, GlobalStateHolder<vector<T> >& rules)
+{
+  auto localRules = rules.getLocal();
+  for (const auto& entry : *localRules) {
+    std::string id = !entry.d_name.empty() ? entry.d_name : boost::uuids::to_string(entry.d_id);
+    output << "dnsdist_rule_hits{id=\"" << id << "\"} " << entry.d_rule->d_matches << "\n";
+  }
+}
 
 static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
@@ -651,6 +660,13 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     }
   }
 
+  output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";
+  output << "# TYPE dnsdist_rule_hits " << "counter" << "\n";
+  addRulesToPrometheusOutput(output, g_rulactions);
+  addRulesToPrometheusOutput(output, g_resprulactions);
+  addRulesToPrometheusOutput(output, g_cachehitresprulactions);
+  addRulesToPrometheusOutput(output, g_selfansweredresprulactions);
+
   output << "# HELP dnsdist_info " << "Info from dnsdist, value is always 1" << "\n";
   output << "# TYPE dnsdist_info " << "gauge" << "\n";
   output << "dnsdist_info{version=\"" << VERSION << "\"} " << "1" << "\n";
@@ -658,6 +674,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.body = output.str();
   resp.headers["Content-Type"] = "text/plain";
 }
+
+using namespace json11;
 
 static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
@@ -923,9 +941,11 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 
   Json::array rules;
+  /* unfortunately DNSActions have getStats(),
+     and DNSResponseActions do not. */
   auto localRules = g_rulactions.getLocal();
-  num=0;
-  for(const auto& a : *localRules) {
+  num = 0;
+  for (const auto& a : *localRules) {
     Json::object rule{
       {"id", num++},
       {"creationOrder", (double)a.d_creationOrder},

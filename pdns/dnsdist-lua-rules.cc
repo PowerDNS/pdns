@@ -67,7 +67,7 @@ static boost::uuids::uuid makeRuleID(std::string& id)
   return getUniqueID(id);
 }
 
-void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, uint64_t& creationOrder)
+void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder)
 {
   static uint64_t s_creationOrder = 0;
 
@@ -76,6 +76,9 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
   if (params) {
     if (params->count("uuid")) {
       uuidStr = boost::get<std::string>((*params)["uuid"]);
+    }
+    if (params->count("name")) {
+      name = boost::get<std::string>((*params)["name"]);
     }
   }
 
@@ -103,20 +106,20 @@ static std::string rulesToString(const std::vector<T>& rules, boost::optional<ru
   }
 
   if (showUUIDs) {
-    boost::format fmt("%-3d %-38s %9d %9d %-56s %s\n");
-    result += (fmt % "#" % "UUID" % "Cr. Order" % "Matches" % "Rule" % "Action").str();
+    boost::format fmt("%-3d %-30s %-38s %9d %9d %-56s %s\n");
+    result += (fmt % "#" % "Name" % "UUID" % "Cr. Order" % "Matches" % "Rule" % "Action").str();
     for(const auto& lim : rules) {
-      string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
-      result += (fmt % num % boost::uuids::to_string(lim.d_id) % lim.d_creationOrder % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
+      string desc = lim.d_rule->toString().substr(0, truncateRuleWidth);
+      result += (fmt % num % lim.d_name % boost::uuids::to_string(lim.d_id) % lim.d_creationOrder % lim.d_rule->d_matches % desc % lim.d_action->toString()).str();
       ++num;
     }
   }
   else {
-    boost::format fmt("%-3d %9d %-56s %s\n");
-    result += (fmt % "#" % "Matches" % "Rule" % "Action").str();
+    boost::format fmt("%-3d %-30s %9d %-56s %s\n");
+    result += (fmt % "#" % "Name" % "Matches" % "Rule" % "Action").str();
     for(const auto& lim : rules) {
-      string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
-      result += (fmt % num % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
+      string desc = lim.d_rule->toString().substr(0, truncateRuleWidth);
+      result += (fmt % num % lim.d_name %  lim.d_rule->d_matches % desc % lim.d_action->toString()).str();
       ++num;
     }
   }
@@ -136,13 +139,25 @@ static void rmRule(GlobalStateHolder<vector<T> > *someRulActions, boost::variant
   setLuaSideEffect();
   auto rules = someRulActions->getCopy();
   if (auto str = boost::get<std::string>(&id)) {
-    const auto uuid = getUniqueID(*str);
-    if (rules.erase(std::remove_if(rules.begin(),
-                                    rules.end(),
-                                    [uuid](const T& a) { return a.d_id == uuid; }),
-                    rules.end()) == rules.end()) {
-      g_outputBuffer = "Error: no rule matched\n";
-      return;
+    try {
+      const auto uuid = getUniqueID(*str);
+      if (rules.erase(std::remove_if(rules.begin(),
+                                     rules.end(),
+                                     [uuid](const T& a) { return a.d_id == uuid; }),
+                      rules.end()) == rules.end()) {
+        g_outputBuffer = "Error: no rule matched\n";
+        return;
+      }
+    }
+    catch (const std::runtime_error& e) {
+      /* it was not an UUID, let's see if it was a name instead */
+      if (rules.erase(std::remove_if(rules.begin(),
+                                     rules.end(),
+                                     [&str](const T& a) { return a.d_name == *str; }),
+                      rules.end()) == rules.end()) {
+        g_outputBuffer = "Error: no rule matched\n";
+        return;
+      }
     }
   }
   else if (auto pos = boost::get<unsigned int>(&id)) {
@@ -299,8 +314,8 @@ void setupLuaRules(LuaContext& luaCtx)
           for (const auto& pair : newruleactions) {
             const auto& newruleaction = pair.second;
             if (newruleaction->d_action) {
-              auto rule=makeRule(newruleaction->d_rule);
-              gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_id, newruleaction->d_creationOrder});
+              auto rule = makeRule(newruleaction->d_rule);
+              gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_name, newruleaction->d_id, newruleaction->d_creationOrder});
             }
           }
         });

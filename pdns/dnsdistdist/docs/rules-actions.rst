@@ -285,6 +285,9 @@ For Rules related to the incoming query:
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.6.0
+    Added ``name`` to the ``options``.
+
   Add a Rule and Action to the existing rules.
 
   :param DNSrule rule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
@@ -294,6 +297,7 @@ For Rules related to the incoming query:
   Options:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
 
 .. function:: clearRules()
 
@@ -324,6 +328,9 @@ For Rules related to the incoming query:
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.6.0
+    Added ``name`` to the ``options``.
+
   Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
 
   :param Rule rule: A Rule (see `Matching Packets (Selectors)`_)
@@ -333,6 +340,7 @@ For Rules related to the incoming query:
   Options:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
 
 .. function:: setRules(rules)
 
@@ -366,9 +374,12 @@ For Rules related to the incoming query:
   .. versionchanged:: 1.3.0
     ``id`` can now be an UUID.
 
+  .. versionchanged:: 1.6.0
+    ``id`` can now be a string representing the name of the rule.
+
   Remove rule ``id``.
 
-  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 For Rules related to responses:
 
@@ -376,6 +387,9 @@ For Rules related to responses:
 
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
+
+  .. versionchanged:: 1.6.0
+    Added ``name`` to the ``options``.
 
   Add a Rule and Action for responses to the existing rules.
 
@@ -386,6 +400,7 @@ For Rules related to responses:
   Options:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
 
 .. function:: mvResponseRule(from, to)
 
@@ -406,9 +421,12 @@ For Rules related to responses:
   .. versionchanged:: 1.3.0
     ``id`` can now be an UUID.
 
+  .. versionchanged:: 1.6.0
+    ``id`` can now be a string representing the name of the rule.
+
   Remove response rule ``id``.
 
-  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showResponseRules([options])
 
@@ -440,6 +458,9 @@ Functions for manipulating Cache Hit Response Rules:
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.6.0
+    Added ``name`` to the ``options``.
+
   Add a Rule and ResponseAction for Cache Hits to the existing rules.
 
   :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
@@ -449,6 +470,7 @@ Functions for manipulating Cache Hit Response Rules:
   Options:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
 
 .. function:: mvCacheHitResponseRule(from, to)
 
@@ -473,7 +495,10 @@ Functions for manipulating Cache Hit Response Rules:
   .. versionchanged:: 1.3.0
     ``id`` can now be an UUID.
 
-  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
+  .. versionchanged:: 1.6.0
+    ``id`` can now be a string representing the name of the rule.
+
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showCacheHitResponseRules([options])
 
@@ -506,10 +531,19 @@ Functions for manipulating Self-Answered Response Rules:
 
   .. versionadded:: 1.3.0
 
+  .. versionchanged:: 1.6.0
+    Added ``name`` to the ``options``.
+
   Add a Rule and Action for Self-Answered queries to the existing rules.
 
   :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
 
 .. function:: mvSelfAnsweredResponseRule(from, to)
 
@@ -531,9 +565,12 @@ Functions for manipulating Self-Answered Response Rules:
 
   .. versionadded:: 1.3.0
 
+  .. versionchanged:: 1.6.0
+    ``id`` can now be a string representing the name of the rule.
+
   Remove self answered response rule ``id``.
 
-  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showSelfAnsweredResponseRules([options])
 
