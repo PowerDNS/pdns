@@ -332,7 +332,11 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DLOG(g_log<<Logger::Error<<"has pos cache entry: "<<shorter<<endl);
         fillSOAData(d_answers[0], *sd);
 
-        sd->db = nullptr;
+        if (backends.size() == 1) {
+          sd->db = *backends.begin();
+        } else {
+          sd->db = nullptr;
+        }
         sd->qname = shorter;
         goto found;
       } else if(cstat == 0 && d_negcache_ttl) {
