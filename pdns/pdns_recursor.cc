@@ -652,7 +652,8 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
   pident.remote = toaddr;
   pident.type = qtype;
 
-  // see if there is an existing outstanding request we can chain on to, using partial equivalence function
+  // see if there is an existing outstanding request we can chain on to, using partial equivalence function looking for the same
+  // query (qname and qtype) to the same host, but with a different message ID
   pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain=MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
   for(; chain.first != chain.second; chain.first++) {
@@ -714,7 +715,9 @@ LWResult::Result arecvfrom(std::string& packet, int flags, const ComboAddress& f
     *d_len=packet.size();
 
     if (nearMissLimit > 0 && pident.nearMisses > nearMissLimit) {
-      g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
+      /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
+         for the correct qname and qtype, but with an unexpected message ID. That looks like a spoofing attempt. */
+      g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<nearMissLimit<<") answers with a wrong message ID for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
       return LWResult::Result::Spoofed;
     }
@@ -3920,9 +3923,12 @@ retryWithName:
     /* we did not find a match for this response, something is wrong */
 
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
-    for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-      if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
+    for (MT_t::waiters_t::iterator mthread = MT->d_waiters.begin(); mthread != MT->d_waiters.end(); ++mthread) {
+      if (pident.fd == mthread->key.fd && mthread->key.remote == pident.remote &&  mthread->key.type == pident.type &&
          pident.domain == mthread->key.domain) {
+        /* we are expecting an answer from that exact source, on that exact port (since we are using connected sockets), for that qname/qtype,
+           but with a different message ID. That smells like a spoofing attempt. For now we will just increase the counter and will deal with
+           that later. */
         mthread->key.nearMisses++;
       }
 
