@@ -50,6 +50,7 @@ if apikey is not None:
     conffile = os.path.join(templatedestination, '_api.conf')
     with open(conffile, 'w') as f:
         f.write(webserver_conf)
+    print("Created {} with content:\n{}\n".format(conffile, webserver_conf))
 
 templates = os.getenv('TEMPLATE_FILES')
 if templates is not None:
@@ -58,7 +59,9 @@ if templates is not None:
         with open(os.path.join(templateroot, templateFile + '.j2')) as f:
             template = jinja2.Template(f.read())
         rendered = template.render(os.environ)
-        with open(os.path.join(templatedestination, templateFile + '.conf'), 'w') as f:
+        target = os.path.join(templatedestination, templateFile + '.conf')
+        with open(target, 'w') as f:
             f.write(rendered)
+        print("Created {} with content:\n{}\n".format(target, rendered))
 
 os.execv(program, [program]+args+sys.argv[1:])
