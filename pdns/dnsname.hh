@@ -71,7 +71,7 @@ public:
     }
     return *this;
   }
-  DNSName& operator=(const DNSName&& rhs)
+  DNSName& operator=(DNSName&& rhs)
   {
     if (this != &rhs) {
       d_storage = std::move(rhs.d_storage);
