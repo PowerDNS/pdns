@@ -53,7 +53,7 @@ RUN mkdir /build && \
     make clean && \
     make $MAKEFLAGS -C ext && make $MAKEFLAGS -C modules && make $MAKEFLAGS -C pdns && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
-    strip /build/usr/local/bin/* /build/usr/local/sbin/*
+    strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so && \
