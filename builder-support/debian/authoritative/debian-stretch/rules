@@ -1,25 +1,36 @@
 #!/usr/bin/make -f
-DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
-DEB_HOST_ARCH_BITS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_BITS)
-DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/pkg-info.mk
+
+# (Re-)Enable warnings
+CXXFLAGS += -Wall
+
+# Turn on all hardening flags, as we're a networked daemon.
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 # Backends
 backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lmdb lua2 remote random tinydns
 
-# Disable systemd integration on non-linux archs
+# Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
+DH_ARGS += --with systemd
 else
 CONFIGURE_ARGS += --disable-systemd
 endif
 
+# Only disable luajit on arm64
+ifneq ($(DEB_HOST_ARCH),arm64)
+CONFIGURE_ARGS += --with-lua=luajit
+else
+CONFIGURE_ARGS += --with-lua=lua5.3
+endif
 
 # Use new build system
 %:
 	dh $@ \
 	  --with autoreconf \
-	  --with systemd \
-	  --parallel
+	  $(DH_ARGS)
 
 override_dh_auto_configure:
 	test -f pdns/dnslabeltext.cc && mv pdns/dnslabeltext.cc debian/dnslabeltext.cc.moved || true
@@ -29,7 +40,6 @@ override_dh_auto_configure:
 		--with-modules="" \
 		--enable-tools \
 		--with-libsodium \
-		--with-lua=luajit \
 		--with-protobuf \
 		--enable-unit-tests \
 		--enable-experimental-pkcs11 \

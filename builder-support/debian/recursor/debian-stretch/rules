@@ -1,5 +1,6 @@
 #!/usr/bin/make -f
-DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/pkg-info.mk
 
 # Enable hardening features for daemons
 # Note: blhc (build log hardening check) will find these false positives: CPPFLAGS 2 missing, LDFLAGS 1 missing
@@ -8,7 +9,7 @@ DPKG_EXPORT_BUILDFLAGS = 1
 # Include buildflags.mk so we can append to the vars it sets.
 include /usr/share/dpkg/buildflags.mk
 
-# Disable systemd integration on non-linux archs
+# Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
 DH_ARGS += --with systemd
@@ -16,6 +17,12 @@ else
 CONFIGURE_ARGS += --disable-systemd
 endif
 
+# Only disable luajit on arm64
+ifneq ($(DEB_HOST_ARCH),arm64)
+CONFIGURE_ARGS += --with-lua=luajit
+else
+CONFIGURE_ARGS += --with-lua=lua5.3
+endif
 
 # Use new build system
 %:
@@ -27,7 +34,6 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		--sysconfdir=/etc/powerdns \
 		--enable-unit-tests \
-		--with-lua=luajit \
 		--with-libcap \
 		--with-libsodium \
 		--with-protobuf=yes \

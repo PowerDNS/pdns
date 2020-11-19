@@ -15,15 +15,15 @@ ARG BUILDER_RELEASE
 
 COPY --from=sdist /sdist /sdist
 
-@IF [ ! -z "$M_authoritative" ]
+@IF [ -n "$M_authoritative$M_all" ]
 RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
 @ENDIF
 
-@IF [ ! -z "$M_recursor" ]
+@IF [ -n "$M_recursor$M_all" ]
 RUN tar xvf /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2
 @ENDIF
 
-@IF [ ! -z "$M_dnsdist" ]
+@IF [ -n "$M_dnsdist$M_all" ]
 RUN if grep 'VERSION="9 (stretch)"' /etc/os-release; then \
   mkdir /libh2o && cd /libh2o && \
   apt-get install -q -y curl libssl-dev zlib1g-dev cmake && \
