@@ -605,11 +605,11 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     // ednsstatus might be cleared, so do a new lookup
     ednsstatus = t_sstorage.ednsstatus.insert(ip).first;
     mode = &ednsstatus->mode;
-    if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError) {
+    if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError || ret == LWResult::Result::Spoofed) {
       return ret; // transport error, nothing to learn here
     }
 
-    if(ret == LWResult::Result::Timeout) { // timeout, not doing anything with it now
+    if (ret == LWResult::Result::Timeout) { // timeout, not doing anything with it now
       return ret;
     }
     else if (*mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT ) {
@@ -3523,7 +3523,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3602,10 +3602,13 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       if(t_timeouts)
         t_timeouts->push_back(remoteIP);
     }
-    else if(resolveret == LWResult::Result::OSLimitError) {
+    else if (resolveret == LWResult::Result::OSLimitError) {
       /* OS resource limit reached */
       LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
       g_stats.resourceLimits++;
+    }
+    else if (resolveret == LWResult::Result::Spoofed) {
+      spoofed = true;
     }
     else {
       /* -1 means server unreachable */
@@ -3680,8 +3683,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     t_sstorage.fails.clear(remoteIP);
   }
 
-  if(lwr.d_tcbit) {
-    *truncated = true;
+  if (lwr.d_tcbit) {
+    truncated = true;
 
     if (doTCP) {
       LOG(prefix<<qname<<": truncated bit set, over TCP?"<<endl);
@@ -4005,12 +4008,13 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           bool truncated = false;
+          bool spoofed = false;
           bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                             tns->first, *remoteIP, false, &truncated);
-          if (gotAnswer && truncated ) {
+                                             tns->first, *remoteIP, false, truncated, spoofed);
+          if (spoofed || (gotAnswer && truncated) ) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, &truncated);
+                                          tns->first, *remoteIP, true, truncated, spoofed);
           }
 
           if (!gotAnswer) {
