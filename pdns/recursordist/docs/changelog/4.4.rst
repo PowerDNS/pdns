@@ -1,5 +1,53 @@
 Changelogs for 4.4.x
 ====================
+
+.. changelog::
+  :version: 4.4.1
+  :released: 25th of November 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9719
+    :tickets: 9707
+
+    Do not add request to a wait chain that's already processed or being processed.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9687
+    :tickets: 9651
+
+    Allow to specify a name in getMetric() that is used for Prometheus export only.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9710
+    :tickets: 9696
+
+    Avoid a CNAME loop detection issue with DNS64
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9705
+    :tickets: 9697
+
+    Do not send overly long NOD lookups.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9683
+    :tickets: 9680
+
+    If a.b.c CNAME x.a.b.c is encountered, switch off QName Minimization.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9682
+    :tickets: 9679
+
+    Fix the processing of answers generated from gettag.
+
+
 .. changelog::
   :version: 4.4.0
   :released: 19th of October 2020

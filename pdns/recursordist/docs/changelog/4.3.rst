@@ -2,6 +2,47 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.6
+  :released: 25th of November 2020
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9718
+    :tickets: 9707
+
+    Do not add request to a wait chain that's already processed or being processed.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9706
+    :tickets: 9697
+
+    Do not send overly long NOD lookups.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9702
+    :tickets: 9696
+
+    Avoid a CNAME loop detection issue with DNS64.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9684
+    :tickets: 9680
+
+    If a.b.c CNAME x.a.b.c is encountered, switch off QName Minimization.
+
+  .. change::
+    :tags: Bug Fixes, Internal
+    :pullreq: 9609
+    :tickets: 9070
+
+    Previous placeholder fix was incomplete.
+
+
+
+.. changelog::
   :version: 4.3.5
   :released: 13th of October 2020
 
