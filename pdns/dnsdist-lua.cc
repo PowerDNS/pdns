@@ -1235,7 +1235,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 			     db.blocks=count;
                              if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
-			     slow.add(domain, db);
+			     slow.add(domain, std::move(db));
 			   }
 			   g_dynblockSMT.setState(slow);
 			 });

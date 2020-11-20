@@ -523,9 +523,10 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   SuffixMatchTree<DNSName> smt;
   DNSName ezdns("ezdns.it.");
-  smt.add(ezdns, ezdns);
+  smt.add(ezdns, DNSName(ezdns));
 
-  smt.add(DNSName("org.").getRawLabels(), DNSName("org."));
+  auto labels = DNSName("org.").getRawLabels();
+  smt.add(labels, DNSName("org."));
 
   DNSName wwwpowerdnscom("www.powerdns.com.");
   DNSName wwwezdnsit("www.ezdns.it.");
@@ -548,14 +549,14 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_CHECK(smt.lookup(DNSName("images.bbc.co.uk.")) == nullptr);
   BOOST_CHECK(smt.lookup(DNSName("www.news.gov.uk.")) == nullptr);
 
-  smt.add(g_rootdnsname, g_rootdnsname); // block the root
+  smt.add(g_rootdnsname, DNSName(g_rootdnsname)); // block the root
   BOOST_REQUIRE(smt.lookup(DNSName("a.root-servers.net.")));
   BOOST_CHECK_EQUAL(*smt.lookup(DNSName("a.root-servers.net.")), g_rootdnsname);
 
   DNSName apowerdnscom("a.powerdns.com.");
   DNSName bpowerdnscom("b.powerdns.com.");
-  smt.add(apowerdnscom, apowerdnscom);
-  smt.add(bpowerdnscom, bpowerdnscom);
+  smt.add(apowerdnscom, DNSName(apowerdnscom));
+  smt.add(bpowerdnscom, DNSName(bpowerdnscom));
   BOOST_REQUIRE(smt.lookup(apowerdnscom));
   BOOST_CHECK_EQUAL(*smt.lookup(apowerdnscom), apowerdnscom);
   BOOST_REQUIRE(smt.lookup(bpowerdnscom));
@@ -563,8 +564,8 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
 
   DNSName examplenet("example.net.");
   DNSName net("net.");
-  smt.add(examplenet, examplenet);
-  smt.add(net, net);
+  smt.add(examplenet, DNSName(examplenet));
+  smt.add(net, DNSName(net));
   BOOST_REQUIRE(smt.lookup(examplenet));
   BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
   BOOST_REQUIRE(smt.lookup(net));
@@ -577,10 +578,10 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
 
   smt = SuffixMatchTree<DNSName>();
-  smt.add(examplenet, examplenet);
-  smt.add(net, net);
+  smt.add(examplenet, DNSName(examplenet));
+  smt.add(net, DNSName(net));
   smt.add(DNSName("news.bbc.co.uk."), DNSName("news.bbc.co.uk."));
-  smt.add(apowerdnscom, apowerdnscom);
+  smt.add(apowerdnscom, DNSName(apowerdnscom));
 
   smt.remove(DNSName("not-such-entry.news.bbc.co.uk."));
   BOOST_REQUIRE(smt.lookup(DNSName("news.bbc.co.uk.")));
@@ -596,8 +597,8 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_CHECK(smt.lookup(net) == nullptr);
   BOOST_CHECK(smt.lookup(examplenet) == nullptr);
 
-  smt.add(examplenet, examplenet);
-  smt.add(net, net);
+  smt.add(examplenet, DNSName(examplenet));
+  smt.add(net, DNSName(net));
   BOOST_REQUIRE(smt.lookup(examplenet));
   BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
   BOOST_REQUIRE(smt.lookup(net));

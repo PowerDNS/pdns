@@ -187,7 +187,7 @@ public:
 class DNSResponseAction
 {
 public:
-  enum class Action { Allow, Delay, Drop, HeaderModify, ServFail, None };
+  enum class Action : uint8_t { Allow, Delay, Drop, HeaderModify, ServFail, None };
   virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
   virtual ~DNSResponseAction()
   {
@@ -199,34 +199,52 @@ struct DynBlock
 {
   DynBlock(): action(DNSAction::Action::None), warning(false)
   {
+    until.tv_sec = 0;
+    until.tv_nsec = 0;
   }
 
-  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_), warning(false)
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), domain(domain_), until(until_), action(action_), warning(false)
   {
   }
 
-  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action), warning(rhs.warning)
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), domain(rhs.domain), until(rhs.until), action(rhs.action), warning(rhs.warning)
+  {
+    blocks.store(rhs.blocks);
+  }
+
+  DynBlock(DynBlock&& rhs): reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), action(rhs.action), warning(rhs.warning)
   {
     blocks.store(rhs.blocks);
   }
 
   DynBlock& operator=(const DynBlock& rhs)
   {
-    reason=rhs.reason;
-    until=rhs.until;
-    domain=rhs.domain;
-    action=rhs.action;
+    reason = rhs.reason;
+    until = rhs.until;
+    domain = rhs.domain;
+    action = rhs.action;
     blocks.store(rhs.blocks);
-    warning=rhs.warning;
+    warning = rhs.warning;
+    return *this;
+  }
+
+  DynBlock& operator=(DynBlock&& rhs)
+  {
+    reason = std::move(rhs.reason);
+    until = rhs.until;
+    domain = std::move(rhs.domain);
+    action = rhs.action;
+    blocks.store(rhs.blocks);
+    warning = rhs.warning;
     return *this;
   }
 
   string reason;
-  struct timespec until;
   DNSName domain;
-  DNSAction::Action action;
+  struct timespec until;
   mutable std::atomic<unsigned int> blocks;
-  bool warning;
+  DNSAction::Action action{DNSAction::Action::None};
+  bool warning{false};
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
@@ -1153,8 +1171,6 @@ struct LocalHolders
   LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;
   LocalStateHolder<pools_t> pools;
 };
-
-struct dnsheader;
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 

@@ -32,6 +32,7 @@
 
 #include "base64.hh"
 #include "dnsdist.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-web.hh"
@@ -666,6 +667,24 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   addRulesToPrometheusOutput(output, g_resprulactions);
   addRulesToPrometheusOutput(output, g_cachehitresprulactions);
   addRulesToPrometheusOutput(output, g_selfansweredresprulactions);
+
+  output << "# HELP dnsdist_dynblocks_nmg_top_offenders " << "Top offenders blocked by Dynamic Blocks (netmasks)" << "\n";
+  output << "# TYPE dnsdist_dynblocks_nmg_top_offenders " << "gauge" << "\n";
+  auto topNetmasksByReason = g_dynBlocksMetricsCache.getTopNetmasks();
+  for (const auto& entry : topNetmasksByReason) {
+    for (const auto& netmask : entry.second) {
+      output << "dnsdist_dynblocks_nmg_top_offenders{reason=\"" << entry.first << "\",netmask=\"" << netmask.first.toString() << "\"} " << netmask.second << "\n";
+    }
+  }
+
+  output << "# HELP dnsdist_dynblocks_smt_top_offenders " << "Top offenders blocked by Dynamic Blocks (suffixes)" << "\n";
+  output << "# TYPE dnsdist_dynblocks_smt_top_offenders " << "gauge" << "\n";
+  auto topSuffixesByReason = g_dynBlocksMetricsCache.getTopSuffixes();
+  for (const auto& entry : topSuffixesByReason) {
+    for (const auto& suffix : entry.second) {
+      output << "dnsdist_dynblocks_smt_top_offenders{reason=\"" << entry.first << "\",suffix=\"" << suffix.first.toString() << "\"} " << suffix.second << "\n";
+    }
+  }
 
   output << "# HELP dnsdist_info " << "Info from dnsdist, value is always 1" << "\n";
   output << "# TYPE dnsdist_info " << "gauge" << "\n";

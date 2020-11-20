@@ -43,10 +43,12 @@ public:
   }
   void excludeRange(const Netmask& range)
   {
+    std::unique_lock<std::mutex> lock(d_mutex);
     d_excludedSubnets.addMask(range);
   }
   void includeRange(const Netmask& range)
   {
+    std::unique_lock<std::mutex> lock(d_mutex);
     d_excludedSubnets.addMask(range, false);
   }
   /* returns true if the addr wasn't already blocked, false otherwise */

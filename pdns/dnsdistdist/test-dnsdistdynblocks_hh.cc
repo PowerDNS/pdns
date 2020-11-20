@@ -661,4 +661,228 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
+  dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
+  DNSName qname("rings.powerdns.com.");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock> emptyNMG;
+  SuffixMatchTree<DynBlock> emptySMT;
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query rate";
+
+  /* 10M entries, only one shard */
+  g_rings.setCapacity(10000000, 1);
+
+  {
+    DynBlockRulesGroup dbrg;
+    dbrg.setQuiet(true);
+    g_rings.clear();
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* block above 0 qps for numberOfSeconds seconds, no warning */
+    dbrg.setQueryRate(0, 0, numberOfSeconds, reason, blockDuration, action);
+
+    /* insert one fake query from 255 clients:
+     */
+    for (size_t idx = 0; idx < 256; idx++) {
+      const ComboAddress requestor("192.0.2." + std::to_string(idx));
+      g_rings.insertQuery(now, requestor, qname, qtype, size, dh);
+    }
+
+    /* we apply the rules, all clients should be blocked */
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 256U);
+
+    for (size_t idx = 0; idx < 256; idx++) {
+      const ComboAddress requestor("192.0.2." + std::to_string(idx));
+      const auto& block = g_dynblockNMG.getLocal()->lookup(requestor)->second;
+      /* simulate that:
+         - .1 does 1 query
+         ...
+         - .255 does 255 queries
+      */
+      block.blocks = idx;
+    }
+
+    /* now we ask for the top 20 offenders for each reason */
+    StopWatch sw;
+    sw.start();
+    DynBlockRulesMetricsCache cache(20, 1);
+    auto top = cache.getTopNetmasks();
+    BOOST_REQUIRE_EQUAL(top.size(), 1U);
+    auto offenders = top.at(reason);
+    BOOST_REQUIRE_EQUAL(offenders.size(), 20U);
+    auto it = offenders.begin();
+    for (size_t idx = 236; idx < 256; idx++) {
+      BOOST_CHECK_EQUAL(it->first.toString(), Netmask(ComboAddress("192.0.2." + std::to_string(idx))).toString());
+      BOOST_CHECK_EQUAL(it->second, idx);
+      ++it;
+    }
+
+    struct timespec expired = now;
+    expired.tv_sec += blockDuration + 1;
+    dbrg.purgeExpired(expired);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+  }
+
+  {
+    /* === reset everything for SMT === */
+    DynBlockRulesGroup dbrg;
+    dbrg.setQuiet(true);
+    g_rings.clear();
+    g_dynblockNMG.setState(emptyNMG);
+    g_dynblockSMT.setState(emptySMT);
+
+    dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
+      if (self.queries > 0) {
+        return true;
+      }
+      return false;
+    });
+
+    /* insert one fake response for 255 DNS names */
+    const ComboAddress requestor("192.0.2.1");
+    for (size_t idx = 0; idx < 256; idx++) {
+      g_rings.insertResponse(now, requestor, DNSName(std::to_string(idx)) + qname, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */);
+    }
+
+    /* we apply the rules, all suffixes should be blocked */
+    dbrg.apply(now);
+
+    for (size_t idx = 0; idx < 256; idx++) {
+      const DNSName name(DNSName(std::to_string(idx)) + qname);
+      const auto* block = g_dynblockSMT.getLocal()->lookup(name);
+      BOOST_REQUIRE(block != nullptr);
+      /* simulate that:
+         - 1.rings.powerdns.com. got 1 query
+         ...
+         - 255. does 255 queries
+      */
+      block->blocks = idx;
+    }
+
+    /* now we ask for the top 20 offenders for each reason */
+    StopWatch sw;
+    sw.start();
+    DynBlockRulesMetricsCache cache(20, 1);
+    auto top = cache.getTopSuffixes();
+    BOOST_REQUIRE_EQUAL(top.size(), 1U);
+    auto suffixes = top.at(reason);
+    BOOST_REQUIRE_EQUAL(suffixes.size(), 20U);
+    auto it = suffixes.begin();
+    for (size_t idx = 236; idx < 256; idx++) {
+      BOOST_CHECK_EQUAL(it->first, (DNSName(std::to_string(idx)) + qname));
+      BOOST_CHECK_EQUAL(it->second, idx);
+      ++it;
+    }
+
+    struct timespec expired = now;
+    expired.tv_sec += blockDuration + 1;
+    dbrg.purgeExpired(expired);
+    BOOST_CHECK(g_dynblockSMT.getLocal()->getNodes().empty());
+  }
+
+#ifdef BENCH_DYNBLOCKS
+  {
+    /* now insert 1M names */
+    DynBlockRulesGroup dbrg;
+    dbrg.setQuiet(true);
+    g_rings.clear();
+    g_dynblockNMG.setState(emptyNMG);
+    g_dynblockSMT.setState(emptySMT);
+
+    dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
+      if (self.queries > 0) {
+        return true;
+      }
+      return false;
+    });
+
+    bool done = false;
+    const ComboAddress requestor("192.0.2.1");
+    for (size_t idxB = 0; !done && idxB < 256; idxB++) {
+      for (size_t idxC = 0; !done && idxC < 256; idxC++) {
+        for (size_t idxD = 0; !done && idxD < 256; idxD++) {
+          const DNSName victim(std::to_string(idxB) + "." + std::to_string(idxC) + "." + std::to_string(idxD) + qname.toString());
+          g_rings.insertResponse(now, requestor, victim, qtype, 1000 /*usec*/, size, dh, requestor /* backend, technically, but we don't care */);
+          if (g_rings.getNumberOfQueryEntries() == 1000000) {
+            done = true;
+            break;
+          }
+        }
+      }
+    }
+
+    /* we apply the rules, all suffixes should be blocked */
+    StopWatch sw;
+    sw.start();
+    dbrg.apply(now);
+    cerr<<"added 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+
+    sw.start();
+    DynBlockRulesMetricsCache cache(20, 1);
+    auto top = cache.getTopSuffixes();
+    cerr<<"scanned 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+
+    struct timespec expired = now;
+    expired.tv_sec += blockDuration + 1;
+    sw.start();
+    dbrg.purgeExpired(expired);
+    cerr<<"removed 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+  }
+#endif
+
+#ifdef BENCH_DYNBLOCKS
+  {
+    /* now insert 1M clients */
+    DynBlockRulesGroup dbrg;
+    dbrg.setQuiet(true);
+    g_rings.clear();
+    g_dynblockNMG.setState(emptyNMG);
+    g_dynblockSMT.setState(emptySMT);
+    dbrg.setQueryRate(0, 0, numberOfSeconds, reason, blockDuration, action);
+
+    bool done = false;
+    for (size_t idxB = 0; !done && idxB < 256; idxB++) {
+      for (size_t idxC = 0; !done && idxC < 256; idxC++) {
+        for (size_t idxD = 0; !done && idxD < 256; idxD++) {
+          const ComboAddress requestor("192." + std::to_string(idxB) + "." + std::to_string(idxC) + "." + std::to_string(idxD));
+          g_rings.insertQuery(now, requestor, qname, qtype, size, dh);
+          if (g_rings.getNumberOfQueryEntries() == 1000000) {
+            done = true;
+            break;
+          }
+        }
+      }
+    }
+
+    /* we apply the rules, all clients should be blocked */
+    StopWatch sw;
+    sw.start();
+    dbrg.apply(now);
+    cerr<<"added "<<g_dynblockNMG.getLocal()->size()<<" entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1000000U);
+
+    sw.start();
+    DynBlockRulesMetricsCache cache(20, 1);
+    auto top = cache.getTopNetmasks();
+    cerr<<"scanned "<<g_dynblockNMG.getLocal()->size()<<" entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+
+    struct timespec expired = now;
+    expired.tv_sec += blockDuration + 1;
+    sw.start();
+    dbrg.purgeExpired(expired);
+    cerr<<"removed 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+  }
+#endif
+}
+
 BOOST_AUTO_TEST_SUITE_END()

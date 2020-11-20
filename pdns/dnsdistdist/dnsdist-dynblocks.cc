@@ -224,7 +224,6 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   unsigned int count = 0;
   const auto& got = blocks.lookup(name);
   bool expired = false;
-  DNSName domain(name.makeLowerCase());
 
   if (got) {
     if (until < got->until) {
@@ -241,13 +240,13 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
     }
   }
 
-  DynBlock db{rule.d_blockReason, until, domain, rule.d_action};
+  DynBlock db{rule.d_blockReason, until, name.makeLowerCase(), rule.d_action};
   db.blocks = count;
 
   if (!d_beQuiet && (!got || expired)) {
-    warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, rule.d_blockDuration, rule.d_blockReason);
+    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, rule.d_blockDuration, rule.d_blockReason);
   }
-  blocks.add(domain, db);
+  blocks.add(name, std::move(db));
   updated = true;
 }
 
@@ -337,4 +336,133 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
     }
   }
+}
+
+void DynBlockRulesGroup::purgeExpired(const struct timespec& now)
+{
+  {
+    auto blocks = g_dynblockNMG.getLocal();
+    std::vector<Netmask> toRemove;
+    for (const auto& entry : *blocks) {
+      if (!(now < entry.second.until)) {
+        toRemove.push_back(entry.first);
+      }
+    }
+    if (!toRemove.empty()) {
+      auto updated = g_dynblockNMG.getCopy();
+      for (const auto& entry : toRemove) {
+        updated.erase(entry);
+      }
+      g_dynblockNMG.setState(std::move(updated));
+    }
+  }
+
+  {
+    std::vector<DNSName> toRemove;
+    auto blocks = g_dynblockSMT.getLocal();
+    blocks->visit([&toRemove, now](const SuffixMatchTree<DynBlock>& node) {
+      if (!(now < node.d_value.until)) {
+        toRemove.push_back(node.d_value.domain);
+      }
+    });
+    if (!toRemove.empty()) {
+      auto updated = g_dynblockSMT.getCopy();
+      for (const auto& entry : toRemove) {
+        updated.remove(entry);
+      }
+      g_dynblockSMT.setState(std::move(updated));
+    }
+  }
+}
+
+std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockRulesMetricsCache::getTopNetmasks()
+{
+  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> results;
+  if (d_topN == 0) {
+    return results;
+  }
+
+  time_t now = time(nullptr);
+  {
+    std::lock_guard<std::mutex> lock(d_mutex);
+    if (now < d_netmasksValidUntil) {
+      return d_cachedNetmasks;
+    }
+
+    auto blocks = g_dynblockNMG.getLocal();
+    for (const auto& entry : *blocks) {
+      auto& topsForReason = results[entry.second.reason];
+      if (topsForReason.size() < d_topN || topsForReason.front().second < entry.second.blocks) {
+        auto newEntry = std::make_pair(entry.first, entry.second.blocks.load());
+
+        if (topsForReason.size() >= d_topN) {
+          topsForReason.pop_front();
+        }
+
+        topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<Netmask, unsigned int>& a, const std::pair<Netmask, unsigned int>& b) {
+          return a.second < b.second;
+        }),
+          newEntry);
+      }
+    }
+    d_cachedNetmasks = results;
+    d_netmasksValidUntil = time(nullptr) + d_validityPeriod;
+  }
+
+  return results;
+}
+
+std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockRulesMetricsCache::getTopSuffixes()
+{
+  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> results;
+  if (d_topN == 0) {
+    return results;
+  }
+
+  time_t now = time(nullptr);
+  {
+    std::lock_guard<std::mutex> lock(d_mutex);
+    if (now < d_suffixesValidUntil) {
+      return d_cachedSuffixes;
+    }
+
+    auto blocks = g_dynblockSMT.getLocal();
+    blocks->visit([&results, this](const SuffixMatchTree<DynBlock>& node) {
+      auto& topsForReason = results[node.d_value.reason];
+      if (topsForReason.size() < d_topN || topsForReason.front().second < node.d_value.blocks) {
+        auto newEntry = std::make_pair(node.d_value.domain, node.d_value.blocks.load());
+
+        if (topsForReason.size() >= d_topN) {
+          topsForReason.pop_front();
+        }
+
+        topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& a, const std::pair<DNSName, unsigned int>& b) {
+            return a.second < b.second;
+          }),
+          newEntry);
+      }
+    });
+    d_cachedSuffixes = results;
+    d_suffixesValidUntil = time(nullptr) + d_validityPeriod;
+  }
+
+  return results;
+}
+
+DynBlockRulesMetricsCache g_dynBlocksMetricsCache(20, 60);
+
+void DynBlockRulesMetricsCache::invalidate()
+{
+  std::lock_guard<std::mutex> lock(d_mutex);
+  d_netmasksValidUntil = 0;
+  d_suffixesValidUntil = 0;
+  d_cachedNetmasks.clear();
+  d_cachedSuffixes.clear();
+}
+
+void DynBlockRulesMetricsCache::setParameters(size_t topN, unsigned int validity)
+{
+  d_validityPeriod = validity;
+  d_topN = topN;
+  invalidate();
 }

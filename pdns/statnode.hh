@@ -21,7 +21,6 @@
  */
 #pragma once
 #include "dnsname.hh"
-#include <deque>
 #include <map>
 #include "iputils.hh"
 
@@ -56,7 +55,7 @@ public:
   Stat s;
   std::string name;
   std::string fullname;
-  unsigned int labelsCount{0};
+  uint8_t labelsCount{0};
 
   void submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote);
 

@@ -314,6 +314,8 @@ public:
     d_beQuiet = quiet;
   }
 
+  void purgeExpired(const struct timespec& now);
+
 private:
 
   bool checkIfQueryTypeMatches(const Rings::Query& query);
@@ -366,3 +368,27 @@ private:
   dnsdist_ffi_stat_node_visitor_t d_smtVisitorFFI;
   bool d_beQuiet{false};
 };
+
+class DynBlockRulesMetricsCache
+{
+public:
+  DynBlockRulesMetricsCache(size_t topN, unsigned int validity): d_validityPeriod(validity), d_topN(topN)
+  {
+  }
+
+  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getTopNetmasks();
+  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes();
+  void invalidate();
+  void setParameters(size_t topN, unsigned int validity);
+
+private:
+  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> d_cachedNetmasks;
+  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> d_cachedSuffixes;
+  std::mutex d_mutex;
+  time_t d_netmasksValidUntil{0};
+  time_t d_suffixesValidUntil{0};
+  unsigned int d_validityPeriod{0};
+  size_t d_topN{0};
+};
+
+extern DynBlockRulesMetricsCache g_dynBlocksMetricsCache;

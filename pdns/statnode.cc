@@ -34,26 +34,17 @@ StatNode::Stat StatNode::print(unsigned int depth, Stat newstat, bool silent) co
 }
 
 
-void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) const
+void StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) const
 {
-  Stat childstat;
-  childstat.queries += s.queries;
-  childstat.noerrors += s.noerrors;
-  childstat.nxdomains += s.nxdomains;
-  childstat.servfails += s.servfails;
-  childstat.drops += s.drops;
-  childstat.bytes += s.bytes;
-  childstat.remotes = s.remotes;
-  
-  Stat selfstat(childstat);
+  Stat childstat(s);
 
-  for(const children_t::value_type& child :  children) {
+  for (const auto& child : children) {
     child.second.visit(visitor, childstat, depth+8);
   }
 
-  visitor(this, selfstat, childstat);
+  visitor(this, s, childstat);
 
-  newstat+=childstat;
+  newstat += childstat;
 }
 
 
@@ -61,8 +52,9 @@ void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, boos
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
   std::vector<string> tmp = domain.getRawLabels();
-  if(tmp.empty())
+  if (tmp.empty()) {
     return;
+  }
 
   auto last = tmp.end() - 1;
   children[*last].submit(last, tmp.begin(), "", rcode, bytes, remote, 1);
@@ -81,7 +73,7 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
   //  for(const std::string& n :  labels) 
   //    cerr<<n<<".";
   //  cerr<<endl;
-  if(name.empty()) {
+  if (name.empty()) {
 
     name=*end;
     //    cerr<<"Set short name to '"<<name<<"'"<<endl;
@@ -90,9 +82,15 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
   }
 
-  if(end == begin) {
+  if (end == begin) {
     if (fullname.empty()) {
-      fullname=name+"."+domain;
+      size_t needed = name.size() + 1 + domain.size();
+      if (fullname.capacity() < needed) {
+        fullname.reserve(needed);
+      }
+      fullname = name;
+      fullname.append(".");
+      fullname.append(domain);
       labelsCount = count;
     }
     //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
@@ -113,7 +111,13 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
   }
   else {
     if (fullname.empty()) {
-      fullname=name+"."+domain;
+      size_t needed = name.size() + 1 + domain.size();
+      if (fullname.capacity() < needed) {
+        fullname.reserve(needed);
+      }
+      fullname = name;
+      fullname.append(".");
+      fullname.append(domain);
       labelsCount = count;
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
@@ -121,4 +125,3 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     children[*end].submit(end, begin, fullname, rcode, bytes, remote, count+1);
   }
 }
-
