@@ -521,6 +521,8 @@ That is, only if both the limits apply, the record will not be cached.
 
 This setting artificially raises the TTLs of records in the ANSWER section of ECS-specific answers to be at least this long.
 Setting this to a value greater than 1 technically is an RFC violation, but might improve performance a lot.
+Using a value of 0 impacts performance of TTL 0 records greatly, since it forces the recursor to contact
+authoritative servers each time a client requests them.
 Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 
 .. _setting-ecs-cache-limit-ttl:
@@ -1074,6 +1076,8 @@ returning back to normal processing and handling other events.
 
 This setting artificially raises all TTLs to be at least this long.
 Setting this to a value greater than 1 technically is an RFC violation, but might improve performance a lot.
+Using a value of 0 impacts performance of TTL 0 records greatly, since it forces the recursor to contact
+authoritative servers each time a client requests them.
 Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 
 .. _setting-new-domain-tracking:
