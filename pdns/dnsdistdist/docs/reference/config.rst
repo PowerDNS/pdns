@@ -73,6 +73,9 @@ Listen Sockets
   .. versionchanged:: 1.5.0
     Added ``tcpListenQueueSize`` parameter.
 
+  .. versionchanged:: 1.6.0
+    Added ``maxInFlight`` parameter.
+
   Add to the list of listen addresses.
 
   :param str address: The IP Address with an optional port to listen on.
@@ -87,6 +90,7 @@ Listen Sockets
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
+  * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
 
   .. code-block:: lua
 
@@ -164,6 +168,8 @@ Listen Sockets
     ``ciphersTLS13``, ``minTLSVersion``, ``ocspResponses``, ``preferServerCiphers``, ``keyLogFile`` options added.
   .. versionchanged:: 1.5.0
     ``sessionTimeout`` and ``tcpListenQueueSize`` options added.
+  .. versionchanged:: 1.6.0
+    Added ``maxInFlight`` parameter.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -193,6 +199,7 @@ Listen Sockets
   * ``preferServerCiphers``: bool - Whether to prefer the order of ciphers set by the server instead of the one set by the client. Default is true, meaning that the order of the server is used. For OpenSSL >= 1.1.1, setting this option also enables the temporary re-prioritization of the ChaCha20-Poly1305 cipher if the client prioritizes it.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
+  * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
 
 .. function:: setLocal(address[, options])
 
@@ -474,6 +481,9 @@ Servers
   .. versionchanged:: 1.5.0
     Added ``useProxyProtocol`` to server_table.
 
+  .. versionchanged:: 1.6.0
+    Added ``maxInFlight`` to server_table.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -518,7 +528,8 @@ Servers
       disableZeroScope=BOOL, -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
       rise=NUM,              -- Require NUM consecutive successful checks before declaring the backend up, default: 1
       useProxyProtocol=BOOL, -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
-      reconnectOnUp=BOOL     -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
+      reconnectOnUp=BOOL,    -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
+      maxInFlight            -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
     })
 
   :param str server_string: A simple IP:PORT string.

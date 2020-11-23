@@ -19,3 +19,4 @@ These chapters contain information on the advanced features of dnsdist
    snmp
    axfr
    multiple-instance
+   out-of-order

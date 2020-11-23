@@ -465,13 +465,60 @@ struct ClientState;
 struct IDState
 {
   IDState(): sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
-  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest), age(orig.age)
+  IDState(const IDState& orig) = delete;
+  IDState(IDState&& rhs): origRemote(rhs.origRemote), origDest(rhs.origDest), sentTime(rhs.sentTime), qname(std::move(rhs.qname)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), subnet(rhs.subnet), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), age(rhs.age), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), origFD(rhs.origFD), delayMsec(rhs.delayMsec), tempFailureTTL(rhs.tempFailureTTL), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
   {
-    usageIndicator.store(orig.usageIndicator.load());
-    origFD = orig.origFD;
-    origID = orig.origID;
-    delayMsec = orig.delayMsec;
-    tempFailureTTL = orig.tempFailureTTL;
+    if (rhs.isInUse()) {
+      throw std::runtime_error("Trying to move an in-use IDState");
+    }
+
+#ifdef HAVE_PROTOBUF
+    uniqueId = std::move(rhs.uniqueId);
+#endif
+  }
+
+  IDState& operator=(IDState&& rhs)
+  {
+    if (isInUse()) {
+      throw std::runtime_error("Trying to overwrite an in-use IDState");
+    }
+
+    if (rhs.isInUse()) {
+      throw std::runtime_error("Trying to move an in-use IDState");
+    }
+
+    origRemote = rhs.origRemote;
+    origDest = rhs.origDest;
+    sentTime = rhs.sentTime;
+    qname = std::move(rhs.qname);
+    dnsCryptQuery = std::move(rhs.dnsCryptQuery);
+    subnet = rhs.subnet;
+    packetCache = std::move(rhs.packetCache);
+    qTag = std::move(rhs.qTag);
+    cs = rhs.cs;
+    du = std::move(rhs.du);
+    cacheKey = rhs.cacheKey;
+    cacheKeyNoECS = rhs.cacheKeyNoECS;
+    age = rhs.age;
+    qtype = rhs.qtype;
+    qclass = rhs.qclass;
+    origID = rhs.origID;
+    origFlags = rhs.origFlags;
+    origFD = rhs.origFD;
+    delayMsec = rhs.delayMsec;
+    tempFailureTTL = rhs.tempFailureTTL;
+    ednsAdded = rhs.ednsAdded;
+    ecsAdded = rhs.ecsAdded;
+    skipCache = rhs.skipCache;
+    destHarvested = rhs.destHarvested;
+    dnssecOK = rhs.dnssecOK;
+    useZeroScope = rhs.useZeroScope;
+
+#ifdef HAVE_PROTOBUF
+    uniqueId = std::move(rhs.uniqueId);
+#endif
+
+    return *this;
   }
 
   static const int64_t unusedIndicator = -1;
@@ -563,14 +610,14 @@ struct IDState
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
   int origFD{-1};
-  int delayMsec;
+  int delayMsec{0};
   boost::optional<uint32_t> tempFailureTTL;
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
   bool dnssecOK{false};
-  bool useZeroScope;
+  bool useZeroScope{false};
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
@@ -622,6 +669,7 @@ struct ClientState
   std::atomic<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   std::atomic<double> tcpAvgConnectionDuration{0.0};
+  size_t d_maxInFlightQueriesPerConn{1};
   int udpFD{-1};
   int tcpFD{-1};
   int tcpListenQueueSize{SOMAXCONN};
@@ -805,6 +853,7 @@ struct DownstreamState
   /* in ms */
   std::atomic<double> tcpAvgConnectionDuration{0.0};
   size_t socketsOffset{0};
+  size_t d_maxInFlightQueriesPerConn{1};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};

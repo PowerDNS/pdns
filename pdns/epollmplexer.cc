@@ -47,6 +47,8 @@ public:
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr) override;
   virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  virtual void alterFD(callbackmap_t& from, callbackmap_t& to, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd) override;
+
   string getName() const override
   {
     return "epoll";
@@ -91,7 +93,7 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
     close(d_epollfd);
     throw FDMultiplexerException("epoll multiplexer failed self-test: "+string(fe.what()));
   }
-    
+
 }
 
 void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd)
@@ -99,11 +101,11 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
   accountingAddFD(cbmap, fd, toDo, parameter, ttd);
 
   struct epoll_event eevent;
-  
+
   eevent.events = (&cbmap == &d_readCallbacks) ? EPOLLIN : EPOLLOUT;
-  
+
   eevent.data.u64=0; // placate valgrind (I love it so much)
-  eevent.data.fd=fd; 
+  eevent.data.fd=fd;
 
   if(epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0) {
     cbmap.erase(fd);
@@ -113,8 +115,7 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
 
 void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
-  if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
+  accountingRemoveFD(cbmap, fd);
 
   struct epoll_event dummy;
   dummy.events = 0;
@@ -122,6 +123,22 @@ void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 
   if(epoll_ctl(d_epollfd, EPOLL_CTL_DEL, fd, &dummy) < 0)
     throw FDMultiplexerException("Removing fd from epoll set: "+stringerror());
+}
+
+void EpollFDMultiplexer::alterFD(callbackmap_t& from, callbackmap_t& to, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd)
+{
+  accountingRemoveFD(from, fd);
+  accountingAddFD(to, fd, toDo, parameter, ttd);
+
+  struct epoll_event eevent;
+  eevent.events = (&to == &d_readCallbacks) ? EPOLLIN : EPOLLOUT;
+  eevent.data.u64 = 0; // placate valgrind (I love it so much)
+  eevent.data.fd = fd;
+
+  if (epoll_ctl(d_epollfd, EPOLL_CTL_MOD, fd, &eevent) < 0) {
+    to.erase(fd);
+    throw FDMultiplexerException("Altering fd in epoll set: "+stringerror());
+  }
 }
 
 void EpollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
@@ -141,7 +158,7 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
-  
+
   int ret=epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, timeout);
   gettimeofday(now,0); // MANDATORY
 
@@ -154,13 +171,13 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
   d_inrun=true;
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(d_eevents[n].data.fd);
-    
+
     if(d_iter != d_readCallbacks.end()) {
       d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       continue; // so we don't refind ourselves as writable!
     }
     d_iter=d_writeCallbacks.find(d_eevents[n].data.fd);
-    
+
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
     }
@@ -184,7 +201,7 @@ void acceptData(int fd, funcparam_t& parameter)
 int main()
 {
   Socket s(AF_INET, SOCK_DGRAM);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 
@@ -199,5 +216,3 @@ int main()
   sfm.removeReadFD(s.getHandle());
 }
 #endif
-
-

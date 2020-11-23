@@ -136,6 +136,16 @@ public:
     d_writeCallbacks.replace(it, newEntry);
   }
 
+  virtual void alterFDToRead(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t(), const struct timeval* ttd=nullptr)
+  {
+    this->alterFD(d_writeCallbacks, d_readCallbacks, fd, toDo, parameter, ttd);
+  }
+
+  virtual void alterFDToWrite(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t(), const struct timeval* ttd=nullptr)
+  {
+    this->alterFD(d_readCallbacks, d_writeCallbacks, fd, toDo, parameter, ttd);
+  }
+
   virtual std::vector<std::pair<int, funcparam_t> > getTimeouts(const struct timeval& tv, bool writes=false)
   {
     std::vector<std::pair<int, funcparam_t> > ret;
@@ -166,6 +176,16 @@ public:
   size_t getWatchedFDCount(bool writeFDs) const
   {
     return writeFDs ? d_writeCallbacks.size() : d_readCallbacks.size();
+  }
+
+  void runForAllWatchedFDs(void(*watcher)(bool isRead, int fd, const funcparam_t&, struct timeval))
+  {
+    for (const auto& entry : d_readCallbacks) {
+      watcher(true, entry.d_fd, entry.d_parameter, entry.d_ttd);
+    }
+    for (const auto& entry : d_writeCallbacks) {
+      watcher(false, entry.d_fd, entry.d_parameter, entry.d_ttd);
+    }
   }
 
 protected:
@@ -209,6 +229,7 @@ protected:
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr)=0;
   virtual void removeFD(callbackmap_t& cbmap, int fd)=0;
+
   bool d_inrun;
   callbackmap_t::iterator d_iter;
 
@@ -223,7 +244,7 @@ protected:
       cb.d_ttd = *ttd;
     }
 
-    auto pair = cbmap.insert(cb);
+    auto pair = cbmap.insert(std::move(cb));
     if (!pair.second) {
       throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
     }
@@ -235,4 +256,12 @@ protected:
       throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
     }
   }
+
+  virtual void alterFD(callbackmap_t& from, callbackmap_t& to, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd)
+  {
+    /* naive implementation */
+    removeFD(from, fd);
+    addFD(to, fd, toDo, parameter, ttd);
+  }
+
 };

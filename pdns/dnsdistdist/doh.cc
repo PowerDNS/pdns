@@ -866,7 +866,7 @@ try
       }
 
       string decoded;
-      /* rough estimate so we hopefully don't need a need allocation later */
+      /* rough estimate so we hopefully don't need a new allocation later */
       /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
          at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
       const size_t estimate = ((sdns.size() * 3) / 4);

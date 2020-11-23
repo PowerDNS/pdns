@@ -17,6 +17,7 @@ public:
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
   virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
+  virtual bool hasBufferedData() const = 0;
   virtual std::string getServerNameIndication() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
@@ -291,6 +292,14 @@ public:
     else {
       return writen2WithTimeout(d_socket, buffer, bufferSize, writeTimeout);
     }
+  }
+
+  bool hasBufferedData() const
+  {
+    if (d_conn) {
+      return d_conn->hasBufferedData();
+    }
+    return false;
   }
 
   std::string getServerNameIndication() const

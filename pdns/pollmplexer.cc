@@ -70,8 +70,7 @@ void PollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
   if(d_inrun && d_iter->d_fd==fd)  // trying to remove us!
     ++d_iter;
 
-  if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
+  accountingRemoveFD(cbmap, fd);
 }
 
 vector<struct pollfd> PollFDMultiplexer::preparePollFD() const

@@ -71,8 +71,8 @@ class TestTCPShort(DNSDistTest):
         # send announcedSize bytes minus 1 so we get a second read
         conn.send(wire)
         time.sleep(1)
-        # send 1024 bytes
-        conn.send(b'A' * 1024)
+        # send the remaining byte
+        conn.send(b'A')
 
         (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, True)
         conn.close()
@@ -112,8 +112,8 @@ class TestTCPShort(DNSDistTest):
         # send announcedSize bytes minus 1 so we get a second read
         conn.send(wire)
         time.sleep(1)
-        # send 1024 bytes
-        conn.send(b'A' * 1024)
+        # send the remaining byte
+        conn.send(b'A')
 
         (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, True)
         conn.close()

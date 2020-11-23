@@ -61,6 +61,10 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
     sock.close()
 
 def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
+    # be aware that this responder will not accept a new connection
+    # until the last one has been closed. This is done on purpose to
+    # to check for connection reuse, making sure that a lot of connections
+    # are not opened in parallel.
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
