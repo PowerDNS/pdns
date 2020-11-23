@@ -2,6 +2,118 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.0-beta1
+  :released: 23rd of November 2020
+
+  This is version 4.4.0-beta1 of the Authoritative Server.
+
+  This release drops GSS/TSIG support, please see :doc:`PowerDNS Security Advisory 2020-06 <../security-advisories/powerdns-advisory-2020-06>`.
+
+  Version 4.4.0 brings a bunch of exciting changes:
+
+  * the LMDB backend now supports long record content, making it production ready for everybody
+  * the SVCB and HTTPS record types are supported, with limited additional processing
+  * transaction handling in the 2136 handler and the HTTP API was again improved a lot, avoiding various spurious issues users may have noticed if they do a lot of changes
+  * a new setting (:ref:`setting-consistent-backends`) offers a roughly 30% speedup, subject to conditions
+  * we finally emit Prometheus metrics!
+
+  We want to specifically thank Robin Geuze, Kees Monshouwer, Mischan Toosarani-Hausberger, Chris Hofstaedtler, and Kevin Fleming for their contributions to this release.
+  We are also grateful to all other reporters of bugs, issues, feature requests, and submitters of smaller fixes and features.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9735
+
+    pdnsutil check-zone: DNAME fixes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9704
+
+    nxdomain performance (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9731
+
+    logging: put quotes around some IPs to make messages easier to read
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9713
+
+    allow ip ranges as trusted-notification-proxy
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8707
+
+    lmdb: fill di.serial (this fixes the 'serial=0' API bug)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9714
+
+    disable mysql automatic charset detection (see :doc:`upgrade notes <../upgrading>`)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9712
+
+    Use Python 3 in build system (Kevin Fleming)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8911
+
+    Add '/api/docs' endpoint to Auth server (Kevin Fleming)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9688
+
+    adjust AXFR, IXFR events loglevels (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8608
+
+    geoipbackend: accept custom lookup mapping (criteo-forks)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9692
+
+    pdnsutil zone key improvements (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9693
+
+    make it possible to replace now supported TYPExx records (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9174
+
+    tinydnsbackend: Ignore duplicate SOA in getAllDomains()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9685
+    :issues: 9675
+
+    add some missing counters. Fixes #9675
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9239
+
+    Add pdns_control command to the the list of XFR domains in queue
+
+.. changelog::
   :version: 4.4.0-alpha3
   :released: 5th of November 2020
 
