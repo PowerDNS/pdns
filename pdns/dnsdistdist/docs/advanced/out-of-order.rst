@@ -9,7 +9,7 @@ to a backend simultaneously. If there is more queries pending, they will be proc
 has been sent for one of the already processed queries.
 
 Backends are assumed not to support out-of-order by default, so only query at a time will be sent over
-a TCP connection to a backend, meaning that up to ``maxInFlight` connections to a backend might be needed
+a TCP connection to a backend, meaning that up to ``maxInFlight`` connections to a backend might be needed
 to be able to process all accepted queries.
 Setting ``maxInFlight`` to a value greater than zero on :func:`newServer` changes that, and up to ``maxInFlight``
 queries can be sent to a backend simultaneously over the same TCP connection. This of course requires the
