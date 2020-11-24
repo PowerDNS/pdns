@@ -504,13 +504,13 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     if(rr.dr.d_place != DNSResourceRecord::ADDITIONAL) {
       switch(rr.dr.d_type) {
         case QType::NS:
-          content=std::move(getRR<NSRecordContent>(rr.dr)->getNS());
+          content=getRR<NSRecordContent>(rr.dr)->getNS();
           break;
         case QType::MX:
-          content=std::move(getRR<MXRecordContent>(rr.dr)->d_mxname);
+          content=getRR<MXRecordContent>(rr.dr)->d_mxname;
           break;
         case QType::SRV:
-          content=std::move(getRR<SRVRecordContent>(rr.dr)->d_target);
+          content=getRR<SRVRecordContent>(rr.dr)->d_target;
           break;
         case QType::SVCB: {
           auto rrc = getRR<SVCBRecordContent>(rr.dr);
