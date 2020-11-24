@@ -541,3 +541,25 @@ void TCPConnectionToBackend::setProxyProtocolPayloadAdded(bool added)
 {
   d_proxyProtocolPayloadAdded = added;
 }
+
+void TCPConnectionToBackend::setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent)
+{
+  /* if we already have some values, we have already verified they match */
+  if (!d_proxyProtocolValuesSent) {
+    d_proxyProtocolValuesSent = std::move(proxyProtocolValuesSent);
+  }
+}
+
+bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs) const
+{
+  if (tlvs == nullptr && d_proxyProtocolValuesSent == nullptr) {
+    return true;
+  }
+  if (tlvs == nullptr && d_proxyProtocolValuesSent != nullptr) {
+    return false;
+  }
+  if (tlvs != nullptr && d_proxyProtocolValuesSent == nullptr) {
+    return false;
+  }
+  return *tlvs == *d_proxyProtocolValuesSent;
+}

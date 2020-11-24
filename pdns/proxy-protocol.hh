@@ -28,6 +28,11 @@ struct ProxyProtocolValue
 {
   std::string content;
   uint8_t type;
+
+  bool operator==(const ProxyProtocolValue& rhs) const
+  {
+    return type == rhs.type && content == rhs.content;
+  }
 };
 
 static const size_t s_proxyProtocolMinimumHeaderSize = 16;

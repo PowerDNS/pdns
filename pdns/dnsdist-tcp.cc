@@ -168,13 +168,11 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
   }
 }
 
-std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const struct timeval& now)
+std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
 {
   std::shared_ptr<TCPConnectionToBackend> downstream{nullptr};
 
-  if (!ds->useProxyProtocol || !d_proxyProtocolPayloadHasTLV) {
-    downstream = getActiveDownstreamConnection(ds);
-  }
+  downstream = getActiveDownstreamConnection(ds, tlvs);
 
   if (!downstream) {
     /* we don't have a connection to this backend active yet, let's ask one (it might not be a fresh one, though) */
@@ -354,7 +352,7 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_state = State::readingQuerySize;
 }
 
-std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds)
+std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
 {
   auto it = d_activeConnectionsToBackend.find(ds);
   if (it == d_activeConnectionsToBackend.end()) {
@@ -363,8 +361,9 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDow
   }
 
   for (auto& conn : it->second) {
-    if (conn->canAcceptNewQueries()) {
+    if (conn->canAcceptNewQueries() && conn->matchesTLVs(tlvs)) {
       DEBUGLOG("Got one active connection accepting more for "<<ds->getName());
+      conn->setReused();
       return conn;
     }
     DEBUGLOG("not accepting more for "<<ds->getName());
@@ -541,7 +540,9 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   dq.dnsCryptQuery = std::move(dnsCryptQuery);
   dq.sni = state->d_handler.getServerNameIndication();
   if (state->d_proxyProtocolValues) {
-    dq.proxyProtocolValues = std::move(state->d_proxyProtocolValues);
+    /* we need to copy them, because the next queries received on that connection will
+       need to get the _unaltered_ values */
+    dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(*state->d_proxyProtocolValues);
   }
 
   state->d_isXFR = (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR);
@@ -582,6 +583,9 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
      especially alignment issues */
   state->d_buffer.insert(state->d_buffer.begin(), sizeBytes, sizeBytes + 2);
 
+  auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
+  downstreamConnection->assignToClientConnection(state, state->d_isXFR);
+
   bool proxyProtocolPayloadAdded = false;
   std::string proxyProtocolPayload;
 
@@ -592,16 +596,16 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
     }
 
     proxyProtocolPayload = getProxyProtocolPayload(dq);
-
-    if (state->d_proxyProtocolPayloadHasTLV) {
+    if (state->d_proxyProtocolPayloadHasTLV && downstreamConnection->isFresh()) {
       /* we will not be able to reuse an existing connection anyway so let's add the payload right now */
       addProxyProtocol(state->d_buffer, proxyProtocolPayload);
       proxyProtocolPayloadAdded = true;
     }
   }
 
-  auto downstreamConnection = state->getDownstreamConnection(ds, now);
-  downstreamConnection->assignToClientConnection(state, state->d_isXFR);
+  if (dq.proxyProtocolValues) {
+    downstreamConnection->setProxyProtocolValuesSent(std::move(dq.proxyProtocolValues));
+  }
 
   if (proxyProtocolPayloadAdded) {
     downstreamConnection->setProxyProtocolPayloadAdded(true);

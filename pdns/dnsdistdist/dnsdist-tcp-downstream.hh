@@ -151,6 +151,8 @@ public:
     return true;
   }
 
+  bool matchesTLVs(const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs) const;
+
   bool matches(const std::shared_ptr<DownstreamState>& ds) const
   {
     if (!ds || !d_ds) {
@@ -165,6 +167,7 @@ public:
 
   void setProxyProtocolPayload(std::string&& payload);
   void setProxyProtocolPayloadAdded(bool added);
+  void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
 
 private:
   /* waitingForResponseFromBackend is a state where we have not yet started reading the size,
@@ -217,6 +220,7 @@ private:
   PacketBuffer d_responseBuffer;
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
+  std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValuesSent{nullptr};
   std::unique_ptr<Socket> d_socket{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
