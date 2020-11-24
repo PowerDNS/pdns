@@ -766,7 +766,7 @@ These ``DNSRule``\ s be one of the following items:
 
   .. versionadded:: 1.6.0
 
-  Matches queries that have a proxy protocol TVL value of the specified type. If ``value`` is set,
+  Matches queries that have a proxy protocol TLV value of the specified type. If ``value`` is set,
   the content of the value should also match the content of ``value``.
 
   :param int type: The type of the value, ranging from 0 to 255 (both included)
