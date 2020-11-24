@@ -58,7 +58,7 @@ std::unique_ptr<DNSProxy> DP{nullptr};
 std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
 shared_ptr<UDPNameserver> N;
-int avg_latency;
+double avg_latency{0.0};
 unique_ptr<TCPNameserver> TN;
 static vector<DNSDistributor*> g_distributors;
 vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
@@ -295,7 +295,7 @@ catch(PDNSException& e)
 
 static uint64_t getLatency(const std::string& str) 
 {
-  return avg_latency;
+  return round(avg_latency);
 }
 
 void declareStats(void)
@@ -399,7 +399,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a)
   N->send(*a);
 
   int diff=a->d_dt.udiff();
-  avg_latency=(int)(0.999*avg_latency+0.001*diff);
+  avg_latency=0.999*avg_latency+0.001*diff;
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
@@ -484,7 +484,7 @@ try
         cached.commitD(); // commit d to the packet                        inlined
         NS->send(cached); // answer it then                              inlined
         diff=question.d_dt.udiff();
-        avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
+        avg_latency=0.999*avg_latency+0.001*diff; // 'EWMA'
         continue;
       }
     }
