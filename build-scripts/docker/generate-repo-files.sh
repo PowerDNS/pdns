@@ -87,8 +87,16 @@ write_debian_or_ubuntu()
     PKG=$3
     CMD=$4
 
+    ARCHSTRING='[arch=amd64]'
+
+    OSIMG=$OS
+    if [ "$OS" = "raspbian" ]; then
+        OSIMG=resin/rpi-raspbian
+        ARCHSTRING=''
+    fi
+
     cat <<EOF > pdns.list.$RELEASE.$OS-$VERSION
-deb [arch=amd64] http://repo.powerdns.com/$OS $VERSION-$RELEASE main
+deb $ARCHSTRING http://repo.powerdns.com/$OS $VERSION-$RELEASE main
 EOF
 
     # For the following two maybe only create depending on package, but
@@ -109,7 +117,7 @@ Pin-Priority: 600
 EOF
 
     cat <<EOF > Dockerfile.$RELEASE.$OS-$VERSION
-FROM $OS:$VERSION
+FROM $OSIMG:$VERSION
 
 RUN apt-get update
 RUN apt-get install -y curl gnupg dnsutils apt-transport-https
@@ -141,6 +149,7 @@ EOF
 write_debian()
 {
     write_debian_or_ubuntu debian $1 $2 $3
+    write_debian_or_ubuntu raspbian $1 $2 $3
 }
 
 
