@@ -1766,6 +1766,8 @@ When this is disabled, records stored in this format cannot be served.
 
 Recommendation: keep disabled for better performance.
 Enable for testing PowerDNS upgrades, without changing stored records.
+Enable for upgrading record content on secondaries, or when using the API (see :doc:`upgrade notes <../upgrading>`).
+Disable after record contents have been upgraded.
 
 This option is supported by the bind and Generic SQL backends. 
 
