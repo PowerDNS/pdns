@@ -26,10 +26,13 @@ struct TCPResponse : public TCPQuery
 {
   TCPResponse()
   {
+    /* let's make Coverity happy */
+    memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
   TCPResponse(std::vector<uint8_t>&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
+    memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
   std::shared_ptr<TCPConnectionToBackend> d_connection{nullptr};
