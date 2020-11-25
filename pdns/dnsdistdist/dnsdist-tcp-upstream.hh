@@ -217,13 +217,10 @@ public:
   size_t d_currentQueriesCount{0};
   unsigned int d_remainingTime{0};
   uint16_t d_querySize{0};
-  uint16_t d_downstreamFailures{0};
   State d_state{State::doingHandshake};
   bool d_readingFirstQuery{true};
   bool d_isXFR{false};
   bool d_xfrStarted{false};
-  bool d_selfGeneratedResponse{false};
-  bool d_proxyProtocolPayloadAdded{false};
   bool d_proxyProtocolPayloadHasTLV{false};
 };
 

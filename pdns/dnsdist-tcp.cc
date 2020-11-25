@@ -294,7 +294,7 @@ static bool handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     --state->d_currentQueriesCount;
 
     const auto& currentResponse = state->d_currentResponse;
-    if (state->d_selfGeneratedResponse == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
+    if (currentResponse.d_selfGenerated == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
       const auto& ds = currentResponse.d_connection->getDS();
       struct timespec answertime;
       gettime(&answertime);
@@ -351,9 +351,7 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_buffer.resize(sizeof(uint16_t));
   d_currentPos = 0;
   d_querySize = 0;
-  d_downstreamFailures = 0;
   d_state = State::readingQuerySize;
-  d_selfGeneratedResponse = false;
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds)
@@ -511,7 +509,6 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   }
 
   state->d_readingFirstQuery = false;
-  state->d_proxyProtocolPayloadAdded = false;
   ++state->d_queriesCount;
   ++state->d_ci.cs->queries;
   ++g_stats.queries;
@@ -578,9 +575,9 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   }
 
   if (result == ProcessQueryResult::SendAnswer) {
-    state->d_selfGeneratedResponse = true;
     state->d_buffer.resize(dq.len);
     TCPResponse response;
+    response.d_selfGenerated = true;
     response.d_buffer = std::move(state->d_buffer);
     state->d_state = IncomingTCPConnectionState::State::idle;
     ++state->d_currentQueriesCount;
