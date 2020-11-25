@@ -714,8 +714,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     /* now we ask for the top 20 offenders for each reason */
     StopWatch sw;
     sw.start();
-    DynBlockRulesMetricsCache cache(20, 1);
-    auto top = cache.getTopNetmasks();
+    auto top = DynBlockMaintenance::getTopNetmasks();
     BOOST_REQUIRE_EQUAL(top.size(), 1U);
     auto offenders = top.at(reason);
     BOOST_REQUIRE_EQUAL(offenders.size(), 20U);
@@ -728,7 +727,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     struct timespec expired = now;
     expired.tv_sec += blockDuration + 1;
-    dbrg.purgeExpired(expired);
+    DynBlockMaintenance::purgeExpired(expired);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
   }
 
@@ -771,8 +770,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     /* now we ask for the top 20 offenders for each reason */
     StopWatch sw;
     sw.start();
-    DynBlockRulesMetricsCache cache(20, 1);
-    auto top = cache.getTopSuffixes();
+    auto top = DynBlockMaintenance::getTopSuffixes();
     BOOST_REQUIRE_EQUAL(top.size(), 1U);
     auto suffixes = top.at(reason);
     BOOST_REQUIRE_EQUAL(suffixes.size(), 20U);
@@ -785,10 +783,11 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
 
     struct timespec expired = now;
     expired.tv_sec += blockDuration + 1;
-    dbrg.purgeExpired(expired);
+    DynBlockMaintenance::purgeExpired(expired);
     BOOST_CHECK(g_dynblockSMT.getLocal()->getNodes().empty());
   }
 
+#define BENCH_DYNBLOCKS
 #ifdef BENCH_DYNBLOCKS
   {
     /* now insert 1M names */
@@ -827,14 +826,13 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     cerr<<"added 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
 
     sw.start();
-    DynBlockRulesMetricsCache cache(20, 1);
-    auto top = cache.getTopSuffixes();
+    auto top = DynBlockMaintenance::getTopSuffixes();
     cerr<<"scanned 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
 
     struct timespec expired = now;
     expired.tv_sec += blockDuration + 1;
     sw.start();
-    dbrg.purgeExpired(expired);
+    DynBlockMaintenance::purgeExpired(expired);
     cerr<<"removed 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
   }
 #endif
@@ -871,14 +869,13 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1000000U);
 
     sw.start();
-    DynBlockRulesMetricsCache cache(20, 1);
-    auto top = cache.getTopNetmasks();
+    auto top = DynBlockMaintenance::getTopNetmasks();
     cerr<<"scanned "<<g_dynblockNMG.getLocal()->size()<<" entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
 
     struct timespec expired = now;
     expired.tv_sec += blockDuration + 1;
     sw.start();
-    dbrg.purgeExpired(expired);
+    DynBlockMaintenance::purgeExpired(expired);
     cerr<<"removed 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
   }

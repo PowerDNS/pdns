@@ -314,8 +314,6 @@ public:
     d_beQuiet = quiet;
   }
 
-  void purgeExpired(const struct timespec& now);
-
 private:
 
   bool checkIfQueryTypeMatches(const Rings::Query& query);
@@ -369,26 +367,34 @@ private:
   bool d_beQuiet{false};
 };
 
-class DynBlockRulesMetricsCache
+class DynBlockMaintenance
 {
 public:
-  DynBlockRulesMetricsCache(size_t topN, unsigned int validity): d_validityPeriod(validity), d_topN(topN)
-  {
-  }
+  static void run();
 
-  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getTopNetmasks();
-  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes();
-  void invalidate();
-  void setParameters(size_t topN, unsigned int validity);
+  /* return the (cached) number of hits per second for the top offenders, averaged over 60s */
+  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getHitsForTopNetmasks();
+  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getHitsForTopSuffixes();
+
+  /* get the the top offenders based on the current value of the counters */
+  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getTopNetmasks();
+  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes();
+  static void purgeExpired(const struct timespec& now);
 
 private:
-  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> d_cachedNetmasks;
-  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> d_cachedSuffixes;
-  std::mutex d_mutex;
-  time_t d_netmasksValidUntil{0};
-  time_t d_suffixesValidUntil{0};
-  unsigned int d_validityPeriod{0};
-  size_t d_topN{0};
-};
+  static void collectMetrics();
+  static void generateMetrics();
 
-extern DynBlockRulesMetricsCache g_dynBlocksMetricsCache;
+  struct MetricsSnapshot
+  {
+    std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> nmgData;
+    std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> smtData;
+  };
+
+  static std::mutex s_topsMutex;
+  // need N+1 datapoints to be able to do the diff after a collection point has been reached
+  static std::list<MetricsSnapshot> s_metricsData;
+  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> s_topNMGsByReason;
+  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> s_topSMTsByReason;
+  static size_t s_topN;
+};
