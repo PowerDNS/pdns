@@ -20,6 +20,9 @@
 #     for version in centos-6 centos-7 centos-8 debian-buster debian-stretch ubuntu-bionic ubuntu-xenial; do
 #       docker run -it ${product}.${version} dnsdist -v 9.9.9.9
 #     done
+#
+# For Raspbian you need to have installed:
+#     - Void Linux: `qemu`, `qemu-user-static` and `binfmt-support`
 
 if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
