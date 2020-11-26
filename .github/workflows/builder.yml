@@ -1,0 +1,24 @@
+name: 'Test package building for specific distributions'
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 22 * * 2'
+
+jobs:
+  build:
+    # a centos-6 Docker container
+    name: centos-6
+    # on a ubuntu-20.04 VM
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        product: ['authoritative', 'recursor', 'dnsdist']
+    steps:
+    - uses: actions/checkout@v2.3.4
+      with:
+        fetch-depth: 5
+        submodules: recursive
+    # this builds packages for EL6, and runs our unit test (make check)
+    - run: builder/build.sh -v -m ${{matrix.product }} centos-6
