@@ -694,20 +694,13 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
     if (ard->d_family == APL_FAMILY_IPV4) { // IPv4
       s_family = std::to_string(APL_FAMILY_IPV4);
       ca = ComboAddress();
-      for (int i=0; i < 4; i++) {
-          ca.sin4.sin_addr.s_addr |= ard->d_ip.d_ip4[i] << (i*8);
-      }
+      memcpy(&ca.sin4.sin_addr.s_addr, ard->d_ip.d_ip4, sizeof(ca.sin4.sin_addr.s_addr));
     } else if (ard->d_family == APL_FAMILY_IPV6) { // IPv6
       s_family = std::to_string(APL_FAMILY_IPV6);
       ca = ComboAddress();
       ca.sin4.sin_family = AF_INET6;
-      for (int i=0; i < 16; i++) {
-        if (i < ard->d_afdlength) {
-          ca.sin6.sin6_addr.s6_addr[i] = ard->d_ip.d_ip6[i];
-        } else {
-          ca.sin6.sin6_addr.s6_addr[i] = 0;
-        }
-      }
+      memset(&ca.sin6.sin6_addr.s6_addr, 0, sizeof(ca.sin6.sin6_addr.s6_addr));
+      memcpy(&ca.sin6.sin6_addr.s6_addr, ard->d_ip.d_ip6, ard->d_afdlength);
     } else {
       throw MOADNSException("Asked to decode APL record but got unknown Address Family");
     }
