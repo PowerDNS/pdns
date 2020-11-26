@@ -26,8 +26,11 @@ BOOST_AUTO_TEST_CASE(test_xfrIP6) {
         rtr2.xfrIP6(rawIPv6);
         string ip6("\x2a\x01\x04\xf8\x0d\x12\x18\x80\x00\x00\x00\x00\x00\x00\x00\x05", 16);
         BOOST_CHECK_EQUAL(makeHexDump(rawIPv6), makeHexDump(ip6));
-        
-        
+
+        RecordTextReader rtr3("::FFFF:192.0.2.0");
+        rtr3.xfrIP6(rawIPv6);
+        string ip62("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xc0\x00\x02\x00", 16);
+        BOOST_CHECK_EQUAL(makeHexDump(rawIPv6), makeHexDump(ip62));
 }
 
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_alpn) {
