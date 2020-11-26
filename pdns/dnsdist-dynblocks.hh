@@ -381,6 +381,8 @@ public:
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes();
   static void purgeExpired(const struct timespec& now);
 
+  static time_t s_expiredDynBlocksPurgeInterval;
+
 private:
   static void collectMetrics();
   static void generateMetrics();

@@ -440,6 +440,7 @@ std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsDa
 std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::s_topNMGsByReason;
 std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::s_topSMTsByReason;
 size_t DynBlockMaintenance::s_topN{20};
+time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{300};
 
 void DynBlockMaintenance::collectMetrics()
 {
@@ -596,17 +597,19 @@ void DynBlockMaintenance::run()
      2/ generate metrics that can be used in the API and prometheus endpoints
   */
 
-  static const time_t expiredPurgeInterval = 300;
   static const time_t metricsCollectionInterval = 10;
   static const time_t metricsGenerationInterval = 60;
 
   time_t now = time(nullptr);
-  time_t nextExpiredPurge = now + expiredPurgeInterval;
+  time_t nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
   time_t nextMetricsCollect = now + metricsCollectionInterval;
   time_t nextMetricsGeneration = now + metricsGenerationInterval;
 
   while (true) {
-    time_t sleepDelay = (nextExpiredPurge - now);
+    time_t sleepDelay = std::numeric_limits<time_t>::max();
+    if (s_expiredDynBlocksPurgeInterval > 0) {
+      sleepDelay = std::min(sleepDelay, (nextExpiredPurge - now));
+    }
     sleepDelay = std::min(sleepDelay, (nextMetricsCollect - now));
     sleepDelay = std::min(sleepDelay, (nextMetricsGeneration - now));
 
@@ -631,13 +634,13 @@ void DynBlockMaintenance::run()
         nextMetricsGeneration = now + metricsGenerationInterval;
       }
 
-      if (now >= nextExpiredPurge) {
+      if (s_expiredDynBlocksPurgeInterval > 0 && now >= nextExpiredPurge) {
         struct timespec tspec;
         gettime(&tspec);
         purgeExpired(tspec);
 
         now = time(nullptr);
-        nextExpiredPurge = now + expiredPurgeInterval;
+        nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
       }
     }
     catch (const std::exception& e) {

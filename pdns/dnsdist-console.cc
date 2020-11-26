@@ -522,6 +522,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setConsoleOutputMaxMsgSize", true, "messageSize", "set console message maximum size in bytes, default is 10 MB" },
   { "setDefaultBPFFilter", true, "filter", "When used at configuration time, the corresponding BPFFilter will be attached to every bind" },
   { "setDynBlocksAction", true, "action", "set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported" },
+  { "setDynBlocksPurgeInterval", true, "sec", "set how often the expired dynamic block entries should be removed" },
   { "SetECSAction", true, "v4[, v6]", "Set the ECS prefix and prefix length sent to backends to an arbitrary value" },
   { "setECSOverride", true, "bool", "whether to override an existing EDNS Client Subnet value in the query" },
   { "setECSSourcePrefixV4", true, "prefix-length", "the EDNS Client Subnet prefix-length used for IPv4 queries" },

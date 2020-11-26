@@ -1158,6 +1158,17 @@ Dynamic Blocks
   Set which action is performed when a query is blocked.
   Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.NXDomain, DNSAction.Refused, DNSAction.Truncate and DNSAction.NoRecurse are supported.
 
+.. function:: setDynBlocksPurgeInterval(sec)
+
+  .. versionadded:: 1.6.0
+
+  Set at which interval, in seconds, the expired dynamic blocks entries will be effectively removed from the tree. Entries are not applied anymore as
+  soon as they expire, but they remain in the tree for a while for performance reasons. Removing them makes the addition of new entries faster and
+  frees up the memory they use.
+  Setting this value to 0 disable the purging mechanism, so entries will remain in the tree.
+
+  :param int sec: The interval between two runs of the cleaning algorithm, in seconds. Default is 300 (5 minutes), 0 means disabled.
+
 .. _exceedfuncs:
 
 Getting addresses that exceeded parameters

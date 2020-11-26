@@ -33,6 +33,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
@@ -1253,6 +1254,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
       }
     });
+
+  luaCtx.writeFunction("setDynBlocksPurgeInterval", [](unsigned int interval) {
+    DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = interval;
+  });
 
   luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
       if (g_configurationDone) {
