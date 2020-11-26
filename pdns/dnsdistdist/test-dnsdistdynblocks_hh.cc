@@ -787,7 +787,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     BOOST_CHECK(g_dynblockSMT.getLocal()->getNodes().empty());
   }
 
-#define BENCH_DYNBLOCKS
 #ifdef BENCH_DYNBLOCKS
   {
     /* now insert 1M names */
