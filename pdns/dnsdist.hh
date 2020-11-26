@@ -1076,6 +1076,7 @@ struct DNSDistRuleAction
 {
   std::shared_ptr<DNSRule> d_rule;
   std::shared_ptr<DNSAction> d_action;
+  std::string d_name;
   boost::uuids::uuid d_id;
   uint64_t d_creationOrder;
 };
@@ -1084,6 +1085,7 @@ struct DNSDistResponseRuleAction
 {
   std::shared_ptr<DNSRule> d_rule;
   std::shared_ptr<DNSResponseAction> d_action;
+  std::string d_name;
   boost::uuids::uuid d_id;
   uint64_t d_creationOrder;
 };

@@ -1456,13 +1456,14 @@ template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
 
+  std::string name;
   boost::uuids::uuid uuid;
   uint64_t creationOrder;
-  parseRuleParams(params, uuid, creationOrder);
+  parseRuleParams(params, uuid, name, creationOrder);
 
-  auto rule=makeRule(var);
-  someRulActions->modify([&rule, &action, &uuid, creationOrder](vector<T>& rulactions){
-      rulactions.push_back({std::move(rule), std::move(action), std::move(uuid), creationOrder});
+  auto rule = makeRule(var);
+  someRulActions->modify([&rule, &action, &uuid, creationOrder, &name](vector<T>& rulactions){
+    rulactions.push_back({std::move(rule), std::move(action), std::move(name), std::move(uuid), creationOrder});
     });
 }
 
@@ -1510,10 +1511,11 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
       boost::uuids::uuid uuid;
       uint64_t creationOrder;
-      parseRuleParams(params, uuid, creationOrder);
+      std::string name;
+      parseRuleParams(params, uuid, name, creationOrder);
 
-      auto rule=makeRule(dnsrule);
-      DNSDistRuleAction ra({std::move(rule), action, uuid, creationOrder});
+      auto rule = makeRule(dnsrule);
+      DNSDistRuleAction ra({std::move(rule), action, std::move(name), uuid, creationOrder});
       return std::make_shared<DNSDistRuleAction>(ra);
     });
 
