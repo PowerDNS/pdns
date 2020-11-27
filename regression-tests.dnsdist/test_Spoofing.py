@@ -10,6 +10,7 @@ class TestSpoofingSpoof(DNSDistTest):
     addAction(makeRule("spoofaction-ad.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ad=true}))
     addAction(makeRule("spoofaction-ra.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ra=true}))
     addAction(makeRule("spoofaction-nora.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ra=false}))
+    addAction(makeRule("spoofaction-ttl.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ttl=1500}))
     addAction(makeRule("cnamespoofaction.spoofing.tests.powerdns.com."), SpoofCNAMEAction("cnameaction.spoofing.tests.powerdns.com."))
     addAction("multispoof.spoofing.tests.powerdns.com", SpoofAction({"192.0.2.1", "192.0.2.2", "2001:DB8::1", "2001:DB8::2"}))
     addAction(AndRule{makeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction("\\192\\000\\002\\001"))
@@ -269,6 +270,28 @@ class TestSpoofingSpoof(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEquals(expectedResponse, receivedResponse)
             self.assertEquals(receivedResponse.answer[0].ttl, 60)
+
+    def testSpoofActionSetTTL(self):
+        """
+        Spoofing: Spoof via Action, setting the TTL to 1500
+        """
+        name = 'spoofaction-ttl.spoofing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags |= dns.flags.RA
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEquals(receivedResponse.answer[0].ttl, 1500)
 
     def testSpoofRawAction(self):
         """
