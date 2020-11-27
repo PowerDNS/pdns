@@ -714,7 +714,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     /* now we ask for the top 20 offenders for each reason */
     StopWatch sw;
     sw.start();
-    auto top = DynBlockMaintenance::getTopNetmasks();
+    auto top = DynBlockMaintenance::getTopNetmasks(20);
     BOOST_REQUIRE_EQUAL(top.size(), 1U);
     auto offenders = top.at(reason);
     BOOST_REQUIRE_EQUAL(offenders.size(), 20U);
@@ -770,7 +770,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     /* now we ask for the top 20 offenders for each reason */
     StopWatch sw;
     sw.start();
-    auto top = DynBlockMaintenance::getTopSuffixes();
+    auto top = DynBlockMaintenance::getTopSuffixes(20);
     BOOST_REQUIRE_EQUAL(top.size(), 1U);
     auto suffixes = top.at(reason);
     BOOST_REQUIRE_EQUAL(suffixes.size(), 20U);
@@ -825,7 +825,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     cerr<<"added 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
 
     sw.start();
-    auto top = DynBlockMaintenance::getTopSuffixes();
+    auto top = DynBlockMaintenance::getTopSuffixes(20);
     cerr<<"scanned 1000000 entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
 
     struct timespec expired = now;
@@ -868,7 +868,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1000000U);
 
     sw.start();
-    auto top = DynBlockMaintenance::getTopNetmasks();
+    auto top = DynBlockMaintenance::getTopNetmasks(20);
     cerr<<"scanned "<<g_dynblockNMG.getLocal()->size()<<" entries in "<<std::to_string(sw.udiff()/1024)<<"ms"<<endl;
 
     struct timespec expired = now;

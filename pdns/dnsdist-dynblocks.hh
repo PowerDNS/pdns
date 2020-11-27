@@ -63,6 +63,7 @@ private:
     std::map<uint8_t, uint64_t> d_rcodeCounts;
     std::map<uint16_t, uint64_t> d_qtypeCounts;
     uint64_t queries{0};
+    uint64_t responses{0};
     uint64_t respBytes{0};
   };
 
@@ -377,8 +378,8 @@ public:
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getHitsForTopSuffixes();
 
   /* get the the top offenders based on the current value of the counters */
-  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getTopNetmasks();
-  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes();
+  static std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> getTopNetmasks(size_t topN);
+  static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes(size_t topN);
   static void purgeExpired(const struct timespec& now);
 
   static time_t s_expiredDynBlocksPurgeInterval;

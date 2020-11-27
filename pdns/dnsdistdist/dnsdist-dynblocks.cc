@@ -86,11 +86,11 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
 
       const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
       if (rcodeIt != counters.d_rcodeCounts.cend()) {
-        if (pair.second.warningRatioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.warningRatioExceeded(counters.responses, rcodeIt->second)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.ratioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.ratioExceeded(counters.responses, rcodeIt->second)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -222,7 +222,13 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   struct timespec until = now;
   until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks.lookup(name);
+  /* be careful, if you try to insert a longer suffix
+     lookup() might return a shorter one if it is
+     already in the tree as a final node */
+  const DynBlock* got = blocks.lookup(name);
+  if (got && got->domain != name) {
+    got = nullptr;
+  }
   bool expired = false;
 
   if (got) {
@@ -293,20 +299,34 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     return;
   }
 
+  struct timespec responseCutOff = now;
+
   d_respRateRule.d_cutOff = d_respRateRule.d_minTime = now;
   d_respRateRule.d_cutOff.tv_sec -= d_respRateRule.d_seconds;
+  if (d_respRateRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_respRateRule.d_cutOff;
+  }
 
   d_suffixMatchRule.d_cutOff = d_suffixMatchRule.d_minTime = now;
   d_suffixMatchRule.d_cutOff.tv_sec -= d_suffixMatchRule.d_seconds;
+  if (d_suffixMatchRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_suffixMatchRule.d_cutOff;
+  }
 
   for (auto& rule : d_rcodeRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (auto& rule : d_rcodeRatioRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (const auto& shard : g_rings.d_shards) {
@@ -316,8 +336,13 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
         continue;
       }
 
+      if (c.when < responseCutOff) {
+        continue;
+      }
+
       auto& entry = counts[c.requestor];
-      ++entry.queries;
+      ++entry.responses;
+
       bool respRateMatches = d_respRateRule.matches(c.when);
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(c.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(c);
@@ -375,20 +400,20 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
   }
 }
 
-std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::getTopNetmasks()
+std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::getTopNetmasks(size_t topN)
 {
   std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> results;
-  if (s_topN == 0) {
+  if (topN == 0) {
     return results;
   }
 
   auto blocks = g_dynblockNMG.getLocal();
   for (const auto& entry : *blocks) {
     auto& topsForReason = results[entry.second.reason];
-    if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.blocks) {
+    if (topsForReason.size() < topN || topsForReason.front().second < entry.second.blocks) {
       auto newEntry = std::make_pair(entry.first, entry.second.blocks.load());
 
-      if (topsForReason.size() >= s_topN) {
+      if (topsForReason.size() >= topN) {
         topsForReason.pop_front();
       }
 
@@ -402,20 +427,20 @@ std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaint
   return results;
 }
 
-std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getTopSuffixes()
+std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getTopSuffixes(size_t topN)
 {
   std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> results;
-  if (s_topN == 0) {
+  if (topN == 0) {
     return results;
   }
 
   auto blocks = g_dynblockSMT.getLocal();
-  blocks->visit([&results](const SuffixMatchTree<DynBlock>& node) {
+  blocks->visit([&results, topN](const SuffixMatchTree<DynBlock>& node) {
     auto& topsForReason = results[node.d_value.reason];
-    if (topsForReason.size() < DynBlockMaintenance::s_topN || topsForReason.front().second < node.d_value.blocks) {
+    if (topsForReason.size() < topN || topsForReason.front().second < node.d_value.blocks) {
       auto newEntry = std::make_pair(node.d_value.domain, node.d_value.blocks.load());
 
-      if (topsForReason.size() >= DynBlockMaintenance::s_topN) {
+      if (topsForReason.size() >= topN) {
         topsForReason.pop_front();
       }
 
@@ -445,8 +470,10 @@ time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{300};
 void DynBlockMaintenance::collectMetrics()
 {
   MetricsSnapshot snapshot;
-  snapshot.smtData = getTopSuffixes();
-  snapshot.nmgData = getTopNetmasks();
+  /* over sampling to get entries that are not in the top N
+     every time a chance to be at the end */
+  snapshot.smtData = getTopSuffixes(s_topN * 5);
+  snapshot.nmgData = getTopNetmasks(s_topN * 5);
 
   {
     std::lock_guard<std::mutex> lock(s_topsMutex);
