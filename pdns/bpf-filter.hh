@@ -26,8 +26,6 @@
 
 #include "iputils.hh"
 
-#ifdef HAVE_EBPF
-
 class BPFFilter
 {
 public:
@@ -40,6 +38,8 @@ public:
   void unblock(const DNSName& qname, uint16_t qtype=255);
   std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > getQNameStats();
+  uint64_t getHits(const ComboAddress& requestor);
+
 private:
   struct FDWrapper
   {
@@ -65,5 +65,3 @@ private:
   FDWrapper d_mainfilter;
   FDWrapper d_qnamefilter;
 };
-
-#endif /* HAVE_EBPF */

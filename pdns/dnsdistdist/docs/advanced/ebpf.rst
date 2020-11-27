@@ -60,4 +60,6 @@ The dynamic eBPF blocks and the number of queries they blocked can be seen in th
 
 They can be unregistered at a later point using the :func:`unregisterDynBPFFilter` function.
 
+Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a dynamic block is inserted via a :ref:`DynBlockRulesGroup`.
+
 This feature has been successfully tested on Arch Linux, Arch Linux ARM, Fedora Core 23 and Ubuntu Xenial

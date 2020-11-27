@@ -396,7 +396,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       setLuaNoSideEffect();
       std::string res;
       if (bpf) {
-        std::vector<std::pair<ComboAddress, uint64_t> > stats = bpf->getAddrStats();
+        auto stats = bpf->getAddrStats();
         for (const auto& value : stats) {
           if (value.first.sin4.sin_family == AF_INET) {
             res += value.first.toString() + ": " + std::to_string(value.second) + "\n";
@@ -405,7 +405,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
             res += "[" + value.first.toString() + "]: " + std::to_string(value.second) + "\n";
           }
         }
-        std::vector<std::tuple<DNSName, uint16_t, uint64_t> > qstats = bpf->getQNameStats();
+        auto qstats = bpf->getQNameStats();
         for (const auto& value : qstats) {
           res += std::get<0>(value).toString() + " " + std::to_string(std::get<1>(value)) + ": " + std::to_string(std::get<2>(value)) + "\n";
         }

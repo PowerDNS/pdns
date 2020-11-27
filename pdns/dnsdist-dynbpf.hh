@@ -27,8 +27,6 @@
 #include "bpf-filter.hh"
 #include "iputils.hh"
 
-#ifdef HAVE_EBPF
-
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
@@ -76,4 +74,3 @@ private:
   NetmaskGroup d_excludedSubnets;
 };
 
-#endif /* HAVE_EBPF */
