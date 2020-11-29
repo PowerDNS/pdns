@@ -83,6 +83,8 @@ struct ZoneStatus
 void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl,
                                  ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
+  string logPrefix="IXFR-in zone '"+domain.toLogString()+"', primary '"+remote.toString()+"', ";
+
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
@@ -95,9 +97,9 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
     // this checks three error conditions, and sets wrongDomainKind if we hit the third & had an error
     if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
       if(wrongDomainKind)
-        g_log<<Logger::Warning<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"can't determine backend, not configured as slave"<<endl;
       else
-        g_log<<Logger::Warning<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"can't determine backend"<<endl;
       return;
     }
 
@@ -179,11 +181,11 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
     }
   }
   catch(std::exception& p) {
-    g_log<<Logger::Error<<"Got exception during IXFR: "<<p.what()<<endl;
+    g_log<<Logger::Error<<logPrefix<<"got exception (std::exception): "<<p.what()<<endl;
     throw;
   }
   catch(PDNSException& p) {
-    g_log<<Logger::Error<<"Got exception during IXFR: "<<p.reason<<endl;
+    g_log<<Logger::Error<<logPrefix<<"got exception (PDNSException): "<<p.reason<<endl;
     throw;
   }  
 }
@@ -248,9 +250,10 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
   bool first=true;
   bool firstNSEC3{true};
   bool soa_received {false};
+  string logPrefix="AXFR-in zone '"+domain.toLogString()+"', primary '"+raddr.toString()+"', ";
   while(retriever.getChunk(recs, nullptr, axfr_timeout)) {
     if(first) {
-      g_log<<Logger::Notice<<"AXFR started for '"<<domain<<"'"<<endl;
+      g_log<<Logger::Notice<<logPrefix<<"retrieval started"<<endl;
       first=false;
     }
 
@@ -260,7 +263,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
         continue;
 
       if(!i->qname.isPartOf(domain)) {
-        g_log<<Logger::Warning<<"Remote "<<raddr.toStringWithPort()<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"primary tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<", ignoring"<<endl;
         continue;
       }
 
@@ -271,7 +274,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 
       for(DNSResourceRecord& rr :  out) {
         if(!rr.qname.isPartOf(domain)) {
-          g_log<<Logger::Error<<"Lua axfrfilter() filter tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          g_log<<Logger::Error<<logPrefix<<"axfrfilter() filter tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<", ignoring"<<endl;
           continue;
         }
         if(!processRecordForZS(domain, firstNSEC3, rr, zs))
@@ -305,7 +308,9 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
   }
   RemoveSentinel rs(domain, this); // this removes us from d_inprogress when we go out of scope
 
-  g_log<<Logger::Notice<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
+  string logPrefix="XFR-in zone: '"+domain.toLogString()+"', primary: '"+remote.toString()+"', ";
+
+  g_log<<Logger::Notice<<logPrefix<<"initiating transfer"<<endl;
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
@@ -317,9 +322,9 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     // this checks three error conditions & sets wrongDomainKind if we hit the third
     if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, !force && di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
       if(wrongDomainKind)
-        g_log<<Logger::Warning<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"can't determine backend, not configured as slave"<<endl;
       else
-        g_log<<Logger::Warning<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"can't determine backend"<<endl;
       return;
     }
     ZoneStatus zs;
@@ -330,11 +335,11 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       string tsigsecret64;
       if(B.getTSIGKey(tt.name, &tt.algo, &tsigsecret64)) {
         if(B64Decode(tsigsecret64, tt.secret)) {
-          g_log<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tt.name<<"' for domain '"<<domain<<"' not found"<<endl;
+          g_log<<Logger::Error<<logPrefix<<"unable to Base-64 decode TSIG key '"<<tt.name<<"' or zone not found"<<endl;
           return;
         }
       } else {
-        g_log<<Logger::Warning<<"TSIG key '"<<tt.name<<"' for domain '"<<domain<<"' not found"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"TSIG key '"<<tt.name<<"' for zone not found"<<endl;
         return;
       }
     }
@@ -354,10 +359,10 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       try {
         pdl = make_unique<AuthLua4>();
         pdl->loadFile(script);
-        g_log<<Logger::Info<<"Loaded Lua script '"<<script<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
+        g_log<<Logger::Info<<logPrefix<<"loaded Lua script '"<<script<<"'"<<endl;
       }
       catch(std::exception& e) {
-        g_log<<Logger::Error<<"Failed to load Lua editing script '"<<script<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
+        g_log<<Logger::Error<<logPrefix<<"failed to load Lua script '"<<script<<"': "<<e.what()<<endl;
         return;
       }
     }
@@ -368,17 +373,17 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     if(B.getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
-        g_log<<Logger::Info<<"AXFR source for domain '"<<domain<<"' set to "<<localaddr[0]<<endl;
+        g_log<<Logger::Info<<logPrefix<<"xfr source set to "<<localaddr[0]<<endl;
       }
       catch(std::exception& e) {
-        g_log<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
+        g_log<<Logger::Error<<logPrefix<<"failed to set xfr source '"<<localaddr[0]<<"': "<<e.what()<<endl;
         return;
       }
     } else {
       if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
         bool isV6 = remote.sin4.sin_family == AF_INET6;
-        g_log<<Logger::Warning<<"Unable to AXFR, destination address is "<<remote<<" (IPv"<< (isV6 ? "6" : "4") <<
-          ", but that address family is not enabled for outgoing traffic (query-local-address)"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"unable to xfr, address family (IPv"<< (isV6 ? "6" : "4") <<
+          " is not enabled for outgoing traffic (query-local-address)"<<endl;
         return;
       }
       laddr = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
@@ -405,11 +410,13 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       vector<string> meta;
       B.getDomainMetadata(domain, "IXFR", meta);
       if(!meta.empty() && meta[0]=="1") {
+        logPrefix = "I" + logPrefix; // XFR -> IXFR
         vector<DNSRecord> axfr;
-        g_log<<Logger::Notice<<"Starting IXFR of '"<<domain<<"' from remote "<<remote<<endl;
+        g_log<<Logger::Notice<<logPrefix<<"starting IXFR"<<endl;
         ixfrSuck(domain, tt, laddr, remote, pdl, zs, &axfr);
         if(!axfr.empty()) {
-          g_log<<Logger::Notice<<"IXFR of '"<<domain<<"' from remote '"<<remote<<"' turned into an AXFR"<<endl;
+          g_log<<Logger::Notice<<logPrefix<<"IXFR turned into an AXFR"<<endl;
+          logPrefix[0]='A'; // IXFR -> AXFR
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
@@ -426,7 +433,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
           }
         }
         else {
-          g_log<<Logger::Warning<<"Done with IXFR of '"<<domain<<"' from remote '"<<remote<<"', got "<<zs.numDeltas<<" delta"<<addS(zs.numDeltas)<<", serial now "<<zs.soa_serial<<endl;
+          g_log<<Logger::Warning<<logPrefix<<"got "<<zs.numDeltas<<" delta"<<addS(zs.numDeltas)<<", zone committed with serial "<<zs.soa_serial<<endl;
           purgeAuthCaches(domain.toString()+"$");
           return;
         }
@@ -434,11 +441,12 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     }
 
     if(rrs.empty()) {
-      g_log<<Logger::Notice<<"Starting AXFR of '"<<domain<<"' from remote "<<remote<<endl;
+      g_log<<Logger::Notice<<logPrefix<<"starting AXFR"<<endl;
       rrs = doAxfr(remote, domain, tt, laddr, pdl, zs);
-      g_log<<Logger::Notice<<"AXFR of '"<<domain<<"' from remote "<<remote<<" done"<<endl;
+      logPrefix = "A" + logPrefix; // XFR -> AXFR
+      g_log<<Logger::Notice<<logPrefix<<"retrieval finished"<<endl;
     }
- 
+
     if(zs.isNSEC3) {
       zs.ns3pr.d_flags = zs.optOutFlag ? 1 : 0;
     }
@@ -456,16 +464,16 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
 
     if(zs.isDnssecZone) {
       if(!zs.isNSEC3)
-        g_log<<Logger::Debug<<"Adding NSEC ordering information"<<endl;
+        g_log<<Logger::Debug<<logPrefix<<"adding NSEC ordering information"<<endl;
       else if(!zs.isNarrow)
-        g_log<<Logger::Debug<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
+        g_log<<Logger::Debug<<logPrefix<<"adding NSEC3 hashed ordering information"<<endl;
       else
-        g_log<<Logger::Debug<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
+        g_log<<Logger::Debug<<logPrefix<<"zone is narrow, only setting 'auth' fields"<<endl;
     }
 
 
     transaction=di.backend->startTransaction(domain, zs.domain_id);
-    g_log<<Logger::Info<<"Backend transaction started for '"<<domain<<"' storage"<<endl;
+    g_log<<Logger::Info<<logPrefix<<"storage transaction started"<<endl;
 
     // update the presigned flag and NSEC3PARAM
     if (zs.isDnssecZone) {
@@ -552,7 +560,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         }
 
         if(nonterm.size() > maxent) {
-          g_log<<Logger::Warning<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
+          g_log<<Logger::Warning<<logPrefix<<"zone has too many empty non terminals"<<endl;
           nonterm.clear();
           doent=false;
         }
@@ -596,7 +604,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     di.backend->setFresh(zs.domain_id);
     purgeAuthCaches(domain.toString()+"$");
 
-    g_log<<Logger::Warning<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
+    g_log<<Logger::Warning<<logPrefix<<"zone committed with serial "<<zs.soa_serial<<endl;
 
     // Send slave re-notifications
     bool doNotify;
@@ -612,23 +620,23 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
 
   }
   catch(DBException &re) {
-    g_log<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;
+    g_log<<Logger::Error<<logPrefix<<"unable to feed record: "<<re.reason<<endl;
     if(di.backend && transaction) {
-      g_log<<Logger::Info<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      g_log<<Logger::Info<<logPrefix<<"aborting possible open transaction"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(const MOADNSException &mde) {
-    g_log<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (MOADNSException): "<<mde.what()<<endl;
+    g_log<<Logger::Error<<logPrefix<<"unable to parse record (MOADNSException): "<<mde.what()<<endl;
     if(di.backend && transaction) {
-      g_log<<Logger::Info<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      g_log<<Logger::Info<<logPrefix<<"aborting possible open transaction"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(std::exception &re) {
-    g_log<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (std::exception): "<<re.what()<<endl;
+    g_log<<Logger::Error<<logPrefix<<"unable to xfr zone (std::exception): "<<re.what()<<endl;
     if(di.backend && transaction) {
-      g_log<<Logger::Info<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      g_log<<Logger::Info<<logPrefix<<"aborting possible open transaction"<<endl;
       di.backend->abortTransaction();
     }
   }
@@ -645,17 +653,17 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         newCount = d_failedSlaveRefresh[domain].first + 1;
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       d_failedSlaveRefresh[domain] = {newCount, nextCheck};
-      g_log<<Logger::Warning<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (resolver): "<<re.reason<<" (This was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time. Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
+      g_log<<Logger::Warning<<logPrefix<<"unable to xfr zone (ResolverException): "<<re.reason<<" (This was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time. Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
     }
     if(di.backend && transaction) {
-      g_log<<Logger::Info<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      g_log<<Logger::Info<<"aborting possible open transaction"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(PDNSException &ae) {
-    g_log<<Logger::Error<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (PDNSException): "<<ae.reason<<endl;
+    g_log<<Logger::Error<<logPrefix<<"unable to xfr zone (PDNSException): "<<ae.reason<<endl;
     if(di.backend && transaction) {
-      g_log<<Logger::Info<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      g_log<<Logger::Info<<logPrefix<<"aborting possible open transaction"<<endl;
       di.backend->abortTransaction();
     }
   }
