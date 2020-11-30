@@ -789,6 +789,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     unsigned int labelCount = name.countLabels();
     if (signature->d_labels > labelCount) {
       LOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
+      continue;
     }
 
     auto keysMatchingTag = getByTag(keys, signature->d_tag, signature->d_algorithm);
