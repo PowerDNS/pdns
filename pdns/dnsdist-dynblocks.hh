@@ -394,6 +394,8 @@ private:
     std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> smtData;
   };
 
+  /* Protects s_topNMGsByReason and s_topSMTsByReason. s_metricsData should only be accessed
+     by the dynamic blocks maintenance thread so it does not need a lock. */
   static std::mutex s_topsMutex;
   // need N+1 datapoints to be able to do the diff after a collection point has been reached
   static std::list<MetricsSnapshot> s_metricsData;

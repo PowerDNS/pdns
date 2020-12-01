@@ -475,13 +475,10 @@ void DynBlockMaintenance::collectMetrics()
   snapshot.smtData = getTopSuffixes(s_topN * 5);
   snapshot.nmgData = getTopNetmasks(s_topN * 5);
 
-  {
-    std::lock_guard<std::mutex> lock(s_topsMutex);
-    if (s_metricsData.size() >= 7) {
-      s_metricsData.pop_front();
-    }
-    s_metricsData.push_back(std::move(snapshot));
+  if (s_metricsData.size() >= 7) {
+    s_metricsData.pop_front();
   }
+  s_metricsData.push_back(std::move(snapshot));
 }
 
 void DynBlockMaintenance::generateMetrics()
