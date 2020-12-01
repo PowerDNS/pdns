@@ -897,6 +897,7 @@ private:
   bool d_wasVariable{false};
   bool d_qNameMinimization{false};
   bool d_queryReceivedOverTCP{false};
+  bool d_followCNAME{true};
 
   LogMode d_lm;
 };
