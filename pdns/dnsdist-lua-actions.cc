@@ -1604,7 +1604,7 @@ void setupLuaActions(LuaContext& luaCtx)
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<responseParams_t> vars) {
+  luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp))
         addrs.push_back(ComboAddress(*s));
@@ -1612,9 +1612,6 @@ void setupLuaActions(LuaContext& luaCtx)
         const auto& v = boost::get<vector<pair<int,std::string>>>(inp);
         for(const auto& a: v)
           addrs.push_back(ComboAddress(a.second));
-      }
-      if(b) {
-        addrs.push_back(ComboAddress(*b));
       }
 
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
