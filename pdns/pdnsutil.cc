@@ -1408,7 +1408,10 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   }
 
 
-  di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
+  if(!di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs)) {
+    cerr<<"backend did not accept the new RRset, aborting"<<endl;
+    return EXIT_FAILURE;
+  }
   // need to be explicit to bypass the ueberbackend cache!
   di.backend->lookup(rr.qtype, name, di.id);
   cout<<"New rrset:"<<endl;
