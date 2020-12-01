@@ -2908,20 +2908,6 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       isCNAMEAnswer = false;
     }
 
-    /* if we have a positive answer synthesized from a wildcard,
-       we need to store the corresponding NSEC/NSEC3 records proving
-       that the exact name did not exist in the negative cache */
-    if(gatherWildcardProof) {
-      if (nsecTypes.count(rec.d_type)) {
-        authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
-      }
-      else if (rec.d_type == QType::RRSIG) {
-        auto rrsig = getRR<RRSIGRecordContent>(rec);
-        if (rrsig && nsecTypes.count(rrsig->d_type)) {
-          authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
-        }
-      }
-    }
     if (rec.d_type == QType::RRSIG) {
       auto rrsig = getRR<RRSIGRecordContent>(rec);
       if (rrsig) {
@@ -2953,8 +2939,29 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
   }
 
+  /* if we have a positive answer synthesized from a wildcard,
+     we need to store the corresponding NSEC/NSEC3 records proving
+     that the exact name did not exist in the negative cache */
+  if (gatherWildcardProof) {
+    for (const auto& rec : lwr.d_records) {
+      if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
+        continue;
+      }
+
+      if (nsecTypes.count(rec.d_type)) {
+        authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
+      }
+      else if (rec.d_type == QType::RRSIG) {
+        auto rrsig = getRR<RRSIGRecordContent>(rec);
+        if (rrsig && nsecTypes.count(rrsig->d_type)) {
+          authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
+        }
+      }
+    }
+  }
+
   // reap all answers from this packet that are acceptable
-  for(auto& rec : lwr.d_records) {
+  for (auto& rec : lwr.d_records) {
     if(rec.d_type == QType::OPT) {
       LOG(prefix<<qname<<": OPT answer '"<<rec.d_name<<"' from '"<<auth<<"' nameservers" <<endl);
       continue;
