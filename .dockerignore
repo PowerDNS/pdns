@@ -3,3 +3,5 @@ built_pkgs
 Dockerfile-*
 .dockerignore
 Makefile.docker
+**/venv
+**/*.1
