@@ -11,6 +11,12 @@ upgrade notes if your version is older than 3.4.2.
 4.3.x to 4.4.0
 --------------
 
+Latency calculation changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It turned out that average latency calculations in earlier versions used integers instead of doubles, which led to the throwing away of any data points between 'the current average' and 1000ms above it, instead of having those data points affecting the average.
+In 4.4.0, we `started using doubles for this <https://github.com/PowerDNS/pdns/pull/9768/files>`__, which means the latency calculation is accurate now.
+
 MySQL character set detection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
