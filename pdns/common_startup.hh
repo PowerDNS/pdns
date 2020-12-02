@@ -43,7 +43,7 @@ extern std::unique_ptr<DynListener> dl;
 extern CommunicatorClass Communicator;
 extern std::shared_ptr<UDPNameserver> N;
 extern vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
-extern int avg_latency;
+extern double avg_latency;
 extern std::unique_ptr<TCPNameserver> TN;
 extern void declareArguments();
 extern void declareStats();
