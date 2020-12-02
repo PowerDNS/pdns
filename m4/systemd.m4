@@ -212,4 +212,5 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
         AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_SUIDSGID], [ test x"$systemd_restrict_suidsgid" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES], [ test x"$systemd_system_call_architectures" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_FILTER], [ test x"$systemd_system_call_filter" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV], [ test $_systemd_version -ge 240 ])
 ])
