@@ -96,7 +96,7 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
 // validateMappingLookupFormats validates any custom format provided by the
 // user does not use the custom mapping placeholder again, else it would do an
 // infinite recursion.
-bool validateMappingLookupFormats(const vector<string>& formats) {
+static bool validateMappingLookupFormats(const vector<string>& formats) {
   string::size_type cur,last;
   for (const auto& lookupFormat : formats) {
     last=0;
