@@ -55,7 +55,7 @@ RUN mkdir /build && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
-    echo 'Source: pdns' > debian/control && \
+    echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/* /build/usr/local/sbin/* /build/usr/local/lib/pdns/*.so && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
     equivs-build debian/control && \
