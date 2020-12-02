@@ -174,17 +174,17 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             cls._ResponderIncrementCounter()
             if not fromQueue.empty():
                 toQueue.put(request, True, cls._queueTimeout)
-                if synthesize is None:
-                    response = fromQueue.get(True, cls._queueTimeout)
-                    if response:
-                        response = copy.copy(response)
-                        response.id = request.id
+                response = fromQueue.get(True, cls._queueTimeout)
+                if response:
+                  response = copy.copy(response)
+                  response.id = request.id
+
+        if synthesize is not None:
+          response = dns.message.make_response(request)
+          response.set_rcode(synthesize)
 
         if not response:
-            if synthesize is not None:
-                response = dns.message.make_response(request)
-                response.set_rcode(synthesize)
-            elif cls._answerUnexpected:
+            if cls._answerUnexpected:
                 response = dns.message.make_response(request)
                 response.set_rcode(dns.rcode.SERVFAIL)
 
@@ -307,7 +307,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def sendUDPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
-        if useQueue:
+        if useQueue and response is not None:
             cls._toResponderQueue.put(response, True, timeout)
 
         if timeout:

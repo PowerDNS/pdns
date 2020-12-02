@@ -647,7 +647,7 @@ class TestAdvancedDNSSEC(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(doquery, response)
+            (_, receivedResponse) = sender(doquery, response=None, useQueue=False)
             self.assertEquals(receivedResponse, None)
 
 class TestAdvancedQClass(DNSDistTest):
@@ -666,7 +666,7 @@ class TestAdvancedQClass(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEquals(receivedResponse, None)
 
     def testAdvancedQClassINAllow(self):
@@ -710,7 +710,7 @@ class TestAdvancedOpcode(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEquals(receivedResponse, None)
 
     def testAdvancedOpcodeUpdateINAllow(self):
@@ -1569,7 +1569,7 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEquals(receivedResponse, None)
 
     def testReplied(self):
@@ -1688,7 +1688,7 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEquals(receivedResponse, expectedResponse)
 
     def testNoEDNS0Pass(self):
