@@ -86,11 +86,11 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
 
       const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
       if (rcodeIt != counters.d_rcodeCounts.cend()) {
-        if (pair.second.warningRatioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.warningRatioExceeded(counters.responses, rcodeIt->second)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.ratioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.ratioExceeded(counters.responses, rcodeIt->second)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -222,9 +222,14 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   struct timespec until = now;
   until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks.lookup(name);
+  /* be careful, if you try to insert a longer suffix
+     lookup() might return a shorter one if it is
+     already in the tree as a final node */
+  const DynBlock* got = blocks.lookup(name);
+  if (got && got->domain != name) {
+    got = nullptr;
+  }
   bool expired = false;
-  DNSName domain(name.makeLowerCase());
 
   if (got) {
     if (until < got->until) {
@@ -241,13 +246,13 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
     }
   }
 
-  DynBlock db{rule.d_blockReason, until, domain, rule.d_action};
+  DynBlock db{rule.d_blockReason, until, name.makeLowerCase(), rule.d_action};
   db.blocks = count;
 
   if (!d_beQuiet && (!got || expired)) {
-    warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, rule.d_blockDuration, rule.d_blockReason);
+    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, rule.d_blockDuration, rule.d_blockReason);
   }
-  blocks.add(domain, db);
+  blocks.add(name, std::move(db));
   updated = true;
 }
 
@@ -294,20 +299,34 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     return;
   }
 
+  struct timespec responseCutOff = now;
+
   d_respRateRule.d_cutOff = d_respRateRule.d_minTime = now;
   d_respRateRule.d_cutOff.tv_sec -= d_respRateRule.d_seconds;
+  if (d_respRateRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_respRateRule.d_cutOff;
+  }
 
   d_suffixMatchRule.d_cutOff = d_suffixMatchRule.d_minTime = now;
   d_suffixMatchRule.d_cutOff.tv_sec -= d_suffixMatchRule.d_seconds;
+  if (d_suffixMatchRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_suffixMatchRule.d_cutOff;
+  }
 
   for (auto& rule : d_rcodeRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (auto& rule : d_rcodeRatioRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (const auto& shard : g_rings.d_shards) {
@@ -317,8 +336,13 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
         continue;
       }
 
+      if (c.when < responseCutOff) {
+        continue;
+      }
+
       auto& entry = counts[c.requestor];
-      ++entry.queries;
+      ++entry.responses;
+
       bool respRateMatches = d_respRateRule.matches(c.when);
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(c.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(c);
@@ -337,4 +361,328 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
     }
   }
+}
+
+void DynBlockMaintenance::purgeExpired(const struct timespec& now)
+{
+  {
+    auto blocks = g_dynblockNMG.getLocal();
+    std::vector<Netmask> toRemove;
+    for (const auto& entry : *blocks) {
+      if (!(now < entry.second.until)) {
+        toRemove.push_back(entry.first);
+      }
+    }
+    if (!toRemove.empty()) {
+      auto updated = g_dynblockNMG.getCopy();
+      for (const auto& entry : toRemove) {
+        updated.erase(entry);
+      }
+      g_dynblockNMG.setState(std::move(updated));
+    }
+  }
+
+  {
+    std::vector<DNSName> toRemove;
+    auto blocks = g_dynblockSMT.getLocal();
+    blocks->visit([&toRemove, now](const SuffixMatchTree<DynBlock>& node) {
+      if (!(now < node.d_value.until)) {
+        toRemove.push_back(node.d_value.domain);
+      }
+    });
+    if (!toRemove.empty()) {
+      auto updated = g_dynblockSMT.getCopy();
+      for (const auto& entry : toRemove) {
+        updated.remove(entry);
+      }
+      g_dynblockSMT.setState(std::move(updated));
+    }
+  }
+}
+
+std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::getTopNetmasks(size_t topN)
+{
+  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> results;
+  if (topN == 0) {
+    return results;
+  }
+
+  auto blocks = g_dynblockNMG.getLocal();
+  for (const auto& entry : *blocks) {
+    auto& topsForReason = results[entry.second.reason];
+    if (topsForReason.size() < topN || topsForReason.front().second < entry.second.blocks) {
+      auto newEntry = std::make_pair(entry.first, entry.second.blocks.load());
+
+      if (topsForReason.size() >= topN) {
+        topsForReason.pop_front();
+      }
+
+      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<Netmask, unsigned int>& a, const std::pair<Netmask, unsigned int>& b) {
+        return a.second < b.second;
+      }),
+        newEntry);
+    }
+  }
+
+  return results;
+}
+
+std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getTopSuffixes(size_t topN)
+{
+  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> results;
+  if (topN == 0) {
+    return results;
+  }
+
+  auto blocks = g_dynblockSMT.getLocal();
+  blocks->visit([&results, topN](const SuffixMatchTree<DynBlock>& node) {
+    auto& topsForReason = results[node.d_value.reason];
+    if (topsForReason.size() < topN || topsForReason.front().second < node.d_value.blocks) {
+      auto newEntry = std::make_pair(node.d_value.domain, node.d_value.blocks.load());
+
+      if (topsForReason.size() >= topN) {
+        topsForReason.pop_front();
+      }
+
+      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& a, const std::pair<DNSName, unsigned int>& b) {
+        return a.second < b.second;
+      }),
+        newEntry);
+    }
+  });
+
+  return results;
+}
+
+struct DynBlockEntryStat
+{
+  size_t sum;
+  unsigned int lastSeenValue{0};
+};
+
+std::mutex DynBlockMaintenance::s_topsMutex;
+std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsData;
+std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::s_topNMGsByReason;
+std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::s_topSMTsByReason;
+size_t DynBlockMaintenance::s_topN{20};
+time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{300};
+
+void DynBlockMaintenance::collectMetrics()
+{
+  MetricsSnapshot snapshot;
+  /* over sampling to get entries that are not in the top N
+     every time a chance to be at the end */
+  snapshot.smtData = getTopSuffixes(s_topN * 5);
+  snapshot.nmgData = getTopNetmasks(s_topN * 5);
+
+  if (s_metricsData.size() >= 7) {
+    s_metricsData.pop_front();
+  }
+  s_metricsData.push_back(std::move(snapshot));
+}
+
+void DynBlockMaintenance::generateMetrics()
+{
+  if (s_metricsData.empty()) {
+    return;
+  }
+
+  /* do NMG */
+  std::map<std::string, std::map<Netmask, DynBlockEntryStat>> nm;
+  for (const auto& reason : s_metricsData.front().nmgData) {
+    auto& reasonStat = nm[reason.first];
+
+    /* prepare the counters by scanning the oldest entry (N+1) */
+    for (const auto& entry : reason.second) {
+      auto& stat = reasonStat[entry.first];
+      stat.sum = 0;
+      stat.lastSeenValue = entry.second;
+    }
+  }
+
+  /* scan all the N entries, updating the counters */
+  bool first = true;
+  for (const auto& snap : s_metricsData) {
+    if (first) {
+      first = false;
+      continue;
+    }
+
+    auto& nmgData = snap.nmgData;
+    for (const auto& reason : nmgData) {
+      auto& reasonStat = nm[reason.first];
+      for (const auto& entry : reason.second) {
+        auto& stat = reasonStat[entry.first];
+        if (entry.second < stat.lastSeenValue) {
+          /* it wrapped, or we did not have a last value */
+          stat.sum += entry.second;
+        }
+        else {
+          stat.sum += entry.second - stat.lastSeenValue;
+        }
+        stat.lastSeenValue = entry.second;
+      }
+    }
+  }
+
+  /* now we need to get the top N entries (for each "reason") based on our counters (sum of the last N entries) */
+  std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> topNMGs;
+  {
+    for (const auto& reason : nm) {
+      auto& topsForReason = topNMGs[reason.first];
+      for (const auto& entry : reason.second) {
+        if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.sum) {
+          /* Note that this is a gauge, so we need to divide by the number of elapsed seconds */
+          auto newEntry = std::pair<Netmask, unsigned int>(entry.first, std::round(entry.second.sum / 60.0));
+          if (topsForReason.size() >= s_topN) {
+            topsForReason.pop_front();
+          }
+
+          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<Netmask, unsigned int>& a, const std::pair<Netmask, unsigned int>& b) {
+            return a.second < b.second;
+          }),
+            newEntry);
+        }
+      }
+    }
+  }
+
+  /* do SMT */
+  std::map<std::string, std::map<DNSName, DynBlockEntryStat>> smt;
+  for (const auto& reason : s_metricsData.front().smtData) {
+    auto& reasonStat = smt[reason.first];
+
+    /* prepare the counters by scanning the oldest entry (N+1) */
+    for (const auto& entry : reason.second) {
+      auto& stat = reasonStat[entry.first];
+      stat.sum = 0;
+      stat.lastSeenValue = entry.second;
+    }
+  }
+
+  /* scan all the N entries, updating the counters */
+  first = true;
+  for (const auto& snap : s_metricsData) {
+    if (first) {
+      first = false;
+      continue;
+    }
+
+    auto& smtData = snap.smtData;
+    for (const auto& reason : smtData) {
+      auto& reasonStat = smt[reason.first];
+      for (const auto& entry : reason.second) {
+        auto& stat = reasonStat[entry.first];
+        if (entry.second < stat.lastSeenValue) {
+          /* it wrapped, or we did not have a last value */
+          stat.sum = entry.second;
+        }
+        else {
+          stat.sum = entry.second - stat.lastSeenValue;
+        }
+        stat.lastSeenValue = entry.second;
+      }
+    }
+  }
+
+  /* now we need to get the top N entries (for each "reason") based on our counters (sum of the last N entries) */
+  std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> topSMTs;
+  {
+    for (const auto& reason : smt) {
+      auto& topsForReason = topSMTs[reason.first];
+      for (const auto& entry : reason.second) {
+        if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.sum) {
+          /* Note that this is a gauge, so we need to divide by the number of elapsed seconds */
+          auto newEntry = std::pair<DNSName, unsigned int>(entry.first, std::round(entry.second.sum / 60.0));
+          if (topsForReason.size() >= s_topN) {
+            topsForReason.pop_front();
+          }
+
+          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& a, const std::pair<DNSName, unsigned int>& b) {
+            return a.second < b.second;
+          }),
+            newEntry);
+        }
+      }
+    }
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(s_topsMutex);
+    s_topNMGsByReason = std::move(topNMGs);
+    s_topSMTsByReason = std::move(topSMTs);
+  }
+}
+
+void DynBlockMaintenance::run()
+{
+  /* alright, so the main idea is to:
+     1/ clean up the NMG and SMT from expired entries from time to time
+     2/ generate metrics that can be used in the API and prometheus endpoints
+  */
+
+  static const time_t metricsCollectionInterval = 10;
+  static const time_t metricsGenerationInterval = 60;
+
+  time_t now = time(nullptr);
+  time_t nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
+  time_t nextMetricsCollect = now + metricsCollectionInterval;
+  time_t nextMetricsGeneration = now + metricsGenerationInterval;
+
+  while (true) {
+    time_t sleepDelay = std::numeric_limits<time_t>::max();
+    if (s_expiredDynBlocksPurgeInterval > 0) {
+      sleepDelay = std::min(sleepDelay, (nextExpiredPurge - now));
+    }
+    sleepDelay = std::min(sleepDelay, (nextMetricsCollect - now));
+    sleepDelay = std::min(sleepDelay, (nextMetricsGeneration - now));
+
+    sleep(sleepDelay);
+
+    try {
+      now = time(nullptr);
+      if (now >= nextMetricsCollect) {
+        /* every ten seconds we store the top N entries */
+        collectMetrics();
+
+        now = time(nullptr);
+        nextMetricsCollect = now + metricsCollectionInterval;
+      }
+
+      if (now >= nextMetricsGeneration) {
+        generateMetrics();
+
+        now = time(nullptr);
+        /* every minute we compute the averaged top N entries of the last 60 seconds,
+           and update the cached entry. */
+        nextMetricsGeneration = now + metricsGenerationInterval;
+      }
+
+      if (s_expiredDynBlocksPurgeInterval > 0 && now >= nextExpiredPurge) {
+        struct timespec tspec;
+        gettime(&tspec);
+        purgeExpired(tspec);
+
+        now = time(nullptr);
+        nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
+      }
+    }
+    catch (const std::exception& e) {
+      warnlog("Error in the dynamic block maintenance thread: %s", e.what());
+    }
+    catch (...) {
+    }
+  }
+}
+
+std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::getHitsForTopNetmasks()
+{
+  std::lock_guard<std::mutex> lock(s_topsMutex);
+  return s_topNMGsByReason;
+}
+
+std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getHitsForTopSuffixes()
+{
+  std::lock_guard<std::mutex> lock(s_topsMutex);
+  return s_topSMTsByReason;
 }

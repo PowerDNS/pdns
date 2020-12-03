@@ -26,7 +26,7 @@
 bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 {
   bool inserted = false;
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   if (d_excludedSubnets.match(addr)) {
     /* do not add a block for excluded subnets */
@@ -49,7 +49,7 @@ bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 
 void DynBPFFilter::purgeExpired(const struct timespec& now)
 {
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   typedef nth_index<container_t,1>::type ordered_until;
   ordered_until& ou = get<1>(d_entries);
@@ -74,6 +74,7 @@ std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > DynBPFFilter::
   }
 
   const auto& stats = d_bpf->getAddrStats();
+  result.reserve(stats.size());
   for (const auto& stat : stats) {
     const container_t::iterator it = d_entries.find(stat.first);
     if (it != d_entries.end()) {

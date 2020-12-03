@@ -33,6 +33,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
@@ -1147,8 +1148,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       boost::format fmt("%-24s %8d %8d %-10s %-20s %s\n");
       g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "Reason").str();
       for(const auto& e: slow) {
-	if(now < e.second.until)
-	  g_outputBuffer+= (fmt % e.first.toString() % (e.second.until.tv_sec - now.tv_sec) % e.second.blocks % (e.second.warning ? "true" : "false") % DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) % e.second.reason).str();
+        if (now < e.second.until) {
+          g_outputBuffer+= (fmt % e.first.toString() % (e.second.until.tv_sec - now.tv_sec) % e.second.blocks % (e.second.warning ? "true" : "false") % DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) % e.second.reason).str();
+        }
       }
       auto slow2 = g_dynblockSMT.getCopy();
       slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
@@ -1235,7 +1237,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 			     db.blocks=count;
                              if(!got || expired)
                                warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
-			     slow.add(domain, db);
+			     slow.add(domain, std::move(db));
 			   }
 			   g_dynblockSMT.setState(slow);
 			 });
@@ -1253,6 +1255,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
       }
     });
+
+  luaCtx.writeFunction("setDynBlocksPurgeInterval", [](unsigned int interval) {
+    DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = interval;
+  });
 
   luaCtx.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
       if (g_configurationDone) {

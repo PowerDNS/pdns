@@ -36,7 +36,7 @@ static __u64 ptr_to_u64(void *ptr)
 }
 
 int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
-		   int max_entries)
+                   int max_entries)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -214,7 +214,7 @@ void BPFFilter::removeSocket(int sock)
 
 void BPFFilter::block(const ComboAddress& addr)
 {
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   uint64_t counter = 0;
   int res = 0;
@@ -263,7 +263,7 @@ void BPFFilter::block(const ComboAddress& addr)
 
 void BPFFilter::unblock(const ComboAddress& addr)
 {
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   int res = 0;
   if (addr.sin4.sin_family == AF_INET) {
@@ -307,7 +307,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
   memcpy(key.qname, keyStr.c_str(), keyStr.size());
 
   {
-    std::unique_lock<std::mutex> lock(d_mutex);
+    std::lock_guard<std::mutex> lock(d_mutex);
     if (d_qNamesCount >= d_maxQNames) {
       throw std::runtime_error("Table full when trying to block " + qname.toLogString());
     }
@@ -340,7 +340,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
   memcpy(key.qname, keyStr.c_str(), keyStr.size());
 
   {
-    std::unique_lock<std::mutex> lock(d_mutex);
+    std::lock_guard<std::mutex> lock(d_mutex);
 
     int res = bpf_delete_elem(d_qnamemap.fd, &key);
     if (res == 0) {
@@ -355,7 +355,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
 std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 {
   std::vector<std::pair<ComboAddress, uint64_t> > result;
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   uint32_t v4Key = 0;
   uint32_t nextV4Key;
@@ -404,7 +404,7 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
 {
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   struct QNameKey key = { { 0 } };
   struct QNameKey nextKey = { { 0 } };

@@ -47,6 +47,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
@@ -1569,18 +1570,18 @@ static void maintThread()
   size_t counter = 0;
   int32_t secondsToWaitLog = 0;
 
-  for(;;) {
+  for (;;) {
     sleep(interval);
 
     {
       std::lock_guard<std::mutex> lock(g_luamutex);
       auto f = g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
-      if(f) {
+      if (f) {
         try {
           (*f)();
           secondsToWaitLog = 0;
         }
-        catch(std::exception &e) {
+        catch(const std::exception &e) {
           if (secondsToWaitLog <= 0) {
             infolog("Error during execution of maintenance function: %s", e.what());
             secondsToWaitLog = 61;
@@ -1631,9 +1632,14 @@ static void maintThread()
       }
       counter = 0;
     }
-
-    // ponder pruning g_dynblocks of expired entries here
   }
+}
+
+static void dynBlockMaintenanceThread()
+{
+  setThreadName("dnsdist/dynBloc");
+
+  DynBlockMaintenance::run();
 }
 
 static void secPollThread()
@@ -2411,6 +2417,9 @@ try
   stattid.detach();
   
   thread healththread(healthChecksThread);
+
+  thread dynBlockMaintThread(dynBlockMaintenanceThread);
+  dynBlockMaintThread.detach();
 
   if (!g_secPollSuffix.empty()) {
     thread secpollthread(secPollThread);
