@@ -951,6 +951,87 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl)
   BOOST_CHECK_EQUAL(wasAuth, false);
 }
 
+BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+
+  testkeysset_t keys;
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  sr->setAsyncCallback([keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (domain == DNSName("cname.powerdns.com.")) {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false /* no cut */);
+      }
+      else {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      }
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+      addDS(DNSName("powerdns.com."), 300, res->d_records, keys);
+      addRRSIG(keys, res->d_records, DNSName("com."), 300);
+      addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    else {
+      setLWResult(res, 0, true, false, true);
+      if (domain == DNSName("powerdns.com.") && type == QType::A) {
+        addRecordToLW(res, domain, QType::A, "192.0.2.1");
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+        addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400");
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+      }
+      else if (domain == DNSName("powerdns.com.") && type == QType::AAAA) {
+        addRecordToLW(res, domain, QType::AAAA, "2001:db8::1");
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400");
+        /* no RRSIG this time! */
+      }
+
+      return LWResult::Result::Success;
+    }
+  });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  bool wasAuth = false;
+  vState retrievedState = vState::Insecure;
+  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
+  BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
+  BOOST_CHECK_EQUAL(wasAuth, true);
+
+  ret.clear();
+  res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+
+  cached.clear();
+  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
+  BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
+  BOOST_CHECK_EQUAL(wasAuth, true);
+}
+
 BOOST_AUTO_TEST_CASE(test_records_sanitization_general)
 {
   std::unique_ptr<SyncRes> sr;

@@ -269,6 +269,31 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
+    // wipe everything
+    MRC.doWipeCache(DNSName("."), true);
+    BOOST_CHECK_EQUAL(MRC.size(), 0U);
+    records.clear();
+
+    // insert Secure record
+    records.push_back(dr2);
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none, boost::none, vState::Secure);
+    BOOST_CHECK_EQUAL(MRC.size(), 1U);
+    vState retrievedState = vState::Indeterminate;
+    bool wasAuth = false;
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
+    BOOST_CHECK_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
+    BOOST_CHECK_EQUAL(wasAuth, true);
+    // try to replace that with a Bogus record
+    MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::none, boost::none, vState::BogusNoRRSIG);
+    BOOST_CHECK_EQUAL(MRC.size(), 1U);
+    retrievedState = vState::Indeterminate;
+    wasAuth = false;
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
+    BOOST_CHECK_EQUAL(retrieved.size(), 1U);
+    BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
+    BOOST_CHECK_EQUAL(wasAuth, true);
+
     /**** Most specific netmask tests ****/
 
     // wipe everything
