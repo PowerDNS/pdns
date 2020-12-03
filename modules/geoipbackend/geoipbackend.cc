@@ -635,6 +635,7 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
       double s1, s2;
       if (!queryGeoLocation(addr, gl, lat, lon, alt, prec)) {
         rep = "";
+        tmp_gl.netmask = (addr.isIPv6()?128:32);
       } else {
         ns = (lat>0) ? 'N' : 'S';
         ew = (lon>0) ? 'E' : 'W';
@@ -660,6 +661,7 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
     } else if (!sformat.compare(cur,4,"%lat")) {
       if (!queryGeoLocation(addr, gl, lat, lon, alt, prec)) {
         rep = "";
+        tmp_gl.netmask = (addr.isIPv6()?128:32);
       } else {
         rep = str(boost::format("%lf") % lat);
       }
@@ -667,6 +669,7 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
     } else if (!sformat.compare(cur,4,"%lon")) {
       if (!queryGeoLocation(addr, gl, lat, lon, alt, prec)) {
         rep = "";
+        tmp_gl.netmask = (addr.isIPv6()?128:32);
       } else {
         rep = str(boost::format("%lf") % lon);
       }
