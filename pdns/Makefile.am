@@ -82,12 +82,10 @@ api-swagger.yaml: $(wildcard ../docs/http-api/swagger/authoritative-api-swagger.
 	cp $< $@
 
 if HAVE_VENV
-.venv: requirements.txt
+api-swagger.json: api-swagger.yaml requirements.txt
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git wheel
 	.venv/bin/pip install -r requirements.txt
-
-api-swagger.json: api-swagger.yaml .venv
 	.venv/bin/python convert-yaml-to-json.py $< $@
 else # if HAVE_VENV
 if !HAVE_API_SWAGGER_JSON
