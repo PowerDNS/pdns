@@ -52,7 +52,7 @@ RUN mkdir /build && \
     make $MAKEFLAGS install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/*
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
-    echo 'Source: pdns' > debian/control && \
+    echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/dnsdist && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
     equivs-build debian/control && \
