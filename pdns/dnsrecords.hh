@@ -870,7 +870,7 @@ class CAARecordContent : public DNSRecordContent {
     string d_tag, d_value;
 };
 
-#define boilerplate(RNAME, RTYPE)                                                                         \
+#define boilerplate(RNAME)                                                                         \
 std::shared_ptr<RNAME##RecordContent::DNSRecordContent> RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
 {                                                                                                  \
   return std::make_shared<RNAME##RecordContent>(dr, pr);                                           \
@@ -894,13 +894,13 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                        
                                                                                                    \
 void RNAME##RecordContent::report(void)                                                            \
 {                                                                                                  \
-  regist(1, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
-  regist(254, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
+  regist(1, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
+  regist(254, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
 }                                                                                                  \
 void RNAME##RecordContent::unreport(void)                                                          \
 {                                                                                                  \
-  unregist(1, RTYPE);                                                                              \
-  unregist(254, RTYPE);                                                                            \
+  unregist(1, QType::RNAME);                                                                              \
+  unregist(254, QType::RNAME);                                                                            \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
@@ -923,8 +923,8 @@ string RNAME##RecordContent::getZoneRepresentation(bool noDot) const            
 }                                                                                                  
                                                                                            
 
-#define boilerplate_conv(RNAME, TYPE, CONV)                       \
-boilerplate(RNAME, TYPE)                                          \
+#define boilerplate_conv(RNAME, CONV)                             \
+boilerplate(RNAME)                                                \
 template<class Convertor>                                         \
 void RNAME##RecordContent::xfrPacket(Convertor& conv, bool noDot) \
 {                                                                 \
