@@ -904,6 +904,7 @@ private:
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
   bool d_qNameMinimization{false};
+  bool d_followCNAME{true};
 
   LogMode d_lm;
 };

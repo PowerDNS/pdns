@@ -726,9 +726,12 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
       // Step 6
       QLOG("Step4 Resolve A for child");
+      bool oldFollowCNAME = d_followCNAME;
+      d_followCNAME = false;
       retq.resize(0);
       StopAtDelegation stopAtDelegation = Stop;
       res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, state, NULL, &stopAtDelegation);
+      d_followCNAME = oldFollowCNAME;
       QLOG("Step4 Resolve A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation);
       if (stopAtDelegation == Stopped) {
         QLOG("Delegation seen, continue at step 1");
@@ -923,9 +926,11 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   bool oldCacheOnly = setCacheOnly(cacheOnly);
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
+  bool oldFollowCNAME = d_followCNAME;
   const unsigned int startqueries = d_outqueries;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
+  d_followCNAME = true;
 
   try {
     vState newState = Indeterminate;
@@ -981,6 +986,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_requireAuthData = oldRequireAuthData;
   d_DNSSECValidationRequested = oldValidationRequested;
   setCacheOnly(oldCacheOnly);
+  d_followCNAME = oldFollowCNAME;
 
   /* we need to remove from the nsSpeeds collection the existing IPs
      for this nameserver that are no longer in the set, even if there
@@ -1301,7 +1307,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       DNSName newTarget;
       if (foundQT == QType::DNAME) {
         if (qtype == QType::DNAME && qname == foundName) { // client wanted the DNAME, no need to synthesize a CNAME
-          res = 0;
+          res = RCode::NoError;
           return true;
         }
         // Synthesize a CNAME
@@ -1330,7 +1336,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       }
 
       if(qtype == QType::CNAME) { // perhaps they really wanted a CNAME!
-        res = 0;
+        res = RCode::NoError;
+        return true;
+      }
+
+      if (qtype == QType::DS || qtype == QType::DNSKEY) {
+        res = RCode::NoError;
         return true;
       }
 
@@ -1355,6 +1366,11 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         string msg = "got a CNAME referral (from cache) to child, disabling QM";
         LOG(prefix<<qname<<": "<<msg<<endl);
         setQNameMinimization(false);
+      }
+
+      if (!d_followCNAME) {
+        res = RCode::NoError;
+        return true;
       }
 
       // Check to see if we already have seen the new target as a previous target
@@ -3451,6 +3467,11 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
     if(depth > 10) {
       LOG(prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl);
       *rcode = RCode::ServFail;
+      return true;
+    }
+
+    if (!d_followCNAME) {
+      *rcode = RCode::NoError;
       return true;
     }
 
