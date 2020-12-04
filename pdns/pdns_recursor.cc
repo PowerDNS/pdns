@@ -5344,7 +5344,7 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-cache-bits", "Maximum number of bits of IPv4 mask to cache ECS response")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("ecs-ipv6-cache-bits", "Maximum number of bits of IPv6 mask to cache ECS response")="56";
-    ::arg().set("ecs-minimum-ttl-override", "Set under adverse conditions, a minimum TTL for records in ECS-specific answers")="0";
+    ::arg().set("ecs-minimum-ttl-override", "The minimum TTL for records in ECS-specific answers")="1";
     ::arg().set("ecs-cache-limit-ttl", "Minimum TTL to cache ECS response")="0";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="";
     ::arg().set("ecs-add-for", "List of client netmasks for which EDNS Client Subnet will be added")="0.0.0.0/0, ::/0, " LOCAL_NETS_INVERSE;
@@ -5357,7 +5357,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("gettag-needs-edns-options", "If EDNS Options should be extracted before calling the gettag() hook")="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1232";
     ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1232";
-    ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
+    ::arg().set("minimum-ttl-override", "The minimum TTL")="1";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="60";
     ::arg().set("max-ns-address-qperq", "Maximum outgoing NS address queries per query")="10";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
