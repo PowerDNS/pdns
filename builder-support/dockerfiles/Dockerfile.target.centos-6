@@ -4,11 +4,13 @@
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
 FROM centos:6 as dist-base
+COPY /builder-support/dockerfiles/Centos-Base-Vault.repo /etc/yum.repos.d/CentOS-Base.repo
 ARG BUILDER_CACHE_BUSTER=
 RUN which yum
 RUN touch /var/lib/rpm/* && yum clean all
-RUN touch /var/lib/rpm/* && yum install -y --verbose epel-release centos-release-scl-rh && \
-    yum install -y --nogpgcheck devtoolset-7-gcc-c++
+RUN touch /var/lib/rpm/* && yum install -y --verbose epel-release centos-release-scl-rh
+COPY /builder-support/dockerfiles/CentOS-SCLo-scl-rh.repo /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
+RUN touch /var/lib/rpm/* &&  yum install -y --nogpgcheck devtoolset-7-gcc-c++
 
 # Enable IUS Community Repository (for Python 3.6)
 RUN curl https://setup.ius.io/ | sh
