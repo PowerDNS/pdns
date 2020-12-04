@@ -969,7 +969,6 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
   g_luaconfs.setState(luaconfsCopy);
 
   sr->setAsyncCallback([keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-
     if (type == QType::DS || type == QType::DNSKEY) {
       if (domain == DNSName("cname.powerdns.com.")) {
         return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false /* no cut */);
@@ -998,7 +997,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
       else if (domain == DNSName("powerdns.com.") && type == QType::AAAA) {
         addRecordToLW(res, domain, QType::AAAA, "2001:db8::1");
         addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
-          addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400");
+        addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400");
         /* no RRSIG this time! */
       }
 
