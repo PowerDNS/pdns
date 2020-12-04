@@ -421,7 +421,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   if (auth) {
-    /* only if the new entry is auth, we don't want to keep non-auth entry while we have a auth one */
+    /* we don't want to keep a non-auth entry while we have an auth one */
     if (vStateIsBogus(state) && (!vStateIsBogus(ce.d_state) && ce.d_state != vState::Indeterminate) && ce.d_ttd > now) {
       /* the new entry is Bogus, the existing one is not and is still valid, let's keep the existing one */
       return;
