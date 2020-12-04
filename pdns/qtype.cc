@@ -30,23 +30,80 @@
 
 static_assert(sizeof(QType) == 2, "QType is not 2 bytes in size, something is wrong!");
 
-vector<QType::namenum> QType::names;
-// XXX FIXME we need to do something with initializer order here!
-QType::init QType::initializer; 
+const vector<QType::namenum> QType::names = {
+  {"A", 1},
+  {"NS", 2},
+  {"CNAME", 5},
+  {"SOA", 6},
+  {"MB", 7},
+  {"MG", 8},
+  {"MR", 9},
+  {"PTR", 12},
+  {"HINFO", 13},
+  {"MINFO", 14},
+  {"MX", 15},
+  {"TXT", 16},
+  {"RP", 17},
+  {"AFSDB", 18},
+  {"SIG", 24},
+  {"KEY", 25},
+  {"AAAA", 28},
+  {"LOC", 29},
+  {"SRV", 33},
+  {"NAPTR", 35},
+  {"KX", 36},
+  {"CERT", 37},
+  {"A6", 38},
+  {"DNAME", 39},
+  {"OPT", 41},
+  {"APL", 42},
+  {"DS", 43},
+  {"SSHFP", 44},
+  {"IPSECKEY", 45},
+  {"RRSIG", 46},
+  {"NSEC", 47},
+  {"DNSKEY", 48},
+  {"DHCID", 49},
+  {"NSEC3", 50},
+  {"NSEC3PARAM", 51},
+  {"TLSA", 52},
+  {"SMIMEA", 53},
+  {"RKEY", 57},
+  {"CDS", 59},
+  {"CDNSKEY", 60},
+  {"OPENPGPKEY", 61},
+  {"SVCB", 64},
+  {"HTTPS", 65},
+  {"SPF", 99},
+  {"EUI48", 108},
+  {"EUI64", 109},
+  {"TKEY", 249},
+  //      {"TSIG", 250},
+  {"IXFR", 251},
+  {"AXFR", 252},
+  {"MAILB", 253},
+  {"MAILA", 254},
+  {"ANY", 255},
+  {"URI", 256},
+  {"CAA", 257},
+  {"DLV", 32769},
+  {"ADDR", 65400},
+  {"ALIAS", 65401},
+  {"LUA", 65402},
+};
 
-QType::QType()
+bool QType::isSupportedType() const
 {
-  code = 0;
-}
-
-bool QType::isSupportedType() {
-  for(vector<namenum>::iterator pos=names.begin();pos<names.end();++pos)
-    if(pos->second==code)
+  for (const auto& pos : names) {
+    if (pos.second == code) {
       return true;
+    }
+  }
   return false;
 }
 
-bool QType::isMetadataType() {
+bool QType::isMetadataType() const
+{
   if (code == QType::AXFR ||
       code == QType::MAILA ||
       code == QType::MAILB ||
@@ -57,60 +114,44 @@ bool QType::isMetadataType() {
   return false;
 }
 
-uint16_t QType::getCode() const
-{
-  return code;
-}
-
 const string QType::getName() const
 {
-  vector<namenum>::iterator pos;
-  for(pos=names.begin();pos<names.end();++pos)
-    if(pos->second==code)
-      return pos->first;
-
-  return "TYPE"+itoa(code);
+  for (const auto& pos : names) {
+    if (pos.second == code) {
+      return pos.first;
+    }
+  }
+  return "TYPE" + itoa(code);
 }
 
-QType &QType::operator=(uint16_t n)
-{
-  code=n;
-  return *this;
-}
-
-int QType::chartocode(const char *p)
+uint16_t QType::chartocode(const char *p)
 {
   string P = toUpper(p);
-  vector<namenum>::iterator pos;
 
-  for(pos=names.begin(); pos < names.end(); ++pos)
-    if(pos->first == P)
-      return pos->second;
-
-  if(*p=='#') {
-    return atoi(p+1);
+  for(const auto& pos: names) {
+    if (pos.first == P) {
+      return pos.second;
+    }
+  }
+  if (*p == '#') {
+    return static_cast<uint16_t>(atoi(p+1));
   }
 
-  if(boost::starts_with(P, "TYPE"))
-    return atoi(p+4);
+  if (boost::starts_with(P, "TYPE")) {
+    return static_cast<uint16_t>(atoi(p+4));
+  }
 
   return 0;
 }
 
 QType &QType::operator=(const char *p)
 {
-  code=chartocode(p);
+  code = chartocode(p);
   return *this;
 }
 
 QType &QType::operator=(const string &s)
 {
-  code=chartocode(s.c_str());
+  code = chartocode(s.c_str());
   return *this;
-}
-
-
-QType::QType(uint16_t n): QType()
-{
-  code=n;
 }
