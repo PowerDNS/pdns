@@ -3658,7 +3658,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
   auto& targetInfo = s_threadInfos[target];
   if(!targetInfo.isWorker) {
     g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to a non-worker thread"<<endl;
-    exit(1);
+    _exit(1);
   }
 
   const auto& tps = targetInfo.pipes;
@@ -3731,7 +3731,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   if (!isDistributorThread()) {
     g_log<<Logger::Error<<"distributeAsyncFunction() has been called by a worker ("<<t_id<<")"<<endl;
-    exit(1);
+    _exit(1);
   }
 
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
@@ -3813,7 +3813,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 {
   if (!isHandlerThread()) {
     g_log<<Logger::Error<<"broadcastAccFunction has been called by a worker ("<<t_id<<")"<<endl;
-    exit(1);
+    _exit(1);
   }
 
   unsigned int n = 0;
@@ -4068,7 +4068,7 @@ static FDMultiplexer* getMultiplexer()
     }
   }
   g_log<<Logger::Error<<"No working multiplexer found!"<<endl;
-  exit(1);
+  _exit(1);
 }
 
 
@@ -5086,9 +5086,9 @@ try
       try {
         rws = new RecursorWebServer(t_fdm);
       }
-      catch(PDNSException &e) {
-        g_log<<Logger::Error<<"Exception: "<<e.reason<<endl;
-        exit(99);
+      catch (const PDNSException &e) {
+        g_log<<Logger::Error<<"Unable to start the internal web server: "<<e.reason<<endl;
+        _exit(99);
       }
     }
     g_log<<Logger::Info<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
