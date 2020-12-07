@@ -1063,6 +1063,12 @@ static int editZone(const DNSName &zone) {
     gotoline = fnum.second;
     goto reAsk;
   }
+  catch(PDNSException& e) {
+    cerr<<"Problem: "<<e.reason<<" "<<zpt.getLineOfFile()<<endl;
+    auto fnum = zpt.getLineNumAndFile();
+    gotoline = fnum.second;
+    goto reAsk;
+  }
 
   sort(post.begin(), post.end(), DNSRecord::prettyCompare);
   checkrr.clear();
