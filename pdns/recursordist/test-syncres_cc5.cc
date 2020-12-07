@@ -1501,7 +1501,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
 
@@ -1509,7 +1509,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Bogus);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 9U);
 }

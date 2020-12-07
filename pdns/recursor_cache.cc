@@ -93,19 +93,19 @@ static void updateDNSSECValidationStateFromCache(boost::optional<vState>& state,
   else if (stateUpdate == vState::NTA) {
     state = vState::Insecure;
   }
-  else if (stateUpdate == vState::Bogus) {
+  else if (vStateIsBogus(stateUpdate)) {
     state = stateUpdate;
   }
   else if (stateUpdate == vState::Indeterminate) {
     state = stateUpdate;
   }
   else if (stateUpdate == vState::Insecure) {
-    if (*state != vState::Bogus && *state != vState::Indeterminate) {
+    if (!vStateIsBogus(*state) && *state != vState::Indeterminate) {
       state = stateUpdate;
     }
   }
   else if (stateUpdate == vState::Secure) {
-    if (*state != vState::Bogus && *state != vState::Indeterminate) {
+    if (!vStateIsBogus(*state) && *state != vState::Indeterminate) {
       state = stateUpdate;
     }
   }

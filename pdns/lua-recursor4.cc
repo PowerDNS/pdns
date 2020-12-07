@@ -158,7 +158,8 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dq) -> bool { return dq.isTcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.local; }, [](DNSQuestion& dq, const ComboAddress& newLocal) { (void) newLocal; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.remote; }, [](DNSQuestion& dq, const ComboAddress& newRemote) { (void) newRemote; });
-  d_lw->registerMember<vState (DNSQuestion::*)>("validationState", [](const DNSQuestion& dq) -> vState { return dq.validationState; }, [](DNSQuestion& dq, vState newState) { (void) newState; });
+  d_lw->registerMember<uint8_t (DNSQuestion::*)>("validationState", [](const DNSQuestion& dq) -> uint8_t { return (vStateIsBogus(dq.validationState) ? /* in order not to break older scripts */ static_cast<uint8_t>(255) : static_cast<uint8_t>(dq.validationState)); }, [](DNSQuestion& dq, uint8_t newState) { (void) newState; });
+  d_lw->registerMember<vState (DNSQuestion::*)>("detailedValidationState", [](const DNSQuestion& dq) -> vState { return dq.validationState; }, [](DNSQuestion& dq, vState newState) { (void) newState; });
 
   d_lw->registerMember<bool (DNSQuestion::*)>("variable", [](const DNSQuestion& dq) -> bool { return dq.variable; }, [](DNSQuestion& dq, bool newVariable) { dq.variable = newVariable; });
   d_lw->registerMember<bool (DNSQuestion::*)>("wantsRPZ", [](const DNSQuestion& dq) -> bool { return dq.wantsRPZ; }, [](DNSQuestion& dq, bool newWantsRPZ) { dq.wantsRPZ = newWantsRPZ; });
@@ -347,9 +348,25 @@ void RecursorLua4::postPrepareContext()
 
   d_pd.push_back({"validationstates", in_t{
         {"Indeterminate", static_cast<unsigned int>(vState::Indeterminate) },
-        {"Bogus", static_cast<unsigned int>(vState::Bogus) },
+        {"BogusNoValidDNSKEY", static_cast<unsigned int>(vState::BogusNoValidDNSKEY) },
+        {"BogusInvalidDenial", static_cast<unsigned int>(vState::BogusInvalidDenial) },
+        {"BogusUnableToGetDSs", static_cast<unsigned int>(vState::BogusUnableToGetDSs) },
+        {"BogusUnableToGetDNSKEYs", static_cast<unsigned int>(vState::BogusUnableToGetDNSKEYs) },
+        {"BogusSelfSignedDS", static_cast<unsigned int>(vState::BogusSelfSignedDS) },
+        {"BogusNoRRSIG", static_cast<unsigned int>(vState::BogusNoRRSIG) },
+        {"BogusNoValidRRSIG", static_cast<unsigned int>(vState::BogusNoValidRRSIG) },
+        {"BogusMissingNegativeIndication", static_cast<unsigned int>(vState::BogusMissingNegativeIndication) },
+        {"BogusSignatureNotYetValid", static_cast<unsigned int>(vState::BogusSignatureNotYetValid)},
+        {"BogusSignatureExpired", static_cast<unsigned int>(vState::BogusSignatureExpired)},
+        {"BogusUnsupportedDNSKEYAlgo", static_cast<unsigned int>(vState::BogusUnsupportedDNSKEYAlgo)},
+        {"BogusUnsupportedDSDigestType", static_cast<unsigned int>(vState::BogusUnsupportedDSDigestType)},
+        {"BogusNoZoneKeyBitSet", static_cast<unsigned int>(vState::BogusNoZoneKeyBitSet)},
+        {"BogusRevokedDNSKEY", static_cast<unsigned int>(vState::BogusRevokedDNSKEY)},
+        {"BogusInvalidDNSKEYProtocol", static_cast<unsigned int>(vState::BogusInvalidDNSKEYProtocol)},
         {"Insecure", static_cast<unsigned int>(vState::Insecure) },
         {"Secure", static_cast<unsigned int>(vState::Secure) },
+        /* in order not to break compatibility with older scripts: */
+        {"Bogus", static_cast<unsigned int>(255) },
   }});
 
   d_pd.push_back({"now", &g_now});
