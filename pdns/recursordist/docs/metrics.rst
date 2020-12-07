@@ -226,7 +226,97 @@ number of queries received with the DO bit set
 
 dnssec-result-bogus
 ^^^^^^^^^^^^^^^^^^^
-number of DNSSEC validations that had the   Bogus state
+number of DNSSEC validations that had the   Bogus state. Since 4.4.2 detailed counters are available, see below.
+
+dnssec-result-bogus-no-valid-dnskey
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a valid DNSKEY could not be found.
+
+dnssec-result-bogus-invalid-denial
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a valid denial of existence proof could not be found.
+
+dnssec-result-bogus-unable-to-get-dss
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a valid DS could not be retrieved.
+
+dnssec-result-bogus-unable-to-get-dnskeys
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a valid DNSKEY could not be retrieved.
+
+dnssec-result-bogus-self-signed-ds
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a DS record was signed by itself.
+
+dnssec-result-bogus-no-rrsig
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because required RRSIG records were not present in an answer.
+
+dnssec-result-bogus-no-valid-rrsig
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because only invalid RRSIG records were present in an answer.
+
+dnssec-result-bogus-missing-negative-indication
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a NODATA or NXDOMAIN answer lacked the required SOA and/or NSEC(3) records.
+
+dnssec-result-bogus-signature-no-yet-valid
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because the signature inception time in the RRSIG was not yet valid.
+
+dnssec-result-bogus-signature-expired
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because the signature expired time in the RRSIG was in the past.
+
+dnssec-result-bogus-unsupported-dnskey-algo
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a DNSKEY RRset contained only unsupported DNSSEC algorithms.
+
+dnssec-result-bogus-unsupported-ds-digest-type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because a DS RRset contained only unsupported digest types.
+
+dnssec-result-bogus-no-zone-key-bit-set
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because no DNSKEY with the Zone Key bit set was found.
+
+dnssec-result-bogus-revoked-dnskey
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because all DNSKEYs were revoked.
+
+dnssec-result-bogus-invalid-dnskey-protocol
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.4.2
+
+number of DNSSEC validations that had the Bogus state because all DNSKEYs had invalid protocols.
 
 dnssec-result-indeterminate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
