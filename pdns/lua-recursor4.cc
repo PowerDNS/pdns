@@ -393,6 +393,10 @@ void RecursorLua4::postPrepareContext()
         {"Bogus", static_cast<unsigned int>(255) },
   }});
 
+  d_lw->writeFunction("isValidationStateBogus", [](vState state) {
+    return vStateIsBogus(state);
+  });
+
   d_pd.push_back({"now", &g_now});
 
   d_lw->writeFunction("getMetric", [](const std::string& str, boost::optional<std::string> prometheusName) {
