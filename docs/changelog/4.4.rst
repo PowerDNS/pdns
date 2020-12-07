@@ -2,6 +2,76 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.0-rc1
+  :released: 7th of December 2020
+
+  This is the first Release Candidate for version 4.4.0 of the Authoritative Server.
+  If no trouble surfaces, we will release the actual 4.4.0 within a few weeks.
+
+  This release drops GSS/TSIG support, please see :doc:`PowerDNS Security Advisory 2020-06 <../security-advisories/powerdns-advisory-2020-06>`.
+
+  Version 4.4.0 brings a bunch of exciting changes:
+
+  * the LMDB backend now supports long record content, making it production ready for everybody
+  * the SVCB and HTTPS record types are supported, with limited additional processing
+  * transaction handling in the 2136 handler and the HTTP API was again improved a lot, avoiding various spurious issues users may have noticed if they do a lot of changes
+  * a new setting (:ref:`setting-consistent-backends`) offers a roughly 30% speedup, subject to conditions
+  * we finally emit Prometheus metrics!
+
+  We want to specifically thank Robin Geuze, Kees Monshouwer, Mischan Toosarani-Hausberger, Chris Hofstaedtler, and Kevin Fleming for their contributions to this release.
+  We are also grateful to all other reporters of bugs, issues, feature requests, and submitters of smaller fixes and features.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9816
+
+    geoip: set netmask on all string formatting types (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9800
+
+    api-swagger.json: do not depend on .venv target
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9798
+
+    Ensure socket-dir matches runtime dir on old systemd
+
+  .. change::
+    :tags: Improvements
+    :issues: 9730
+
+    pdnsutil add-record: notice when backend does not support replaceRRSet
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9765
+
+    add remote to default axfr logging (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9785
+
+    fix rounding inaccuracy in latency statistics (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9773
+
+    APL records: fix endianness problem
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9761
+
+    Fix the DNSName move assignment operator
+
+.. changelog::
   :version: 4.4.0-beta1
   :released: 23rd of November 2020
 
