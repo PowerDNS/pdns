@@ -405,7 +405,6 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
   ce.d_authorityRecs=authorityRecs;
-  ce.d_state=state;
   
   //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";
   //  cerr<<(content.empty() ? string("EMPTY CONTENT")  : content.begin()->d_content->getZoneRepresentation())<<"', auth="<<auth<<", ce.auth="<<ce.d_auth;
@@ -420,6 +419,16 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
       ce.d_auth = false;  // new data won't be auth
     }
   }
+
+  if (auth) {
+    /* we don't want to keep a non-auth entry while we have an auth one */
+    if (vStateIsBogus(state) && (!vStateIsBogus(ce.d_state) && ce.d_state != vState::Indeterminate) && ce.d_ttd > now) {
+      /* the new entry is Bogus, the existing one is not and is still valid, let's keep the existing one */
+      return;
+    }
+  }
+
+  ce.d_state = state;
 
   // refuse any attempt to *raise* the TTL of auth NS records, as it would make it possible
   // for an auth to keep a "ghost" zone alive forever, even after the delegation is gone from
