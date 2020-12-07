@@ -186,7 +186,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, uint16_t qcla
  * - trustanchor.server CH TXT
  * - negativetrustanchor.server CH TXT
  */
-bool SyncRes::doSpecialNamesResolve(const DNSName &qname, QType qtype, const uint16_t qclass, vector<DNSRecord> &ret)
+bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, const uint16_t qclass, vector<DNSRecord> &ret)
 {
   static const DNSName arpa("1.0.0.127.in-addr.arpa."), ip6_arpa("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."),
     localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns."), trustanchorserver("trustanchor.server."),
@@ -292,7 +292,7 @@ void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
   }
 }
 
-int SyncRes::AuthDomain::getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const
+int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std::vector<DNSRecord>& records) const
 {
   int result = RCode::NoError;
   records.clear();
@@ -381,16 +381,16 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, QType qtype, std::vect
   return result;
 }
 
-bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, QType qtype, vector<DNSRecord>&ret, int& res)
+bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, int& res)
 {
   d_authzonequeries++;
   s_authzonequeries++;
 
-  res = domain.getRecords(qname, qtype.getCode(), ret);
+  res = domain.getRecords(qname, qtype, ret);
   return true;
 }
 
-bool SyncRes::doOOBResolve(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)
+bool SyncRes::doOOBResolve(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, int& res)
 {
   string prefix;
   if(doLog()) {
@@ -641,7 +641,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 
 #define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
 
-int SyncRes::doResolve(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
+int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
   string prefix = d_prefix;
   prefix.append(depth, ' ');
@@ -818,7 +818,7 @@ int SyncRes::doResolve(const DNSName &qname, QType qtype, vector<DNSRecord>&ret,
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error)
  */
-int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation, bool considerforwards)
+int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation, bool considerforwards)
 {
   string prefix;
   if(doLog()) {
@@ -1157,7 +1157,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName &qname, QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain)
 {
   string prefix;
   DNSName subdomain(qname);
@@ -1269,7 +1269,7 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname) co
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, QType qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere)
+DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
   if (doLog()) {
@@ -1342,7 +1342,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, QType qtype, NsSe
   return nsFromCacheDomain;
 }
 
-void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const
+void SyncRes::updateValidationStatusInCache(const DNSName &qname, const QType qt, bool aa, vState newState) const
 {
   if (qt == QType::ANY || qt == QType::ADDR) {
     // not doing that
@@ -1369,7 +1369,7 @@ static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& recor
   return false;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
 {
   string prefix;
   if(doLog()) {
@@ -1640,7 +1640,7 @@ static void addTTLModifiedRecords(vector<DNSRecord>& records, const uint32_t ttl
   }
 }
 
-void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth)
+void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, const QType qtype, const int res, vState& state, unsigned int depth)
 {
   DNSName subdomain(qname);
   /* if we are retrieving a DS, we only care about the state of the parent zone */
@@ -2081,7 +2081,7 @@ static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
   ret.insert(ret.end(), ne.DNSSECRecords.signatures.begin(), ne.DNSSECRecords.signatures.end());
 }
 
-static bool rpzHitShouldReplaceContent(const DNSName& qname, const QType& qtype, const std::vector<DNSRecord>& records)
+static bool rpzHitShouldReplaceContent(const DNSName& qname, const QType qtype, const std::vector<DNSRecord>& records)
 {
   if (qtype == QType::CNAME) {
     return true;
@@ -2104,7 +2104,7 @@ static bool rpzHitShouldReplaceContent(const DNSName& qname, const QType& qtype,
   return true;
 }
 
-static void removeConflictingRecord(std::vector<DNSRecord>& records, const DNSName& name, QType dtype)
+static void removeConflictingRecord(std::vector<DNSRecord>& records, const DNSName& name, const QType dtype)
 {
   for (auto it = records.begin(); it != records.end(); ) {
     bool remove = false;
@@ -2134,7 +2134,7 @@ static void removeConflictingRecord(std::vector<DNSRecord>& records, const DNSNa
   }
 }
 
-void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, const QType& qtype, std::vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth)
+void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, const QType qtype, std::vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth)
 {
   if (d_pdl && d_pdl->policyHitEventFilter(d_requestor, qname, qtype, d_queryReceivedOverTCP, d_appliedPolicy, d_policyTags, d_discardedPolicies)) {
     /* reset to no match */
@@ -2287,7 +2287,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   return result;
 }
 
-bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery)
+bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType qtype, bool pierceDontQuery)
 {
   if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0))) {
     LOG(prefix<<qname<<": server throttled "<<endl);
@@ -2746,7 +2746,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   return vState::BogusUnableToGetDNSKEYs;
 }
 
-vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const QType& type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType qtype, const DNSName& name, const QType type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
   skeyset_t keys;
   if (!signatures.empty()) {
@@ -2818,7 +2818,7 @@ static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
   }
 }
 
-void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
+void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
 {
   const bool wasForwardRecurse = wasForwarded && rdQuery;
   /* list of names for which we will allow A and AAAA records in the additional section
@@ -2945,7 +2945,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   }
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP)
 {
   bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
@@ -3330,7 +3330,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
   return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE);
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, unsigned int depth)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, unsigned int depth)
 {
   bool done = false;
   DNSName dnameTarget, dnameOwner;
@@ -3600,7 +3600,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3779,7 +3779,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   return true;
 }
 
-void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, QType qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state)
+void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, const QType qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state)
 {
   if (newtarget == qname) {
     LOG(prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl);
@@ -3832,7 +3832,7 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(state, cnameState);
 }
 
-bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP)
+bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP)
 {
   string prefix;
   if(doLog()) {
@@ -3951,7 +3951,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
  *  -1 in case of no results
  *  rcode otherwise
  */
-int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, QType qtype,
+int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType qtype,
                          vector<DNSRecord>&ret,
                          unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation)
 {
@@ -4217,7 +4217,7 @@ void SyncRes::parseEDNSSubnetAddFor(const std::string& subnetlist)
 }
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
-int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret)
+int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret)
 {
   struct timeval now;
   gettimeofday(&now, 0);

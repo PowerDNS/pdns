@@ -30,7 +30,7 @@
 
 static_assert(sizeof(QType) == 2, "QType is not 2 bytes in size, something is wrong!");
 
-const vector<QType::namenum> QType::names = {
+const map<const string, uint16_t> QType::names = {
   {"A", 1},
   {"NS", 2},
   {"CNAME", 5},
@@ -92,14 +92,21 @@ const vector<QType::namenum> QType::names = {
   {"LUA", 65402},
 };
 
+static map<uint16_t, const string> swapElements(const map<const string, uint16_t>& names) {
+  map<uint16_t, const string> ret;
+
+  for (const auto& n : names) {
+    ret.insert(make_pair(n.second, n.first));
+  }
+  return ret;
+}
+
+const map<uint16_t, const string> QType::numbers = swapElements(names);
+
+
 bool QType::isSupportedType() const
 {
-  for (const auto& pos : names) {
-    if (pos.second == code) {
-      return true;
-    }
-  }
-  return false;
+  return numbers.count(code) == 1;
 }
 
 bool QType::isMetadataType() const
@@ -116,10 +123,9 @@ bool QType::isMetadataType() const
 
 const string QType::getName() const
 {
-  for (const auto& pos : names) {
-    if (pos.second == code) {
-      return pos.first;
-    }
+  const auto& name = numbers.find(code);
+  if (name != numbers.cend()) {
+    return name->second;
   }
   return "TYPE" + itoa(code);
 }
@@ -128,17 +134,16 @@ uint16_t QType::chartocode(const char *p)
 {
   string P = toUpper(p);
 
-  for(const auto& pos: names) {
-    if (pos.first == P) {
-      return pos.second;
-    }
+  const auto& num = names.find(P);
+  if (num != names.cend()) {
+    return num->second;
   }
   if (*p == '#') {
-    return static_cast<uint16_t>(atoi(p+1));
+    return static_cast<uint16_t>(atoi(p + 1));
   }
 
   if (boost::starts_with(P, "TYPE")) {
-    return static_cast<uint16_t>(atoi(p+4));
+    return static_cast<uint16_t>(atoi(p + 4));
   }
 
   return 0;

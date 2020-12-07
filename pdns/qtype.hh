@@ -40,23 +40,8 @@ class QType
 {
 public:
   QType(uint16_t qtype = 0) : code(qtype) {}
-  QType(const QType& orig) : code(orig.code) {}
-  QType &operator=(uint16_t arg)
-  {
-    code = arg;
-    return *this;
-  }
   QType &operator=(const char *);
   QType &operator=(const string &);
-  QType &operator=(const QType& rhs)
-  {
-    code = rhs.code;
-    return *this;
-  }
-  bool operator<(const QType rhs) const
-  {
-    return code < rhs.code;
-  }
 
   operator uint16_t() const {
     return code;
@@ -67,6 +52,7 @@ public:
   {
     return code;
   }
+
   bool isSupportedType() const;
   bool isMetadataType() const;
 
@@ -135,8 +121,8 @@ public:
     LUA = 65402
   };
 
-  typedef pair<string, uint16_t> namenum;
-  const static vector<namenum> names;
+  const static map<const string, uint16_t> names;
+  const static map<uint16_t, const string> numbers;
 
 private:
 
