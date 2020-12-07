@@ -348,6 +348,80 @@ public:
     return false;
   }
 
+  bool queryISP(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
+    if (d_db_type == GEOIP_ISP_EDITION) {
+      char* result = GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        ret = result;
+        free(result);
+        gl.netmask = tmp_gl.netmask;
+        // reduce space to dash
+        ret = boost::replace_all_copy(ret, " ", "-");
+        return true;
+      }
+
+    }
+    return false;
+  }
+
+  bool queryISPV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
+    if (d_db_type == GEOIP_ISP_EDITION_V6) {
+      char* result = GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        ret = result;
+        free(result);
+        gl.netmask = tmp_gl.netmask;
+        // reduce space to dash
+        ret = boost::replace_all_copy(ret, " ", "-");
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool queryOrg(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
+    if (d_db_type == GEOIP_ORG_EDITION) {
+      char* result = GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        ret = result;
+        free(result);
+        gl.netmask = tmp_gl.netmask;
+        // reduce space to dash
+        ret = boost::replace_all_copy(ret, " ", "-");
+        return true;
+      }
+
+    }
+    return false;
+  }
+
+  bool queryOrgV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    GeoIPLookup tmp_gl = {
+      .netmask = gl.netmask,
+    };
+    if (d_db_type == GEOIP_ORG_EDITION_V6) {
+      char* result = GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        ret = result;
+        free(result);
+        gl.netmask = tmp_gl.netmask;
+        // reduce space to dash
+        ret = boost::replace_all_copy(ret, " ", "-");
+        return true;
+      }
+    }
+    return false;
+  }
+
   bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) override {
     GeoIPLookup tmp_gl = {
       .netmask = gl.netmask,
