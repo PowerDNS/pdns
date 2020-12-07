@@ -59,6 +59,7 @@ commands:
           fingerprints:
             - "3e:0a:aa:2c:30:69:89:f3:eb:17:c1:3f:3b:78:40:7a"
 
+  # FIXME: the build-essential wart below is misformatted intentionally to remind us to replace the remotebackend testing deps with Debian packages
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
     steps:
@@ -70,12 +71,16 @@ commands:
             apt-get -y -qq install \
               bc \
               bind9utils \
+              build-essential libsqlite3-dev libzmq3-dev \
               curl \
               default-jre-headless \
               dnsutils \
+              gawk \
               ldnsutils \
               libnet-dns-perl \
               pdns-recursor \
+              socat \
+              sqlite3 \
               unbound-host
       - run:
           name: Install jdnssectools
@@ -184,21 +189,24 @@ commands:
     steps:
       - run: |
           apt-get install -qq -y --no-install-recommends \
+            default-libmysqlclient-dev \
             libboost-all-dev \
             libcdb1 \
             libcurl4 \
+            libgeoip1 \
             libkrb5-3 \
             libldap-2.4-2 \
             liblmdb0 \
             libluajit-5.1-2 \
+            libmaxminddb0 \
             libp11-kit0 \
             libpq5 \
-            libssl1.1 \
             libsodium23 \
+            libssl1.1 \
             libsystemd0 \
-            default-libmysqlclient-dev \
-            unixodbc \
-            softhsm2
+            libyaml-cpp0.6 \
+            softhsm2 \
+            unixodbc
 
   install-dnsdist-deps:
     description: "Install all libraries needed for testing dnsdist"
@@ -256,10 +264,12 @@ commands:
               libboost-all-dev \
               libcdb-dev \
               libcurl4-openssl-dev \
+              libgeoip-dev \
               libkrb5-dev \
               libldap2-dev \
               liblmdb-dev \
               libluajit-5.1-dev \
+              libmaxminddb-dev \
               libp11-kit-dev \
               libpq-dev \
               libsodium-dev \
@@ -268,13 +278,16 @@ commands:
               libsystemd-dev \
               libtool \
               libyaml-cpp-dev \
+              libzmq3-dev \
               make \
               pkg-config \
+              python3-venv \
               ragel \
+              ruby-bundler \
+              ruby2.5-dev \
               sqlite3 \
               systemd \
               unixodbc-dev \
-              python3-venv \
               wget
 
   add-auth-repo:
@@ -559,13 +572,14 @@ jobs:
             CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns lua2' \
+              --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
               --enable-systemd \
               --enable-tools \
               --enable-unit-tests \
               --enable-backend-unit-tests \
               --enable-fuzz-targets \
               --enable-experimental-pkcs11 \
+              --enable-remotebackend-zeromq \
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
@@ -575,6 +589,9 @@ jobs:
           command: make -j3 -k
       - save-ccache-cache:
           product: auth
+      - run:
+          name: Install Ruby deps for remotebackend unit tests
+          command: cd modules/remotebackend && ruby -S bundle install --path vendor/bundle
       - run:
           name: Run unit tests
           command: PDNS_TEST_NO_IPV6=1 make check || (cat pdns/test-suite.log; false)
@@ -612,8 +629,7 @@ jobs:
           command: |
             apt-get install -qq -y \
             unixodbc \
-            libsqliteodbc \
-            sqlite3
+            libsqliteodbc
       - run:
           name: Set up sqlite3 odbc testing
           command: echo 'export GODBC_SQLITE3_DSN=pdns-sqlite3-1' > ./vars
@@ -694,8 +710,6 @@ jobs:
           password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
-      - run:
-          command: apt-get install -qq -y sqlite3
       - auth-regress:
           context: gsqlite3-nodnssec-both
       - auth-regress:
@@ -722,7 +736,7 @@ jobs:
     steps:
       - auth-regress-setup
       - run:
-          command: apt-get install -qq -y sqlite3 p11-kit softhsm2
+          command: apt-get install -qq -y p11-kit softhsm2
       - auth-regress:
           context: bind-both
       - auth-regress:
@@ -873,6 +887,88 @@ jobs:
           context: tinydns
           doroot: false
 
+  test-auth-regress-geoip:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+    steps:
+      - auth-regress-setup
+      - auth-regress:
+          context: geoip
+          doroot: false
+      - auth-regress:
+          context: geoip-nsec3-narrow
+          doroot: false
+      - run: export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+      - auth-regress:
+          context: geoip
+          doroot: false
+
+  test-auth-regress-remote:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install ruby ruby-bundler ruby2.5-dev
+      - run:
+          workdir: ~/project/modules/remotebackend
+          command: ruby -S bundle install
+      - auth-regress:
+          context: remotebackend-pipe
+          doroot: false
+      - auth-regress:
+          context: remotebackend-unix
+          doroot: false
+      - auth-regress:
+          context: remotebackend-http
+          doroot: false
+      - auth-regress:
+          context: remotebackend-zeromq
+          doroot: false
+      - auth-regress:
+          context: remotebackend-pipe-dnssec
+          doroot: false
+      - auth-regress:
+          context: remotebackend-unix-dnssec
+          doroot: false
+      - auth-regress:
+          context: remotebackend-http-dnssec
+          doroot: false
+      - auth-regress:
+          context: remotebackend-zeromq-dnssec
+          doroot: false
+
+
+  test-auth-regress-lua2:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+    steps:
+      - auth-regress-setup
+      - run:
+          name: Make empty trustedkeys file to avoid useless test script failure
+          workdir: ~/project/regression-tests
+          command: touch trustedkeys
+      - auth-regress:
+          context: lua2
+          doroot: false
+      - auth-regress:
+          context: lua2-dnssec
+          doroot: false
+
   test-auth-regress-lmdb:
     resource_class: small
 
@@ -919,7 +1015,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
     steps:
       - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv sqlite3
+      - run: apt-get -y -qq install python3-venv
       - run:
           name: Run API tests
           workdir: ~/project/regression-tests.api
@@ -1723,6 +1819,15 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-bind:
+          requires:
+            - build-auth
+      - test-auth-regress-geoip:
+          requires:
+            - build-auth
+      - test-auth-regress-remote:
+          requires:
+            - build-auth
+      - test-auth-regress-lua2:
           requires:
             - build-auth
       - test-auth-regress-gsqlite3:
