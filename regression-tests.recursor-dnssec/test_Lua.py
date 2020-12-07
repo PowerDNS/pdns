@@ -581,3 +581,78 @@ class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
         self.assertEqual(len(res.additional), 1)
         self.assertEquals(res.answer, expectedAnswerRecords)
         self.assertEquals(res.additional, expectedAdditionalRecords)
+
+class PDNSValidationStatesTest(RecursorTest):
+    """Tests that we have access to the validation states from Lua"""
+
+    _confdir = 'validation-states-from-lua'
+    _config_template_default = """
+dnssec=validate
+daemon=no
+trace=yes
+packetcache-ttl=0
+packetcache-servfail-ttl=0
+max-cache-ttl=15
+threads=1
+loglevel=9
+disable-syslog=yes
+log-common-errors=yes
+"""
+    _roothints = None
+    _lua_config_file = """
+    """
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+    function postresolve (dq)
+      if pdns.validationstates.Indeterminate == nil or
+         pdns.validationstates.BogusNoValidDNSKEY == nil or
+         pdns.validationstates.BogusInvalidDenial == nil or
+         pdns.validationstates.BogusUnableToGetDSs == nil or
+         pdns.validationstates.BogusUnableToGetDNSKEYs == nil or
+         pdns.validationstates.BogusSelfSignedDS == nil or
+         pdns.validationstates.BogusNoRRSIG == nil or
+         pdns.validationstates.BogusNoValidRRSIG == nil or
+         pdns.validationstates.BogusMissingNegativeIndication == nil or
+         pdns.validationstates.BogusSignatureNotYetValid == nil or
+         pdns.validationstates.BogusSignatureExpired == nil or
+         pdns.validationstates.BogusUnsupportedDNSKEYAlgo == nil or
+         pdns.validationstates.BogusUnsupportedDSDigestType == nil or
+         pdns.validationstates.BogusNoZoneKeyBitSet == nil or
+         pdns.validationstates.BogusRevokedDNSKEY == nil or
+         pdns.validationstates.BogusInvalidDNSKEYProtocol == nil or
+         pdns.validationstates.Insecure == nil or
+         pdns.validationstates.Secure == nil or
+         pdns.validationstates.Bogus == nil then
+         -- refused if at least one state is not available
+         pdnslog('Missing DNSSEC validation state!')
+         dq.rcode = pdns.REFUSED
+         return true
+      end
+      if dq.qname == newDN('brokendnssec.net.') then
+        if dq.validationState ~= pdns.validationstates.Bogus then
+          pdnslog('DNSSEC validation state should be Bogus!')
+          dq.rcode = pdns.REFUSED
+          return true
+        end
+        if dq.detailedValidationState ~= pdns.validationstates.BogusNoRRSIG then
+          pdnslog('DNSSEC detailed validation state is not valid, got '..dq.detailedValidationState..' and expected '..pdns.validationstates.BogusNoRRSIG)
+          dq.rcode = pdns.REFUSED
+          return true
+        end
+        if not isValidationStateBogus(dq.detailedValidationState) then
+          pdnslog('DNSSEC detailed validation state should be Bogus and is not!')
+          dq.rcode = pdns.REFUSED
+          return true
+        end
+      end
+      return false
+    end
+    """
+
+    def testValidationBogus(self):
+        query = dns.message.make_query('brokendnssec.net.', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 0)
