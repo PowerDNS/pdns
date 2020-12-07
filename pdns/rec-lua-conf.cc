@@ -250,7 +250,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
       if(have.count("refresh")) {
         refresh = boost::get<uint32_t>(have["refresh"]);
         if (refresh == 0) {
-          g_log<<Logger::Warning<<"rpzMaster refresh value of 0 ignored"<<endl;
+          g_log<<Logger::Warning<<"rpzPrimary refresh value of 0 ignored"<<endl;
         }
       }
 
@@ -279,7 +279,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
       // We were passed a localAddress, check if its AF matches the masters'
       for (const auto& master : masters) {
         if (localAddress.sin4.sin_family != master.sin4.sin_family) {
-          throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
+          throw PDNSException("Primary address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
         }
       }
     }
@@ -308,11 +308,11 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
     }
   }
   catch(const std::exception& e) {
-    g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Problem configuring 'rpzPrimary': "<<e.what()<<endl;
     exit(1);  // FIXME proper exit code?
   }
   catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Problem configuring 'rpzPrimary': "<<e.reason<<endl;
     exit(1);  // FIXME proper exit code?
   }
 
