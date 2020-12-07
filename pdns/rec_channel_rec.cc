@@ -1200,6 +1200,14 @@ void registerAllStats()
   addGetStat("dnssec-validations", &g_stats.dnssecValidations);
   addGetStat("dnssec-result-insecure", &g_stats.dnssecResults[vState::Insecure]);
   addGetStat("dnssec-result-secure", &g_stats.dnssecResults[vState::Secure]);
+  addGetStat("dnssec-result-bogus", []() {
+    static std::set<vState> const bogusStates = { vState::BogusNoValidDNSKEY, vState::BogusInvalidDenial, vState::BogusUnableToGetDSs, vState::BogusUnableToGetDNSKEYs, vState::BogusSelfSignedDS, vState::BogusNoRRSIG, vState::BogusNoValidRRSIG, vState::BogusMissingNegativeIndication, vState::BogusSignatureNotYetValid, vState::BogusSignatureExpired, vState::BogusUnsupportedDNSKEYAlgo, vState::BogusUnsupportedDSDigestType, vState::BogusNoZoneKeyBitSet, vState::BogusRevokedDNSKEY, vState::BogusInvalidDNSKEYProtocol };
+    uint64_t total = 0;
+    for (const auto& state : bogusStates) {
+      total += g_stats.dnssecResults[state];
+    }
+    return total;
+  });
   addGetStat("dnssec-result-bogus-no-valid-dnskey", &g_stats.dnssecResults[vState::BogusNoValidDNSKEY]);
   addGetStat("dnssec-result-bogus-invalid-denial", &g_stats.dnssecResults[vState::BogusInvalidDenial]);
   addGetStat("dnssec-result-bogus-unable-to-get-dss", &g_stats.dnssecResults[vState::BogusUnableToGetDSs]);
