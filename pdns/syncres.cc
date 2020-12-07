@@ -1410,9 +1410,9 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         vState recordState = getValidationStatus(foundName, false);
         if (recordState == vState::Secure) {
           LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.getName()<<" cache, validating.."<<endl);
-          state = SyncRes::validateRecordsWithSigs(depth, foundName, foundQT, foundName, cset, signatures);
+          state = SyncRes::validateRecordsWithSigs(depth, qname, qtype, foundName, foundQT, cset, signatures);
           if (state != vState::Indeterminate) {
-            LOG(prefix<<qname<<": got vState::Indeterminate state from the CNAME cache, new validation result is "<<state<<endl);
+            LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.getName()<<" cache, new validation result is "<<state<<endl);
             if (vStateIsBogus(state)) {
               capTTL = s_maxbogusttl;
             }
@@ -1627,7 +1627,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
     }
 
     if (recordState == vState::Secure) {
-      recordState = SyncRes::validateRecordsWithSigs(depth, qname, qtype, owner, entry.second.records, entry.second.signatures);
+      recordState = SyncRes::validateRecordsWithSigs(depth, qname, qtype, owner, QType(entry.first.type), entry.second.records, entry.second.signatures);
     }
 
     if (recordState != vState::Indeterminate && recordState != state) {
@@ -1792,13 +1792,13 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
                 cachedRecordState = validateDNSKeys(sqname, type.second.records, type.second.signatures, depth);
               }
               else {
-                cachedRecordState = SyncRes::validateRecordsWithSigs(depth, sqname, QType(type.first), sqname, type.second.records, type.second.signatures);
+                cachedRecordState = SyncRes::validateRecordsWithSigs(depth, qname, qtype, sqname, QType(type.first), type.second.records, type.second.signatures);
               }
               updateDNSSECValidationState(cachedState, cachedRecordState);
             }
           }
           else {
-            cachedState = SyncRes::validateRecordsWithSigs(depth, sqname, sqt, sqname, cset, signatures);
+            cachedState = SyncRes::validateRecordsWithSigs(depth, qname, qtype, sqname, sqt, cset, signatures);
           }
         }
       }
@@ -2688,7 +2688,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
   return vState::BogusUnableToGetDNSKEYs;
 }
 
-vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const QType& type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
   skeyset_t keys;
   if (!signatures.empty()) {
@@ -2696,7 +2696,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     if (!signer.empty() && name.isPartOf(signer)) {
       if ((qtype == QType::DNSKEY || qtype == QType::DS) && signer == qname) {
         /* we are already retrieving those keys, sorry */
-        if (qtype == QType::DS && !signer.isRoot()) {
+        if (type == QType::DS && signer == name && !signer.isRoot()) {
           /* Unless we are getting the DS of the root zone, we should never see a
              DS (or a denial of a DS) signed by the DS itself, since we should be
              requesting it from the parent zone. Something is very wrong */
@@ -2720,7 +2720,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     recordcontents.insert(record.d_content);
   }
 
-  LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<"|"<<qtype.getName()<<endl);
+  LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<"|"<<type.getName()<<endl);
   vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, false);
   if (state == vState::Secure) {
     LOG(d_prefix<<"Secure!"<<endl);
@@ -3149,7 +3149,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
              */
             if (!(isDNAMEAnswer && i->first.type == QType::CNAME)) {
               LOG(d_prefix<<"Validating non-additional record for "<<i->first.name<<endl);
-              recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
+              recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, QType(i->first.type), i->second.records, i->second.signatures);
               /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
               if (qtype == QType::NS && i->second.signatures.empty() && vStateIsBogus(recordState) && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name) == vState::Indeterminate) {
                 recordState = vState::Indeterminate;
@@ -3164,7 +3164,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         /* in a non authoritative answer, we only care about the DS record (or lack of)  */
         if ((i->first.type == QType::DS || i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && i->first.place == DNSResourceRecord::AUTHORITY) {
           LOG(d_prefix<<"Validating DS record for "<<i->first.name<<endl);
-          recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
+          recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, QType(i->first.type), i->second.records, i->second.signatures);
         }
       }
 
