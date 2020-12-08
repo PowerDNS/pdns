@@ -26,11 +26,10 @@
 
 #include "iputils.hh"
 #include "misc.hh"
-#include "protobuf.hh"
 #include "dns.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
-#include "protobuf.hh"
+#include "protozero.hh"
 #include "uuid-utils.hh"
 
 #include "statbag.hh"
@@ -75,6 +74,7 @@ try {
     ind=atoi(argv[3]);
 
   std::map<uint16_t,std::pair<boost::uuids::uuid,struct timeval> > ids;
+  std::string pbBuffer;
   try {
     while (pr.getUDPPacket()) {
       const dnsheader* dh=(dnsheader*)pr.d_payload;
@@ -123,19 +123,23 @@ try {
       *((char*)&requestor.sin4.sin_addr.s_addr)|=ind;
       *((char*)&responder.sin4.sin_addr.s_addr)|=ind;
 
-      DNSProtoBufMessage message(dh->qr ? DNSProtoBufMessage::DNSProtoBufMessageType::Response : DNSProtoBufMessage::DNSProtoBufMessageType::Query, uniqueId, &requestor, &responder, qname, qtype, qclass, dh->id, false, pr.d_len);
-      message.setTime(pr.d_pheader.ts.tv_sec, pr.d_pheader.ts.tv_usec);
+      pbBuffer.clear();
+      pdns::ProtoZero::Message pbMessage(pbBuffer);
+      pbMessage.setType(dh->qr ? 2 : 1);
+      pbMessage.setRequest(uniqueId, requestor, responder, qname, qtype, qclass, dh->id, false, pr.d_len);
+      pbMessage.setTime(pr.d_pheader.ts.tv_sec, pr.d_pheader.ts.tv_usec);
 
       if (dh->qr) {
-        message.setResponseCode(dh->rcode);
+        pbMessage.startResponse();
+        pbMessage.setResponseCode(dh->rcode);
         if (hasQueryTime) {
-          message.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
+          pbMessage.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
         }
 
         try {
-          message.addRRsFromPacket((const char*) dh, pr.d_len, true);
+          pbMessage.addRRsFromPacket((const char*) dh, pr.d_len, true);
         }
-        catch(std::exception& e)
+        catch (const std::exception& e)
         {
           cerr<<"Error parsing response records: "<<e.what()<<endl;
         }
@@ -145,12 +149,9 @@ try {
         }
       }
 
-      std::string str;
-      message.serialize(str);
-
-      uint16_t mlen = htons(str.length());
+      uint16_t mlen = htons(pbBuffer.length());
       fwrite(&mlen, 1, sizeof(mlen), fp.get());
-      fwrite(str.c_str(), 1, str.length(), fp.get());
+      fwrite(pbBuffer.c_str(), 1, pbBuffer.length(), fp.get());
     }
   }
   catch (const std::exception& e) {
