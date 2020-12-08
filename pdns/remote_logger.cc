@@ -116,7 +116,7 @@ bool RemoteLogger::reconnect()
     {
       /* we are now successfully connected, time to take the lock and update the
          socket */
-      std::unique_lock<std::mutex> lock(d_mutex);
+      std::lock_guard<std::mutex> lock(d_mutex);
       d_socket = std::move(newSock);
     }
   }
@@ -138,7 +138,7 @@ void RemoteLogger::queueData(const std::string& data)
     throw std::runtime_error("Got a request to write an object of size " + data.size());
   }
 
-  std::unique_lock<std::mutex> lock(d_mutex);
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   if (!d_writer.hasRoomFor(data)) {
     /* not connected, queue is full, just drop */
@@ -198,7 +198,7 @@ try
     if (connected) {
       try {
         /* we don't want to take the lock while trying to reconnect */
-        std::unique_lock<std::mutex> lock(d_mutex);
+        std::lock_guard<std::mutex> lock(d_mutex);
         if (d_socket) { // check if it is set
           /* if flush() returns false, it means that we couldn't flush anything yet
              either because there is nothing to flush, or because the outgoing TCP
