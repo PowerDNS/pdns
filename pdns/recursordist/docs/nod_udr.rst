@@ -17,7 +17,7 @@ NOD is disabled by default, and must be enabled through the use of the following
 
 Once enabled the recursor will keep track of previously seen domains using the SBF data structure, which is periodically persisted to the directory specified in the ``new-domain-history-dir``, which defaults to /var/lib/pdns-recursor/nod.
 
-Administrators may wish to prevent certain domains or subdomains from ever triggering the NOD algorithm, in which case those domains must be added to the ``new-domain-whitelist`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a newly observed domain.
+Administrators may wish to prevent certain domains or subdomains from ever triggering the NOD algorithm, in which case those domains must be added to the ``new-domain-ignore-list`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a newly observed domain.
 
 There are several ways to receive the information about newly observed domains:
 
