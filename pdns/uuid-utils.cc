@@ -32,10 +32,15 @@
 
 #include <boost/uuid/uuid_generators.hpp>
 
-thread_local boost::uuids::random_generator t_uuidGenerator;
+// The default of:
+// boost::uuids::random_generator
+// is safe for crypto operations since 1.67.0, but much slower.
+thread_local boost::uuids::basic_random_generator<boost::random::mt19937> t_uuidGenerator;
 
 boost::uuids::uuid getUniqueID()
 {
+  // not safe for crypto, but it could be with Boost >= 1.67.0 by using boost::uuids::random_generator,
+  // which is slower
   return t_uuidGenerator();
 }
 
