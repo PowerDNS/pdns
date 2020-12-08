@@ -60,7 +60,7 @@ EOF
     elif [ "$RELEASE" = "dnsdist-15" -a "$VERSION" = "8" ]; then
         cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 RUN dnf install -y 'dnf-command(config-manager)'
-RUN dnf config-manager --set-enabled PowerTools
+RUN dnf config-manager --set-enabled powertools
 EOF
     fi
 
