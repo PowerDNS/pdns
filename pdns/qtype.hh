@@ -138,6 +138,11 @@ namespace std {
   };
 }
 
+// Used by e.g. boost multi-index
+inline size_t hash_value(const QType qtype) {
+  return qtype.getCode();
+}
+
 struct QClass
 {
   enum QClassEnum { IN = 1, CHAOS = 3, NONE = 254, ANY = 255 };
