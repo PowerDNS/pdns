@@ -33,6 +33,12 @@ namespace pdns {
       {
         d_response = protozero::pbf_writer(d_rspbuf);
       }
+
+      RecMessage(std::string& buffer): Message(buffer)
+      {
+        d_response = protozero::pbf_writer(buffer);
+      }
+
       // Start a new messagebuf, containing separate data for the response part
       RecMessage(std::string::size_type sz1, std::string::size_type sz2): RecMessage()
       {

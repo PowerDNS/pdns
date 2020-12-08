@@ -98,7 +98,6 @@
 #endif /* NOD_ENABLED */
 #include "query-local-address.hh"
 
-#include "rec-protobuf.hh"
 #include "rec-snmp.hh"
 
 #ifdef HAVE_SYSTEMD
@@ -107,10 +106,8 @@
 
 #include "namespaces.hh"
 
-#ifdef HAVE_PROTOBUF
 #include "uuid-utils.hh"
 #include "rec-protozero.hh"
-#endif /* HAVE_PROTOBUF */
 
 #include "xpf.hh"
 
@@ -120,12 +117,10 @@ static thread_local std::shared_ptr<RecursorLua4> t_pdl;
 static thread_local unsigned int t_id = 0;
 static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
-#ifdef HAVE_PROTOBUF
 static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers{nullptr};
 static thread_local uint64_t t_protobufServersGeneration;
 static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
 static thread_local uint64_t t_outgoingProtobufServersGeneration;
-#endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
 static thread_local std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> t_frameStreamServers{nullptr};
@@ -330,13 +325,11 @@ struct DNSComboWriter {
      d_local holds our own. */
   ComboAddress d_local;
   ComboAddress d_destination;
-#ifdef HAVE_PROTOBUF
   boost::uuids::uuid d_uuid;
   string d_requestorId;
   string d_deviceId;
   string d_deviceName;
   struct timeval d_kernelTimestamp{0,0};
-#endif
   std::string d_query;
   std::unordered_set<std::string> d_policyTags;
   std::string d_routingTag;
@@ -883,7 +876,6 @@ catch(...)
   return "Exception making error message for exception";
 }
 
-#ifdef HAVE_PROTOBUF
 static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName)
 {
   if (!t_protobufServers) {
@@ -924,7 +916,6 @@ static void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
     server->queueData(msg);
   }
 }
-#endif
 
 /**
  * Chases the CNAME provided by the PolicyCustom RPZ policy.
@@ -1050,7 +1041,6 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
   return PolicyResult::NoAction;
 }
 
-#ifdef HAVE_PROTOBUF
 static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config)
 {
   auto result = std::make_shared<std::vector<std::unique_ptr<RemoteLogger>>>();
@@ -1203,7 +1193,6 @@ static bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLoc
   return true;
 }
 #endif /* HAVE_FSTRM */
-#endif /* HAVE_PROTOBUF */
 
 #ifdef NOD_ENABLED
 static bool nodCheckNewDomain(const DNSName& dname)
@@ -1434,7 +1423,6 @@ static void startDoResolve(void *p)
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
     RecursorPacketCache::OptPBData pbDataForCache;
-#ifdef HAVE_PROTOBUF
     pdns::ProtoZero::RecMessage pbMessage;
     if (checkProtobufExport(luaconfsLocal)) {
       pbMessage.reserve(128, 128); // It's a bit of a guess...
@@ -1443,7 +1431,6 @@ static void startDoResolve(void *p)
 
       // RRSets added below
     }
-#endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
     checkFrameStreamExport(luaconfsLocal);
@@ -1501,10 +1488,8 @@ static void startDoResolve(void *p)
     }
     sr.setDNSSECValidationRequested(g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog || ((dc->d_mdp.d_header.ad || DNSSECOK) && g_dnssecmode==DNSSECMode::Process));
 
-#ifdef HAVE_PROTOBUF
     sr.setInitialRequestId(dc->d_uuid);
     sr.setOutgoingProtobufServers(t_outgoingProtobufServers);
-#endif
 #ifdef HAVE_FSTRM
     sr.setFrameStreamServers(t_frameStreamServers);
 #endif
@@ -1528,11 +1513,9 @@ static void startDoResolve(void *p)
     dq.currentRecords = &ret;
     dq.dh = &dc->d_mdp.d_header;
     dq.data = dc->d_data;
-#ifdef HAVE_PROTOBUF
     dq.requestorId = dc->d_requestorId;
     dq.deviceId = dc->d_deviceId;
     dq.deviceName = dc->d_deviceName;
-#endif
     dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
     dq.extendedErrorCode = &dc->d_extendedErrorCode;
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
@@ -1844,11 +1827,9 @@ static void startDoResolve(void *p)
 	}
 #endif /* NOD ENABLED */
 
-#ifdef HAVE_PROTOBUF
         if (t_protobufServers) {
           pbMessage.addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
         }
-#endif
       }
       if(needCommit)
 	pw.commit();
@@ -1965,7 +1946,6 @@ static void startDoResolve(void *p)
       }
     }
 #endif /* NOD_ENABLED */
-#ifdef HAVE_PROTOBUF
     if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       // Start constructing embedded DNSResponse object
       pbMessage.setResponseCode(pw.getHeader()->rcode);
@@ -2025,7 +2005,7 @@ static void startDoResolve(void *p)
         protobufLogResponse(pbMessage);
       }
     }
-#endif /* HAVE_PROTOBUF */
+
     if(!dc->d_tcp) {
       struct msghdr msgh;
       struct iovec iov;
@@ -2476,14 +2456,13 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       string deviceId;
       string deviceName;
       bool logQuery = false;
-#ifdef HAVE_PROTOBUF
+
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
       logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
       dc->d_logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
-#endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
       checkFrameStreamExport(luaconfsLocal);
@@ -2527,7 +2506,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
 
-#ifdef HAVE_PROTOBUF
       if(t_protobufServers || t_outgoingProtobufServers) {
         dc->d_requestorId = requestorId;
         dc->d_deviceId = deviceId;
@@ -2548,7 +2526,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
       }
-#endif
+
       if (t_pdl) {
         if (t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh)) {
           if (!g_quiet) {
@@ -2711,7 +2689,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   string routingTag;
   bool logQuery = false;
   bool logResponse = false;
-#ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {
@@ -2722,7 +2699,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
   logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
   logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
-#endif
 #ifdef HAVE_FSTRM
   checkFrameStreamExport(luaconfsLocal);
 #endif
@@ -2796,13 +2772,12 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
     bool cacheHit = false;
     RecursorPacketCache::OptPBData pbData{boost::none};
-#ifdef HAVE_PROTOBUF
+
     if (t_protobufServers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName);
       }
     }
-#endif /* HAVE_PROTOBUF */
 
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
@@ -2823,8 +2798,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           t_bogusqueryring->push_back(make_pair(qname, qtype));
       }
 
-#ifdef HAVE_PROTOBUF
-      if(t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) { // XXX
+      if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) { // XXX
         pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
         if (pbData) {
           // We take the inmutable string from the cache and are appending a few values
@@ -2863,7 +2837,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #endif
         protobufLogResponse(pbMessage);
       }
-#endif /* HAVE_PROTOBUF */
+
       if(!g_quiet)
         g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
 
@@ -2935,7 +2909,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_followCNAMERecords = followCNAMEs;
   dc->d_rcode = rcode;
   dc->d_logResponse = logResponse;
-#ifdef HAVE_PROTOBUF
   if (t_protobufServers || t_outgoingProtobufServers) {
     dc->d_uuid = std::move(uniqueId);
   }
@@ -2943,7 +2916,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_deviceId = deviceId;
   dc->d_deviceName = deviceName;
   dc->d_kernelTimestamp = tv;
-#endif
   dc->d_proxyProtocolValues = std::move(proxyProtocolValues);
   dc->d_routingTag = std::move(routingTag);
   dc->d_extendedErrorCode = extendedErrorCode;
@@ -4996,9 +4968,6 @@ static int serviceMain(int argc, char*argv[])
     }
   }
 
-#ifdef HAVE_PROTOBUF
-  google::protobuf::ShutdownProtobufLibrary();
-#endif /* HAVE_PROTOBUF */
   return ret;
 }
 
@@ -5076,12 +5045,10 @@ try
   MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
   threadInfo.mt = MT.get();
 
-#ifdef HAVE_PROTOBUF
   /* start protobuf export threads if needed */
   auto luaconfsLocal = g_luaconfs.getLocal();
   checkProtobufExport(luaconfsLocal);
   checkOutgoingProtobufExport(luaconfsLocal);
-#endif /* HAVE_PROTOBUF */
 #ifdef HAVE_FSTRM
   checkFrameStreamExport(luaconfsLocal);
 #endif

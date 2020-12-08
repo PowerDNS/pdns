@@ -71,7 +71,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
 
       d_hits++;
       moveCacheItemToBack<SequencedTag>(d_packetCache, iter);
-#ifdef HAVE_PROTOBUF
+
       if (pbdata != nullptr) {
         if (iter->d_pbdata) {
           *pbdata = iter->d_pbdata;
@@ -79,7 +79,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
           *pbdata = boost::none;
         }
       }
-#endif
+
       return true;
     }
     else {
@@ -158,11 +158,10 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     iter->d_ttd = now + ttl;
     iter->d_creation = now;
     iter->d_vstate = valState;
-#ifdef HAVE_PROTOBUF
+
     if (pbdata) {
       iter->d_pbdata = std::move(*pbdata);
     }
-#endif
 
     break;
   }
@@ -176,11 +175,11 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     e.d_creation = now;
     e.d_tag = tag;
     e.d_vstate = valState;
-#ifdef HAVE_PROTOBUF
+
     if (pbdata) {
       e.d_pbdata = std::move(*pbdata);
     }
-#endif
+
     d_packetCache.insert(e);
   }
 }

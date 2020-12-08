@@ -574,9 +574,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
-#ifdef HAVE_PROTOBUF
   ctx.d_initialRequestId = d_initialRequestId;
-#endif
 #ifdef HAVE_FSTRM
   ctx.d_auth = auth;
 #endif

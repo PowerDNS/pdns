@@ -127,11 +127,9 @@ namespace pdns {
         }
       }
 
-      void setInitialRequesId(const std::string& id)
+      void setInitialRequestID(const boost::uuids::uuid& uniqueId)
       {
-        if (!id.empty()) {
-          d_message.add_string(16, id);
-        }
+        d_message.add_bytes(16, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size());
       }
 
       void setDeviceId(const std::string& id)
@@ -176,6 +174,12 @@ namespace pdns {
       void setResponseCode(uint8_t rcode)
       {
         d_response.add_uint32(1, rcode);
+      }
+
+      void setNetworkErrorResponseCode()
+      {
+        /* special code meaning 'network error', like a timeout */
+        d_response.add_uint32(1, 65536);
       }
 
       void setAppliedPolicy(const std::string& policy)
