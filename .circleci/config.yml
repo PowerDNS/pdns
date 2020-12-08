@@ -43,6 +43,16 @@ commands:
           name: include $BASH_ENV for both interactive and non-interactive shells
           command: echo '. $BASH_ENV' >> $HOME/.bashrc
 
+  install-clang-8:
+    description: install clang-8 from backports
+    steps:
+      - run:
+          name: add backports and install clang-8
+          command: |
+            echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
+            apt-get update
+            apt-get -qq -t buster-backports --no-install-recommends install clang-8
+
   install-coverity-tools:
     description: Install the coverity tools to /usr/local
     steps:
@@ -181,7 +191,8 @@ commands:
               libssl1.1 \
               libsystemd0 \
               libsodium23 \
-              libfstrm0
+              libfstrm0 \
+              libsnmp30
 
   install-auth-deps:
     description: Install all libraries needed to run the auth
@@ -557,6 +568,7 @@ jobs:
     steps:
       - get-workspace
       - install-auth-dev-deps
+      - install-clang-8
       - restore-cache-ccache:
           product: auth
       - run:
@@ -565,8 +577,10 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
               --enable-systemd \
@@ -1029,8 +1043,6 @@ jobs:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
     steps:
-      - restore-cache-ccache:
-          product: recursor
       - run:
           name: Install dependencies
           command: |
@@ -1047,6 +1059,7 @@ jobs:
             libcap-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
+            libsnmp-dev \
             libsodium-dev \
             libssl-dev \
             libsystemd-dev \
@@ -1056,6 +1069,9 @@ jobs:
             ragel \
             systemd \
             python3-venv
+      - install-clang-8
+      - restore-cache-ccache:
+          product: recursor
       - get-workspace
       - run:
           name: autoconf
@@ -1064,8 +1080,10 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --enable-unit-tests \
             --enable-nod \
@@ -1074,7 +1092,8 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --without-net-snmp
+            --with-net-snmp \
+            --enable-asan
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build
@@ -1113,6 +1132,12 @@ jobs:
             touch /etc/authbind/byport/53
             chmod 755 /etc/authbind/byport/53
       - get-workspace
+      - run:
+          name: setup snmp
+          command: |
+            apt-get -qq --no-install-recommends install snmpd
+            sed "s/agentxperms 0700 0755 recursor/agentxperms 0700 0755/g" regression-tests.recursor-dnssec/snmpd.conf > /etc/snmp/snmpd.conf
+            /etc/init.d/snmpd start
       - run:
           name: Run regression tests
           workdir: ~/project
@@ -1585,6 +1610,7 @@ jobs:
             libcap-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
+            libsnmp-dev \
             libsodium-dev \
             libssl-dev \
             libsystemd-dev \
@@ -1611,7 +1637,7 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --without-net-snmp
+            --with-net-snmp
           working_directory: /opt/project/pdns/recursordist
       - run:
           name: build
@@ -1641,8 +1667,6 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
-      - restore-cache-ccache:
-          product: dnsdist
       - run:
           name: Install dependencies
           command: |
@@ -1670,6 +1694,9 @@ jobs:
             ragel \
             systemd \
             python3-venv
+      - install-clang-8
+      - restore-cache-ccache:
+          product: dnsdist
       - get-workspace
       - run:
           name: autoconf
@@ -1678,8 +1705,10 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security" \
-            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --enable-unit-tests \
             --enable-dnstap \
