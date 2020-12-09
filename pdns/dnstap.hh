@@ -28,23 +28,15 @@
 
 #include "dnsname.hh"
 #include "iputils.hh"
-
-#ifdef HAVE_PROTOBUF
-#include <boost/uuid/uuid.hpp>
-#include "dnstap.pb.h"
-#endif /* HAVE_PROTOBUF */
+#include "protozero.hh"
 
 class DnstapMessage
 {
 public:
-  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime);
-  void serialize(std::string& data) const;
-  std::string toDebugString() const;
+  DnstapMessage(std::string& buffer, int32_t type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, boost::optional<const DNSName&> auth=boost::none);
 
   void setExtra(const std::string& extra);
 
-#ifdef HAVE_PROTOBUF
 protected:
-  dnstap::Dnstap proto_message;
-#endif /* HAVE_PROTOBUF */
+  std::string& d_buffer;
 };

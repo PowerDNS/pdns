@@ -204,7 +204,7 @@ class TestProtobuf(DNSDistProtobufTest):
 
         protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
 
-        blobData = '\127' .. '\000' .. '\000' .. '\001'		-- 127.0.0.1, note: lua 5.1 can only embed decimal not hex
+        blobData = '\127' .. '\000' .. '\000' .. '\002'		-- 127.0.0.2, note: lua 5.1 can only embed decimal not hex
 
         protobuf:addResponseRR(strReqName, 1, 1, 123, blobData) -- add a RR to the protobuf
 
@@ -405,7 +405,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
 
     def testProtobuf(self):
         """
-        Protobuf: Send data to a protobuf server
+        Protobuf: Send data to a protobuf server, with pseudonymization
         """
         name = 'query.protobuf-ipcipher.tests.powerdns.com.'
 

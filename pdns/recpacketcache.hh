@@ -34,7 +34,6 @@
 
 #include "packetcache.hh"
 #include "validate.hh"
-#include "protozero.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

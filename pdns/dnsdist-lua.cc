@@ -48,7 +48,6 @@
 #include "dnswriter.hh"
 #include "dolog.hh"
 #include "lock.hh"
-#include "protobuf.hh"
 #include "sodcrypto.hh"
 
 #ifdef HAVE_LIBSSL
@@ -722,9 +721,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         frontend->cleanup();
       }
       g_tlslocals.clear();
-#ifdef HAVE_PROTOBUF
-      google::protobuf::ShutdownProtobufLibrary();
-#endif /* HAVE_PROTOBUF */
 #endif /* 0 */
       _exit(0);
   } );

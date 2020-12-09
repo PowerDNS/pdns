@@ -109,7 +109,7 @@
 
 #ifdef HAVE_PROTOBUF
 #include "uuid-utils.hh"
-#include "protozero.hh"
+#include "rec-protozero.hh"
 #endif /* HAVE_PROTOBUF */
 
 #include "xpf.hh"
@@ -894,7 +894,8 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   ComboAddress requestor = requestorNM.getMaskedNetwork();
   requestor.setPort(remote.getPort());
 
-  pdns::ProtoZero::Message m{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // It's a guess
+  pdns::ProtoZero::RecMessage m{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // It's a guess
+  m.setType(1);
   m.setRequest(uniqueId, requestor, local, qname, qtype, qclass, id, tcp, len);
   m.setServerIdentity(SyncRes::s_serverID);
   m.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? maskV4 : maskV6);
@@ -912,7 +913,7 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   }
 }
 
-static void protobufLogResponse(pdns::ProtoZero::Message& message)
+static void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
 {
   if (!t_protobufServers) {
     return;
@@ -1434,7 +1435,7 @@ static void startDoResolve(void *p)
     bool wantsRPZ(true);
     RecursorPacketCache::OptPBData pbDataForCache;
 #ifdef HAVE_PROTOBUF
-    pdns::ProtoZero::Message pbMessage;
+    pdns::ProtoZero::RecMessage pbMessage;
     if (checkProtobufExport(luaconfsLocal)) {
       pbMessage.reserve(128, 128); // It's a bit of a guess...
       pbMessage.setResponse(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
@@ -2824,7 +2825,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
 #ifdef HAVE_PROTOBUF
       if(t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) { // XXX
-        pdns::ProtoZero::Message pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
+        pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
         if (pbData) {
           // We take the inmutable string from the cache and are appending a few values
         } else {

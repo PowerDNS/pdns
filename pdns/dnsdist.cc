@@ -1127,9 +1127,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
 {
   DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(dq.dh), dq.size, dq.len, dq.tcp, dq.queryTime);
 
-#ifdef HAVE_PROTOBUF
   dr.uniqueId = dq.uniqueId;
-#endif
   dr.qTag = dq.qTag;
   dr.delayMsec = dq.delayMsec;
 
@@ -2134,9 +2132,7 @@ try
 #ifdef HAVE_LMDB
       cout<<"lmdb ";
 #endif
-#ifdef HAVE_PROTOBUF
       cout<<"protobuf ";
-#endif
 #ifdef HAVE_RE2
       cout<<"re2 ";
 #endif

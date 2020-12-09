@@ -1,76 +1,68 @@
+#include <boost/uuid/uuid.hpp>
 #include "config.h"
 #include "gettime.hh"
 #include "dnstap.hh"
 
-DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime)
+#include "ext/protozero/include/protozero/pbf_writer.hpp"
+
+DnstapMessage::DnstapMessage(std::string& buffer, int32_t type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, boost::optional<const DNSName&> auth): d_buffer(buffer)
 {
-#ifdef HAVE_PROTOBUF
+  protozero::pbf_writer pbf{d_buffer};
+
+  pbf.add_bytes(1, identity);
+  pbf.add_bytes(2, PACKAGE_STRING);
+  pbf.add_enum(15, 1);
+
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
+  protozero::pbf_writer pbf_message{pbf, 14};
 
-  proto_message.set_identity(identity);
-  proto_message.set_version(PACKAGE_STRING);
-  proto_message.set_type(dnstap::Dnstap::MESSAGE);
-
-  dnstap::Message* message = proto_message.mutable_message();
-
-  message->set_type(!dh->qr ? dnstap::Message_Type_CLIENT_QUERY : dnstap::Message_Type_CLIENT_RESPONSE);
-  message->set_socket_protocol(isTCP ? dnstap::TCP : dnstap::UDP);
+  pbf_message.add_enum(1, type);
+  pbf_message.add_enum(3, isTCP ? 2 : 1);
 
   if (requestor != nullptr) {
-    message->set_socket_family(requestor->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
+    pbf_message.add_enum(2, requestor->sin4.sin_family == AF_INET ? 1 : 2);
     if (requestor->sin4.sin_family == AF_INET) {
-      message->set_query_address(&requestor->sin4.sin_addr.s_addr, sizeof(requestor->sin4.sin_addr.s_addr));
-    } else if (requestor->sin4.sin_family == AF_INET6) {
-      message->set_query_address(&requestor->sin6.sin6_addr.s6_addr, sizeof(requestor->sin6.sin6_addr.s6_addr));
+      pbf_message.add_bytes(4, reinterpret_cast<const char*>(&requestor->sin4.sin_addr.s_addr), sizeof(requestor->sin4.sin_addr.s_addr));
     }
-    message->set_query_port(ntohs(requestor->sin4.sin_port));
+    else if (requestor->sin4.sin_family == AF_INET6) {
+      pbf_message.add_bytes(4, reinterpret_cast<const char*>(&requestor->sin6.sin6_addr.s6_addr), sizeof(requestor->sin6.sin6_addr.s6_addr));
+    }
+    pbf_message.add_uint32(6, ntohs(requestor->sin4.sin_port));
   }
+
   if (responder != nullptr) {
-    message->set_socket_family(responder->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
     if (responder->sin4.sin_family == AF_INET) {
-      message->set_response_address(&responder->sin4.sin_addr.s_addr, sizeof(responder->sin4.sin_addr.s_addr));
-    } else if (responder->sin4.sin_family == AF_INET6) {
-      message->set_response_address(&responder->sin6.sin6_addr.s6_addr, sizeof(responder->sin6.sin6_addr.s6_addr));
+      pbf_message.add_bytes(5, reinterpret_cast<const char*>(&responder->sin4.sin_addr.s_addr), sizeof(responder->sin4.sin_addr.s_addr));
     }
-    message->set_response_port(ntohs(responder->sin4.sin_port));
+    else if (responder->sin4.sin_family == AF_INET6) {
+      pbf_message.add_bytes(5, reinterpret_cast<const char*>(&responder->sin6.sin6_addr.s6_addr), sizeof(responder->sin6.sin6_addr.s6_addr));
+    }
+    pbf_message.add_uint32(7, ntohs(responder->sin4.sin_port));
   }
+
   if (queryTime != nullptr) {
-    message->set_query_time_sec(queryTime->tv_sec);
-    message->set_query_time_nsec(queryTime->tv_nsec);
+    pbf_message.add_uint64(8, queryTime->tv_sec);
+    pbf_message.add_fixed32(9, queryTime->tv_nsec);
   }
+
   if (responseTime != nullptr) {
-    message->set_response_time_sec(responseTime->tv_sec);
-    message->set_response_time_nsec(responseTime->tv_nsec);
+    pbf_message.add_uint64(12, responseTime->tv_sec);
+    pbf_message.add_fixed32(13, responseTime->tv_nsec);
   }
 
   if (!dh->qr) {
-    message->set_query_message(packet, len);
+    pbf_message.add_bytes(10, packet, len);
   } else {
-    message->set_response_message(packet, len);
+    pbf_message.add_bytes(14, packet, len);
   }
-#endif /* HAVE_PROTOBUF */
-}
 
-void DnstapMessage::serialize(std::string& data) const
-{
-#ifdef HAVE_PROTOBUF
-  proto_message.SerializeToString(&data);
-#endif /* HAVE_PROTOBUF */
-}
-
-std::string DnstapMessage::toDebugString() const
-{
-  return
-#ifdef HAVE_PROTOBUF
-    proto_message.DebugString();
-#else
-    "";
-#endif /* HAVE_PROTOBUF */
+  if (auth) {
+    pbf_message.add_bytes(11, auth->toDNSString());
+  }
 }
 
 void DnstapMessage::setExtra(const std::string& extra)
 {
-#ifdef HAVE_PROTOBUF
-  proto_message.set_extra(extra);
-#endif /* HAVE_PROTOBUF */
+  protozero::pbf_writer pbf{d_buffer};
+  pbf.add_bytes(3, extra);
 }

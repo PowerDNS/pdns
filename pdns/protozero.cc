@@ -21,8 +21,7 @@
  */
 
 #include "protozero.hh"
-#include "dnsrecords.hh"
-
+#include "dnsparser.hh"
 
 void pdns::ProtoZero::Message::encodeComboAddress(const protozero::pbf_tag_type type, const ComboAddress& ca)
 {
@@ -59,7 +58,6 @@ void pdns::ProtoZero::Message::encodeDNSName(protozero::pbf_writer& pbf, std::st
 
 void pdns::ProtoZero::Message::setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len)
 {
-  setType(1);
   setMessageIdentity(uniqueId);
   setSocketFamily(requestor.sin4.sin_family);
   setSocketProtocol(tcp);
@@ -79,99 +77,81 @@ void pdns::ProtoZero::Message::setResponse(const DNSName& qname, uint16_t qtype,
   setQuestion(qname, qtype, qclass);
 }
 
-
-void pdns::ProtoZero::Message::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr)
+void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME)
 {
-  if (record.d_place != DNSResourceRecord::ANSWER || record.d_class != QClass::IN) {
+  if (len < sizeof(struct dnsheader)) {
     return;
   }
 
-  if (exportTypes.count(record.d_type) == 0) {
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
+
+  if (ntohs(dh->ancount) == 0) {
     return;
   }
 
+  if (ntohs(dh->qdcount) == 0) {
+    return;
+  }
+
+  PacketReader pr(pdns_string_view(packet, len));
+
+  size_t idx = 0;
+  DNSName rrname;
+  uint16_t qdcount = ntohs(dh->qdcount);
+  uint16_t ancount = ntohs(dh->ancount);
+  uint16_t rrtype;
+  uint16_t rrclass;
+  string blob;
+  struct dnsrecordheader ah;
+
+  rrname = pr.getName();
+  rrtype = pr.get16BitInt();
+  rrclass = pr.get16BitInt();
+
+  /* consume remaining qd if any */
+  if (qdcount > 1) {
+    for(idx = 1; idx < qdcount; idx++) {
+      rrname = pr.getName();
+      rrtype = pr.get16BitInt();
+      rrclass = pr.get16BitInt();
+      (void) rrtype;
+      (void) rrclass;
+    }
+  }
+
+  /* parse AN */
+  for (idx = 0; idx < ancount; idx++) {
+    rrname = pr.getName();
+    pr.getDnsrecordheader(ah);
+
+    if (ah.d_type == QType::A || ah.d_type == QType::AAAA) {
+      pr.xfrBlob(blob);
+
+      addRR(rrname, ah.d_type, ah.d_class, ah.d_ttl, blob);
+
+    } else if (ah.d_type == QType::CNAME && includeCNAME) {
+      protozero::pbf_writer pbf_rr{d_response, 2};
+
+      encodeDNSName(pbf_rr, d_buffer, 1, rrname);
+      pbf_rr.add_uint32(2, ah.d_type);
+      pbf_rr.add_uint32(3, ah.d_class);
+      pbf_rr.add_uint32(4, ah.d_ttl);
+      DNSName target;
+      pr.xfrName(target, true);
+      encodeDNSName(pbf_rr, d_buffer, 5, target);
+    }
+    else {
+      pr.xfrBlob(blob);
+    }
+  }
+}
+
+void pdns::ProtoZero::Message::addRR(const DNSName& name, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& blob)
+{
   protozero::pbf_writer pbf_rr{d_response, 2};
-
-  encodeDNSName(pbf_rr, d_rspbuf, 1, record.d_name);
-  pbf_rr.add_uint32(2, record.d_type);
-  pbf_rr.add_uint32(3, record.d_class);
-  pbf_rr.add_uint32(4, record.d_ttl);
-
-  switch(record.d_type) {
-  case QType::A:
-  {
-    const auto& content = dynamic_cast<const ARecordContent&>(*(record.d_content));
-    ComboAddress data = content.getCA();
-    pbf_rr.add_bytes(5, reinterpret_cast<const char*>(&data.sin4.sin_addr.s_addr), sizeof(data.sin4.sin_addr.s_addr));
-    break;
-  }
-  case QType::AAAA:
-  {
-    const auto& content = dynamic_cast<const AAAARecordContent&>(*(record.d_content));
-    ComboAddress data = content.getCA();
-    pbf_rr.add_bytes(5, reinterpret_cast<const char*>(&data.sin6.sin6_addr.s6_addr), sizeof(data.sin6.sin6_addr.s6_addr));
-    break;
-  }
-  case QType::CNAME:
-  {
-    const auto& content = dynamic_cast<const CNAMERecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getTarget().toString());
-    break;
-  }
-  case QType::TXT:
-  {
-    const auto& content = dynamic_cast<const TXTRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.d_text);
-    break;
-  }
-  case QType::NS:
-  {
-    const auto& content = dynamic_cast<const NSRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getNS().toString());
-    break;
-  }
-  case QType::PTR:
-  {
-    const auto& content = dynamic_cast<const PTRRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getContent().toString());
-    break;
-  }
-  case QType::MX:
-  {
-    const auto& content = dynamic_cast<const MXRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.d_mxname.toString());
-    break;
-  }
-  case QType::SPF:
-  {
-    const auto& content = dynamic_cast<const SPFRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getText());
-    break;
-  }
-  case QType::SRV:
-  {
-    const auto& content = dynamic_cast<const SRVRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.d_target.toString());
-    break;
-  }
-  default:
-    break;
-  }
-#ifdef NOD_ENABLED
-  pbf_rr.add_bool(6, udr);
-  pbf_rr.commit();
-
-  // Save the offset of the byte containing the just added bool. We can do this since
-  // we know a bit about how protobuf's encoding works.
-  offsets.push_back(d_rspbuf.length() - 1);
-#endif
+  encodeDNSName(pbf_rr, d_buffer, 1, name);
+  pbf_rr.add_uint32(2, uType);
+  pbf_rr.add_uint32(3, uClass);
+  pbf_rr.add_uint32(4, uTTL);
+  pbf_rr.add_string(5, blob);
 }
-
-#ifdef NOD_ENABLED
-void pdns::ProtoZero::Message::clearUDR(std::string& str)
-{
-  for (auto i : offsets) {
-    str.at(i) = 0;
-  }
-}
-#endif

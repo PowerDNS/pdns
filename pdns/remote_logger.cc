@@ -23,7 +23,7 @@ bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
 
 bool CircularWriteBuffer::write(const std::string& str)
 {
-  if (!hasRoomFor(str)) {
+  if (str.size() > std::numeric_limits<uint16_t>::max() || !hasRoomFor(str)) {
     return false;
   }
 
@@ -134,6 +134,10 @@ bool RemoteLogger::reconnect()
 
 void RemoteLogger::queueData(const std::string& data)
 {
+  if (data.size() > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("Got a request to write an object of size " + data.size());
+  }
+
   std::unique_lock<std::mutex> lock(d_mutex);
 
   if (!d_writer.hasRoomFor(data)) {

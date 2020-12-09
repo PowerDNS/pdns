@@ -73,11 +73,13 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
         message.addTag(tag.second);
       }
     });
+
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint32_t> uSec)>("setProtobufResponseType",
                                         [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint32_t> uSec) {
-      message.setType(DNSProtoBufMessage::Response);
-      message.setQueryTime(sec?*sec:0, uSec?*uSec:0);
+      message.setType(2);
+      message.setQueryTime(sec ? *sec : 0, uSec ? *uSec : 0);
     });
+
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob)>("addResponseRR", [](DNSDistProtoBufMessage& message,
                                                             const std::string& strQueryName, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& strBlob) {
       message.addRR(DNSName(strQueryName), uType, uClass, uTTL, strBlob);
@@ -88,7 +90,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setTime(sec, usec); });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(time_t, uint32_t)>("setQueryTime", [](DNSDistProtoBufMessage& message, time_t sec, uint32_t usec) { message.setQueryTime(sec, usec); });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(uint8_t)>("setResponseCode", [](DNSDistProtoBufMessage& message, uint8_t rcode) { message.setResponseCode(rcode); });
-  luaCtx.registerFunction<std::string(DNSDistProtoBufMessage::*)()const>("toDebugString", [](const DNSDistProtoBufMessage& message) { return message.toDebugString(); });
+
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(const ComboAddress&, boost::optional<uint16_t>)>("setRequestor", [](DNSDistProtoBufMessage& message, const ComboAddress& addr, boost::optional<uint16_t> port) {
       message.setRequestor(addr);
       if (port) {
@@ -96,7 +98,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setRequestorFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
-      message.setRequestor(str);
+      message.setRequestor(ComboAddress(str));
       if (port) {
         message.setRequestorPort(*port);
       }
@@ -108,7 +110,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&, boost::optional<uint16_t>)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str, boost::optional<uint16_t> port) {
-      message.setResponder(str);
+      message.setResponder(ComboAddress(str));
       if (port) {
         message.setResponderPort(*port);
       }
@@ -117,7 +119,6 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       message.setServerIdentity(str);
     });
 
-  luaCtx.registerFunction<std::string(DnstapMessage::*)()const>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
   luaCtx.registerFunction<void(DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
       message.setExtra(str);
     });

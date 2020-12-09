@@ -32,9 +32,6 @@ PDNS_CHECK_NETWORK_LIBS
 PDNS_CHECK_PTHREAD_NP
 PDNS_CHECK_SECURE_MEMSET
 
-
-PDNS_WITH_PROTOBUF
-
 BOOST_REQUIRE([1.42])
 
 PDNS_ENABLE_UNIT_TESTS
@@ -177,10 +174,7 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Features enabled])
 AC_MSG_NOTICE([----------------])
 AC_MSG_NOTICE([Lua: $LUAPC])
-AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
-  [AC_MSG_NOTICE([Protobuf: yes])],
-  [AC_MSG_NOTICE([Protobuf: no])]
-)
+AC_MSG_NOTICE([Protobuf: yes])
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]

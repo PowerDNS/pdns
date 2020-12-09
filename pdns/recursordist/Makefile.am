@@ -5,7 +5,6 @@ AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAG
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
-	-I$(top_srcdir)/ext/protozero/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES)
 
@@ -36,8 +35,6 @@ BUILT_SOURCES=htmlfiles.h \
 CLEANFILES = htmlfiles.h \
 	dnsmessage.pb.cc \
 	dnsmessage.pb.h \
-	dnstap.pb.cc \
-	dnstap.pb.h \
 	recursor.conf-dist
 
 htmlfiles.h: html/*
@@ -67,7 +64,7 @@ EXTRA_DIST = \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
-	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh \
+	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh \
 	ext/protozero/include/* \
 	rrd/* \
 	html incfiles \
@@ -157,6 +154,7 @@ pdns_recursor_SOURCES = \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-protobuf.cc rec-protobuf.hh \
+	rec-protozero.cc rec-protozero.hh \
 	rec-snmp.hh rec-snmp.cc \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
@@ -401,27 +399,13 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
 
-if FSTRM
-dnstap.pb.cc: dnstap.proto
-	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
-endif
-
-
 BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 
-if FSTRM
-BUILT_SOURCES += dnstap.pb.cc
-pdns_recursor.$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
-testrunner$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
-nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
-nodist_testrunner_SOURCES += dnstap.pb.cc dnstap.pb.h
-else
 pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
 testrunner$(OBJEXT): dnsmessage.pb.cc
-endif
 
 testrunner_LDADD += $(PROTOBUF_LIBS)
 
@@ -430,7 +414,7 @@ endif
 
 if FSTRM
 pdns_recursor_SOURCES += \
-	dnstap.cc dnstap.hh rec-dnstap.hh
+	dnstap.cc dnstap.hh
 
 pdns_recursor_LDADD += \
 	$(FSTRM_LIBS)

@@ -74,9 +74,7 @@ struct DNSQuestion
   std::string getTrailingData() const;
   bool setTrailingData(const std::string&);
 
-#ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
-#endif
   Netmask ecs;
   boost::optional<Netmask> subnet;
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
@@ -490,9 +488,7 @@ struct IDState
       throw std::runtime_error("Trying to move an in-use IDState");
     }
 
-#ifdef HAVE_PROTOBUF
     uniqueId = std::move(rhs.uniqueId);
-#endif
   }
 
   IDState& operator=(IDState&& rhs)
@@ -532,9 +528,7 @@ struct IDState
     dnssecOK = rhs.dnssecOK;
     useZeroScope = rhs.useZeroScope;
 
-#ifdef HAVE_PROTOBUF
     uniqueId = std::move(rhs.uniqueId);
-#endif
 
     return *this;
   }
@@ -612,9 +606,7 @@ struct IDState
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
   std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
-#ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
-#endif
   boost::optional<Netmask> subnet{boost::none};
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};

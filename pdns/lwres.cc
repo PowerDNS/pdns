@@ -54,7 +54,7 @@
 #include "uuid-utils.hh"
 
 #ifdef HAVE_FSTRM
-#include "rec-dnstap.hh"
+#include "dnstap.hh"
 #include "fstrm_logger.hh"
 
 
@@ -81,9 +81,8 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Fr
 
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
-  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
   std::string str;
-  message.serialize(str);
+  DnstapMessage message(str, 4, SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
@@ -112,9 +111,8 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   struct timespec ts1, ts2;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
-  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
   std::string str;
-  message.serialize(str);
+  DnstapMessage message(str, 3, SyncRes::s_serverID, nullptr, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);

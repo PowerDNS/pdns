@@ -987,18 +987,20 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-#ifdef HAVE_PROTOBUF
-    DnstapMessage message(d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
+    static thread_local std::string data;
+    data.clear();
+
+    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(dq->dh);
+    DnstapMessage message(data, !dh->qr ? 5 : 6, d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
         (*d_alterFunc)(dq, &message);
       }
     }
-    std::string data;
-    message.serialize(data);
+
     d_logger->queueData(data);
-#endif /* HAVE_PROTOBUF */
+
     return Action::None;
   }
   std::string toString() const override
@@ -1019,7 +1021,6 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-#ifdef HAVE_PROTOBUF
     if (!dq->uniqueId) {
       dq->uniqueId = getUniqueID();
     }
@@ -1041,10 +1042,11 @@ public:
       (*d_alterFunc)(dq, &message);
     }
 
-    std::string data;
+    static thread_local std::string data;
+    data.clear();
     message.serialize(data);
     d_logger->queueData(data);
-#endif /* HAVE_PROTOBUF */
+
     return Action::None;
   }
   std::string toString() const override
@@ -1113,20 +1115,21 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-#ifdef HAVE_PROTOBUF
+    static thread_local std::string data;
     struct timespec now;
     gettime(&now, true);
-    DnstapMessage message(d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->dh), dr->len, dr->queryTime, &now);
+    data.clear();
+
+    DnstapMessage message(data, 6, d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->dh), dr->len, dr->queryTime, &now);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
         (*d_alterFunc)(dr, &message);
       }
     }
-    std::string data;
-    message.serialize(data);
+
     d_logger->queueData(data);
-#endif /* HAVE_PROTOBUF */
+
     return Action::None;
   }
   std::string toString() const override
@@ -1147,7 +1150,6 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-#ifdef HAVE_PROTOBUF
     if (!dr->uniqueId) {
       dr->uniqueId = getUniqueID();
     }
@@ -1169,10 +1171,11 @@ public:
       (*d_alterFunc)(dr, &message);
     }
 
-    std::string data;
+    static thread_local std::string data;
+    data.clear();
     message.serialize(data);
     d_logger->queueData(data);
-#endif /* HAVE_PROTOBUF */
+
     return Action::None;
   }
   std::string toString() const override
@@ -1731,11 +1734,7 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
 
-#ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey));
-#else
-      throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
-#endif
     });
 
   luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<std::unordered_map<std::string, std::string>> vars) {
@@ -1759,27 +1758,15 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
 
-#ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false));
-#else
-      throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
-#endif
     });
 
   luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {
-#ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, alterFunc));
-#else
-      throw std::runtime_error("Protobuf support is required to use DnstapLogAction");
-#endif
     });
 
   luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
-#ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
-#else
-      throw std::runtime_error("Protobuf support is required to use DnstapLogResponseAction");
-#endif
     });
 
   luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS) {
