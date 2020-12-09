@@ -8,6 +8,7 @@
 #include "dnsrecords.hh"
 #include "iputils.hh"
 #include <fstream>
+#include "uuid-utils.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -833,6 +834,15 @@ struct NetmaskTreeTest
   }
 };
 
+struct UUIDGenTest
+{
+  string getName() const { return "UUIDGenTest"; }
+
+  void operator()() const {
+    getUniqueID();
+  }
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -917,6 +927,8 @@ try
   doRun(DNSNameRootTest());
 
   doRun(NetmaskTreeTest());
+
+  doRun(UUIDGenTest());
 
 #ifndef RECURSOR
   S.doRings();
