@@ -170,6 +170,37 @@ The DNSQuestion object contains at least the following fields:
       Possible states are ``pdns.validationstates.Indeterminate``, ``pdns.validationstates.Bogus``, ``pdns.validationstates.Insecure`` and ``pdns.validationstates.Secure``.
       The result will always be ``pdns.validationstates.Indeterminate`` is validation is disabled or was not requested.
 
+  .. attribute:: DNSQuestion.detailedValidationState
+
+      .. versionadded:: 4.4.2
+
+      The result of the DNSSEC validation, accessible from the ``postresolve``, ``nxdomain`` and ``nodata`` hooks.
+      By contrast with :attr:`validationState <DNSQuestion.validationState>`, there are several Bogus states to be
+      able to better understand the reason for a DNSSEC validation failure.
+      Possible states are :
+      - ``pdns.validationstates.Indeterminate``
+      - ``pdns.validationstates.BogusNoValidDNSKEY``
+      - ``pdns.validationstates.BogusInvalidDenial``
+      - ``pdns.validationstates.BogusUnableToGetDSs``
+      - ``pdns.validationstates.BogusUnableToGetDNSKEYs``
+      - ``pdns.validationstates.BogusSelfSignedDS``
+      - ``pdns.validationstates.BogusNoRRSIG``
+      - ``pdns.validationstates.BogusNoValidRRSIG``
+      - ``pdns.validationstates.BogusMissingNegativeIndication``
+      - ``pdns.validationstates.BogusSignatureNotYetValid``
+      - ``pdns.validationstates.BogusSignatureExpired``
+      - ``pdns.validationstates.BogusUnsupportedDNSKEYAlgo``
+      - ``pdns.validationstates.BogusUnsupportedDSDigestType``
+      - ``pdns.validationstates.BogusNoZoneKeyBitSet``
+      - ``pdns.validationstates.BogusRevokedDNSKEY``
+      - ``pdns.validationstates.BogusInvalidDNSKEYProtocol``
+      - ``pdns.validationstates.Insecure``
+      - ``pdns.validationstates.Secure``
+
+      The result will always be ``pdns.validationstates.Indeterminate`` is validation is disabled or was not requested.
+      There is a convenience function named ``isValidationStateBogus`` that accepts such a state and return a boolean
+      indicating whether this state is a Bogus one.
+
   .. attribute:: DNSQuestion.logResponse
 
       .. versionadded:: 4.2.0
