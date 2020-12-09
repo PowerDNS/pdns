@@ -439,7 +439,7 @@ void DNSPacketWriter::xfrSvcParamKeyVals(const std::set<SvcParam> &kvs)
       break;
     default:
       xfr16BitInt(param.getValue().size());
-      xfrUnquotedText(param.getValue(), false);
+      xfrBlob(param.getValue());
       break;
     }
   }

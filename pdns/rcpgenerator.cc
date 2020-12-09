@@ -298,6 +298,11 @@ void RecordTextReader::xfrBlob(string& val, int)
   B64Decode(tmp, val);
 }
 
+void RecordTextReader::xfrRFC1035CharString(string &val) {
+  auto ctr = parseRFC1035CharString(d_string.substr(d_pos, d_end - d_pos), val);
+  d_pos += ctr;
+}
+
 void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
 {
   while (d_pos != d_end) {
@@ -397,12 +402,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
     }
     default: {
       string value;
-      if (d_string.at(d_pos) == '"') {
-        xfrText(value);
-      }
-      else {
-        xfrUnquotedText(value);
-      }
+      xfrRFC1035CharString(value);
       val.insert(SvcParam(key, value));
       break;
     }
@@ -720,6 +720,27 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   }
 }
 
+// FIXME copied from dnsparser.cc, see #6010 and #3503 if you want a proper solution
+static string txtEscape(const string &name)
+{
+  string ret;
+  char ebuf[5];
+
+  for(string::const_iterator i=name.begin();i!=name.end();++i) {
+    if((unsigned char) *i >= 127 || (unsigned char) *i < 32) {
+      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)*i);
+      ret += ebuf;
+    }
+    else if(*i=='"' || *i=='\\'){
+      ret += '\\';
+      ret += *i;
+    }
+    else
+      ret += *i;
+  }
+  return ret;
+}
+
 void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
   for (auto const &param : val) {
     if (!d_string.empty())
@@ -769,7 +790,10 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
       break;
     }
     default:
-      d_string.append(param.getValue());
+      auto str = d_string;
+      d_string.clear();
+      xfrText(param.getValue(), false, false);
+      d_string = str + '"' + txtEscape(d_string) + '"';
       break;
     }
   }
