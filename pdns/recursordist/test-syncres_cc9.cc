@@ -984,7 +984,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
       addDS(DNSName("powerdns.com."), 300, res->d_records, keys);
       addRRSIG(keys, res->d_records, DNSName("com."), 300);
       addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-      return LWResult::Result::Success;
+      return 1;
     }
     else {
       setLWResult(res, 0, true, false, true);
@@ -1001,7 +1001,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
         /* no RRSIG this time! */
       }
 
-      return LWResult::Result::Success;
+      return 1;
     }
   });
 
@@ -1016,7 +1016,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
   vector<DNSRecord> cached;
   bool wasAuth = false;
   vState retrievedState = vState::Insecure;
-  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
   BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
   BOOST_CHECK_EQUAL(wasAuth, true);
 
@@ -1026,7 +1026,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
 
   cached.clear();
-  BOOST_CHECK_GT(g_recCache->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
+  BOOST_CHECK_GT(s_RC->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), 0);
   BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
   BOOST_CHECK_EQUAL(wasAuth, true);
 }
