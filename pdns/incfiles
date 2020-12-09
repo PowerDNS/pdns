@@ -6,6 +6,8 @@ export LANG=C.UTF-8
 for a in $@
 do
 	c=$(echo $a | tr "/.-" "___")
-	echo "INCBIN(${c}, \"${a}\");"
-	echo "static const string g_${c}{(const char*)g${c}Data, g${c}Size};"
+	echo "static const unsigned char ${c}Data[] = {"
+	od -v -t x "$a" | sed  's/^[0-9]*//' | sed 's/\([0-9a-f][0-9a-f]\)/0x\1,/g'
+	echo "0x0 };"
+	echo "static const string g_$c{(const char*)${c}Data};"
 done
