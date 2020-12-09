@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
         string target;
         RecordTextWriter rtw(target);
         rtw.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(target, source);
+        BOOST_CHECK_EQUAL(target, "key666=\"foobar\"");
 
         v.clear();
         RecordTextReader rtr2("key666=");
@@ -289,13 +289,37 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
         k = v.begin()->getKey();
         BOOST_CHECK(k == SvcParam::keyFromString("key666"));
         val = v.begin()->getValue();
-        BOOST_CHECK_EQUAL(val, "\"blablabla\"");
+        BOOST_CHECK_EQUAL(val, "blablabla");
 
         // Check the writer
         target.clear();
         RecordTextWriter rtw2(target);
         rtw2.xfrSvcParamKeyVals(v);
         BOOST_CHECK_EQUAL(target, source);
+
+        v.clear();
+        source = "key666=\"foo\\123 bar\"";
+        RecordTextReader rtr5(source);
+        rtr5.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL(v.size(), 1U);
+        k = v.begin()->getKey();
+        BOOST_CHECK(k == SvcParam::keyFromString("key666"));
+        val = v.begin()->getValue();
+        BOOST_CHECK_EQUAL(val, "foo{ bar");
+
+        // Check the writer
+        target.clear();
+        RecordTextWriter rtw3(target);
+        rtw3.xfrSvcParamKeyVals(v);
+        BOOST_CHECK_EQUAL("key666=\"foo{ bar\"", target);
+
+        v.clear();
+        RecordTextReader rtr6("key665= blabla");
+        BOOST_CHECK_THROW(rtr6.xfrSvcParamKeyVals(v), RecordTextException);
+
+        v.clear();
+        RecordTextReader rtr7("key665=bla bla");
+        BOOST_CHECK_THROW(rtr7.xfrSvcParamKeyVals(v), RecordTextException);
 }
 
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
@@ -332,7 +356,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
         string target;
         RecordTextWriter rtw(target);
         rtw.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(target, "mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 key666=foobar");
+        BOOST_CHECK_EQUAL(target, "mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 key666=\"foobar\"");
 }
 
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
