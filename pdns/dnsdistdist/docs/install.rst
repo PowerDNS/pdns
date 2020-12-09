@@ -49,7 +49,7 @@ dnsdist depends on the following libraries:
 * `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
 * `Editline (libedit) <http://thrysoee.dk/editline/>`_
 * `libsodium <https://download.libsodium.org/doc/>`_ (optional)
-* `protobuf <https://developers.google.com/protocol-buffers/>`_ (optional)
+* `protobuf <https://developers.google.com/protocol-buffers/>`_ (optional, not needed as of 1.6.0)
 * `re2 <https://github.com/google/re2>`_ (optional)
 
 Should :program:`dnsdist` be run on a system with systemd, it is highly recommended to have

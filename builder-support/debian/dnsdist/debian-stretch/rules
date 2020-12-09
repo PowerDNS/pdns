@@ -56,7 +56,6 @@ override_dh_auto_configure:
 	  --with-libsodium \
 	  --with-re2 \
 	  --with-ebpf \
-	  --with-protobuf \
 	  --with-service-user='_dnsdist' \
 	  --with-service-group='_dnsdist' \
 	  $(CONFIGURE_ARGS)

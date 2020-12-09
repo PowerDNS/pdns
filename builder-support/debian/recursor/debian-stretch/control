@@ -10,13 +10,11 @@ Build-Depends: debhelper (>= 10),
                libcap-dev,
                libluajit-5.1-dev [!arm64],
                liblua5.3-dev [arm64],
-               libprotobuf-dev,
                libfstrm-dev,
                libsodium-dev,
                libssl-dev,
                libsystemd-dev [linux-any],
                pkg-config,
-               protobuf-compiler,
                ragel,
                systemd [linux-any]
 Vcs-Git: https://anonscm.debian.org/git/pkg-dns/pdns-recursor.git

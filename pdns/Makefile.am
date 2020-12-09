@@ -70,7 +70,6 @@ CLEANFILES = \
 	backends/gsql/gsqlbackend.gcda \
 	backends/gsql/gsqlbackend.gcno \
 	backends/gsql/gsqlbackend.gcov \
-	dnsmessage.pb.cc dnsmessage.pb.h \
 	pdns.conf-dist \
 	apidocfiles.h \
 	api-swagger.yaml \

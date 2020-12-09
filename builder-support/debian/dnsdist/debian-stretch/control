@@ -13,13 +13,11 @@ Build-Depends: debhelper (>= 10),
                liblmdb-dev,
                libluajit-5.1-dev [!arm64],
                liblua5.3-dev [arm64],
-               libprotobuf-dev,
                libre2-dev,
                libsodium-dev,
                libssl-dev,
                libsystemd-dev [linux-any],
                pkg-config,
-               protobuf-compiler,
                ragel,
                systemd [linux-any]
 Standards-Version: 4.1.0

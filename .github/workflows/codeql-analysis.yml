@@ -88,7 +88,6 @@ jobs:
                 libmaxminddb-dev \
                 libp11-kit-dev \
                 libpq-dev \
-                libprotobuf-dev \
                 libre2-dev \
                 libsnmp-dev \
                 libsodium-dev \
@@ -97,14 +96,13 @@ jobs:
                 libsystemd-dev \
                 libwslay-dev \
                 libyaml-cpp-dev \
-                protobuf-compiler \
                 ragel \
                 unixodbc-dev
 
     - name: Build auth
       run: |
         autoreconf -vfi
-        ./configure --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' --enable-tools --enable-ixfrdist --enable-dns-over-tls --enable-experimental-pkcs11 --with-libsodium --with-protobuf --enable-lua-records CFLAGS='-O0' CXXFLAGS='-O0'
+        ./configure --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' --enable-tools --enable-ixfrdist --enable-dns-over-tls --enable-experimental-pkcs11 --with-libsodium --enable-lua-records CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
         make -j8 -C modules
         make -j8 -C pdns
@@ -116,7 +114,6 @@ jobs:
         ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext/ipcrypt
         make -j8 -C ext/yahttp
-        make dnsmessage.pb.cc dnstap.pb.cc
         make -j4 dnsdist
 
     - name: Build recursor
@@ -125,7 +122,7 @@ jobs:
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
-        make dnsmessage.pb.cc dnstap.pb.cc htmlfiles.h
+        make htmlfiles.h
         make -j8 pdns_recursor rec_control
 
     - name: Perform CodeQL Analysis

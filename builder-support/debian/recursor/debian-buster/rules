@@ -36,7 +36,6 @@ override_dh_auto_configure:
 		--enable-unit-tests \
 		--with-libcap \
 		--with-libsodium \
-		--with-protobuf=yes \
 		--enable-dnstap \
 		--without-net-snmp \
 		--disable-silent-rules \

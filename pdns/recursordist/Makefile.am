@@ -33,8 +33,6 @@ BUILT_SOURCES=htmlfiles.h \
 	dnslabeltext.cc
 
 CLEANFILES = htmlfiles.h \
-	dnsmessage.pb.cc \
-	dnsmessage.pb.h \
 	recursor.conf-dist
 
 htmlfiles.h: html/*
