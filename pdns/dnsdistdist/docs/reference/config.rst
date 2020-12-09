@@ -420,6 +420,14 @@ Access Control Lists
 
   :param {str} netmasks: A table of CIDR netmask, e.g. ``{"192.0.2.0/24", "2001:DB8:14::/56"}``. Without a subnetmask, only the specific address is allowed.
 
+.. function:: setACLFromFile(fname)
+
+  .. versionadded:: 1.6.0
+
+  Reset the ACL to the list of netmasks from the given file. See :ref:`ACL` for more information.
+
+  :param str fname: The path to a file containing a list of netmasks. Empty lines or lines starting with "#" are ignored.
+
 .. function:: showACL()
 
   Print a list of all netmasks allowed to send queries over UDP, TCP, DNS over TLS and DNS over HTTPS. See :ref:`ACL` for more information.

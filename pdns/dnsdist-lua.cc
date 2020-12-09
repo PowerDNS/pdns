@@ -675,6 +675,31 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_ACL.setState(nmg);
   });
 
+  luaCtx.writeFunction("setACLFromFile", [](const std::string& file) {
+      setLuaSideEffect();
+      NetmaskGroup nmg;
+
+      ifstream ifs(file);
+      if(!ifs) {
+        throw std::runtime_error("Could not open '"+file+"': "+stringerror());
+      }
+
+      string::size_type pos;
+      string line;
+      while(getline(ifs,line)) {
+        pos=line.find('#');
+        if(pos!=string::npos)
+          line.resize(pos);
+        boost::trim(line);
+        if(line.empty())
+          continue;
+
+        nmg.addMask(line);
+      }
+
+      g_ACL.setState(nmg);
+  });
+
   luaCtx.writeFunction("showACL", []() {
       setLuaNoSideEffect();
       vector<string> vec;
