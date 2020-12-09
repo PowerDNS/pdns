@@ -10,6 +10,7 @@ import threading
 # run: protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 # to generate dnsmessage_pb2
 import dnsmessage_pb2
+import google.protobuf.message
 
 class PDNSPBConnHandler(object):
 
@@ -19,23 +20,39 @@ class PDNSPBConnHandler(object):
     def run(self):
         while True:
             data = self._conn.recv(2)
-            if not data:
+            if not data or len(data) < 2:
                 break
+
             (datalen,) = struct.unpack("!H", data)
-            data = self._conn.recv(datalen)
+            data = b''
+            remaining = datalen
+
+            while remaining > 0:
+                buf = self._conn.recv(remaining)
+                if not buf:
+                    break
+                data = data + buf
+                remaining = remaining - len(buf)
+
+            if len(data) != datalen:
+                break
 
             msg = dnsmessage_pb2.PBDNSMessage()
-            msg.ParseFromString(data)
-            if msg.type == dnsmessage_pb2.PBDNSMessage.DNSQueryType:
-                self.printQueryMessage(msg)
-            elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSResponseType:
-                self.printResponseMessage(msg)
-            elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType:
-                self.printOutgoingQueryMessage(msg)
-            elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType:
-                self.printIncomingResponseMessage(msg)
-            else:
-                print('Discarding unsupported message type %d' % (msg.type))
+            try:
+                msg.ParseFromString(data)
+                if msg.type == dnsmessage_pb2.PBDNSMessage.DNSQueryType:
+                    self.printQueryMessage(msg)
+                elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSResponseType:
+                    self.printResponseMessage(msg)
+                elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType:
+                    self.printOutgoingQueryMessage(msg)
+                elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType:
+                    self.printIncomingResponseMessage(msg)
+                else:
+                    print('Discarding unsupported message type %d' % (msg.type))
+            except google.protobuf.message.DecodeError as exp:
+                print('Error parsing message of size %d: %s' % (datalen, str(exp)))
+                break
 
         self._conn.close()
 
