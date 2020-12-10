@@ -108,7 +108,7 @@ private:
 
   struct MapCombo
   {
-    MapCombo() {}
+    MapCombo() { }
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
     negcache_t d_map;
@@ -116,7 +116,7 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
     mutable uint64_t d_contended_count{0};
     mutable uint64_t d_acquired_count{0};
-    void invalidate() {}
+    void invalidate() { }
   };
 
   vector<MapCombo> d_maps;

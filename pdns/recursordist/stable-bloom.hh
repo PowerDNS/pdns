@@ -45,14 +45,14 @@ public:
     d_p(p),
     d_cells(num_cells),
     d_gen(std::random_device()()),
-    d_dis(0, num_cells) {}
+    d_dis(0, num_cells) { }
   stableBF(uint8_t k, uint32_t num_cells, uint8_t p, const std::string& bitstr) :
     d_k(k),
     d_num_cells(num_cells),
     d_p(p),
     d_cells(bitstr),
     d_gen(std::random_device()()),
-    d_dis(0, num_cells) {}
+    d_dis(0, num_cells) { }
   void add(const std::string& data)
   {
     decrement();
