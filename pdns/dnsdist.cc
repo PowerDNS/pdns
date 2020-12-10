@@ -1196,11 +1196,9 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     }
 
     std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dq.poolname);
+    std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
     dq.packetCache = serverPool->packetCache;
-    auto policy = *(holders.policy);
-    if (serverPool->policy != nullptr) {
-      policy = *(serverPool->policy);
-    }
+    const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
     const auto servers = serverPool->getServers();
     selectedBackend = policy.getSelectedBackend(*servers, dq);
 
