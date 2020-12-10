@@ -336,6 +336,7 @@ install_recursor() {
     daemontools \
     jq \
     libfaketime \
+    libprotobuf-dev \
     libsnmp-dev \
     lua-posix \
     lua-socket \
@@ -643,7 +644,8 @@ test_repo(){
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   libluajit-5.1-dev \
-  libedit-dev"
+  libedit-dev \
+  protobuf-compiler"
 
 run "cd .."
 run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb"

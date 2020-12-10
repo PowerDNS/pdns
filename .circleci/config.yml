@@ -227,6 +227,7 @@ commands:
               libsystemd0 \
               libsodium23 \
               patch \
+              protobuf-compiler \
               python3-venv
 
   install-ixfrdist-deps:
@@ -1104,7 +1105,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv
+      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler
       - install-recursor-deps
       - run:
           name: Set up authbind
