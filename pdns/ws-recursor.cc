@@ -499,11 +499,10 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   resp->headers["X-XSS-Protection"] = "1; mode=block";
   //  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
 
-  if (g_urlmap.count(req->url.path.c_str()+1)) {
+  if (!req->url.path.empty() && g_urlmap.count(req->url.path.c_str()+1)) {
     resp->body = g_urlmap.at(req->url.path.c_str()+1);
     resp->status = 200;
   } else {
-    resp->body = "Not Found";
     resp->status = 404;
   }
 }
