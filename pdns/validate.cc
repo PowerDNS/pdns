@@ -80,7 +80,9 @@ static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSNa
   return begin.canonCompare(name) && next != name && next.isPartOf(name);
 }
 
-static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent>& nsec3)
+using nsec3HashesCache = std::map<std::tuple<DNSName, std::string&, uint16_t>, std::string>;
+
+static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent>& nsec3, nsec3HashesCache& cache)
 {
   std::string result;
 
@@ -88,7 +90,15 @@ static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<
     return result;
   }
 
-  return hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
+  auto it = cache.find({qname, nsec3->d_salt, nsec3->d_iterations});
+  if (it != cache.end())
+  {
+    return it->second;
+  }
+
+  result = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
+  cache[{qname, nsec3->d_salt, nsec3->d_iterations}] = result;
+  return result;
 }
 
 /* There is no delegation at this exact point if:
@@ -99,6 +109,8 @@ static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<
 */
 bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords)
 {
+  nsec3HashesCache cache;
+
   for (const auto& record : dsrecords) {
     if (record.d_type == QType::NSEC) {
       const auto nsec = getRR<NSECRecordContent>(record);
@@ -120,7 +132,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
         continue;
       }
 
-      const string h = getHashFromNSEC3(zone, nsec3);
+      const string h = getHashFromNSEC3(zone, nsec3, cache);
       if (h.empty()) {
         return false;
       }
@@ -312,7 +324,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
   If `wildcardExists` is not NULL, if will be set to true if a wildcard exists
   for this qname but doesn't have this qtype.
 */
-static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const cspmap_t & validrrsets, bool * wildcardExists=nullptr)
+static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const cspmap_t& validrrsets, bool* wildcardExists, nsec3HashesCache& cache)
 {
   wildcard = g_wildcarddnsname + wildcard;
   LOG("Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype).getName()<<endl);
@@ -331,7 +343,7 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
         if (!v.first.first.isPartOf(signer))
           continue;
 
-        string h = getHashFromNSEC3(wildcard, nsec3);
+        string h = getHashFromNSEC3(wildcard, nsec3, cache);
         if (h.empty()) {
           return false;
         }
@@ -374,8 +386,10 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
   useful when we have a positive answer synthesized from a wildcard and we only need to prove that the exact
   name does not exist.
 */
+
 dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needWildcardProof, unsigned int wildcardLabelsCount)
 {
+  nsec3HashesCache cache;
   bool nsec3Seen = false;
   if (!needWildcardProof && wildcardLabelsCount == 0) {
     throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthesized from a wildcard");
@@ -506,7 +520,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
         }
 
-        string h = getHashFromNSEC3(qname, nsec3);
+        string h = getHashFromNSEC3(qname, nsec3, cache);
         if (h.empty()) {
           LOG("Unsupported hash, ignoring"<<endl);
           return dState::INSECURE;
@@ -580,6 +594,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     LOG("Now looking for the closest encloser for "<<qname<<endl);
 
     while (found == false && closestEncloser.chopOff()) {
+
       for(const auto& v : validrrsets) {
         if(v.first.second==QType::NSEC3) {
           for(const auto& r : v.second.records) {
@@ -594,7 +609,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               continue;
             }
 
-            string h = getHashFromNSEC3(closestEncloser, nsec3);
+            string h = getHashFromNSEC3(closestEncloser, nsec3, cache);
             if (h.empty()) {
               return dState::INSECURE;
             }
@@ -655,7 +670,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             if(!nsec3)
               continue;
 
-            string h = getHashFromNSEC3(nextCloser, nsec3);
+            string h = getHashFromNSEC3(nextCloser, nsec3, cache);
             if (h.empty()) {
               return dState::INSECURE;
             }
@@ -687,7 +702,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   if (nextCloserFound) {
     bool wildcardExists = false;
     /* RFC 7129 section-5.6 */
-    if (needWildcardProof && !provesNSEC3NoWildCard(closestEncloser, qtype, validrrsets, &wildcardExists)) {
+    if (needWildcardProof && !provesNSEC3NoWildCard(closestEncloser, qtype, validrrsets, &wildcardExists, cache)) {
       if (!isOptOut) {
         LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
         return dState::NODENIAL;
