@@ -7,7 +7,7 @@ for a in $@
 do
 	c=$(echo $a | tr "/.-" "___")
 	echo "static const unsigned char ${c}Data[] = {"
-	od -v -t x "$a" | sed  's/^[0-7]*//' | sed 's/\([0-9a-f][0-9a-f]\)/0x\1,/g'
+	od -v -t x1 "$a" | sed  's/^[0-7]*//' | sed 's/\([0-9a-f][0-9a-f]\)/0x\1,/g'
 	echo "};"
 	echo "static const string g_$c{(const char*)${c}Data, sizeof(${c}Data)};"
 done
