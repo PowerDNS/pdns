@@ -2,6 +2,57 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.2
+  :released: 14th of December 2020
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9837
+
+    UUID: Use the non-cryptographic variant of the boost::uuid.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9838
+
+    Keep a cached, valid entry over a fresher Bogus one.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9799
+    :tickets: 9574
+
+    Ensure socket-dir matches runtime directory on old systemd
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9825
+    :tickets: 9807
+
+    Untangle the validation/resolving qnames and qtypes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9821
+    :tickets: 9597
+
+    Move to several distinct Bogus states, for easier debugging.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9805
+    :tickets: 9790
+
+    Do not chase CNAME during qname minimization step 4.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9774
+    :tickets: 9766
+
+    APL records: fix endianness problem.
+
+.. changelog::
   :version: 4.4.1
   :released: 25th of November 2020
 
