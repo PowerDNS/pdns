@@ -116,7 +116,7 @@ private:
     std::atomic<uint64_t> d_entriesCount{0};
     mutable uint64_t d_contended_count{0};
     mutable uint64_t d_acquired_count{0};
-    void invalidate() { }
+    void invalidate() {}
   };
 
   vector<MapCombo> d_maps;

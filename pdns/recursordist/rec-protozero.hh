@@ -53,7 +53,9 @@ namespace ProtoZero
 
     // Construct a Message with (partially) constructed content
     RecMessage(const std::string& buf1, const std::string& buf2, std::string::size_type sz1, std::string::size_type sz2) :
-      Message(d_msgbuf), d_msgbuf{buf1}, d_rspbuf{buf2}
+      Message(d_msgbuf),
+      d_msgbuf{buf1},
+      d_rspbuf{buf2}
     {
       d_message = protozero::pbf_writer(d_msgbuf);
       d_response = protozero::pbf_writer(d_rspbuf);
