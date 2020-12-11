@@ -24,5 +24,6 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+/* Not safe for crypto, see the definition for more information */
 boost::uuids::uuid getUniqueID();
 boost::uuids::uuid getUniqueID(const std::string& str);
