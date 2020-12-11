@@ -256,7 +256,7 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
     now = time(nullptr);
   }
   DNSKEYRecordContent drc = dpk.getDNSKEY();
-  const std::shared_ptr<DNSCryptoKeyEngine> rc = dpk.getKey();
+  const auto& rc = dpk.getKey();
 
   rrc.d_type = signQType;
   rrc.d_labels = signQName.countLabels() - signQName.isWildcard();

@@ -437,12 +437,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
 {
   initSR();
 
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   // cerr<<dcke->convertToISC()<<endl;
   DNSSECPrivateKey dpk;
   dpk.d_flags = 256;
-  dpk.setKey(dcke);
+  dpk.setKey(std::move(dcke));
 
   sortedRecords_t recordcontents;
   recordcontents.insert(getRecordContent(QType::A, "192.0.2.1"));
@@ -543,18 +543,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
   testkeysset_t kskeys;
 
   /* Generate key material for "." */
-  auto dckeZ = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dckeZ = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dckeZ->create(dckeZ->getBits());
   DNSSECPrivateKey ksk;
   ksk.d_flags = 257;
-  ksk.setKey(dckeZ);
+  ksk.setKey(std::move(dckeZ));
   DSRecordContent kskds = makeDSFromDNSKey(target, ksk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
-  auto dckeK = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dckeK = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dckeK->create(dckeK->getBits());
   DNSSECPrivateKey zsk;
   zsk.d_flags = 256;
-  zsk.setKey(dckeK);
+  zsk.setKey(std::move(dckeK));
   DSRecordContent zskds = makeDSFromDNSKey(target, zsk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   kskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(ksk, kskds);
@@ -696,11 +696,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey csk;
   csk.d_flags = 0;
-  csk.setKey(dcke);
+  csk.setKey(std::move(dcke));
   DSRecordContent ds = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, ds);
@@ -773,11 +773,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey csk;
   csk.d_flags = 257 | 128;
-  csk.setKey(dcke);
+  csk.setKey(std::move(dcke));
   DSRecordContent ds = makeDSFromDNSKey(target, csk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(csk, ds);
@@ -850,18 +850,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dckeDS = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dckeDS = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dckeDS->create(dckeDS->getBits());
   DNSSECPrivateKey dskey;
   dskey.d_flags = 257;
-  dskey.setKey(dckeDS);
+  dskey.setKey(std::move(dckeDS));
   DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.d_flags = 256;
-  dpk.setKey(dcke);
+  dpk.setKey(std::move(dcke));
   DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   dskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dskey, drc);
@@ -976,11 +976,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
   generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
-  auto dckeRRSIG = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dckeRRSIG = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dckeRRSIG->create(dckeRRSIG->getBits());
   DNSSECPrivateKey rrsigkey;
   rrsigkey.d_flags = 257;
-  rrsigkey.setKey(dckeRRSIG);
+  rrsigkey.setKey(std::move(dckeRRSIG));
   DSRecordContent rrsigds = makeDSFromDNSKey(target, rrsigkey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   rrsigkeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(rrsigkey, rrsigds);
@@ -1123,11 +1123,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.d_flags = 256;
-  dpk.setKey(dcke);
+  dpk.setKey(std::move(dcke));
   /* Fake algorithm number (private) */
   dpk.d_algorithm = 253;
 
@@ -1206,11 +1206,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
   testkeysset_t keys;
 
   /* Generate key material for "." */
-  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.d_flags = 256;
-  dpk.setKey(dcke);
+  dpk.setKey(std::move(dcke));
   DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
   /* Fake digest number (reserved) */
   drc.d_digesttype = 0;

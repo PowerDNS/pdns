@@ -3,7 +3,6 @@
 #endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_of.hpp>
-#include <boost/make_shared.hpp>
 
 #include <boost/format.hpp>
 #include <p11-kit/p11-kit.h>
@@ -1025,9 +1024,9 @@ void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& s
       throw PDNSException("Could not log in to token (PIN wrong?)");
 };
 
-std::shared_ptr<DNSCryptoKeyEngine> PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
+std::unique_ptr<DNSCryptoKeyEngine> PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
 {
-  return std::make_shared<PKCS11DNSCryptoKeyEngine>(algorithm);
+  return make_unique<PKCS11DNSCryptoKeyEngine>(algorithm);
 }
 
 // this is called during program startup
