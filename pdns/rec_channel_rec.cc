@@ -3,7 +3,7 @@
 #endif
 #include "utility.hh"
 #include "rec_channel.hh"
-#include <boost/bind.hpp>
+
 #include <vector>
 #ifdef MALLOC_TRACE
 #include "malloctrace.hh"
@@ -1166,26 +1166,27 @@ void registerAllStats()
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
 
   addGetStat("uptime", calculateUptime);
-  addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
-  addGetStat("special-memory-usage", boost::bind(getSpecialMemoryUsage, string()));
-  addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));
+  addGetStat("real-memory-usage", []{ return getRealMemoryUsage(string()); });
+  addGetStat("special-memory-usage", []{ return getSpecialMemoryUsage(string()); });
+  addGetStat("fd-usage", []{ return getOpenFileDescriptors(string()); });
 
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
 
 #ifdef __linux__
-  addGetStat("cpu-iowait", boost::bind(getCPUIOWait, string()));
-  addGetStat("cpu-steal", boost::bind(getCPUSteal, string()));
+  addGetStat("cpu-iowait", []{ return getCPUIOWait(string()); });
+  addGetStat("cpu-steal", []{ return getCPUSteal(string()); });
 #endif
 
-  for(unsigned int n=0; n < g_numThreads; ++n)
-    addGetStat("cpu-msec-thread-"+std::to_string(n), boost::bind(&doGetThreadCPUMsec, n));
+  for (unsigned int n = 0; n < g_numThreads; ++n) {
+    addGetStat("cpu-msec-thread-"+std::to_string(n), [n]{ return doGetThreadCPUMsec(n);});
+  }
 
 #ifdef MALLOC_TRACE
-  addGetStat("memory-allocs", boost::bind(&MallocTracer::getAllocs, g_mtracer, string()));
-  addGetStat("memory-alloc-flux", boost::bind(&MallocTracer::getAllocFlux, g_mtracer, string()));
-  addGetStat("memory-allocated", boost::bind(&MallocTracer::getTotAllocated, g_mtracer, string()));
+  addGetStat("memory-allocs", []{ return g_mtracer->getAllocs(string()); });
+  addGetStat("memory-alloc-flux", []{ return g_mtracer->getAllocFlux(string()); });
+  addGetStat("memory-allocated", []{ return g_mtracer->getTotAllocated(string()); });
 #endif
 
   addGetStat("dnssec-validations", &g_stats.dnssecValidations);
