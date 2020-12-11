@@ -5242,7 +5242,12 @@ int main(int argc, char **argv)
   int ret = EXIT_SUCCESS;
 
   try {
+#if __SANITIZE_ADDRESS__
+    // Asan needs more stack
+    ::arg().set("stack-size","stack size per mthread")="400000";
+#else
     ::arg().set("stack-size","stack size per mthread")="200000";
+#endif
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("local-port","port to listen on")="53";
