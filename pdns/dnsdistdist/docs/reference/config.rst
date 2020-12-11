@@ -603,6 +603,14 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: A string containing the server name if any plus the server address and port
 
+  .. method:: Server:getDrops() -> int
+
+    .. versionadded:: 1.6.0
+
+    Get the number of dropped queries for this server.
+
+    :returns: The number of outstanding queries
+
   .. method:: Server:getOutstanding() -> int
 
     Get the number of outstanding queries for this server.
