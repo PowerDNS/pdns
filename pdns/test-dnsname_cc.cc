@@ -1,14 +1,16 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 #include <boost/test/unit_test.hpp>
-#include <boost/assign/std/map.hpp>
+
+#include <cmath>
 #include <numeric>
-#include <math.h>
+#include <unordered_set>
+
 #include "dnsname.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include <unordered_set>
+
 using namespace boost;
 using std::string;
 
