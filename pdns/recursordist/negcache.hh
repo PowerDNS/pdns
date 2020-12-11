@@ -108,7 +108,7 @@ private:
 
   struct MapCombo
   {
-    MapCombo() { }
+    MapCombo() {}
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
     negcache_t d_map;
