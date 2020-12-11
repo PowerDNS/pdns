@@ -80,7 +80,7 @@ static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSNa
   return begin.canonCompare(name) && next != name && next.isPartOf(name);
 }
 
-using nsec3HashesCache = std::map<std::tuple<DNSName, std::string&, uint16_t>, std::string>;
+using nsec3HashesCache = std::map<std::tuple<DNSName, std::string, uint16_t>, std::string>;
 
 static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent>& nsec3, nsec3HashesCache& cache)
 {
