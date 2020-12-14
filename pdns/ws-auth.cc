@@ -47,7 +47,6 @@
 #include "auth-caches.hh"
 #include "threadname.hh"
 #include "tsigutils.hh"
-#include "ext/incbin/incbin.h"
 
 using json11::Json;
 
