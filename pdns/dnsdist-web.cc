@@ -26,7 +26,6 @@
 #include <sys/resource.h>
 #include <thread>
 
-#include "ext/incbin/incbin.h"
 #include "ext/json11/json11.hpp"
 #include <yahttp/yahttp.hpp>
 

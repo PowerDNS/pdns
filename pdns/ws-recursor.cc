@@ -39,7 +39,6 @@
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
-#include "ext/incbin/incbin.h"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "uuid-utils.hh"
@@ -500,8 +499,12 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   resp->headers["X-XSS-Protection"] = "1; mode=block";
   //  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
 
-  resp->body = g_urlmap[req->url.path.c_str()+1];
-  resp->status = 200;
+  if (!req->url.path.empty() && g_urlmap.count(req->url.path.c_str()+1)) {
+    resp->body = g_urlmap.at(req->url.path.c_str()+1);
+    resp->status = 200;
+  } else {
+    resp->status = 404;
+  }
 }
 
 
