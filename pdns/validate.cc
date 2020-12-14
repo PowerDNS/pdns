@@ -90,14 +90,15 @@ static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<
     return result;
   }
 
-  auto it = cache.find({qname, nsec3->d_salt, nsec3->d_iterations});
+  auto key = std::make_tuple(qname, nsec3->d_salt, nsec3->d_iterations);
+  auto it = cache.find(key);
   if (it != cache.end())
   {
     return it->second;
   }
 
   result = hashQNameWithSalt(nsec3->d_salt, nsec3->d_iterations, qname);
-  cache[{qname, nsec3->d_salt, nsec3->d_iterations}] = result;
+  cache[key] = result;
   return result;
 }
 
