@@ -8,6 +8,7 @@ launch=gsqlite3
 gsqlite3-database=pdns.sqlite32
 gsqlite3-pragma-synchronous=0
 consistent-backends
+direct-dnskey
 __EOF__
 
 	if [[ $context != *nodnssec* ]]
