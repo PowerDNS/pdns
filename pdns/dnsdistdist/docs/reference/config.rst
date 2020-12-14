@@ -609,7 +609,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     Get the number of dropped queries for this server.
 
-    :returns: The number of outstanding queries
+    :returns: The number of dropped queries
 
   .. method:: Server:getOutstanding() -> int
 
