@@ -991,7 +991,7 @@ public:
     data.clear();
 
     const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(dq->dh);
-    DnstapMessage message(data, !dh->qr ? 5 : 6, d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
+    DnstapMessage message(data, !dh->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1120,7 +1120,7 @@ public:
     gettime(&now, true);
     data.clear();
 
-    DnstapMessage message(data, 6, d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->dh), dr->len, dr->queryTime, &now);
+    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->dh), dr->len, dr->queryTime, &now);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
