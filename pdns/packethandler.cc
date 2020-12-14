@@ -986,11 +986,11 @@ int PacketHandler::processNotify(const DNSPacket& p)
   }
 
   if(pdns::isAddressTrustedNotificationProxy(p.getRemote())) {
-    g_log<<Logger::Error<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<< p.getRemote()<<endl;
     if(di.masters.empty()) {
-      g_log<<Logger::Error<<"However, "<<p.qdomain<<" does not have any masters defined (Refused)"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<", zone does not have any masters defined (Refused)"<<endl;
       return RCode::Refused;
     }
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<endl;
   }
   else if(::arg().mustDo("master") && di.kind == DomainInfo::Master) {
     g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" but we are master (Refused)"<<endl;
