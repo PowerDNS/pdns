@@ -76,7 +76,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.registerFunction<void(DNSDistProtoBufMessage::*)(boost::optional <time_t> sec, boost::optional <uint32_t> uSec)>("setProtobufResponseType",
                                         [](DNSDistProtoBufMessage& message, boost::optional <time_t> sec, boost::optional <uint32_t> uSec) {
-      message.setType(2);
+      message.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
       message.setQueryTime(sec ? *sec : 0, uSec ? *uSec : 0);
     });
 

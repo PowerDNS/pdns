@@ -93,7 +93,7 @@ namespace ProtoZero
     std::string&& finishAndMoveBuf()
     {
       if (!d_rspbuf.empty()) {
-        d_message.add_message(13, d_rspbuf);
+        d_message.add_message(static_cast<protozero::pbf_tag_type>(Field::response), d_rspbuf);
       }
       return std::move(d_msgbuf);
     }
@@ -128,17 +128,17 @@ namespace ProtoZero
       default:
         throw std::runtime_error("Unsupported protobuf policy type");
       }
-      d_response.add_uint32(7, p);
+      d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::appliedPolicyType), p);
     }
 
     void setAppliedPolicyTrigger(const DNSName& trigger)
     {
-      encodeDNSName(d_response, d_rspbuf, 8, trigger);
+      encodeDNSName(d_response, d_rspbuf, static_cast<protozero::pbf_tag_type>(ResponseField::appliedPolicyTrigger), trigger);
     }
 
     void setAppliedPolicyHit(const std::string& hit)
     {
-      d_response.add_string(9, hit);
+      d_response.add_string(static_cast<protozero::pbf_tag_type>(ResponseField::appliedPolicyHit), hit);
     }
 
 #ifdef NOD_ENABLED

@@ -73,7 +73,7 @@ void pdns::ProtoZero::Message::setRequest(const boost::uuids::uuid& uniqueId, co
 
 void pdns::ProtoZero::Message::setResponse(const DNSName& qname, uint16_t qtype, uint16_t qclass)
 {
-  setType(2);
+  setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
   setQuestion(qname, qtype, qclass);
 }
 
@@ -130,15 +130,15 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
       addRR(rrname, ah.d_type, ah.d_class, ah.d_ttl, blob);
 
     } else if (ah.d_type == QType::CNAME && includeCNAME) {
-      protozero::pbf_writer pbf_rr{d_response, 2};
+      protozero::pbf_writer pbf_rr{d_response, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::ResponseField::rrs)};
 
-      encodeDNSName(pbf_rr, d_buffer, 1, rrname);
-      pbf_rr.add_uint32(2, ah.d_type);
-      pbf_rr.add_uint32(3, ah.d_class);
-      pbf_rr.add_uint32(4, ah.d_ttl);
+      encodeDNSName(pbf_rr, d_buffer, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::name), rrname);
+      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::type), ah.d_type);
+      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::class_), ah.d_class);
+      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), ah.d_ttl);
       DNSName target;
       pr.xfrName(target, true);
-      encodeDNSName(pbf_rr, d_buffer, 5, target);
+      encodeDNSName(pbf_rr, d_buffer, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), target);
     }
     else {
       pr.xfrBlob(blob);
@@ -148,10 +148,10 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
 
 void pdns::ProtoZero::Message::addRR(const DNSName& name, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& blob)
 {
-  protozero::pbf_writer pbf_rr{d_response, 2};
-  encodeDNSName(pbf_rr, d_buffer, 1, name);
-  pbf_rr.add_uint32(2, uType);
-  pbf_rr.add_uint32(3, uClass);
-  pbf_rr.add_uint32(4, uTTL);
-  pbf_rr.add_string(5, blob);
+  protozero::pbf_writer pbf_rr{d_response, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::ResponseField::rrs)};
+  encodeDNSName(pbf_rr, d_buffer, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::name), name);
+  pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::type), uType);
+  pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::class_), uClass);
+  pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), uTTL);
+  pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), blob);
 }

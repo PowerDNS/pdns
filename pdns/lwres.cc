@@ -141,7 +141,7 @@ static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<R
   static thread_local std::string buffer;
   buffer.clear();
   pdns::ProtoZero::Message m{buffer};
-  m.setType(3);
+  m.setType(pdns::ProtoZero::Message::MessageType::DNSOutgoingQueryType);
   m.setMessageIdentity(uuid);
   m.setSocketFamily(ip.sin4.sin_family);
   m.setSocketProtocol(doTCP);
@@ -189,7 +189,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   static thread_local std::string buffer;
   buffer.clear();
   pdns::ProtoZero::RecMessage m{buffer};
-  m.setType(4);
+  m.setType(pdns::ProtoZero::Message::MessageType::DNSIncomingResponseType);
   m.setMessageIdentity(uuid);
   m.setSocketFamily(ip.sin4.sin_family);
   m.setSocketProtocol(doTCP);

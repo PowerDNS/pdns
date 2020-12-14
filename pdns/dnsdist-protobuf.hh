@@ -37,7 +37,7 @@ public:
   void setRequestorPort(uint16_t port);
   void setResponderPort(uint16_t port);
   void setResponseCode(uint8_t rcode);
-  void setType(uint32_t type);
+  void setType(pdns::ProtoZero::Message::MessageType type);
   void setBytes(size_t bytes);
   void setTime(time_t sec, uint32_t usec);
   void setQueryTime(time_t sec, uint32_t usec);
@@ -88,6 +88,6 @@ private:
   boost::optional<size_t> d_bytes{boost::none};
   boost::optional<uint8_t> d_rcode{boost::none};
 
-  uint32_t d_type{1};
+  pdns::ProtoZero::Message::MessageType d_type{pdns::ProtoZero::Message::MessageType::DNSQueryType};
   bool d_includeCNAME{false};
 };

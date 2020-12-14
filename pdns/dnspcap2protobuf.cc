@@ -125,7 +125,7 @@ try {
 
       pbBuffer.clear();
       pdns::ProtoZero::Message pbMessage(pbBuffer);
-      pbMessage.setType(dh->qr ? 2 : 1);
+      pbMessage.setType(dh->qr ? pdns::ProtoZero::Message::MessageType::DNSResponseType : pdns::ProtoZero::Message::MessageType::DNSQueryType);
       pbMessage.setRequest(uniqueId, requestor, responder, qname, qtype, qclass, dh->id, false, pr.d_len);
       pbMessage.setTime(pr.d_pheader.ts.tv_sec, pr.d_pheader.ts.tv_usec);
 

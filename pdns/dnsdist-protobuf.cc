@@ -24,11 +24,11 @@
 #include "dnsdist-protobuf.hh"
 #include "protozero.hh"
 
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq): d_dq(dq), d_type(1)
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSQuestion& dq): d_dq(dq), d_type(pdns::ProtoZero::Message::MessageType::DNSQueryType)
 {
 }
 
-DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME): d_dq(dr), d_dr(&dr), d_type(2), d_includeCNAME(includeCNAME)
+DNSDistProtoBufMessage::DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME): d_dq(dr), d_dr(&dr), d_type(pdns::ProtoZero::Message::MessageType::DNSResponseType), d_includeCNAME(includeCNAME)
 {
 }
 
@@ -66,7 +66,7 @@ void DNSDistProtoBufMessage::setResponseCode(uint8_t rcode)
   d_rcode = rcode;
 }
 
-void DNSDistProtoBufMessage::setType(uint32_t type)
+void DNSDistProtoBufMessage::setType(pdns::ProtoZero::Message::MessageType type)
 {
   d_type = type;
 }

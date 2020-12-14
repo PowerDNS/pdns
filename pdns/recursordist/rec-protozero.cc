@@ -33,66 +33,66 @@ void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<
     return;
   }
 
-  protozero::pbf_writer pbf_rr{d_response, 2};
+  protozero::pbf_writer pbf_rr{d_response, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::ResponseField::rrs)};
 
-  encodeDNSName(pbf_rr, d_rspbuf, 1, record.d_name);
-  pbf_rr.add_uint32(2, record.d_type);
-  pbf_rr.add_uint32(3, record.d_class);
-  pbf_rr.add_uint32(4, record.d_ttl);
+  encodeDNSName(pbf_rr, d_rspbuf, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::name), record.d_name);
+  pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::type), record.d_type);
+  pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::class_), record.d_class);
+  pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), record.d_ttl);
 
   switch (record.d_type) {
   case QType::A: {
     const auto& content = dynamic_cast<const ARecordContent&>(*(record.d_content));
     ComboAddress data = content.getCA();
-    pbf_rr.add_bytes(5, reinterpret_cast<const char*>(&data.sin4.sin_addr.s_addr), sizeof(data.sin4.sin_addr.s_addr));
+    pbf_rr.add_bytes(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), reinterpret_cast<const char*>(&data.sin4.sin_addr.s_addr), sizeof(data.sin4.sin_addr.s_addr));
     break;
   }
   case QType::AAAA: {
     const auto& content = dynamic_cast<const AAAARecordContent&>(*(record.d_content));
     ComboAddress data = content.getCA();
-    pbf_rr.add_bytes(5, reinterpret_cast<const char*>(&data.sin6.sin6_addr.s6_addr), sizeof(data.sin6.sin6_addr.s6_addr));
+    pbf_rr.add_bytes(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), reinterpret_cast<const char*>(&data.sin6.sin6_addr.s6_addr), sizeof(data.sin6.sin6_addr.s6_addr));
     break;
   }
   case QType::CNAME: {
     const auto& content = dynamic_cast<const CNAMERecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getTarget().toString());
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getTarget().toString());
     break;
   }
   case QType::TXT: {
     const auto& content = dynamic_cast<const TXTRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.d_text);
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.d_text);
     break;
   }
   case QType::NS: {
     const auto& content = dynamic_cast<const NSRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getNS().toString());
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getNS().toString());
     break;
   }
   case QType::PTR: {
     const auto& content = dynamic_cast<const PTRRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getContent().toString());
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getContent().toString());
     break;
   }
   case QType::MX: {
     const auto& content = dynamic_cast<const MXRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.d_mxname.toString());
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.d_mxname.toString());
     break;
   }
   case QType::SPF: {
     const auto& content = dynamic_cast<const SPFRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.getText());
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.getText());
     break;
   }
   case QType::SRV: {
     const auto& content = dynamic_cast<const SRVRecordContent&>(*(record.d_content));
-    pbf_rr.add_string(5, content.d_target.toString());
+    pbf_rr.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), content.d_target.toString());
     break;
   }
   default:
     break;
   }
 #ifdef NOD_ENABLED
-  pbf_rr.add_bool(6, udr);
+  pbf_rr.add_bool(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::udr), udr);
   pbf_rr.commit();
 
   // Save the offset of the byte containing the just added bool. We can do this since

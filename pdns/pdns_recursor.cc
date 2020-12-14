@@ -887,7 +887,7 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   requestor.setPort(remote.getPort());
 
   pdns::ProtoZero::RecMessage m{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // It's a guess
-  m.setType(1);
+  m.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
   m.setRequest(uniqueId, requestor, local, qname, qtype, qclass, id, tcp, len);
   m.setServerIdentity(SyncRes::s_serverID);
   m.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? maskV4 : maskV6);
@@ -2803,7 +2803,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if (pbData) {
           // We take the inmutable string from the cache and are appending a few values
         } else {
-          pbMessage.setType(2); // Response
+          pbMessage.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
           pbMessage.setServerIdentity(SyncRes::s_serverID);
         }
 
