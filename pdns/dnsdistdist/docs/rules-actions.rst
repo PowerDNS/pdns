@@ -1357,7 +1357,7 @@ The following actions exist.
     Added the optional parameter ``options``.
 
   .. versionchanged:: 1.6.0
-    Up to 1.6.0, the syntax for this function was ``SpoofAction(ips[, ip[, options]]).
+    Up to 1.6.0, the syntax for this function was ``SpoofAction(ips[, ip[, options]])``.
 
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
