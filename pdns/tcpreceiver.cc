@@ -601,29 +601,27 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   
   trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
+
   
-  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
-  
-  typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
-  nsecxrepo_t nsecxrepo;
-  vector<DNSZoneRecord> zrrs, cds, cdnskey;
   DNSZoneRecord zrr;
+  vector<DNSZoneRecord> zrrs;
 
-  if(securedZone && !presignedZone) {
-    // this is where the DNSKEYs go  in
-    DNSSECKeeper::keyset_t keys = dk.getKeys(target);
+  zrr.dr.d_name = target;
+  zrr.dr.d_ttl = sd.minimum;
 
-    zrr.dr.d_name = target;
-    zrr.dr.d_ttl = sd.minimum;
-
+  if(securedZone && !presignedZone) { // this is where the DNSKEYs, CDNSKEYs and CDSs go in
+    bool doCDNSKEY = true, doCDS = true;
     string publishCDNSKEY, publishCDS;
     dk.getPublishCDNSKEY(q->qdomain, publishCDNSKEY);
     dk.getPublishCDS(q->qdomain, publishCDS);
-    DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(q->qdomain);
-    set<uint32_t> entryPointIds;
-    for (auto const& value : entryPoints)
-      entryPointIds.insert(value.second.id);
 
+    set<uint32_t> entryPointIds;
+    DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(target);
+    for (auto const& value : entryPoints) {
+      entryPointIds.insert(value.second.id);
+    }
+
+    DNSSECKeeper::keyset_t keys = dk.getKeys(target);
     for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
       if (!value.second.published) {
         continue;
@@ -634,33 +632,31 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       zrrs.push_back(zrr);
 
       // generate CDS and CDNSKEY records
-      if(entryPointIds.count(value.second.id) > 0){
+      if(doCDNSKEY && entryPointIds.count(value.second.id) > 0){
         if(!publishCDNSKEY.empty()) {
           zrr.dr.d_type=QType::CDNSKEY;
           if (publishCDNSKEY == "0") {
-            if (cdnskey.empty()) {
-              zrr.dr.d_content=PacketHandler::s_deleteCDNSKEYContent;
-              cdnskey.push_back(zrr);
-            }
+            doCDNSKEY = false;
+            zrr.dr.d_content=PacketHandler::s_deleteCDNSKEYContent;
+            zrrs.push_back(zrr);
           } else {
             zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-            cdnskey.push_back(zrr);
+            zrrs.push_back(zrr);
           }
         }
 
-        if(!publishCDS.empty()){
+        if(doCDS && !publishCDS.empty()){
+          doCDS = false;
           zrr.dr.d_type=QType::CDS;
           vector<string> digestAlgos;
           stringtok(digestAlgos, publishCDS, ", ");
           if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) {
-            if(cds.empty()) {
-              zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
-              cds.push_back(zrr);
-            }
+            zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
+            zrrs.push_back(zrr);
           } else {
             for(auto const &digestAlgo : digestAlgos) {
               zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
-              cds.push_back(zrr);
+              zrrs.push_back(zrr);
             }
           }
         }
@@ -669,12 +665,8 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   }
 
-  uint8_t flags;
-
   if(NSEC3Zone) { // now stuff in the NSEC3PARAM
-    zrr.dr.d_name = target;
-    zrr.dr.d_ttl = sd.minimum;
-    flags = ns3pr.d_flags;
+    uint8_t flags = ns3pr.d_flags;
     zrr.dr.d_type = QType::NSEC3PARAM;
     ns3pr.d_flags = 0;
     zrr.dr.d_content = std::make_shared<NSEC3PARAMRecordContent>(ns3pr);
@@ -694,13 +686,6 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
   set<DNSName> qnames, nsset, terms;
-
-  // Add the CDNSKEY and CDS records we created earlier
-  for (auto const &synth_zrr : cds)
-    zrrs.push_back(synth_zrr);
-
-  for (auto const &synth_zrr : cdnskey)
-    zrrs.push_back(synth_zrr);
 
   while(sd.db->get(zrr)) {
     if (!presignedZone) {
@@ -829,7 +814,12 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
 
   /* now write all other records */
-  
+
+  typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
+  nsecxrepo_t nsecxrepo;
+
+  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
+
   DNSName keyname;
   unsigned int udiff;
   DTime dt;
