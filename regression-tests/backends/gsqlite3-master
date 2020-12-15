@@ -12,6 +12,7 @@ module-dir=./modules
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 consistent-backends
+direct-dnskey
 __EOF__
 
 		gsql_master gsqlite3 nodyndns

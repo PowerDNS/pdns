@@ -606,7 +606,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   
   typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
-  vector<DNSZoneRecord> cds, cdnskey;
+  vector<DNSZoneRecord> zrrs, cds, cdnskey;
   DNSZoneRecord zrr;
 
   if(securedZone && !presignedZone) {
@@ -615,7 +615,6 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
     zrr.dr.d_name = target;
     zrr.dr.d_ttl = sd.minimum;
-    zrr.auth = 1; // please sign!
 
     string publishCDNSKEY, publishCDS;
     dk.getPublishCDNSKEY(q->qdomain, publishCDNSKEY);
@@ -632,11 +631,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       zrr.dr.d_type = QType::DNSKEY;
       zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
       DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
-      NSECXEntry& ne = nsecxrepo[keyname];
-
-      ne.d_set.set(zrr.dr.d_type);
-      ne.d_ttl = sd.getNegativeTTL();
-      csp.submit(zrr);
+      zrrs.push_back(zrr);
 
       // generate CDS and CDNSKEY records
       if(entryPointIds.count(value.second.id) > 0){
@@ -672,13 +667,6 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       }
     }
 
-    if(::arg().mustDo("direct-dnskey")) {
-      sd.db->lookup(QType(QType::DNSKEY), target, sd.domain_id);
-      while(sd.db->get(zrr)) {
-        zrr.dr.d_ttl = sd.minimum;
-        csp.submit(zrr);
-      }
-    }
   }
 
   uint8_t flags;
@@ -686,17 +674,13 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(NSEC3Zone) { // now stuff in the NSEC3PARAM
     zrr.dr.d_name = target;
     zrr.dr.d_ttl = sd.minimum;
-    zrr.auth = 1;
     flags = ns3pr.d_flags;
     zrr.dr.d_type = QType::NSEC3PARAM;
     ns3pr.d_flags = 0;
     zrr.dr.d_content = std::make_shared<NSEC3PARAMRecordContent>(ns3pr);
     ns3pr.d_flags = flags;
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
-    NSECXEntry& ne = nsecxrepo[keyname];
-    
-    ne.d_set.set(zrr.dr.d_type);
-    csp.submit(zrr);
+    zrrs.push_back(zrr);
   }
   
   // now start list zone
@@ -710,7 +694,6 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
   set<DNSName> qnames, nsset, terms;
-  vector<DNSZoneRecord> zrrs;
 
   // Add the CDNSKEY and CDS records we created earlier
   for (auto const &synth_zrr : cds)
@@ -720,6 +703,18 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     zrrs.push_back(synth_zrr);
 
   while(sd.db->get(zrr)) {
+    if (!presignedZone) {
+      if (zrr.dr.d_type == QType::RRSIG) {
+        continue;
+      }
+      if (zrr.dr.d_type == QType::DNSKEY || zrr.dr.d_type == QType::CDNSKEY || zrr.dr.d_type == QType::CDS) {
+        if(!::arg().mustDo("direct-dnskey")) {
+          continue;
+        } else {
+          zrr.dr.d_ttl = sd.minimum;
+        }
+      }
+    }
     zrr.dr.d_name.makeUsLowerCase();
     if(zrr.dr.d_name.isPartOf(target)) {
       if (zrr.dr.d_type == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
@@ -841,14 +836,6 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   dt.set();
   int records=0;
   for(DNSZoneRecord &loopZRR :  zrrs) {
-    if (!presignedZone && loopZRR.dr.d_type == QType::RRSIG)
-      continue;
-
-    // only skip the DNSKEY, CDNSKEY and CDS if direct-dnskey is enabled, to avoid changing behaviour
-    // when it is not enabled.
-    if(::arg().mustDo("direct-dnskey") && (loopZRR.dr.d_type == QType::DNSKEY || loopZRR.dr.d_type == QType::CDNSKEY || loopZRR.dr.d_type == QType::CDS))
-      continue;
-
     records++;
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
