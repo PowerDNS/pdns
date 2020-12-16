@@ -897,7 +897,10 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
       }
     }
 
-    if (doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
+    /* When we are looking for a DS, we want to the non-CNAME cache check first
+       because we can actually have a DS (from the parent zone) AND a CNAME (from
+       the child zone), and what we really want is the DS */
+    if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
       // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
       // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -940,6 +943,37 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
           bool done = false;
           handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+        }
+      }
+
+      return res;
+    }
+
+    /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */ 
+    if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
+      d_wasOutOfBand = wasAuthZone;
+      // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
+      // are in QM Step0) we might have a CNAME but not the corresponding target.
+      // It means that we will sometimes go to the next steps when we are in fact done, but that's fine since
+      // we will get the records from the cache, resulting in a small overhead.
+      // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
+      // RPZ rules will not be evaluated anymore (we already matched).
+      const bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
+
+      if (fromCache && (!d_cacheonly || stoppedByPolicyHit)) {
+        *fromCache = true;
+      }
+      /* Apply Post filtering policies */
+
+      if (d_wantsRPZ && !stoppedByPolicyHit) {
+        auto luaLocal = g_luaconfs.getLocal();
+        if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
+          mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
+          bool done = false;
+          handlePolicyHit(prefix, qname, qtype, ret, done, res, depth);
+          if (done && fromCache) {
+            *fromCache = true;
+          }
         }
       }
 
