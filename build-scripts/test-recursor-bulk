@@ -13,6 +13,7 @@ set -x
 
 cd regression-tests
 
+rm -f top-1m.csv
 wget -c -N http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip
 
 unzip top-1m.csv.zip
@@ -36,7 +37,7 @@ version=$($PDNSRECURSOR --version 2>&1 | awk '/PowerDNS Recursor/ { print $6 }')
 for IPv6 in 0 1; do
   for CSV in $(ls *.csv); do
     for domains in $numdomains; do
-      export context="${version}_v6:${IPv6}_csv:${CSV%%.*}"
+      export context="${version}_v6:${IPv6}_csv:${CSV%%.*}_domains:${domains}"
       export IPv6
       export CSV
       RECURSOR=$PDNSRECURSOR RECCONTROL=$PDNSRECCONTROL THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains || EXIT=1

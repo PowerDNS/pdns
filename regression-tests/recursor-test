@@ -39,9 +39,6 @@ echo
 echo === First run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 echo
-echo "=== XXXX RECURSOR LOG ==="
-cat recursor.log
-echo "=== XXXX END RECURSOR LOG ==="
 kill -USR1 $(cat pdns_recursor.pid)
 ${RECCONTROL} --socket-dir=. --config-dir=. get-all
 # rerun 1 with hot cache
