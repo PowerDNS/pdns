@@ -177,7 +177,7 @@ size_t parseRFC1035CharString(const std::string &in, std::string &val) {
   val.clear();
   val.reserve(in.size());
   const char *p = in.c_str();
-  const char *pe = p + in.size() + 1;
+  const char *pe = p + in.size();
   int cs = 0;
   uint8_t escaped_octet = 0;
   // Keeps track of how many chars we read from the source string
