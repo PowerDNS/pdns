@@ -138,6 +138,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   s_queries++;
   d_wasVariable=false;
   d_wasOutOfBand=false;
+  d_cutStates.clear();
 
   if (doSpecialNamesResolve(qname, qtype, qclass, ret)) {
     d_queryValidationState = vState::Insecure; // this could fool our stats into thinking a validation took place
@@ -948,7 +949,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
       return res;
     }
 
-    /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */ 
+    /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */
     if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
       // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
