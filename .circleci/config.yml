@@ -1297,7 +1297,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 16
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest M
+          name: Run bulktest N
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1307,7 +1307,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 32
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest N
+          name: Run bulktest O
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1317,7 +1317,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 64
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest O
+          name: Run bulktest P
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1327,7 +1327,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 128
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest P
+          name: Run bulktest Q
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1337,7 +1337,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 256
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest Q
+          name: Run bulktest R
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
@@ -1347,7 +1347,7 @@ jobs:
             ./timestamp ./recursor-test 5300 50000 8 4096 512
           workdir: ~/project/regression-tests
       - run:
-          name: Run bulktest R
+          name: Run bulktest S
           command: |
             DNSBULKTEST=/usr/bin/dnsbulktest \
             RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
