@@ -69,17 +69,13 @@ public:
 
   h2o_accept_ctx_t* get()
   {
-    ++d_refcnt;
     return &d_h2o_accept_ctx;
   }
 
-  void release()
+  ~DOHAcceptContext()
   {
-    if (--d_refcnt == 0) {
-      SSL_CTX_free(d_h2o_accept_ctx.ssl_ctx);
-      d_h2o_accept_ctx.ssl_ctx = nullptr;
-      delete this;
-    }
+    SSL_CTX_free(d_h2o_accept_ctx.ssl_ctx);
+    d_h2o_accept_ctx.ssl_ctx = nullptr;
   }
 
   void decrementConcurrentConnections()
@@ -173,7 +169,7 @@ private:
 // through the bowels of h2o
 struct DOHServerConfig
 {
-  DOHServerConfig(uint32_t idleTimeout, uint32_t internalPipeBufferSize): accept_ctx(new DOHAcceptContext)
+  DOHServerConfig(uint32_t idleTimeout, uint32_t internalPipeBufferSize): accept_ctx(std::make_shared<DOHAcceptContext>())
   {
     int fd[2];
     if (pipe(fd) < 0) {
@@ -209,18 +205,11 @@ struct DOHServerConfig
   DOHServerConfig(const DOHServerConfig&) = delete;
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
 
-  ~DOHServerConfig()
-  {
-    if (accept_ctx) {
-      accept_ctx->release();
-    }
-  }
-
   LocalHolders holders;
   std::unordered_set<std::string> paths;
   h2o_globalconf_t h2o_config;
   h2o_context_t h2o_ctx;
-  DOHAcceptContext* accept_ctx{nullptr};
+  std::shared_ptr<DOHAcceptContext> accept_ctx{nullptr};
   ClientState* cs{nullptr};
   std::shared_ptr<DOHFrontend> df{nullptr};
   int dohquerypair[2]{-1,-1};
@@ -259,11 +248,32 @@ void handleDOHTimeout(DOHUnit* oldDU)
   oldDU = nullptr;
 }
 
+struct DOHConnection
+{
+  std::shared_ptr<DOHAcceptContext> d_acceptCtx{nullptr};
+  struct timeval d_connectionStartTime{0, 0};
+  size_t d_nbQueries{0};
+  int d_desc{-1};
+};
+
+static thread_local std::unordered_map<int, DOHConnection> t_conns;
+
 static void on_socketclose(void *data)
 {
-  DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
-  ctx->decrementConcurrentConnections();
-  ctx->release();
+  auto conn = reinterpret_cast<DOHConnection*>(data);
+  if (conn != nullptr) {
+    if (conn->d_acceptCtx) {
+      struct timeval now;
+      gettimeofday(&now, nullptr);
+
+      auto diff = now - conn->d_connectionStartTime;
+
+      conn->d_acceptCtx->decrementConcurrentConnections();
+      conn->d_acceptCtx->d_cs->updateTCPMetrics(conn->d_nbQueries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
+    }
+
+    t_conns.erase(conn->d_desc);
+  }
 }
 
 static const std::string& getReasonFromStatusCode(uint16_t statusCode)
@@ -766,8 +776,7 @@ static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 try
 {
-  // g_logstream<<(void*)req<<" doh_handler"<<endl;
-  if(!req->conn->ctx->storage.size) {
+  if (!req->conn->ctx->storage.size) {
     return 0; // although we might was well crash on this
   }
   h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
@@ -803,7 +812,12 @@ try
     ++dsc->cs->tlsResumptions;
   }
 
-  if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
+  const int descriptor = h2o_socket_get_fd(sock);
+  if (descriptor != -1) {
+    ++t_conns.at(descriptor).d_nbQueries;
+  }
+
+  if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->cs->tls10queries;
     else if(!strcmp(tlsversion, "TLSv1.1"))
@@ -1157,13 +1171,26 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   // h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
   //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
 
-  sock->data = dsc;
+  const int descriptor = h2o_socket_get_fd(sock);
+  if (descriptor == -1) {
+    return;
+  }
+
+  auto& conn = t_conns[descriptor];
+
+  gettimeofday(&conn.d_connectionStartTime, nullptr);
+  conn.d_nbQueries = 0;
+  conn.d_acceptCtx = dsc->accept_ctx;
+  conn.d_desc = descriptor;
+
   sock->on_close.cb = on_socketclose;
-  auto accept_ctx = dsc->accept_ctx->get();
-  sock->on_close.data = dsc->accept_ctx;
-  ++dsc->df->d_httpconnects;
+  sock->on_close.data = &conn;
+  sock->data = dsc;
+
   ++dsc->cs->tcpCurrentConnections;
-  h2o_accept(accept_ctx, sock);
+  ++dsc->df->d_httpconnects;
+
+  h2o_accept(conn.d_acceptCtx->get(), sock);
 }
 
 static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerConfig>& dsc, int fd)
@@ -1245,7 +1272,6 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
 
   auto nativeCtx = acceptCtx.get();
   nativeCtx->ssl_ctx = ctx.release();
-  acceptCtx.release();
 }
 
 static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool setupTLS)
@@ -1266,7 +1292,6 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
     }
   }
   ctx.d_cs = dsc.cs;
-  ctx.release();
 }
 
 void DOHFrontend::rotateTicketsKey(time_t now)
@@ -1309,11 +1334,9 @@ size_t DOHFrontend::getTicketsKeysCount() const
 
 void DOHFrontend::reloadCertificates()
 {
-  auto newAcceptContext = std::unique_ptr<DOHAcceptContext>(new DOHAcceptContext());
+  auto newAcceptContext = std::make_shared<DOHAcceptContext>();
   setupAcceptContext(*newAcceptContext, *d_dsc, true);
-  DOHAcceptContext* oldCtx = d_dsc->accept_ctx;
-  d_dsc->accept_ctx = newAcceptContext.release();
-  oldCtx->release();
+  d_dsc->accept_ctx = newAcceptContext;
 }
 
 void DOHFrontend::setup()
