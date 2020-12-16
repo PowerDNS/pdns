@@ -211,8 +211,8 @@ paths:
           description: 'Returns 204 No Content on success.'
 
     put:
-      summary: Modifies basic zone data (metadata).
-      description: 'Allowed fields in client body: all except id, url and name. Returns 204 No Content on success.'
+      summary: Modifies basic zone data.
+      description: 'The only fields in the zone structure which can be modified are: kind, masters, account, soa_edit, soa_edit_api, api_rectify, dnssec, and nsec3param. All other fields are ignored.'
       operationId: putZone
       tags:
         - zones
