@@ -61,7 +61,6 @@ To remove a previously added network range from the existing ACL, use :func:`rmA
 
 dnsdist also has the :func:`setACL` function that accepts a list of netmasks and resets the ACL to that list:
 
-
 .. code-block:: lua
 
   setACL({'192.0.2.0/25', '2001:db8:15::bea/64'})
@@ -70,5 +69,6 @@ dnsdist also has the :func:`setACL` function that accepts a list of netmasks and
 To set the ACL from a file containing a list of netmasks, use :func:`setACLFromFile`:
 
 .. code-block:: lua
+
   setACLFromFile('/etc/dnsdist/query.acl')
 
