@@ -1,0 +1,27 @@
+---
+name: 'Test package building for specific distributions'
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 22 * * 2'
+
+jobs:
+  build:
+    name: Build package on older OS's
+    # on a ubuntu-20.04 VM
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        product: ['authoritative', 'recursor', 'dnsdist']
+        os:
+          - centos-7
+          - ubuntu-bionic
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+      # this builds packages and runs our unit test (make check)
+      - run: builder/build.sh -v -m ${{ matrix.product }} ${{ matrix.os }}
