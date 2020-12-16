@@ -679,6 +679,11 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
   }
 
   d_lookupdomain = target;
+
+  // Make sure we start with fresh data
+  d_currentrrset.clear();
+  d_currentrrsetpos = 0;
+
   return true;
 }
 
@@ -739,6 +744,10 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, 
   }
 
   d_lookupdomain = hunt;
+
+  // Make sure we start with fresh data
+  d_currentrrset.clear();
+  d_currentrrsetpos = 0;
 }
 
 
