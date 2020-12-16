@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 32
+# serial 33
 ], [#
 ], [])])
 
@@ -1614,6 +1614,10 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    "defined __clang__ && __clang_major__ == 12 && __clang_minor__ == 0 @ clang120" \
+    "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 0 @ clang110" \
+    "defined __clang__ && __clang_major__ == 10 && __clang_minor__ == 0 @ clang100" \
+    "defined __clang__ && __clang_major__ == 9 && __clang_minor__ == 0 @ clang90" \
     "defined __clang__ && __clang_major__ == 8 && __clang_minor__ == 0 @ clang80" \
     "defined __clang__ && __clang_major__ == 7 && __clang_minor__ == 0 @ clang70" \
     "defined __clang__ && __clang_major__ == 6 && __clang_minor__ == 0 @ clang60" \
@@ -1622,10 +1626,20 @@ if test x$boost_cv_inc_path != xno; then
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(10, 2) \
+    _BOOST_gcc_test(10, 2) \
+    _BOOST_mingw_test(10, 1) \
+    _BOOST_gcc_test(10, 1) \
+    _BOOST_mingw_test(9, 3) \
+    _BOOST_gcc_test(9, 3) \
+    _BOOST_mingw_test(9, 2) \
+    _BOOST_gcc_test(9, 2) \
     _BOOST_mingw_test(9, 1) \
     _BOOST_gcc_test(9, 1) \
     _BOOST_mingw_test(9, 0) \
     _BOOST_gcc_test(9, 0) \
+    _BOOST_mingw_test(8, 4) \
+    _BOOST_gcc_test(8, 4) \
     _BOOST_mingw_test(8, 3) \
     _BOOST_gcc_test(8, 3) \
     _BOOST_mingw_test(8, 2) \
@@ -1634,6 +1648,8 @@ if test x$boost_cv_inc_path != xno; then
     _BOOST_gcc_test(8, 1) \
     _BOOST_mingw_test(8, 0) \
     _BOOST_gcc_test(8, 0) \
+    _BOOST_mingw_test(7, 4) \
+    _BOOST_gcc_test(7, 4) \
     _BOOST_mingw_test(7, 3) \
     _BOOST_gcc_test(7, 3) \
     _BOOST_mingw_test(7, 2) \
@@ -1642,6 +1658,8 @@ if test x$boost_cv_inc_path != xno; then
     _BOOST_gcc_test(7, 1) \
     _BOOST_mingw_test(7, 0) \
     _BOOST_gcc_test(7, 0) \
+    _BOOST_mingw_test(6, 5) \
+    _BOOST_gcc_test(6, 5) \
     _BOOST_mingw_test(6, 4) \
     _BOOST_gcc_test(6, 4) \
     _BOOST_mingw_test(6, 3) \
