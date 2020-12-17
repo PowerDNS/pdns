@@ -57,9 +57,9 @@ public:
 
   typedef boost::optional<std::string> OptTag;
 
-  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr);
+  int32_t get(time_t, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs=nullptr, bool* variable=nullptr, vState* state=nullptr, bool* wasAuth=nullptr, DNSName* fromAuthZone=nullptr);
 
-  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, const OptTag& routingTag = boost::none, vState state=vState::Indeterminate);
+  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask=boost::none, const OptTag& routingTag = boost::none, vState state=vState::Indeterminate, boost::optional<ComboAddress> from=boost::none);
 
   void doPrune(size_t keep);
   uint64_t doDump(int fd);
@@ -89,6 +89,8 @@ private:
     std::vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
     std::vector<std::shared_ptr<DNSRecord>> d_authorityRecs;
     DNSName d_qname;
+    DNSName d_authZone;
+    ComboAddress d_from;
     Netmask d_netmask;
     OptTag d_rtag;
     mutable vState d_state;
@@ -230,7 +232,7 @@ private:
   bool entryMatches(OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
   Entries getEntries(MapCombo& map, const DNSName &qname, const QType& qt, const OptTag& rtag);
   cache_t::const_iterator getEntryUsingECSIndex(MapCombo& map, time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
-  int32_t handleHit(MapCombo& map, OrderedTagIterator_t& entry, const DNSName& qname, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth);
+  int32_t handleHit(MapCombo& map, OrderedTagIterator_t& entry, const DNSName& qname, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone);
 
 public:
   struct lock {
