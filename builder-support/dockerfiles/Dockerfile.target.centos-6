@@ -5,6 +5,12 @@
 # Put only the bare minimum of common commands here, without dev tools
 FROM centos:6 as dist-base
 COPY /builder-support/dockerfiles/Centos-Base-Vault.repo /etc/yum.repos.d/CentOS-Base.repo
+RUN echo precedence ::ffff:0:0/96  100 > /etc/gai.conf
+RUN echo precedence ::1/128 50 >> /etc/gai.conf
+RUN echo precedence ::/0 40 >> /etc/gai.conf
+RUN echo precedence 2002::/16 30 >> /etc/gai.conf
+RUN echo precedence ::/96 20 >> /etc/gai.conf
+
 ARG BUILDER_CACHE_BUSTER=
 RUN which yum
 RUN touch /var/lib/rpm/* && yum clean all
