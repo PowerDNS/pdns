@@ -42,12 +42,12 @@ Record type changes
 
 The in-database format of the ``IPSECKEY``, ``SVCB``, ``HTTPS`` and ``APL`` records has changed from 'generic' format to its specialized format.
 
-On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, all zones that have records of those types, or ``TYPExx``, for numbers 42, 45, 64, 65.
-Then, disable the setting again.
-
 API users might notice that replacing records of these types leaves the old TYPExx records around, even if PowerDNS is not serving them.
 To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.
 Then, disable the setting again, because it has a serious performance impact on API operations.
+
+On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 42, 45, 64, 65.
+Leave the setting on until all zones have been re-transfered.
 
 PostgreSQL configuration escaping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
