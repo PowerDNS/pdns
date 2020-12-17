@@ -298,8 +298,8 @@ string LOCRecordContent::getZoneRepresentation(bool noDot) const
   // convert d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude to:
   // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
 
-  double latitude= ((int32_t)d_latitude  - (1<<31))/3600000.0;
-  double longitude=((int32_t)d_longitude - (1<<31))/3600000.0; 
+  double latitude= ((int32_t)((uint32_t)d_latitude  - ((uint32_t)1<<31)))/3600000.0;
+  double longitude=((int32_t)((uint32_t)d_longitude - ((uint32_t)1<<31)))/3600000.0;
   double altitude= ((int32_t)d_altitude           )/100.0 - 100000;
   
   double size=0.01*((d_size>>4)&0xf);
