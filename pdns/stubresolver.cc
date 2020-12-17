@@ -30,6 +30,8 @@ static bool s_stubResolvConfigured = false;
 static time_t s_localResolvConfMtime = 0;
 static time_t s_localResolvConfLastCheck = 0;
 
+static string logPrefix = "[stub-resolver] ";
+
 /*
  * Returns false if no resolvers are configured, while emitting a warning about this
  */
@@ -37,7 +39,7 @@ bool resolversDefined()
 {
   ReadLock l(&s_resolversForStubLock);
   if (s_resolversForStub.empty()) {
-    g_log<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
+    g_log<<Logger::Warning<<logPrefix<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
     return false;
   }
   return true;
@@ -124,11 +126,12 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   pw.getHeader()->id=dns_random_uint16();
   pw.getHeader()->rd=1;
 
-  string msg ="Doing stub resolving, using resolvers: ";
+  string queryNameType = qname.toString() + "|" + QType(qtype).getName();
+  string msg ="Doing stub resolving for '" + queryNameType + "', using resolvers: ";
   for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
   }
-  g_log<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
+  g_log<<Logger::Debug<<logPrefix<<msg.substr(0, msg.length() - 2)<<endl;
 
   for(const ComboAddress& dest :  s_resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
@@ -164,7 +167,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
         ret.push_back(zrr);
       }
     }
-    g_log<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
+    g_log<<Logger::Debug<<logPrefix<<"Question for '"<<queryNameType<<"' got answered by "<<dest.toString()<<endl;
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;
