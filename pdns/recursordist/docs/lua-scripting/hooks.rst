@@ -21,7 +21,7 @@ Addresses and DNS Names are not passed as strings but as native objects.
 This allows for easy checking against `Netmasks <scripting-netmasks>`_ and `domain sets <scripting-dnsname>`_.
 It also means that to print such names, the ``:toString`` method must be used (or even ``:toStringWithPort`` for addresses).
 
-Once a script is loaded, PowerDNS looks for several `functions <scripting-hooks>`_ in the loaded script.
+Once a script is loaded, PowerDNS looks for the interception functions in the loaded script.
 All of these functions are optional.
 
 If a function returns true, it will indicate that it handled a query.
