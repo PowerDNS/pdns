@@ -153,32 +153,6 @@ format. Uses localtime to find the day for inception time.
 This changes a serial of 2015120810 to 2016010701 on Wednesday 13th of
 January 2016.
 
-INCEPTION (not recommended)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. deprecated:: 4.1.0
-  Removed in this release
-
-Sets the SOA serial to the last inception time in YYYYMMDD01 format.
-Uses localtime to find the day for inception time.
-
-.. warning::
-  The SOA serial will only change on inception day, so
-  changes to the zone will get visible on slaves only on the following
-  inception day.
-
-INCEPTION-WEEK (not recommended)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. deprecated:: 4.1.0
-  Removed in this release
-
-Sets the SOA serial to the number of weeks since the epoch, which is the
-last inception time in weeks.
-
-.. warning::
-  Same problem as INCEPTION.
-
 EPOCH
 ^^^^^
 

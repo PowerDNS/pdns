@@ -128,7 +128,6 @@ Use the InnoDB READ-COMMITTED transaction isolation level. Default: yes.
 
 ``gmysql-ssl``
 ^^^^^^^^^^^^^^^^^^
-.. versionadded:: 4.2.1
 
 Send the CLIENT_SSL capability flag to the server. SSL support is announced by the server via CLIENT_SSL and is enabled if the client returns the same capability. Default: no.
 
@@ -144,7 +143,6 @@ server. A value of 0 will disable the timeout. Default: 10
 
 ``gmysql-thread-cleanup``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-.. versionadded:: 4.1.8
 
 Older versions (such as those shipped on RHEL 7) of the MySQL/MariaDB client libraries leak memory unless applications explicitly report the end of each thread to the library. Enabling ``gmysql-thread-cleanup`` tells PowerDNS to call ``mysql_thread_end()`` whenever a thread ends.
 

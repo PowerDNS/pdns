@@ -1,7 +1,5 @@
 Cryptokeys
 ==========
-.. versionadded:: 4.1.0
-
 Allows for modifying DNSSEC key material via the API.
 
 Endpoints

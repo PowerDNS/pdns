@@ -444,8 +444,6 @@ PowerDNS.
 Update policy
 -------------
 
-.. versionadded:: 4.1.0
-
 You can define a Lua script to handle DNS UPDATE message
 authorization. The Lua script is to contain at least function called
 ``updatepolicy`` which accepts one parameter. This parameter is an
