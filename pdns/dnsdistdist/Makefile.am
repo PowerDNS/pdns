@@ -82,7 +82,6 @@ EXTRA_DIST=COPYING \
 	   delaypipe.cc delaypipe.hh \
 	   html \
 	   contrib \
-	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
 	   dnsdist.service.in \
@@ -174,7 +173,6 @@ dnsdist_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
-	ext/incbin/incbin.h \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
 	ext/libbpf/libbpf.h \

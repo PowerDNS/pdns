@@ -12,10 +12,6 @@ Copyright: 2002-2016 PowerDNS.COM BV and contributors
 License: GPL-2 with OpenSSL Exception
 Comment: Debian packaging is under same license as upstream code
 
-Files: ext/incbin/*
-Copyright: 2015, Dale Weiler
-License: Unlicense
-
 Files: ext/json11/*
 Copyright: 2013 Dropbox, Inc.
 License: Expat
