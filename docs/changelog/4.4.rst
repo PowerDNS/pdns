@@ -2,6 +2,57 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.0
+  :released: 18th of December 2020
+
+  This is version 4.4.0 of the Authoritative Server.
+
+  This release drops GSS/TSIG support, please see :doc:`PowerDNS Security Advisory 2020-06 <../security-advisories/powerdns-advisory-2020-06>`.
+
+  Version 4.4.0 brings a bunch of exciting changes:
+
+  * the LMDB backend now supports long record content, making it production ready for everybody
+  * the SVCB and HTTPS record types are supported, with limited additional processing
+  * transaction handling in the 2136 handler and the HTTP API was again improved a lot, avoiding various spurious issues users may have noticed if they do a lot of changes
+  * a new setting (:ref:`setting-consistent-backends`) offers a roughly 30% speedup, subject to conditions
+  * we finally emit Prometheus metrics!
+
+  We want to specifically thank Robin Geuze, Kees Monshouwer, Mischan Toosarani-Hausberger, Chris Hofstaedtler, and Kevin Fleming for their contributions to this release.
+  We are also grateful to all other reporters of bugs, issues, feature requests, and submitters of smaller fixes and features.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: #9884
+
+    clear the LMDB set state when performing a new lookup or list to prevent corruption cases (Robin Geuze)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: #9878
+
+    SVCB: Correctly parse and print unknown params
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: #9873
+
+    fix direct-dnskey in AXFR-out (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: #9866
+
+    don't log trusted-notification-proxy notify at error level (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: #9853
+
+    Stop using incbin and use od & sed to generate constant string data.
+
+.. changelog::
   :version: 4.4.0-rc1
   :released: 7th of December 2020
 
