@@ -1,5 +1,6 @@
 FROM dist-base as package-builder
-RUN yum install -y rpm-build rpmdevtools /usr/bin/python3 && \
+RUN touch /var/lib/rpm/* && \
+    yum install -y rpm-build rpmdevtools /usr/bin/python3 && \
     yum groupinstall -y "Development Tools" && \
     rpmdev-setuptree
 
@@ -42,7 +43,7 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
       true ; \
     else \
       mkdir /libh2o && cd /libh2o && \
-      yum install -y curl openssl-devel cmake && \
+      touch /var/lib/rpm/* && yum install -y curl openssl-devel cmake && \
       curl -L https://github.com/h2o/h2o/archive/v2.2.6.tar.gz | tar xz && \
       CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6 && \
       make install && \
