@@ -82,53 +82,57 @@ static void initArguments(int argc, char** argv)
 }
 
 int main(int argc, char** argv)
-try
 {
-  initArguments(argc, argv);
-  RecursorControlChannel rccS;
-  string sockname="pdns_recursor";
+  try {
+    initArguments(argc, argv);
+    RecursorControlChannel rccS;
+    string sockname="pdns_recursor";
 
-  if (arg()["config-name"] != "")
-    sockname+="-"+arg()["config-name"];
+    if (arg()["config-name"] != "")
+      sockname+="-"+arg()["config-name"];
 
-  if(!arg()["process"].empty())
-    sockname+="."+arg()["process"];
+    if(!arg()["process"].empty())
+      sockname+="."+arg()["process"];
 
-  sockname.append(".controlsocket");
+    sockname.append(".controlsocket");
 
-  rccS.connect(arg()["socket-dir"], sockname);
+    rccS.connect(arg()["socket-dir"], sockname);
 
-  const vector<string>&commands=arg().getCommands();
-  string command;
-  int fd = -1;
-  for(unsigned int i=0; i< commands.size(); ++i) {
-    if(i>0)
-      command+=" ";
-    command+=commands[i];
-    if (commands[i] == "dump-cache" && i+1 < commands.size()) {
-      ++i;
-      if (commands[i] == "stdout") {
-        fd = STDOUT_FILENO;
-      } else {
-        fd = open(commands[i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-      }
-      if (fd == -1) {
-        int err = errno;
-        throw PDNSException("Error opening dump file for writing: " + stringerror(err));
+    const vector<string>&commands=arg().getCommands();
+    string command;
+    int fd = -1;
+    for(unsigned int i=0; i< commands.size(); ++i) {
+      if(i>0)
+        command+=" ";
+      command+=commands[i];
+      if (commands[i] == "dump-cache" && i+1 < commands.size()) {
+        ++i;
+        if (commands[i] == "stdout") {
+          fd = STDOUT_FILENO;
+        } else {
+          fd = open(commands[i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+        }
+        if (fd == -1) {
+          int err = errno;
+          throw PDNSException("Error opening dump file for writing: " + stringerror(err));
+        }
       }
     }
+
+    auto timeout = arg().asNum("timeout");
+    rccS.send(make_pair(0, command), nullptr, timeout, fd);
+
+    auto receive = rccS.recv(0, timeout);
+    if (receive.first != 0) {
+      cerr << receive.second;
+    } else {
+      cout << receive.second;
+    }
+    return receive.first;
   }
-  rccS.send(command, nullptr, arg().asNum("timeout"), fd);
-  string receive=rccS.recv(0, arg().asNum("timeout"));
-  if(receive.compare(0, 7, "Unknown") == 0) {
-    cerr<<receive<<endl;
+  catch(PDNSException& ae) {
+    cerr<<"Fatal: "<<ae.reason<<"\n";
     return 1;
   }
-  cout<<receive;
-  return 0;
 }
-catch(PDNSException& ae)
-{
-  cerr<<"Fatal: "<<ae.reason<<"\n";
-  return 1;
-}
+

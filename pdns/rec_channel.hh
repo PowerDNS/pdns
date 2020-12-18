@@ -51,8 +51,8 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5, int fd = -1);
-  std::string recv(std::string* remote=0, unsigned int timeout=5);
+  void send(const std::pair<int, const std::string&>&, const std::string* remote=nullptr, unsigned int timeout=5, int fd = -1);
+  std::pair<int, std::string> recv(std::string* remote=0, unsigned int timeout=5);
 
   int d_fd;
   static volatile sig_atomic_t stop;
@@ -68,7 +68,7 @@ public:
   }
   static void nop(void){}
   typedef void func_t(void);
-  std::string getAnswer(int s, const std::string& question, func_t** func);
+  pair<int, std::string> getAnswer(int s, const std::string& question, func_t** func);
 };
 
 enum class StatComponent { API, Carbon, RecControl, SNMP };

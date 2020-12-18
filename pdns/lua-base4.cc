@@ -16,13 +16,16 @@
 BaseLua4::BaseLua4() {
 }
 
-void BaseLua4::loadFile(const std::string &fname) {
+int BaseLua4::loadFile(const std::string &fname) {
+  int ret = 0;
   std::ifstream ifs(fname);
-  if(!ifs) {
+  if (!ifs) {
+    ret = errno;
     g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<stringerror()<<endl;
-    return;
+    return ret;
   }
   loadStream(ifs);
+  return 0;
 };
 
 void BaseLua4::loadString(const std::string &script) {

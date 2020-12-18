@@ -1711,21 +1711,22 @@ static string clearDontThrottleNetmasks(T begin, T end) {
   return ret + "\n";
 }
 
-string RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
+
+std::pair<int, string> RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
   vector<string> words;
   stringtok(words, question);
 
   if(words.empty())
-    return "invalid command\n";
+    return make_pair(1, "invalid command\n");
 
   string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
 
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
-    return
+    return make_pair(0,
 "add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
 "add-dont-throttle-netmasks [N...]\n"
 "                                 add netmasks that are not allowed to be throttled\n"
@@ -1781,64 +1782,59 @@ string RecursorControlParser::getAnswer(int s, const string& question, RecursorC
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-"wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n";
+"wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n");
 
-  if(cmd=="get-all")
-    return getAllStats();
-
-  if(cmd=="get")
-    return doGet(begin, end);
-
-  if(cmd=="get-parameter")
-    return doGetParameter(begin, end);
-
-  if(cmd=="quit") {
+  if (cmd == "get-all") {
+    return make_pair(0, getAllStats());
+  }
+  if (cmd == "get") {
+    return make_pair(0, doGet(begin, end));
+  }
+  if (cmd == "get-parameter") {
+    return make_pair(0, doGetParameter(begin, end));
+  }
+  if (cmd == "quit") {
     *command=&doExit;
-    return "bye\n";
+    return make_pair(0, "bye\n");
   }
-
-  if(cmd=="version") {
-    return getPDNSVersion()+"\n";
+  if (cmd == "version") {
+    return make_pair(0, getPDNSVersion()+"\n");
   }
-
-  if(cmd=="quit-nicely") {
+  if (cmd == "quit-nicely") {
     *command=&doExitNicely;
-    return "bye nicely\n";
+    return make_pair(0, "bye nicely\n");
   }
-
-  if(cmd=="dump-cache")
-    return doDumpCache(s);
-
-  if(cmd=="dump-ednsstatus" || cmd=="dump-edns")
-    return doDumpEDNSStatus(begin, end);
-
-  if(cmd=="dump-nsspeeds")
-    return doDumpNSSpeeds(begin, end);
-
-  if(cmd=="dump-failedservers")
-    return doDumpFailedServers(begin, end);
-
-  if(cmd=="dump-rpz") {
-    return doDumpRPZ(begin, end);
+  if (cmd == "dump-cache") {
+    return make_pair(0, doDumpCache(s));
   }
-
-  if(cmd=="dump-throttlemap")
-   return doDumpThrottleMap(begin, end);
-
-  if(cmd=="wipe-cache" || cmd=="flushname")
-    return doWipeCache(begin, end, 0xffff);
-
-  if(cmd=="wipe-cache-typed") {
+  if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
+    return make_pair(0, doDumpEDNSStatus(begin, end));
+  }
+  if (cmd == "dump-nsspeeds") {
+    return make_pair(0, doDumpNSSpeeds(begin, end));
+  }
+  if (cmd == "dump-failedservers") {
+    return make_pair(0, doDumpFailedServers(begin, end));
+  }
+  if (cmd == "dump-rpz") {
+    return make_pair(0, doDumpRPZ(begin, end));
+  }
+  if (cmd == "dump-throttlemap") {
+    return make_pair(0, doDumpThrottleMap(begin, end));
+  }
+  if (cmd == "wipe-cache" || cmd == "flushname") {
+    return make_pair(0, doWipeCache(begin, end, 0xffff));
+  }
+  if (cmd == "wipe-cache-typed") {
     uint16_t qtype = QType::chartocode(begin->c_str());
     ++begin;
-    return doWipeCache(begin, end, qtype);
+    return make_pair(0, doWipeCache(begin, end, qtype));
   }
-
-  if(cmd=="reload-lua-script")
+  if (cmd == "reload-lua-script") {
     return doQueueReloadLuaScript(begin, end);
-
-  if(cmd=="reload-lua-config") {
-    if(begin != end)
+  }
+  if (cmd == "reload-lua-config") {
+    if (begin != end)
       ::arg().set("lua-config-file") = *begin;
 
     try {
@@ -1846,170 +1842,145 @@ string RecursorControlParser::getAnswer(int s, const string& question, RecursorC
       loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
       startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
       g_log<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
-      return "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n";
+      return make_pair(0, "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n");
     }
     catch(std::exception& e) {
-      return "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.what()+"\n";
+      return make_pair(1, "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.what()+"\n");
     }
     catch(const PDNSException& e) {
-      return "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.reason+"\n";
+      return make_pair(1, "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.reason+"\n");
     }
   }
-
-  if(cmd=="set-carbon-server")
-    return doSetCarbonServer(begin, end);
-
-  if(cmd=="trace-regex")
-    return doTraceRegex(begin, end);
-
-  if(cmd=="unload-lua-script") {
+  if (cmd == "set-carbon-server") {
+    return make_pair(0, doSetCarbonServer(begin, end));
+  }
+  if (cmd == "trace-regex") {
+    return make_pair(0, doTraceRegex(begin, end));
+  }
+  if (cmd == "unload-lua-script") {
     vector<string> empty;
     empty.push_back(string());
     return doQueueReloadLuaScript(empty.begin(), empty.end());
   }
-
-  if(cmd=="reload-acls") {
-    if(!::arg()["chroot"].empty()) {
+  if (cmd == "reload-acls") {
+    if (!::arg()["chroot"].empty()) {
       g_log<<Logger::Error<<"Unable to reload ACL when chroot()'ed, requested via control channel"<<endl;
-      return "Unable to reload ACL when chroot()'ed, please restart\n";
+      return make_pair(1, "Unable to reload ACL when chroot()'ed, please restart\n");
     }
 
     try {
       parseACLs();
-    } 
-    catch(std::exception& e) 
-    {
+    }
+    catch(std::exception& e) {
       g_log<<Logger::Error<<"Reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
-      return e.what() + string("\n");
+      return make_pair(1, e.what() + string("\n"));
     }
-    catch(PDNSException& ae)
-    {
+    catch(PDNSException& ae) {
       g_log<<Logger::Error<<"Reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
-      return ae.reason + string("\n");
+      return make_pair(1, ae.reason + string("\n"));
     }
-    return "ok\n";
+    return make_pair(0, "ok\n");
   }
-
-
-  if(cmd=="top-remotes")
-    return doGenericTopRemotes(pleaseGetRemotes);
-
-  if(cmd=="top-queries")
-    return doGenericTopQueries(pleaseGetQueryRing);
-
-  if(cmd=="top-pub-queries")
-    return doGenericTopQueries(pleaseGetQueryRing, getRegisteredName);
-
-  if(cmd=="top-servfail-queries")
-    return doGenericTopQueries(pleaseGetServfailQueryRing);
-
-  if(cmd=="top-pub-servfail-queries")
-    return doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName);
-
-  if(cmd=="top-bogus-queries")
-    return doGenericTopQueries(pleaseGetBogusQueryRing);
-
-  if(cmd=="top-pub-bogus-queries")
-    return doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName);
-
-
-  if(cmd=="top-servfail-remotes")
-    return doGenericTopRemotes(pleaseGetServfailRemotes);
-
-  if(cmd=="top-bogus-remotes")
-    return doGenericTopRemotes(pleaseGetBogusRemotes);
-
-  if(cmd=="top-largeanswer-remotes")
-    return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);
-
-  if(cmd=="top-timeouts")
-    return doGenericTopRemotes(pleaseGetTimeouts);
-
-
-  if(cmd=="current-queries")
-    return doCurrentQueries();
-  
-  if(cmd=="ping") {
-    return broadcastAccFunction<string>(nopFunction);
+  if (cmd == "top-remotes") {
+    return make_pair(0, doGenericTopRemotes(pleaseGetRemotes));
   }
-
-  if(cmd=="reload-zones") {
-    if(!::arg()["chroot"].empty()) {
+  if (cmd == "top-queries") {
+    return make_pair(0, doGenericTopQueries(pleaseGetQueryRing));
+  }
+  if (cmd == "top-pub-queries") {
+    return make_pair(0, doGenericTopQueries(pleaseGetQueryRing, getRegisteredName));
+  }
+  if (cmd == "top-servfail-queries") {
+    return make_pair(0, doGenericTopQueries(pleaseGetServfailQueryRing));
+  }
+  if (cmd == "top-pub-servfail-queries") {
+    return make_pair(0, doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName));
+  }
+  if (cmd == "top-bogus-queries") {
+    return make_pair(0, doGenericTopQueries(pleaseGetBogusQueryRing));
+  }
+  if (cmd == "top-pub-bogus-queries") {
+    return make_pair(0, doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName));
+  }
+  if (cmd == "top-servfail-remotes") {
+    return make_pair(0, doGenericTopRemotes(pleaseGetServfailRemotes));
+  }
+  if (cmd == "top-bogus-remotes") {
+    return make_pair(0, doGenericTopRemotes(pleaseGetBogusRemotes));
+  }
+  if (cmd == "top-largeanswer-remotes") {
+    return make_pair(0, doGenericTopRemotes(pleaseGetLargeAnswerRemotes));
+  }
+  if (cmd == "top-timeouts") {
+    return make_pair(0, doGenericTopRemotes(pleaseGetTimeouts));
+  }
+  if (cmd == "current-queries") {
+    return make_pair(0, doCurrentQueries());
+  }
+  if (cmd == "ping") {
+    return make_pair(0, broadcastAccFunction<string>(nopFunction));
+  }
+  if (cmd == "reload-zones") {
+    if (!::arg()["chroot"].empty()) {
       g_log<<Logger::Error<<"Unable to reload zones and forwards when chroot()'ed, requested via control channel"<<endl;
-      return "Unable to reload zones and forwards when chroot()'ed, please restart\n";
+      return make_pair(1, "Unable to reload zones and forwards when chroot()'ed, please restart\n");
     }
-    return reloadAuthAndForwards();
+    return make_pair(0, reloadAuthAndForwards());
   }
-
-  if(cmd=="set-ecs-minimum-ttl") {
-    return setMinimumECSTTL(begin, end);
+  if (cmd == "set-ecs-minimum-ttl") {
+    return make_pair(0, setMinimumECSTTL(begin, end));
   }
-
-  if(cmd=="set-max-cache-entries") {
-    return setMaxCacheEntries(begin, end);
+  if (cmd == "set-max-cache-entries") {
+    return make_pair(0, setMaxCacheEntries(begin, end));
   }
-  if(cmd=="set-max-packetcache-entries") {
-    return setMaxPacketCacheEntries(begin, end);
+  if (cmd == "set-max-packetcache-entries") {
+    return make_pair(0, setMaxPacketCacheEntries(begin, end));
   }
-  
-  if(cmd=="set-minimum-ttl") {
-    return setMinimumTTL(begin, end);
+  if (cmd == "set-minimum-ttl") {
+    return make_pair(0, setMinimumTTL(begin, end));
   }
-  
-  if(cmd=="get-qtypelist") {
-    return g_rs.getQTypeReport();
+  if (cmd == "get-qtypelist") {
+    return make_pair(0, g_rs.getQTypeReport());
   }
-
-  if(cmd=="add-nta") {
-    return doAddNTA(begin, end);
+  if (cmd == "add-nta") {
+    return make_pair(0, doAddNTA(begin, end));
   }
-
-  if(cmd=="clear-nta") {
-    return doClearNTA(begin, end);
+  if (cmd == "clear-nta") {
+    return make_pair(0, doClearNTA(begin, end));
   }
-
-  if(cmd=="get-ntas") {
-    return getNTAs();
+  if (cmd == "get-ntas") {
+    return make_pair(0, getNTAs());
   }
-
-  if(cmd=="add-ta") {
-    return doAddTA(begin, end);
+  if (cmd == "add-ta") {
+    return make_pair(0, doAddTA(begin, end));
   }
-
-  if(cmd=="clear-ta") {
-    return doClearTA(begin, end);
+  if (cmd == "clear-ta") {
+    return make_pair(0, doClearTA(begin, end));
   }
-
-  if(cmd=="get-tas") {
-    return getTAs();
+  if (cmd == "get-tas") {
+    return make_pair(0, getTAs());
   }
-
-  if (cmd=="set-dnssec-log-bogus")
-    return doSetDnssecLogBogus(begin, end);
-
+  if (cmd == "set-dnssec-log-bogus") {
+    return make_pair(0, doSetDnssecLogBogus(begin, end));
+  }
   if (cmd == "get-dont-throttle-names") {
-    return getDontThrottleNames();
+    return make_pair(0, getDontThrottleNames());
   }
-
   if (cmd == "get-dont-throttle-netmasks") {
-    return getDontThrottleNetmasks();
+    return make_pair(0, getDontThrottleNetmasks());
   }
-
   if (cmd == "add-dont-throttle-names") {
-    return addDontThrottleNames(begin, end);
+    return make_pair(0, addDontThrottleNames(begin, end));
   }
-
   if (cmd == "add-dont-throttle-netmasks") {
-    return addDontThrottleNetmasks(begin, end);
+    return make_pair(0, addDontThrottleNetmasks(begin, end));
   }
-
   if (cmd == "clear-dont-throttle-names") {
-    return clearDontThrottleNames(begin, end);
+    return make_pair(0, clearDontThrottleNames(begin, end));
   }
-
   if (cmd == "clear-dont-throttle-netmasks") {
-    return clearDontThrottleNetmasks(begin, end);
+    return make_pair(0, clearDontThrottleNetmasks(begin, end));
   }
 
-  return "Unknown command '"+cmd+"', try 'help'\n";
+  return make_pair(1, "Unknown command '"+cmd+"', try 'help'\n");
 }
