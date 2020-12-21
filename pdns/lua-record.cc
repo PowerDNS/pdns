@@ -1,3 +1,4 @@
+#include <thread>
 #include <future>
 #include <mutex>
 #include <boost/format.hpp>
