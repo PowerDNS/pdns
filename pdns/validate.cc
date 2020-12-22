@@ -390,9 +390,11 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
      that (original) owner name other than DS RRs, and all RRs below that
      owner name regardless of type.
   */
-  if (qtype != QType::DS && (name == owner || name.isPartOf(owner)) && isNSECAncestorDelegation(signer, owner, nsec)) {
+  if (name.isPartOf(owner) && isNSECAncestorDelegation(signer, owner, nsec)) {
     /* this is an "ancestor delegation" NSEC RR */
-    return dState::NODENIAL;
+    if (!(qtype == QType::DS && name == owner)) {
+      return dState::NODENIAL;
+    }
   }
 
   /* check if the type is denied */
@@ -463,11 +465,13 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            that (original) owner name other than DS RRs, and all RRs below that
            owner name regardless of type.
         */
-        if (qtype != QType::DS && (qname == owner || qname.isPartOf(owner)) && isNSECAncestorDelegation(signer, owner, nsec)) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->isSet(QType::NS))<<", SOA is "<<std::to_string(nsec->isSet(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
+        if (qname.isPartOf(owner) && isNSECAncestorDelegation(signer, owner, nsec)) {
           /* this is an "ancestor delegation" NSEC RR */
-          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
-          return dState::NODENIAL;
+          if (!(qtype == QType::DS && qname == owner)) {
+            LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->isSet(QType::NS))<<", SOA is "<<std::to_string(nsec->isSet(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
+            LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
+            return dState::NODENIAL;
+          }
         }
 
         /* check if the type is denied */
