@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nx)
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
 {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, false);
+  initSR(sr, true);
 
   primeHints();
 
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
   sr->setAsyncCallback([&queriesCount, target, targetAddr, nsAddr, authZone, keys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
     if (type == QType::DS || type == QType::DNSKEY) {
-      return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys, domain == authZone, fixedNow);
+      return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys, domain == DNSName("com.") || domain == authZone, fixedNow);
     }
 
     if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 }
 
