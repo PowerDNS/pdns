@@ -1007,7 +1007,9 @@ situation hopeless and respawn.
 -  Integer
 -  Default: 2^31-1 (on most systems), 2^63-1 (on ILP64 systems)
 
-Maximum number of signatures cache entries
+Maximum number of DNSSEC signature cache entries. This cache is
+automatically reset once per week or when the cache is full. If you
+use NSEC narrow mode, this cache can grow large.
 
 .. _setting-max-tcp-connection-duration:
 
