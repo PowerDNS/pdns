@@ -46,6 +46,7 @@
 #include "ixfrdist-stats.hh"
 #include "ixfrdist-web.hh"
 #include <yaml-cpp/yaml.h>
+#include "pdns-yaml.hh"
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
@@ -59,68 +60,6 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
-// Allows reading/writing ComboAddresses and DNSNames in YAML-cpp
-namespace YAML {
-template<>
-struct convert<ComboAddress> {
-  static Node encode(const ComboAddress& rhs) {
-    return Node(rhs.toStringWithPort());
-  }
-  static bool decode(const Node& node, ComboAddress& rhs) {
-    if (!node.IsScalar()) {
-      return false;
-    }
-    try {
-      rhs = ComboAddress(node.as<string>(), 53);
-      return true;
-    } catch(const runtime_error &e) {
-      return false;
-    } catch (const PDNSException &e) {
-      return false;
-    }
-  }
-};
-
-template<>
-struct convert<DNSName> {
-  static Node encode(const DNSName& rhs) {
-    return Node(rhs.toStringRootDot());
-  }
-  static bool decode(const Node& node, DNSName& rhs) {
-    if (!node.IsScalar()) {
-      return false;
-    }
-    try {
-      rhs = DNSName(node.as<string>());
-      return true;
-    } catch(const runtime_error &e) {
-      return false;
-    } catch (const PDNSException &e) {
-      return false;
-    }
-  }
-};
-
-template<>
-struct convert<Netmask> {
-  static Node encode(const Netmask& rhs) {
-    return Node(rhs.toString());
-  }
-  static bool decode(const Node& node, Netmask& rhs) {
-    if (!node.IsScalar()) {
-      return false;
-    }
-    try {
-      rhs = Netmask(node.as<string>());
-      return true;
-    } catch(const runtime_error &e) {
-      return false;
-    } catch (const PDNSException &e) {
-      return false;
-    }
-  }
-};
-} // namespace YAML
 
 struct ixfrdiff_t {
   shared_ptr<SOARecordContent> oldSOA;

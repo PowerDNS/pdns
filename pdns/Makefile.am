@@ -659,6 +659,7 @@ ixfrdist_SOURCES = \
 	misc.cc misc.hh \
 	mplexer.hh \
 	nsecrecords.cc \
+	pdns-yaml.hh \
 	pollmplexer.cc \
 	qtype.cc \
 	query-local-address.hh query-local-address.cc \
@@ -1291,6 +1292,7 @@ testrunner_SOURCES = \
 	base64.cc \
 	bindlexer.l \
 	bindparser.yy \
+	configuration.hh configuration.cc \
 	dbdnsseckeeper.cc \
 	dns.cc \
 	dns_random.cc \
@@ -1318,6 +1320,7 @@ testrunner_SOURCES = \
 	nameserver.cc \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
+	pdns-yaml.hh \
 	pollmplexer.cc \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
@@ -1334,6 +1337,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-common.hh \
+	test-configuration-cc.cc \
 	test-digests_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
@@ -1353,6 +1357,7 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-packetcache_hh.cc \
+	test-pdns-yaml-hh.cc \
 	test-proxy_protocol_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-sha_hh.cc \
@@ -1382,7 +1387,8 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(LUA_LIBS) \
 	$(LIBDL) \
-	$(IPCRYPT_LIBS)
+	$(IPCRYPT_LIBS) \
+	$(YAML_LIBS)
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
