@@ -641,6 +641,7 @@ ixfrdist_SOURCES = \
 	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	configuration.hh configuration.cc \
 	dns.cc \
 	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
@@ -653,7 +654,7 @@ ixfrdist_SOURCES = \
 	ixfr.cc ixfr.hh \
 	ixfrdist-stats.hh ixfrdist-stats.cc \
 	ixfrdist-web.hh ixfrdist-web.cc \
-	ixfrdist.cc \
+	ixfrdist.cc ixfrdist.hh \
 	ixfrutils.cc ixfrutils.hh \
 	logger.cc logger.hh\
 	misc.cc misc.hh \

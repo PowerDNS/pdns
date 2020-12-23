@@ -64,6 +64,7 @@ effective_tld_names.dat
 /dnsmessage.pb.h
 /*.service
 /pdns.conf-dist
+/ixfrdist.example.yml
 /stubquery
 /fuzz_target_dnsdistcache
 /fuzz_target_moadnsparser

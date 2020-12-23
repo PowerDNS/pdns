@@ -18,12 +18,14 @@ listen:
   - '127.0.0.1:%d'
 acl:
   - '127.0.0.0/8'
-axfr-timeout: 20
+axfr:
+  timeout: 20
 keep: 20
 tcp-in-threads: 1
 work-dir: 'ixfrdist.dir'
 failed-soa-retry: 3
-webserver-address: %s
+webserver:
+  listen: %s
 """
 
     _config_domains = {'example': '127.0.0.1:' + str(xfrServerPort)}

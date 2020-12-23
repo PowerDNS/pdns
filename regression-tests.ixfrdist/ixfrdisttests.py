@@ -24,7 +24,8 @@ listen:
   - '127.0.0.1:%d'
 acl:
   - '127.0.0.0/8'
-axfr-timeout: 20
+axfr:
+  timeout: 20
 keep: 20
 tcp-in-threads: 10
 work-dir: 'ixfrdist.dir'

@@ -34,8 +34,7 @@
 #include <dirent.h>
 #include <queue>
 #include <condition_variable>
-#include "ixfr.hh"
-#include "ixfrutils.hh"
+#include "ixfrdist.hh"
 #include "axfr-retriever.hh"
 #include "dns_random.hh"
 #include "sstuff.hh"
@@ -45,7 +44,7 @@
 #include "logger.hh"
 #include "ixfrdist-stats.hh"
 #include "ixfrdist-web.hh"
-#include <yaml-cpp/yaml.h>
+#include "configuration.hh"
 #include "pdns-yaml.hh"
 
 /* BEGIN Needed because of deeper dependencies */
@@ -60,30 +59,8 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
-
-struct ixfrdiff_t {
-  shared_ptr<SOARecordContent> oldSOA;
-  shared_ptr<SOARecordContent> newSOA;
-  vector<DNSRecord> removals;
-  vector<DNSRecord> additions;
-  uint32_t oldSOATTL;
-  uint32_t newSOATTL;
-};
-
-struct ixfrinfo_t {
-  shared_ptr<SOARecordContent> soa; // The SOA of the latest AXFR
-  records_t latestAXFR;             // The most recent AXFR
-  vector<std::shared_ptr<ixfrdiff_t>> ixfrDiffs;
-  uint32_t soaTTL;
-};
-
-// Why a struct? This way we can add more options to a domain in the future
-struct ixfrdistdomain_t {
-  set<ComboAddress> masters; // A set so we can do multiple master addresses in the future
-};
-
 // This contains the configuration for each domain
-static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
+static ixfrdistDomainConfig g_domainConfigs;
 
 // Map domains and their data
 static std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
@@ -893,205 +870,6 @@ static void tcpWorker(int tid) {
   }
 }
 
-/* Parses the configuration file in configpath into config, adding defaults for
- * missing parameters (if applicable), returning true if the config file was
- * good, false otherwise. Will log all issues with the config
- */
-static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
-  g_log<<Logger::Info<<"Loading configuration file from "<<configpath<<endl;
-  try {
-    config = YAML::LoadFile(configpath);
-  } catch (const runtime_error &e) {
-    g_log<<Logger::Error<<"Unable to load configuration file '"<<configpath<<"': "<<e.what()<<endl;
-    return false;
-  }
-
-  bool retval = true;
-
-  if (config["keep"]) {
-    try {
-      config["keep"].as<uint16_t>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'keep' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  } else {
-    config["keep"] = 20;
-  }
-
-  if (config["axfr-max-records"]) {
-    try {
-      config["axfr-max-records"].as<uint32_t>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'axfr-max-records' value: "<<e.what()<<endl;
-    }
-  } else {
-    config["axfr-max-records"] = 0;
-  }
-
-  if (config["axfr-timeout"]) {
-    try {
-      config["axfr-timeout"].as<uint16_t>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'axfr-timeout' value: "<<e.what()<<endl;
-    }
-  } else {
-    config["axfr-timeout"] = 20;
-  }
-
-  if (config["failed-soa-retry"]) {
-    try {
-      config["failed-soa-retry"].as<uint16_t>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'failed-soa-retry' value: "<<e.what()<<endl;
-    }
-  } else {
-    config["failed-soa-retry"] = 30;
-  }
-
-  if (config["tcp-in-threads"]) {
-    try {
-      config["tcp-in-threads"].as<uint16_t>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'tcp-in-threads' value: "<<e.what()<<endl;
-    }
-  } else {
-    config["tcp-in-threads"] = 10;
-  }
-
-  if (config["listen"]) {
-    try {
-      config["listen"].as<vector<ComboAddress>>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'listen' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  } else {
-    config["listen"].push_back("127.0.0.1:53");
-    config["listen"].push_back("[::1]:53");
-  }
-
-  if (config["acl"]) {
-    try {
-      config["acl"].as<vector<string>>();
-    } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'acl' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  } else {
-    config["acl"].push_back("127.0.0.0/8");
-    config["acl"].push_back("::1/128");
-  }
-
-  if (config["work-dir"]) {
-    try {
-      config["work-dir"].as<string>();
-    } catch(const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'work-dir' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  } else {
-    char tmp[512];
-    config["work-dir"] = getcwd(tmp, sizeof(tmp)) ? string(tmp) : "";;
-  }
-
-  if (config["uid"]) {
-    try {
-      config["uid"].as<string>();
-    } catch(const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'uid' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  }
-
-  if (config["gid"]) {
-    try {
-      config["gid"].as<string>();
-    } catch(const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'gid' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  }
-
-  if (config["domains"]) {
-    if (config["domains"].size() == 0) {
-      g_log<<Logger::Error<<"No domains configured"<<endl;
-      retval = false;
-    }
-    for (auto const &domain : config["domains"]) {
-      try {
-        if (!domain["domain"]) {
-          g_log<<Logger::Error<<"An entry in 'domains' is missing a 'domain' key!"<<endl;
-          retval = false;
-          continue;
-        }
-        domain["domain"].as<DNSName>();
-      } catch (const runtime_error &e) {
-        g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"': "<<e.what()<<endl;
-      }
-      try {
-        if (!domain["master"]) {
-          g_log<<Logger::Error<<"Domain '"<<domain["domain"].as<string>()<<"' has no master configured!"<<endl;
-          retval = false;
-          continue;
-        }
-        domain["master"].as<ComboAddress>();
-      } catch (const runtime_error &e) {
-        g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"' master address: "<<e.what()<<endl;
-        retval = false;
-      }
-    }
-  } else {
-    g_log<<Logger::Error<<"No domains configured"<<endl;
-    retval = false;
-  }
-
-  if (config["compress"]) {
-    try {
-      config["compress"].as<bool>();
-    }
-    catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'compress' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  }
-  else {
-    config["compress"] = false;
-  }
-
-  if (config["webserver-address"]) {
-    try {
-      config["webserver-address"].as<ComboAddress>();
-    }
-    catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'webserver-address' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  }
-
-  if (config["webserver-acl"]) {
-    try {
-      config["webserver-acl"].as<vector<Netmask>>();
-    }
-    catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'webserver-acl' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  }
-
-  if (config["webserver-loglevel"]) {
-    try {
-      config["webserver-loglevel"].as<string>();
-    }
-    catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'webserver-loglevel' value: "<<e.what()<<endl;
-      retval = false;
-    }
-  }
-
-  return retval;
-}
-
 int main(int argc, char** argv) {
   g_log.setLoglevel(Logger::Notice);
   g_log.toConsole(Logger::Notice);
@@ -1107,6 +885,8 @@ int main(int argc, char** argv) {
       ("verbose", "Be verbose")
       ("debug", "Be even more verbose")
       ("config", po::value<string>()->default_value(SYSCONFDIR + string("/ixfrdist.yml")), "Configuration file to use")
+      ("check-config", "Check the configuration and exit")
+      ("get-default-config", "Dumps the default configuration file to standard out")
       ;
 
     po::store(po::command_line_parser(argc, argv).options(desc).run(), g_vm);
@@ -1126,7 +906,10 @@ int main(int argc, char** argv) {
     return(EXIT_FAILURE);
   }
 
-  bool had_error = false;
+  if (g_vm.count("check-config")) {
+    g_log.setLoglevel(Logger::Error);
+    g_log.toConsole(Logger::Error);
+  }
 
   if (g_vm.count("verbose")) {
     g_log.setLoglevel(Logger::Info);
@@ -1138,39 +921,513 @@ int main(int argc, char** argv) {
     g_log.toConsole(Logger::Debug);
   }
 
-  g_log<<Logger::Notice<<"IXFR distributor version "<<VERSION<<" starting up!"<<endl;
+  uint16_t keep = 20;
+  pdns::config::registerOption("keep", pdns::config::configInfoFuncs{
+    .check = [&keep](const YAML::Node &n, const bool initial){
+      if (n.IsNull()) { return; }
+      auto newKeep = n.as<uint16_t>();
+      if (initial) {
+        return;
+      }
+      if (keep != newKeep) {
+        throw std::runtime_error("'keep' cannot be changed at runtime");
+      }
+    },
+    .defaults = [keep](){ return YAML::Node(uint16_t(keep)); },
+    .apply = [&keep](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      keep = n.as<uint16_t>();
+    },
+    .current = [&keep](){ return YAML::Node(uint16_t(keep)); },
+    .help = "Amount of older copies/IXFR diffs to keep for every domain",
+  });
 
-  YAML::Node config;
-  if (!parseAndCheckConfig(g_vm["config"].as<string>(), config)) {
-    // parseAndCheckConfig already logged whatever was wrong
+  vector<ComboAddress> listen_addrs = {
+    ComboAddress("127.0.0.1"),
+    ComboAddress("::1")
+  };
+  pdns::config::registerOption("listen", pdns::config::configInfoFuncs{
+    .check = [&listen_addrs](const YAML::Node &n, const bool initial){
+      if (n.IsNull()) { return; }
+      auto to_check = n.as<vector<ComboAddress>>();
+      if (to_check == listen_addrs) {
+        return;
+      }
+      if (initial) {
+        return;
+      }
+      throw std::runtime_error("'listen' cannot be set at runtime");
+    },
+    .defaults = [listen_addrs]() { return YAML::Node(listen_addrs); },
+    .apply = [&listen_addrs](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      listen_addrs = n.as<vector<ComboAddress>>();
+    },
+    .current = [&listen_addrs]() { return YAML::Node(listen_addrs); },
+    .help = R"(Listen addresses. ixfrdist will listen on both UDP and TCP.
+When no port is specified, 53 is used. When specifying ports for IPv6, use the
+"bracket" notation:
+
+    listen:
+      - '127.0.0.1'
+      - '::1'
+      - '192.0.2.3:5300'
+      - '[2001:DB8:1234::334]:5353')"
+    }
+  );
+
+  // Set the defaults
+  g_acl.addMask("127.0.0.0/8");
+  g_acl.addMask("::1/128");
+  pdns::config::registerOption("acl", pdns::config::configInfoFuncs{
+    .check = [](const YAML::Node &n, const bool initial){ 
+      if (n.IsNull()) { return; }
+      n.as<NetmaskGroup>(); 
+    },
+    .defaults = []() { 
+      static NetmaskGroup defaultNMG;
+      defaultNMG.addMask("127.0.0.0/8");
+      defaultNMG.addMask("::1/128");
+      return YAML::Node(defaultNMG); 
+     },
+    .apply = [&](const YAML::Node &n, const bool initial) {
+      if (!initial) {
+        return;
+      }
+      if (n.IsNull()) { return; }
+      g_acl = n.as<NetmaskGroup>();
+      g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
+    },
+    .current = []() { return YAML::Node(g_acl); },
+    .help = R"(Netmasks or IP addresses of hosts that are allowed to query ixfrdist.
+Hosts do not need a netmask, and subnets can be negated with a '!'.
+
+    acl:
+      - '127.0.0.0/8'
+      - '::1'
+      - 192.0.2.0/24 # Allow this subnet
+      - '!192.0.2.55' # but deny this specific address
+      - '2001:DB8:ABCD::/48')"
+  });
+
+  uint16_t axfr_timeout = 20;
+  uint32_t axfr_max_records = 0;
+  pdns::config::registerOption("axfr", pdns::config::configInfoFuncs{
+    .check = [&axfr_timeout, &axfr_max_records](const YAML::Node &n, const bool initial){
+      if (n.IsNull()) { return; }
+      static const set<string> axfrOpts({"timeout", "max-records"});
+      if (!n.IsMap()) {
+        throw runtime_error("'axfr' is not a map");
+      }
+      uint16_t timeout = axfr_timeout;
+      uint32_t max_records = axfr_max_records;
+      for (auto nit = n.begin(); nit != n.end(); nit++) {
+        auto opt = nit->first.as<string>();
+        if (axfrOpts.count(opt) == 0) {
+          throw std::runtime_error("Unknown 'axfr' option '" + opt + "'");
+        }
+        if (opt == "timeout") {
+          timeout = nit->second.as<uint16_t>();
+        }
+        if (opt == "max-records") {
+          max_records = nit->second.as<uint32_t>();
+        }
+      }
+      if (initial) {
+        return;
+      }
+      if (timeout != axfr_timeout || max_records != axfr_max_records) {
+        throw std::runtime_error("'axfr' cannot be changed at runtime");
+      }
+    },
+    .defaults = [axfr_timeout, axfr_max_records]() {
+      YAML::Node ret;
+      ret["timeout"] = axfr_timeout;
+      ret["max-records"] = axfr_max_records;
+      return ret;
+    },
+    .apply = [&axfr_timeout, &axfr_max_records](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      if (n["timeout"]) {
+        axfr_timeout = n["timeout"].as<uint16_t>();
+      }
+      if (n["max-records"]) {
+        axfr_max_records = n["max-records"].as<uint32_t>();
+      }
+    },
+    .current = [&axfr_timeout, &axfr_max_records]() {
+      YAML::Node ret;
+      ret["timeout"] = axfr_timeout;
+      ret["max-records"] = axfr_max_records;
+      return ret;
+    },
+    .help = R"(This configures limits for the AXFR requests done by ixfrdist
+
+'timeout' is the amount seconds an AXFR transaction requested by ixfrdist may take.
+Increase this when the network to the authoritative servers is slow or the
+domains are very large and you experience timeouts.
+
+'max-records' is the maximum number of records allowed in a single zone transfer.
+ixfrdist will abort the zone transfer from the master when more than this number of records have been
+received. A value of 0 means unlimited)"
+  });
+
+  uint16_t failedSOARetry = 30;
+  pdns::config::registerOption("failed-soa-retry", pdns::config::configInfoFuncs{
+    .check = [&failedSOARetry](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      auto soaRetry = n.as<uint16_t>();
+      if (initial) {
+        return;
+      }
+      if (soaRetry != failedSOARetry) {
+        throw std::runtime_error("'failed-soa-retry' can not be updated at runtime");
+      }
+    },
+    .defaults = [failedSOARetry]() { return YAML::Node(failedSOARetry); },
+    .apply = [&failedSOARetry](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      failedSOARetry = n.as<uint16_t>();
+    },
+    .current = [&failedSOARetry]() { return YAML::Node(failedSOARetry); },
+    .help = "Time in seconds between retries of the SOA query for a zone we have never transferred."
+  });
+
+  uint16_t tcpInThreads = 10;
+  pdns::config::registerOption("tcp-in-threads", pdns::config::configInfoFuncs{
+    .check = [&tcpInThreads](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      auto toCheck = n.as<uint16_t>();
+      if (initial) {
+        return;
+      }
+      if (toCheck != tcpInThreads) {
+        throw std::runtime_error("'tcp-in-threads' can not be updated at runtime");
+      }
+    },
+    .defaults = [tcpInThreads]() { return YAML::Node(tcpInThreads); },
+    .apply = [&tcpInThreads](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      tcpInThreads = n.as<uint16_t>();
+    },
+    .current = [&tcpInThreads]() { return YAML::Node(tcpInThreads); },
+    .help = "Number of threads to spawn for TCP connections (AXFRs) from downstream hosts."
+  });
+
+  pdns::config::registerOption("domains", pdns::config::configInfoFuncs{
+    .check = [](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      auto cfg = n.as<ixfrdistDomainConfig>();
+      if (!initial && cfg != g_domainConfigs) {
+        throw std::runtime_error("'domains' can not be changed at runtime");
+      }
+    },
+    .defaults = [](){ return YAML::Node(vector<string>()); },
+    .apply = [](const YAML::Node &n, const bool initial) {
+      if (!initial) {
+        return;
+      }
+      if (n.IsNull()) { return; }
+      g_domainConfigs = n.as<ixfrdistDomainConfig>();
+      for (auto const &d : g_domainConfigs) {
+        g_stats.registerDomain(d.first);
+      }
+    },
+    .current = []() { return YAML::Node(g_domainConfigs); },
+    .help = R"(The domains to redistribute, the 'master' and 'domains' keys are mandatory.
+When no port is specified, 53 is used. When specifying ports for IPv6, use the
+"bracket" notation:
+
+   domains:
+     - domain: example.com
+       master: 192.0.2.15
+     - domain: rpz.example
+       master: [2001:DB8:a34:543::53]:5353)"
+  });
+
+  pdns::config::registerOption("compress", pdns::config::configInfoFuncs{
+    .check = [](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (n.IsScalar()) {
+        n.as<bool>();
+        return;
+      }
+      throw std::runtime_error("'compress' value is not a bool");
+    },
+    .defaults = [](){ return YAML::Node(false); },
+    .apply = [](const YAML::Node &n, const bool initial) {
+      if (!n.IsNull()) {
+        g_compress = n.as<bool>();
+      }
+      g_log<<Logger::Notice<<"Record compression is "<<(g_compress ? "en" : "dis")<<"abled."<<endl;
+    },
+    .current = []() { return YAML::Node(g_compress); },
+    .help = R"(Whether record compression should be enabled, leading to smaller answers
+at the cost of an increased CPU and memory usage.)"
+  });
+
+  ComboAddress webserverListen;
+  NetmaskGroup webserverACL;
+  webserverACL.addMask("127.0.0.0/24");
+  webserverACL.addMask("::1");
+  string webserverLoglevel("normal");
+  static const std::set<string> webserverConfigItems = {"listen", "acl", "loglevel"};
+  static const std::set<string> webserverLoglevels = {"none", "detailed", "normal"};
+  pdns::config::registerOption("webserver", pdns::config::configInfoFuncs{
+    .check = [&webserverListen, &webserverACL, &webserverLoglevel](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!n.IsMap()) {
+        throw std::runtime_error("'webserver' config is not a map");
+      }
+      ComboAddress listen;
+      NetmaskGroup acl;
+      string loglevel;
+      for (auto nit = n.begin(); nit != n.end(); nit++) {
+        auto opt = nit->first.as<string>();
+        if (webserverConfigItems.count(opt) == 0) {
+          throw std::runtime_error("Unknown 'webserver' option '" + opt + "'");
+        }
+        if (opt == "listen") {
+          listen = nit->second.as<ComboAddress>();
+        }
+        if (opt == "acl") {
+          acl = nit->second.as<NetmaskGroup>();
+        }
+        if (opt == "loglevel") {
+          loglevel = nit->second.as<string>();
+          if (webserverLoglevels.count(loglevel) != 1) {
+            throw std::runtime_error(loglevel + " is not a valid webserver loglevel");
+          }
+        }
+      }
+      if (listen == ComboAddress()) {
+        // We're not listening
+        return;
+      }
+      if (initial) {
+        // fine
+        return;
+      }
+      if (loglevel != webserverLoglevel || listen != webserverListen) {
+        // TODO compare NMG
+        throw std::runtime_error("'webserver' settings can not be changed at runtime");
+      }
+    },
+    .defaults = [](){ return YAML::Node(std::map<string, string>()); },
+    .apply = [&webserverListen, &webserverACL, &webserverLoglevel](const YAML::Node &n, const bool initial) {
+      if (!initial) {
+        return;
+      }
+      if (n.IsNull()) { return; }
+      for (auto nit = n.begin(); nit != n.end(); nit++) {
+        auto opt = nit->first.as<string>();
+        if (opt == "listen") {
+          webserverListen = nit->second.as<ComboAddress>();
+        }
+        if (opt == "acl") {
+          webserverACL = nit->second.as<NetmaskGroup>();
+        }
+        if (opt == "loglevel") {
+          webserverLoglevel = nit->second.as<string>();
+        }
+      }
+    },
+    .current = [&webserverListen, &webserverACL, &webserverLoglevel]() {
+      YAML::Node ret;
+      ret["listen"] = webserverListen;
+      ret["acl"] = webserverACL;
+      ret["loglevel"] = webserverLoglevel;
+      return ret;
+    },
+    .help = R"(Configuration for the webserver.
+This is a map with 3 possible elements:
+listen
+  The IP address and port to listen on.
+  When this is not set, the webserver is not started
+acl
+  The netmasks allowed to access the webserver. When unset, only 127.0.0.0/8, ::1/128 are allowed.
+loglevel
+  How much the webserver should log: 'none', 'normal' or 'detailed'.
+  With 'none', nothing is logged except for errors
+  With 'normal' (the default), one line per request is logged in the style of the common log format
+  with 'detailed', the full requests and responses (including headers) are logged
+
+Here's an example config:
+
+  webserver:
+    listen: 127.0.0.1:8080
+    acl:
+      - 127.0.0.0/8
+      - ::1/128
+    loglevel: detailed
+    )"
+  });
+
+  char tmp[512];
+  string workdir = getcwd(tmp, sizeof(tmp)) ? string(tmp) : "";
+  pdns::config::registerOption("work-dir", pdns::config::configInfoFuncs{
+    .check = [&workdir](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      auto tmpWorkdir = n.as<string>();
+      if (initial) {
+        return;
+      }
+      if (tmpWorkdir != workdir) {
+        throw std::runtime_error("'work-dir' can not be updated at runtime");
+      }
+    },
+    .defaults = [](){ return YAML::Node(string()); },
+    .apply = [&workdir](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      workdir = n.as<string>();
+    },
+    .current = [&workdir]() { return YAML::Node(workdir); },
+    .help = R"(The directory where the domain data is stored. When unset, the current
+working directory is used. Note that this directory must be writable for the
+user or group ixfrdist runs as. e.g
+    work-dir: '/var/lib/ixfrdist')"
+  });
+
+  int newgid = -1;
+  pdns::config::registerOption("gid", pdns::config::configInfoFuncs{
+    .check = [&newgid](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      auto gid = n.as<string>();
+      if (gid.empty()) {
+        return;
+      }
+      int parsedgid;
+      if (!(parsedgid = atoi(gid.c_str()))) {
+        struct group *gr = getgrnam(gid.c_str());
+        if (gr == nullptr) {
+          throw std::runtime_error("Can not determine group-id for gid " + gid);
+        }
+      }
+      if (initial) {
+        return;
+      }
+      if (parsedgid != newgid) {
+        throw std::runtime_error("'gid' can not be updated at runtime");
+      }
+    },
+    .defaults = [](){ return YAML::Node(""); },
+    .apply = [&newgid](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      auto gid = n.as<string>();
+      if (gid.empty()) {
+        return;
+      }
+      if (!(newgid = atoi(gid.c_str()))) {
+        struct group *gr = getgrnam(gid.c_str());
+        // This is safe 'check' verified this
+        newgid = gr->gr_gid;
+      }
+    },
+    .current = [&newgid]() {
+      if (newgid == -1) {
+        return YAML::Node("");
+      }
+      struct group* gr = getgrgid(newgid);
+      if (gr != nullptr) {
+        return YAML::Node(gr->gr_name);
+      }
+      return YAML::Node("");
+    },
+    .help = "Group to drop privileges to once all listen-sockets are bound. May be either a username or numerical ID."
+  });
+
+  int newuid = -1;
+  pdns::config::registerOption("uid", pdns::config::configInfoFuncs{
+    .check = [&newuid](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      auto uid = n.as<string>();
+      if (uid.empty()) {
+        return;
+      }
+      int parseduid;
+      if (!(parseduid = atoi(uid.c_str()))) {
+        struct passwd *pw = getpwnam(uid.c_str());
+        if (pw == nullptr) {
+          throw std::runtime_error("Can not determine user-id for uid " + uid);
+        }
+      }
+      if (initial) {
+        return;
+      }
+      if (parseduid != newuid) {
+        throw std::runtime_error("'uid' can not be updated at runtime");
+      }
+    },
+    .defaults = [](){ return YAML::Node(""); },
+    .apply = [&newuid](const YAML::Node &n, const bool initial) {
+      if (n.IsNull()) { return; }
+      if (!initial) {
+        return;
+      }
+      auto uid = n.as<string>();
+      if (uid.empty()) {
+        return;
+      }
+      if (!(newuid = atoi(uid.c_str()))) {
+        struct passwd *pw = getpwnam(uid.c_str());
+        // This is safe 'check' verified this
+        newuid = pw->pw_uid;
+      }
+    },
+    .current = [&newuid]() {
+      if (newuid == -1) {
+        return YAML::Node("");
+      }
+      struct passwd* pw = getpwuid(newuid);
+      if (pw != nullptr) {
+        return YAML::Node(pw->pw_name);
+      }
+      return YAML::Node("");
+    },
+    .help = "User to drop privileges to once all listen-sockets are bound. May be either a username or numerical ID."
+  });
+
+  if (g_vm.count("get-default-config")) {
+    cout<<pdns::config::dumpDefaults()<<endl;
+    return EXIT_SUCCESS;
+  }
+
+  auto configpath = g_vm["config"].as<string>();
+  g_log<<Logger::Info<<"Loading configuration file from "<<configpath<<endl;
+  try {
+    pdns::config::parseConfigFile(configpath);
+  } catch (const runtime_error &e) {
+    g_log<<Logger::Error<<"Unable to load configuration file '"<<configpath<<"': "<<e.what()<<endl;
     return EXIT_FAILURE;
   }
 
-  /*  From hereon out, we known that all the values in config are valid. */
-
-  for (auto const &domain : config["domains"]) {
-    set<ComboAddress> s;
-    s.insert(domain["master"].as<ComboAddress>());
-    g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
-    g_stats.registerDomain(domain["domain"].as<DNSName>());
+  if (g_vm.count("check-config")) {
+    cout<<"Configuration file "<<configpath<<" successfully parsed"<<endl;
+    return EXIT_SUCCESS;
   }
 
-  for (const auto &addr : config["acl"].as<vector<string>>()) {
-    try {
-      g_acl.addMask(addr);
-    } catch (const NetmaskException &e) {
-      g_log<<Logger::Error<<e.reason<<endl;
-      had_error = true;
-    }
-  }
-  g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
-
-  if (config["compress"]) {
-    g_compress = config["compress"].as<bool>();
-    if (g_compress) {
-      g_log<<Logger::Notice<<"Record compression is enabled."<<endl;
-    }
-  }
+  g_log<<Logger::Notice<<"IXFR distributor version "<<VERSION<<" starting up!"<<endl;
 
   FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
   if (fdm == nullptr) {
@@ -1179,7 +1436,7 @@ int main(int argc, char** argv) {
   }
 
   set<int> allSockets;
-  for (const auto& addr : config["listen"].as<vector<ComboAddress>>()) {
+  for (const auto& addr : listen_addrs) {
     for (const auto& stype : {SOCK_DGRAM, SOCK_STREAM}) {
       try {
         int s = SSocket(addr.sin4.sin_family, stype, 0);
@@ -1193,95 +1450,48 @@ int main(int argc, char** argv) {
         allSockets.insert(s);
       } catch(runtime_error &e) {
         g_log<<Logger::Error<<e.what()<<endl;
-        had_error = true;
-        continue;
+        return EXIT_FAILURE;
       }
     }
   }
 
-  int newgid = 0;
-
-  if (config["gid"]) {
-    string gid = config["gid"].as<string>();
-    if (!(newgid = atoi(gid.c_str()))) {
-      struct group *gr = getgrnam(gid.c_str());
-      if (gr == nullptr) {
-        g_log<<Logger::Error<<"Can not determine group-id for gid "<<gid<<endl;
-        had_error = true;
-      } else {
-        newgid = gr->gr_gid;
-      }
-    }
+  if (newgid != -1) {
     g_log<<Logger::Notice<<"Dropping effective group-id to "<<newgid<<endl;
     if (setgid(newgid) < 0) {
       g_log<<Logger::Error<<"Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
-      had_error = true;
+      return EXIT_FAILURE;
     }
   }
 
-  if (config["webserver-address"]) {
-    NetmaskGroup wsACL;
-    wsACL.addMask("127.0.0.0/8");
-    wsACL.addMask("::1/128");
-
-    if (config["webserver-acl"]) {
-      wsACL.clear();
-      for (const auto &acl : config["webserver-acl"].as<vector<Netmask>>()) {
-        wsACL.addMask(acl);
-      }
-    }
-
-    string loglevel = "normal";
-    if (config["webserver-loglevel"]) {
-      loglevel = config["webserver-loglevel"].as<string>();
-    }
-
+  if (webserverListen != ComboAddress()) {
     // Launch the webserver!
     try {
-      std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL, loglevel)).detach();
+      std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(webserverListen, webserverACL, webserverLoglevel)).detach();
     } catch (const PDNSException &e) {
       g_log<<Logger::Error<<"Unable to start webserver: "<<e.reason<<endl;
-      had_error = true;
+      return EXIT_FAILURE;
     }
   }
 
-  int newuid = 0;
-
-  if (config["uid"]) {
-    string uid = config["uid"].as<string>();
-    if (!(newuid = atoi(uid.c_str()))) {
-      struct passwd *pw = getpwnam(uid.c_str());
-      if (pw == nullptr) {
-        g_log<<Logger::Error<<"Can not determine user-id for uid "<<uid<<endl;
-        had_error = true;
-      } else {
-        newuid = pw->pw_uid;
-      }
-    }
-
+  if (newuid != -1) {
     struct passwd *pw = getpwuid(newuid);
     if (pw == nullptr) {
       if (setgroups(0, nullptr) < 0) {
         g_log<<Logger::Error<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
-        had_error = true;
+        return EXIT_FAILURE;
       }
     } else {
       if (initgroups(pw->pw_name, newgid) < 0) {
         g_log<<Logger::Error<<"Unable to set supplementary groups: "<<stringerror()<<endl;
-        had_error = true;
+        return EXIT_FAILURE;
       }
     }
 
     g_log<<Logger::Notice<<"Dropping effective user-id to "<<newuid<<endl;
     if (setuid(newuid) < 0) {
       g_log<<Logger::Error<<"Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
-      had_error = true;
+      return EXIT_FAILURE;
     }
-  }
-
-  if (had_error) {
-    // We have already sent the errors to stderr, just die
-    return EXIT_FAILURE;
   }
 
   // It all starts here
@@ -1295,14 +1505,14 @@ int main(int argc, char** argv) {
   dns_random_init();
 
   std::thread ut(updateThread,
-      config["work-dir"].as<string>(),
-      config["keep"].as<uint16_t>(),
-      config["axfr-timeout"].as<uint16_t>(),
-      config["failed-soa-retry"].as<uint16_t>(),
-      config["axfr-max-records"].as<uint32_t>());
+      workdir,
+      keep,
+      axfr_timeout,
+      failedSOARetry,
+      axfr_max_records);
 
   vector<std::thread> tcpHandlers;
-  tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
+  tcpHandlers.reserve(tcpInThreads);
   for (size_t i = 0; i < tcpHandlers.capacity(); ++i) {
     tcpHandlers.push_back(std::thread(tcpWorker, i));
   }
