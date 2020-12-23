@@ -47,7 +47,6 @@ EXTRA_DIST = \
 	named.conf.parsertest \
 	pdns.service.in \
 	ixfrdist.service.in \
-	ixfrdist.example.yml \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh \
@@ -138,6 +137,12 @@ endif # TOOLS
 if IXFRDIST
 bin_PROGRAMS += \
 	ixfrdist
+
+ixfrdist.example.yml: ixfrdist
+	$(AM_V_GEN)./ixfrdist --get-default-config 2>/dev/null > $@
+
+CLEANFILES += \
+	ixfrdist.example.yml
 
 sysconf_DATA += \
 	ixfrdist.example.yml
