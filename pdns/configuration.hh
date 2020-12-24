@@ -91,6 +91,9 @@ namespace config
   /**
    * @brief Parse the YAML file at |fname|
    * 
+   * This calls setConfig with the YAML::Node that results from parsing
+   * |fname|.
+   * 
    * @param fname 
    * @throws YAML::ParserException if the file at |fname| is malformed
    * @throws YAML::BadFile when the file cannot be loaded
@@ -117,8 +120,9 @@ namespace config
    * @throws std::runtime_error when |name| is not registered
    */
   YAML::Node getConfig(const std::string &name);
+
   /**
-   * @brief Returns the current configuration as a YAML string, including the help
+   * @brief Returns the current configuration as a string, including the help
    * 
    * @param name 
    * @return std::string 
@@ -222,9 +226,7 @@ namespace config
   private:
     class configHolder {
       public:
-      /**
-       * @brief The current config applied
-       */
+      /// @brief All the registered configuration items
       std::map<std::string, configInfoFuncs> d_registered;
     };
     GlobalStateHolder<configHolder> d_config;
@@ -233,6 +235,13 @@ namespace config
     bool d_initialConfigLoaded{false};
 
     typedef std::map<std::string, pdns::config::configInfoFuncs>::const_iterator registered_const_iterator;
+    /**
+     * @brief Get the iterator to a registered config option called |name|
+     * 
+     * @param name 
+     * @return registered_const_iterator  to this config item
+     * @throws std::runtime_error when no registered item with |name| exists
+     */
     registered_const_iterator getRegistered(const std::string &name);
   }; // class Config
 

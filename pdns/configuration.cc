@@ -103,29 +103,37 @@ namespace config
       d_config.setState(cfg);
   }
 
-  void Config::setConfig(const YAML::Node &newConfig) {
-      auto cfg = d_config.getCopy();
-      // Check first
-      // TODO only check/apply the diff of newConfig and cfg.d_config
-      for (auto const &registeredItem : cfg.d_registered) {
-          if (newConfig[registeredItem.first]) {
-            registeredItem.second.check(newConfig[registeredItem.first], !d_initialConfigLoaded);
-          } else {
-            registeredItem.second.check(YAML::Node(), !d_initialConfigLoaded);
-          }
+  void Config::setConfig(const YAML::Node& newConfig)
+  {
+    if (!newConfig.IsMap()) {
+      throw std::runtime_error("newConfig is not a map!");
+    }
+    auto nit = newConfig.begin();
+    while (nit != newConfig.end()) {
+      auto opt = nit->first.as<std::string>();
+      auto registeredOpt = d_roConfig->d_registered.find(opt);
+      if (registeredOpt == d_roConfig->d_registered.end()) {
+        // TODO add option to ignore unknown options?
+        throw std::runtime_error("Configuration option '" + opt + "' is not known");
       }
-      // We made it! So the config must be good
-      // Now apply it all
-      for (auto const &registeredItem : cfg.d_registered) {
-          if (newConfig[registeredItem.first]) {
-            registeredItem.second.apply(newConfig[registeredItem.first], !d_initialConfigLoaded);
-          } else {
-            registeredItem.second.apply(YAML::Node(), !d_initialConfigLoaded);
-          }
-      }
+      registeredOpt->second.check(nit->second, !d_initialConfigLoaded);
+      nit++;
+    }
 
-      d_initialConfigLoaded = true;
-      d_config.setState(cfg);
+    // We made it! So the config must be good
+    // Now apply it all
+    nit = newConfig.begin();
+    while (nit != newConfig.end()) {
+      auto opt = nit->first.as<std::string>();
+      auto registeredOpt = d_roConfig->d_registered.find(opt);
+      if (registeredOpt == d_roConfig->d_registered.end()) {
+        // This should never happen, we bail in the previous loop
+        throw std::runtime_error("Configuration option '" + opt + "' is not known");
+      }
+      registeredOpt->second.apply(nit->second, !d_initialConfigLoaded);
+      nit++;
+    }
+    d_initialConfigLoaded = true;
   }
 
   bool isRegistered(const std::string &name) {
