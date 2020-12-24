@@ -532,7 +532,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 
   {
     std::lock_guard<std::mutex> lock(state->socketsLock);
-    state->mplexer->getAvailableFDs(ready, -1);
+    state->mplexer->getAvailableFDs(ready, 1000);
   }
 }
 
@@ -552,10 +552,14 @@ try {
   std::vector<int> sockets;
   sockets.reserve(dss->sockets.size());
 
-  for(; !dss->isStopped(); ) {
+  for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     try {
       pickBackendSocketsReadyForReceiving(dss, sockets);
+      if (dss->isStopped()) {
+        break;
+      }
+
       for (const auto& fd : sockets) {
         ssize_t got = recv(fd, packet, sizeof(packet), 0);
         char * response = packet;

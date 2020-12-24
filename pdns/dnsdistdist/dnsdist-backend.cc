@@ -26,8 +26,8 @@
 bool DownstreamState::reconnect()
 {
   std::unique_lock<std::mutex> tl(connectLock, std::try_to_lock);
-  if (!tl.owns_lock()) {
-    /* we are already reconnecting */
+  if (!tl.owns_lock() || isStopped()) {
+    /* we are already reconnecting or stopped anyway */
     return false;
   }
 
@@ -101,14 +101,17 @@ bool DownstreamState::reconnect()
 
 void DownstreamState::stop()
 {
-  std::unique_lock<std::mutex> tl(connectLock);
-  std::lock_guard<std::mutex> slock(socketsLock);
   d_stopped = true;
 
-  for (auto& fd : sockets) {
-    if (fd != -1) {
-      /* shutdown() is needed to wake up recv() in the responderThread */
-      shutdown(fd, SHUT_RDWR);
+  {
+    std::lock_guard<std::mutex> tl(connectLock);
+    std::lock_guard<std::mutex> slock(socketsLock);
+
+    for (auto& fd : sockets) {
+      if (fd != -1) {
+        /* shutdown() is needed to wake up recv() in the responderThread */
+        shutdown(fd, SHUT_RDWR);
+      }
     }
   }
 }
