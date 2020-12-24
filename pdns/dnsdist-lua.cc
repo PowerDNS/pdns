@@ -702,13 +702,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("showACL", []() {
       setLuaNoSideEffect();
-      vector<string> vec;
-
-      g_ACL.getLocal()->toStringVector(&vec);
-
-      for(const auto& s : vec)
-        g_outputBuffer+=s+"\n";
-
+      for(const auto& s : g_ACL.getLocal()->toStringVector()) {
+        g_outputBuffer += s+"\n";
+      }
     });
 
   luaCtx.writeFunction("shutdown", []() {
@@ -988,10 +984,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
 #endif
 
-      vector<string> vec;
-      g_consoleACL.getLocal()->toStringVector(&vec);
-
-      for(const auto& s : vec) {
+      for(const auto& s : g_consoleACL.getLocal()->toStringVector()) {
         g_outputBuffer += s + "\n";
       }
     });

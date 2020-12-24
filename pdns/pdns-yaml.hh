@@ -89,9 +89,7 @@ struct convert<Netmask> {
 template<>
 struct convert<NetmaskGroup> {
   static Node encode(const NetmaskGroup& rhs) {
-    vector<string> entries;
-    rhs.toStringVector(&entries);
-    return Node(entries);
+    return Node(rhs.toStringVector());
   }
   static bool decode(const Node& node, NetmaskGroup& rhs)
   {

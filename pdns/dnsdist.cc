@@ -2272,19 +2272,15 @@ try
 
   warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
 
-  vector<string> vec;
   std::string acls;
-  g_ACL.getLocal()->toStringVector(&vec);
-  for(const auto& s : vec) {
+  for(const auto& s : g_ACL.getLocal()->toStringVector()) {
     if (!acls.empty())
       acls += ", ";
     acls += s;
   }
   infolog("ACL allowing queries from: %s", acls.c_str());
-  vec.clear();
   acls.clear();
-  g_consoleACL.getLocal()->toStringVector(&vec);
-  for (const auto& entry : vec) {
+  for (const auto& entry : g_consoleACL.getLocal()->toStringVector()) {
     if (!acls.empty()) {
       acls += ", ";
     }

@@ -123,11 +123,8 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
 
 static void apiSaveACL(const NetmaskGroup& nmg)
 {
-  vector<string> vec;
-  nmg.toStringVector(&vec);
-
   string acl;
-  for(const auto& s : vec) {
+  for(const auto& s : nmg.toStringVector()) {
     if (!acl.empty()) {
       acl += ", ";
     }
@@ -982,10 +979,8 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   string acl;
 
-  vector<string> vec;
-  g_ACL.getLocal()->toStringVector(&vec);
 
-  for(const auto& s : vec) {
+  for(const auto& s : g_ACL.getLocal()->toStringVector()) {
     if(!acl.empty()) acl += ", ";
     acl+=s;
   }
@@ -1150,9 +1145,8 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
   if (resp.status == 200) {
     Json::array acl;
     vector<string> vec;
-    g_ACL.getLocal()->toStringVector(&vec);
 
-    for(const auto& s : vec) {
+    for(const auto& s : g_ACL.getLocal()->toStringVector()) {
       acl.push_back(s);
     }
 

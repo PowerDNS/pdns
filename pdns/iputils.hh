@@ -1366,11 +1366,13 @@ public:
     return str.str();
   }
 
-  void toStringVector(vector<string>* vec) const
+  vector<string> toStringVector() const
   {
+    vector<string> vec;
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
-      vec->push_back((iter->second ? "" : "!") + iter->first.toString());
+      vec.push_back((iter->second ? "" : "!") + iter->first.toString());
     }
+    return vec;
   }
 
   void toMasks(const string &ips)
