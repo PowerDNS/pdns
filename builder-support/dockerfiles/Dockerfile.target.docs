@@ -1,5 +1,5 @@
 # Sphinx
-FROM ubuntu:bionic as pdns-docs
+FROM docker.io/library/ubuntu:bionic as pdns-docs
 RUN apt-get update && apt-get -y dist-upgrade && apt-get -y --no-install-recommends install \
     ghostscript \
     git \
