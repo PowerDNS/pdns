@@ -1,0 +1,73 @@
+#!/bin/sh
+set -e
+
+fix_bind_conf() {
+  cp /etc/powerdns/pdns.d/bind.conf /etc/powerdns/pdns.d/bind.conf.dpkg-bak
+  echo "Moving /etc/powerdns/pdns.d/${1} to /etc/powerdns/pdns.d/bind.conf"
+  mv -f /etc/powerdns/pdns.d/${1} /etc/powerdns/pdns.d/bind.conf
+
+  # Update all references from /etc/powerdns/bindbackend.conf to /etc/powerdns/named.conf
+  # as we're moving that file.
+  sed -i 's,/etc/powerdns/bindbackend.conf\(\s*\|$\),/etc/powerdns/named.conf\1,' /etc/powerdns/pdns.d/bind.conf
+}
+
+case "$1" in
+    configure)
+        chown pdns:pdns /var/lib/powerdns/zones.slave.d || :
+
+        # Create suggested supermaster.conf, which is included from /etc/powerdns/named.conf by default.
+        BINDCONF=/etc/powerdns/pdns.d/bind.conf
+        SUPERMASTERCONF=/var/lib/powerdns/supermaster.conf
+        if test -e $BINDCONF && grep "^bind-supermaster-config=$SUPERMASTERCONF" $BINDCONF >/dev/null 2>&1; then
+            touch $SUPERMASTERCONF
+            chown pdns:pdns $SUPERMASTERCONF
+        fi
+
+        # Older versions had the BIND backend configured in other files.
+        # If these files were not removed by the pdns-server package postinst,
+        # that means they were changed by user. Move them into the right places
+        # so the BIND backend keeps working on an upgrade.
+        if [ -z "$2" ]; then
+          # This is a new install. It is possible that it is _part_ of an upgrade from
+          # an installation that did not have the pdns-backend-bind package but the
+          # bind backend in the pdns-server package. Let's do the needful and move
+          # files to keep the bind bindbackend functional.
+          if [ -e "/etc/powerdns/pdns.d/pdns.simplebind.conf.dpkg-bak" ]; then
+            # This file was modified by the user, and moved by the installation of pdns-server
+            cp /etc/powerdns/pdns.d/pdns.simplebind.conf.dpkg-bak /etc/powerdns/pdns.d/pdns.simplebind.conf.dpkg-bak2
+            fix_bind_conf pdns.simplebind.conf.dpkg-bak
+          fi
+
+          if [ -e "/etc/powerdns/pdns.d/pdns.simplebind.conf" ]; then
+            # The previous package was one from repo.powerdns.com that did not put
+            # this file under ufc control
+            cp /etc/powerdns/pdns.d/pdns.simplebind.conf /etc/powerdns/pdns.d/pdns.simplebind.conf.dpkg-bak2
+            fix_bind_conf pdns.simplebind.conf
+          fi
+
+          # Now let's move this out of the way
+          if [ -e "/etc/powerdns/bindbackend.conf" ]; then
+            # This file was modified by the user (if not, it was removed by the installation
+            # of pdns-server), so make sure this file is not lost
+            cp /etc/powerdns/bindbackend.conf /etc/powerdns/bindbackend.conf.dpkg-bak
+            cp /etc/powerdns/named.conf /etc/powerdns/named.conf.dpkg-bak
+            echo "Moving /etc/powerdns/bindbackend.conf to /etc/powerdns/named.conf"
+            mv -f /etc/powerdns/bindbackend.conf /etc/powerdns/named.conf
+          fi
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+dpkg-trigger pdns-server
+
+#DEBHELPER#
+
+exit 0

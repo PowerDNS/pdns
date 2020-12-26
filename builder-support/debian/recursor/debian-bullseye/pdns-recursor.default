@@ -1,0 +1,7 @@
+# Variables for PowerDNS recursor init script.
+# Not honored when systemd is the running init.
+#
+# Set START to yes to start the pdns-recursor
+START=yes
+# Run resolvconf? (Deprecated feature.)
+RESOLVCONF=no

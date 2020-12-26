@@ -1,0 +1,31 @@
+#!/bin/bash
+exec 2>&1
+set -ex
+
+cat <<EOF >>/etc/powerdns/recursor.conf
+auth-zones=example.org=/etc/powerdns/example.org.zone
+EOF
+
+cat <<EOF >/etc/powerdns/example.org.zone
+example.org.           172800  IN      SOA     ns1.example.org. dns.example.org. 1 10800 3600 604800 3600
+example.org.           172800  IN      NS      ns1.example.org.
+smoke.example.org.     172800  IN      A       127.0.0.123
+EOF
+
+service pdns-recursor restart
+
+TMPFILE=$(mktemp)
+cleanup() {
+  rm -f "$TMPFILE"
+}
+trap cleanup EXIT
+
+dig @127.0.0.1 smoke.example.org 2>&1 | tee "$TMPFILE"
+
+if grep -c '127\.0\.0\.123' "$TMPFILE"; then
+    echo success
+else
+    echo smoke could not be resolved
+    exit 1
+fi
+

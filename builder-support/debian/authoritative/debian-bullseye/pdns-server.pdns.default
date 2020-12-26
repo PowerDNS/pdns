@@ -1,0 +1,5 @@
+# Variables for the PowerDNS sysv init script.
+# Note: ignored under systemd.
+
+# Arguments to the started daemon
+DAEMON_ARGS=""

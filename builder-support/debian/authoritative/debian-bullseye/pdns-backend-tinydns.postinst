@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+dpkg-trigger pdns-server
+
+#DEBHELPER#
+
+exit 0

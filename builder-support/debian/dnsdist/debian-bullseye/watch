@@ -1,0 +1,3 @@
+# Site		Directory		Pattern			Version	Script
+version=3
+opts="pgpsigurlmangle=s/$/.asc/,versionmangle=s/-/~/" https://downloads.powerdns.com/releases/	dnsdist-([0-9]+.*)\.tar\.bz2	debian	uupdate

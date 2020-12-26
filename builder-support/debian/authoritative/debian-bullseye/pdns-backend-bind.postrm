@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  purge)
+    # remove data file, if empty (created by postinst).
+    if [ -e /var/lib/powerdns/supermaster.conf ] && echo "d41d8cd98f00b204e9800998ecf8427e /var/lib/powerdns/supermaster.conf" | md5sum --check --status; then
+      rm -f /var/lib/powerdns/supermaster.conf
+    fi
+  ;;
+esac
+
+#DEBHELPER#

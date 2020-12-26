@@ -1,0 +1,16 @@
+debian/tmp/usr/share/man/man1/calidns.1
+debian/tmp/usr/share/man/man1/dnsbulktest.1
+debian/tmp/usr/share/man/man1/dnsgram.1
+debian/tmp/usr/share/man/man1/dnspcap2protobuf.1
+debian/tmp/usr/share/man/man1/dnsreplay.1
+debian/tmp/usr/share/man/man1/dnsscan.1
+debian/tmp/usr/share/man/man1/dnsscope.1
+debian/tmp/usr/share/man/man1/dnstcpbench.1
+debian/tmp/usr/share/man/man1/dnswasher.1
+debian/tmp/usr/share/man/man1/dumresp.1
+debian/tmp/usr/share/man/man1/ixplore.1
+debian/tmp/usr/share/man/man1/nproxy.1
+debian/tmp/usr/share/man/man1/nsec3dig.1
+debian/tmp/usr/share/man/man1/pdns_notify.1
+debian/tmp/usr/share/man/man1/saxfr.1
+debian/tmp/usr/share/man/man1/sdig.1

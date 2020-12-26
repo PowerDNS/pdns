@@ -1,0 +1,42 @@
+#!/bin/bash
+exec 2>&1
+set -ex
+
+echo /etc/powerdns/pdns.d/pdns.local.gpgsql.conf follows:
+echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+cat  /etc/powerdns/pdns.d/pdns.local.gpgsql.conf
+echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# gpgsql-dbname=pdnsbackendpgsql
+DBNAME=$(grep gpgsql-dbname   /etc/powerdns/pdns.d/pdns.local.gpgsql.conf | awk -F= '{print $2}')
+DBHOST=$(grep gpgsql-host     /etc/powerdns/pdns.d/pdns.local.gpgsql.conf | awk -F= '{print $2}')
+DBUSER=$(grep gpgsql-user     /etc/powerdns/pdns.d/pdns.local.gpgsql.conf | awk -F= '{print $2}')
+DBPASS=$(grep gpgsql-password /etc/powerdns/pdns.d/pdns.local.gpgsql.conf | awk -F= '{print $2}')
+
+cat <<EOF >/etc/powerdns/example.org
+example.org.           172800  IN      SOA     ns1.example.org. dns.example.org. 1 10800 3600 604800 3600
+example.org.           172800  IN      NS      ns1.example.org.
+smoke.example.org.     172800  IN      A       127.0.0.125
+EOF
+
+zone2sql --gpgsql --zone-name=example.org --zone=/etc/powerdns/example.org | \
+    PGPASSWORD="$DBPASS" psql -h "$DBHOST" -U "$DBUSER" "$DBNAME"
+
+service pdns restart
+
+TMPFILE=$(mktemp)
+cleanup() {
+  rm -f "$TMPFILE"
+  service pdns stop
+}
+trap cleanup EXIT
+
+dig @127.0.0.1 smoke.example.org 2>&1 | tee "$TMPFILE"
+
+if grep -c '127\.0\.0\.125' "$TMPFILE"; then
+    echo success
+else
+    echo smoke.example.org could not be resolved
+    exit 1
+fi
+

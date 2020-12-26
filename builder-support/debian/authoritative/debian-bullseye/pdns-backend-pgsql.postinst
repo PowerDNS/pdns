@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+if [ -n "$PDNSDEBUG" ]; then
+  echo "now debugging $0 $@"
+  set -x
+fi
+
+purge_ucf_registry() {
+  pkgname="$1"
+  # Remove files previously registered with ucf (but keep the files).
+  # Newer versions no longer use ucf to manage conffiles.
+  # We stopped depending on ucf, so avoid calling ucf when it is not present.
+  if command -v ucfq >/dev/null; then
+    for file in $(ucfq --with-colons "$pkgname" | cut --delimiter=: --fields=1); do
+      ucf --purge ${file}
+      ucfr --purge $pkgname ${file}
+    done
+  fi
+}
+
+purge_ucf_registry "pdns-backend-pgsql"
+
+dpkg-trigger pdns-server
+
+#DEBHELPER#
+
+exit 0
