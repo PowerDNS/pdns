@@ -5,7 +5,6 @@ Standards-Version: 4.1.2
 Maintainer: PowerDNS.COM BV <powerdns.support@powerdns.com>
 Build-Depends: debhelper (>= 10),
                dh-autoreconf,
-               dh-systemd [linux-any],
                libboost-all-dev,
                libcap-dev,
                libluajit-5.1-dev [!arm64],
