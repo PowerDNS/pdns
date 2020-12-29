@@ -75,6 +75,8 @@ typedef set<shared_ptr<DNSKEYRecordContent>, sharedDNSKeyRecordContentCompare > 
 
 vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& records, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, bool validateAllSigs=true);
 bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next);
+bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginHash, const std::string& nextHash);
+bool isCoveredByNSEC3Hash(const DNSName& h, const DNSName& beginHash, const DNSName& nextHash);
 void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const skeyset_t& keys);
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs);
 vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset);

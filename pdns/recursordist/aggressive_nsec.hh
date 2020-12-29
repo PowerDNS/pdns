@@ -30,6 +30,7 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 
+#include "base32.hh"
 #include "dnsname.hh"
 #include "dnsrecords.hh"
 #include "lock.hh"
@@ -94,6 +95,8 @@ private:
   std::shared_ptr<ZoneEntry> getZone(const DNSName& zone);
   std::shared_ptr<ZoneEntry> getBestZone(const DNSName& zone);
   bool getNSECBefore(time_t now, std::shared_ptr<ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
+  bool getNSEC3(time_t now, std::shared_ptr<ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
+  bool getNSEC3Denial(time_t now, std::shared_ptr<ZoneEntry>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC);
 
   SuffixMatchTree<std::shared_ptr<ZoneEntry>> d_zones;
   ReadWriteLock d_lock;

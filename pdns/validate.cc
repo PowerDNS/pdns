@@ -55,11 +55,19 @@ static vector<shared_ptr<DNSKEYRecordContent > > getByTag(const skeyset_t& keys,
   return ret;
 }
 
-static bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginHash, const std::string& nextHash)
+bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginHash, const std::string& nextHash)
 {
   return ((beginHash < h && h < nextHash) ||          // no wrap          BEGINNING --- HASH -- END
           (nextHash > h  && beginHash > nextHash) ||  // wrap             HASH --- END --- BEGINNING
           (nextHash < beginHash  && beginHash < h) || // wrap other case  END --- BEGINNING --- HASH
+          (beginHash == nextHash && h != beginHash));   // "we have only 1 NSEC3 record, LOL!"
+}
+
+bool isCoveredByNSEC3Hash(const DNSName& h, const DNSName& beginHash, const DNSName& nextHash)
+{
+  return ((beginHash.canonCompare(h) && h.canonCompare(nextHash)) ||          // no wrap          BEGINNING --- HASH -- END
+          (h.canonCompare(nextHash) && nextHash.canonCompare(beginHash)) ||  // wrap             HASH --- END --- BEGINNING
+          (nextHash.canonCompare(beginHash) && beginHash.canonCompare(h)) || // wrap other case  END --- BEGINNING --- HASH
           (beginHash == nextHash && h != beginHash));   // "we have only 1 NSEC3 record, LOL!"
 }
 
@@ -304,6 +312,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
         unsigned int wildcardLabelsCount = wildcard.countLabels();
         while (wildcard.chopOff() && wildcardLabelsCount >= commonLabelsCount) {
           DNSName target = g_wildcarddnsname + wildcard;
+          #warning BUG?? should we decerement wildcardLabelsCount??
 
           LOG("Comparing owner: "<<owner<<" with target: "<<target<<endl);
 
