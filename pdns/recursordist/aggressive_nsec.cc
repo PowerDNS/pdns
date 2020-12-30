@@ -71,6 +71,10 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getZone(con
 
 void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3)
 {
+  if (signatures.empty()) {
+    return;
+  }
+
   std::shared_ptr<AggressiveNSECCache::ZoneEntry> entry = getZone(zone);
   {
     std::lock_guard<std::mutex> lock(entry->d_lock);
@@ -86,23 +90,41 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         throw std::runtime_error("Error getting the content from a NSEC record");
       }
       next = content->d_next;
+      if (next.canonCompare(owner) && next != zone) {
+        /* not accepting a NSEC whose next domain name is before the owner
+           unless the next domain name is the apex, sorry */
+        return;
+      }
     }
     else {
       auto content = getRR<NSEC3RecordContent>(record);
       if (!content) {
         throw std::runtime_error("Error getting the content from a NSEC3 record");
       }
-      next = DNSName(toBase32Hex(content->d_nexthash)) + zone;
-      if (g_maxNSEC3Iterations && content->d_iterations > g_maxNSEC3Iterations) {
+
+      if (content->isOptOut()) {
+        /* doesn't prove anything, sorry */
         return;
       }
 
+      if (g_maxNSEC3Iterations && content->d_iterations > g_maxNSEC3Iterations) {
+        /* can't use that */
+        return;
+      }
+
+      next = DNSName(toBase32Hex(content->d_nexthash)) + zone;
       entry->d_iterations = content->d_iterations;
       entry->d_salt = content->d_salt;
     }
 
     /* the TTL is already a TTD by now */
-    entry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
+    if (!nsec3 && isWildcardExpanded(owner.countLabels(), signatures.at(0))) {
+      DNSName realOwner = getNSECOwnerName(owner, signatures);
+      entry->d_entries.insert({record.d_content, signatures, std::move(realOwner), std::move(next), record.d_ttl});
+    }
+    else {
+      entry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
+    }
   }
 }
 
@@ -274,12 +296,24 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
+    const DNSName signer = getSigner(exactNSEC3.d_signatures);
+    if (type != QType::DS && isNSEC3AncestorDelegation(signer, exactNSEC3.d_owner, nsec3)) {
+      /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+         Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+         nonexistence of any RRs below that zone cut, which include all RRs at
+         that (original) owner name other than DS RRs, and all RRs below that
+         owner name regardless of type.
+      */
+      return false;
+    }
+
     cerr<<"Direct match, done!"<<endl;
+    res = RCode::NoError;
     addToRRSet(now, soaSet, soaSignatures, zoneEntry->d_zone, doDNSSEC, ret);
-    addRecordToRRSet(now, exactNSEC3.d_owner, QType::NSEC, exactNSEC3.d_ttd - now, exactNSEC3.d_record, exactNSEC3.d_signatures, doDNSSEC, ret);
+    addRecordToRRSet(now, exactNSEC3.d_owner, QType::NSEC3, exactNSEC3.d_ttd - now, exactNSEC3.d_record, exactNSEC3.d_signatures, doDNSSEC, ret);
     return true;
   }
-#warning FIXME opt-out / ENT
+
 #warning FIXME ancestor delegation
   cerr<<"no direct match, looking for closest encloser"<<endl;
   DNSName closestEncloser(name);
@@ -346,12 +380,15 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     if (nsec3->isSet(QType::CNAME)) {
       return false;
     }
+
+    res = RCode::NoError;
   }
   else {
     if (!isCoveredByNSEC3Hash(DNSName(wcHash) + zone, wcEntry.d_owner, wcEntry.d_next)) {
       cerr<<"no covering record found for the wildcard in aggressive cache"<<endl;
       return false;
     }
+    res = RCode::NXDomain;
   }
 
   addToRRSet(now, soaSet, soaSignatures, zoneEntry->d_zone, doDNSSEC, ret);
@@ -436,8 +473,26 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
       res = RCode::NXDomain;
     }
     else {
+      auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(wcEntry.d_record);
+      denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, nsecContent, wcEntry.d_signatures);
+      if (denial == dState::NODENIAL) {
+        /* too complicated for now */
+        return false;
+      }
+      else if (denial == dState::NXQTYPE) {
+        covered = true;
+        res = RCode::NoError;
+      }
+      else if (denial == dState::NXDOMAIN) {
+        covered = true;
+        res = RCode::NXDomain;
+      }
+
+      if (wcEntry.d_owner != wc) {
+        needWildcard = true;
+      }
+#if 0
       if (wcEntry.d_owner == wc) {
-        auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(wcEntry.d_record);
         if (!nsecContent) {
           return false;
         }
@@ -459,6 +514,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
         res = RCode::NXDomain;
         needWildcard = true;
       }
+#endif
     }
   }
 

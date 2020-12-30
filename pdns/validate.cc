@@ -152,7 +152,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
       }
 
       if (isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
-        return !(nsec3->d_flags & 1);
+        return !(nsec3->isOptOut());
       }
     }
   }
@@ -207,7 +207,8 @@ static bool isWildcardExpandedOntoItself(const DNSName& owner, const std::vector
 
 /* if this is a wildcard NSEC, the owner name has been modified
    to match the name. Make sure we use the original '*' form. */
-static DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+#warning we should not need to export this
+DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
   DNSName result = initialOwner;
 
@@ -237,7 +238,8 @@ static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner
     signer.countLabels() < owner.countLabels();
 }
 
-static bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3)
+#warning FIXME: should not be exported
+bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3)
 {
   return nsec3->isSet(QType::NS) &&
     !nsec3->isSet(QType::SOA) &&
@@ -269,7 +271,7 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
 
         if (qname.isPartOf(wildcard)) {
           LOG("\tWildcard matches");
-          if (qtype == 0 || !nsec->isSet(qtype)) {
+          if (qtype == 0 || (!nsec->isSet(qtype) && !nsec->isSet(QType::CNAME))) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -306,13 +308,13 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
           number of labels than the intersection of its owner name and next name.
         */
         const DNSName commonLabels = owner.getCommonLabels(nsec->d_next);
-        unsigned int commonLabelsCount = commonLabels.countLabels();
+        const unsigned int commonLabelsCount = commonLabels.countLabels();
 
         DNSName wildcard(qname);
         unsigned int wildcardLabelsCount = wildcard.countLabels();
         while (wildcard.chopOff() && wildcardLabelsCount >= commonLabelsCount) {
           DNSName target = g_wildcarddnsname + wildcard;
-          #warning BUG?? should we decerement wildcardLabelsCount??
+          --wildcardLabelsCount;
 
           LOG("Comparing owner: "<<owner<<" with target: "<<target<<endl);
 
@@ -366,7 +368,7 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
           if (wildcardExists) {
             *wildcardExists = true;
           }
-          if (qtype == 0 || !nsec3->isSet(qtype)) {
+          if (qtype == 0 || (!nsec3->isSet(qtype) && !nsec3->isSet(QType::CNAME))) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -742,7 +744,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
               nextCloserFound = true;
 
-              if ((qtype == QType::DS || qtype == 0) && nsec3->d_flags & 1) {
+              if ((qtype == QType::DS || qtype == 0) && nsec3->isOptOut()) {
                 LOG(" but is opt-out!");
                 isOptOut = true;
               }
