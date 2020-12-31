@@ -289,11 +289,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
-    if (nsec3->isSet(type.getCode())) {
-      return false;
-    }
-
-    if (nsec3->isSet(QType::CNAME)) {
+    if (!isTypeDenied(nsec3, type)) {
       return false;
     }
 
@@ -315,7 +311,6 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     return true;
   }
 
-#warning FIXME ancestor delegation
   cerr<<"no direct match, looking for closest encloser"<<endl;
   DNSName closestEncloser(name);
   bool found = false;
@@ -374,11 +369,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
-    if (nsec3->isSet(type.getCode())) {
-      return false;
-    }
-
-    if (nsec3->isSet(QType::CNAME)) {
+    if (!isTypeDenied(nsec3, type)) {
       return false;
     }
 
@@ -440,7 +431,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   cerr<<"nsecFound "<<entry.d_owner<<endl;
   auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures);
-  if (denial == dState::NODENIAL) {
+  if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
     cerr<<"no dice"<<endl;
     return false;
   }
@@ -476,7 +467,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     else {
       auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(wcEntry.d_record);
       denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, nsecContent, wcEntry.d_signatures);
-      if (denial == dState::NODENIAL) {
+      if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
         /* too complicated for now */
         /* we would need:
            - to store wildcard entries in the non-expanded form in the record cache, in addition to their expanded form ;

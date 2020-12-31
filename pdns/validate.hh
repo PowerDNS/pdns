@@ -41,7 +41,7 @@ inline bool vStateIsBogus(vState state)
 }
 
 // NSEC(3) results
-enum class dState : uint8_t { NODENIAL, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
+enum class dState : uint8_t { NODENIAL, INCONCLUSIVE, NXDOMAIN, NXQTYPE, ENT, INSECURE, OPTOUT};
 
 std::ostream& operator<<(std::ostream &os, const vState d);
 std::ostream& operator<<(std::ostream &os, const dState d);
@@ -93,7 +93,25 @@ bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGReco
 bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
 void updateDNSSECValidationState(vState& state, const vState stateUpdate);
 
-dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<NSECRecordContent>& nsecRecord, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures);
+dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<NSECRecordContent>& nsec, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures);
 
 bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3);
 DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
+
+template <typename NSEC> bool isTypeDenied(const NSEC& nsec, const QType& type)
+{
+  if (nsec->isSet(type.getCode())) {
+    return false;
+  }
+
+  /* RFC 6840 section 4.3 */
+  if (nsec->isSet(QType::CNAME)) {
+    return false;
+  }
+
+  if (nsec->isSet(QType::DNAME)) {
+    return false;
+  }
+
+  return true;
+}

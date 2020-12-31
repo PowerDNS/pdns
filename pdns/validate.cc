@@ -207,7 +207,6 @@ static bool isWildcardExpandedOntoItself(const DNSName& owner, const std::vector
 
 /* if this is a wildcard NSEC, the owner name has been modified
    to match the name. Make sure we use the original '*' form. */
-#warning we should not need to export this
 DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
 {
   DNSName result = initialOwner;
@@ -271,7 +270,7 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
 
         if (qname.isPartOf(wildcard)) {
           LOG("\tWildcard matches");
-          if (qtype == 0 || (!nsec->isSet(qtype) && !nsec->isSet(QType::CNAME) && !nsec->isSet(QType::DNAME))) {
+          if (qtype == 0 || isTypeDenied(nsec, QType(qtype))) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -368,7 +367,20 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
           if (wildcardExists) {
             *wildcardExists = true;
           }
-          if (qtype == 0 || (!nsec3->isSet(qtype) && !nsec3->isSet(QType::CNAME) && !nsec3->isSet(QType::DNAME))) {
+
+          /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+             Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+             nonexistence of any RRs below that zone cut, which include all RRs at
+             that (original) owner name other than DS RRs, and all RRs below that
+             owner name regardless of type.
+          */
+          if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
+            /* this is an "ancestor delegation" NSEC3 RR */
+            LOG(" BUT an ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+            return false;
+          }
+
+          if (qtype == 0 || isTypeDenied(nsec3, QType(qtype))) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -391,7 +403,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
 {
   const DNSName signer = getSigner(signatures);
   if (!name.isPartOf(signer) || !nsecOwner.isPartOf(signer)) {
-    return dState::NODENIAL;
+    return dState::INCONCLUSIVE;
   }
 
   const DNSName owner = getNSECOwnerName(nsecOwner, signatures);
@@ -404,38 +416,34 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   if (name.isPartOf(owner) && isNSECAncestorDelegation(signer, owner, nsec)) {
     /* this is an "ancestor delegation" NSEC RR */
     if (!(qtype == QType::DS && name == owner)) {
+      LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
       return dState::NODENIAL;
     }
   }
 
   /* check if the type is denied */
   if (name == owner) {
-    if (nsec->isSet(qtype)) {
+    if (!isTypeDenied(nsec, QType(qtype))) {
+      LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
       return dState::NODENIAL;
     }
 
-    /* RFC 6840 section 4.3 */
-    if (nsec->isSet(QType::CNAME)) {
-      return dState::NODENIAL;
-    }
-
-    if (nsec->isSet(QType::DNAME)) {
-      return dState::NODENIAL;
-    }
-
+    LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
     return dState::NXQTYPE;
   }
 
   if (isCoveredByNSEC(name, owner, nsec->d_next)) {
+    LOG(name<<" is covered ");
 
     if (nsecProvesENT(name, owner, nsec->d_next)) {
+      LOG("Denies existence of type "<<name<<"/"<<QType(qtype).getName()<<" by proving that "<<name<<" is an ENT"<<endl);
       return dState::NXQTYPE;
     }
 
     return dState::NXDOMAIN;
   }
 
-  return dState::NODENIAL;
+  return dState::INCONCLUSIVE;
 }
 
 /*
@@ -466,14 +474,16 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         LOG("\t"<<r->getZoneRepresentation()<<endl);
 
         auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
-        if(!nsec)
+        if (!nsec) {
           continue;
-
-        const DNSName signer = getSigner(v.second.signatures);
-        if (!v.first.first.isPartOf(signer))
-          continue;
+        }
 
         const DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
+        const DNSName signer = getSigner(v.second.signatures);
+        if (!v.first.first.isPartOf(signer) || !owner.isPartOf(signer) ) {
+           continue;
+         }
+
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
            nonexistence of any RRs below that zone cut, which include all RRs at
@@ -483,7 +493,6 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if (qname.isPartOf(owner) && isNSECAncestorDelegation(signer, owner, nsec)) {
           /* this is an "ancestor delegation" NSEC RR */
           if (!(qtype == QType::DS && qname == owner)) {
-            LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->isSet(QType::NS))<<", SOA is "<<std::to_string(nsec->isSet(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
             LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
             return dState::NODENIAL;
           }
@@ -491,23 +500,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         /* check if the type is denied */
         if (qname == owner) {
-          if (nsec->isSet(qtype)) {
+          if (!isTypeDenied(nsec, QType(qtype))) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
             return dState::NODENIAL;
           }
 
           LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
-
-          /* RFC 6840 section 4.3 */
-          if (nsec->isSet(QType::CNAME)) {
-            LOG("However a CNAME exists"<<endl);
-            return dState::NODENIAL;
-          }
-
-          if (nsec->isSet(QType::DNAME)) {
-            LOG("However a CNAME exists"<<endl);
-            return dState::NODENIAL;
-          }
 
           /*
            * RFC 4035 Section 2.3:
@@ -523,7 +521,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           /* we know that the name exists (but this qtype doesn't) so except
              if the answer was generated by a wildcard expansion, no wildcard
              could have matched (rfc4035 section 5.4 bullet 1) */
-          if (!isWildcardExpanded(owner, v.second.signatures) || isWildcardExpandedOntoItself(owner, v.second.signatures)) {
+          if (needWildcardProof && (!isWildcardExpanded(owner, v.second.signatures) || isWildcardExpandedOntoItself(owner, v.second.signatures))) {
             needWildcardProof = false;
           }
 
@@ -572,11 +570,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             }
           }
 
-          LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+          LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<endl);
           return dState::NODENIAL;
         }
 
-        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<owner<<"?="<<qname<<", "<<nsec->isSet(qtype)<<", next: "<<nsec->d_next<<endl);
+        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->isSet(qtype)<<", next: "<<nsec->d_next<<endl);
       }
     } else if(v.first.second==QType::NSEC3) {
       for(const auto& r : v.second.records) {
@@ -599,42 +597,30 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         nsec3Seen = true;
 
-        //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<qname<<endl;
         LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
-        /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
-           Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
-           nonexistence of any RRs below that zone cut, which include all RRs at
-           that (original) owner name other than DS RRs, and all RRs below that
-           owner name regardless of type.
-        */
-        if (qtype != QType::DS && beginHash == h && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->isSet(QType::NS))<<", SOA is "<<std::to_string(nsec3->isSet(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
-          /* this is an "ancestor delegation" NSEC3 RR */
-          LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
-          return dState::NODENIAL;
-        }
-
         // If the name exists, check if the qtype is denied
-        if(beginHash == h) {
-          if (nsec3->isSet(qtype)) {
+        if (beginHash == h) {
+
+          /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
+             Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
+             nonexistence of any RRs below that zone cut, which include all RRs at
+             that (original) owner name other than DS RRs, and all RRs below that
+             owner name regardless of type.
+          */
+          if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
+            /* this is an "ancestor delegation" NSEC3 RR */
+            LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+            return dState::NODENIAL;
+          }
+
+          if (!isTypeDenied(nsec3, QType(qtype))) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
             return dState::NODENIAL;
           }
 
           LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
-
-          /* RFC 6840 section 4.3 */
-          if (nsec3->isSet(QType::CNAME)) {
-            LOG("However a CNAME exists"<<endl);
-            return dState::NODENIAL;
-          }
-
-          if (nsec3->isSet(QType::DNAME)) {
-            LOG("However a CNAME exists"<<endl);
-            return dState::NODENIAL;
-          }
 
           /*
            * RFC 5155 section 8.9:
@@ -751,10 +737,16 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               return dState::INSECURE;
             }
 
+            const DNSName signer = getSigner(v.second.signatures);
+            if (!v.first.first.isPartOf(signer)) {
+              LOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+              continue;
+            }
+
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
             LOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
-            if(isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
+            if (isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
               LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
               nextCloserFound = true;
 
@@ -797,7 +789,6 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   }
 
   // There were no valid NSEC(3) records
-  // XXX maybe this should be INSECURE... it depends on the semantics of this function
   return dState::NODENIAL;
 }
 
@@ -1330,7 +1321,7 @@ std::ostream& operator<<(std::ostream &os, const vState d)
 
 std::ostream& operator<<(std::ostream &os, const dState d)
 {
-  static const std::vector<std::string> dStates = {"no denial", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
+  static const std::vector<std::string> dStates = {"no denial", "inconclusive", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
   os<<dStates.at(static_cast<size_t>(d));
   return os;
 }
