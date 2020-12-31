@@ -425,6 +425,37 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxdomain_denial_missing_wildcard)
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec_expanded_wildcard_proof)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("example.org."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /* proves that a.example.com does exist, and has been generated from a wildcard (see the RRSIG below) */
+  addNSECRecordToLW(DNSName("a.example.org."), DNSName("d.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("example.org."), 300, false, boost::none, DNSName("example.org."));
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+  records.clear();
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(DNSName("a.example.org."), QType::NSEC)] = pair;
+
+  /* This is an expanded wildcard proof, meaning that it does prove that the exact name
+     does not exist so the wildcard can apply */
+  dState denialState = getDenial(denialMap, DNSName("a.example.org."), QType(0).getCode(), false, false, false, /* normally retrieved from the RRSIG's d_labels */ 2);
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
+}
+
 BOOST_AUTO_TEST_CASE(test_nsec_wildcard_with_cname)
 {
   initSR();

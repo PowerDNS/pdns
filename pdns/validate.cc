@@ -271,7 +271,7 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
 
         if (qname.isPartOf(wildcard)) {
           LOG("\tWildcard matches");
-          if (qtype == 0 || (!nsec->isSet(qtype) && !nsec->isSet(QType::CNAME))) {
+          if (qtype == 0 || (!nsec->isSet(qtype) && !nsec->isSet(QType::CNAME) && !nsec->isSet(QType::DNAME))) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -368,7 +368,7 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
           if (wildcardExists) {
             *wildcardExists = true;
           }
-          if (qtype == 0 || (!nsec3->isSet(qtype) && !nsec3->isSet(QType::CNAME))) {
+          if (qtype == 0 || (!nsec3->isSet(qtype) && !nsec3->isSet(QType::CNAME) && !nsec3->isSet(QType::DNAME))) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -416,6 +416,10 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
 
     /* RFC 6840 section 4.3 */
     if (nsec->isSet(QType::CNAME)) {
+      return dState::NODENIAL;
+    }
+
+    if (nsec->isSet(QType::DNAME)) {
       return dState::NODENIAL;
     }
 
@@ -496,6 +500,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
           /* RFC 6840 section 4.3 */
           if (nsec->isSet(QType::CNAME)) {
+            LOG("However a CNAME exists"<<endl);
+            return dState::NODENIAL;
+          }
+
+          if (nsec->isSet(QType::DNAME)) {
             LOG("However a CNAME exists"<<endl);
             return dState::NODENIAL;
           }
@@ -618,6 +627,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
           /* RFC 6840 section 4.3 */
           if (nsec3->isSet(QType::CNAME)) {
+            LOG("However a CNAME exists"<<endl);
+            return dState::NODENIAL;
+          }
+
+          if (nsec3->isSet(QType::DNAME)) {
             LOG("However a CNAME exists"<<endl);
             return dState::NODENIAL;
           }

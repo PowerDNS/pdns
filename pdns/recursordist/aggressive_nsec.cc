@@ -112,6 +112,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         return;
       }
 
+#warning Ponder storing everything in raw form, without the zone instead. It still needs to be a DNSName for NSEC, though
       next = DNSName(toBase32Hex(content->d_nexthash)) + zone;
       entry->d_iterations = content->d_iterations;
       entry->d_salt = content->d_salt;
@@ -477,6 +478,11 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
       denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, nsecContent, wcEntry.d_signatures);
       if (denial == dState::NODENIAL) {
         /* too complicated for now */
+        /* we would need:
+           - to store wildcard entries in the non-expanded form in the record cache, in addition to their expanded form ;
+           - do a lookup to retrieve them ;
+           - expand them and the NSEC
+        */
         return false;
       }
       else if (denial == dState::NXQTYPE) {
@@ -491,30 +497,6 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
       if (wcEntry.d_owner != wc) {
         needWildcard = true;
       }
-#if 0
-      if (wcEntry.d_owner == wc) {
-        if (!nsecContent) {
-          return false;
-        }
-        if (nsecContent->isSet(type.getCode())) {
-          /* too complicated for now */
-          return false;
-        }
-        if (nsecContent->isSet(QType::CNAME)) {
-          /* too complicated for now */
-          return false;
-        }
-
-        covered = true;
-        res = RCode::NoError;
-      }
-      else if (isCoveredByNSEC(wc, wcEntry.d_owner, wcEntry.d_next)) {
-        cerr<<"next is "<<wcEntry.d_next<<endl;
-        covered = true;
-        res = RCode::NXDomain;
-        needWildcard = true;
-      }
-#endif
     }
   }
 
