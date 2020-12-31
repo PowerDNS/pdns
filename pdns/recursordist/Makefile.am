@@ -275,6 +275,7 @@ testrunner_SOURCES = \
 	stable-bloom.hh \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
+	test-aggressive_nsec_cc.cc \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \

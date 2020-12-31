@@ -1,6 +1,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "aggressive_nsec.hh"
 #include "base32.hh"
 #include "lua-recursor4.hh"
 #include "root-dnssec.hh"
@@ -199,6 +200,8 @@ void initSR(bool debug)
   g_dnssecmode = DNSSECMode::Off;
   g_dnssecLOG = debug;
   g_maxNSEC3Iterations = 2500;
+
+  g_aggressiveNSECCache.reset();
 
   ::arg().set("version-string", "string reported on version.pdns or version.bind") = "PowerDNS Unit Tests";
   ::arg().set("rng") = "auto";
@@ -476,7 +479,7 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
         }
 
         if (!nsec3) {
-          addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
+          addNSECRecordToLW(domain, DNSName("+") + domain, types, 600, res->d_records);
         }
         else {
           addNSEC3UnhashedRecordToLW(domain, auth, (DNSName("z") + domain).toString(), types, 600, res->d_records, 10, optOut);

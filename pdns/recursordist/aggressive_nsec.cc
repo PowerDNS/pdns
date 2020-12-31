@@ -136,7 +136,7 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
     return false;
   }
 
-#if 0
+#if 1
   cerr<<"We have:"<<endl;
   for (const auto& ent : zoneEntry->d_entries) {
     cerr<<"- "<<ent.d_owner<<" -> "<<ent.d_next<<endl;
