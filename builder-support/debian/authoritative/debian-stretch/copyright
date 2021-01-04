@@ -3,7 +3,7 @@ Upstream-Name: PowerDNS
 Source: https://www.powerdns.com/downloads.html
 
 Files: *
-Copyright: 2002 - 2016 PowerDNS.COM BV and contributors
+Copyright: 2002 - 2021 PowerDNS.COM BV and contributors
 License: GPL-2 with OpenSSL Exception
 Comment: Sometimes, Netherlabs BV is credited, which is a precursor
  to todays PowerDNS.COM BV.
