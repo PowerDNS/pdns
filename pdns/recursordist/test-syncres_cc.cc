@@ -287,7 +287,7 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
   const auto& rc = dpk.getKey();
 
   rrc.d_type = signQType;
-  rrc.d_labels = signQName.countLabels() - signQName.isWildcard();
+  rrc.d_labels = signQName.countLabels() - (signQName.isWildcard() ? 1 : 0);
   rrc.d_originalttl = signTTL;
   rrc.d_siginception = inception ? *inception : (*now - 10);
   rrc.d_sigexpire = *now + sigValidity;
