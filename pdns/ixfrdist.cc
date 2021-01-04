@@ -921,56 +921,13 @@ int main(int argc, char** argv) {
     g_log.toConsole(Logger::Debug);
   }
 
-  uint16_t keep = 20;
-  pdns::config::registerOption("keep", pdns::config::configInfoFuncs{
-    .check = [&keep](const YAML::Node &n, const bool initial){
-      if (n.IsNull()) { return; }
-      auto newKeep = n.as<uint16_t>();
-      if (initial) {
-        return;
-      }
-      if (keep != newKeep) {
-        throw std::runtime_error("'keep' cannot be changed at runtime");
-      }
-    },
-    .defaults = [keep](){ return YAML::Node(uint16_t(keep)); },
-    .apply = [&keep](const YAML::Node &n, const bool initial) {
-      if (n.IsNull()) { return; }
-      if (!initial) {
-        return;
-      }
-      keep = n.as<uint16_t>();
-    },
-    .current = [&keep](){ return YAML::Node(uint16_t(keep)); },
-    .help = "Amount of older copies/IXFR diffs to keep for every domain",
-  });
+  auto keep = std::make_shared<uint16_t>(20);
+  pdns::config::registerOption<uint16_t>("keep", false, "Amount of older copies/IXFR diffs to keep for every domain", keep);
 
-  vector<ComboAddress> listen_addrs = {
-    ComboAddress("127.0.0.1"),
-    ComboAddress("::1")
-  };
-  pdns::config::registerOption("listen", pdns::config::configInfoFuncs{
-    .check = [&listen_addrs](const YAML::Node &n, const bool initial){
-      if (n.IsNull()) { return; }
-      auto to_check = n.as<vector<ComboAddress>>();
-      if (to_check == listen_addrs) {
-        return;
-      }
-      if (initial) {
-        return;
-      }
-      throw std::runtime_error("'listen' cannot be set at runtime");
-    },
-    .defaults = [listen_addrs]() { return YAML::Node(listen_addrs); },
-    .apply = [&listen_addrs](const YAML::Node &n, const bool initial) {
-      if (n.IsNull()) { return; }
-      if (!initial) {
-        return;
-      }
-      listen_addrs = n.as<vector<ComboAddress>>();
-    },
-    .current = [&listen_addrs]() { return YAML::Node(listen_addrs); },
-    .help = R"(Listen addresses. ixfrdist will listen on both UDP and TCP.
+  auto listen_addrs = std::make_shared<vector<ComboAddress>>();
+  listen_addrs->push_back(ComboAddress("127.0.0.1:53"));
+  listen_addrs->push_back(ComboAddress("[::1]:53"));
+  pdns::config::registerOption<vector<ComboAddress>>("listen", false, R"(Listen addresses. ixfrdist will listen on both UDP and TCP.
 When no port is specified, 53 is used. When specifying ports for IPv6, use the
 "bracket" notation:
 
@@ -978,9 +935,7 @@ When no port is specified, 53 is used. When specifying ports for IPv6, use the
       - '127.0.0.1'
       - '::1'
       - '192.0.2.3:5300'
-      - '[2001:DB8:1234::334]:5353')"
-    }
-  );
+      - '[2001:DB8:1234::334]:5353')", listen_addrs);
 
   // Set the defaults
   g_acl.addMask("127.0.0.0/8");
@@ -1081,53 +1036,11 @@ ixfrdist will abort the zone transfer from the master when more than this number
 received. A value of 0 means unlimited)"
   });
 
-  uint16_t failedSOARetry = 30;
-  pdns::config::registerOption("failed-soa-retry", pdns::config::configInfoFuncs{
-    .check = [&failedSOARetry](const YAML::Node &n, const bool initial) {
-      if (n.IsNull()) { return; }
-      auto soaRetry = n.as<uint16_t>();
-      if (initial) {
-        return;
-      }
-      if (soaRetry != failedSOARetry) {
-        throw std::runtime_error("'failed-soa-retry' can not be updated at runtime");
-      }
-    },
-    .defaults = [failedSOARetry]() { return YAML::Node(failedSOARetry); },
-    .apply = [&failedSOARetry](const YAML::Node &n, const bool initial) {
-      if (n.IsNull()) { return; }
-      if (!initial) {
-        return;
-      }
-      failedSOARetry = n.as<uint16_t>();
-    },
-    .current = [&failedSOARetry]() { return YAML::Node(failedSOARetry); },
-    .help = "Time in seconds between retries of the SOA query for a zone we have never transferred."
-  });
+  auto failedSOARetry = std::make_shared<uint16_t>(30);
+  pdns::config::registerOption<uint16_t>("failed-soa-retry", false, "Time in seconds between retries of the SOA query for a zone we have never transferred.", failedSOARetry);
 
-  uint16_t tcpInThreads = 10;
-  pdns::config::registerOption("tcp-in-threads", pdns::config::configInfoFuncs{
-    .check = [&tcpInThreads](const YAML::Node &n, const bool initial) {
-      if (n.IsNull()) { return; }
-      auto toCheck = n.as<uint16_t>();
-      if (initial) {
-        return;
-      }
-      if (toCheck != tcpInThreads) {
-        throw std::runtime_error("'tcp-in-threads' can not be updated at runtime");
-      }
-    },
-    .defaults = [tcpInThreads]() { return YAML::Node(tcpInThreads); },
-    .apply = [&tcpInThreads](const YAML::Node &n, const bool initial) {
-      if (n.IsNull()) { return; }
-      if (!initial) {
-        return;
-      }
-      tcpInThreads = n.as<uint16_t>();
-    },
-    .current = [&tcpInThreads]() { return YAML::Node(tcpInThreads); },
-    .help = "Number of threads to spawn for TCP connections (AXFRs) from downstream hosts."
-  });
+  auto tcpInThreads = std::make_shared<uint16_t>(10);
+  pdns::config::registerOption<uint16_t>("tcp-in-threads", false, "Number of threads to spawn for TCP connections (AXFRs) from downstream hosts.", tcpInThreads);
 
   pdns::config::registerOption("domains", pdns::config::configInfoFuncs{
     .check = [](const YAML::Node &n, const bool initial) {
@@ -1436,7 +1349,7 @@ user or group ixfrdist runs as. e.g
   }
 
   set<int> allSockets;
-  for (const auto& addr : listen_addrs) {
+  for (const auto& addr : *listen_addrs) {
     for (const auto& stype : {SOCK_DGRAM, SOCK_STREAM}) {
       try {
         int s = SSocket(addr.sin4.sin_family, stype, 0);
@@ -1506,13 +1419,13 @@ user or group ixfrdist runs as. e.g
 
   std::thread ut(updateThread,
       workdir,
-      keep,
+      *keep,
       axfr_timeout,
-      failedSOARetry,
+      *failedSOARetry,
       axfr_max_records);
 
   vector<std::thread> tcpHandlers;
-  tcpHandlers.reserve(tcpInThreads);
+  tcpHandlers.reserve(*tcpInThreads);
   for (size_t i = 0; i < tcpHandlers.capacity(); ++i) {
     tcpHandlers.push_back(std::thread(tcpWorker, i));
   }
