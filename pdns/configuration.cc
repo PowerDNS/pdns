@@ -41,6 +41,10 @@ namespace config
     g_config.registerConfig(name, cb);
   };
 
+  void resetRegisteredItems() {
+    g_config.resetRegisteredItems();
+  }
+
   YAML::Node getConfig(const std::string &name) {
       return g_config.getConfig(name);
   }
@@ -175,6 +179,13 @@ namespace config
 
   std::string Config::getHelp(const std::string& name) {
     return getRegistered(name)->second.help;
+  }
+
+  void Config::resetRegisteredItems() {
+    auto newConfig = d_config.getCopy();
+    newConfig.d_registered.clear();
+    d_config.setState(newConfig);
+    d_initialConfigLoaded = false;
   }
 
 } // namespace config

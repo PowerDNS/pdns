@@ -25,6 +25,7 @@
 #include <functional>
 #include <map>
 #include "sholder.hh"
+#include "pdns-yaml.hh"
 
 namespace pdns
 {
@@ -89,6 +90,60 @@ namespace config
   void registerOption(const std::string& name, const configInfoFuncs &cb);
 
   /**
+   * @brief Register a new configuration item of type |T|
+   * 
+   * This function registers the config item as |name| with all the
+   * callbacks required. If |runtimeUpdateable| is false, an exception
+   * is thrown by the check() function if the value is different from
+   * the current value.
+   * 
+   * @tparam T The type of this config item
+   * @param name         The name of this configuration item
+   * @param runtimeUpdateable   Whether or not this config item can be updated.
+   * @param help         The help text for this config item
+   * @param configItem   The pointer to the actual configuration item.
+   *                     Its value when this function is called is used as the
+   *                     default value.
+   */
+  template <typename T>
+  void registerOption(const std::string& name, const bool runtimeUpdateable, const std::string &help, std::shared_ptr<T> &configItem) {
+    if (configItem == nullptr) {
+      throw std::runtime_error("registerConfig called with a nullptr!");
+    }
+
+    T defaultValue = *configItem;
+
+    configInfoFuncs cb({
+      .check = [name,runtimeUpdateable,&configItem](const YAML::Node &n, const bool initial) {
+        auto to_check = n.as<T>();
+        if (initial) {
+          return;
+        }
+        if (!runtimeUpdateable && to_check != *configItem) {
+          throw std::runtime_error("'" + name + "' can not be changed at runtime");
+        }
+      },
+      .defaults = [defaultValue]() {
+        return YAML::Node(defaultValue);
+      },
+      .apply = [runtimeUpdateable,&configItem](const YAML::Node &n, const bool initial) {
+        if (!initial && !runtimeUpdateable) {
+          return;
+        }
+        auto newVal = n.as<T>();
+        if (newVal != *configItem) {
+          *configItem = newVal;
+        }
+      },
+      .current = [&configItem]() {
+        return YAML::Node(*configItem);
+      },
+      .help = help
+    });
+    registerOption(name, cb);
+  };
+
+  /**
    * @brief Parse the YAML file at |fname|
    * 
    * This calls setConfig with the YAML::Node that results from parsing
@@ -122,6 +177,20 @@ namespace config
   YAML::Node getConfig(const std::string &name);
 
   /**
+   * @brief Get the current value of the configuration option |name| as type |T|
+   * 
+   * @tparam T     The type of the configuration item
+   * @param name   The name of the configuration item to retrieve
+   * @return T     The current config value
+   * @throws std::runtime_error when |name| is not registered
+   */
+  template<typename T>
+  T getConfig(const std::string &name) {
+    auto n = getConfig(name);
+    return n.as<T>();
+  };
+
+  /**
    * @brief Returns the current configuration as a string, including the help
    * 
    * @param name 
@@ -138,6 +207,12 @@ namespace config
    * @throws std::runtime_error when |name| is not registered
    */
   YAML::Node getDefault(const std::string &name);
+
+  template<typename T>
+  T getDefault(const std::string &name) {
+    auto n = getDefault(name);
+    return n.as<T>();
+  };
 
   /**
    * @brief Returns the default configuration for |name| as a YAML string
@@ -164,6 +239,12 @@ namespace config
    * @return false 
    */
   bool isRegistered(const std::string &name);
+
+  /**
+   * @brief Removes all registered items. Useful for tests
+   * 
+   */
+  void resetRegisteredItems();
 
   /**
    * @brief This class holds a configuration instance
@@ -222,6 +303,12 @@ namespace config
      * @return std::vector<std::string> 
      */
     std::vector<std::string> getRegisteredItems();
+
+    /**
+     * @brief Removes all registered configuration items, used only for tests
+     * 
+     */
+    void resetRegisteredItems();
 
   private:
     class configHolder {
