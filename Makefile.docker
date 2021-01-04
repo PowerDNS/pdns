@@ -1,0 +1,36 @@
+.PHONY: all build build-nocache dep auth recursor dnsdist
+
+VERSION=experimental
+REVISION=1
+
+all: build
+
+auth:
+	docker build --build-arg VERSION=$(VERSION) -t powerdns/pdns-auth-master:$(VERSION)-$(REVISION) --rm -f Dockerfile-auth .
+
+recursor:
+	docker build --build-arg VERSION=$(VERSION) -t powerdns/pdns-recursor-master:$(VERSION)-$(REVISION) --rm -f Dockerfile-recursor .
+
+dnsdist:
+	docker build --build-arg VERSION=$(VERSION) -t powerdns/dnsdist-master:$(VERSION)-$(REVISION) --rm -f Dockerfile-dnsdist .
+
+build: auth recursor dnsdist
+	@true
+
+build-nocache:
+	docker build --build-arg VERSION=$(VERSION) -t powerdns/pdns-auth-master:$(VERSION)-$(REVISION) --no-cache --rm -f Dockerfile-auth .
+	docker build --build-arg VERSION=$(VERSION) -t powerdns/pdns-recursor-master:$(VERSION)-$(REVISION) --no-cache --rm -f Dockerfile-recursor .
+	docker build --build-arg VERSION=$(VERSION) -t powerdns/dnsdist-master:$(VERSION)-$(REVISION) --no-cache --rm -f Dockerfile-dnsdist .
+
+push: build
+	docker push powerdns/pdns-auth-master:$(VERSION)-$(REVISION)
+	docker push powerdns/pdns-recursor-master:$(VERSION)-$(REVISION)
+	docker push powerdns/dnsdist-master:$(VERSION)-$(REVISION)
+
+push-latest: build
+	docker tag powerdns/pdns-auth-master:$(VERSION)-$(REVISION) powerdns/pdns-auth-master:latest
+	docker push powerdns/pdns-auth-master:latest
+	docker tag powerdns/pdns-recursor-master:$(VERSION)-$(REVISION) powerdns/pdns-recursor-master:latest
+	docker push powerdns/pdns-recursor-master:latest
+	docker tag powerdns/dnsdist-master:$(VERSION)-$(REVISION) powerdns/dnsdist-master:latest
+	docker push powerdns/dnsdist-master:latest
