@@ -780,7 +780,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
        - The validator's notion of the current time MUST be greater than or equal to the time listed in the RRSIG RR's Inception field.
     */
     if (isRRSIGIncepted(now, sig) && isRRSIGNotExpired(now, sig)) {
-      std::shared_ptr<DNSCryptoKeyEngine> dke = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromPublicKeyString(key->d_algorithm, key->d_key));
+      auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(key->d_algorithm, key->d_key);
       result = dke->verify(msg, sig->d_signature);
       LOG("signature by key with tag "<<sig->d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig->d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     }

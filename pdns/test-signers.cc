@@ -106,7 +106,7 @@ static const struct signerParams
 static void checkRR(const signerParams& signer)
 {
   DNSKEYRecordContent drc;
-  auto dcke = DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap);
+  auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
   DNSSECPrivateKey dpk;
   dpk.setKey(dcke);
   dpk.d_flags = signer.rfcFlags;
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(test_generic_signers)
 {
   for (const auto& signer : signers) {
     DNSKEYRecordContent drc;
-    auto dcke = DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap);
+    auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, signer.iscMap));
 
     BOOST_CHECK_EQUAL(dcke->getAlgorithm(), signer.algorithm);
     BOOST_CHECK_EQUAL(dcke->getBits(), signer.bits);

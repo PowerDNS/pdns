@@ -282,9 +282,9 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     vector<DNSBackend::KeyData> dbkeyset;
     B.getDomainKeys(zone, dbkeyset);
 
-    for(DNSBackend::KeyData& kd : dbkeyset) {
+    for (DNSBackend::KeyData& kd : dbkeyset) {
       DNSKEYRecordContent dkrc;
-      shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));
+      DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content);
 
       if(dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
         cout<<"[Error] zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
@@ -1768,10 +1768,10 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
 
       int bits = -1;
       try {
-        std::shared_ptr<DNSCryptoKeyEngine> engine(DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key)); // throws on unknown algo or bad key
+        auto engine = DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key); // throws on unknown algo or bad key
         bits=engine->getBits();
       }
-      catch(std::exception& e) {
+      catch (const std::exception& e) {
         cerr<<"Could not process key to extract metadata: "<<e.what()<<endl;
       }
       if (!exportDS) {
@@ -3413,7 +3413,7 @@ try
         return 1;
       }
 
-      std::shared_ptr<DNSCryptoKeyEngine> dke = nullptr;
+      std::unique_ptr<DNSCryptoKeyEngine> dke = nullptr;
       // lookup correct key
       for(DNSBackend::KeyData &kd :  keys) {
         if (kd.id == id) {

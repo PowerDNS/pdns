@@ -48,7 +48,7 @@
 
 using namespace boost::assign;
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
@@ -61,7 +61,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordC
   }
   fp.reset();
 
-  shared_ptr<DNSCryptoKeyEngine> dke = makeFromISCString(drc, isc);
+  auto dke = makeFromISCString(drc, isc);
   vector<string> checkKeyErrors;
 
   if(!dke->checkKey(&checkKeyErrors)) {
@@ -74,7 +74,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordC
   return dke;
 }
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
 {
   bool pkcs11=false;
   int algorithm = 0;
@@ -112,7 +112,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecor
     B64Decode(value, raw);
     stormap[toLower(key)]=raw;
   }
-  shared_ptr<DNSCryptoKeyEngine> dpk;
+  std::unique_ptr<DNSCryptoKeyEngine> dpk;
 
   if (pkcs11) {
 #ifdef HAVE_P11KIT1
@@ -125,7 +125,7 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecor
     throw PDNSException("Cannot load PKCS#11 key without support for it");
 #endif
   } else {
-    dpk=make(algorithm);
+    dpk = make(algorithm);
   }
   dpk->fromISCMap(drc, stormap);
   return dpk;
@@ -147,11 +147,11 @@ std::string DNSCryptoKeyEngine::convertToISC() const
   return ret.str();
 }
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::make(unsigned int algo)
 {
   const makers_t& makers = getMakers();
   makers_t::const_iterator iter = makers.find(algo);
-  if(iter != makers.cend())
+  if (iter != makers.cend())
     return (iter->second)(algo);
   else {
     throw runtime_error("Request to create key object for unknown algorithm number "+std::to_string(algo));
@@ -167,7 +167,7 @@ vector<pair<uint8_t, string>> DNSCryptoKeyEngine::listAllAlgosWithBackend()
 {
   vector<pair<uint8_t, string>> ret;
   for (auto const& value : getMakers()) {
-    shared_ptr<DNSCryptoKeyEngine> dcke(value.second(value.first));
+    auto dcke = value.second(value.first);
     ret.push_back(make_pair(value.first, dcke->getName()));
   }
   return ret;
@@ -235,9 +235,9 @@ bool DNSCryptoKeyEngine::testOne(int algo)
 
 void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
 {
-  shared_ptr<DNSCryptoKeyEngine> dckeCreate(creator(algo));
-  shared_ptr<DNSCryptoKeyEngine> dckeSign(signer(algo));
-  shared_ptr<DNSCryptoKeyEngine> dckeVerify(verifier(algo));
+  auto dckeCreate = creator(algo);
+  auto dckeSign = signer(algo);
+  auto dckeVerify = verifier(algo);
 
   cerr<<"Testing algorithm "<<algo<<": '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
@@ -324,20 +324,20 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   }
 }
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
 {
-  shared_ptr<DNSCryptoKeyEngine> dpk=make(algorithm);
+  auto dpk = make(algorithm);
   dpk->fromPublicKeyString(content);
   return dpk;
 }
 
 
-shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {
   
-  for(const makers_t::value_type& val : getMakers())
+  for (const makers_t::value_type& val : getMakers())
   {
-    shared_ptr<DNSCryptoKeyEngine> ret=nullptr;
+    std::unique_ptr<DNSCryptoKeyEngine> ret=nullptr;
     try {
       ret = val.second(val.first);
       ret->fromPEMString(drc, raw);
@@ -449,7 +449,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
   DSRecordContent dsrc;
   try {
     unsigned int algo = digestToAlgorithmNumber(digest);
-    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algo));
+    auto dpk = DNSCryptoKeyEngine::make(algo);
     dsrc.d_digest = dpk->hash(toHash);
   }
   catch(const std::exception& e) {
