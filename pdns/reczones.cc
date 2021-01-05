@@ -46,7 +46,7 @@ bool primeHints(void)
 {
   // prime root cache
   const vState validationState = vState::Insecure;
-  static const ComboAddress from("255.255.255.255");
+  const ComboAddress from("255.255.255.255");
   vector<DNSRecord> nsset;
   t_rootNSZones.clear();
 
