@@ -763,7 +763,7 @@ Examples::
 -------------------------------
 
 -  Boolean
--  Default: no
+-  Default: yes
 
 Fail to start if one or more of the
 :ref:`setting-local-address`'s do not exist on this server.
