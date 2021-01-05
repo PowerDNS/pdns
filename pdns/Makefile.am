@@ -1431,7 +1431,7 @@ pdns_control_SOURCES = \
 	unix_utility.cc
 
 if UNIT_TESTS
-
+noinst_PROGRAMS = testrunner
 if HAVE_BOOST_GE_148
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
