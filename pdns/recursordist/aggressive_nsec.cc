@@ -70,6 +70,39 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getZone(con
   }
 }
 
+static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
+{
+  /* this test only covers Cloudflare's ones (https://blog.cloudflare.com/black-lies/),
+     we might need to cover more cases described in rfc4470 as well, but the name generation algorithm
+     is not clearly defined there */
+  const auto& storage = owner.getStorage();
+  const auto& nextStorage = nsec->d_next.getStorage();
+  if (nextStorage.size() <= 2 || storage.size() != (nextStorage.size() - 2)) {
+    return false;
+  }
+
+  if (nextStorage.at(0) != 1 || static_cast<uint8_t>(nextStorage.at(1)) != static_cast<uint8_t>(0)) {
+    return false;
+  }
+
+  if (nextStorage.compare(2, nextStorage.size() - 2, storage) != 0) {
+    return false;
+  }
+
+  return true;
+}
+
+static bool isMinimallyCoveringNSEC3(const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec)
+{
+  std::string ownerHash(owner.getStorage().c_str(), owner.getStorage().size());
+  const std::string& nextHash = nsec->d_nexthash;
+
+  incrementHash(ownerHash);
+  incrementHash(ownerHash);
+
+  return ownerHash == nextHash;
+}
+
 void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3)
 {
   if (signatures.empty()) {
@@ -90,10 +123,16 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
       if (!content) {
         throw std::runtime_error("Error getting the content from a NSEC record");
       }
+
       next = content->d_next;
       if (next.canonCompare(owner) && next != zone) {
         /* not accepting a NSEC whose next domain name is before the owner
            unless the next domain name is the apex, sorry */
+        return;
+      }
+
+      if (isMinimallyCoveringNSEC(owner, content)) {
+        /* not accepting minimally covering answers since they only deny one name */
         return;
       }
     }
@@ -110,6 +149,11 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
 
       if (g_maxNSEC3Iterations && content->d_iterations > g_maxNSEC3Iterations) {
         /* can't use that */
+        return;
+      }
+
+      if (isMinimallyCoveringNSEC3(owner, content)) {
+        /* not accepting minimally covering answers since they only deny one name */
         return;
       }
 
@@ -138,11 +182,11 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
   }
 
 #if 0
-  cerr<<"We have:"<<endl;
+  LOG("We have:"<<endl);
   for (const auto& ent : zoneEntry->d_entries) {
-    cerr<<"- "<<ent.d_owner<<" -> "<<ent.d_next<<endl;
+    LOG("- "<<ent.d_owner<<" -> "<<ent.d_next<<endl);
   }
-  cerr<<"=> end of list, looking for the lower bound to "<<name<<endl;
+  LOG("=> end of list, looking for the lower bound to "<<name<<endl);
 #endif
   auto& idx = zoneEntry->d_entries.get<ZoneEntry::OrderedTag>();
   auto it = idx.lower_bound(name);
@@ -174,7 +218,7 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
   }
 
   if (it->d_ttd <= now) {
-    moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, it);
+    idx.erase(it);
     return false;
   }
 
@@ -199,13 +243,13 @@ bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCac
       continue;
     }
 
-    auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
     if (it->d_ttd <= now) {
-      moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
+      idx.erase(it);
       return false;
     }
 
     entry = *it;
+    auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
     moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
     return true;
   }
@@ -439,7 +483,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
 bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC)
 {
   auto zoneEntry = getBestZone(name);
-  if (!zoneEntry) {
+  if (!zoneEntry || zoneEntry->d_entries.empty()) {
     return false;
   }
 

@@ -237,7 +237,6 @@ static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner
     signer.countLabels() < owner.countLabels();
 }
 
-#warning FIXME: should not be exported
 bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3)
 {
   return nsec3->isSet(QType::NS) &&
