@@ -20,6 +20,19 @@ variable to act as base setting. This is mostly useful for
   forward-zones = foo.example.com=192.168.100.1;
   forward-zones += bar.example.com=[1234::abcde]:5353;
 
+
+.. _setting-aggressive-nsec:
+
+``aggressive-nsec``
+-------------------
+.. versionadded:: 4.5.0
+
+-  Boolean
+-  Default: no
+
+If set, and DNSSEC validation is enabled, the recursor cache NSEC and NSEC3 records to generate negative answers, and use cached wildcards to synthesize positive answsers, as defined in :rfc:`8198`.
+This setting requires DNSSEC validation to be enabled via the `dnssec_` setting.
+
 .. _setting-allow-from:
 
 ``allow-from``

@@ -5516,7 +5516,7 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
 
-    ::arg().setSwitch("aggressive-nsec", "If set, and DNSSEC validation is enabled, the recursor will look at cached NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="no";
+    ::arg().setSwitch("aggressive-nsec", "If set, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
