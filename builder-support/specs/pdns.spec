@@ -252,6 +252,7 @@ systemctl daemon-reload ||:
 
 %files
 %doc COPYING README
+%doc pdns/bind-dnssec.4.2.0_to_4.3.0_schema.sqlite3.sql pdns/bind-dnssec.schema.sqlite3.sql
 %config(noreplace) %{_sysconfdir}/%{name}/pdns.conf
 %dir %{_libdir}/%{name}/
 %{_bindir}/pdns-zone2ldap
