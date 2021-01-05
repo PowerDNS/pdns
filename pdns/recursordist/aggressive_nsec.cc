@@ -172,6 +172,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
       entry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
     }
   }
+  ++d_entriesCount;
 }
 
 bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry) {
@@ -219,6 +220,7 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
 
   if (it->d_ttd <= now) {
     idx.erase(it);
+    --d_entriesCount;
     return false;
   }
 
@@ -245,6 +247,7 @@ bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCac
 
     if (it->d_ttd <= now) {
       idx.erase(it);
+      --d_entriesCount;
       return false;
     }
 
@@ -332,6 +335,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   /* and of course we won't deny the wildcard either */
 
   LOG("Synthesized valid answer from NSEC3s and wildcard!"<<endl);
+  ++d_nsec3WildcardHits;
   return true;
 }
 
@@ -351,6 +355,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   addRecordToRRSet(now, nsec.d_owner, QType::NSEC3, nsec.d_ttd - now, nsec.d_record, nsec.d_signatures, doDNSSEC, ret);
 
   LOG("Synthesized valid answer from NSECs and wildcard!"<<endl);
+  ++d_nsecWildcardHits;
   return true;
 }
 
@@ -389,6 +394,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     }
 
     LOG(": done!"<<endl);
+    ++d_nsec3Hits;
     res = RCode::NoError;
     addToRRSet(now, soaSet, soaSignatures, zoneEntry->d_zone, doDNSSEC, ret);
     addRecordToRRSet(now, exactNSEC3.d_owner, QType::NSEC3, exactNSEC3.d_ttd - now, exactNSEC3.d_record, exactNSEC3.d_signatures, doDNSSEC, ret);
@@ -477,6 +483,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
   addRecordToRRSet(now, wcEntry.d_owner, QType::NSEC3, wcEntry.d_ttd - now, wcEntry.d_record, wcEntry.d_signatures, doDNSSEC, ret);
 
   LOG("Found valid NSEC3s covering the requested name and type!"<<endl);
+  ++d_nsec3Hits;
   return true;
 }
 
@@ -589,5 +596,6 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   }
 
   LOG("Found valid NSECs covering the requested name and type!"<<endl);
+  ++d_nsecHits;
   return true;
 }

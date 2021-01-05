@@ -31,6 +31,7 @@
 #include "responsestats.hh"
 #include "rec-lua-conf.hh"
 
+#include "aggressive_nsec.hh"
 #include "validate-recursor.hh"
 #include "filterpo.hh"
 
@@ -1047,7 +1048,13 @@ static void registerAllStats1()
   addGetStat("packetcache-misses", doGetPacketCacheMisses); 
   addGetStat("packetcache-entries", doGetPacketCacheSize); 
   addGetStat("packetcache-bytes", doGetPacketCacheBytes); 
-  
+
+  addGetStat("aggressive-nsec-cache-entries", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getEntriesCount() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECHits() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec3-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSEC3Hits() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec-wc-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECWildcardHits() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec3-wc-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSEC3WildcardHits() : 0; });
+
   addGetStat("malloc-bytes", doGetMallocated);
   
   addGetStat("servfail-answers", &g_stats.servFails);

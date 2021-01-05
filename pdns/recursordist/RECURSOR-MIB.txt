@@ -33,6 +33,9 @@ rec MODULE-IDENTITY
     REVISION "202002170000Z"
     DESCRIPTION "Added proxyProtocolInvalid metric."
 
+    REVISION "202101050000Z"
+    DESCRIPTION "Added Aggressive NSEC cache metrics."
+
     ::= { powerdns 2 }
 
 powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
@@ -895,6 +898,46 @@ taskQueueSize OBJECT-TYPE
         "Number of tasks currenlty in the taskqueues"
     ::= { stats 107 }
 
+aggressiveNSECCacheEntries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of entries in the aggressive NSEC cache"
+    ::= { stats 108 }
+
+aggressiveNSECCacheNSECHits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of NSEC-related hits from the aggressive NSEC cache"
+    ::= { stats 109 }
+
+aggressiveNSECCacheNSEC3Hits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of NSEC3-related hits from the aggressive NSEC cache"
+    ::= { stats 110 }
+
+aggressiveNSECCacheNSECWcHits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of answers synthesized from the NSEC aggressive cache"
+    ::= { stats 111 }
+
+aggressiveNSECCacheNSEC3WcHits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of answers synthesized from the NSEC3 aggressive cache"
+    ::= { stats 112 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1045,7 +1088,12 @@ recGroup OBJECT-GROUP
         nodLookupsDroppedOversize,
         taskQueuePushed,
         taskQueueExpired,
-        taskQueueSize
+        taskQueueSize,
+        aggressiveNSECCacheEntries,
+        aggressiveNSECCacheNSECHits,
+        aggressiveNSECCacheNSEC3Hits,
+        aggressiveNSECCacheNSECWcHits,
+        aggressiveNSECCacheNSEC3WcHits
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"
