@@ -18,7 +18,7 @@ LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
 CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter $CFLAGS"
-CXXFLAGS="-std=c++11 -g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
+CXXFLAGS="-std=c++17 -g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
 
 PDNS_WITH_LIBSODIUM
 PDNS_CHECK_DNSTAP([auto])
@@ -98,7 +98,7 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
 PDNS_CHECK_CDB
 PDNS_CHECK_LMDB
 
-AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],

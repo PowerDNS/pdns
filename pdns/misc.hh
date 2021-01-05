@@ -565,12 +565,6 @@ uint64_t getCPUTimeSystem(const std::string&);
 uint64_t getCPUIOWait(const std::string&);
 uint64_t getCPUSteal(const std::string&);
 std::string getMACAddress(const ComboAddress& ca);
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
 
 template<typename T>
 const T& defTer(const T& a, const T& b)

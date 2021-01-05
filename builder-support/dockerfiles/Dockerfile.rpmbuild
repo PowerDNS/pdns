@@ -21,11 +21,19 @@ ADD builder-support/specs/ /pdns/builder-support/specs
 RUN find /pdns/builder-support/specs/ -not -name '*.spec' -exec ln -s {} /root/rpmbuild/SOURCES/ \;
 
 @IF [ -n "$M_authoritative$M_all" ]
-RUN touch /var/lib/rpm/* && builder/helpers/build-specs.sh builder-support/specs/pdns.spec
+RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
+      scl enable devtoolset-8 -- builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
+    else \
+      builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
+    fi
 @ENDIF
 
 @IF [ -n "$M_recursor$M_all" ]
-RUN touch /var/lib/rpm/* && builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec
+RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then \
+      scl enable devtoolset-8 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
+    else \
+      builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
+    fi
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
@@ -34,7 +42,12 @@ RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
       curl -L https://github.com/h2o/h2o/archive/v2.2.6.tar.gz | tar xz && \
       CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6 && \
       make install
-RUN touch /var/lib/rpm/* && builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec
+
+RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
+      scl enable devtoolset-8 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
+    else \
+      builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
+    fi
 @ENDIF
 
 # mv across layers with overlay2 is buggy in some kernel versions (results in empty dirs)

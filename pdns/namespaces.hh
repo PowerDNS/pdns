@@ -43,6 +43,7 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 using std::make_pair;
+using std::make_unique;
 using std::map;
 using std::max;
 using std::min;

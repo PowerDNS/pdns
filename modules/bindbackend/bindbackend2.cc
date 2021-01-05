@@ -1349,13 +1349,16 @@ bool Bind2Backend::superMasterBackend(const string &ip, const DNSName& domain, c
   return true;
 }
 
+
 BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const string &filename)
 {
   int newid=1;
   {   // Find a free zone id nr.  
     ReadLock rl(&s_state_lock);
     if (!s_state.empty()) {
-      newid = s_state.rbegin()->d_id+1;
+      // older (1.53) versions of boost have an exprression for s_state.rbegin()
+      // that is ambiguous in C++17. So construct it explicitly
+      newid = boost::make_reverse_iterator(s_state.end())->d_id+1;
     }
   }
   
