@@ -70,6 +70,36 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getZone(con
   }
 }
 
+void AggressiveNSECCache::updateEntriesCount()
+{
+  /* need to be called while holding a write lock */
+  uint64_t counter = 0;
+  d_zones.visit([&counter](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+    counter += node.d_value->d_entries.size();
+  });
+  d_entriesCount = counter;
+}
+
+void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
+{
+  WriteLock rl(d_lock);
+  auto got = d_zones.lookup(zone);
+  if (!got || !*got || (*got)->d_zone != zone) {
+    return;
+  }
+
+  if (subzones) {
+    d_zones.remove(zone, true);
+    updateEntriesCount();
+  }
+  else {
+    std::lock_guard<std::mutex> lock((*got)->d_lock);
+    auto removed = (*got)->d_entries.size();
+    d_zones.remove(zone, false);
+    d_entriesCount -= removed;
+  }
+}
+
 static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
 {
   /* this test only covers Cloudflare's ones (https://blog.cloudflare.com/black-lies/),
@@ -219,8 +249,9 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
   }
 
   if (it->d_ttd <= now) {
-    idx.erase(it);
-    --d_entriesCount;
+    moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, it);
+    //idx.erase(it);
+    //--d_entriesCount;
     return false;
   }
 
@@ -245,14 +276,15 @@ bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCac
       continue;
     }
 
+    auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
     if (it->d_ttd <= now) {
-      idx.erase(it);
-      --d_entriesCount;
+      moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
+      //idx.erase(it);
+      //--d_entriesCount;
       return false;
     }
 
     entry = *it;
-    auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
     moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
     return true;
   }

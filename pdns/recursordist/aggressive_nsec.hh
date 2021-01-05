@@ -41,7 +41,7 @@ public:
   void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3);
   bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC);
 
-  //void removeZoneInfo(const DNSName& zone);
+  void removeZoneInfo(const DNSName& zone, bool subzones);
 
   uint64_t getEntriesCount() const
   {
@@ -124,13 +124,16 @@ private:
   bool synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName);
   bool synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName);
 
+  /* slowly updates d_entriesCount */
+  void updateEntriesCount();
+
   SuffixMatchTree<std::shared_ptr<ZoneEntry>> d_zones;
   ReadWriteLock d_lock;
-  std::atomic<uint64_t> d_entriesCount{0};
   std::atomic<uint64_t> d_nsecHits{0};
   std::atomic<uint64_t> d_nsec3Hits{0};
   std::atomic<uint64_t> d_nsecWildcardHits{0};
   std::atomic<uint64_t> d_nsec3WildcardHits{0};
+  std::atomic<uint64_t> d_entriesCount{0};
 };
 
 
