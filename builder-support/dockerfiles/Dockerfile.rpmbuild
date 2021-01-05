@@ -33,8 +33,7 @@ RUN mkdir /libh2o && cd /libh2o && \
       yum install -y curl openssl-devel cmake && \
       curl -L https://github.com/h2o/h2o/archive/v2.2.6.tar.gz | tar xz && \
       CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6 && \
-      make install && \
-      cd /pdns;
+      make install
 RUN builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec
 @ENDIF
 
