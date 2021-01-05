@@ -41,6 +41,7 @@ public:
   uint64_t getHits(const ComboAddress& requestor);
 
 private:
+#ifdef HAVE_EBPF
   struct FDWrapper
   {
     ~FDWrapper()
@@ -64,4 +65,5 @@ private:
   FDWrapper d_filtermap;
   FDWrapper d_mainfilter;
   FDWrapper d_qnamefilter;
+#endif /* HAVE_EBPF */
 };

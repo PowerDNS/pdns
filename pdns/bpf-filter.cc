@@ -372,9 +372,7 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   v6Addr.sin6_family = AF_INET6;
 
   static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == sizeof(v6Key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
-  for (size_t idx = 0; idx < sizeof(v6Key); idx++) {
-    v6Key[idx] = 0;
-  }
+  memset(&v6Key, 0, sizeof(v6Key));
 
   std::lock_guard<std::mutex> lock(d_mutex);
   int res = bpf_get_next_key(d_v4map.fd, &v4Key, &nextV4Key);
@@ -393,9 +391,8 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 
   while (res == 0) {
     if (bpf_lookup_elem(d_v6map.fd, &nextV6Key, &value) == 0) {
-      for (size_t idx = 0; idx < sizeof(nextV6Key); idx++) {
-        v6Addr.sin6_addr.s6_addr[idx] = nextV6Key[idx];
-      }
+      memcpy(&v6Addr.sin6_addr.s6_addr, &nextV6Key, sizeof(nextV6Key));
+
       result.push_back(make_pair(ComboAddress(&v6Addr), value));
     }
 
@@ -459,8 +456,11 @@ uint64_t BPFFilter::getHits(const ComboAddress& requestor)
 
 #else
 
-BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames): d_maxV4(maxV4Addresses), d_maxV6(maxV6Addresses), d_maxQNames(maxQNames)
+BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames)
 {
+  (void) maxV4Addresses;
+  (void) maxV6Addresses;
+  (void) maxQNames;
 }
 
 void BPFFilter::addSocket(int sock)
