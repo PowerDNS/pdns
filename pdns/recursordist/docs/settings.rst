@@ -743,7 +743,7 @@ Indication of how many queries will be averaged to get the average latency repor
 ``local-address``
 -----------------
 -  IPv4/IPv6 Addresses, with optional port numbers, separated by commas or whitespace
--  Default: ``0.0.0.0, ::``
+-  Default: ``127.0.0.1``
 
 Local IP addresses to which we bind. Each address specified can
 include a port number; if no port is included then the
