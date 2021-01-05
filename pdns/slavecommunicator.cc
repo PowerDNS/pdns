@@ -653,7 +653,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         newCount = d_failedSlaveRefresh[domain].first + 1;
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       d_failedSlaveRefresh[domain] = {newCount, nextCheck};
-      g_log<<Logger::Warning<<logPrefix<<"unable to xfr zone (ResolverException): "<<re.reason<<" (This was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time. Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
+      g_log<<Logger::Warning<<logPrefix<<"unable to xfr zone (ResolverException): "<<re.reason<<" (This was attempt number "<<newCount<<". Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
     }
     if(di.backend && transaction) {
       g_log<<Logger::Info<<"aborting possible open transaction"<<endl;
