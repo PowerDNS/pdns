@@ -95,7 +95,7 @@ PDNS_CHECK_CURL
 
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr getrandom arc4random pthread_getattr_np pthread_get_stackaddr_np pthread_get_stacksize_np])
 
 PDNS_CHECK_PTHREAD_NP
 
