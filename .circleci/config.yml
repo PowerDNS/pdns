@@ -75,6 +75,7 @@ commands:
     steps:
       - get-workspace
       - install-auth-deps
+      - install-clang-8 # for the symbolizer
       - run:
           name: Install test dependencies
           command: |
