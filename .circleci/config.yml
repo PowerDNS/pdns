@@ -566,6 +566,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - get-workspace
       - install-auth-dev-deps
@@ -626,6 +627,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run:
@@ -661,6 +663,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
         environment:
           - ACCEPT_EULA: Y
@@ -727,6 +730,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -750,6 +754,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: circleci/mysql:5      # for the hybrid test
         auth:
           username: powerdnsreadonly
@@ -795,6 +800,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: circleci/mysql:5
         auth:
           username: powerdnsreadonly
@@ -837,6 +843,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: circleci/postgres:9
         auth:
           username: powerdnsreadonly
@@ -878,6 +885,7 @@ jobs:
         environment:
           LDAPHOST: ldap://ldapserver/
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
       - image: powerdns/ldap-regress:1.2.4-1 # OpenLDAP 2.4.47
         auth:
           username: powerdnsreadonly
@@ -909,6 +917,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -925,6 +934,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -948,6 +958,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install ruby ruby-bundler ruby2.5-dev
@@ -990,6 +1001,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run:
@@ -1013,6 +1025,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run: apt-get install -y -qq jq
@@ -1037,6 +1050,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run:
@@ -1053,6 +1067,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install python3-venv
@@ -1074,6 +1089,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - run:
           name: Install dependencies
@@ -1157,6 +1173,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler
@@ -1191,6 +1208,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
@@ -1404,6 +1422,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y python3-venv pdns-tools
@@ -1705,6 +1724,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - run:
           name: Install dependencies
@@ -1792,6 +1812,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - install-dnsdist-deps
       - get-workspace
@@ -1822,6 +1843,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
     steps:
       - install-ixfrdist-deps
       - get-workspace
