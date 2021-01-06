@@ -176,8 +176,11 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
   const auto& got = blocks->lookup(Netmask(requestor));
   bool expired = false;
   bool wasWarning = false;
+  bool bpf = false;
 
   if (got) {
+    bpf = got->second.bpf;
+
     if (warning && !got->second.warning) {
       /* we have an existing entry which is not a warning,
          don't override it */
@@ -205,10 +208,26 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
   DynBlock db{rule.d_blockReason, until, DNSName(), warning ? DNSAction::Action::NoOp : rule.d_action};
   db.blocks = count;
   db.warning = warning;
-  if (!d_beQuiet && (!got || expired || wasWarning)) {
-    warnlog("Inserting %sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+  if (!got || expired || wasWarning) {
+    if (g_defaultBPFFilter) {
+      try {
+        g_defaultBPFFilter->block(requestor);
+        bpf = true;
+      }
+      catch (const std::exception& e) {
+        vinfolog("Unable to insert eBPF dynamic block for %s, falling back to regular dynamic block: %s", requestor.toString(), e.what());
+      }
+    }
+
+    if (!d_beQuiet) {
+      warnlog("Inserting %sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+    }
   }
-  blocks->insert(Netmask(requestor)).second = db;
+
+  db.bpf = bpf;
+
+  blocks->insert(Netmask(requestor)).second = std::move(db);
+
   updated = true;
 }
 
@@ -371,6 +390,14 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
     for (const auto& entry : *blocks) {
       if (!(now < entry.second.until)) {
         toRemove.push_back(entry.first);
+        if (g_defaultBPFFilter && entry.second.bpf) {
+          try {
+            g_defaultBPFFilter->unblock(entry.first.getNetwork());
+          }
+          catch (const std::exception& e) {
+            vinfolog("Error while removing eBPF dynamic block for %s: %s", entry.first.toString(), e.what());
+          }
+        }
       }
     }
     if (!toRemove.empty()) {
@@ -410,8 +437,14 @@ std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaint
   auto blocks = g_dynblockNMG.getLocal();
   for (const auto& entry : *blocks) {
     auto& topsForReason = results[entry.second.reason];
-    if (topsForReason.size() < topN || topsForReason.front().second < entry.second.blocks) {
-      auto newEntry = std::make_pair(entry.first, entry.second.blocks.load());
+    uint64_t value = entry.second.blocks.load();
+
+    if (g_defaultBPFFilter && entry.second.bpf) {
+      value += g_defaultBPFFilter->getHits(entry.first.getNetwork());
+    }
+
+    if (topsForReason.size() < topN || topsForReason.front().second < value) {
+      auto newEntry = std::make_pair(entry.first, value);
 
       if (topsForReason.size() >= topN) {
         topsForReason.pop_front();

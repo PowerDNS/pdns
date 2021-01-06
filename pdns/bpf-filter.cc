@@ -214,16 +214,15 @@ void BPFFilter::removeSocket(int sock)
 
 void BPFFilter::block(const ComboAddress& addr)
 {
-  std::lock_guard<std::mutex> lock(d_mutex);
-
   uint64_t counter = 0;
   int res = 0;
-  if (addr.sin4.sin_family == AF_INET) {
+  if (addr.isIPv4()) {
     uint32_t key = htonl(addr.sin4.sin_addr.s_addr);
     if (d_v4Count >= d_maxV4) {
       throw std::runtime_error("Table full when trying to block " + addr.toString());
     }
 
+    std::lock_guard<std::mutex> lock(d_mutex);
     res = bpf_lookup_elem(d_v4map.fd, &key, &counter);
     if (res != -1) {
       throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
@@ -234,7 +233,7 @@ void BPFFilter::block(const ComboAddress& addr)
       d_v4Count++;
     }
   }
-  else if (addr.sin4.sin_family == AF_INET6) {
+  else if (addr.isIPv6()) {
     uint8_t key[16];
     static_assert(sizeof(addr.sin6.sin6_addr.s6_addr) == sizeof(key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
     for (size_t idx = 0; idx < sizeof(key); idx++) {
@@ -245,6 +244,7 @@ void BPFFilter::block(const ComboAddress& addr)
       throw std::runtime_error("Table full when trying to block " + addr.toString());
     }
 
+    std::lock_guard<std::mutex> lock(d_mutex);
     res = bpf_lookup_elem(d_v6map.fd, &key, &counter);
     if (res != -1) {
       throw std::runtime_error("Trying to block an already blocked address: " + addr.toString());
@@ -263,23 +263,23 @@ void BPFFilter::block(const ComboAddress& addr)
 
 void BPFFilter::unblock(const ComboAddress& addr)
 {
-  std::lock_guard<std::mutex> lock(d_mutex);
-
   int res = 0;
-  if (addr.sin4.sin_family == AF_INET) {
+  if (addr.isIPv4()) {
     uint32_t key = htonl(addr.sin4.sin_addr.s_addr);
+    std::lock_guard<std::mutex> lock(d_mutex);
     res = bpf_delete_elem(d_v4map.fd, &key);
     if (res == 0) {
       d_v4Count--;
     }
   }
-  else if (addr.sin4.sin_family == AF_INET6) {
+  else if (addr.isIPv6()) {
     uint8_t key[16];
     static_assert(sizeof(addr.sin6.sin6_addr.s6_addr) == sizeof(key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
     for (size_t idx = 0; idx < sizeof(key); idx++) {
       key[idx] = addr.sin6.sin6_addr.s6_addr[idx];
     }
 
+    std::lock_guard<std::mutex> lock(d_mutex);
     res = bpf_delete_elem(d_v6map.fd, key);
     if (res == 0) {
       d_v6Count--;
@@ -355,15 +355,27 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
 std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 {
   std::vector<std::pair<ComboAddress, uint64_t> > result;
-  std::lock_guard<std::mutex> lock(d_mutex);
+  result.reserve(d_v4Count + d_v6Count);
+
+  sockaddr_in v4Addr;
+  memset(&v4Addr, 0, sizeof(v4Addr));
+  v4Addr.sin_family = AF_INET;
 
   uint32_t v4Key = 0;
   uint32_t nextV4Key;
   uint64_t value;
+
+  uint8_t v6Key[16];
+  uint8_t nextV6Key[16];
+  sockaddr_in6 v6Addr;
+  memset(&v6Addr, 0, sizeof(v6Addr));
+  v6Addr.sin6_family = AF_INET6;
+
+  static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == sizeof(v6Key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
+  memset(&v6Key, 0, sizeof(v6Key));
+
+  std::lock_guard<std::mutex> lock(d_mutex);
   int res = bpf_get_next_key(d_v4map.fd, &v4Key, &nextV4Key);
-  sockaddr_in v4Addr;
-  memset(&v4Addr, 0, sizeof(v4Addr));
-  v4Addr.sin_family = AF_INET;
 
   while (res == 0) {
     v4Key = nextV4Key;
@@ -375,24 +387,12 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
     res = bpf_get_next_key(d_v4map.fd, &v4Key, &nextV4Key);
   }
 
-  uint8_t v6Key[16];
-  uint8_t nextV6Key[16];
-  sockaddr_in6 v6Addr;
-  memset(&v6Addr, 0, sizeof(v6Addr));
-  v6Addr.sin6_family = AF_INET6;
-
-  static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == sizeof(v6Key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
-  for (size_t idx = 0; idx < sizeof(v6Key); idx++) {
-    v6Key[idx] = 0;
-  }
-
   res = bpf_get_next_key(d_v6map.fd, &v6Key, &nextV6Key);
 
   while (res == 0) {
     if (bpf_lookup_elem(d_v6map.fd, &nextV6Key, &value) == 0) {
-      for (size_t idx = 0; idx < sizeof(nextV6Key); idx++) {
-        v6Addr.sin6_addr.s6_addr[idx] = nextV6Key[idx];
-      }
+      memcpy(&v6Addr.sin6_addr.s6_addr, &nextV6Key, sizeof(nextV6Key));
+
       result.push_back(make_pair(ComboAddress(&v6Addr), value));
     }
 
@@ -404,11 +404,13 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
 {
   std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
-  std::lock_guard<std::mutex> lock(d_mutex);
+  result.reserve(d_qNamesCount);
 
   struct QNameKey key = { { 0 } };
   struct QNameKey nextKey = { { 0 } };
   struct QNameValue value;
+
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   int res = bpf_get_next_key(d_qnamemap.fd, &key, &nextKey);
 
@@ -421,5 +423,99 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
     res = bpf_get_next_key(d_qnamemap.fd, &nextKey, &nextKey);
   }
   return result;
+}
+
+uint64_t BPFFilter::getHits(const ComboAddress& requestor)
+{
+  uint64_t counter = 0;
+  if (requestor.isIPv4()) {
+    uint32_t key = htonl(requestor.sin4.sin_addr.s_addr);
+
+    std::lock_guard<std::mutex> lock(d_mutex);
+    int res = bpf_lookup_elem(d_v4map.fd, &key, &counter);
+    if (res == 0) {
+      return counter;
+    }
+  }
+  else if (requestor.isIPv6()) {
+    uint8_t key[16];
+    static_assert(sizeof(requestor.sin6.sin6_addr.s6_addr) == sizeof(key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
+    for (size_t idx = 0; idx < sizeof(key); idx++) {
+      key[idx] = requestor.sin6.sin6_addr.s6_addr[idx];
+    }
+
+    std::lock_guard<std::mutex> lock(d_mutex);
+    int res = bpf_lookup_elem(d_v6map.fd, &key, &counter);
+    if (res == 0) {
+      return counter;
+    }
+  }
+
+  return 0;
+}
+
+#else
+
+BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t maxQNames)
+{
+  (void) maxV4Addresses;
+  (void) maxV6Addresses;
+  (void) maxQNames;
+}
+
+void BPFFilter::addSocket(int sock)
+{
+  (void) sock;
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+void BPFFilter::removeSocket(int sock)
+{
+  (void) sock;
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+void BPFFilter::block(const ComboAddress& addr)
+{
+  (void) addr;
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+void BPFFilter::unblock(const ComboAddress& addr)
+{
+  (void) addr;
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+void BPFFilter::block(const DNSName& qname, uint16_t qtype)
+{
+  (void) qname;
+  (void) qtype;
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
+{
+  (void) qname;
+  (void) qtype;
+  throw std::runtime_error("eBPF support not enabled");
+}
+
+std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
+{
+  std::vector<std::pair<ComboAddress, uint64_t> > result;
+  return result;
+}
+
+std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
+{
+  std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
+  return result;
+}
+
+uint64_t BPFFilter::getHits(const ComboAddress& requestor)
+{
+  (void) requestor;
+  return 0;
 }
 #endif /* HAVE_EBPF */

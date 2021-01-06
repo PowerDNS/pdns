@@ -99,10 +99,10 @@ string g_outputBuffer;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
 std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
-#ifdef HAVE_EBPF
-shared_ptr<BPFFilter> g_defaultBPFFilter;
+
+shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
-#endif /* HAVE_EBPF */
+
 std::vector<std::unique_ptr<ClientState>> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 size_t g_udpVectorSize{1};

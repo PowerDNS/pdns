@@ -207,12 +207,12 @@ struct DynBlock
   {
   }
 
-  DynBlock(const DynBlock& rhs): reason(rhs.reason), domain(rhs.domain), until(rhs.until), action(rhs.action), warning(rhs.warning)
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), domain(rhs.domain), until(rhs.until), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
   {
     blocks.store(rhs.blocks);
   }
 
-  DynBlock(DynBlock&& rhs): reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), action(rhs.action), warning(rhs.warning)
+  DynBlock(DynBlock&& rhs): reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
   {
     blocks.store(rhs.blocks);
   }
@@ -225,6 +225,7 @@ struct DynBlock
     action = rhs.action;
     blocks.store(rhs.blocks);
     warning = rhs.warning;
+    bpf = rhs.bpf;
     return *this;
   }
 
@@ -236,6 +237,7 @@ struct DynBlock
     action = rhs.action;
     blocks.store(rhs.blocks);
     warning = rhs.warning;
+    bpf = rhs.bpf;
     return *this;
   }
 
@@ -245,6 +247,7 @@ struct DynBlock
   mutable std::atomic<unsigned int> blocks;
   DNSAction::Action action{DNSAction::Action::None};
   bool warning{false};
+  bool bpf{false};
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
@@ -734,7 +737,6 @@ struct ClientState
     return result;
   }
 
-#ifdef HAVE_EBPF
   shared_ptr<BPFFilter> d_filter;
 
   void detachFilter()
@@ -752,7 +754,6 @@ struct ClientState
     bpf->addSocket(getSocket());
     d_filter = bpf;
   }
-#endif /* HAVE_EBPF */
 
   void updateTCPMetrics(size_t nbQueries, uint64_t durationMs)
   {
@@ -1150,10 +1151,8 @@ extern size_t g_udpVectorSize;
 extern bool g_preserveTrailingData;
 extern bool g_allowEmptyResponse;
 
-#ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
-#endif /* HAVE_EBPF */
 
 struct LocalHolders
 {
