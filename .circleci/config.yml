@@ -564,7 +564,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
-
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - get-workspace
       - install-auth-dev-deps
@@ -593,7 +594,9 @@ jobs:
               --with-lmdb=/usr \
               --with-libsodium \
               --prefix=/opt/pdns-auth \
-              --enable-ixfrdist
+              --enable-ixfrdist \
+              --enable-asan \
+              --enable-ubsan
       - run:
           name: build
           command: make -j3 -k
@@ -621,6 +624,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - run:
@@ -654,6 +659,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
       - image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
         environment:
           - ACCEPT_EULA: Y
@@ -718,6 +725,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -739,6 +748,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
       - image: circleci/mysql:5      # for the hybrid test
         auth:
           username: powerdnsreadonly
@@ -782,6 +793,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
       - image: circleci/mysql:5
         auth:
           username: powerdnsreadonly
@@ -822,6 +835,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
       - image: circleci/postgres:9
         auth:
           username: powerdnsreadonly
@@ -862,6 +877,7 @@ jobs:
           password: $DOCKERHUB_PASSWORD
         environment:
           LDAPHOST: ldap://ldapserver/
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
       - image: powerdns/ldap-regress:1.2.4-1 # OpenLDAP 2.4.47
         auth:
           username: powerdnsreadonly
@@ -891,6 +907,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -905,6 +923,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -926,6 +946,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install ruby ruby-bundler ruby2.5-dev
@@ -966,6 +988,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - run:
@@ -987,6 +1011,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - run: apt-get install -y -qq jq
@@ -1009,6 +1035,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - run:
@@ -1023,6 +1051,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install python3-venv
@@ -1042,6 +1072,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - run:
           name: Install dependencies
@@ -1093,7 +1125,8 @@ jobs:
             --with-lua=luajit \
             --with-libcap \
             --with-net-snmp \
-            --enable-asan
+            --enable-asan \
+            --enable-ubsan
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build
@@ -1122,6 +1155,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler
@@ -1154,6 +1189,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
@@ -1365,6 +1402,8 @@ jobs:
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y python3-venv pdns-tools
