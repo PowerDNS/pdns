@@ -35,6 +35,7 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getBestZone
 {
   std::shared_ptr<AggressiveNSECCache::ZoneEntry> entry{nullptr};
   {
+    #warning tryreadlock?
     ReadLock rl(d_lock);
     auto got = d_zones.lookup(zone);
     if (got) {
@@ -205,8 +206,9 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
   ++d_entriesCount;
 }
 
-bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry) {
-
+bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry)
+{
+  #warning try?
   std::lock_guard<std::mutex> lock(zoneEntry->d_lock);
   if (zoneEntry->d_entries.empty()) {
     return false;
@@ -260,8 +262,9 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
   return true;
 }
 
-bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry) {
-
+bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry)
+{
+  #warning try?
   std::lock_guard<std::mutex> lock(zoneEntry->d_lock);
   if (zoneEntry->d_entries.empty()) {
     return false;
