@@ -494,9 +494,6 @@ string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const
   unsigned int times = iterations;
   unsigned char hash[SHA_DIGEST_LENGTH];
   string toHash(qname.toDNSStringLC() + salt);
-  if (toHash.capacity() < (salt.size() + sizeof(hash))) {
-    toHash.reserve(salt.size() + sizeof(hash));
-  }
 
   for (;;) {
     /* so the first time we hash the (lowercased) qname plus the salt,
@@ -511,6 +508,9 @@ string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const
       /* first time, we need to replace the qname + salt with
          the hash plus salt, since the qname will not likely
          match the size of the hash */
+      if (toHash.capacity() < (sizeof(hash) + salt.size())) {
+        toHash.reserve(sizeof(hash) + salt.size());
+      }
       toHash.assign(reinterpret_cast<char*>(hash), sizeof(hash));
       toHash.append(salt);
     }
