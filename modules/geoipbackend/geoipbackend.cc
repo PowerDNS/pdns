@@ -150,7 +150,8 @@ void GeoIPBackend::initialize() {
     global_custom_mapping = mapping.as<map<std::string, std::string>>();
   }
 
-  for(YAML::Node domain :  config["domains"]) {
+  for(YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
+    const auto& domain = *_domain;
     GeoIPDomain dom;
     dom.id = tmp_domains.size();
     dom.domain = DNSName(domain["domain"].as<string>());
@@ -160,8 +161,8 @@ void GeoIPBackend::initialize() {
       DNSName qname = DNSName(recs->first.as<string>());
       vector<GeoIPDNSResourceRecord> rrs;
 
-      for(YAML::Node item :  recs->second) {
-        YAML::const_iterator rec = item.begin();
+      for(YAML::const_iterator item = recs->second.begin(); item != recs->second.end(); item++) {
+        YAML::const_iterator rec = item->begin();
         GeoIPDNSResourceRecord rr;
         rr.domain_id = dom.id;
         rr.ttl = dom.ttl;
