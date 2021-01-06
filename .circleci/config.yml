@@ -51,7 +51,7 @@ commands:
           command: |
             echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
             apt-get update
-            apt-get -qq -t buster-backports --no-install-recommends install clang-8
+            apt-get -qq -t buster-backports --no-install-recommends install clang-8 llvm-8
 
   install-coverity-tools:
     description: Install the coverity tools to /usr/local
