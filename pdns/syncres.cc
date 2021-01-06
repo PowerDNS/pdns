@@ -1036,6 +1036,8 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
   LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<state<<endl);
 
+  #warning move aggressive NSEC check here? We know more about the zone and its status by now..
+
   res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
 
   /* Apply Post filtering policies */
