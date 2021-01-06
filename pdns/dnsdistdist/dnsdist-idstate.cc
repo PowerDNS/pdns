@@ -17,9 +17,8 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_
   dr.tempFailureTTL = ids.tempFailureTTL;
   dr.qTag = std::move(ids.qTag);
   dr.subnet = std::move(ids.subnet);
-#ifdef HAVE_PROTOBUF
   dr.uniqueId = std::move(ids.uniqueId);
-#endif
+
   if (ids.dnsCryptQuery) {
     dr.dnsCryptQuery = std::move(ids.dnsCryptQuery);
   }
@@ -48,10 +47,7 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.useZeroScope = dq.useZeroScope;
   ids.qTag = dq.qTag;
   ids.dnssecOK = dq.dnssecOK;
+  ids.uniqueId = std::move(dq.uniqueId);
 
   ids.dnsCryptQuery = std::move(dq.dnsCryptQuery);
-
-#ifdef HAVE_PROTOBUF
-  ids.uniqueId = std::move(dq.uniqueId);
-#endif
 }

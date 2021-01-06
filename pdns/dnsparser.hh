@@ -37,6 +37,7 @@
 #include "pdnsexception.hh"
 #include "iputils.hh"
 #include "svc-records.hh"
+#include "views.hh"
 
 /** DNS records have three representations:
     1) in the packet
@@ -66,7 +67,7 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const std::string& content, uint16_t initialPos=sizeof(dnsheader))
+  PacketReader(const pdns_string_view& content, uint16_t initialPos=sizeof(dnsheader))
     : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content)
   {
     if(content.size() > std::numeric_limits<uint16_t>::max())
@@ -183,7 +184,7 @@ private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
   uint16_t not_used; // Aligns the whole class on 8-byte boundaries
-  const std::string& d_content;
+  const pdns_string_view d_content;
 };
 
 struct DNSRecord;

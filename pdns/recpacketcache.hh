@@ -34,13 +34,10 @@
 
 #include "packetcache.hh"
 #include "validate.hh"
-#include "protozero.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "rec-protobuf.hh"
-
 
 using namespace ::boost::multi_index;
 
@@ -87,9 +84,7 @@ private:
     DNSName d_name;
     mutable std::string d_packet; // "I know what I am doing"
     mutable std::string d_query;
-#ifdef HAVE_PROTOBUF
     mutable OptPBData d_pbdata;
-#endif
     mutable time_t d_ttd;
     mutable time_t d_creation; // so we can 'age' our packets
     uint32_t d_qhash;

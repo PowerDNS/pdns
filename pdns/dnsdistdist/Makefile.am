@@ -1,4 +1,13 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
+	$(LUA_CFLAGS) \
+	$(LIBEDIT_CFLAGS) \
+	$(LIBSODIUM_CFLAGS) \
+	$(FSTRM_CFLAGS) \
+	$(YAHTTP_CFLAGS) \
+	$(SANITIZER_FLAGS) \
+	$(NET_SNMP_CFLAGS) \
+	$(LIBCAP_CFLAGS) \
+	-DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -6,13 +15,9 @@ SUBDIRS=ext/ipcrypt \
 	ext/yahttp
 
 CLEANFILES = \
-	dnsmessage.pb.cc \
-	dnsmessage.pb.h \
 	htmlfiles.h.tmp \
 	htmlfiles.h \
-	dnsdist-lua-ffi-interface.inc \
-	dnstap.pb.cc \
-	dnstap.pb.h
+	dnsdist-lua-ffi-interface.inc
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -96,6 +101,7 @@ EXTRA_DIST=COPYING \
 	   portsmplexer.cc \
 	   cdb.cc cdb.hh \
 	   ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh \
+	   ext/protozero/include/* \
 	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
@@ -189,7 +195,7 @@ dnsdist_SOURCES = \
 	packetcache.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
-	protobuf.cc protobuf.hh \
+	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
@@ -350,23 +356,6 @@ nodist_dnsdist_SOURCES = lua.hpp
 endif
 
 CLEANFILES += lua.hpp
-
-if HAVE_PROTOBUF
-if HAVE_PROTOC
-dnsmessage.pb.cc: dnsmessage.proto
-	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
-
-dnstap.pb.cc: dnstap.proto
-	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
-
-BUILT_SOURCES += dnsmessage.pb.cc dnstap.pb.cc
-
-nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h dnstap.pb.cc dnstap.pb.h
-dnsdist_LDADD += $(PROTOBUF_LIBS)
-
-dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
-endif
-endif
 
 if HAVE_FREEBSD
 dnsdist_SOURCES += kqueuemplexer.cc

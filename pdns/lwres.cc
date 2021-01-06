@@ -49,12 +49,11 @@
 #include "ednssubnet.hh"
 #include "query-local-address.hh"
 
-#ifdef HAVE_PROTOBUF
-
+#include "rec-protozero.hh"
 #include "uuid-utils.hh"
 
 #ifdef HAVE_FSTRM
-#include "rec-dnstap.hh"
+#include "dnstap.hh"
 #include "fstrm_logger.hh"
 
 
@@ -81,9 +80,8 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Fr
 
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
-  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
   std::string str;
-  message.serialize(str);
+  DnstapMessage message(str, DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
@@ -112,9 +110,8 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   struct timespec ts1, ts2;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
-  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
   std::string str;
-  message.serialize(str);
+  DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, nullptr, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
@@ -123,7 +120,7 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
 
 #endif // HAVE_FSTRM
 
-static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<RecProtoBufMessage>& message, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
+static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
 {
   if (!outgoingLoggers) {
     return;
@@ -141,29 +138,37 @@ static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<R
     return;
   }
 
-  message = RecProtoBufMessage(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
-  message->setServerIdentity(SyncRes::s_serverID);
+  static thread_local std::string buffer;
+  buffer.clear();
+  pdns::ProtoZero::Message m{buffer};
+  m.setType(pdns::ProtoZero::Message::MessageType::DNSOutgoingQueryType);
+  m.setMessageIdentity(uuid);
+  m.setSocketFamily(ip.sin4.sin_family);
+  m.setSocketProtocol(doTCP);
+  m.setTo(ip);
+  m.setInBytes(bytes);
+  m.setTime();
+  m.setId(qid);
+  m.setQuestion(domain, type, QClass::IN);
+  m.setToPort(ip.getPort());
+  m.setServerIdentity(SyncRes::s_serverID);
 
   if (initialRequestId) {
-    message->setInitialRequestID(*initialRequestId);
+    m.setInitialRequestID(*initialRequestId);
   }
 
   if (srcmask) {
-    message->setEDNSSubnet(*srcmask);
+    m.setEDNSSubnet(*srcmask, 128);
   }
-
-//  cerr <<message.toDebugString()<<endl;
-  std::string str;
-  message->serialize(str);
 
   for (auto& logger : *outgoingLoggers) {
     if (logger->logQueries()) {
-      logger->queueData(str);
+      logger->queueData(buffer);
     }
   }
 }
 
-static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<RecProtoBufMessage>& message, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, boost::optional<Netmask>& srcmask, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes)
+static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, boost::optional<Netmask>& srcmask, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes)
 {
   if (!outgoingLoggers) {
     return;
@@ -181,44 +186,49 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
     return;
   }
 
-  if (!message) {
-    message = RecProtoBufMessage(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
-    message->setServerIdentity(SyncRes::s_serverID);
+  static thread_local std::string buffer;
+  buffer.clear();
+  pdns::ProtoZero::RecMessage m{buffer};
+  m.setType(pdns::ProtoZero::Message::MessageType::DNSIncomingResponseType);
+  m.setMessageIdentity(uuid);
+  m.setSocketFamily(ip.sin4.sin_family);
+  m.setSocketProtocol(doTCP);
+  m.setTo(ip);
+  m.setInBytes(bytes);
+  m.setTime();
+  m.setId(qid);
+  m.setQuestion(domain, type, QClass::IN);
+  m.setToPort(ip.getPort());
+  m.setServerIdentity(SyncRes::s_serverID);
 
-    if (initialRequestId) {
-      message->setInitialRequestID(*initialRequestId);
-    }
-
-    if (srcmask) {
-      message->setEDNSSubnet(*srcmask);
-    }
+  if (initialRequestId) {
+    m.setInitialRequestID(*initialRequestId);
   }
-  else {
-    message->updateTime();
-    message->setType(DNSProtoBufMessage::IncomingResponse);
-    message->setBytes(bytes);
+
+  if (srcmask) {
+    m.setEDNSSubnet(*srcmask, 128);
   }
 
-  message->setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
+  m.startResponse();
+  m.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
   if (rcode == -1) {
-    message->setNetworkErrorResponseCode();
+    m.setNetworkErrorResponseCode();
   }
   else {
-    message->setResponseCode(rcode);
+    m.setResponseCode(rcode);
   }
-  message->addRRs(records, exportTypes);
 
-//  cerr <<message.toDebugString()<<endl;
-  std::string str;
-  message->serialize(str);
+  for (const auto& record : records) {
+    m.addRR(record, exportTypes, false);
+  }
+  m.commitResponse();
 
   for (auto& logger : *outgoingLoggers) {
     if (logger->logResponses()) {
-      logger->queueData(str);
+      logger->queueData(buffer);
     }
   }
 }
-#endif /* HAVE_PROTOBUF */
 
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
@@ -275,16 +285,14 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   dt.set();
   *now=dt.getTimeval();
 
-#ifdef HAVE_PROTOBUF
   boost::uuids::uuid uuid;
   const struct timeval queryTime = *now;
-  boost::optional<RecProtoBufMessage> pbMessage = boost::none;
 
   if (outgoingLoggers) {
     uuid = getUniqueID();
-    logOutgoingQuery(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size(), srcmask);
+    logOutgoingQuery(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size(), srcmask);
   }
-#endif /* HAVE_PROTOBUF */
+
 #ifdef HAVE_FSTRM
   if (isEnabledForQueries(fstrmLoggers)) {
     logFstreamQuery(fstrmLoggers, queryTime, ip, doTCP, context ? context->d_auth : boost::none, vpacket);
@@ -363,11 +371,9 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   *now=dt.getTimeval();
 
   if (ret != LWResult::Result::Success) { // includes 'timeout'
-#ifdef HAVE_PROTOBUF
       if (outgoingLoggers) {
-        logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, 0, -1, {}, queryTime, exportTypes);
+        logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, 0, -1, {}, queryTime, exportTypes);
       }
-#endif
     return ret;
   }
 
@@ -388,11 +394,9 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
     lwr->d_rcode=mdp.d_header.rcode;
     
     if(mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
-#ifdef HAVE_PROTOBUF
       if(outgoingLoggers) {
-        logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
+        logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
       }
-#endif
       lwr->d_validpacket = true;
       return LWResult::Result::Success; // this is "success", the error is set in lwr->d_rcode
     }
@@ -434,11 +438,9 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       }
     }
         
-#ifdef HAVE_PROTOBUF
     if(outgoingLoggers) {
-      logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
+      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
-#endif
 
     lwr->d_validpacket = true;
     return LWResult::Result::Success;
@@ -452,11 +454,9 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
     lwr->d_validpacket = false;
     g_stats.serverParseError++;
 
-#ifdef HAVE_PROTOBUF
     if(outgoingLoggers) {
-      logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
+      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
-#endif
 
     return LWResult::Result::Success; // success - oddly enough
   }

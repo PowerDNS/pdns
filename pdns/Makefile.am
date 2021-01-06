@@ -70,7 +70,6 @@ CLEANFILES = \
 	backends/gsql/gsqlbackend.gcda \
 	backends/gsql/gsqlbackend.gcno \
 	backends/gsql/gsqlbackend.gcov \
-	dnsmessage.pb.cc dnsmessage.pb.h \
 	pdns.conf-dist \
 	apidocfiles.h \
 	api-swagger.yaml \
@@ -112,6 +111,7 @@ if TOOLS
 bin_PROGRAMS += \
 	dnsgram \
 	dnspcap2calidns \
+	dnspcap2protobuf \
 	dnsreplay \
 	dnsscan \
 	dnsscope \
@@ -150,6 +150,7 @@ EXTRA_PROGRAMS = \
 	dnsdemog \
 	dnsgram \
 	dnspcap2calidns \
+	dnspcap2protobuf \
 	dnsreplay \
 	dnsscan \
 	dnsscope \
@@ -1229,16 +1230,6 @@ dnspcap2calidns_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
-if HAVE_PROTOBUF
-if HAVE_PROTOC
-bin_PROGRAMS += dnspcap2protobuf
-
-dnsmessage.pb.cc: dnsmessage.proto
-	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
-
-BUILT_SOURCES += dnsmessage.pb.cc
-dnspcap2protobuf.$(OBJEXT): dnsmessage.pb.cc
-
 dnspcap2protobuf_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -1254,7 +1245,7 @@ dnspcap2protobuf_SOURCES = \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
-	protobuf.cc protobuf.hh \
+	protozero.cc protozero.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
@@ -1264,8 +1255,6 @@ dnspcap2protobuf_SOURCES = \
 	utility.hh \
 	uuid-utils.hh uuid-utils.cc
 
-nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h
-
 dnspcap2protobuf_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) \
@@ -1273,11 +1262,8 @@ dnspcap2protobuf_LDFLAGS = \
 
 dnspcap2protobuf_LDADD = \
 	$(LIBCRYPTO_LIBS) \
-	$(PROTOBUF_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(RT_LIBS)
-endif
-endif
 
 pdns.conf-dist: pdns_server
 	$(AM_V_GEN)./pdns_server --config=default 2>/dev/null > $@

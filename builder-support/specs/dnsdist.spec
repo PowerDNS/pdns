@@ -13,8 +13,6 @@ BuildRequires: openssl-devel
 %if 0%{?el6}
 BuildRequires: boost148-devel
 BuildRequires: lua-devel
-BuildRequires: protobuf-compiler
-BuildRequires: protobuf-devel
 BuildRequires: re2-devel
 %endif
 %if 0%{?suse_version}
@@ -38,8 +36,6 @@ BuildRequires: luajit-devel
 %define lua_implementation luajit
 %endif
 BuildRequires: net-snmp-devel
-BuildRequires: protobuf-compiler
-BuildRequires: protobuf-devel
 BuildRequires: re2-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
@@ -87,7 +83,6 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --without-libsodium \
   --with-re2 \
   --with-net-snmp \
-  --with-protobuf \
   --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
 %endif
 %if 0%{?suse_version}
@@ -95,12 +90,10 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --without-libsodium \
   --without-re2 \
   --enable-systemd --with-systemd=/lib/systemd/system \
-  --without-protobuf \
   --without-net-snmp
 %endif
 %if 0%{?rhel} >= 7
   --with-gnutls \
-  --with-protobuf \
   --enable-dnstap \
   --with-lua=%{lua_implementation} \
   --with-libcap \

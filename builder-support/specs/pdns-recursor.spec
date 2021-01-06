@@ -33,8 +33,6 @@ BuildRequires: libatomic
 %endif
 
 %if 0%{?rhel} >= 7
-BuildRequires: protobuf-compiler
-BuildRequires: protobuf-devel
 BuildRequires: fstrm-devel
 %endif
 
@@ -73,13 +71,11 @@ package if you need a dns cache for your network.
     --disable-static \
     --enable-unit-tests \
 %if 0%{?rhel} == 6
-    --without-protobuf \
     --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148 \
     CPPFLAGS=-D__STDC_FORMAT_MACROS
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 %else
-    --with-protobuf \
     --enable-dnstap \
     --with-libcap \
     --with-lua=%{lua_implementation} \

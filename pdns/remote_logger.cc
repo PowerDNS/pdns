@@ -23,7 +23,7 @@ bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
 
 bool CircularWriteBuffer::write(const std::string& str)
 {
-  if (!hasRoomFor(str)) {
+  if (str.size() > std::numeric_limits<uint16_t>::max() || !hasRoomFor(str)) {
     return false;
   }
 
@@ -116,7 +116,7 @@ bool RemoteLogger::reconnect()
     {
       /* we are now successfully connected, time to take the lock and update the
          socket */
-      std::unique_lock<std::mutex> lock(d_mutex);
+      std::lock_guard<std::mutex> lock(d_mutex);
       d_socket = std::move(newSock);
     }
   }
@@ -134,7 +134,11 @@ bool RemoteLogger::reconnect()
 
 void RemoteLogger::queueData(const std::string& data)
 {
-  std::unique_lock<std::mutex> lock(d_mutex);
+  if (data.size() > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("Got a request to write an object of size " + std::to_string(data.size()));
+  }
+
+  std::lock_guard<std::mutex> lock(d_mutex);
 
   if (!d_writer.hasRoomFor(data)) {
     /* not connected, queue is full, just drop */
@@ -194,7 +198,7 @@ try
     if (connected) {
       try {
         /* we don't want to take the lock while trying to reconnect */
-        std::unique_lock<std::mutex> lock(d_mutex);
+        std::lock_guard<std::mutex> lock(d_mutex);
         if (d_socket) { // check if it is set
           /* if flush() returns false, it means that we couldn't flush anything yet
              either because there is nothing to flush, or because the outgoing TCP

@@ -109,7 +109,6 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
   }
 }
 
-#if HAVE_PROTOBUF
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > protobufOptions_t;
 
 static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
@@ -168,7 +167,6 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
     }
   }
 }
-#endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > frameStreamOptions_t;
@@ -487,7 +485,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       updateTrustAnchorsFromFile(fnamearg, lci.dsAnchors);
     });
 
-#if HAVE_PROTOBUF
   Lua.writeFunction("setProtobufMasks", [&lci](const uint8_t maskV4, uint8_t maskV6) {
       lci.protobufMaskV4 = maskV4;
       lci.protobufMaskV6 = maskV6;
@@ -556,7 +553,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         g_log<<Logger::Error<<"Only one outgoingProtobufServer() directive can be configured, we already have "<<lci.outgoingProtobufExportConfig.servers.at(0).toString()<<endl;
       }
     });
-#endif
 
 #ifdef HAVE_FSTRM
   Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {

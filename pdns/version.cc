@@ -122,9 +122,7 @@ void showBuildConfiguration()
 #ifdef HAVE_P11KIT1
     "PKCS#11 " <<
 #endif
-#ifdef HAVE_PROTOBUF
 "protobuf " <<
-#endif
 #ifdef HAVE_FSTRM
 "dnstap-framestream " <<
 #endif

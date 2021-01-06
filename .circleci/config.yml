@@ -181,8 +181,7 @@ commands:
               libssl1.1 \
               libsystemd0 \
               libsodium23 \
-              libfstrm0 \
-              libprotobuf17
+              libfstrm0
 
   install-auth-deps:
     description: Install all libraries needed to run the auth
@@ -223,7 +222,6 @@ commands:
               libfstrm0 \
               libh2o-evloop0.13 \
               liblmdb0 \
-              libprotobuf17 \
               libre2-5 \
               libssl-dev \
               libsystemd0 \
@@ -441,8 +439,7 @@ commands:
           name: configure
           command: |
             ./configure \
-              --disable-unit-tests \
-              --disable-protobuf
+              --disable-unit-tests
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build docs
@@ -477,8 +474,7 @@ commands:
           name: configure
           command: |
             ./configure \
-              --disable-unit-tests \
-              --disable-protobuf
+              --disable-unit-tests
           working_directory: ~/project/pdns/dnsdistdist
       - run:
           name: build docs
@@ -1051,14 +1047,12 @@ jobs:
             libcap-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
-            libprotobuf-dev \
             libsodium-dev \
             libssl-dev \
             libsystemd-dev \
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             systemd \
             python3-venv
@@ -1080,7 +1074,6 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
             --without-net-snmp
           working_directory: ~/project/pdns/recursordist
       - run:
@@ -1516,7 +1509,6 @@ jobs:
             libfstrm-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
-            libprotobuf-dev \
             libre2-dev \
             libsnmp-dev \
             libsodium-dev \
@@ -1525,7 +1517,6 @@ jobs:
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             python3-venv
       - install-coverity-tools
@@ -1549,7 +1540,6 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
             --with-re2
           working_directory: /opt/project/pdns/dnsdistdist
       - run:
@@ -1595,14 +1585,12 @@ jobs:
             libcap-dev \
             libluajit-5.1-dev \
             libfstrm-dev \
-            libprotobuf-dev \
             libsodium-dev \
             libssl-dev \
             libsystemd-dev \
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             python3-venv
       - install-coverity-tools
@@ -1623,7 +1611,6 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
             --without-net-snmp
           working_directory: /opt/project/pdns/recursordist
       - run:
@@ -1672,7 +1659,6 @@ jobs:
             libh2o-evloop-dev \
             liblmdb-dev \
             libluajit-5.1-dev \
-            libprotobuf-dev \
             libre2-dev \
             libsnmp-dev \
             libsodium-dev \
@@ -1681,7 +1667,6 @@ jobs:
             libtool \
             make \
             pkg-config \
-            protobuf-compiler \
             ragel \
             systemd \
             python3-venv
@@ -1706,7 +1691,6 @@ jobs:
             --with-libsodium \
             --with-lua=luajit \
             --with-libcap \
-            --with-protobuf=yes \
             --with-re2 \
             --enable-asan \
             --enable-ubsan

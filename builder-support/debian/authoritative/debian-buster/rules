@@ -41,7 +41,6 @@ override_dh_auto_configure:
 		--enable-tools \
 		--with-libsodium \
 		--with-lua=luajit \
-		--with-protobuf \
 		--enable-unit-tests \
 		--enable-experimental-pkcs11 \
 		--enable-lua-records \

@@ -35,6 +35,46 @@ using pdns_string_view = boost::string_view;
 #include <boost/utility/string_ref.hpp>
 using pdns_string_view = boost::string_ref;
 #else
-using pdns_string_view = std::string;
+
+/* this class implements a very restricted view, since nothing else is available
+   and doing a full allocation + copy is just dumb */
+class pdns_string_view
+{
+public:
+  pdns_string_view() noexcept
+  {
+  }
+
+  pdns_string_view(const std::string& str) noexcept: d_ptr{str.data()}, d_size(str.size())
+  {
+  }
+
+  pdns_string_view(const char* str, size_t len) noexcept: d_ptr{str}, d_size(len)
+  {
+  }
+
+  size_t size() const noexcept
+  {
+    return d_size;
+  }
+
+  const char& at(size_t pos) const
+  {
+    if (pos >= d_size) {
+      throw std::out_of_range("pdns_string_view::at() " + std::to_string(pos) + " >= " + std::to_string(d_size));
+    }
+    return *(d_ptr + pos);
+  }
+
+  const char* data() const noexcept
+  {
+    return d_ptr;
+  }
+
+private:
+  const char* d_ptr{nullptr};
+  const size_t d_size{0};
+};
+
 #endif
 #endif

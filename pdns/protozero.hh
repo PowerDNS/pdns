@@ -21,12 +21,10 @@
  */
 #pragma once
 
-#include <protozero/pbf_writer.hpp>
-#include <string>
+#include "ext/protozero/include/protozero/pbf_writer.hpp"
 
 #include "config.h"
 #include "iputils.hh"
-#include "filterpo.hh"
 #include "gettime.hh"
 #include "uuid-utils.hh"
 
@@ -34,233 +32,225 @@ namespace pdns {
   namespace ProtoZero {
     class Message {
     public:
-      Message() : d_message{d_msgbuf}, d_response{d_rspbuf}
+      enum class MessageType : int32_t { DNSQueryType = 1, DNSResponseType = 2, DNSOutgoingQueryType = 3, DNSIncomingResponseType = 4 };
+      enum class Field : protozero::pbf_tag_type { type = 1, messageId = 2, serverIdentity = 3, socketFamily = 4, socketProtocol = 5, from = 6, to = 7, inBytes = 8, timeSec = 9, timeUsec = 10, id = 11, question = 12, response = 13, originalRequestorSubnet = 14, requestorId = 15, initialRequestId = 16, deviceId = 17, newlyObservedDomain = 18, deviceName = 19, fromPort = 20, toPort = 21 };
+      enum class QuestionField : protozero::pbf_tag_type { qName = 1, qType = 2, qClass = 3};
+      enum class ResponseField : protozero::pbf_tag_type { rcode = 1, rrs = 2, appliedPolicy = 3, tags = 4, queryTimeSec = 5, queryTimeUsec = 6, appliedPolicyType = 7, appliedPolicyTrigger = 8, appliedPolicyHit = 9 };
+      enum class RRField : protozero::pbf_tag_type { name = 1, type = 2, class_ = 3, ttl = 4, rdata = 5, udr = 6 };
+
+      Message(std::string& buffer): d_buffer(buffer), d_message{d_buffer}
       {
-      }
-      // Start a new messagebuf, containing separate data for the response part
-      Message(std::string::size_type sz1, std::string::size_type sz2) : d_message{d_msgbuf}, d_response{d_rspbuf}
-      {
-        reserve(sz1, sz2);
       }
 
-      // Construct a Message with (partially) constructed content
-      Message(const std::string& buf1, const std::string& buf2, std::string::size_type sz1, std::string::size_type sz2) :
-        d_msgbuf{buf1}, d_rspbuf{buf2}, d_message{d_msgbuf}, d_response{d_rspbuf}
-      {
-        reserve(sz1, sz2);
-      }
       Message(const Message&) = delete;
       Message(Message&&) = delete;
       Message& operator=(const Message&) = delete;
       Message& operator=(Message&&) = delete;
 
-      void reserve(std::string::size_type sz1, std::string::size_type sz2)
-      {
-        // We expect to grow the buffers, in the end the d_message will contains the (grown) d_response
-        // This is extra space in addition to what's already there
-        // Different from what string.reserve() does
-        std::string::size_type extra = sz1 + d_rspbuf.length() + sz2;
-        if (d_msgbuf.capacity() < d_msgbuf.size() + extra) {
-          d_message.reserve(extra);
-        }
-        if (d_rspbuf.capacity() < d_rspbuf.size() + sz2) {
-          d_response.reserve(sz2);
-        }
-      }
-      const std::string& getMessageBuf() const
-      {
-        return d_msgbuf;
-      }
-      const std::string& getResponseBuf() const
-      {
-        return d_rspbuf;
-      }
-      std::string&& finishAndMoveBuf()
-      {
-        if (!d_rspbuf.empty()) {
-          d_message.add_message(13, d_rspbuf);
-        }
-        return std::move(d_msgbuf);
-      }
-      void encodeComboAddress(protozero::pbf_tag_type type, const ComboAddress& ca);
-      void encodeNetmask(protozero::pbf_tag_type type, const Netmask& subnet, uint8_t mask);
-      void encodeDNSName(protozero::pbf_writer& pbf, std::string& buffer, protozero::pbf_tag_type type, const DNSName& name);
       void setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, bool tcp, size_t len);
       void setResponse(const DNSName& qname, uint16_t qtype, uint16_t qclass);
 
-      void setType(int mtype)
+      void setType(MessageType mtype)
       {
-       d_message.add_enum(1, mtype);
+        add_enum(d_message, Field::type, static_cast<int32_t>(mtype));
       }
+
       void setMessageIdentity(const boost::uuids::uuid& uniqueId)
       {
-       d_message.add_bytes(2, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size());
+        add_bytes(d_message, Field::messageId, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size());
       }
+
       void setServerIdentity(const std::string& serverIdentity)
       {
-       d_message.add_bytes(3, serverIdentity.data(), serverIdentity.length());
+        add_bytes(d_message, Field::serverIdentity, serverIdentity.data(), serverIdentity.length());
       }
+
       void setSocketFamily(int family)
       {
-       d_message.add_enum(4, family == AF_INET ? 1 : 2);
+        add_enum(d_message, Field::socketFamily, family == AF_INET ? 1 : 2);
       }
+
       void setSocketProtocol(bool tcp)
       {
-       d_message.add_enum(5, tcp ? 2 : 1);
+        add_enum(d_message, Field::socketProtocol, tcp ? 2 : 1);
       }
+
       void setFrom(const ComboAddress& ca)
       {
-        encodeComboAddress(6, ca);
+        encodeComboAddress(static_cast<protozero::pbf_tag_type>(Field::from), ca);
       }
+
       void setTo(const ComboAddress& ca)
       {
-        encodeComboAddress(7, ca);
+        encodeComboAddress(static_cast<protozero::pbf_tag_type>(Field::to), ca);
       }
+
       void setInBytes(uint64_t len)
       {
         if (len) {
-         d_message.add_uint64(8, len);
+          add_uint64(d_message, Field::inBytes, len);
         }
       }
+
       void setTime()
       {
         struct timespec ts;
         gettime(&ts, true);
-        // timeSec
-       d_message.add_uint32(9, ts.tv_sec);
-        // timeUsec
-       d_message.add_uint32(10, ts.tv_nsec / 1000);
+
+        setTime(ts.tv_sec, ts.tv_nsec / 1000);
       }
+
+      void setTime(time_t sec, uint32_t usec)
+      {
+        add_uint32(d_message, Field::timeSec, sec);
+        add_uint32(d_message, Field::timeUsec, usec);
+      }
+
       void setId(uint16_t id)
       {
-       d_message.add_uint32(11, ntohs(id));
+        add_uint32(d_message, Field::id, ntohs(id));
       }
+
       void setQuestion(const DNSName& qname, uint16_t qtype, uint16_t qclass)
       {
-        protozero::pbf_writer pbf_question{d_message, 12};
-        encodeDNSName(pbf_question, d_msgbuf, 1, qname);
-        pbf_question.add_uint32(2, qtype);
-        pbf_question.add_uint32(3, qclass);
+        protozero::pbf_writer pbf_question{d_message, static_cast<protozero::pbf_tag_type>(Field::question)};
+        encodeDNSName(pbf_question, d_buffer, static_cast<protozero::pbf_tag_type>(QuestionField::qName), qname);
+        pbf_question.add_uint32(static_cast<protozero::pbf_tag_type>(QuestionField::qType), qtype);
+        pbf_question.add_uint32(static_cast<protozero::pbf_tag_type>(QuestionField::qClass), qclass);
       }
+
       void setEDNSSubnet(const Netmask& nm, uint8_t mask)
       {
-        encodeNetmask(14, nm, mask);
+        encodeNetmask(static_cast<protozero::pbf_tag_type>(Field::originalRequestorSubnet), nm, mask);
       }
+
       void setRequestorId(const std::string& req)
       {
         if (!req.empty()) {
-         d_message.add_string(15, req);
+          add_string(d_message, Field::requestorId, req);
         }
       }
-      void setInitialRequesId(const std::string& id)
+
+      void setInitialRequestID(const boost::uuids::uuid& uniqueId)
       {
-        if (!id.empty()) {
-         d_message.add_string(16, id);
-        }
+        add_bytes(d_message, Field::initialRequestId, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size());
       }
+
       void setDeviceId(const std::string& id)
       {
         if (!id.empty()) {
-         d_message.add_string(17, id);
+          add_string(d_message, Field::deviceId, id);
         }
       }
+
       void setNewlyObservedDomain(bool nod)
       {
-       d_message.add_bool(18, nod);
+        add_bool(d_message, Field::newlyObservedDomain, nod);
       }
+
       void setDeviceName(const std::string& name)
       {
         if (!name.empty()) {
-         d_message.add_string(19, name);
+          add_string(d_message, Field::deviceName, name);
         }
       }
+
       void setFromPort(in_port_t port)
       {
-       d_message.add_uint32(20, port);
-      }
-      void setToPort(in_port_t port)
-      {
-       d_message.add_uint32(21, port);
+        add_uint32(d_message, Field::fromPort, port);
       }
 
-      // DNSResponse related fields below
+      void setToPort(in_port_t port)
+      {
+        add_uint32(d_message, Field::toPort, port);
+      }
+
+      void startResponse()
+      {
+        d_response = protozero::pbf_writer{d_message, static_cast<protozero::pbf_tag_type>(Field::response)};
+      }
+
+      void commitResponse()
+      {
+        d_response.commit();
+      }
 
       void setResponseCode(uint8_t rcode)
       {
-        d_response.add_uint32(1, rcode);
+        d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::rcode), rcode);
       }
 
-      void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr);
+      void setNetworkErrorResponseCode()
+      {
+        /* special code meaning 'network error', like a timeout */
+        d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::rcode), 65536);
+      }
 
       void setAppliedPolicy(const std::string& policy)
       {
-        d_response.add_string(3, policy);
+        d_response.add_string(static_cast<protozero::pbf_tag_type>(ResponseField::appliedPolicy), policy);
       }
+
       void addPolicyTags(const std::unordered_set<std::string>& tags)
       {
         for (const auto& tag : tags) {
-          d_response.add_string(4, tag);
+          addPolicyTag(tag);
         }
       }
+
       void addPolicyTag(const string& tag)
       {
-        d_response.add_string(4, tag);
+        d_response.add_string(static_cast<protozero::pbf_tag_type>(ResponseField::tags), tag);
       }
+
       void setQueryTime(uint32_t sec, uint32_t usec)
       {
-        d_response.add_uint32(5, sec);
-        d_response.add_uint32(6, usec);
-      }
-      void setAppliedPolicyType(const DNSFilterEngine::PolicyType type)
-      {
-        uint32_t p;
-
-        switch(type) {
-        case DNSFilterEngine::PolicyType::None:
-          p = 1;
-          break;
-        case DNSFilterEngine::PolicyType::QName:
-          p = 2;
-          break;
-        case DNSFilterEngine::PolicyType::ClientIP:
-          p = 3;
-          break;
-        case DNSFilterEngine::PolicyType::ResponseIP:
-          p = 4;
-          break;
-        case DNSFilterEngine::PolicyType::NSDName:
-          p = 5;
-          break;
-        case DNSFilterEngine::PolicyType::NSIP:
-          p = 6;
-          break;
-        default:
-          throw std::runtime_error("Unsupported protobuf policy type");
-        }
-        d_response.add_uint32(7, p);
-      }
-      void setAppliedPolicyTrigger(const DNSName& trigger)
-      {
-        encodeDNSName(d_response, d_rspbuf, 8, trigger);
-      }
-      void setAppliedPolicyHit(const std::string& hit)
-      {
-        d_response.add_string(9, hit);
+        d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::queryTimeSec), sec);
+        d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::queryTimeUsec), usec);
       }
 
-#ifdef NOD_ENABLED      
-      void clearUDR(std::string&);
-#endif
+      void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME=false);
+      void addRR(const DNSName& name, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& blob);
 
-    private:
-      std::string d_msgbuf;
-      std::string d_rspbuf;
+    protected:
+      void encodeComboAddress(protozero::pbf_tag_type type, const ComboAddress& ca);
+      void encodeNetmask(protozero::pbf_tag_type type, const Netmask& subnet, uint8_t mask);
+      void encodeDNSName(protozero::pbf_writer& pbf, std::string& buffer, protozero::pbf_tag_type type, const DNSName& name);
+
+      static void add_enum(protozero::pbf_writer& writer, Field type, int32_t value)
+      {
+        writer.add_enum(static_cast<protozero::pbf_tag_type>(type), value);
+      }
+
+      static void add_bool(protozero::pbf_writer& writer, Field type, bool value)
+      {
+        writer.add_bool(static_cast<protozero::pbf_tag_type>(type), value);
+      }
+
+      static void add_uint32(protozero::pbf_writer& writer, Field type, uint32_t value)
+      {
+        writer.add_uint32(static_cast<protozero::pbf_tag_type>(type), value);
+      }
+
+      static void add_uint64(protozero::pbf_writer& writer, Field type, uint64_t value)
+      {
+        writer.add_uint64(static_cast<protozero::pbf_tag_type>(type), value);
+      }
+
+      static void add_bytes(protozero::pbf_writer& writer, Field type, const char* data, size_t len)
+      {
+        writer.add_bytes(static_cast<protozero::pbf_tag_type>(type), data, len);
+      }
+
+      static void add_string(protozero::pbf_writer& writer, Field type, const std::string& str)
+      {
+        writer.add_string(static_cast<protozero::pbf_tag_type>(type), str);
+      }
+
+
+      std::string& d_buffer;
       protozero::pbf_writer d_message;
       protozero::pbf_writer d_response;
-
-#ifdef NOD_ENABLED
-      vector<std::string::size_type> offsets;
-#endif
     };
   };
 };

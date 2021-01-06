@@ -18,7 +18,6 @@ COPY builder-support /source/builder-support
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
     apt-get clean
-# RUN apt-get -y install protobuf-compiler && apt-get clean
 
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux

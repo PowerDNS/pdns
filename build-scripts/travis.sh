@@ -336,6 +336,7 @@ install_recursor() {
     daemontools \
     jq \
     libfaketime \
+    libprotobuf-dev \
     libsnmp-dev \
     lua-posix \
     lua-socket \
@@ -644,7 +645,6 @@ run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   libluajit-5.1-dev \
   libedit-dev \
-  libprotobuf-dev \
   protobuf-compiler"
 
 run "cd .."

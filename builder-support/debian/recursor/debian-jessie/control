@@ -9,13 +9,11 @@ Build-Depends: debhelper (>= 9~),
                libboost-all-dev,
                libcap-dev,
                libluajit-5.1-dev,
-               libprotobuf-dev,
                libsnmp-dev,
                libsodium-dev,
                libssl-dev,
                libsystemd-dev [linux-any],
                pkg-config,
-               protobuf-compiler,
                ragel,
                systemd [linux-any]
 Homepage: https://www.powerdns.com/

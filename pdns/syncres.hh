@@ -56,12 +56,10 @@
 #include "config.h"
 #endif
 
-#ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #ifdef HAVE_FSTRM
 #include "fstrm_logger.hh"
 #endif /* HAVE_FSTRM */
-#endif
 
 extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
@@ -684,7 +682,6 @@ public:
 
   void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS);
 
-#ifdef HAVE_PROTOBUF
   void setInitialRequestId(boost::optional<const boost::uuids::uuid&> initialRequestId)
   {
     d_initialRequestId = initialRequestId;
@@ -694,7 +691,6 @@ public:
   {
     d_outgoingProtobufServers = servers;
   }
-#endif
 
 #ifdef HAVE_FSTRM
   void setFrameStreamServers(std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& servers)
@@ -875,9 +871,7 @@ private:
   boost::optional<Netmask> d_outgoingECSNetwork;
   std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers{nullptr};
   std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers{nullptr};
-#ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
-#endif
   asyncresolve_t d_asyncResolve{nullptr};
   struct timeval d_now;
   string d_prefix;

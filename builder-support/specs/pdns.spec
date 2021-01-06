@@ -27,8 +27,6 @@ BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 
-BuildRequires: protobuf-devel
-BuildRequires: protobuf-compiler
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
 BuildRequires: boost-devel
@@ -221,7 +219,6 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --enable-ixfrdist
 %else
   --disable-lua-records \
-  --without-protobuf \
   --with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
   CXXFLAGS=-std=gnu++11 \
   CPPFLAGS="${CPPFLAGS} -D__STDC_FORMAT_MACROS"
@@ -363,14 +360,12 @@ fi
 %{_mandir}/man1/sdig.1.gz
 %{_bindir}/dnsbulktest
 %{_bindir}/dnspcap2calidns
+%{_bindir}/dnspcap2protobuf
 %{_bindir}/dnstcpbench
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnspcap2calidns.1.gz
-%{_mandir}/man1/dnstcpbench.1.gz
-%if 0%{?rhel} >= 7
-%{_bindir}/dnspcap2protobuf
 %{_mandir}/man1/dnspcap2protobuf.1.gz
-%endif
+%{_mandir}/man1/dnstcpbench.1.gz
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql

@@ -14,6 +14,7 @@ endif
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnspcap2calidns.1 \
+	dnspcap2protobuf.1 \
 	dnsgram.1 \
 	dnsreplay.1 \
 	dnsscan.1 \
@@ -33,18 +34,11 @@ MANPAGES_TARGET_IXFRDIST = ixfrdist.1 \
 MANPAGES_DIST += $(MANPAGES_TARGET_TOOLS) \
 	$(MANPAGES_TARGET_IXFRDIST) \
 	dnsbulktest.1 \
-	dnstcpbench.1 \
-	dnspcap2protobuf.1
+	dnstcpbench.1
 
 if HAVE_BOOST_GE_148
 MANPAGES_INSTALL += dnsbulktest.1 \
 	dnstcpbench.1
-endif
-
-if HAVE_PROTOBUF
-if HAVE_PROTOC
-MANPAGES_INSTALL += dnspcap2protobuf.1
-endif
 endif
 
 if TOOLS
