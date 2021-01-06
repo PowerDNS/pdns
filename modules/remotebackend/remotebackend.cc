@@ -607,7 +607,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    for(const auto& master: obj["masters"].array_items())
      di.masters.push_back(ComboAddress(master.string_value(), 53));
 
-   di.notified_serial = static_cast<unsigned int>(doubleFromJson(obj, "notified_serial", -1));
+   di.notified_serial = static_cast<unsigned int>(doubleFromJson(obj, "notified_serial", 0));
    di.serial = static_cast<unsigned int>(obj["serial"].number_value());
    di.last_check = static_cast<time_t>(obj["last_check"].number_value());
 
