@@ -38,6 +38,10 @@
 class AggressiveNSECCache
 {
 public:
+  AggressiveNSECCache(uint64_t entries): d_maxEntries(entries)
+  {
+  }
+
   void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3);
   bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC);
 
@@ -67,6 +71,8 @@ public:
   {
     return d_nsec3WildcardHits;
   }
+
+  void prune();
 
 private:
 
@@ -134,7 +140,7 @@ private:
   std::atomic<uint64_t> d_nsecWildcardHits{0};
   std::atomic<uint64_t> d_nsec3WildcardHits{0};
   std::atomic<uint64_t> d_entriesCount{0};
+  uint64_t d_maxEntries{0};
 };
-
 
 extern std::unique_ptr<AggressiveNSECCache> g_aggressiveNSECCache;

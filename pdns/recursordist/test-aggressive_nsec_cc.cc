@@ -10,7 +10,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata_wildcard)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -361,7 +361,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, target);
-  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);  
+  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   ret.clear();
@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("b.powerdns.com."));
-  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);  
+  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
@@ -378,7 +378,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -471,7 +471,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -557,7 +557,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
-  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>();
+  g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(10000);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -744,7 +744,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, target);
-  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);  
+  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   ret.clear();
@@ -753,7 +753,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("b.powerdns.com."));
-  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);  
+  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType::A);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 

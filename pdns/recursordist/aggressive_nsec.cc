@@ -76,7 +76,9 @@ void AggressiveNSECCache::updateEntriesCount()
   /* need to be called while holding a write lock */
   uint64_t counter = 0;
   d_zones.visit([&counter](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
-    counter += node.d_value->d_entries.size();
+    if (node.d_value) {
+      counter += node.d_value->d_entries.size();
+    }
   });
   d_entriesCount = counter;
 }
@@ -99,6 +101,84 @@ void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
     d_zones.remove(zone, false);
     d_entriesCount -= removed;
   }
+}
+
+void AggressiveNSECCache::prune()
+{
+  uint64_t maxNumberOfEntries = d_maxEntries;
+  time_t now = time(nullptr);
+  std::vector<DNSName> emptyEntries;
+
+  uint64_t erased = 0;
+  uint64_t lookedAt = 0;
+  uint64_t toLook = d_entriesCount / 10;
+
+  if (d_entriesCount > maxNumberOfEntries) {
+    uint64_t toErase = d_entriesCount - maxNumberOfEntries;
+    toLook = toErase * 5;
+    // we are full, scan at max 5 * toErase entries and stop once we have nuked enough
+
+    WriteLock rl(d_lock);
+    d_zones.visit([now, &erased, toErase, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+      if (!node.d_value || erased > toErase || lookedAt > toLook) {
+        return;
+      }
+
+      {
+        std::lock_guard<std::mutex> lock(node.d_value->d_lock);
+        auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(node.d_value->d_entries);
+        for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
+          if (it->d_ttd < now) {
+            it = sidx.erase(it);
+            ++erased;
+          }
+          else {
+            ++it;
+          }
+          if (erased > toErase || lookedAt > toLook) {
+            break;
+          }
+        }
+      }
+
+      if (node.d_value->d_entries.size() == 0) {
+        emptyEntries.push_back(node.d_value->d_zone);
+      }
+    });
+  }
+  else {
+    // we are not full, just look through 10% of the cache and nuke everything that is expired
+    WriteLock rl(d_lock);
+
+    d_zones.visit([now, &erased, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+      if (!node.d_value) {
+        return;
+      }
+
+      {
+        std::lock_guard<std::mutex> lock(node.d_value->d_lock);
+
+        auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(node.d_value->d_entries);
+        for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
+          if (it->d_ttd < now || lookedAt > toLook) {
+            it = sidx.erase(it);
+            ++erased;
+          }
+          else {
+            ++it;
+          }
+          if (lookedAt > toLook) {
+            break;
+          }
+        }
+      }
+
+      if (node.d_value->d_entries.size() == 0) {
+        emptyEntries.push_back(node.d_value->d_zone);
+      }
+    });
+  }
+
 }
 
 static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
