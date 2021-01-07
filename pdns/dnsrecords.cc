@@ -880,6 +880,7 @@ void reportOtherTypes()
    URIRecordContent::report();
    CAARecordContent::report();
    APLRecordContent::report();
+   IPSECKEYRecordContent::report();
 }
 
 void reportAllTypes()
