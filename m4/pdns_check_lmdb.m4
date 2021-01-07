@@ -2,7 +2,7 @@ dnl invoking this makes lmdb a requirement
 AC_DEFUN([PDNS_CHECK_LMDB], [
   AC_MSG_CHECKING([where to find the lmdb library and headers])
   AC_ARG_WITH([lmdb],
-    AC_HELP_STRING([--with-lmdb], [lmdb library to use @<:@default=auto@:>@]),[
+    AS_HELP_STRING([--with-lmdb], [lmdb library to use @<:@default=auto@:>@]),[
     with_lmdb=$withval
     ],[
     with_lmdb=auto

@@ -1,9 +1,10 @@
-AC_PREREQ([2.61])
+AC_PREREQ([2.69])
 
 AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
+AC_USE_SYSTEM_EXTENSIONS
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 
@@ -25,7 +26,6 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
-AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 AC_PROG_CXX
@@ -34,10 +34,6 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 )
 
 AC_LANG([C++])
-
-AC_DEFINE([_GNU_SOURCE], [1],
-  [Define _GNU_SOURCE so that we get all necessary prototypes]
-)
 
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])

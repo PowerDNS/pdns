@@ -1,4 +1,4 @@
-AC_PREREQ([2.61])
+AC_PREREQ([2.69])
 
 AC_INIT([pdns-recursor], m4_esyscmd(build-aux/gen-version))
 AC_CONFIG_AUX_DIR([build-aux])
@@ -7,6 +7,7 @@ AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([pdns_recursor.cc])
 AC_CONFIG_MACRO_DIR([m4])
 
+AC_USE_SYSTEM_EXTENSIONS
 AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_HOST
@@ -24,8 +25,6 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
-AC_GNU_SOURCE
-
 AC_DEFINE([RECURSOR], [1],
   [This is the PowerDNS Recursor]
 )
@@ -34,7 +33,7 @@ AC_DEFINE([RECURSOR], [1],
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
 AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
-AC_PROG_LIBTOOL
+LT_INIT()
 
 PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
