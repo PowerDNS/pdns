@@ -38,6 +38,7 @@ sleep 3
 echo
 echo === First run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
+echo
 kill -USR1 $(cat pdns_recursor.pid)
 ${RECCONTROL} --socket-dir=. --config-dir=. get-all
 # rerun 1 with hot cache
@@ -50,14 +51,13 @@ ${RECCONTROL} --socket-dir=. --config-dir=. get-all
 echo
 echo === Third run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
-kill -USR1 $(cat pdns_recursor.pid)
-${RECCONTROL} --socket-dir=. --config-dir=. get-all
-
-sleep 1
 echo
 echo "=== RECURSOR LOG ==="
 cat recursor.log
 echo "=== END RECURSOR LOG ==="
+kill -USR1 $(cat pdns_recursor.pid)
+${RECCONTROL} --socket-dir=. --config-dir=. get-all
+sleep 1
 kill $(cat pdns_recursor.pid) 
 sleep 5
 

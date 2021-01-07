@@ -5210,7 +5210,7 @@ int main(int argc, char **argv)
   int ret = EXIT_SUCCESS;
 
   try {
-#if __SANITIZE_ADDRESS__
+#if HAVE_FIBER_SANITIZER
     // Asan needs more stack
     ::arg().set("stack-size","stack size per mthread")="400000";
 #else

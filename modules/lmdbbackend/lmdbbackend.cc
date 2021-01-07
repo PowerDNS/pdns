@@ -824,7 +824,10 @@ bool LMDBBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
       serFromString(val.get<string_view>(), rr);
 
       if(rr.content.size() >= 5 * sizeof(uint32_t)) {
-        uint32_t serial = *reinterpret_cast<uint32_t*>(&rr.content[rr.content.size() - (5 * sizeof(uint32_t))]);
+        uint32_t serial;
+        // a SOA has five 32 bit fields, the first of which is the serial
+        // there are two variable length names before the serial, so we calculate from the back
+        memcpy(&serial, &rr.content[rr.content.size() - (4 * sizeof(uint32_t))], sizeof(serial));
         di.serial = ntohl(serial);
       }
     }
@@ -939,7 +942,10 @@ void LMDBBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       serFromString(val.get<string_view>(), rr);
 
       if(rr.content.size() >= 5 * sizeof(uint32_t)) {
-        uint32_t serial = *reinterpret_cast<uint32_t*>(&rr.content[rr.content.size() - (5 * sizeof(uint32_t))]);
+        uint32_t serial;
+        // a SOA has five 32 bit fields, the first of which is the serial
+        // there are two variable length names before the serial, so we calculate from the back
+        memcpy(&serial, &rr.content[rr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
         di.serial = ntohl(serial);
       }
     } else if(!include_disabled) {
