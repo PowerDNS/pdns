@@ -87,9 +87,7 @@ namespace pdns {
 
       void setInBytes(uint64_t len)
       {
-        if (len) {
-          add_uint64(d_message, Field::inBytes, len);
-        }
+        add_uint64(d_message, Field::inBytes, len);
       }
 
       void setTime()
