@@ -161,6 +161,18 @@ int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsign
   return 1;
 }
 
+static long libssl_server_name_callback(SSL* ssl, int* al, void* arg)
+{
+  (void) al;
+  (void) arg;
+
+  if (SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name)) {
+    return SSL_TLSEXT_ERR_OK;
+  }
+
+  return SSL_TLSEXT_ERR_NOACK;
+}
+
 static void libssl_info_callback(const SSL *ssl, int where, int ret)
 {
   SSL_CTX* sslCtx = SSL_get_SSL_CTX(ssl);
@@ -684,6 +696,11 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
     SSL_CTX_set_session_cache_mode(ctx.get(), SSL_SESS_CACHE_SERVER);
     SSL_CTX_sess_set_cache_size(ctx.get(), config.d_maxStoredSessions);
   }
+
+  /* we need to set this callback to acknowledge the server name sent by the client,
+     otherwise it will not stored in the session and will not be accessible when the
+     session is resumed, causing SSL_get_servername to return nullptr */
+  SSL_CTX_set_tlsext_servername_callback(ctx.get(), &libssl_server_name_callback);
 
   std::vector<int> keyTypes;
   /* load certificate and private key */
