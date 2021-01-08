@@ -14,8 +14,9 @@ Binary Packages
 Debian-based Systems
 ~~~~~~~~~~~~~~~~~~~~
 
-PowerDNS Authoritative Server is available through the
-`apt <https://packages.debian.org/pdns-server>`__ system.
+PowerDNS Authoritative Server is available through the `apt <https://packages.debian.org/pdns-server>`__ system.
+Your distribution likely ships a package, but we recommend getting more recent packages from `the PowerDNS repositories <https://repo.powerdns.com>`__.
+Please see the instructions on the repo site and then come back here!
 
 .. code-block:: shell
 
@@ -81,4 +82,4 @@ PowerDNS Authoritative Server is available through Homebrew:
 After installation
 ------------------
 
-Once installed, :doc:`guides/basic-database` using MySQL or start :doc:`migrating <migration>` your data.
+Once installed, try :doc:`guides/basic-database` using SQLite 3 or start :doc:`migrating <migration>` your data.
