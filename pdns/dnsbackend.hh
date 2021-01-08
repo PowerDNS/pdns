@@ -263,6 +263,11 @@ public:
     return false;
   }
 
+  virtual bool inTransaction()
+  {
+    return false;
+  }
+
   virtual void reload()
   {
   }
