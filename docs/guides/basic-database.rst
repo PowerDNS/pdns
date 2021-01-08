@@ -15,7 +15,7 @@ or
 
     sudo yum install pdns-backend-sqlite
 
-This backend is called :doc:`'gsqlite3 <../../backends/gsqlite3>'`, and needs to be configured in ``pdns.conf``.
+This backend is called :doc:`'gsqlite3' <../backends/generic-sqlite3>`, and needs to be configured in ``pdns.conf``.
 Add the following lines, adjusted for your local setup:
 
 .. code-block:: ini
@@ -37,21 +37,19 @@ And start PowerDNS
 
 .. code-block:: shell
 
-    $ sudo systemctl start pdns
+    sudo systemctl start pdns
 
 or
 
 .. code-block:: shell
 
-    $ sudo systemctl restart pdns
+    sudo systemctl restart pdns
 
 Make sure no error is reported, and use ``systemctl status pdns`` to make sure PowerDNS was started correctly.
 
-A sample query sent to the server should now return quickly *without* data:
+A sample query sent to the server should now return quickly *without* data::
 
-.. code-block:: shell
-
-     dig a www.example.com @127.0.0.1 
+    $ dig a www.example.com @127.0.0.1
 
     ; <<>> DiG 9.10.3-P4-Debian <<>> a www.example.com @127.0.0.1
     ;; global options: +cmd
@@ -64,23 +62,26 @@ A sample query sent to the server should now return quickly *without* data:
 
 Note the ``REFUSED`` status - this is the code most name servers use to indicate they do not know about a domain.
 
-Now, let's add a zone and some records:
+Now, let's add a zone and some records::
 
-.. code-block:: shell
-
-    $ pdnsutil create-zone example.org ns1.example.com
+    $ sudo -u pdns pdnsutil create-zone example.org ns1.example.com
     Creating empty zone 'example.com'
     Also adding one NS record
-    $ pdnsutil add-record example.com '' MX '25 mail.example.com'
+    $ sudo -u pdns pdnsutil add-record example.com '' MX '25 mail.example.com'
     New rrset:
     example.com. 3005 IN MX 25 mail.example.com
-    $ pdnsutil add-record example.com. www A 192.0.2.1
+    $ sudo -u pdns pdnsutil add-record example.com. www A 192.0.2.1
     New rrset:
     www.example.com. 3005 IN A 192.0.2.1
 
-If we now requery our database, ``www.example.com`` should be present:
+This should be done as the ``pdns`` user (or root), as sqlite3 requires write access to the directory of the database file.
 
-.. code-block:: shell
+.. note::
+  ``pdnsutil`` is a tool that can manipulate zones, set DNSSEC parameters for zones and does :doc:`many other <../manpages/pdnsutil.1>` things.
+  It is *highly* recommended to use ``pdnsutil`` or the :doc:`HTTP API <../http-api/index>` to modify zones instead of using raw SQL,
+  as ``pdnsutil`` and the API perform checks on the data and post-store changes to prevent issues when serving DNS data.
+
+If we now requery our database, ``www.example.com`` should be present::
 
     $ dig +short www.example.com @127.0.0.1
     192.0.2.1
@@ -89,6 +90,8 @@ If we now requery our database, ``www.example.com`` should be present:
     25 mail.example.com
 
 If this is not the output you get, remove ``+short`` to see the full output so you can find out what went wrong.
+The first problem could be that PowerDNS has a :ref:`packet-cache` and a :ref:`query-cache` performance reasons.
+If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`, or :ref:`setting-negquery-cache-ttl`, or :ref:`setting-query-cache-ttl`.
 
 Now, run ``pdnsutil edit-zone example.com`` and try to add a few more records, and query them with dig to make sure they work.
 
@@ -152,8 +155,8 @@ Unable to launch, no backends configured for querying
 You currently don't have a backend configured in the configuration file.
 Add a :ref:`setting-launch` statement for the backend you want to use.
 
-If you are following this guide and using a MySQL database as a backend,
-please add the ``launch=gmysql`` instruction to pdns.conf.
+If you are following this guide and using an sqlite database as a backend,
+please add the ``launch=gsqlite3`` instruction to pdns.conf.
 
 Multiple IP addresses on your server, PowerDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
