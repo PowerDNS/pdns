@@ -150,8 +150,8 @@ class TLSTests(object):
 
         # this SNI should match so we should get a spoofed answer
         sslctx = ssl.SSLContext(protocol=ssl.PROTOCOL_TLSv1_2)
-        sslctx.check_hostname = True
         sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.check_hostname = True
         sslctx.load_verify_locations(self._caCert)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
