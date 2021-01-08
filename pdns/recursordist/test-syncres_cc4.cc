@@ -1291,10 +1291,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
   generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
+  /* make sure that the signature inception and validity times are computed
+     based on the SyncRes time, not the current one, in case the function
+     takes too long. */
+  const time_t fixedNow = sr->getNow().tv_sec;
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, &queriesCount, keys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1306,7 +1310,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
         addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
       }
 
-      addRRSIG(keys, res->d_records, domain, 300, true);
+      addRRSIG(keys, res->d_records, domain, 300, true, boost::none, boost::none, fixedNow);
 
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
@@ -1318,7 +1322,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
       setLWResult(res, 0, true, false, true);
 
       addDNSKEY(keys, domain, 300, res->d_records);
-      addRRSIG(keys, res->d_records, domain, 300);
+      addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, fixedNow);
 
       return LWResult::Result::Success;
     }
