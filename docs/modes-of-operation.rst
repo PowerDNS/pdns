@@ -202,8 +202,8 @@ must be met:
 
 
 - :ref:`setting-superslave` support must be enabled
-- The supermaster must carry a SOA record for the notified domain corresponding with one of the NS records for that domain
-- The supermaster IP must be present in the 'supermasters' table in the database on the slave, along with the name mentioned in the SOA
+- The supermaster must carry a SOA record for the notified domain
+- The supermaster IP must be present in the 'supermasters' table in the database on the slave, along with any name that is in the NS set.
 - The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermasters table
 - If your master sends signed NOTIFY it will mark that TSIG key as the TSIG key used for retrieval as well
 - If you turn off :ref:`setting-allow-unsigned-supermaster`, then your supermaster(s) are required to sign their notifications.
