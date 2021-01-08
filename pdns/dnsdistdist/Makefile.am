@@ -86,7 +86,6 @@ EXTRA_DIST=COPYING \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   contrib \
 	   incfiles \
 	   src_js \
 	   dnsdist.service.in \

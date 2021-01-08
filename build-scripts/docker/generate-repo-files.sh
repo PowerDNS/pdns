@@ -53,7 +53,7 @@ FROM $OS:$VERSION
 RUN yum install -y epel-release bind-utils
 EOF
 
-    if [ "$VERSION" = "6" -o "$VERSION" = "7" ]; then
+    if [ "$VERSION" = "7" ]; then
         cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 RUN yum install -y yum-plugin-priorities
 EOF
@@ -166,66 +166,44 @@ RELEASE=$1
 
 # It would be smarter to list the supported products per distro by now.
 if [ "$RELEASE" = "auth-41" ]; then
-    write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
 elif [ "$RELEASE" = "auth-42" ]; then
-    write_centos 6 pdns pdns_server
     write_centos 7 pdns pdns_server
     write_centos 8 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
     write_debian buster pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
 elif [ "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o "$RELEASE" = "auth-master" ]; then
     if [ "$RELEASE" != "auth-44" ]; then write_centos 6 pdns pdns_server; fi
     write_centos 7 pdns pdns_server
     write_centos 8 pdns pdns_server
-    write_debian stretch pdns-server pdns_server
     write_debian buster pdns-server pdns_server
-    write_ubuntu xenial pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
     write_ubuntu focal pdns-server pdns_server
 elif [ "$RELEASE" = "rec-41" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-42" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
     write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-43" ]; then
-    write_centos 6 pdns-recursor pdns_recursor
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
     write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
     write_ubuntu focal pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
-    write_debian stretch pdns-recursor pdns_recursor
     write_debian buster pdns-recursor pdns_recursor
-    write_ubuntu xenial pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
     write_ubuntu focal pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
-    write_centos 6 dnsdist dnsdist
     write_centos 7 dnsdist dnsdist
     write_centos 8 dnsdist dnsdist
-    write_debian stretch dnsdist dnsdist
     write_debian buster dnsdist dnsdist
-    write_ubuntu xenial dnsdist dnsdist
     write_ubuntu bionic dnsdist dnsdist
     write_ubuntu focal dnsdist dnsdist
 else

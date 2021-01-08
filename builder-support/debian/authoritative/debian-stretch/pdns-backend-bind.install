@@ -1,3 +1,0 @@
-debian/config/bind.conf etc/powerdns/pdns.d/
-debian/config/named.conf etc/powerdns/
-usr/lib/*/pdns/libbindbackend.so*
