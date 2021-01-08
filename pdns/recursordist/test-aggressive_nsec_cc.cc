@@ -757,4 +757,168 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
+{
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  DNSRecord rec;
+  rec.d_name = DNSName("www.powerdns.com");
+  rec.d_type = QType::NSEC;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.d_content = getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC");
+  auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  rec.d_name = DNSName("z.powerdns.com");
+  rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  rec.d_name = DNSName("www.powerdns.org");
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.d_content = getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3");
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+
+  /* remove just that zone */
+  cache->removeZoneInfo(DNSName("powerdns.org"), false);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+
+  /* add it back */
+  cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+
+  /* remove everything under .org (which should end up in the same way) */
+  cache->removeZoneInfo(DNSName("org."), true);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+
+  /* add it back */
+  cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+
+  /* remove everything */
+  cache->removeZoneInfo(DNSName("."), true);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
+{
+  auto cache = make_unique<AggressiveNSECCache>(2);
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  DNSRecord rec;
+  rec.d_name = DNSName("www.powerdns.com");
+  rec.d_type = QType::NSEC;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.d_content = getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC");
+  auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  rec.d_name = DNSName("z.powerdns.com");
+  rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+  /* we are at the limit of the number of entries, so we will scan 1/5th of the entries,
+     and prune the expired ones, which mean we should not remove anything */
+  cache->prune(now.tv_sec);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+
+  rec.d_name = DNSName("www.powerdns.org");
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.d_content = getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3");
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+
+  /* we have set a upper bound to 2 entries, so we are above,
+     and all entries are actually expired, so we will prune one entry
+     to get below the limit */
+  cache->prune(now.tv_sec + 600);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+
+  /* now we are at the limit, so we will scan 1/5th of the entries,
+     and prune the expired ones, which mean we will also remove only one */
+  cache->prune(now.tv_sec + 600);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+
+  /* now we are below the limit, so we will scan 1/5th of the entries again,
+     and prune the expired ones, which mean we will remove the last one */
+  cache->prune(now.tv_sec + 600);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
+{
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+
+  std::vector<std::string> expected;
+  expected.push_back("; Zone powerdns.com.\n");
+  expected.push_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
+  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.push_back("z.powerdns.com. 10 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
+  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.push_back("; Zone powerdns.org.\n");
+  expected.push_back("www.powerdns.org. 10 IN NSEC3 1 0 500 ab HASG==== A RRSIG NSEC3\n");
+  expected.push_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  DNSRecord rec;
+  rec.d_name = DNSName("www.powerdns.com");
+  rec.d_type = QType::NSEC;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.d_content = getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC");
+  auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  rec.d_name = DNSName("z.powerdns.com");
+  rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  rec.d_name = DNSName("www.powerdns.org");
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now.tv_sec + 10;
+  rec.d_content = getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3");
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
+  if (!fp) {
+    BOOST_FAIL("Temporary file could not be opened");
+  }
+
+  BOOST_CHECK_EQUAL(cache->dumpToFile(fp, now), 3);
+
+  rewind(fp.get());
+  char* line = nullptr;
+  size_t len = 0;
+  ssize_t read;
+
+  for (auto str : expected) {
+    read = getline(&line, &len, fp.get());
+    if (read == -1) {
+      BOOST_FAIL("Unable to read a line from the temp file");
+    }
+    BOOST_CHECK_EQUAL(line, str);
+  }
+
+  /* getline() allocates a buffer when called with a nullptr,
+     then reallocates it when needed, but we need to free the
+     last allocation if any. */
+  free(line);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

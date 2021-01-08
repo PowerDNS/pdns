@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <cinttypes>
 
 #include "aggressive_nsec.hh"
 #include "cachecleaner.hh"
@@ -86,16 +87,17 @@ void AggressiveNSECCache::updateEntriesCount()
 void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
 {
   WriteLock rl(d_lock);
-  auto got = d_zones.lookup(zone);
-  if (!got || !*got || (*got)->d_zone != zone) {
-    return;
-  }
 
   if (subzones) {
     d_zones.remove(zone, true);
     updateEntriesCount();
   }
   else {
+    auto got = d_zones.lookup(zone);
+    if (!got || !*got || (*got)->d_zone != zone) {
+      return;
+    }
+
     std::lock_guard<std::mutex> lock((*got)->d_lock);
     auto removed = (*got)->d_entries.size();
     d_zones.remove(zone, false);
@@ -103,15 +105,14 @@ void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
   }
 }
 
-void AggressiveNSECCache::prune()
+void AggressiveNSECCache::prune(time_t now)
 {
   uint64_t maxNumberOfEntries = d_maxEntries;
-  time_t now = time(nullptr);
   std::vector<DNSName> emptyEntries;
 
   uint64_t erased = 0;
   uint64_t lookedAt = 0;
-  uint64_t toLook = d_entriesCount / 10;
+  uint64_t toLook = std::max(d_entriesCount / 5U, static_cast<uint64_t>(1U));
 
   if (d_entriesCount > maxNumberOfEntries) {
     uint64_t toErase = d_entriesCount - maxNumberOfEntries;
@@ -128,15 +129,16 @@ void AggressiveNSECCache::prune()
         std::lock_guard<std::mutex> lock(node.d_value->d_lock);
         auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(node.d_value->d_entries);
         for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
+          if (erased >= toErase || lookedAt >= toLook) {
+            break;
+          }
+
           if (it->d_ttd < now) {
             it = sidx.erase(it);
             ++erased;
           }
           else {
             ++it;
-          }
-          if (erased > toErase || lookedAt > toLook) {
-            break;
           }
         }
       }
@@ -160,15 +162,15 @@ void AggressiveNSECCache::prune()
 
         auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(node.d_value->d_entries);
         for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
+          if (lookedAt >= toLook) {
+            break;
+          }
           if (it->d_ttd < now || lookedAt > toLook) {
             it = sidx.erase(it);
             ++erased;
           }
           else {
             ++it;
-          }
-          if (lookedAt > toLook) {
-            break;
           }
         }
       }
@@ -179,6 +181,7 @@ void AggressiveNSECCache::prune()
     });
   }
 
+  d_entriesCount -= erased;
 }
 
 static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
@@ -713,4 +716,38 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   LOG("Found valid NSECs covering the requested name and type!"<<endl);
   ++d_nsecHits;
   return true;
+}
+
+size_t AggressiveNSECCache::dumpToFile(std::unique_ptr<FILE, int(*)(FILE*)>& fp, const struct timeval& now)
+{
+  size_t ret = 0;
+
+  ReadLock rl(d_lock);
+  d_zones.visit([&ret, now, &fp](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+    if (!node.d_value) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(node.d_value->d_lock);
+    fprintf(fp.get(), "; Zone %s\n", node.d_value->d_zone.toString().c_str());
+
+    for (const auto& entry : node.d_value->d_entries) {
+      int64_t ttl = entry.d_ttd - now.tv_sec;
+      try {
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s\n", entry.d_owner.toString().c_str(), ttl, node.d_value->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str());
+        for (const auto& signature : entry.d_signatures) {
+          fprintf(fp.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
+        }
+        ++ret;
+      }
+      catch (const std::exception& e) {
+        fprintf(fp.get(), "; Error dumping record from zone %s: %s\n", node.d_value->d_zone.toString().c_str(), e.what());
+      }
+      catch (...) {
+        fprintf(fp.get(), "; Error dumping record from zone %s\n", node.d_value->d_zone.toString().c_str());
+      }
+    }
+  });
+
+  return ret;
 }

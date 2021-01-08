@@ -292,7 +292,6 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
   rrc.d_siginception = inception ? *inception : (*now - 10);
   rrc.d_sigexpire = *now + sigValidity;
   rrc.d_signer = signer;
-  rrc.d_tag = 0;
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = algo ? *algo : drc.d_algorithm;
 

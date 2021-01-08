@@ -72,7 +72,8 @@ public:
     return d_nsec3WildcardHits;
   }
 
-  void prune();
+  void prune(time_t now);
+  size_t dumpToFile(std::unique_ptr<FILE, int(*)(FILE*)>& fp, const struct timeval& now);
 
 private:
 
