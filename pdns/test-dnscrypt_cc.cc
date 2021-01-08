@@ -157,8 +157,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
     requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
-  plainQuery.reserve(requiredSize);
   uint16_t len = plainQuery.size();
+  plainQuery.resize(requiredSize);
   uint16_t encryptedResponseLen = 0;
 
   int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
@@ -245,9 +245,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
     requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
-  plainQuery.reserve(requiredSize);
-
   uint16_t len = plainQuery.size();
+  plainQuery.resize(requiredSize);
   uint16_t encryptedResponseLen = 0;
 
   int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
@@ -308,9 +307,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
     requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
-  plainQuery.reserve(requiredSize);
-
   uint16_t len = plainQuery.size();
+  plainQuery.resize(requiredSize);
   uint16_t encryptedResponseLen = 0;
 
   int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
