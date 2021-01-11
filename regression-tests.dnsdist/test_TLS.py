@@ -160,12 +160,14 @@ class TLSTests(object):
         sslsock = sslctx.wrap_socket(sock, server_hostname='powerdns.com')
         sslsock.connect(("127.0.0.1", self._tlsServerPort))
 
+        if not hasattr(sslsock, 'session') or not hasattr(sslsock, 'session_reused'):
+            self.skipTest('the python ssl library does not have TLS session support')
+
         self.sendTCPQueryOverConnection(sslsock, query, response=None)
         receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEquals(expectedResponse, receivedResponse)
-        if hasattr(sslsock, 'session_reused'):
-            self.assertFalse(sslsock.session_reused)
+        self.assertFalse(sslsock.session_reused)
         session = sslsock.session
 
         # this one should not (different SNI)
@@ -182,8 +184,7 @@ class TLSTests(object):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
-        if hasattr(sslsock, 'session_reused'):
-            self.assertFalse(sslsock.session_reused)
+        self.assertFalse(sslsock.session_reused)
 
         # and now we should be able to resume the session
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -197,8 +198,7 @@ class TLSTests(object):
         receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEquals(expectedResponse, receivedResponse)
-        if hasattr(sslsock, 'session_reused'):
-            self.assertTrue(sslsock.session_reused)
+        self.assertTrue(sslsock.session_reused)
 
 class TestOpenSSL(DNSDistTest, TLSTests):
 
