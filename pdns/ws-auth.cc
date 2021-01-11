@@ -26,7 +26,6 @@
 #include "dynlistener.hh"
 #include "ws-auth.hh"
 #include "json.hh"
-#include "webserver.hh"
 #include "logger.hh"
 #include "statbag.hh"
 #include "misc.hh"
@@ -66,7 +65,7 @@ AuthWebServer::AuthWebServer() :
   d_min1(0)
 {
   if(arg().mustDo("webserver") || arg().mustDo("api")) {
-    d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
+    d_ws = unique_ptr<WebServer>(new WebServer(arg()["webserver-address"], arg().asNum("webserver-port")));
     d_ws->setApiKey(arg()["api-key"]);
     d_ws->setPassword(arg()["webserver-password"]);
     d_ws->setLogLevel(arg()["webserver-loglevel"]);

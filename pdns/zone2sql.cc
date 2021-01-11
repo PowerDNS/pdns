@@ -141,7 +141,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
   int disabled=0;
   string recordcomment;
 
-  if(g_doJSONComments & !comment.empty()) {
+  if(g_doJSONComments && !comment.empty()) {
     string::size_type pos = comment.find("json={");
     if(pos!=string::npos) {
       string json = comment.substr(pos+5);
