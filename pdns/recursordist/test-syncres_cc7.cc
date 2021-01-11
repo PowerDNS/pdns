@@ -1583,7 +1583,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
   BOOST_CHECK_EQUAL(queriesCount, 11U);
 
   /* now we remove the denial of powerdns.com DS from the cache and ask www2 */
-  BOOST_REQUIRE_EQUAL(g_negCache->wipe(target, false), 1);
+  BOOST_REQUIRE_EQUAL(g_negCache->wipe(target, false), 1U);
   ret.clear();
   res = sr->beginResolve(DNSName("www2.powerdns.com."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -1706,7 +1706,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_cname_inside_secure_zone)
   BOOST_CHECK_EQUAL(queriesCount, 10U);
 
   /* now we remove the denial of powerdns.com DS from the cache and ask www2 */
-  BOOST_REQUIRE_EQUAL(g_negCache->wipe(target, false), 1);
+  BOOST_REQUIRE_EQUAL(g_negCache->wipe(target, false), 1U);
   ret.clear();
   res = sr->beginResolve(DNSName("www2.powerdns.com."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);

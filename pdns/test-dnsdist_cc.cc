@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(test_addXPF)
     DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
 
     BOOST_REQUIRE(!addXPF(dq, xpfOptionCode));
-    BOOST_CHECK_EQUAL(packet.size(), 4096);
+    BOOST_CHECK_EQUAL(packet.size(), 4096U);
     packet.resize(query.size());
     validateQuery(packet, false, false);
   }
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
 
   BOOST_CHECK(handleEDNSClientSubnet(dq2, ednsAdded, ecsAdded));
   BOOST_CHECK_GT(packet.size(), query.size());
-  BOOST_CHECK_LT(packet.size(), 2048);
+  BOOST_CHECK_LT(packet.size(), 2048U);
   BOOST_CHECK_EQUAL(ednsAdded, true);
   BOOST_CHECK_EQUAL(ecsAdded, true);
   validateQuery(packet);
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECSAlreadyParsed) {
 
   BOOST_CHECK(handleEDNSClientSubnet(dq2, ednsAdded, ecsAdded));
   BOOST_CHECK_GT(packet.size(), query.size());
-  BOOST_CHECK_LT(packet.size(), 2048);
+  BOOST_CHECK_LT(packet.size(), 2048U);
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, true);
   validateQuery(packet);
