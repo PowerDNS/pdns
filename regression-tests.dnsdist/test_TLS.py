@@ -164,7 +164,8 @@ class TLSTests(object):
         receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEquals(expectedResponse, receivedResponse)
-        self.assertFalse(sslsock.session_reused)
+        if hasattr(sslsock, 'session_reused'):
+            self.assertFalse(sslsock.session_reused)
         session = sslsock.session
 
         # this one should not (different SNI)
@@ -181,7 +182,8 @@ class TLSTests(object):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
-        self.assertFalse(sslsock.session_reused)
+        if hasattr(sslsock, 'session_reused'):
+            self.assertFalse(sslsock.session_reused)
 
         # and now we should be able to resume the session
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -195,7 +197,8 @@ class TLSTests(object):
         receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
         self.assertTrue(receivedResponse)
         self.assertEquals(expectedResponse, receivedResponse)
-        self.assertTrue(sslsock.session_reused)
+        if hasattr(sslsock, 'session_reused'):
+            self.assertTrue(sslsock.session_reused)
 
 class TestOpenSSL(DNSDistTest, TLSTests):
 
