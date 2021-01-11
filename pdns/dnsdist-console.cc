@@ -80,30 +80,39 @@ static string historyFile(const bool &ignoreHOME = false)
 }
 
 static bool getMsgLen32(int fd, uint32_t* len)
-try
 {
-  uint32_t raw;
-  size_t ret = readn2(fd, &raw, sizeof raw);
-  if(ret != sizeof raw)
+  try
+  {
+    uint32_t raw;
+    size_t ret = readn2(fd, &raw, sizeof raw);
+
+    if (ret != sizeof raw) {
+      return false;
+    }
+
+    *len = ntohl(raw);
+    if (*len > g_consoleOutputMsgMaxSize) {
+      return false;
+    }
+
+    return true;
+  }
+  catch(...) {
     return false;
-  *len = ntohl(raw);
-  if(*len > g_consoleOutputMsgMaxSize)
-    return false;
-  return true;
-}
-catch(...) {
-   return false;
+  }
 }
 
 static bool putMsgLen32(int fd, uint32_t len)
-try
 {
-  uint32_t raw = htonl(len);
-  size_t ret = writen2(fd, &raw, sizeof raw);
-  return ret==sizeof raw;
-}
-catch(...) {
-  return false;
+  try
+  {
+    uint32_t raw = htonl(len);
+    size_t ret = writen2(fd, &raw, sizeof raw);
+    return ret == sizeof raw;
+  }
+  catch(...) {
+    return false;
+  }
 }
 
 static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
@@ -673,171 +682,175 @@ char** my_completion( const char * text , int start,  int end)
 }
 
 static void controlClientThread(int fd, ComboAddress client)
-try
 {
-  setThreadName("dnsdist/conscli");
-  setTCPNoDelay(fd);
-  SodiumNonce theirs, ours, readingNonce, writingNonce;
-  ours.init();
-  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
-  writen2(fd, (char*)ours.value, sizeof(ours.value));
-  readingNonce.merge(ours, theirs);
-  writingNonce.merge(theirs, ours);
+  try
+  {
+    setThreadName("dnsdist/conscli");
+    setTCPNoDelay(fd);
+    SodiumNonce theirs, ours, readingNonce, writingNonce;
+    ours.init();
+    readn2(fd, (char*)theirs.value, sizeof(theirs.value));
+    writen2(fd, (char*)ours.value, sizeof(ours.value));
+    readingNonce.merge(ours, theirs);
+    writingNonce.merge(theirs, ours);
 
-  for(;;) {
-    uint32_t len;
-    if(!getMsgLen32(fd, &len))
-      break;
+    for(;;) {
+      uint32_t len;
+      if(!getMsgLen32(fd, &len))
+        break;
 
-    if (len == 0) {
-      /* just ACK an empty message
-         with an empty response */
-      putMsgLen32(fd, 0);
-      continue;
-    }
+      if (len == 0) {
+        /* just ACK an empty message
+           with an empty response */
+        putMsgLen32(fd, 0);
+        continue;
+      }
 
-    boost::scoped_array<char> msg(new char[len]);
-    readn2(fd, msg.get(), len);
+      boost::scoped_array<char> msg(new char[len]);
+      readn2(fd, msg.get(), len);
 
-    string line(msg.get(), len);
+      string line(msg.get(), len);
 
-    line = sodDecryptSym(line, g_consoleKey, readingNonce);
-    //    cerr<<"Have decrypted line: "<<line<<endl;
-    string response;
-    try {
-      bool withReturn=true;
-    retry:;
+      line = sodDecryptSym(line, g_consoleKey, readingNonce);
+      //    cerr<<"Have decrypted line: "<<line<<endl;
+      string response;
       try {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        bool withReturn=true;
+      retry:;
+        try {
+          std::lock_guard<std::mutex> lock(g_luamutex);
         
-        g_outputBuffer.clear();
-        resetLuaSideEffect();
-        auto ret=g_lua.executeCode<
-          boost::optional<
-            boost::variant<
-              string, 
-              shared_ptr<DownstreamState>,
-              ClientState*,
-              std::unordered_map<string, double>
+          g_outputBuffer.clear();
+          resetLuaSideEffect();
+          auto ret=g_lua.executeCode<
+            boost::optional<
+              boost::variant<
+                string, 
+                shared_ptr<DownstreamState>,
+                ClientState*,
+                std::unordered_map<string, double>
+                >
               >
-            >
-          >(withReturn ? ("return "+line) : line);
+            >(withReturn ? ("return "+line) : line);
 
-      if(ret) {
-        if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-          if (*dsValue) {
-            response=(*dsValue)->getName()+"\n";
-          } else {
-            response="";
+          if(ret) {
+            if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+              if (*dsValue) {
+                response=(*dsValue)->getName()+"\n";
+              } else {
+                response="";
+              }
+            }
+            else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
+              if (*csValue) {
+                response=(*csValue)->local.toStringWithPort()+"\n";
+              } else {
+                response="";
+              }
+            }
+            else if (const auto strValue = boost::get<string>(&*ret)) {
+              response=*strValue+"\n";
+            }
+            else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
+              using namespace json11;
+              Json::object o;
+              for(const auto& v : *um)
+                o[v.first]=v.second;
+              Json out = o;
+              response=out.dump()+"\n";
+            }
           }
+          else
+            response=g_outputBuffer;
+          if(!getLuaNoSideEffect())
+            feedConfigDelta(line);
         }
-        else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
-          if (*csValue) {
-            response=(*csValue)->local.toStringWithPort()+"\n";
-          } else {
-            response="";
+        catch(const LuaContext::SyntaxErrorException&) {
+          if(withReturn) {
+            withReturn=false;
+            goto retry;
           }
-        }
-        else if (const auto strValue = boost::get<string>(&*ret)) {
-          response=*strValue+"\n";
-        }
-        else if(const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
-          using namespace json11;
-          Json::object o;
-          for(const auto& v : *um)
-            o[v.first]=v.second;
-          Json out = o;
-          response=out.dump()+"\n";
+          throw;
         }
       }
-      else
-	response=g_outputBuffer;
-      if(!getLuaNoSideEffect())
-        feedConfigDelta(line);
+      catch(const LuaContext::WrongTypeException& e) {
+        response = "Command returned an object we can't print: " +std::string(e.what()) + "\n";
+        // tried to return something we don't understand
       }
-      catch(const LuaContext::SyntaxErrorException&) {
-        if(withReturn) {
-          withReturn=false;
-          goto retry;
+      catch(const LuaContext::ExecutionErrorException& e) {
+        if(!strcmp(e.what(),"invalid key to 'next'"))
+          response = "Error: Parsing function parameters, did you forget parameter name?";
+        else
+          response = "Error: " + string(e.what());
+        try {
+          std::rethrow_if_nested(e);
+        } catch(const std::exception& ne) {
+          // ne is the exception that was thrown from inside the lambda
+          response+= ": " + string(ne.what());
         }
-        throw;
+        catch(const PDNSException& ne) {
+          // ne is the exception that was thrown from inside the lambda
+          response += ": " + string(ne.reason);
+        }
       }
-    }
-    catch(const LuaContext::WrongTypeException& e) {
-      response = "Command returned an object we can't print: " +std::string(e.what()) + "\n";
-      // tried to return something we don't understand
-    }
-    catch(const LuaContext::ExecutionErrorException& e) {
-      if(!strcmp(e.what(),"invalid key to 'next'"))
-        response = "Error: Parsing function parameters, did you forget parameter name?";
-      else
-        response = "Error: " + string(e.what());
-      try {
-        std::rethrow_if_nested(e);
-      } catch(const std::exception& ne) {
-        // ne is the exception that was thrown from inside the lambda
-        response+= ": " + string(ne.what());
+      catch(const LuaContext::SyntaxErrorException& e) {
+        response = "Error: " + string(e.what()) + ": ";
       }
-      catch(const PDNSException& ne) {
-        // ne is the exception that was thrown from inside the lambda
-        response += ": " + string(ne.reason);
-      }
+      response = sodEncryptSym(response, g_consoleKey, writingNonce);
+      putMsgLen32(fd, response.length());
+      writen2(fd, response.c_str(), response.length());
     }
-    catch(const LuaContext::SyntaxErrorException& e) {
-      response = "Error: " + string(e.what()) + ": ";
+    if (g_logConsoleConnections) {
+      infolog("Closed control connection from %s", client.toStringWithPort());
     }
-    response = sodEncryptSym(response, g_consoleKey, writingNonce);
-    putMsgLen32(fd, response.length());
-    writen2(fd, response.c_str(), response.length());
-  }
-  if (g_logConsoleConnections) {
-    infolog("Closed control connection from %s", client.toStringWithPort());
-  }
-  close(fd);
-  fd=-1;
-}
-catch(std::exception& e)
-{
-  errlog("Got an exception in client connection from %s: %s", client.toStringWithPort(), e.what());
-  if(fd >= 0)
     close(fd);
+    fd=-1;
+  }
+  catch (const std::exception& e)
+  {
+    errlog("Got an exception in client connection from %s: %s", client.toStringWithPort(), e.what());
+    if(fd >= 0)
+      close(fd);
+  }
 }
 
 void controlThread(int fd, ComboAddress local)
-try
 {
-  setThreadName("dnsdist/control");
-  ComboAddress client;
-  int sock;
-  auto localACL = g_consoleACL.getLocal();
-  infolog("Accepting control connections on %s", local.toStringWithPort());
+  try
+  {
+    setThreadName("dnsdist/control");
+    ComboAddress client;
+    int sock;
+    auto localACL = g_consoleACL.getLocal();
+    infolog("Accepting control connections on %s", local.toStringWithPort());
 
-  while ((sock = SAccept(fd, client)) >= 0) {
+    while ((sock = SAccept(fd, client)) >= 0) {
 
-    if (!sodIsValidKey(g_consoleKey)) {
-      vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
-      close(sock);
-      continue;
+      if (!sodIsValidKey(g_consoleKey)) {
+        vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
+        close(sock);
+        continue;
+      }
+
+      if (!localACL->match(client)) {
+        vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());
+        close(sock);
+        continue;
+      }
+
+      if (g_logConsoleConnections) {
+        warnlog("Got control connection from %s", client.toStringWithPort());
+      }
+
+      std::thread t(controlClientThread, sock, client);
+      t.detach();
     }
-
-    if (!localACL->match(client)) {
-      vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());
-      close(sock);
-      continue;
-    }
-
-    if (g_logConsoleConnections) {
-      warnlog("Got control connection from %s", client.toStringWithPort());
-    }
-
-    std::thread t(controlClientThread, sock, client);
-    t.detach();
   }
-}
-catch(const std::exception& e)
-{
-  close(fd);
-  errlog("Control connection died: %s", e.what());
+  catch (const std::exception& e)
+  {
+    close(fd);
+    errlog("Control connection died: %s", e.what());
+  }
 }
 
 void clearConsoleHistory()

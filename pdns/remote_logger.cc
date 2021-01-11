@@ -173,62 +173,63 @@ void RemoteLogger::queueData(const std::string& data)
   ++d_queued;
 }
 
-void RemoteLogger::maintenanceThread()
-try
+void RemoteLogger::maintenanceThread() 
 {
+  try {
 #ifdef WE_ARE_RECURSOR
-  string threadName = "pdns-r/remLog";
+    string threadName = "pdns-r/remLog";
 #else
-  string threadName = "dnsdist/remLog";
+    string threadName = "dnsdist/remLog";
 #endif
-  setThreadName(threadName);
+    setThreadName(threadName);
 
-  for (;;) {
-    if (d_exiting) {
-      break;
-    }
+    for (;;) {
+      if (d_exiting) {
+        break;
+      }
 
-    bool connected = true;
-    if (d_socket == nullptr) {
-      // if it was unset, it will remain so, we are the only ones setting it!
-      connected = reconnect();
-    }
+      bool connected = true;
+      if (d_socket == nullptr) {
+        // if it was unset, it will remain so, we are the only ones setting it!
+        connected = reconnect();
+      }
 
-    /* we will just go to sleep if the reconnection just failed */
-    if (connected) {
-      try {
-        /* we don't want to take the lock while trying to reconnect */
-        std::lock_guard<std::mutex> lock(d_mutex);
-        if (d_socket) { // check if it is set
-          /* if flush() returns false, it means that we couldn't flush anything yet
-             either because there is nothing to flush, or because the outgoing TCP
-             buffer is full. That's fine by us */
-          d_writer.flush(d_socket->getHandle());
+      /* we will just go to sleep if the reconnection just failed */
+      if (connected) {
+        try {
+          /* we don't want to take the lock while trying to reconnect */
+          std::lock_guard<std::mutex> lock(d_mutex);
+          if (d_socket) { // check if it is set
+            /* if flush() returns false, it means that we couldn't flush anything yet
+               either because there is nothing to flush, or because the outgoing TCP
+               buffer is full. That's fine by us */
+            d_writer.flush(d_socket->getHandle());
+          }
+          else {
+            connected = false;
+          }
         }
-        else {
+        catch(const std::exception& e) {
+          d_socket.reset();
           connected = false;
         }
-      }
-      catch(const std::exception& e) {
-        d_socket.reset();
-        connected = false;
+
+        if (!connected) {
+          /* let's try to reconnect right away, we are about to sleep anyway */
+          reconnect();
+        }
       }
 
-      if (!connected) {
-        /* let's try to reconnect right away, we are about to sleep anyway */
-        reconnect();
-      }
+      sleep(d_reconnectWaitTime);
     }
-
-    sleep(d_reconnectWaitTime);
   }
-}
-catch(const std::exception& e)
-{
-  cerr << "Remote Logger's maintenance thead died on: " << e.what() << endl;
-}
-catch(...) {
-  cerr << "Remote Logger's maintenance thead died on unknown exception" << endl;
+  catch (const std::exception& e)
+  {
+    cerr << "Remote Logger's maintenance thead died on: " << e.what() << endl;
+  }
+  catch (...) {
+    cerr << "Remote Logger's maintenance thead died on unknown exception" << endl;
+  }
 }
 
 RemoteLogger::~RemoteLogger()

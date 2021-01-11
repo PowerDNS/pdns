@@ -775,156 +775,157 @@ static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote
   For POST, the payload is the payload.
  */
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
-try
 {
-  if (!req->conn->ctx->storage.size) {
-    return 0; // although we might was well crash on this
-  }
-  h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
-  ComboAddress remote;
-  ComboAddress local;
+  try {
+    if (!req->conn->ctx->storage.size) {
+      return 0; // although we might was well crash on this
+    }
+    h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
+    ComboAddress remote;
+    ComboAddress local;
 
-  if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
-    /* getpeername failed, likely because the connection has already been closed,
-       but anyway that means we can't get the remote address, which could allow an ACL bypass */
-    h2o_send_error_500(req, getReasonFromStatusCode(500).c_str(), "Internal Server Error - Unable to get remote address", 0);
-    return 0;
-  }
-
-  h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
-  DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
-
-  if (dsc->df->d_trustForwardedForHeader) {
-    processForwardedForHeader(req, remote);
-  }
-
-  auto& holders = dsc->holders;
-  if (!holders.acl->match(remote)) {
-    ++g_stats.aclDrops;
-    vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
-    h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
-    return 0;
-  }
-
-  if (h2o_socket_get_ssl_session_reused(sock) == 0) {
-    ++dsc->cs->tlsNewSessions;
-  }
-  else {
-    ++dsc->cs->tlsResumptions;
-  }
-
-  const int descriptor = h2o_socket_get_fd(sock);
-  if (descriptor != -1) {
-    ++t_conns.at(descriptor).d_nbQueries;
-  }
-
-  if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
-    if(!strcmp(tlsversion, "TLSv1.0"))
-      ++dsc->cs->tls10queries;
-    else if(!strcmp(tlsversion, "TLSv1.1"))
-      ++dsc->cs->tls11queries;
-    else if(!strcmp(tlsversion, "TLSv1.2"))
-      ++dsc->cs->tls12queries;
-    else if(!strcmp(tlsversion, "TLSv1.3"))
-      ++dsc->cs->tls13queries;
-    else
-      ++dsc->cs->tlsUnknownqueries;
-  }
-
-  // would be nice to be able to use a pdns_string_view there, but we would need heterogeneous lookups
-  // (having string in the set and compare them to string_view, for example. Note that comparing
-  // two boost::string_view uses the pointer, not the content).
-  const std::string pathOnly(req->path_normalized.base, req->path_normalized.len);
-  if (dsc->paths.count(pathOnly) == 0) {
-    h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
-    return 0;
-  }
-
-  // would be nice to be able to use a pdns_string_view there,
-  // but regex (called by matches() internally) requires a null-terminated string
-  string path(req->path.base, req->path.len);
-  for (const auto& entry : dsc->df->d_responsesMap) {
-    if (entry->matches(path)) {
-      const auto& customHeaders = entry->getHeaders();
-      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
+    if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
+      /* getpeername failed, likely because the connection has already been closed,
+         but anyway that means we can't get the remote address, which could allow an ACL bypass */
+      h2o_send_error_500(req, getReasonFromStatusCode(500).c_str(), "Internal Server Error - Unable to get remote address", 0);
       return 0;
     }
-  }
 
-  if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
-    ++dsc->df->d_postqueries;
-    if(req->version >= 0x0200)
-      ++dsc->df->d_http2Stats.d_nbQueries;
-    else
-      ++dsc->df->d_http1Stats.d_nbQueries;
+    h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
+    DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
 
-    PacketBuffer query;
-    /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
-       at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
-    query.reserve(std::max(req->entity.len + 512, s_maxPacketCacheEntrySize));
-    query.resize(req->entity.len);
-    memcpy(query.data(), req->entity.base, req->entity.len);
-    doh_dispatch_query(dsc, self, req, std::move(query), local, remote, std::move(path));
-  }
-  else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
-    auto pos = path.find("?dns=");
-    if(pos == string::npos)
-      pos = path.find("&dns=");
-    if(pos != string::npos) {
-      // need to base64url decode this
-      string sdns(path.substr(pos+5));
-      boost::replace_all(sdns,"-", "+");
-      boost::replace_all(sdns,"_", "/");
-      // re-add padding that may have been missing
-      switch (sdns.size() % 4) {
-      case 2:
-        sdns.append(2, '=');
-        break;
-      case 3:
-        sdns.append(1, '=');
-        break;
+    if (dsc->df->d_trustForwardedForHeader) {
+      processForwardedForHeader(req, remote);
+    }
+
+    auto& holders = dsc->holders;
+    if (!holders.acl->match(remote)) {
+      ++g_stats.aclDrops;
+      vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
+      h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
+      return 0;
+    }
+
+    if (h2o_socket_get_ssl_session_reused(sock) == 0) {
+      ++dsc->cs->tlsNewSessions;
+    }
+    else {
+      ++dsc->cs->tlsResumptions;
+    }
+
+    const int descriptor = h2o_socket_get_fd(sock);
+    if (descriptor != -1) {
+      ++t_conns.at(descriptor).d_nbQueries;
+    }
+
+    if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
+      if(!strcmp(tlsversion, "TLSv1.0"))
+        ++dsc->cs->tls10queries;
+      else if(!strcmp(tlsversion, "TLSv1.1"))
+        ++dsc->cs->tls11queries;
+      else if(!strcmp(tlsversion, "TLSv1.2"))
+        ++dsc->cs->tls12queries;
+      else if(!strcmp(tlsversion, "TLSv1.3"))
+        ++dsc->cs->tls13queries;
+      else
+        ++dsc->cs->tlsUnknownqueries;
+    }
+
+    // would be nice to be able to use a pdns_string_view there, but we would need heterogeneous lookups
+    // (having string in the set and compare them to string_view, for example. Note that comparing
+    // two boost::string_view uses the pointer, not the content).
+    const std::string pathOnly(req->path_normalized.base, req->path_normalized.len);
+    if (dsc->paths.count(pathOnly) == 0) {
+      h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
+      return 0;
+    }
+
+    // would be nice to be able to use a pdns_string_view there,
+    // but regex (called by matches() internally) requires a null-terminated string
+    string path(req->path.base, req->path.len);
+    for (const auto& entry : dsc->df->d_responsesMap) {
+      if (entry->matches(path)) {
+        const auto& customHeaders = entry->getHeaders();
+        handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
+        return 0;
       }
+    }
 
-      PacketBuffer decoded;
+    if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
+      ++dsc->df->d_postqueries;
+      if(req->version >= 0x0200)
+        ++dsc->df->d_http2Stats.d_nbQueries;
+      else
+        ++dsc->df->d_http1Stats.d_nbQueries;
 
-      /* rough estimate so we hopefully don't need a new allocation later */
+      PacketBuffer query;
       /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
          at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
-      const size_t estimate = ((sdns.size() * 3) / 4);
-      decoded.reserve(std::max(estimate + 512, s_maxPacketCacheEntrySize));
-      if(B64Decode(sdns, decoded) < 0) {
-        h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
+      query.reserve(std::max(req->entity.len + 512, s_maxPacketCacheEntrySize));
+      query.resize(req->entity.len);
+      memcpy(query.data(), req->entity.base, req->entity.len);
+      doh_dispatch_query(dsc, self, req, std::move(query), local, remote, std::move(path));
+    }
+    else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
+      auto pos = path.find("?dns=");
+      if(pos == string::npos)
+        pos = path.find("&dns=");
+      if(pos != string::npos) {
+        // need to base64url decode this
+        string sdns(path.substr(pos+5));
+        boost::replace_all(sdns,"-", "+");
+        boost::replace_all(sdns,"_", "/");
+        // re-add padding that may have been missing
+        switch (sdns.size() % 4) {
+        case 2:
+          sdns.append(2, '=');
+          break;
+        case 3:
+          sdns.append(1, '=');
+          break;
+        }
+
+        PacketBuffer decoded;
+
+        /* rough estimate so we hopefully don't need a new allocation later */
+        /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
+           at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
+        const size_t estimate = ((sdns.size() * 3) / 4);
+        decoded.reserve(std::max(estimate + 512, s_maxPacketCacheEntrySize));
+        if(B64Decode(sdns, decoded) < 0) {
+          h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
+          ++dsc->df->d_badrequests;
+          return 0;
+        }
+        else {
+          ++dsc->df->d_getqueries;
+          if(req->version >= 0x0200)
+            ++dsc->df->d_http2Stats.d_nbQueries;
+          else
+            ++dsc->df->d_http1Stats.d_nbQueries;
+
+          doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote, std::move(path));
+        }
+      }
+      else
+      {
+        vinfolog("HTTP request without DNS parameter: %s", req->path.base);
+        h2o_send_error_400(req, "Bad Request", "Unable to find the DNS parameter", 0);
         ++dsc->df->d_badrequests;
         return 0;
       }
-      else {
-        ++dsc->df->d_getqueries;
-        if(req->version >= 0x0200)
-          ++dsc->df->d_http2Stats.d_nbQueries;
-        else
-          ++dsc->df->d_http1Stats.d_nbQueries;
-
-        doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote, std::move(path));
-      }
     }
-    else
-    {
-      vinfolog("HTTP request without DNS parameter: %s", req->path.base);
-      h2o_send_error_400(req, "Bad Request", "Unable to find the DNS parameter", 0);
+    else {
+      h2o_send_error_400(req, "Bad Request", "Unable to parse the request", 0);
       ++dsc->df->d_badrequests;
-      return 0;
     }
+    return 0;
   }
-  else {
-    h2o_send_error_400(req, "Bad Request", "Unable to parse the request", 0);
-    ++dsc->df->d_badrequests;
+  catch(const std::exception& e)
+  {
+    errlog("DOH Handler function failed with error %s", e.what());
+    return 0;
   }
-  return 0;
-}
- catch(const std::exception& e)
-{
-  errlog("DOH Handler function failed with error %s", e.what());
-  return 0;
 }
 
 HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex)
@@ -1391,65 +1392,66 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 
 // this is the entrypoint from dnsdist.cc
 void dohThread(ClientState* cs)
-try
 {
-  std::shared_ptr<DOHFrontend>& df = cs->dohFrontend;
-  auto& dsc = df->d_dsc;
-  dsc->cs = cs;
-  dsc->df = cs->dohFrontend;
-  dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
+  try {
+    std::shared_ptr<DOHFrontend>& df = cs->dohFrontend;
+    auto& dsc = df->d_dsc;
+    dsc->cs = cs;
+    dsc->df = cs->dohFrontend;
+    dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
 
 
-  std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1]);
-  dnsdistThread.detach(); // gets us better error reporting
+    std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1]);
+    dnsdistThread.detach(); // gets us better error reporting
 
-  setThreadName("dnsdist/doh");
-  // I wonder if this registers an IP address.. I think it does
-  // this may mean we need to actually register a site "name" here and not the IP address
-  h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
+    setThreadName("dnsdist/doh");
+    // I wonder if this registers an IP address.. I think it does
+    // this may mean we need to actually register a site "name" here and not the IP address
+    h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
 
-  for(const auto& url : df->d_urls) {
-    register_handler(hostconf, url.c_str(), doh_handler);
-    dsc->paths.insert(url);
-  }
+    for(const auto& url : df->d_urls) {
+      register_handler(hostconf, url.c_str(), doh_handler);
+      dsc->paths.insert(url);
+    }
 
-  h2o_context_init(&dsc->h2o_ctx, h2o_evloop_create(), &dsc->h2o_config);
+    h2o_context_init(&dsc->h2o_ctx, h2o_evloop_create(), &dsc->h2o_config);
 
-  // in this complicated way we insert the DOHServerConfig pointer in there
-  h2o_vector_reserve(nullptr, &dsc->h2o_ctx.storage, 1);
-  dsc->h2o_ctx.storage.entries[0].data = dsc.get();
-  ++dsc->h2o_ctx.storage.size;
+    // in this complicated way we insert the DOHServerConfig pointer in there
+    h2o_vector_reserve(nullptr, &dsc->h2o_ctx.storage, 1);
+    dsc->h2o_ctx.storage.entries[0].data = dsc.get();
+    ++dsc->h2o_ctx.storage.size;
 
-  auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, dsc->dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
-  sock->data = dsc.get();
+    auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, dsc->dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
+    sock->data = dsc.get();
 
-  // this listens to responses from dnsdist to turn into http responses
-  h2o_socket_read_start(sock, on_dnsdist);
+    // this listens to responses from dnsdist to turn into http responses
+    h2o_socket_read_start(sock, on_dnsdist);
 
-  setupAcceptContext(*dsc->accept_ctx, *dsc, false);
+    setupAcceptContext(*dsc->accept_ctx, *dsc, false);
 
-  if (create_listener(df->d_local, dsc, cs->tcpFD) != 0) {
-    throw std::runtime_error("DOH server failed to listen on " + df->d_local.toStringWithPort() + ": " + strerror(errno));
-  }
+    if (create_listener(df->d_local, dsc, cs->tcpFD) != 0) {
+      throw std::runtime_error("DOH server failed to listen on " + df->d_local.toStringWithPort() + ": " + strerror(errno));
+    }
 
-  bool stop = false;
-  do {
-    int result = h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX);
-    if (result == -1) {
-      if (errno != EINTR) {
-        errlog("Error in the DoH event loop: %s", strerror(errno));
-        stop = true;
+    bool stop = false;
+    do {
+      int result = h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX);
+      if (result == -1) {
+        if (errno != EINTR) {
+          errlog("Error in the DoH event loop: %s", strerror(errno));
+          stop = true;
+        }
       }
     }
-  }
-  while (stop == false);
+    while (stop == false);
 
-}
-catch(const std::exception& e) {
-  throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
-}
-catch(...) {
-  throw runtime_error("DOH thread failed to launch");
+  }
+  catch (const std::exception& e) {
+    throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
+  }
+  catch (...) {
+    throw runtime_error("DOH thread failed to launch");
+  }
 }
 
 #else /* HAVE_DNS_OVER_HTTPS */

@@ -1498,8 +1498,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
 static void udpClientThread(ClientState* cs)
 {
-  try
-  {
+  try {
     setThreadName("dnsdist/udpClie");
     LocalHolders holders;
 
@@ -2000,477 +1999,478 @@ static void usage()
 }
 
 int main(int argc, char** argv)
-try
 {
-  size_t udpBindsCount = 0;
-  size_t tcpBindsCount = 0;
-  rl_attempted_completion_function = my_completion;
-  rl_completion_append_character = 0;
+  try {
+    size_t udpBindsCount = 0;
+    size_t tcpBindsCount = 0;
+    rl_attempted_completion_function = my_completion;
+    rl_completion_append_character = 0;
 
-  signal(SIGPIPE, SIG_IGN);
-  signal(SIGCHLD, SIG_IGN);
-  openlog("dnsdist", LOG_PID|LOG_NDELAY, LOG_DAEMON);
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGCHLD, SIG_IGN);
+    openlog("dnsdist", LOG_PID|LOG_NDELAY, LOG_DAEMON);
 
 #ifdef HAVE_LIBSODIUM
-  if (sodium_init() == -1) {
-    cerr<<"Unable to initialize crypto library"<<endl;
-    exit(EXIT_FAILURE);
-  }
-  g_hashperturb=randombytes_uniform(0xffffffff);
-  srandom(randombytes_uniform(0xffffffff));
+    if (sodium_init() == -1) {
+      cerr<<"Unable to initialize crypto library"<<endl;
+      exit(EXIT_FAILURE);
+    }
+    g_hashperturb=randombytes_uniform(0xffffffff);
+    srandom(randombytes_uniform(0xffffffff));
 #else
-  {
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
-    g_hashperturb=random();
-  }
+    {
+      struct timeval tv;
+      gettimeofday(&tv, 0);
+      srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
+      g_hashperturb=random();
+    }
   
 #endif
-  ComboAddress clientAddress = ComboAddress();
-  g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
-  struct option longopts[]={
-    {"acl", required_argument, 0, 'a'},
-    {"check-config", no_argument, 0, 1},
-    {"client", no_argument, 0, 'c'},
-    {"config", required_argument, 0, 'C'},
-    {"disable-syslog", no_argument, 0, 2},
-    {"execute", required_argument, 0, 'e'},
-    {"gid", required_argument, 0, 'g'},
-    {"help", no_argument, 0, 'h'},
-    {"local", required_argument, 0, 'l'},
-    {"setkey", required_argument, 0, 'k'},
-    {"supervised", no_argument, 0, 3},
-    {"uid", required_argument, 0, 'u'},
-    {"verbose", no_argument, 0, 'v'},
-    {"version", no_argument, 0, 'V'},
-    {0,0,0,0}
-  };
-  int longindex=0;
-  string optstring;
-  for(;;) {
-    int c=getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts, &longindex);
-    if(c==-1)
-      break;
-    switch(c) {
-    case 1:
-      g_cmdLine.checkConfig=true;
-      break;
-    case 2:
-      g_syslog=false;
-      break;
-    case 3:
-      g_cmdLine.beSupervised=true;
-      break;
-    case 'C':
-      g_cmdLine.config=optarg;
-      break;
-    case 'c':
-      g_cmdLine.beClient=true;
-      break;
-    case 'e':
-      g_cmdLine.command=optarg;
-      break;
-    case 'g':
-      g_cmdLine.gid=optarg;
-      break;
-    case 'h':
-      cout<<"dnsdist "<<VERSION<<endl;
-      usage();
-      cout<<"\n";
-      exit(EXIT_SUCCESS);
-      break;
-    case 'a':
-      optstring=optarg;
-      g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
-      break;
-    case 'k':
+    ComboAddress clientAddress = ComboAddress();
+    g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
+    struct option longopts[]={
+      {"acl", required_argument, 0, 'a'},
+      {"check-config", no_argument, 0, 1},
+      {"client", no_argument, 0, 'c'},
+      {"config", required_argument, 0, 'C'},
+      {"disable-syslog", no_argument, 0, 2},
+      {"execute", required_argument, 0, 'e'},
+      {"gid", required_argument, 0, 'g'},
+      {"help", no_argument, 0, 'h'},
+      {"local", required_argument, 0, 'l'},
+      {"setkey", required_argument, 0, 'k'},
+      {"supervised", no_argument, 0, 3},
+      {"uid", required_argument, 0, 'u'},
+      {"verbose", no_argument, 0, 'v'},
+      {"version", no_argument, 0, 'V'},
+      {0,0,0,0}
+    };
+    int longindex=0;
+    string optstring;
+    for(;;) {
+      int c=getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts, &longindex);
+      if(c==-1)
+        break;
+      switch(c) {
+      case 1:
+        g_cmdLine.checkConfig=true;
+        break;
+      case 2:
+        g_syslog=false;
+        break;
+      case 3:
+        g_cmdLine.beSupervised=true;
+        break;
+      case 'C':
+        g_cmdLine.config=optarg;
+        break;
+      case 'c':
+        g_cmdLine.beClient=true;
+        break;
+      case 'e':
+        g_cmdLine.command=optarg;
+        break;
+      case 'g':
+        g_cmdLine.gid=optarg;
+        break;
+      case 'h':
+        cout<<"dnsdist "<<VERSION<<endl;
+        usage();
+        cout<<"\n";
+        exit(EXIT_SUCCESS);
+        break;
+      case 'a':
+        optstring=optarg;
+        g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
+        break;
+      case 'k':
 #ifdef HAVE_LIBSODIUM
-      if (B64Decode(string(optarg), g_consoleKey) < 0) {
-        cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
+        if (B64Decode(string(optarg), g_consoleKey) < 0) {
+          cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
+          exit(EXIT_FAILURE);
+        }
+#else
+        cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
         exit(EXIT_FAILURE);
-      }
-#else
-      cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
-      exit(EXIT_FAILURE);
 #endif
-      break;
-    case 'l':
-      g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
-      break;
-    case 'u':
-      g_cmdLine.uid=optarg;
-      break;
-    case 'v':
-      g_verbose=true;
-      break;
-    case 'V':
+        break;
+      case 'l':
+        g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
+        break;
+      case 'u':
+        g_cmdLine.uid=optarg;
+        break;
+      case 'v':
+        g_verbose=true;
+        break;
+      case 'V':
 #ifdef LUAJIT_VERSION
-      cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<" ["<<LUAJIT_VERSION<<"])"<<endl;
+        cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<" ["<<LUAJIT_VERSION<<"])"<<endl;
 #else
-      cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
+        cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
 #endif
-      cout<<"Enabled features: ";
+        cout<<"Enabled features: ";
 #ifdef HAVE_CDB
-      cout<<"cdb ";
+        cout<<"cdb ";
 #endif
 #ifdef HAVE_DNS_OVER_TLS
-      cout<<"dns-over-tls(";
+        cout<<"dns-over-tls(";
 #ifdef HAVE_GNUTLS
-      cout<<"gnutls";
-  #ifdef HAVE_LIBSSL
-      cout<<" ";
-  #endif
+        cout<<"gnutls";
+#ifdef HAVE_LIBSSL
+        cout<<" ";
+#endif
 #endif
 #ifdef HAVE_LIBSSL
-      cout<<"openssl";
+        cout<<"openssl";
 #endif
-      cout<<") ";
+        cout<<") ";
 #endif
 #ifdef HAVE_DNS_OVER_HTTPS
-      cout<<"dns-over-https(DOH) ";
+        cout<<"dns-over-https(DOH) ";
 #endif
 #ifdef HAVE_DNSCRYPT
-      cout<<"dnscrypt ";
+        cout<<"dnscrypt ";
 #endif
 #ifdef HAVE_EBPF
-      cout<<"ebpf ";
+        cout<<"ebpf ";
 #endif
 #ifdef HAVE_FSTRM
-      cout<<"fstrm ";
+        cout<<"fstrm ";
 #endif
 #ifdef HAVE_LIBCRYPTO
-      cout<<"ipcipher ";
+        cout<<"ipcipher ";
 #endif
 #ifdef HAVE_LIBSODIUM
-      cout<<"libsodium ";
+        cout<<"libsodium ";
 #endif
 #ifdef HAVE_LMDB
-      cout<<"lmdb ";
+        cout<<"lmdb ";
 #endif
-      cout<<"protobuf ";
+        cout<<"protobuf ";
 #ifdef HAVE_RE2
-      cout<<"re2 ";
+        cout<<"re2 ";
 #endif
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-      cout<<"recvmmsg/sendmmsg ";
+        cout<<"recvmmsg/sendmmsg ";
 #endif
 #ifdef HAVE_NET_SNMP
-      cout<<"snmp ";
+        cout<<"snmp ";
 #endif
 #ifdef HAVE_SYSTEMD
-      cout<<"systemd";
+        cout<<"systemd";
 #endif
-      cout<<endl;
-      exit(EXIT_SUCCESS);
-      break;
-    case '?':
-      //getopt_long printed an error message.
-      usage();
-      exit(EXIT_FAILURE);
-      break;
+        cout<<endl;
+        exit(EXIT_SUCCESS);
+        break;
+      case '?':
+        //getopt_long printed an error message.
+        usage();
+        exit(EXIT_FAILURE);
+        break;
+      }
     }
-  }
 
-  argc-=optind;
-  argv+=optind;
-  for(auto p = argv; *p; ++p) {
-    if(g_cmdLine.beClient) {
-      clientAddress = ComboAddress(*p, 5199);
-    } else {
-      g_cmdLine.remotes.push_back(*p);
+    argc-=optind;
+    argv+=optind;
+    for(auto p = argv; *p; ++p) {
+      if(g_cmdLine.beClient) {
+        clientAddress = ComboAddress(*p, 5199);
+      } else {
+        g_cmdLine.remotes.push_back(*p);
+      }
     }
-  }
 
-  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
+    ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
 
-  g_policy.setState(leastOutstandingPol);
-  if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
-    setupLua(g_lua, true, false, g_cmdLine.config);
-    if (clientAddress != ComboAddress())
-      g_serverControl = clientAddress;
-    doClient(g_serverControl, g_cmdLine.command);
-    _exit(EXIT_SUCCESS);
-  }
+    g_policy.setState(leastOutstandingPol);
+    if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
+      setupLua(g_lua, true, false, g_cmdLine.config);
+      if (clientAddress != ComboAddress())
+        g_serverControl = clientAddress;
+      doClient(g_serverControl, g_cmdLine.command);
+      _exit(EXIT_SUCCESS);
+    }
 
-  auto acl = g_ACL.getCopy();
-  if(acl.empty()) {
-    for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
-      acl.addMask(addr);
-    g_ACL.setState(acl);
-  }
+    auto acl = g_ACL.getCopy();
+    if(acl.empty()) {
+      for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+        acl.addMask(addr);
+      g_ACL.setState(acl);
+    }
 
-  auto consoleACL = g_consoleACL.getCopy();
-  for (const auto& mask : { "127.0.0.1/8", "::1/128" }) {
-    consoleACL.addMask(mask);
-  }
-  g_consoleACL.setState(consoleACL);
-  registerBuiltInWebHandlers();
+    auto consoleACL = g_consoleACL.getCopy();
+    for (const auto& mask : { "127.0.0.1/8", "::1/128" }) {
+      consoleACL.addMask(mask);
+    }
+    g_consoleACL.setState(consoleACL);
+    registerBuiltInWebHandlers();
 
-  if (g_cmdLine.checkConfig) {
-    setupLua(g_lua, false, true, g_cmdLine.config);
-    // No exception was thrown
-    infolog("Configuration '%s' OK!", g_cmdLine.config);
-    _exit(EXIT_SUCCESS);
-  }
+    if (g_cmdLine.checkConfig) {
+      setupLua(g_lua, false, true, g_cmdLine.config);
+      // No exception was thrown
+      infolog("Configuration '%s' OK!", g_cmdLine.config);
+      _exit(EXIT_SUCCESS);
+    }
 
-  auto todo = setupLua(g_lua, false, false, g_cmdLine.config);
+    auto todo = setupLua(g_lua, false, false, g_cmdLine.config);
 
-  auto localPools = g_pools.getCopy();
-  {
-    bool precompute = false;
-    if (g_policy.getLocal()->getName() == "chashed") {
-      precompute = true;
-    } else {
-      for (const auto& entry: localPools) {
-        if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
-          precompute = true;
-          break ;
+    auto localPools = g_pools.getCopy();
+    {
+      bool precompute = false;
+      if (g_policy.getLocal()->getName() == "chashed") {
+        precompute = true;
+      } else {
+        for (const auto& entry: localPools) {
+          if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
+            precompute = true;
+            break ;
+          }
+        }
+      }
+      if (precompute) {
+        vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
+        // pre compute hashes
+        auto backends = g_dstates.getLocal();
+        for (auto& backend: *backends) {
+          if (backend->weight < 100) {
+            vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->weight);
+          }
+
+          backend->hash();
         }
       }
     }
-    if (precompute) {
-      vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
-      // pre compute hashes
-      auto backends = g_dstates.getLocal();
-      for (auto& backend: *backends) {
-        if (backend->weight < 100) {
-          vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->weight);
-        }
 
-        backend->hash();
+    if (!g_cmdLine.locals.empty()) {
+      for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
+        /* DoH, DoT and DNSCrypt frontends are separate */
+        if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+          it = g_frontends.erase(it);
+        }
+        else {
+          ++it;
+        }
+      }
+
+      for(const auto& loc : g_cmdLine.locals) {
+        /* UDP */
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), false, false, 0, "", {})));
+        /* TCP */
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), true, false, 0, "", {})));
       }
     }
-  }
 
-  if (!g_cmdLine.locals.empty()) {
-    for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
-      /* DoH, DoT and DNSCrypt frontends are separate */
-      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
-        it = g_frontends.erase(it);
+    if (g_frontends.empty()) {
+      /* UDP */
+      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), false, false, 0, "", {})));
+      /* TCP */
+      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), true, false, 0, "", {})));
+    }
+
+    g_configurationDone = true;
+
+    for(auto& frontend : g_frontends) {
+      setUpLocalBind(frontend);
+
+      if (frontend->tcp == false) {
+        ++udpBindsCount;
       }
       else {
-        ++it;
+        ++tcpBindsCount;
       }
     }
 
-    for(const auto& loc : g_cmdLine.locals) {
-      /* UDP */
-      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), false, false, 0, "", {})));
-      /* TCP */
-      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), true, false, 0, "", {})));
+    warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+
+    vector<string> vec;
+    std::string acls;
+    g_ACL.getLocal()->toStringVector(&vec);
+    for(const auto& s : vec) {
+      if (!acls.empty())
+        acls += ", ";
+      acls += s;
     }
-  }
-
-  if (g_frontends.empty()) {
-    /* UDP */
-    g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), false, false, 0, "", {})));
-    /* TCP */
-    g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), true, false, 0, "", {})));
-  }
-
-  g_configurationDone = true;
-
-  for(auto& frontend : g_frontends) {
-    setUpLocalBind(frontend);
-
-    if (frontend->tcp == false) {
-      ++udpBindsCount;
+    infolog("ACL allowing queries from: %s", acls.c_str());
+    vec.clear();
+    acls.clear();
+    g_consoleACL.getLocal()->toStringVector(&vec);
+    for (const auto& entry : vec) {
+      if (!acls.empty()) {
+        acls += ", ";
+      }
+      acls += entry;
     }
-    else {
-      ++tcpBindsCount;
-    }
-  }
-
-  warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
-
-  vector<string> vec;
-  std::string acls;
-  g_ACL.getLocal()->toStringVector(&vec);
-  for(const auto& s : vec) {
-    if (!acls.empty())
-      acls += ", ";
-    acls += s;
-  }
-  infolog("ACL allowing queries from: %s", acls.c_str());
-  vec.clear();
-  acls.clear();
-  g_consoleACL.getLocal()->toStringVector(&vec);
-  for (const auto& entry : vec) {
-    if (!acls.empty()) {
-      acls += ", ";
-    }
-    acls += entry;
-  }
-  infolog("Console ACL allowing connections from: %s", acls.c_str());
+    infolog("Console ACL allowing connections from: %s", acls.c_str());
 
 #ifdef HAVE_LIBSODIUM
-  if (g_consoleEnabled && g_consoleKey.empty()) {
-    warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
-  }
+    if (g_consoleEnabled && g_consoleKey.empty()) {
+      warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+    }
 #endif
 
-  uid_t newgid=getegid();
-  gid_t newuid=geteuid();
+    uid_t newgid=getegid();
+    gid_t newuid=geteuid();
 
-  if(!g_cmdLine.gid.empty())
-    newgid = strToGID(g_cmdLine.gid.c_str());
+    if(!g_cmdLine.gid.empty())
+      newgid = strToGID(g_cmdLine.gid.c_str());
 
-  if(!g_cmdLine.uid.empty())
-    newuid = strToUID(g_cmdLine.uid.c_str());
+    if(!g_cmdLine.uid.empty())
+      newuid = strToUID(g_cmdLine.uid.c_str());
 
-  if (getegid() != newgid) {
-    if (running_in_service_mgr()) {
-      errlog("--gid/-g set on command-line, but dnsdist was started as a systemd service. Use the 'Group' setting in the systemd unit file to set the group to run as");
-      _exit(EXIT_FAILURE);
-    }
-    dropGroupPrivs(newgid);
-  }
-
-  if (geteuid() != newuid) {
-    if (running_in_service_mgr()) {
-      errlog("--uid/-u set on command-line, but dnsdist was started as a systemd service. Use the 'User' setting in the systemd unit file to set the user to run as");
-      _exit(EXIT_FAILURE);
-    }
-    dropUserPrivs(newuid);
-  }
-
-  try {
-    /* we might still have capabilities remaining,
-       for example if we have been started as root
-       without --uid or --gid (please don't do that)
-       or as an unprivileged user with ambient
-       capabilities like CAP_NET_BIND_SERVICE.
-    */
-    dropCapabilities(g_capabilitiesToRetain);
-  }
-  catch(const std::exception& e) {
-    warnlog("%s", e.what());
-  }
-
-  /* this need to be done _after_ dropping privileges */
-  g_delay = new DelayPipe<DelayedPacket>();
-
-  if (g_snmpAgent) {
-    g_snmpAgent->run();
-  }
-
-  g_tcpclientthreads = std::unique_ptr<TCPClientCollection>(new TCPClientCollection(g_maxTCPClientThreads, g_useTCPSinglePipe));
-
-  for(auto& t : todo)
-    t();
-
-  localPools = g_pools.getCopy();
-  /* create the default pool no matter what */
-  createPoolIfNotExists(localPools, "");
-  if(g_cmdLine.remotes.size()) {
-    for(const auto& address : g_cmdLine.remotes) {
-      auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
-      addServerToPool(localPools, "", ret);
-      if (ret->connected && !ret->threadStarted.test_and_set()) {
-        ret->tid = thread(responderThread, ret);
+    if (getegid() != newgid) {
+      if (running_in_service_mgr()) {
+        errlog("--gid/-g set on command-line, but dnsdist was started as a systemd service. Use the 'Group' setting in the systemd unit file to set the group to run as");
+        _exit(EXIT_FAILURE);
       }
-      g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
+      dropGroupPrivs(newgid);
     }
-  }
-  g_pools.setState(localPools);
 
-  if(g_dstates.getLocal()->empty()) {
-    errlog("No downstream servers defined: all packets will get dropped");
-    // you might define them later, but you need to know
-  }
+    if (geteuid() != newuid) {
+      if (running_in_service_mgr()) {
+        errlog("--uid/-u set on command-line, but dnsdist was started as a systemd service. Use the 'User' setting in the systemd unit file to set the user to run as");
+        _exit(EXIT_FAILURE);
+      }
+      dropUserPrivs(newuid);
+    }
 
-  checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
+    try {
+      /* we might still have capabilities remaining,
+         for example if we have been started as root
+         without --uid or --gid (please don't do that)
+         or as an unprivileged user with ambient
+         capabilities like CAP_NET_BIND_SERVICE.
+      */
+      dropCapabilities(g_capabilitiesToRetain);
+    }
+    catch (const std::exception& e) {
+      warnlog("%s", e.what());
+    }
 
-  auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
-  for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
-    if (dss->availability == DownstreamState::Availability::Auto) {
-      if (!queueHealthCheck(mplexer, dss, true)) {
-        dss->upStatus = false;
-        warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
+    /* this need to be done _after_ dropping privileges */
+    g_delay = new DelayPipe<DelayedPacket>();
+
+    if (g_snmpAgent) {
+      g_snmpAgent->run();
+    }
+
+    g_tcpclientthreads = std::unique_ptr<TCPClientCollection>(new TCPClientCollection(g_maxTCPClientThreads, g_useTCPSinglePipe));
+
+    for(auto& t : todo)
+      t();
+
+    localPools = g_pools.getCopy();
+    /* create the default pool no matter what */
+    createPoolIfNotExists(localPools, "");
+    if(g_cmdLine.remotes.size()) {
+      for(const auto& address : g_cmdLine.remotes) {
+        auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
+        addServerToPool(localPools, "", ret);
+        if (ret->connected && !ret->threadStarted.test_and_set()) {
+          ret->tid = thread(responderThread, ret);
+        }
+        g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
       }
     }
-  }
-  handleQueuedHealthChecks(mplexer, true);
+    g_pools.setState(localPools);
 
-  for(auto& cs : g_frontends) {
-    if (cs->dohFrontend != nullptr) {
+    if(g_dstates.getLocal()->empty()) {
+      errlog("No downstream servers defined: all packets will get dropped");
+      // you might define them later, but you need to know
+    }
+
+    checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
+
+    auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
+      if (dss->availability == DownstreamState::Availability::Auto) {
+        if (!queueHealthCheck(mplexer, dss, true)) {
+          dss->upStatus = false;
+          warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
+        }
+      }
+    }
+    handleQueuedHealthChecks(mplexer, true);
+
+    for(auto& cs : g_frontends) {
+      if (cs->dohFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_HTTPS
-      std::thread t1(dohThread, cs.get());
-      if (!cs->cpus.empty()) {
-        mapThreadToCPUList(t1.native_handle(), cs->cpus);
-      }
-      t1.detach();
+        std::thread t1(dohThread, cs.get());
+        if (!cs->cpus.empty()) {
+          mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        }
+        t1.detach();
 #endif /* HAVE_DNS_OVER_HTTPS */
-      continue;
-    }
-    if (cs->udpFD >= 0) {
-      thread t1(udpClientThread, cs.get());
-      if (!cs->cpus.empty()) {
-        mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        continue;
       }
-      t1.detach();
-    }
-    else if (cs->tcpFD >= 0) {
-      thread t1(tcpAcceptorThread, cs.get());
-      if (!cs->cpus.empty()) {
-        mapThreadToCPUList(t1.native_handle(), cs->cpus);
+      if (cs->udpFD >= 0) {
+        thread t1(udpClientThread, cs.get());
+        if (!cs->cpus.empty()) {
+          mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        }
+        t1.detach();
       }
-      t1.detach();
+      else if (cs->tcpFD >= 0) {
+        thread t1(tcpAcceptorThread, cs.get());
+        if (!cs->cpus.empty()) {
+          mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        }
+        t1.detach();
+      }
     }
-  }
 
-  thread carbonthread(carbonDumpThread);
-  carbonthread.detach();
+    thread carbonthread(carbonDumpThread);
+    carbonthread.detach();
 
-  thread stattid(maintThread);
-  stattid.detach();
+    thread stattid(maintThread);
+    stattid.detach();
   
-  thread healththread(healthChecksThread);
+    thread healththread(healthChecksThread);
 
-  thread dynBlockMaintThread(dynBlockMaintenanceThread);
-  dynBlockMaintThread.detach();
+    thread dynBlockMaintThread(dynBlockMaintenanceThread);
+    dynBlockMaintThread.detach();
 
-  if (!g_secPollSuffix.empty()) {
-    thread secpollthread(secPollThread);
-    secpollthread.detach();
-  }
+    if (!g_secPollSuffix.empty()) {
+      thread secpollthread(secPollThread);
+      secpollthread.detach();
+    }
 
-  if(g_cmdLine.beSupervised) {
+    if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
-    sd_notify(0, "READY=1");
+      sd_notify(0, "READY=1");
 #endif
-    healththread.join();
-  }
-  else {
-    healththread.detach();
-    doConsole();
-  }
-  _exit(EXIT_SUCCESS);
+      healththread.join();
+    }
+    else {
+      healththread.detach();
+      doConsole();
+    }
+    _exit(EXIT_SUCCESS);
 
-}
-catch(const LuaContext::ExecutionErrorException& e) {
-  try {
-    errlog("Fatal Lua error: %s", e.what());
-    std::rethrow_if_nested(e);
-  } catch(const std::exception& ne) {
-    errlog("Details: %s", ne.what());
   }
-  catch(PDNSException &ae)
+  catch (const LuaContext::ExecutionErrorException& e) {
+    try {
+      errlog("Fatal Lua error: %s", e.what());
+      std::rethrow_if_nested(e);
+    } catch(const std::exception& ne) {
+      errlog("Details: %s", ne.what());
+    }
+    catch (const PDNSException &ae)
+    {
+      errlog("Fatal pdns error: %s", ae.reason);
+    }
+    _exit(EXIT_FAILURE);
+  }
+  catch (const std::exception &e)
+  {
+    errlog("Fatal error: %s", e.what());
+    _exit(EXIT_FAILURE);
+  }
+  catch (const PDNSException &ae)
   {
     errlog("Fatal pdns error: %s", ae.reason);
+    _exit(EXIT_FAILURE);
   }
-  _exit(EXIT_FAILURE);
-}
-catch(std::exception &e)
-{
-  errlog("Fatal error: %s", e.what());
-  _exit(EXIT_FAILURE);
-}
-catch(PDNSException &ae)
-{
-  errlog("Fatal pdns error: %s", ae.reason);
-  _exit(EXIT_FAILURE);
 }
 
 uint64_t getLatencyCount(const std::string&)
