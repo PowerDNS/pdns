@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -38,11 +39,8 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/utility.hpp>
-// #include <boost/iostreams/stream.hpp>
-// #include <boost/iostreams/stream_buffer.hpp>
 
 #include <boost/iostreams/device/back_inserter.hpp>
-// #include <sstream>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -50,18 +48,16 @@
 #include "lmdbbackend.hh"
 
 #define SCHEMAVERSION 3
-#define SCHEMAVERSION_TEXT "3"
+
 // List the class version here. Default is 0
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
 
-static std::mutex s_lmdbOpenUpgradeLock;
+static bool s_first = true;
+static int s_shards = 0;
+static std::mutex s_lmdbStartupLock;
 
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
-  // we lock to avoid a race condition when we do a schema upgrade during startup
-  // non-upgrade startups should be very cheap so this lock should not hurt performance
-  std::lock_guard<std::mutex> l(s_lmdbOpenUpgradeLock);
-
   setArgPrefix("lmdb"+suffix);
   
   string syncMode = toLower(getArg("sync-mode"));
@@ -83,41 +79,49 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
   
   auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
-  auto txn = d_tdomains->getEnv()->getRWTransaction();
-  uint32_t schemaversion = 1;
-  MDBOutVal _schemaversion;
-  if(!txn->get(pdnsdbi, "schemaversion", _schemaversion)) {
-    schemaversion = _schemaversion.get<uint32_t>();
-  }
 
-  if (schemaversion != SCHEMAVERSION) {
-    if (getArgAsNum("schema-version") != SCHEMAVERSION) {
-      throw std::runtime_error("Expected LMDB schema version "+std::to_string(SCHEMAVERSION)+" but got "+std::to_string(schemaversion));
+  if (s_first) {
+    std::lock_guard<std::mutex> l(s_lmdbStartupLock);
+    if (s_first) {
+      auto txn = d_tdomains->getEnv()->getRWTransaction();
+
+      uint32_t schemaversion = 1;
+      MDBOutVal _schemaversion;
+      if(!txn->get(pdnsdbi, "schemaversion", _schemaversion)) {
+        schemaversion = _schemaversion.get<uint32_t>();
+      }
+
+      if (schemaversion != SCHEMAVERSION) {
+        if (getArgAsNum("schema-version") != SCHEMAVERSION) {
+          throw std::runtime_error("Expected LMDB schema version "+std::to_string(SCHEMAVERSION)+" but got "+std::to_string(schemaversion));
+        }
+        txn->put(pdnsdbi, "schemaversion", SCHEMAVERSION);
+      }
+
+      MDBOutVal shards;
+      if(!txn->get(pdnsdbi, "shards", shards)) {
+        s_shards = shards.get<uint32_t>();
+        if(s_shards != atoi(getArg("shards").c_str())) {
+          g_log << Logger::Warning<<"Note: configured number of lmdb shards ("<<atoi(getArg("shards").c_str())<<") is different from on-disk ("<<s_shards<<"). Using on-disk shard number"<<endl;
+        }
+      }
+      else {
+        s_shards = atoi(getArg("shards").c_str());
+        txn->put(pdnsdbi, "shards", s_shards);
+      }
+
+      txn->commit();
+
+      if (schemaversion < 3) {
+        if (!upgradeToSchemav3()) {
+          throw std::runtime_error("Failed to perform LMDB schema version upgrade to "+std::to_string(SCHEMAVERSION)+" from "+std::to_string(schemaversion));
+        }
+      }
+      s_first = false;
     }
-    txn->put(pdnsdbi, "schemaversion", SCHEMAVERSION);
   }
 
-  MDBOutVal shards;
-  if(!txn->get(pdnsdbi, "shards", shards)) {
-    
-    d_shards = shards.get<uint32_t>();
-    if(d_shards != atoi(getArg("shards").c_str())) {
-      g_log << Logger::Warning<<"Note: configured number of lmdb shards ("<<atoi(getArg("shards").c_str())<<") is different from on-disk ("<<d_shards<<"). Using on-disk shard number"<<endl;
-    }
-  }
-  else {
-    d_shards = atoi(getArg("shards").c_str());
-    txn->put(pdnsdbi, "shards", d_shards);
-  }
-  txn->commit();
-
-  if (schemaversion < 3) {
-    if (!upgradeToSchemav3()) {
-      throw std::runtime_error("Failed to perform LMDB schema version upgrade to "+std::to_string(SCHEMAVERSION)+" from "+std::to_string(schemaversion));
-    }
-  }
-
-  d_trecords.resize(d_shards);
+  d_trecords.resize(s_shards);
   d_dolog = ::arg().mustDo("query-logging");
 }
 
@@ -514,9 +518,9 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 // tempting to templatize these two functions but the pain is not worth it
 std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(uint32_t id)
 {
-  auto& shard =d_trecords[id % d_shards];
+  auto& shard =d_trecords[id % s_shards];
   if(!shard.env) {
-    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % d_shards)).c_str(),
+    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % s_shards)).c_str(),
                            MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE);
   }
@@ -528,12 +532,12 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
 
 std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn)
 {
-  auto& shard =d_trecords[id % d_shards];
+  auto& shard =d_trecords[id % s_shards];
   if(!shard.env) {
     if (rwtxn) {
       throw DBException("attempting to start nested transaction without open parent env");
     }
-    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % d_shards)).c_str(),
+    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % s_shards)).c_str(),
                            MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE);
   }
@@ -551,9 +555,9 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
 
 bool LMDBBackend::upgradeToSchemav3()
 {
-  g_log << Logger::Info<<"Upgrading LMDB schema"<<endl;
+  g_log << Logger::Warning<<"Upgrading LMDB schema"<<endl;
 
-  for(auto i = 0; i < d_shards; i++) {
+  for(auto i = 0; i < s_shards; i++) {
     string filename = getArg("filename")+"-"+std::to_string(i);
     if (rename(filename.c_str(), (filename+"-old").c_str()) < 0) {
         if (errno == ENOENT) {
@@ -1741,7 +1745,7 @@ public:
     declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync, sync","mapasync");
     // there just is no room for more on 32 bit
     declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64");
-    declare(suffix,"schema-version","Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", SCHEMAVERSION_TEXT); 
+    declare(suffix,"schema-version","Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));
   }
   DNSBackend *make(const string &suffix="") override
   {
