@@ -32,6 +32,7 @@
 #include "pdns/logger.hh"
 #include "pdns/version.hh"
 #include "pdns/arguments.hh"
+#include "pdns/lock.hh"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -53,8 +54,14 @@
 // List the class version here. Default is 0
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
 
+static std::mutex s_lmdbOpenUpgradeLock;
+
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
+  // we lock to avoid a race condition when we do a schema upgrade during startup
+  // non-upgrade startups should be very cheap so this lock should not hurt performance
+  std::lock_guard<std::mutex> l(s_lmdbOpenUpgradeLock);
+
   setArgPrefix("lmdb"+suffix);
   
   string syncMode = toLower(getArg("sync-mode"));
@@ -544,6 +551,8 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
 
 bool LMDBBackend::upgradeToSchemav3()
 {
+  g_log << Logger::Info<<"Upgrading LMDB schema"<<endl;
+
   for(auto i = 0; i < d_shards; i++) {
     string filename = getArg("filename")+"-"+std::to_string(i);
     if (rename(filename.c_str(), (filename+"-old").c_str()) < 0) {
