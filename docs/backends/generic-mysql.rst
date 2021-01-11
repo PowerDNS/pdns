@@ -53,6 +53,13 @@ The Binary Log
 Format" <http://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html>`__
 for more information.
 
+Otherwise, you will probably see:
+
+::
+
+  Cannot execute statement: impossible to write to binary log since BINLOG_FORMAT = STATEMENT and at least one table uses a storage engine limited to row-based logging.
+  InnoDB is limited to row-logging when transaction isolation level is READ COMMITTED or READ UNCOMMITTED.
+
 Settings
 --------
 
