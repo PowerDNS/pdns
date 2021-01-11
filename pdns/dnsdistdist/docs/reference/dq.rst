@@ -76,6 +76,15 @@ This state can be modified from the various hooks.
 
   It also supports the following methods:
 
+  .. method:: DNSQuestion:addProxyProtocolValue(type, value)
+
+    .. versionadded:: 1.6.0
+
+    Add a proxy protocol TLV entry of type ``type`` and ``value`` to the current query.
+
+    :param int type: The type of the new value, ranging from 0 to 255 (both included)
+    :param str value: The binary-safe value
+
   .. method:: DNSQuestion:getDO() -> bool
 
     .. versionadded:: 1.2.0
@@ -131,6 +140,14 @@ This state can be modified from the various hooks.
     Return the HTTP scheme for a DoH query.
 
     :returns: The scheme of the DoH query, for example ``http`` or ``https``
+
+  .. method:: DNSQuestion:getProxyProtocolValues() -> table
+
+    .. versionadded:: 1.6.0
+
+    Return a table of the Proxy Protocol values currently set for this query.
+
+    :returns: A table whose keys are types and values are binary-safe strings
 
   .. method:: DNSQuestion:getServerNameIndication() -> string
 

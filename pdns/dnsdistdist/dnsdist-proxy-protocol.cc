@@ -21,6 +21,11 @@
  */
 
 #include "dnsdist-proxy-protocol.hh"
+#include "dolog.hh"
+
+NetmaskGroup g_proxyProtocolACL;
+size_t g_proxyProtocolMaximumSize = 512;
+bool g_applyACLToProxiedClients = false;
 
 std::string getProxyProtocolPayload(const DNSQuestion& dq)
 {
@@ -29,15 +34,11 @@ std::string getProxyProtocolPayload(const DNSQuestion& dq)
 
 bool addProxyProtocol(DNSQuestion& dq, const std::string& payload)
 {
-  if ((dq.size - dq.len) < payload.size()) {
+  if (!dq.hasRoomFor(payload.size())) {
     return false;
   }
 
-  memmove(reinterpret_cast<char*>(dq.dh) + payload.size(), dq.dh, dq.len);
-  memcpy(dq.dh, payload.c_str(), payload.size());
-  dq.len += payload.size();
-
-  return true;
+  return addProxyProtocol(dq.getMutableData(), payload);
 }
 
 bool addProxyProtocol(DNSQuestion& dq)
@@ -46,22 +47,61 @@ bool addProxyProtocol(DNSQuestion& dq)
   return addProxyProtocol(dq, payload);
 }
 
-bool addProxyProtocol(std::vector<uint8_t>& buffer, const std::string& payload)
+bool addProxyProtocol(PacketBuffer& buffer, const std::string& payload)
 {
   auto previousSize = buffer.size();
   if (payload.size() > (std::numeric_limits<size_t>::max() - previousSize)) {
     return false;
   }
 
-  buffer.resize(previousSize + payload.size());
-  std::copy_backward(buffer.begin(), buffer.begin() + previousSize, buffer.end());
-  std::copy(payload.begin(), payload.end(), buffer.begin());
+  buffer.insert(buffer.begin(), payload.begin(), payload.end());
 
   return true;
 }
 
-bool addProxyProtocol(std::vector<uint8_t>& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
+bool addProxyProtocol(PacketBuffer& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values)
 {
   auto payload = makeProxyHeader(tcp, source, destination, values);
   return addProxyProtocol(buffer, payload);
+}
+
+bool expectProxyProtocolFrom(const ComboAddress& remote)
+{
+  return g_proxyProtocolACL.match(remote);
+}
+
+bool handleProxyProtocol(const ComboAddress& remote, bool isTCP, const NetmaskGroup& acl, PacketBuffer& query, ComboAddress& realRemote, ComboAddress& realDestination, std::vector<ProxyProtocolValue>& values)
+{
+  bool tcp;
+  bool proxyProto;
+
+  ssize_t used = parseProxyHeader(query, proxyProto, realRemote, realDestination, tcp, values);
+  if (used <= 0) {
+    ++g_stats.proxyProtocolInvalid;
+    vinfolog("Ignoring invalid proxy protocol (%d, %d) query over %s from %s", query.size(), used, (isTCP ? "TCP" : "UDP"), remote.toStringWithPort());
+    return false;
+  }
+  else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+    vinfolog("Proxy protocol header in %s packet from %s is larger than proxy-protocol-maximum-size (%d), dropping", (isTCP ? "TCP" : "UDP"), remote.toStringWithPort(), used);
+    ++g_stats.proxyProtocolInvalid;
+    return false;
+  }
+
+  query.erase(query.begin(), query.begin() + used);
+
+  /* on TCP we have not read the actual query yet */
+  if (!isTCP && query.size() < sizeof(struct dnsheader)) {
+    ++g_stats.nonCompliantQueries;
+    return false;
+  }
+
+  if (proxyProto && g_applyACLToProxiedClients) {
+    if (!acl.match(realRemote)) {
+      vinfolog("Query from %s dropped because of ACL", realRemote.toStringWithPort());
+      ++g_stats.aclDrops;
+      return false;
+    }
+  }
+
+  return true;
 }

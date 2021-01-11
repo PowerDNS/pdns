@@ -86,27 +86,38 @@ size_t dnsdist_ffi_dnsquestion_get_qname_hash(const dnsdist_ffi_dnsquestion_t* d
 
 int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->dh->rcode;
+  return dq->dq->getHeader()->rcode;
 }
 
 void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->dh;
+  return dq->dq->getHeader();
 }
 
 uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->len;
+  return dq->dq->getData().size();
 }
 
 size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->size;
+  return dq->dq->getData().size();
+}
+
+bool dnsdist_ffi_dnsquestion_set_size(dnsdist_ffi_dnsquestion_t* dq, size_t newSize)
+{
+  try {
+    dq->dq->getMutableData().resize(newSize);
+    return true;
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
 }
 
 uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->dh->opcode;
+  return dq->dq->getHeader()->opcode;
 }
 
 bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dq)
@@ -338,27 +349,28 @@ void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const cha
   dq->result = std::string(str, strSize);
 }
 
-void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType)
+void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, size_t bodyLen, const char* contentType)
 {
   if (dq->dq->du == nullptr) {
     return;
   }
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  dq->dq->du->setHTTPResponse(statusCode, body, contentType);
-  dq->dq->dh->qr = true;
+  PacketBuffer bodyVect(body, body + bodyLen);
+  dq->dq->du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
+  dq->dq->getHeader()->qr = true;
 #endif
 }
 
 void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode)
 {
-  dq->dq->dh->rcode = rcode;
-  dq->dq->dh->qr = true;
+  dq->dq->getHeader()->rcode = rcode;
+  dq->dq->getHeader()->qr = true;
 }
 
 void dnsdist_ffi_dnsquestion_set_len(dnsdist_ffi_dnsquestion_t* dq, uint16_t len)
 {
-  dq->dq->len = len;
+  dq->dq->getMutableData().resize(len);
 }
 
 void dnsdist_ffi_dnsquestion_set_skip_cache(dnsdist_ffi_dnsquestion_t* dq, bool skipCache)

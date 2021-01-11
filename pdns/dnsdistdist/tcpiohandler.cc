@@ -144,7 +144,7 @@ public:
     }
   }
 
-  IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) override
+  IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
     do {
       int res = SSL_write(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), static_cast<int>(toWrite - pos));
@@ -159,7 +159,7 @@ public:
     return IOState::Done;
   }
 
-  IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
   {
     do {
       int res = SSL_read(d_conn.get(), reinterpret_cast<char *>(&buffer.at(pos)), static_cast<int>(toRead - pos));
@@ -572,7 +572,7 @@ public:
     throw std::runtime_error("Error accepting a new connection");
   }
 
-  IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) override
+  IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
     do {
       ssize_t res = gnutls_record_send(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), toWrite - pos);
@@ -596,7 +596,7 @@ public:
     return IOState::Done;
   }
 
-  IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
   {
     do {
       ssize_t res = gnutls_record_recv(d_conn.get(), reinterpret_cast<char *>(&buffer.at(pos)), toRead - pos);

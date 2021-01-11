@@ -202,8 +202,8 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
       checkClass = std::get<2>(ret);
     }
 
-    vector<uint8_t> packet;
-    DNSPacketWriter dpw(packet, checkName, checkType, checkClass);
+    PacketBuffer packet;
+    GenericDNSPacketWriter<PacketBuffer> dpw(packet, checkName, checkType, checkClass);
     dnsheader * requestHeader = dpw.getHeader();
     *requestHeader = checkHeader;
 
@@ -227,7 +227,7 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
       sock.bind(ds->sourceAddr);
     }
     sock.connect(ds->remote);
-    ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), reinterpret_cast<char*>(&packet[0]), packet.size(), true);
+    ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), packet, true);
     if (sent < 0) {
       int ret = errno;
       if (g_verboseHealthChecks)

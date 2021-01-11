@@ -40,6 +40,7 @@
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
 #endif /* LUAJIT_VERSION */
+#include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-web.hh"
@@ -1159,8 +1160,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
-  luaCtx.writeFunction("setPreserveTrailingData", [](bool preserve) { g_preserveTrailingData = preserve; });
-
   luaCtx.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();
       auto slow = g_dynblockNMG.getCopy();
@@ -1894,6 +1893,45 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setConsoleOutputMaxMsgSize", [](uint32_t size) {
       g_consoleOutputMsgMaxSize = size;
     });
+
+  luaCtx.writeFunction("setProxyProtocolACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
+    if (g_configurationDone) {
+      errlog("setProxyProtocolACL() cannot be used at runtime!");
+      g_outputBuffer="setProxyProtocolACL() cannot be used at runtime!\n";
+      return;
+    }
+    setLuaSideEffect();
+    NetmaskGroup nmg;
+    if (auto str = boost::get<string>(&inp)) {
+      nmg.addMask(*str);
+    }
+    else {
+      for(const auto& p : boost::get<vector<pair<int,string>>>(inp)) {
+	nmg.addMask(p.second);
+      }
+    }
+    g_proxyProtocolACL = std::move(nmg);
+  });
+
+  luaCtx.writeFunction("setProxyProtocolApplyACLToProxiedClients", [](bool apply) {
+    if (g_configurationDone) {
+      errlog("setProxyProtocolApplyACLToProxiedClients() cannot be used at runtime!");
+      g_outputBuffer="setProxyProtocolApplyACLToProxiedClients() cannot be used at runtime!\n";
+      return;
+    }
+    setLuaSideEffect();
+    g_applyACLToProxiedClients = apply;
+  });
+
+  luaCtx.writeFunction("setProxyProtocolMaximumPayloadSize", [](size_t size) {
+    if (g_configurationDone) {
+      errlog("setProxyProtocolMaximumPayloadSize() cannot be used at runtime!");
+      g_outputBuffer="setProxyProtocolMaximumPayloadSize() cannot be used at runtime!\n";
+      return;
+    }
+    setLuaSideEffect();
+    g_proxyProtocolMaximumSize = std::max(static_cast<size_t>(16), size);
+  });
 
   luaCtx.writeFunction("setUDPMultipleMessagesVectorSize", [](size_t vSize) {
       if (g_configurationDone) {

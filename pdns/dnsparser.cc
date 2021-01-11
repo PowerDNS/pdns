@@ -212,7 +212,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
   return rr;
 }
 
-void MOADNSParser::init(bool query, const std::string& packet)
+void MOADNSParser::init(bool query, const pdns_string_view& packet)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -516,23 +516,24 @@ string PacketReader::getUnquotedText(bool lenField)
 }
 
 void PacketReader::xfrBlob(string& blob)
-try
 {
-  if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen))) {
-    if (d_pos > (d_startrecordpos + d_recordlen)) {
-      throw std::out_of_range("xfrBlob out of record range");
+  try {
+    if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen))) {
+      if (d_pos > (d_startrecordpos + d_recordlen)) {
+        throw std::out_of_range("xfrBlob out of record range");
+      }
+      blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
     }
-    blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
-  }
-  else {
-    blob.clear();
-  }
+    else {
+      blob.clear();
+    }
 
-  d_pos = d_startrecordpos + d_recordlen;
-}
-catch(...)
-{
-  throw std::out_of_range("xfrBlob out of range");
+    d_pos = d_startrecordpos + d_recordlen;
+  }
+  catch(...)
+  {
+    throw std::out_of_range("xfrBlob out of range");
+  }
 }
 
 void PacketReader::xfrBlobNoSpaces(string& blob, int length) {

@@ -59,7 +59,7 @@ std::string DOHUnit::getHTTPQueryString() const
   return "";
 }
 
-void DOHUnit::setHTTPResponse(uint16_t statusCode, const std::string& body_, const std::string& contentType_)
+void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const std::string& contentType_)
 {
 }
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -91,17 +91,14 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
   static const ComboAddress lc("127.0.0.1:53");
   static const ComboAddress rem("192.0.2.1:42");
   static struct timespec queryRealTime;
-  static struct dnsheader dh;
+  static PacketBuffer packet(sizeof(dnsheader));
 
-  memset(&dh, 0, sizeof(dh));
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
-  size_t bufferSize = 0;
-  size_t queryLen = 0;
   bool isTcp = false;
   gettime(&queryRealTime, true);
 
-  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  DNSQuestion dq(providedName ? providedName : &qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
   return dq;
 }
 

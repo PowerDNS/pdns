@@ -2241,13 +2241,13 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
     /* OPT root label (1) followed by type (2) */
     if(lookForECS && ntohs(drh->d_type) == QType::OPT) {
       if (!options) {
-        char* ecsStart = nullptr;
+        size_t ecsStartPosition = 0;
         size_t ecsLen = 0;
         /* we need to pass the record len */
-        int res = getEDNSOption(const_cast<char*>(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen)))), questionLen - pos + sizeof(drh->d_clen), EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+        int res = getEDNSOption(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + sizeof(drh->d_clen), EDNSOptionCode::ECS, &ecsStartPosition, &ecsLen);
         if (res == 0 && ecsLen > 4) {
           EDNSSubnetOpts eso;
-          if(getEDNSSubnetOptsFromString(ecsStart + 4, ecsLen - 4, &eso)) {
+          if(getEDNSSubnetOptsFromString(&question.at(pos - sizeof(drh->d_clen) + ecsStartPosition + 4), ecsLen - 4, &eso)) {
             *ednssubnet=eso;
             foundECS = true;
           }

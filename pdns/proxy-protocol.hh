@@ -28,6 +28,11 @@ struct ProxyProtocolValue
 {
   std::string content;
   uint8_t type;
+
+  bool operator==(const ProxyProtocolValue& rhs) const
+  {
+    return type == rhs.type && content == rhs.content;
+  }
 };
 
 static const size_t s_proxyProtocolMinimumHeaderSize = 16;
@@ -38,9 +43,9 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
 /* returns: number of bytes consumed (positive) after successful parse
          or number of bytes missing (negative)
          or unfixable parse error (0)*/
-ssize_t isProxyHeaderComplete(const std::string& header, bool* proxy=nullptr, bool* tcp=nullptr, size_t* addrSizeOut=nullptr, uint8_t* protocolOut=nullptr);
+template<typename Container> ssize_t isProxyHeaderComplete(const Container& header, bool* proxy=nullptr, bool* tcp=nullptr, size_t* addrSizeOut=nullptr, uint8_t* protocolOut=nullptr);
 
 /* returns: number of bytes consumed (positive) after successful parse
          or number of bytes missing (negative)
          or unfixable parse error (0)*/
-ssize_t parseProxyHeader(const std::string& payload, bool& proxy, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values);
+template<typename Container> ssize_t parseProxyHeader(const Container& header, bool& proxy, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values);

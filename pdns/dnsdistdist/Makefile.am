@@ -191,6 +191,7 @@ dnsdist_SOURCES = \
 	misc.cc misc.hh \
 	mplexer.hh \
 	namespaces.hh \
+	noinitvector.hh \
 	packetcache.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
@@ -247,6 +248,7 @@ testrunner_SOURCES = \
 	iputils.cc iputils.hh \
 	misc.cc misc.hh \
 	namespaces.hh \
+	noinitvector.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
 	proxy-protocol.cc proxy-protocol.hh \

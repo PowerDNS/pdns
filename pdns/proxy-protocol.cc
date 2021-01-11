@@ -112,7 +112,7 @@ std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAdd
 /* returns: number of bytes consumed (positive) after successful parse
          or number of bytes missing (negative)
          or unfixable parse error (0)*/
-ssize_t isProxyHeaderComplete(const std::string& header, bool* proxy, bool* tcp, size_t* addrSizeOut, uint8_t* protocolOut)
+template<typename Container> ssize_t isProxyHeaderComplete(const Container& header, bool* proxy, bool* tcp, size_t* addrSizeOut, uint8_t* protocolOut)
 {
   static const size_t addr4Size = sizeof(ComboAddress::sin4.sin_addr.s_addr);
   static const size_t addr6Size = sizeof(ComboAddress::sin6.sin6_addr.s6_addr);
@@ -125,7 +125,7 @@ ssize_t isProxyHeaderComplete(const std::string& header, bool* proxy, bool* tcp,
     return -(s_proxyProtocolMinimumHeaderSize - header.size());
   }
 
-  if (header.compare(0, proxymagic.size(), proxymagic) != 0) {
+  if (std::memcmp(&header.at(0), &proxymagic.at(0), proxymagic.size()) != 0) {
     // wrong magic, can not be a proxy header
     return 0;
   }
@@ -208,7 +208,7 @@ ssize_t isProxyHeaderComplete(const std::string& header, bool* proxy, bool* tcp,
 /* returns: number of bytes consumed (positive) after successful parse
          or number of bytes missing (negative)
          or unfixable parse error (0)*/
-ssize_t parseProxyHeader(const std::string& header, bool& proxy, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values)
+template<typename Container> ssize_t parseProxyHeader(const Container& header, bool& proxy, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values)
 {
   size_t addrSize = 0;
   uint8_t protocol = 0;
@@ -220,9 +220,9 @@ ssize_t parseProxyHeader(const std::string& header, bool& proxy, ComboAddress& s
   size_t pos = s_proxyProtocolMinimumHeaderSize;
 
   if (proxy) {
-    source = makeComboAddressFromRaw(protocol, &header.at(pos), addrSize);
+    source = makeComboAddressFromRaw(protocol, reinterpret_cast<const char*>(&header.at(pos)), addrSize);
     pos = pos + addrSize;
-    destination = makeComboAddressFromRaw(protocol, &header.at(pos), addrSize);
+    destination = makeComboAddressFromRaw(protocol, reinterpret_cast<const char*>(&header.at(pos)), addrSize);
     pos = pos + addrSize;
     source.setPort((static_cast<uint8_t>(header.at(pos)) << 8) + static_cast<uint8_t>(header.at(pos+1)));
     pos = pos + sizeof(uint16_t);
@@ -243,7 +243,7 @@ ssize_t parseProxyHeader(const std::string& header, bool& proxy, ComboAddress& s
         return 0;
       }
 
-      values.push_back({ std::string(&header.at(pos), len), type });
+      values.push_back({ std::string(reinterpret_cast<const char*>(&header.at(pos)), len), type });
       pos += len;
     }
     else {
@@ -255,3 +255,9 @@ ssize_t parseProxyHeader(const std::string& header, bool& proxy, ComboAddress& s
 
   return pos;
 }
+
+#include "noinitvector.hh"
+template ssize_t isProxyHeaderComplete<std::string>(const std::string& header, bool* proxy, bool* tcp, size_t* addrSizeOut, uint8_t* protocolOut);
+template ssize_t isProxyHeaderComplete<PacketBuffer>(const PacketBuffer& header, bool* proxy, bool* tcp, size_t* addrSizeOut, uint8_t* protocolOut);
+template ssize_t parseProxyHeader<std::string>(const std::string& header, bool& proxy, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values);
+template ssize_t parseProxyHeader<PacketBuffer>(const PacketBuffer& header, bool& proxy, ComboAddress& source, ComboAddress& destination, bool& tcp, std::vector<ProxyProtocolValue>& values);

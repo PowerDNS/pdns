@@ -57,12 +57,12 @@
 
 */
 
-class DNSPacketWriter : public boost::noncopyable
+template <typename Container> class GenericDNSPacketWriter : public boost::noncopyable
 {
 
 public:
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
-  DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
+  GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
 
   /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
       ANSWER, AUTHORITY, ADDITIONAL */
@@ -146,7 +146,7 @@ public:
   {
     d_lowerCase=val;
   }
-  vector <uint8_t>& getContent()
+  Container& getContent()
   {
     return d_content;
   }
@@ -162,13 +162,15 @@ private:
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
 
-  vector <uint8_t>& d_content;
+  Container& d_content;
   DNSName d_qname;
 
   uint16_t d_truncatemarker; // end of header, for truncate
   DNSResourceRecord::Place d_recordplace;
   bool d_canonic, d_lowerCase, d_compress{false};
 };
+
+using DNSPacketWriter = GenericDNSPacketWriter<std::vector<uint8_t>>;
 
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
 // bool labeltokUnescape(labelparts_t& parts, const DNSName& label);

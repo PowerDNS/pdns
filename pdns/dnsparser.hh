@@ -399,7 +399,7 @@ public:
   //! Parse from a pointer and length
   MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
   {
-    init(query, std::string(packet, len));
+    init(query, pdns_string_view(packet, len));
   }
 
   DNSName d_qname;
@@ -420,7 +420,7 @@ public:
   bool hasEDNS() const;
 
 private:
-  void init(bool query, const std::string& packet);
+  void init(bool query, const pdns_string_view& packet);
   uint16_t d_tsigPos;
 };
 

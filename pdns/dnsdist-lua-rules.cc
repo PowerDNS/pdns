@@ -419,7 +419,7 @@ void setupLuaRules(LuaContext& luaCtx)
       int times = times_.get_value_or(100000);
       DNSName suffix(suffix_.get_value_or("powerdns.com"));
       struct item {
-        vector<uint8_t> packet;
+        PacketBuffer packet;
         ComboAddress rem;
         DNSName qname;
         uint16_t qtype, qclass;
@@ -434,7 +434,7 @@ void setupLuaRules(LuaContext& luaCtx)
         i.qclass = 1;
         i.rem=ComboAddress("127.0.0.1");
         i.rem.sin4.sin_addr.s_addr = random();
-        DNSPacketWriter pw(i.packet, i.qname, i.qtype);
+        GenericDNSPacketWriter<PacketBuffer> pw(i.packet, i.qname, i.qtype);
         items.push_back(i);
       }
 
@@ -443,10 +443,11 @@ void setupLuaRules(LuaContext& luaCtx)
       StopWatch sw;
       sw.start();
       for(int n=0; n < times; ++n) {
-        const item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, i.qclass, 0, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false, &sw.d_start);
-        if(rule->matches(&dq))
+        item& i = items[n % items.size()];
+        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, i.packet, false, &sw.d_start);
+        if (rule->matches(&dq)) {
           matches++;
+        }
       }
       double udiff=sw.udiff();
       g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
@@ -597,5 +598,9 @@ void setupLuaRules(LuaContext& luaCtx)
 
   luaCtx.writeFunction("LuaFFIRule", [](LuaFFIRule::func_t func) {
       return std::shared_ptr<DNSRule>(new LuaFFIRule(func));
+    });
+
+  luaCtx.writeFunction("ProxyProtocolValueRule", [](uint8_t type, boost::optional<std::string> value) {
+      return std::shared_ptr<DNSRule>(new ProxyProtocolValueRule(type, value));
     });
 }

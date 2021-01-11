@@ -52,6 +52,7 @@ private:
 
 #include "dnsname.hh"
 #include "lock.hh"
+#include "noinitvector.hh"
 
 #define DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE (crypto_sign_ed25519_PUBLICKEYBYTES)
 #define DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE (crypto_sign_ed25519_SECRETKEYBYTES)
@@ -207,10 +208,10 @@ public:
     d_pair = pair;
   }
 
-  void parsePacket(char* packet, uint16_t packetSize, bool tcp, uint16_t* decryptedQueryLen, time_t now);
-  void getDecrypted(bool tcp, char* packet, uint16_t packetSize, uint16_t* decryptedQueryLen);
-  void getCertificateResponse(time_t now, std::vector<uint8_t>& response) const;
-  int encryptResponse(char* response, uint16_t responseLen, uint16_t responseSize, bool tcp, uint16_t* encryptedResponseLen);
+  void parsePacket(PacketBuffer& packet, bool tcp, time_t now);
+  void getDecrypted(bool tcp, PacketBuffer& packet);
+  void getCertificateResponse(time_t now, PacketBuffer& response) const;
+  int encryptResponse(PacketBuffer& response, size_t maxResponseSize, bool tcp);
 
   static const size_t s_minUDPLength = 256;
 
@@ -221,8 +222,8 @@ private:
 #endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
   void fillServerNonce(unsigned char* dest) const;
   uint16_t computePaddingSize(uint16_t unpaddedLen, size_t maxLen) const;
-  bool parsePlaintextQuery(const char * packet, uint16_t packetSize);
-  bool isEncryptedQuery(const char * packet, uint16_t packetSize, bool tcp, time_t now);
+  bool parsePlaintextQuery(const PacketBuffer& packet);
+  bool isEncryptedQuery(const PacketBuffer& packet, bool tcp, time_t now);
 
   DNSCryptQueryHeader d_header;
 #ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
@@ -275,9 +276,9 @@ public:
   std::vector<std::shared_ptr<DNSCryptCertificatePair>> getCertificates() { return d_certs; };
   const DNSName& getProviderName() const { return providerName; }
 
-  int encryptQuery(char* query, uint16_t queryLen, uint16_t querySize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, uint16_t* encryptedResponseLen, const std::shared_ptr<DNSCryptCert>& cert) const;
+  int encryptQuery(PacketBuffer& query, size_t maximumSize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, const std::shared_ptr<DNSCryptCert>& cert) const;
   bool magicMatchesAPublicKey(DNSCryptQuery& query, time_t now);
-  void getCertificateResponse(time_t now, const DNSName& qname, uint16_t qid, std::vector<uint8_t>& response);
+  void getCertificateResponse(time_t now, const DNSName& qname, uint16_t qid, PacketBuffer& response);
 
 private:
   static void computePublicKeyFromPrivate(const DNSCryptPrivateKey& privK, unsigned char pubK[DNSCRYPT_PUBLIC_KEY_SIZE]);

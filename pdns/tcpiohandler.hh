@@ -4,6 +4,7 @@
 
 #include "libssl.hh"
 #include "misc.hh"
+#include "noinitvector.hh"
 
 enum class IOState { Done, NeedRead, NeedWrite };
 
@@ -15,8 +16,8 @@ public:
   virtual IOState tryHandshake() = 0;
   virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
-  virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
-  virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
+  virtual IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
+  virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) = 0;
   virtual bool hasBufferedData() const = 0;
   virtual std::string getServerNameIndication() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
@@ -217,7 +218,7 @@ public:
      return Done when toRead bytes have been read, needRead or needWrite if the IO operation
      would block.
   */
-  IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead)
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead)
   {
     if (buffer.size() < toRead || pos >= toRead) {
       throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead - pos) + " bytes starting at " + std::to_string(pos));
@@ -254,7 +255,7 @@ public:
      return Done when toWrite bytes have been written, needRead or needWrite if the IO operation
      would block.
   */
-  IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite)
+  IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite)
   {
     if (buffer.size() < toWrite || pos >= toWrite) {
       throw std::out_of_range("Calling tryWrite() with a too small buffer (" + std::to_string(buffer.size()) + ") for a write of " + std::to_string(toWrite - pos) + " bytes starting at " + std::to_string(pos));

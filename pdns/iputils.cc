@@ -261,7 +261,7 @@ int sendOnNBSocket(int fd, const struct msghdr *msgh)
   return sendErr;
 }
 
-ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
+ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
   struct msghdr msgh;
   struct iovec iov;
@@ -269,7 +269,7 @@ ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const Comb
 
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
-  iov.iov_base = (void*)data;
+  iov.iov_base = const_cast<void*>(data);
   iov.iov_len = len;
   msgh.msg_iov = &iov;
   msgh.msg_iovlen = 1;

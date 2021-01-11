@@ -135,6 +135,7 @@ pdns_recursor_SOURCES = \
 	mtasker_context.cc mtasker_context.hh \
 	namespaces.hh \
 	negcache.hh negcache.cc \
+	noinitvector.hh \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
 	packetcache.hh \

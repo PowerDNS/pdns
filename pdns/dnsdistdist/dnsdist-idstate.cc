@@ -1,9 +1,9 @@
 
 #include "dnsdist.hh"
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP)
+DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, bool isTCP)
 {
-  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, ids.qname.wirelength(), &ids.origDest, &ids.origRemote, dh, bufferSize, responseLen, isTCP, &ids.sentTime.d_start);
+  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, isTCP, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
   dr.ecsAdded = ids.ecsAdded;
   dr.ednsAdded = ids.ednsAdded;
@@ -22,6 +22,9 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_
   if (ids.dnsCryptQuery) {
     dr.dnsCryptQuery = std::move(ids.dnsCryptQuery);
   }
+
+  dr.hopRemote = &ids.hopRemote;
+  dr.hopLocal = &ids.hopLocal;
 
   return dr;
 }
@@ -48,6 +51,20 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.qTag = dq.qTag;
   ids.dnssecOK = dq.dnssecOK;
   ids.uniqueId = std::move(dq.uniqueId);
+
+  if (dq.hopRemote) {
+    ids.hopRemote = *dq.hopRemote;
+  }
+  else {
+    ids.hopRemote.sin4.sin_family = 0;
+  }
+
+  if (dq.hopLocal) {
+    ids.hopLocal = *dq.hopLocal;
+  }
+  else {
+    ids.hopLocal.sin4.sin_family = 0;
+  }
 
   ids.dnsCryptQuery = std::move(dq.dnsCryptQuery);
 }

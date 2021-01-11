@@ -428,6 +428,22 @@ Access Control Lists
 
   :param str fname: The path to a file containing a list of netmasks. Empty lines or lines starting with "#" are ignored.
 
+.. function:: setProxyProtocolACL(netmasks)
+
+  .. versionadded:: 1.6.0
+
+  Set the list of netmasks from which a Proxy Protocol header will be accepted, over UDP, TCP and DNS over TLS. The default is empty. Note that, if :func:`setProxyProtocolApplyACLToProxiedClients` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
+
+  :param {str} netmasks: A table of CIDR netmask, e.g. ``{"192.0.2.0/24", "2001:DB8:14::/56"}``. Without a subnetmask, only the specific address is allowed.
+
+.. function:: setProxyProtocolApplyACL(apply)
+
+  .. versionadded:: 1.6.0
+
+  Whether the general ACL should be applied to the source IP address provided in the Proxy Protocol header, in addition to being applied to the source IP address as seen by dnsdist first.
+
+  :param bool apply: Whether it should be applied or not (default is false).
+
 .. function:: showACL()
 
   Print a list of all netmasks allowed to send queries over UDP, TCP, DNS over TLS and DNS over HTTPS. See :ref:`ACL` for more information.
@@ -1503,6 +1519,14 @@ Other functions
   .. versionadded:: 1.4.0
 
   Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
+
+.. function:: setProxyProtocolMaximumPayloadSize(size)
+
+  .. versionadded:: 1.6.0
+
+  Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can't be set to a value lower than 16 since it would deny of Proxy Protocol headers.
+
+  :param int size: The maximum size in bytes (default is 512)
 
 .. function:: makeIPCipherKey(password) -> string
 
