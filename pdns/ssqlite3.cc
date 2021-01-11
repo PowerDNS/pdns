@@ -216,7 +216,7 @@ void SSQLite3::setLog(bool state)
 SSQLite3::~SSQLite3()
 {
   int ret;
-  for(int n = 0; n < 2 ; ++n) {
+  for(int n = 0; ; ++n) {
     if((ret =sqlite3_close( m_pDB )) != SQLITE_OK) {
       if(n || ret != SQLITE_BUSY) { // if we have SQLITE_BUSY, and a working m_Pstmt, try finalize
         cerr<<"Unable to close down sqlite connection: "<<ret<<endl;

@@ -237,7 +237,7 @@ void TeeAction::worker()
     res=recv(d_fd, packet, sizeof(packet), 0);
     if(res <= (int)sizeof(struct dnsheader))
       d_recverrors++;
-    else if(res > 0)
+    else
       d_responses++;
 
     if(dh->rcode == RCode::NoError)
