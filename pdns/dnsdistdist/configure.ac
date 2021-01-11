@@ -1,4 +1,4 @@
-AC_PREREQ([2.61])
+AC_PREREQ([2.69])
 
 AC_INIT([dnsdist], m4_esyscmd(build-aux/gen-version))
 AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip parallel-tests 1.11 subdir-objects])
@@ -8,7 +8,6 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
-AC_GNU_SOURCE
 
 AC_DEFINE([DNSDIST], [1],
   [This is dnsdist]

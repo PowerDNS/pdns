@@ -1,11 +1,19 @@
-AC_PREREQ([2.61])
+AC_PREREQ([2.69])
 
 AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
-
+AC_CONFIG_AUX_DIR([build-aux])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
+AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
+
+AC_USE_SYSTEM_EXTENSIONS
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_AUX_DIR([build-aux])
+
+AC_CANONICAL_HOST
+# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
+CFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CFLAGS"
+CXXFLAGS="-std=c++17 -g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
@@ -13,42 +21,25 @@ AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
   [pdns configure arguments]
 )
 
-AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
-AM_SILENT_RULES([yes])
-
-AC_CANONICAL_HOST
-# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
-CFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CFLAGS"
-CXXFLAGS="-std=c++17 -g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
-
 AC_PROG_CC
-AM_PROG_CC_C_O
+# AM_PROG_CC_C_O
+AC_PROG_CXX
+AC_LANG([C++])
 PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-
-AC_PROG_CXX
-AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
-  [AC_MSG_ERROR([no C++ compiler found])]
-)
-
-AC_LANG([C++])
-
-AC_DEFINE([_GNU_SOURCE], [1],
-  [Define _GNU_SOURCE so that we get all necessary prototypes]
-)
 
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
+
+AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
+LT_PREREQ([2.2.2])
+LT_INIT([disable-static dlopen])
 
 PDNS_CHECK_OS
 PTHREAD_SET_NAME
 
 PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
-
-AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
@@ -69,9 +60,6 @@ AS_IF([test "x$enable_hardening" != "xno"], [
 PDNS_ENABLE_KISS
 
 PDNS_CHECK_NETWORK_LIBS
-
-LT_PREREQ([2.2.2])
-LT_INIT([disable-static dlopen])
 
 
 MC_TM_GMTOFF
