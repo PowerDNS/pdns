@@ -827,7 +827,7 @@ bool LMDBBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
         uint32_t serial;
         // a SOA has five 32 bit fields, the first of which is the serial
         // there are two variable length names before the serial, so we calculate from the back
-        memcpy(&serial, &rr.content[rr.content.size() - (4 * sizeof(uint32_t))], sizeof(serial));
+        memcpy(&serial, &rr.content[rr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
         di.serial = ntohl(serial);
       }
     }
