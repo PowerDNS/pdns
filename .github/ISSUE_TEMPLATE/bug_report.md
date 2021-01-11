@@ -10,6 +10,7 @@ assignees: ''
 <!-- Hi! Thanks for filing an issue. It will be read with care by human beings. Can we ask you to please fill out this template and not simply demand new features or send in complaints? Thanks! -->
 <!-- Also please search the existing issues (both open and closed) to see if your report might be duplicate -->
 <!-- Please don't file an issue when you have a support question, send support questions to the mailinglist or ask them on IRC (https://www.powerdns.com/opensource.html) -->
+<!-- Before filing your ticket, please read our 'out in the open' support policy at https://blog.powerdns.com/2016/01/18/open-source-support-out-in-the-open/ -->
 
 <!-- Tell us what is issue is about -->
  - Program: Authoritative, Recursor, dnsdist <!-- delete the ones that do not apply -->
