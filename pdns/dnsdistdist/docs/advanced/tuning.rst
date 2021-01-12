@@ -69,8 +69,12 @@ For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealin
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
 
 When dispatching UDP queries to backend servers, dnsdist keeps track of at most **n** outstanding queries for each backend.
-This number **n** can be tuned by the :func:`setMaxUDPOutstanding` directive, defaulting to 10240 (65535 since 1.4.0), with a maximum value of 65535.
-Large installations are advised to increase the default value at the cost of a slightly increased memory usage.
+This number **n** can be tuned by the :func:`setMaxUDPOutstanding` directive, defaulting to 65535 which is the maximum value.
+
+.. versionchanged:: 1.4.0
+  The default was 10240 before 1.4.0
+
+Large installations running dnsdist before 1.4.0 are advised to increase the default value at the cost of a slightly increased memory usage.
 
 Lock contention and sharding
 ----------------------------
