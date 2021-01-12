@@ -329,8 +329,11 @@ Modifying Policy Decisions
 The PowerDNS Recursor has a :doc:`policy engine based on Response Policy Zones (RPZ) <../lua-config/rpz>`.
 Starting with version 4.0.1 of the recursor, it is possible to alter this decision inside the Lua hooks.
 
-If the decision is modified in a Lua hook, ``false`` should be returned, as the query is not actually handled by Lua so the decision is picked up by the Recursor.
-The result of the policy decision is checked after :func:`preresolve` and :func:`postresolve` before 4.4.0. Beginning with version 4.4.0, the policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call instead.
+If the decision is modified in a Lua hook, ``false`` should be
+returned, as the query is not actually handled by Lua so the decision
+is picked up by the Recursor.
+
+Before 4.4.0, the result of the policy decision is checked after :func:`preresolve` and :func:`postresolve`. Beginning with version 4.4.0, the policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call instead.
 
 For example, if a decision is set to ``pdns.policykinds.NODATA`` by the policy engine and is unchanged in :func:`preresolve`, the query is replied to with a NODATA response immediately after :func:`preresolve`.
 
@@ -339,6 +342,8 @@ Example script
 
 .. code-block:: Lua
 
+    -- This script demonstrates modifying policies for versions before 4.4.0.
+    -- Starting with 4.4.0, it is preferred to use a policyEventFilter.
     -- Dont ever block my own domain and IPs
     myDomain = newDN("example.com")
 

@@ -7,6 +7,14 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.3.x to 4.4.0 or master
 ------------------------
 
+Response Policy Zones (RPZ)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To conform better to the standard, RPZ processing has been modified.
+This has consequences for the points in the resolving process where matches are checked and callbacks are called.
+See :ref:`rpz` for details. Additionally a new type of callback has been introduced: :func:`policyEventFilter`.
+
+
 Parsing of unknown record types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The parsing (from zone files) of unknown records types (of the form
