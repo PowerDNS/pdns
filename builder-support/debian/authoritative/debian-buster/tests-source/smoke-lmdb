@@ -1,0 +1,34 @@
+#!/bin/bash
+exec 2>&1
+set -ex
+
+CONFDIR="$PWD"
+
+TMPFILE=$(mktemp)
+cleanup() {
+  rm -f "$TMPFILE"
+  rm -f pdns.lmdb pdns.lmdb-lock
+  kill $(cat pdns.pid) || true
+  rm -f pdns.conf pdns.pid pdns.controlsocket
+}
+trap cleanup EXIT
+
+cat <<EOF >pdns.conf
+module-dir=../../modules/lmdbbackend/.libs/
+launch=lmdb
+lmdb-filename=./pdns.lmdb
+EOF
+
+../../pdns/pdnsutil --config-dir=. create-zone smoke.lmdb.example.org
+
+./launch-pdns
+
+dig -p 5301 @127.0.0.1 smoke.lmdb.example.org SOA 2>&1 | tee "$TMPFILE"
+
+if grep -c 'a.misconfigured' "$TMPFILE"; then
+    echo success
+else
+    echo smoke could not be resolved
+    exit 1
+fi
+

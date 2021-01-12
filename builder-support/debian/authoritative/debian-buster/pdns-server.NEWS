@@ -1,0 +1,49 @@
+pdns (4.3.0-1) unstable; urgency=medium
+
+  Superslave operation is no longer enabled by default, use the superslave
+  configuration option to enable.
+
+  Bind and SQL backends have a mandatory schema upgrade, please use
+  the included SQL files.
+
+  The old init scripts were deprecated and removed, please use the
+  systemd units instead. They support multiple instances, but you have
+  to set this up again (look for pdns@.service).
+
+  Please also see the upstream upgrading guide at
+    https://doc.powerdns.com/authoritative/upgrading.html
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Tue, 07 Apr 2020 15:26:55 +0000
+
+pdns (4.0.0-2) unstable; urgency=medium
+
+  The "bind" backend is no longer included in the pdns-server package, instead
+  it is provided in pdns-backend-bind. Users having APT install Recommends
+  (the default), will continue to get it installed.  If you are upgrading from
+  a previous version and have disabled bindbackend previously, you need to do
+  so again, either by uninstalling pdns-backend-bind or by deleting
+  /etc/powerdns/pdns.d/bind.conf.
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Wed, 13 Jul 2016 15:42:16 +0200
+
+pdns (4.0.0~alpha1-1) unstable; urgency=medium
+
+  The "pdnssec" utility has been renamed to "pdnsutil".
+  The default listening addresses now include all IPv6 addresses.
+  The default DNSSEC parameters have changed to a single ECDSA 256
+  key.
+  The "lmdb" backend has been removed.
+  Many options are no longer experimental.
+
+  Debian specific: the allow-recursion and listen-address parameters
+  are no longer set using debconf.
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Fri, 25 Dec 2015 17:05:29 +0000
+
+pdns (3.4.6-2) unstable; urgency=medium
+
+  The "geo" backend has been replaced by the much newer "geoip"
+  backend. The geoip backend actually has documentation and upstream
+  has a higher confidence of keeping it working in newer versions.
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Thu, 10 Sep 2015 21:51:38 +0000
