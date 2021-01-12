@@ -2069,6 +2069,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         frontend->d_internalPipeBufferSize = boost::get<int>((*vars)["internalPipeBufferSize"]);
       }
 
+      if (vars->count("exactPathMatching")) {
+        frontend->d_exactPathMatching = boost::get<bool>((*vars)["exactPathMatching"]);
+      }
+
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);

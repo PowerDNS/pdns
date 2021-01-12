@@ -105,6 +105,9 @@ struct DOHFrontend
   uint32_t d_internalPipeBufferSize{0};
   bool d_sendCacheControlHeaders{true};
   bool d_trustForwardedForHeader{false};
+  /* whether we require tue query path to exactly match one of configured ones,
+     or accept everything below these paths. */
+  bool d_exactPathMatching{true};
 
   time_t getTicketsKeyRotationDelay() const
   {

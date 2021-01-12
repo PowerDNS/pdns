@@ -621,6 +621,64 @@ class TestDOH(DNSDistDOHTest):
         self.assertIn('foo: bar', headers)
         self.assertNotIn(self._customResponseHeader2, headers)
 
+class TestDOHSubPaths(DNSDistDOHTest):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+
+    addAction(AllRule(), SpoofAction("3.4.5.6"))
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/PowerDNS" }, {exactPathMatching=false})
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
+
+    def testSubPath(self):
+        """
+        DOH: sub-path
+        """
+        name = 'sub-path.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 0
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '3.4.5.6')
+        expectedResponse.answer.append(rrset)
+
+        # this path should match
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS', caFile=self._caCert, query=query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        expectedQuery.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # this path is not in the URLs map and should lead to a 404
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "NotPowerDNS", query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, b'not found')
+        self.assertEquals(self._rcode, 404)
+
+        # this path is below one in the URLs map and exactPathMatching is false, so we should be good
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS/something', caFile=self._caCert, query=query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
 class TestDOHAddingECS(DNSDistDOHTest):
 
     _serverKey = 'server.key'
