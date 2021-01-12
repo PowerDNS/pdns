@@ -843,11 +843,16 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     // would be nice to be able to use a pdns_string_view there,
     // but regex (called by matches() internally) requires a null-terminated string
     string path(req->path.base, req->path.len);
-    for (const auto& entry : dsc->df->d_responsesMap) {
-      if (entry->matches(path)) {
-        const auto& customHeaders = entry->getHeaders();
-        handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
-        return 0;
+    /* the responses map can be updated at runtime, so we need to take a copy of
+       the shared pointer, increasing the reference counter */
+    auto responsesMap = dsc->df->d_responsesMap;
+    if (responsesMap) {
+      for (const auto& entry : *responsesMap) {
+        if (entry->matches(path)) {
+          const auto& customHeaders = entry->getHeaders();
+          handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
+          return 0;
+        }
       }
     }
 

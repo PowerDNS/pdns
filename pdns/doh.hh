@@ -71,7 +71,7 @@ struct DOHFrontend
   }
 
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
-  std::vector<std::shared_ptr<DOHResponseMapEntry>> d_responsesMap;
+  std::shared_ptr<std::vector<std::shared_ptr<DOHResponseMapEntry>>> d_responsesMap;
   TLSConfig d_tlsConfig;
   TLSErrorCounters d_tlsCounters;
   std::string d_serverTokens{"h2o/dnsdist"};

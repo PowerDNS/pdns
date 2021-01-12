@@ -2192,11 +2192,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     luaCtx.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(const std::map<int, std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const std::map<int, std::shared_ptr<DOHResponseMapEntry>>& map) {
         if (frontend != nullptr) {
-          std::vector<std::shared_ptr<DOHResponseMapEntry>> newMap;
-          newMap.reserve(map.size());
+          auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
+          newMap->reserve(map.size());
 
           for (const auto& entry : map) {
-            newMap.push_back(entry.second);
+            newMap->push_back(entry.second);
           }
 
           frontend->d_responsesMap = std::move(newMap);
