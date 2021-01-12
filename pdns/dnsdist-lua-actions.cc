@@ -856,6 +856,20 @@ public:
   }
 };
 
+class SkipCacheResponseAction : public DNSResponseAction
+{
+public:
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    dr->skipCache = true;
+    return Action::None;
+  }
+  std::string toString() const override
+  {
+    return "skip cache";
+  }
+};
+
 class TempFailureCacheTTLAction : public DNSAction
 {
 public:
@@ -1702,6 +1716,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SkipCacheAction", []() {
       return std::shared_ptr<DNSAction>(new SkipCacheAction);
+    });
+
+  luaCtx.writeFunction("SkipCacheResponseAction", []() {
+      return std::shared_ptr<DNSResponseAction>(new SkipCacheResponseAction);
     });
 
   luaCtx.writeFunction("TempFailureCacheTTLAction", [](int maxTTL) {

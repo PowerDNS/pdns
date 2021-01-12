@@ -1359,6 +1359,12 @@ The following actions exist.
 
   Don't lookup the cache for this query, don't store the answer.
 
+.. function:: SkipCacheResponseAction()
+
+  .. versionadded:: 1.6.0
+
+  Don't store this answer into the cache.
+
 .. function:: SNMPTrapAction([message])
 
   Send an SNMP trap, adding the optional ``message`` string as the query description.
