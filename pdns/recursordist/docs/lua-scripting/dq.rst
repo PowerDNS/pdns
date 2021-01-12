@@ -15,13 +15,13 @@ The DNSQuestion object contains at least the following fields:
 
       .. versionadded:: 4.5.0
 
-      The current extended error code, if any. See :ref:`extended-errors`.
+      The current extended error code, if any. See :ref:`setting-extended-resolution-errors`.
 
   .. attribute:: DNSQuestion.extendedErrorExtra
 
       .. versionadded:: 4.5.0
 
-      The current extended error extra text, as a string, if any. See :ref:`extended-errors`.
+      The current extended error extra text, as a string, if any. See :ref:`setting-extended-resolution-errors`.
 
   .. attribute:: DNSQuestion.qname
 
