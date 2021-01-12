@@ -96,7 +96,7 @@ namespace YaHTTP {
     };
 
     HTTPBase() {
-      initialize();
+      HTTPBase::initialize();
     };
 
     virtual void initialize() {
@@ -134,7 +134,7 @@ protected:
 #endif
       this->is_multipart = rhs.is_multipart;
     };
-    HTTPBase& operator=(const HTTPBase& rhs) {
+    virtual HTTPBase& operator=(const HTTPBase& rhs) {
       this->url = rhs.url; this->kind = rhs.kind;
       this->status = rhs.status; this->statusText = rhs.statusText;
       this->method = rhs.method; this->headers = rhs.headers;
@@ -196,16 +196,16 @@ public:
   /*! Response class, represents a HTTP Response document */
   class Response: public HTTPBase { 
   public:
-    Response() { initialize(); };
+    Response() { Response::initialize(); };
     Response(const HTTPBase& rhs): HTTPBase(rhs) {
       this->kind = YAHTTP_TYPE_RESPONSE;
     };
-    Response& operator=(const HTTPBase& rhs) {
+    Response& operator=(const HTTPBase& rhs) override {
       HTTPBase::operator=(rhs);
       this->kind = YAHTTP_TYPE_RESPONSE;
       return *this;
     };
-    void initialize() {
+    void initialize() override {
       HTTPBase::initialize();
       this->kind = YAHTTP_TYPE_RESPONSE;
     }
@@ -225,16 +225,16 @@ public:
   /* Request class, represents a HTTP Request document */
   class Request: public HTTPBase {
   public:
-    Request() { initialize(); };
+    Request() { Request::initialize(); };
     Request(const HTTPBase& rhs): HTTPBase(rhs) {
       this->kind = YAHTTP_TYPE_REQUEST;
     };
-    Request& operator=(const HTTPBase& rhs) {
+    Request& operator=(const HTTPBase& rhs) override {
       HTTPBase::operator=(rhs);
       this->kind = YAHTTP_TYPE_REQUEST;
       return *this;
     };
-    void initialize() {
+    void initialize() override {
       HTTPBase::initialize();
       this->kind = YAHTTP_TYPE_REQUEST;
     }
