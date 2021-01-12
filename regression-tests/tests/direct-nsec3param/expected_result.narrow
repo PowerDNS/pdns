@@ -3,3 +3,6 @@
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='example.com.', qtype=NSEC3PARAM
+0	example.com.	IN	NSEC3PARAM	86400	1 0 1 abcd
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='example.com.', qtype=NSEC3PARAM

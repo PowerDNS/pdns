@@ -1362,7 +1362,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
             goto sendit;
         }
       }
-      if(d_dnssec && p.qtype.getCode() == QType::NSEC3PARAM)
+      if(p.qtype.getCode() == QType::NSEC3PARAM)
       {
         if(addNSEC3PARAM(p,r))
           goto sendit;
