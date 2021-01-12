@@ -153,6 +153,7 @@ pdns_recursor_SOURCES = \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-protozero.cc rec-protozero.hh \
 	rec-snmp.hh rec-snmp.cc \
+	rec-taskqueue.cc rec-taskqueue.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
@@ -176,6 +177,7 @@ pdns_recursor_SOURCES = \
 	stable-bloom.hh \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
+	taskqueue.cc taskqueue.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \

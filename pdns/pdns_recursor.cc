@@ -99,6 +99,7 @@
 #include "query-local-address.hh"
 
 #include "rec-snmp.hh"
+#include "rec-taskqueue.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -2175,6 +2176,8 @@ static void startDoResolve(void *p)
     g_log<<Logger::Error<<"Any other exception in a resolver context "<< makeLoginfo(dc) <<endl;
   }
 
+  runTaskOnce(g_logCommonErrors);
+
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
 }
 
@@ -3356,6 +3359,9 @@ static void doStats(void)
   auto rc_stats = g_recCache->stats();
   double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
   uint64_t negCacheSize = g_negCache->size();
+  auto taskPushes = getTaskPushes();
+  auto taskExpired = getTaskExpired();
+  auto taskSize = getTaskSize();
 
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
@@ -3388,6 +3394,7 @@ static void doStats(void)
       }
     }
 
+    g_log<<Logger::Notice<<"stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl; 
     time_t now = time(0);
     if(lastOutputTime && lastQueryCount && now != lastOutputTime) {
       g_log<<Logger::Notice<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
@@ -3420,6 +3427,8 @@ static void houseKeeping(void *)
       return;
     }
     s_running=true;
+
+    runTaskOnce(g_logCommonErrors);
 
     struct timeval now, past;
     Utility::gettimeofday(&now, nullptr);
@@ -3776,7 +3785,6 @@ static vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_
   a.insert(a.end(), b.begin(), b.end());
   return a;
 }
-
 
 /*
   This function should only be called by the handler to gather metrics, wipe the cache,
@@ -4536,6 +4544,9 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
   SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
+  SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
+  RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
+
   if(SyncRes::s_serverID.empty()) {
     SyncRes::s_serverID = myHostname;
   }
@@ -5403,6 +5414,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
     ::arg().set("record-cache-shards", "Number of shards in the record cache")="1024";
+    ::arg().set("refresh-on-ttl-perc", "If a record is requested from the cache and only this % of original TTL remains, refetch") = "0";
 
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
@@ -5535,3 +5547,4 @@ int main(int argc, char **argv)
 
   return ret;
 }
+

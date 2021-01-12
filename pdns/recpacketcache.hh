@@ -49,6 +49,8 @@ using namespace ::boost::multi_index;
 class RecursorPacketCache: public PacketCache
 {
 public:
+  static unsigned int s_refresh_ttlperc;
+
   struct PBData {
     std::string d_message;
     std::string d_response;
@@ -92,11 +94,16 @@ private:
     uint16_t d_type;
     uint16_t d_class;
     mutable vState d_vstate;
+    mutable bool d_submitted;   // whether this entry has been queued for refetch
     inline bool operator<(const struct Entry& rhs) const;
 
     time_t getTTD() const
     {
       return d_ttd;
+    }
+
+    uint32_t getOrigTTL() const {
+      return d_ttd - d_creation;
     }
   };
 

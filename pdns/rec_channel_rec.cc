@@ -37,6 +37,8 @@
 #include "secpoll-recursor.hh"
 #include "pubsuffix.hh"
 #include "namespaces.hh"
+#include "rec-taskqueue.hh"
+
 std::mutex g_carbon_config_lock;
 
 static map<string, const uint32_t*> d_get32bitpointers;
@@ -1231,6 +1233,10 @@ void registerAllStats()
 
   addGetStat("nod-lookups-dropped-oversize", &g_stats.nodLookupsDroppedOversize);
 
+  addGetStat("taskqueue-pushed",  []() { return getTaskPushes(); });
+  addGetStat("taskqueue-expired",  []() { return getTaskExpired(); });
+  addGetStat("taskqueue-size",  []() { return getTaskSize(); });
+  
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
@@ -1663,7 +1669,6 @@ static string clearDontThrottleNetmasks(T begin, T end) {
   g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
   return ret + "\n";
 }
-
 
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {

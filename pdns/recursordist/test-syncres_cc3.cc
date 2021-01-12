@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(test_answer_no_aa)
   const ComboAddress who;
   vector<DNSRecord> cached;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  BOOST_REQUIRE_EQUAL(g_recCache->get(now, target, QType(QType::A), false, &cached, who, boost::none, &signatures), -1);
+  BOOST_REQUIRE_EQUAL(g_recCache->get(now, target, QType(QType::A), false, &cached, who, 0, boost::none, &signatures), -1);
 }
 
 BOOST_AUTO_TEST_CASE(test_special_types)

@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     int64_t expected = counter - delcounter;
 
     for (; delcounter < counter; ++delcounter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(delcounter)), QType(QType::A), false, &retrieved, who, false) > 0) {
         matches++;
         BOOST_REQUIRE_EQUAL(retrieved.size(), records.size());
         BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -281,7 +281,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     vState retrievedState = vState::Indeterminate;
     bool wasAuth = false;
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), false, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
     BOOST_CHECK_EQUAL(wasAuth, true);
@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     retrievedState = vState::Indeterminate;
     wasAuth = false;
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), false, boost::none, nullptr, nullptr, nullptr, &retrievedState, &wasAuth), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(vStateToString(retrievedState), vStateToString(vState::Secure));
     BOOST_CHECK_EQUAL(wasAuth, true);
@@ -457,11 +457,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   /* the remaining entry should be power2, but to get it
      we need to go back in the past a bit */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), 1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), 1);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
   /* check that power1 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* clear everything up */
   MRC.doWipeCache(DNSName("."), true);
@@ -478,7 +478,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* trigger a miss (expired) for power2 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -now);
 
   /* power2 should have been moved to the front of the expunge
      queue, and should this time be removed first */
@@ -488,11 +488,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   /* the remaining entry should be power1, but to get it
      we need to go back in the past a bit */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), 1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), 1);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
   /* check that power2 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(ttd - 1, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 }
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
@@ -547,11 +547,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power2 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
   /* check that power1 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* clear everything up */
   MRC.doWipeCache(DNSName("."), true);
@@ -581,11 +581,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
   /* check that power2 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* clear everything up */
   MRC.doWipeCache(DNSName("."), true);
@@ -602,7 +602,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* get a hit for power1 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
@@ -613,11 +613,11 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, boost::none, nullptr), ttd - now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power1, QType(dr1.d_type), false, &retrieved, who, 0, boost::none, nullptr), ttd - now);
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
   BOOST_CHECK_EQUAL(getRR<AAAARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
   /* check that power2 is gone */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, boost::none, nullptr), -1);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   MRC.doPrune(0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
@@ -653,7 +653,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   for (size_t i = 0; i <= 255; i++) {
     ComboAddress whoLoop("192.0.2." + std::to_string(i));
 
-    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, whoLoop);
+    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, whoLoop, 0);
     if (ret > 0) {
       BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
       BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), whoLoop.toString());
@@ -985,7 +985,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     int64_t expected = counter;
 
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, boost::none) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, boost::none) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -995,7 +995,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; ++counter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, string("mytagB")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, 0, string("mytagB")) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1005,7 +1005,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, string("mytagX")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, who, 0, string("mytagX")) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1022,7 +1022,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, boost::none) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, boost::none) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1032,7 +1032,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; ++counter) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, string("mytagA")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, string("mytagA")) > 0) {
         matches++;
         if (counter < 50) {
           BOOST_CHECK_EQUAL(retrieved.size(), rset0tagged.size());
@@ -1048,7 +1048,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 
     matches = 0;
     for (counter = 0; counter < 110; counter++) {
-      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, string("mytagX")) > 0) {
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), false, &retrieved, nobody, 0, string("mytagX")) > 0) {
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
@@ -1097,12 +1097,12 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
     // tagged specific should be returned for a matching tag
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     // tag specific should not be returned for a different tag
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("othertag")), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("othertag")), 0);
     BOOST_CHECK_EQUAL(retrieved.size(), 0U);
 
     // insert a new  entry without tag
@@ -1110,16 +1110,16 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
     // tagged specific should be returned for a matching tag
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
     // if no tag given nothing should be retrieved if address doesn't match
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), boost::none), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1"), 0, boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
     // if no tag given and no-non-tagged entries matches nothing should be returned
-    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), 0);
+    BOOST_CHECK_LT(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, boost::none), 0);
     BOOST_REQUIRE_EQUAL(retrieved.size(), 0U);
 
     // Insert untagged entry with no netmask
@@ -1127,21 +1127,21 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     BOOST_CHECK_EQUAL(MRC.size(), 3U);
 
     // Retrieval with no address and no tag should get that one
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress(), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress(), 0, boost::none), (ttd - now));
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
 
     // If no tag given match non-tagged entry
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, boost::none), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr3Content.toString());
 
     // If no tag given we should be able to retrieve the netmask specific record
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.3.1"), boost::none), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.3.1"), 0, boost::none), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
 
     // tagged specific should still be returned for a matching tag, address is not used
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), string("mytag")), (ttd - now));
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.2"), 0, string("mytag")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
