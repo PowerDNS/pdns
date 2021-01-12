@@ -12,6 +12,14 @@ As an example:
  - ``serve-rfc1918=off`` or ``serve-rfc1918=no`` means: do not serve those zones.
  - Anything else means: do serve those zones.
 
+You can use ``+=`` syntax to set some variables incrementally, but this
+requires you to have at least one non-incremental setting for the
+variable to act as base setting. This is mostly useful for
+:ref:`setting-include-dir` directive. An example::
+
+  forward-zones = foo.example.com=192.168.100.1;
+  forward-zones += bar.example.com=[1234::abcde]:5353;
+
 .. _setting-allow-from:
 
 ``allow-from``
