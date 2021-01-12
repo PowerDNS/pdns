@@ -1,40 +1,30 @@
 Source: pdns
 Section: net
-Priority: extra
-Standards-Version: 4.1.1
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
-Origin: PowerDNS
-Build-Depends: autoconf,
-               automake,
-               autotools-dev,
-               bison,
+Priority: optional
+Standards-Version: 4.5.1
+Build-Depends: bison,
                curl,
-               debhelper (>= 10),
+               debhelper-compat (= 10),
                default-libmysqlclient-dev,
-               dh-autoreconf,
-               dh-systemd,
+               dnsutils,
                flex,
-               libboost-dev,
-               libboost-program-options-dev,
-               libboost-serialization-dev,
-               libboost-test-dev,
+               libboost-all-dev,
                libcdb-dev,
                libcurl4-openssl-dev,
                libgeoip-dev,
                libkrb5-dev,
                libldap2-dev,
                liblmdb-dev,
-               libluajit-5.1-dev [!arm64],
-               liblua5.3-dev [arm64],
+               libluajit-5.1-dev [amd64] | liblua5.1-0-dev,
+               liblua5.1-0-dev [!amd64],
                libmaxminddb-dev,
-               libp11-kit-dev,
                libpq-dev,
                libprotobuf-dev,
                libsodium-dev,
                libsqlite3-dev,
                libssl-dev,
                libsystemd-dev [linux-any],
-               libtool,
                libyaml-cpp-dev (>= 0.5),
                pkg-config,
                po-debconf,
@@ -43,6 +33,7 @@ Build-Depends: autoconf,
                systemd [linux-any],
                unixodbc-dev (>= 2.3.1)
 Homepage: https://www.powerdns.com/
+Rules-Requires-Root: no
 
 Package: pdns-server
 Architecture: any
@@ -65,8 +56,6 @@ Package: pdns-tools
 Architecture: any
 Depends: ${misc:Depends},
          ${shlibs:Depends}
-Replaces: pdns-server (<< 3.4.6-2)
-Breaks: pdns-server (<< 3.4.6-2)
 Description: Tools for DNS debugging by PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
@@ -89,17 +78,15 @@ Description: Tools for DNS debugging by PowerDNS
 
 Package: pdns-ixfrdist
 Architecture: any
-Depends: ${misc:Depends},
+Pre-Depends: ${misc:Pre-Depends}
+Depends: adduser,
+         ${misc:Depends},
          ${shlibs:Depends}
-Description: Redistribute zones via AXFR and IXFR
- PowerDNS is a versatile nameserver which supports a large number
- of different backends ranging from simple zonefiles to relational
- databases and load balancing/failover algorithms.
- PowerDNS tries to emphasize speed and security.
- .
- This package contains the ixfrdist tool that can redistribute multiple versions
- of zones over AXFR and IXFR. This tool does not require any part of the
- PowerDNS server components to work.
+Description: Redistribute DNS zones over AXFR/IXFR
+ Transfers zones from an authoritative DNS server and serves them
+ over AXFR and IXFR, caching multiple versions as needed on disk.
+ This tool does not require any part of the PowerDNS server
+ components to work.
 
 Package: pdns-backend-bind
 Architecture: any
@@ -107,8 +94,6 @@ Depends: pdns-server (= ${binary:Version}),
          ${misc:Depends},
          ${shlibs:Depends}
 Provides: pdns-backend
-Replaces: pdns-server (<< 4.0.0-2~)
-Breaks: pdns-server (<< 4.0.0-2~)
 Description: BIND backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
@@ -147,7 +132,35 @@ Description: LDAP backend for PowerDNS
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains an LDAP backend for the PowerDNS nameserver.
+ This package contains the LDAP backend for the PowerDNS nameserver.
+
+Package: pdns-backend-lmdb
+Architecture: any
+Depends: pdns-server (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Provides: pdns-backend
+Description: LMDB backend for PowerDNS
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains the LMDB backend for the PowerDNS nameserver.
+
+Package: pdns-backend-lua2
+Architecture: any
+Depends: pdns-server (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Provides: pdns-backend
+Description: Lua2 backend for PowerDNS
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains the Lua2 backend for the PowerDNS nameserver.
 
 Package: pdns-backend-geoip
 Architecture: any
@@ -155,13 +168,13 @@ Depends: pdns-server (= ${binary:Version}),
          ${misc:Depends},
          ${shlibs:Depends}
 Provides: pdns-backend
-Description: geoip backend for PowerDNS
+Description: GeoIP backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains a geoip-backend for the PowerDNS nameserver. This
+ This package contains the GeoIP backend for the PowerDNS nameserver. This
  backend balances the load throughout the world so that people access the
  geographically nearest available server based on a zonefile written in
  YAML.
@@ -173,13 +186,13 @@ Depends: pdns-server (= ${binary:Version}),
          ${shlibs:Depends}
 Suggests: default-mysql-server
 Provides: pdns-backend
-Description: generic MySQL backend for PowerDNS
+Description: MySQL backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains a generic MySQL backend for the PowerDNS
+ This package contains the MySQL backend for the PowerDNS
  nameserver. It has configurable SQL statements.
 
 Package: pdns-backend-odbc
@@ -188,13 +201,13 @@ Depends: pdns-server (>= ${source:Version}),
          ${misc:Depends},
          ${shlibs:Depends}
 Provides: pdns-backend
-Description: generic UnixODBC backend for PowerDNS
+Description: UnixODBC backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains a generic UnixODBC backend for the PowerDNS
+ This package contains a UnixODBC backend for the PowerDNS
  nameserver. It has configurable SQL statements.
 
 Package: pdns-backend-pgsql
@@ -204,13 +217,13 @@ Depends: pdns-server (= ${binary:Version}),
          ${shlibs:Depends}
 Suggests: postgresql
 Provides: pdns-backend
-Description: generic PostgreSQL backend for PowerDNS
+Description: PostgreSQL backend for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains a generic PostgreSQL backend for the PowerDNS
+ This package contains the PostgreSQL backend for the PowerDNS
  nameserver. It has configurable SQL statements.
 
 Package: pdns-backend-sqlite3
@@ -225,21 +238,8 @@ Description: sqlite 3 backend for PowerDNS
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains a generic SQLite 3 backend for PowerDNS.
-
-Package: pdns-backend-lua2
-Architecture: any
-Depends: pdns-server (= ${binary:Version}),
-         ${misc:Depends},
-         ${shlibs:Depends}
-Provides: pdns-backend
-Description: Lua backend for PowerDNS
- PowerDNS is a versatile nameserver which supports a large number
- of different backends ranging from simple zonefiles to relational
- databases and load balancing/failover algorithms.
- PowerDNS tries to emphasize speed and security.
- .
- This package contains the Lua2 backend for PowerDNS.
+ This package contains the SQLite 3 backend for the PowerDNS
+ nameserver.
 
 Package: pdns-backend-remote
 Architecture: any
@@ -268,18 +268,5 @@ Description: tinydns compatibility backend for PowerDNS
  databases and load balancing/failover algorithms.
  PowerDNS tries to emphasize speed and security.
  .
- This package contains the tinydns compatibility backend for PowerDNS.
-
-Package: pdns-backend-lmdb
-Architecture: any
-Depends: pdns-server (= ${binary:Version}),
-         ${misc:Depends},
-         ${shlibs:Depends}
-Provides: pdns-backend
-Description: LMDB backend for PowerDNS
- PowerDNS is a versatile nameserver which supports a large number
- of different backends ranging from simple zonefiles to relational
- databases and load balancing/failover algorithms.
- PowerDNS tries to emphasize speed and security.
- .
- This package contains the LMDB backend for PowerDNS.
+ This package contains the tinydns compatibility backend for the PowerDNS
+ nameserver.

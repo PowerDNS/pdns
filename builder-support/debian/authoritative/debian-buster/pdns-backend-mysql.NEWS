@@ -1,0 +1,9 @@
+pdns (4.1.3-4) unstable; urgency=medium
+
+  The gmysql, gpgsql, gsqlite3 backend packages no longer provide automatic
+  database configuration using dbconfig-common. You can continue to use
+  previously created databases, but they will not receive any automatic
+  schema updates. For new installations, please see the README.Debian
+  files on how to initialize the schema.
+
+ -- Christian Hofstaedtler <zeha@debian.org>  Tue, 31 Jul 2018 11:00:00 +0800

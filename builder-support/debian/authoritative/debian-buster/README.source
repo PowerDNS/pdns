@@ -1,1 +1,58 @@
-See /usr/share/doc/quilt/README.source
+Building from source
+--------------------
+Install "git-buildpackage" and run the following steps:
+
+  gbp clone https://salsa.debian.org/dns-team/pdns.git
+  cd pdns
+  gbp buildpackage
+
+We recommend you use sbuild to make sure you build in a clean environment.
+Example call:
+
+  gbp buildpackage --git-builder='sbuild -d unstable -j8'
+
+Changelog
+---------
+This package uses gbp dch for automatically generating debian/changelog entries
+from the corresponding git commits. This makes cherry-picking, merging, and
+rebasing much simpler.
+
+Thus, for any packaging change *do not* modify debian/changelog. Just write a
+meaningful git commit message with proper bug references (ex: "Closes: #12345"
+on the last line). For doing a release, run
+
+  gbp dch --auto --release
+
+then beautify the generated debian/changelog and commit it.
+
+Patch handling
+--------------
+This package uses gbp pq for maintaining patches with a git-like workflow in a
+"patch-queue/<branch>" local branch and then exporting them as quilt series.
+For working on patches you run
+
+  gbp pq import --force
+
+Then you are in the patch-queue branch and can git log, commit, cherry-pick
+upstream commits, rebase, etc. there. After you are done, run
+
+  gbp pq export
+
+which will put you back into master and update debian/patches/ (including
+series). You need to git add etc. new patches, possibly other
+packaging changes, and then git commit as usual.
+
+This package tends to have few patches, so all of them go into the default
+series.
+
+Synchronized packaging with upstream
+------------------------------------
+Upstream ships Debian and Ubuntu packages aligned with Debian's packaging
+at https://repo.powerdns.com/. Packaging sources for those can be found at
+https://github.com/PowerDNS/pdns/tree/master/builder-support/debian .
+
+While there are some minor differences, the general goal is to stay aligned.
+Recently, we have tried to align the used Lua versions too.
+
+--
+(This document is based off Debian's systemd README.source. Thank you!)

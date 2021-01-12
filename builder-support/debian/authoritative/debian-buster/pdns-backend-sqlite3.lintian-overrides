@@ -1,0 +1,2 @@
+# ucf presence is checked.
+pdns-backend-sqlite3: maintainer-script-needs-depends-on-ucf postinst
