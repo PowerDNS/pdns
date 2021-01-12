@@ -1570,7 +1570,7 @@ uint16_t getRandomDNSID()
 #endif
 }
 
-uint64_t g_maxTCPClientThreads{10};
+boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
 std::atomic<uint16_t> g_cacheCleaningDelay{60};
 std::atomic<uint16_t> g_cacheCleaningPercentage{100};
 
@@ -1675,10 +1675,6 @@ static void healthChecksThread()
 
   for(;;) {
     sleep(interval);
-
-    if(g_tcpclientthreads->getQueuedCount() > 1 && !g_tcpclientthreads->hasReachedMaxThreads()) {
-      g_tcpclientthreads->addTCPClientThread();
-    }
 
     auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
@@ -1801,14 +1797,18 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
   requiredFDsCount += backendUDPSocketsCount;
   /* TCP sockets to backends */
-  requiredFDsCount += (backends->size() * g_maxTCPClientThreads);
+  if (g_maxTCPClientThreads) {
+    requiredFDsCount += (backends->size() * (*g_maxTCPClientThreads));
+  }
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
-  /* max TCP connections currently served */
-  requiredFDsCount += g_maxTCPClientThreads;
-  /* max pipes for communicating between TCP acceptors and client threads */
-  requiredFDsCount += (g_maxTCPClientThreads * 2);
+  /* number of TCP connections currently served, assuming 1 connection per worker thread which is of course not right */
+  if (g_maxTCPClientThreads) {
+    requiredFDsCount += *g_maxTCPClientThreads;
+    /* max pipes for communicating between TCP acceptors and client threads */
+    requiredFDsCount += (*g_maxTCPClientThreads * 2);
+  }
   /* max TCP queued connections */
   requiredFDsCount += g_maxTCPQueuedConnections;
   /* DelayPipe pipe */
@@ -2354,10 +2354,19 @@ int main(int argc, char** argv)
       g_snmpAgent->run();
     }
 
-    g_tcpclientthreads = std::unique_ptr<TCPClientCollection>(new TCPClientCollection(g_maxTCPClientThreads, g_useTCPSinglePipe));
+    if (!g_maxTCPClientThreads) {
+      g_maxTCPClientThreads = std::max(tcpBindsCount, static_cast<size_t>(10));
+    }
+    else if (*g_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
+      warnlog("setMaxTCPClientThreads() has been set to 0 while we are accepting TCP connections, raising to 1");
+      g_maxTCPClientThreads = 1;
+    }
 
-    for(auto& t : todo)
+    g_tcpclientthreads = std::unique_ptr<TCPClientCollection>(new TCPClientCollection(*g_maxTCPClientThreads, g_useTCPSinglePipe));
+
+    for (auto& t : todo) {
       t();
+    }
 
     localPools = g_pools.getCopy();
     /* create the default pool no matter what */
@@ -2417,6 +2426,10 @@ int main(int argc, char** argv)
         }
         t1.detach();
       }
+    }
+
+    while (!g_tcpclientthreads->hasReachedMaxThreads()) {
+      g_tcpclientthreads->addTCPClientThread();
     }
 
     thread carbonthread(carbonDumpThread);
