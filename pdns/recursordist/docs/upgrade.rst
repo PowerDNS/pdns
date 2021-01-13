@@ -4,8 +4,35 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.3.x to 4.4.0 or master
+4.4.x to 4.5.0 or master
 ------------------------
+
+Offensive language
+^^^^^^^^^^^^^^^^^^
+Synonyms for various settings names containing ``master``, ``slave``,
+``whitelist`` and ``blacklist`` have been introduced.
+
+- For :ref:`setting-stats-api-blacklist` use :ref:`setting-stats-api-disabled-list`.
+- For :ref:`setting-stats-carbon-blacklist` use :ref:`setting-stats-carbon-disabled-list`.
+- For :ref:`setting-stats-rec-control-blacklist` use :ref:`setting-stats-rec-control-disabled-list`.
+- For :ref:`setting-stats-snmp-blacklist` use :ref:`setting-stats-snmp-disabled-list`.
+- For :ref:`setting-edns-subnet-whitelist` use :ref:`setting-edns-subnet-allow-list`.
+- For :ref:`setting-new-domain-whitelist` use  :ref:`setting-new-domain-ignore-list`.
+- For :ref:`setting-snmp-master-socket` use :ref:`setting-snmp-daemon-socket`.
+- For the LUA config function :func:`rpzMaster` use :func:`rpzPrimary`.
+  
+Currently, the older setting names are also accepted and used.
+The next release will start deprecating them.
+Users are advised to start using the new names to avoid future
+trouble.
+
+Deprecated and changed settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- The :ref:`setting-minimum-ttl-override` and :ref:`setting-ecs-minimum-ttl-override` defaults have ben changed from 0 to 1.
+
+
+4.3.x to 4.4.0
+--------------
 
 Response Policy Zones (RPZ)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
