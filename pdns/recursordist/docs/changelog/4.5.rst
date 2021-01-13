@@ -12,16 +12,9 @@ Changelogs for 4.5.X
 
     Introduce "Refresh almost expired" a mechanism to keep the record cache warm.
 
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 9917
-
-    Set the Protocol Buffer 'inBytes' field for zero-length messages.
-
   .. change::
     :tags: Improvements
-    :pullreq: 9843
+    :pullreq: 9630, 9843
     :tickets: 9780, 9781
 
     Use protozero for Protocol Buffer operations in dnsdist, and dnstap/outgoing for the recursor.
@@ -33,24 +26,11 @@ Changelogs for 4.5.X
 
     Lookup DS entries before CNAME entries.
 
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 9841
-
-    ProtobufLogger: Better handling of short-reads, errors.
-
   .. change::
     :tags: Improvements
     :pullreq: 9856
 
     Use a short-lived NSEC3 hashes cache for denial validation.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 9828
-
-    Add a compatibility layer for 'Bogus', document changes and the new metrics.
 
   .. change::
     :tags: Improvements
@@ -73,7 +53,7 @@ Changelogs for 4.5.X
 
   .. change::
     :tags: Improvements
-    :pullreq: 9806
+    :pullreq: 9806 9828
 
     Log the exact Bogus state when 'dnssec-log-bogus' is enabled.
 
@@ -105,13 +85,7 @@ Changelogs for 4.5.X
     :tags: Improvements
     :pullreq: 9633
 
-    two OpenBSD improvements for UDP sockets: port randomization and EAGAIN errors.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 9630
-
-    Start using protozero to create protobuf messages.
+    Two OpenBSD improvements for UDP sockets: port randomization and EAGAIN errors.
 
   .. change::
     :tags: Bug Fixes
