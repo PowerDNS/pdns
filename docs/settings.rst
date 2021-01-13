@@ -1272,6 +1272,21 @@ Maximum number of milliseconds to queue a query. See :doc:`performance`.
 
 Number of receiver (listening) threads to start. See :doc:`performance`.
 
+.. _setting-resolver:
+
+``resolver``
+------------
+
+-  IP Address with port
+-  Default: unset
+
+Recursive DNS server to use for ALIAS lookups and the internal stub resolver. Only one address can be given.
+
+Examples::
+
+  resolver=127.0.0.1
+  resolver=[::1]:5300
+
 .. _setting-retrieval-threads:
 
 ``retrieval-threads``
