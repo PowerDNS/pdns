@@ -788,10 +788,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
           }
         }
         else {
-          addRecordToLW(res, domain, QType::A, "192.0.2.42");
+          addRecordToLW(res, domain, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, 600);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
           /* we need to add the proof that this name does not exist, so the wildcard may apply */
-          addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("wwz.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+          addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("wwz.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 60, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
         }
         return 1;
@@ -814,6 +814,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  for (const auto& rec : ret) {
+    /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
+    BOOST_CHECK_LE(rec.d_ttl, 60U);
+  }
   BOOST_CHECK_EQUAL(queriesCount, 9U);
 }
 
@@ -903,10 +907,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
           }
         }
         else {
-          addRecordToLW(res, domain, QType::A, "192.0.2.42");
+          addRecordToLW(res, domain, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, 600);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
           /* we need to add the proof that this name does not exist, so the wildcard may apply */
-          addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("wwz.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+          addNSECRecordToLW(DNSName("a.powerdns.com."), DNSName("wwz.powerdns.com."), {QType::A, QType::NSEC, QType::RRSIG}, 60, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
           /* now this is the important part! We are swapping the first RRSIG and the NSEC, to make sure we still gather the NSEC proof that the
              exact name does not exist even though we have not seen the RRSIG whose label count is smaller than the target name yet */
@@ -932,6 +936,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  for (const auto& rec : ret) {
+    /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
+    BOOST_CHECK_LE(rec.d_ttl, 60U);
+  }
   BOOST_CHECK_EQUAL(queriesCount, 9U);
 }
 
@@ -1378,14 +1386,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
           }
         }
         else {
-          addRecordToLW(res, domain, QType::A, "192.0.2.42");
+          addRecordToLW(res, domain, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, 600);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
           /* we need to add the proof that this name does not exist, so the wildcard may apply */
           /* first the closest encloser */
           addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
           /* then the next closer */
-          addNSEC3NarrowRecordToLW(DNSName("sub.powerdns.com."), DNSName("powerdns.com."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, res->d_records);
+          addNSEC3NarrowRecordToLW(DNSName("sub.powerdns.com."), DNSName("powerdns.com."), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 60, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
         }
         return 1;
@@ -1408,6 +1416,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
+  for (const auto& rec : ret) {
+    /* check that we applied the lowest TTL, here this is from the NSEC3 proving that the exact name did not exist (next closer) */
+    BOOST_CHECK_LE(rec.d_ttl, 60U);
+  }
   BOOST_CHECK_EQUAL(queriesCount, 10U);
 }
 
