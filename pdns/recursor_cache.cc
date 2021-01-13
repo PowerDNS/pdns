@@ -273,7 +273,6 @@ int32_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry,
 int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, bool refresh, const OptTag& routingTag, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone)
 {
   boost::optional<vState> cachedState{boost::none};
-  time_t ttd=0;
   uint32_t origTTL;
 
   if(res) {
@@ -330,13 +329,14 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 
   if (routingTag) {
     auto entries = getEntries(map, qname, qt, routingTag);
+    bool found = false;
+    time_t ttd;
 
     if (entries.first != entries.second) {
       OrderedTagIterator_t firstIndexIterator;
       for (auto i=entries.first; i != entries.second; ++i) {
-
         firstIndexIterator = map.d_map.project<OrderedTag>(i);
-        origTTL = firstIndexIterator->d_orig_ttl;
+
         if (i->d_ttd <= now) {
           moveCacheItemToFront<SequencedTag>(map.d_map, firstIndexIterator);
           continue;
@@ -345,17 +345,19 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
           continue;
         }
-
+        found = true;
         ttd = handleHit(map, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone);
 
         if (qt.getCode() != QType::ANY && qt.getCode() != QType::ADDR) { // normally if we have a hit, we are done
           break;
         }
       }
-      if (state && cachedState) {
-        *state = *cachedState;
+      if (found) {
+        if (state && cachedState) {
+          *state = *cachedState;
+        }
+        return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
       }
-      return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
     }
   }
   // Try (again) without tag
@@ -363,10 +365,12 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
-    for (auto i=entries.first; i != entries.second; ++i) {
+    bool found = false;
+    time_t ttd;
 
+    for (auto i=entries.first; i != entries.second; ++i) {
       firstIndexIterator = map.d_map.project<OrderedTag>(i);
-      origTTL = firstIndexIterator->d_orig_ttl;
+
       if (i->d_ttd <= now) {
         moveCacheItemToFront<SequencedTag>(map.d_map, firstIndexIterator);
         continue;
@@ -376,16 +380,19 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
         continue;
       }
 
+      found = true;
       ttd = handleHit(map, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone);
 
       if (qt.getCode() != QType::ANY && qt.getCode() != QType::ADDR) { // normally if we have a hit, we are done
         break;
       }
     }
-    if (state && cachedState) {
-      *state = *cachedState;
+    if (found) {
+      if (state && cachedState) {
+        *state = *cachedState;
+      }
+      return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
     }
-    return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
   }
   return -1;
 }
