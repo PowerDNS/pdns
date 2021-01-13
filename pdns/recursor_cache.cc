@@ -357,6 +357,8 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
           *state = *cachedState;
         }
         return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
+      } else {
+        return -1;
       }
     }
   }
