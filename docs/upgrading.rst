@@ -40,7 +40,7 @@ The interpretation of the non-ASCII bytes in those fields might change because o
 Record type changes
 ^^^^^^^^^^^^^^^^^^^
 
-The in-database format of the ``IPSECKEY``, ``SVCB``, ``HTTPS`` and ``APL`` records has changed from 'generic' format to its specialized format.
+The in-database format of the ``SVCB``, ``HTTPS`` and ``APL`` records has changed from 'generic' format to its specialized format.
 
 API users might notice that replacing records of these types leaves the old TYPExx records around, even if PowerDNS is not serving them.
 To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.
