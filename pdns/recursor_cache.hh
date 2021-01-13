@@ -75,7 +75,7 @@ private:
   struct CacheEntry
   {
     CacheEntry(const boost::tuple<DNSName, uint16_t, OptTag, Netmask>& key, bool auth):
-      d_qname(key.get<0>()), d_netmask(key.get<3>().getNormalized()), d_rtag(key.get<2>()), d_state(vState::Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth)
+      d_qname(key.get<0>()), d_netmask(key.get<3>().getNormalized()), d_rtag(key.get<2>()), d_state(vState::Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth), d_submitted(false)
     {
     }
 

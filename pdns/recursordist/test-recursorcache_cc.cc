@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
     MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, false, authZone, boost::none);
     BOOST_CHECK_EQUAL(MRC.size(), 1U);
     // let's first check that non-auth is not returned when we need authoritative data
-    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), true, &retrieved, ComboAddress("127.0.0.1")), -now);
+    BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), true, &retrieved, ComboAddress("127.0.0.1")), -1);
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("127.0.0.1")), (ttd - now));
     BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);
     BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr2Content.toString());
@@ -478,7 +478,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* trigger a miss (expired) for power2 */
-  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -now);
+  BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), false, &retrieved, who, 0, boost::none, nullptr), -1);
 
   /* power2 should have been moved to the front of the expunge
      queue, and should this time be removed first */
