@@ -318,7 +318,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
     else {
       auto entry = getEntryUsingECSIndex(map, now, qname, qtype, requireAuth, who);
       if (entry != map.d_map.end()) {
-          int32_t ret = handleHit(map, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone);
+        int32_t ret = handleHit(map, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone);
         if (state && cachedState) {
           *state = *cachedState;
         }
@@ -336,6 +336,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
       for (auto i=entries.first; i != entries.second; ++i) {
 
         firstIndexIterator = map.d_map.project<OrderedTag>(i);
+        origTTL = firstIndexIterator->d_orig_ttl;
         if (i->d_ttd <= now) {
           moveCacheItemToFront<SequencedTag>(map.d_map, firstIndexIterator);
           continue;
@@ -365,6 +366,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
     for (auto i=entries.first; i != entries.second; ++i) {
 
       firstIndexIterator = map.d_map.project<OrderedTag>(i);
+      origTTL = firstIndexIterator->d_orig_ttl;
       if (i->d_ttd <= now) {
         moveCacheItemToFront<SequencedTag>(map.d_map, firstIndexIterator);
         continue;
@@ -392,7 +394,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 {
   auto& map = getMap(qname);
   const lock l(map);
-  
+
   map.d_cachecachevalid = false;
   if (ednsmask) {
     ednsmask = ednsmask->getNormalized();
