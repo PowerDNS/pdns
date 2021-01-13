@@ -15,7 +15,8 @@ class TestPrometheus(DNSDistTest):
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s", "%s", "%s")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
 
     def checkPrometheusContentBasic(self, content):

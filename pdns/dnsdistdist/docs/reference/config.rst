@@ -316,12 +316,17 @@ Control Socket, Console and Webserver
 Webserver configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: webserver(listen_address, password[, apikey[, custom_headers[, acl]]])
+.. function:: webserver(listen_address [, password[, apikey[, custom_headers[, acl]]]])
 
   .. versionchanged:: 1.5.0
     ``acl`` optional parameter added.
 
-  Launch the :doc:`../guides/webserver` with statistics and the API.
+  .. versionchanged:: 1.6.0
+    The ``password`` parameter is now optional.
+    The use of optional parameters is now deprecated. Please use :func:`setWebserverConfig` instead.
+
+  Launch the :doc:`../guides/webserver` with statistics and the API. Note that the parameters are global, so the parameter from the last ``webserver`` will override any existing ones. For this reason
+  the use of :func:`setWebserverConfig` is advised instead of specifying optional parameters here.
 
   :param str listen_address: The IP address and Port to listen on
   :param str password: The password required to access the webserver
@@ -345,6 +350,9 @@ Webserver configuration
   .. versionchanged:: 1.5.0
     ``acl`` optional parameter added.
 
+  .. versionchanged:: 1.6.0
+    ``statsRequireAuthentication`` optional parameter added.
+
   Setup webserver configuration. See :func:`webserver`.
 
   :param table options: A table with key: value pairs with webserver options.
@@ -355,6 +363,7 @@ Webserver configuration
   * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it)
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
+  * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
 
 .. function:: registerWebHandler(path, handler)
 

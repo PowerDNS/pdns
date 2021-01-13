@@ -560,14 +560,15 @@ class TestDynBlockQPS(DynBlocksTest):
     _dynBlockQPS = 10
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     function maintenance()
 	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d)
     end
     newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s", "%s", "%s")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
 
     def testDynBlocksQRate(self):
         """
@@ -581,7 +582,6 @@ class TestDynBlockGroupQPS(DynBlocksTest):
     _dynBlockQPS = 10
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d)
@@ -590,8 +590,10 @@ class TestDynBlockGroupQPS(DynBlocksTest):
 	    dbr:apply()
     end
     newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s", "%s", "%s")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
 
     def testDynBlocksQRate(self):
         """
@@ -1073,7 +1075,6 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
     _dynBlockQPS = 10
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d, DNSAction.NoOp)
@@ -1083,8 +1084,10 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
     end
 
     newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s", "%s", "%s")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
 
     def testNoOp(self):
         """
@@ -1136,7 +1139,6 @@ class TestDynBlockGroupWarning(DynBlocksTest):
     _dynBlockQPS = 20
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     local dbr = dynBlockRulesGroup()
     dbr:setQueryRate(%d, %d, "Exceeded query rate", %d, DNSAction.Drop, %d)
@@ -1146,8 +1148,10 @@ class TestDynBlockGroupWarning(DynBlocksTest):
     end
 
     newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s", "%s", "%s")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
 
     def testWarning(self):
         """
