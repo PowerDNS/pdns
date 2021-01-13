@@ -1277,7 +1277,7 @@ Number of receiver (listening) threads to start. See :doc:`performance`.
 ``resolver``
 ------------
 
--  IP Address with port
+-  IP Address with optional port
 -  Default: unset
 
 Recursive DNS server to use for ALIAS lookups and the internal stub resolver. Only one address can be given.
