@@ -1,0 +1,201 @@
+Changelogs for 4.5.X
+====================
+
+.. changelog::
+  :version: 4.5.0-alpha1
+  :released: 15th of January 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9699
+    :tickets: 440
+
+    Introduce "Refresh almost expired" a mechanism to keep the record cache warm.
+
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9917
+
+    Set the Protocol Buffer 'inBytes' field for zero-length messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9843
+    :tickets: 9780, 9781
+
+    Use protozero for Protocol Buffer operations in dnsdist, and dnstap/outgoing for the recursor.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9883
+    :tickets: 9621
+
+    Lookup DS entries before CNAME entries.
+
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9841
+
+    ProtobufLogger: Better handling of short-reads, errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9856
+
+    Use a short-lived NSEC3 hashes cache for denial validation.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9828
+
+    Add a compatibility layer for 'Bogus', document changes and the new metrics.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9670
+
+    Introduce synonyms for offensive language in settings and docs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9812
+    :tickets: 9808
+
+    Handle failure to start the web server more gracefully.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9720
+
+    Switch default TTL override to 1.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9806
+
+    Log the exact Bogus state when 'dnssec-log-bogus' is enabled.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9793
+
+    Fix the gathering of denial proof for wildcard-expanded answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9789
+
+    Actually discard invalid RRSIGs with too high labels count.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9744
+
+    Switch to TCP in case of spoofing (near-miss) attempts.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9673
+
+    Add support for rfc8914: Extended DNS Errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9633
+
+    two OpenBSD improvements for UDP sockets: port randomization and EAGAIN errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9630
+
+    Start using protozero to create protobuf messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9686
+    :tickets: 9638
+
+    x-our-latency is a gauge.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9594
+
+    Cleanup of RPZ refresh handling.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9629
+
+    Refactor the percentage computation and use rounding.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9571
+
+    Throttle servers sending invalid data and rcodes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9572
+
+    Terminate TCP connections instead of 'ignoring' errors.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9432
+    :tickets: 7743
+
+    Make parse ip:port a bit smarter.
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 9569
+
+    Don't parse any config with `--version`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9562
+
+    Expose typed cache flush via Web API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9554
+
+    Remove query-local-address6.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9515
+
+    Fix wipe-cache-typed.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8942
+
+    Lua: add backtraces to errors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9493
+
+    Log the line received from rec_control.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9492
+
+    Detach snmp thread to avoid trouble when trying to quit nicely.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9475
+
+    Shared and sharded neg cache.
+
