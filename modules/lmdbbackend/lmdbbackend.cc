@@ -781,20 +781,24 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
       key = d_currentKey.get<string_view>();
     }
 
-    const auto& drr = d_currentrrset.at(d_currentrrsetpos++);
+    try {
+      const auto& drr = d_currentrrset.at(d_currentrrsetpos++);
 
-    rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
-    rr.domain_id = compoundOrdername::getDomainID(key);
-    rr.dr.d_type = compoundOrdername::getQType(key).getCode();
-    rr.dr.d_ttl = drr.ttl;
-    rr.dr.d_content = deserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
-    rr.auth = drr.auth;
+      rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
+      rr.domain_id = compoundOrdername::getDomainID(key);
+      rr.dr.d_type = compoundOrdername::getQType(key).getCode();
+      rr.dr.d_ttl = drr.ttl;
+      rr.dr.d_content = deserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
+      rr.auth = drr.auth;
 
-    if(d_currentrrsetpos >= d_currentrrset.size()) {
-      d_currentrrset.clear();
-      if(d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
-        d_getcursor.reset();
+      if(d_currentrrsetpos >= d_currentrrset.size()) {
+        d_currentrrset.clear();
+        if(d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
+          d_getcursor.reset();
+        }
       }
+    } catch (const std::exception &e) {
+      throw PDNSException(e.what());
     }
 
     break;
