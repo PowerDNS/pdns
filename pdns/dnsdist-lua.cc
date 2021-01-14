@@ -856,15 +856,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (password || apiKey || customHeaders || acl) {
-	warnlog("Passing additional parameters to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
+        warnlog("Passing additional parameters to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
       }
 
       try {
-	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
-	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
-	SBind(sock, local);
-	SListen(sock, 5);
-	auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
+        int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
+        SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+        SBind(sock, local);
+        SListen(sock, 5);
+        auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
           if (password) {
             setWebserverPassword(*password);
           }
@@ -881,18 +881,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             setWebserverACL(*acl);
           }
           thread t(dnsdistWebserverThread, sock, local);
-	  t.detach();
-	};
-	if (g_launchWork) {
-	  g_launchWork->push_back(launch);
+          t.detach();
+        };
+        if (g_launchWork) {
+          g_launchWork->push_back(launch);
         }
-	else {
-	  launch();
+        else {
+          launch();
         }
       }
       catch (const std::exception& e) {
-	g_outputBuffer="Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
-	errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
+        g_outputBuffer="Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
+        errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
       }
 
     });
