@@ -98,7 +98,7 @@ class TestAdvancedFixupCase(DNSDistTest):
 class TestAdvancedRemoveRD(DNSDistTest):
 
     _config_template = """
-    addAction("norecurse.advanced.tests.powerdns.com.", NoRecurseAction())
+    addAction("norecurse.advanced.tests.powerdns.com.", SetNoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -161,8 +161,8 @@ class TestAdvancedRemoveRD(DNSDistTest):
 class TestAdvancedAddCD(DNSDistTest):
 
     _config_template = """
-    addAction("setcd.advanced.tests.powerdns.com.", DisableValidationAction())
-    addAction(makeRule("setcdviaaction.advanced.tests.powerdns.com."), DisableValidationAction())
+    addAction("setcd.advanced.tests.powerdns.com.", SetDisableValidationAction())
+    addAction(makeRule("setcdviaaction.advanced.tests.powerdns.com."), SetDisableValidationAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -254,8 +254,8 @@ class TestAdvancedAddCD(DNSDistTest):
 class TestAdvancedClearRD(DNSDistTest):
 
     _config_template = """
-    addAction("clearrd.advanced.tests.powerdns.com.", NoRecurseAction())
-    addAction(makeRule("clearrdviaaction.advanced.tests.powerdns.com."), NoRecurseAction())
+    addAction("clearrd.advanced.tests.powerdns.com.", SetNoRecurseAction())
+    addAction(makeRule("clearrdviaaction.advanced.tests.powerdns.com."), SetNoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -743,7 +743,7 @@ class TestAdvancedNonTerminalRule(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="real"}
-    addAction(AllRule(), DisableValidationAction())
+    addAction(AllRule(), SetDisableValidationAction())
     addAction(AllRule(), PoolAction("real"))
     addAction(AllRule(), DropAction())
     """
@@ -751,7 +751,7 @@ class TestAdvancedNonTerminalRule(DNSDistTest):
         """
         Advanced: Non terminal rules
 
-        We check that DisableValidationAction() is applied
+        We check that SetDisableValidationAction() is applied
         but does not stop the processing, then that
         PoolAction() is applied _and_ stop the processing.
         """
@@ -808,7 +808,7 @@ class TestAdvancedStringOnlyServer(DNSDistTest):
 class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
 
     _config_template = """
-    addAction(AllRule(), DisableValidationAction())
+    addAction(AllRule(), SetDisableValidationAction())
     addAction(AllRule(), SpoofAction("192.0.2.1"))
     newServer{address="127.0.0.1:%s"}
     """
@@ -1799,7 +1799,7 @@ class TestAdvancedContinueAction(DNSDistTest):
     newServer{address="127.0.0.1:%s", pool="mypool"}
     addAction("nocontinue.continue-action.advanced.tests.powerdns.com.", PoolAction("mypool"))
     addAction("continue.continue-action.advanced.tests.powerdns.com.", ContinueAction(PoolAction("mypool")))
-    addAction(AllRule(), DisableValidationAction())
+    addAction(AllRule(), SetDisableValidationAction())
     """
 
     def testNoContinue(self):
@@ -1842,12 +1842,12 @@ class TestAdvancedContinueAction(DNSDistTest):
             self.assertEquals(receivedQuery, expectedQuery)
             self.assertEquals(receivedResponse, expectedResponse)
 
-class TestAdvancedSetNegativeAndSOA(DNSDistTest):
+class TestAdvancedNegativeAndSOA(DNSDistTest):
 
     _selfGeneratedPayloadSize = 1232
     _config_template = """
-    addAction("nxd.setnegativeandsoa.advanced.tests.powerdns.com.", SetNegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1))
-    addAction("nodata.setnegativeandsoa.advanced.tests.powerdns.com.", SetNegativeAndSOAAction(false, "another-auth.", 42, "mname", "rname", 1, 2, 3, 4, 5))
+    addAction("nxd.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1))
+    addAction("nodata.negativeandsoa.advanced.tests.powerdns.com.", NegativeAndSOAAction(false, "another-auth.", 42, "mname", "rname", 1, 2, 3, 4, 5))
     setPayloadSizeOnSelfGeneratedAnswers(%d)
     newServer{address="127.0.0.1:%s"}
     """
@@ -1856,9 +1856,9 @@ class TestAdvancedSetNegativeAndSOA(DNSDistTest):
 
     def testAdvancedNegativeAndSOANXD(self):
         """
-        Advanced: SetNegativeAndSOAAction NXD
+        Advanced: NegativeAndSOAAction NXD
         """
-        name = 'nxd.setnegativeandsoa.advanced.tests.powerdns.com.'
+        name = 'nxd.negativeandsoa.advanced.tests.powerdns.com.'
         # no EDNS
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         query.flags &= ~dns.flags.RD
@@ -1895,9 +1895,9 @@ class TestAdvancedSetNegativeAndSOA(DNSDistTest):
 
     def testAdvancedNegativeAndSOANoData(self):
         """
-        Advanced: SetNegativeAndSOAAction NoData
+        Advanced: NegativeAndSOAAction NoData
         """
-        name = 'nodata.setnegativeandsoa.advanced.tests.powerdns.com.'
+        name = 'nodata.negativeandsoa.advanced.tests.powerdns.com.'
         # no EDNS
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         query.flags &= ~dns.flags.RD
@@ -1950,7 +1950,7 @@ class TestAdvancedLuaRule(DNSDistTest):
       return true
     end
 
-    addAction(AllRule(), TagAction('a-tag', 'a-value'))
+    addAction(AllRule(), SetTagAction('a-tag', 'a-value'))
     addAction(LuaRule(luarulefunction), RCodeAction(DNSRCode.NOTIMP))
     addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
     -- newServer{address="127.0.0.1:%s"}

@@ -36,7 +36,7 @@ This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for s
 
 As another example::
 
-  addAction(MaxQPSIPRule(5), NoRecurseAction())
+  addAction(MaxQPSIPRule(5), SetNoRecurseAction())
 
 This strips the Recursion Desired (RD) bit from any traffic per IPv4 or IPv6 /64 that exceeds 5 qps.
 This means any those traffic bins is allowed to make a recursor do 'work' for only 5 qps.
@@ -103,7 +103,7 @@ Rule Generators
   .. deprecated:: 1.2.0
 
   Set the CD (Checking Disabled) flag to 1 for all queries matching the DNSRule.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0. Please use the :func:`DisableValidationAction` action instead.
+  This function has been deprecated as of 1.2.0 and removed in 1.3.0. Please use the :func:`SetDisableValidationAction` action instead.
 
 .. function:: addDomainBlock(domain)
 
@@ -217,7 +217,7 @@ Rule Generators
   Clear the RD flag for all queries matching the rule.
   This function has been deprecated as of 1.2.0 and removed in 1.3.0, please use:
 
-    addAction(DNSRule, NoRecurseAction())
+    addAction(DNSRule, SetNoRecurseAction())
 
   :param DNSRule: match queries based on this rule
 
@@ -972,21 +972,19 @@ Actions
 -------
 
 :ref:`RulesIntro` need to be combined with an action for them to actually do something with the matched packets.
-Some actions allow further processing of rules, this is noted in their description.
+Some actions allow further processing of rules, this is noted in their description. Most of these start with 'Set' with a few exceptions, mostly for logging actions. These exceptions are:
+- :func:`KeyValueStoreLookupAction`
+- :func:`DnstapLogAction`
+- :func:`DnstapLogResponseAction`
+- :func:`LogAction`
+- :func:`NoneAction`
+- :func:`RemoteLogAction`
+- :func:`RemoteLogResponseAction`
+- :func:`SNMPTrapAction`
+- :func:`SNMPTrapResponseAction`
+- :func:`TeeAction`
+
 The following actions exist.
-
-.. function:: AddProxyProtocolValueAction(type, value)
-
-  .. versionadded:: 1.6.0
-
-  Add a Proxy-Protocol Type-Length value to be sent to the server along with this query. It does not replace any
-  existing value with the same type but adds a new value.
-  Be careful that Proxy Protocol values are sent once at the beginning of the TCP connection for TCP and DoT queries.
-  That means that values received on an incoming TCP connection will be inherited by subsequent queries received over
-  the same incoming TCP connection, if any, but values set to a query will not be inherited by subsequent queries.
-
-  :param int type: The type of the value to send, ranging from 0 to 255 (both included)
-  :param str value: The binary-safe value
 
 .. function:: AllowAction()
 
@@ -1023,12 +1021,21 @@ The following actions exist.
 
 .. function:: DisableECSAction()
 
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetDisableECSAction` instead.
+
   Disable the sending of ECS to the backend.
   Subsequent rules are processed after this action.
 
 .. function:: DisableValidationAction()
 
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetDisableValidationAction` instead.
+
   Set the CD bit in the query and let it go through.
+  Subsequent rules are processed after this action.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
@@ -1064,6 +1071,10 @@ The following actions exist.
 
 .. function:: ECSOverrideAction(override)
 
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetECSOverrideAction` instead.
+
   Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
   Subsequent rules are processed after this action.
 
@@ -1071,12 +1082,15 @@ The following actions exist.
 
 .. function:: ECSPrefixLengthAction(v4, v6)
 
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetECSPrefixLengthAction` instead.
+
   Set the ECS prefix length.
   Subsequent rules are processed after this action.
 
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
-
 
 .. function:: ERCodeAction(rcode [, options])
 
@@ -1126,6 +1140,7 @@ The following actions exist.
   The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
   The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
   source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+  Subsequent rules are processed after this action.
 
   :param KeyValueStore kvs: The key value store to query
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
@@ -1211,11 +1226,40 @@ The following actions exist.
 
 .. function:: MacAddrAction(option)
 
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetMacAddrAction` instead.
+
   Add the source MAC address to the query as EDNS0 option ``option``.
   This action is currently only supported on Linux.
   Subsequent rules are processed after this action.
 
   :param int option: The EDNS0 option number
+
+.. function:: NegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum [, options])
+
+  .. versionadded:: 1.6.0
+
+  Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
+  Note that this function was called :func:`SetNegativeAndSOAAction` before 1.6.0.
+
+  :param bool nxd: Whether the answer is a NXDOMAIN (true) or a NODATA (false)
+  :param string zone: The owner name for the SOA record
+  :param int ttl: The TTL of the SOA record
+  :param string mname: The mname of the SOA record
+  :param string rname: The rname of the SOA record
+  :param int serial: The value of the serial field in the SOA record
+  :param int refresh: The value of the refresh field in the SOA record
+  :param int retry: The value of the retry field in the SOA record
+  :param int expire: The value of the expire field in the SOA record
+  :param int minimum: The value of the minimum field in the SOA record
+  :param table options: A table with key: value pairs with options
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: NoneAction()
 
@@ -1223,6 +1267,10 @@ The following actions exist.
   Subsequent rules are processed after this action.
 
 .. function:: NoRecurseAction()
+
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`NoRecurseAction` instead.
 
   Strip RD bit from the question, let it go through.
   Subsequent rules are processed after this action.
@@ -1310,6 +1358,36 @@ The following actions exist.
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
+.. function:: SetAdditionalProxyProtocolValueAction(type, value)
+
+  .. versionadded:: 1.6.0
+
+  Add a Proxy-Protocol Type-Length value to be sent to the server along with this query. It does not replace any
+  existing value with the same type but adds a new value.
+  Be careful that Proxy Protocol values are sent once at the beginning of the TCP connection for TCP and DoT queries.
+  That means that values received on an incoming TCP connection will be inherited by subsequent queries received over
+  the same incoming TCP connection, if any, but values set to a query will not be inherited by subsequent queries.
+  Subsequent rules are processed after this action.
+
+  :param int type: The type of the value to send, ranging from 0 to 255 (both included)
+  :param str value: The binary-safe value
+
+.. function:: SetDisableECSAction()
+
+  .. versionadded:: 1.6.0
+
+  Disable the sending of ECS to the backend.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`DisableECSAction` before 1.6.0.
+
+.. function:: SetDisableValidationAction()
+
+  .. versionadded:: 1.6.0
+
+  Set the CD bit in the query and let it go through.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`DisableValidationAction` before 1.6.0.
+
 .. function:: SetECSAction(v4 [, v6])
 
   .. versionadded:: 1.3.1
@@ -1323,9 +1401,53 @@ The following actions exist.
   :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
   :param string v6: The IPv6 netmask, if any
 
+.. function:: SetECSOverrideAction(override)
+
+  .. versionadded:: 1.6.0
+
+  Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`ECSOverrideAction` before 1.6.0.
+
+  :param bool override: Whether or not to override ECS value
+
+.. function:: SetECSPrefixLengthAction(v4, v6)
+
+  .. versionadded:: 1.6.0
+
+  Set the ECS prefix length.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`ECSPrefixLengthAction` before 1.6.0.
+
+  :param int v4: The IPv4 netmask length
+  :param int v6: The IPv6 netmask length
+
+.. function:: SetMacAddrAction(option)
+
+  .. versionadded:: 1.6.0
+
+  Add the source MAC address to the query as EDNS0 option ``option``.
+  This action is currently only supported on Linux.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`MacAddrAction` before 1.6.0.
+
+  :param int option: The EDNS0 option number
+
+.. function:: SetNoRecurseAction()
+
+  .. versionadded:: 1.6.0
+
+  Strip RD bit from the question, let it go through.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`NoRecurseAction` before 1.6.0.
+
 .. function:: SetNegativeAndSOAAction(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum [, options])
 
   .. versionadded:: 1.5.0
+
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`NegativeAndSOAAction` instead.
 
   Turn a question into a response, either a NXDOMAIN or a NODATA one based on ''nxd'', setting the QR bit to 1 and adding a SOA record in the additional section.
 
@@ -1352,18 +1474,65 @@ The following actions exist.
   .. versionadded:: 1.5.0
 
   Set the Proxy-Protocol Type-Length values to be sent to the server along with this query to ``values``.
+  Subsequent rules are processed after this action.
 
   :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
 
-.. function:: SkipCacheAction()
+.. function:: SetSkipCacheAction()
+
+  .. versionadded:: 1.6.0
 
   Don't lookup the cache for this query, don't store the answer.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`SkipCacheAction` before 1.6.0.
 
-.. function:: SkipCacheResponseAction()
+.. function:: SetSkipCacheResponseAction()
 
   .. versionadded:: 1.6.0
 
   Don't store this answer into the cache.
+  Subsequent rules are processed after this action.
+
+.. function:: SetTagAction(name, value)
+
+  .. versionadded:: 1.6.0
+
+  Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`TagAction` before 1.6.0.
+
+  :param string name: The name of the tag to set
+  :param string value: The value of the tag
+
+.. function:: SetTagResponseAction(name, value)
+
+  .. versionadded:: 1.6.0
+
+  Associate a tag named ``name`` with a value of ``value`` to this response.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`TagResponseAction` before 1.6.0.
+
+  :param string name: The name of the tag to set
+  :param string value: The value of the tag
+
+.. function:: SetTempFailureCacheTTLAction(ttl)
+
+  .. versionadded:: 1.6.0
+
+  Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
+  Subsequent rules are processed after this action.
+  Note that this function was called :func:`TempFailureCacheTTLAction` before 1.6.0.
+
+  :param int ttl: Cache TTL for temporary failure replies
+
+.. function:: SkipCacheAction()
+
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetSkipAction` instead.
+
+  Don't lookup the cache for this query, don't store the answer.
+  Subsequent rules are processed after this action.
 
 .. function:: SNMPTrapAction([message])
 
@@ -1450,6 +1619,10 @@ The following actions exist.
 
   .. versionadded:: 1.3.0
 
+   .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetTagAction` instead.
+
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
   Subsequent rules are processed after this action.
 
@@ -1459,6 +1632,10 @@ The following actions exist.
 .. function:: TagResponseAction(name, value)
 
   .. versionadded:: 1.3.0
+
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetTagResponseAction` instead.
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
   Subsequent rules are processed after this action.
@@ -1474,12 +1651,18 @@ The following actions exist.
 
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
+  Subsequent rules are processed after this action.
 
   :param string remote: An IP:PORT combination to send the copied queries to
   :param bool addECS: Whether or not to add ECS information. Default false
 
 .. function:: TempFailureCacheTTLAction(ttl)
 
+  .. deprecated:: 1.6.0
+
+  This function has been deprecated in 1.6.0, please use :func:`SetTempFailureCacheTTLAction` instead.
+
   Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
+  Subsequent rules are processed after this action.
 
   :param int ttl: Cache TTL for temporary failure replies

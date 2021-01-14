@@ -6,6 +6,19 @@ Upgrade Guide
 
 The packet cache no longer hashes EDNS Cookies by default, which means that two queries that are identical except for the content of their cookie will now be served the same answer. This only works if the backend is not returning any answer containing EDNS Cookies, otherwise the wrong cookie might be returned to a client. To prevent this, the ``cookieHashing=true`` parameter might be passed to :func:`newPacketCache` so that cookies are hashed, resulting in separate entries in the packet cache.
 
+Several actions have been renamed so that almost all actions that allow further processing of rules start with 'Set', to prevent mistakes:
+- ``DisableECSAction`` to :func:`SetDisableECSAction`
+- ``DisableValidationAction`` to :func:`SetDisableValidationAction`
+- ``ECSOverrideAction`` to :func:`SetECSOverrideAction`
+- ``ECSPrefixLengthAction`` to :func:`SetECSPrefixLengthAction`
+- ``MacAddrAction`` to :func:`SetMacAddrAction`
+- ``NoRecurseAction`` to :func:`SetTagResponseAction`
+- ``SkipCacheAction`` to :func:`SetTagResponseAction`
+- ``TagAction`` to :func:`SetTagResponseAction`
+- ``TagResponseAction`` to :func:`SetTagResponseAction`
+- ``TempFailureCacheTTLAction`` to :func:`SetAdditionalProxyProtocolValueAction`
+- ``SetNegativeAndSOAAction`` to :func:`NegativeAndSOAAction`
+
 1.4.x to 1.5.0
 --------------
 
