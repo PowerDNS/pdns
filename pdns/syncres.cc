@@ -2312,11 +2312,12 @@ bool SyncRes::validationEnabled() const
   return g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate;
 }
 
-uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, uint32_t signaturesTTL) const
+uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, uint32_t signaturesTTL, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs) const
 {
   uint32_t lowestTTD = std::numeric_limits<uint32_t>::max();
-  for(const auto& record : records)
+  for (const auto& record : records) {
     lowestTTD = min(lowestTTD, record.d_ttl);
+  }
 
   /* even if it was not requested for that request (Process, and neither AD nor DO set),
      it might be requested at a later time so we need to be careful with the TTL. */
@@ -2327,8 +2328,23 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
 
     for(const auto& sig : signatures) {
       if (isRRSIGNotExpired(d_now.tv_sec, sig)) {
-        // we don't decerement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
+        // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
         lowestTTD = min(lowestTTD, static_cast<uint32_t>(sig->d_sigexpire));
+      }
+    }
+  }
+
+  for (const auto& entry : authorityRecs) {
+    /* be careful, this is still a TTL here */
+    lowestTTD = min(lowestTTD, static_cast<uint32_t>(entry->d_ttl + d_now.tv_sec));
+
+    if (entry->d_type == QType::RRSIG && validationEnabled()) {
+      auto rrsig = getRR<RRSIGRecordContent>(*entry);
+      if (rrsig) {
+        if (isRRSIGNotExpired(d_now.tv_sec, rrsig)) {
+          // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
+          lowestTTD = min(lowestTTD, static_cast<uint32_t>(rrsig->d_sigexpire));
+        }
       }
     }
   }
@@ -3099,12 +3115,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   }
 
   // supplant
-  for(tcache_t::iterator i = tcache.begin(); i != tcache.end(); ++i) {
-    if((i->second.records.size() + i->second.signatures.size()) > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
-      uint32_t lowestTTD=computeLowestTTD(i->second.records, i->second.signatures, i->second.signaturesTTL);
+  for (auto& entry : tcache) {
+    if ((entry.second.records.size() + entry.second.signatures.size() + authorityRecs.size()) > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
+      uint32_t lowestTTD = computeLowestTTD(entry.second.records, entry.second.signatures, entry.second.signaturesTTL, authorityRecs);
 
-      for(auto& record : i->second.records)
+      for (auto& record : entry.second.records) {
         record.d_ttl = lowestTTD; // boom
+      }
     }
 
 //		cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.name;
