@@ -12,6 +12,7 @@ class TestCaching(DNSDistTest):
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     addAction(makeRule("nocache.cache.tests.powerdns.com."), SkipCacheAction())
+    addResponseAction(makeRule("nocache-response.cache.tests.powerdns.com."), SkipCacheResponseAction())
     function skipViaLua(dq)
         dq.skipCache = true
         return DNSAction.None, ""
@@ -176,6 +177,38 @@ class TestCaching(DNSDistTest):
          we are sending several requests and checking that the backend get them all.
         """
         name = 'nocachevialua.cache.tests.powerdns.com.'
+        numberOfQueries = 10
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        for _ in range(numberOfQueries):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (receivedQuery, receivedResponse) = sender(query, response)
+                self.assertTrue(receivedQuery)
+                self.assertTrue(receivedResponse)
+                receivedQuery.id = query.id
+                self.assertEquals(query, receivedQuery)
+                self.assertEquals(receivedResponse, response)
+
+        for key in self._responsesCounter:
+            value = self._responsesCounter[key]
+            self.assertEquals(value, numberOfQueries)
+
+    def testSkipCacheResponse(self):
+        """
+        Cache: SkipCacheResponseAction
+
+        dnsdist is configured to not cache entries for answer matching nocache-response.cache.tests.powerdns.com.
+         we are sending several requests and checking that the backend get them all.
+        """
+        name = 'nocache-response.cache.tests.powerdns.com.'
         numberOfQueries = 10
         query = dns.message.make_query(name, 'AAAA', 'IN')
         response = dns.message.make_response(query)
