@@ -304,6 +304,7 @@ AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
 AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
+CFLAGS="$SANITIZER_FLAGS $CFLAGS"
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
 AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
