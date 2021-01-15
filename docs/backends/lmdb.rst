@@ -14,7 +14,7 @@ LMDB backend
 
 
 .. warning::
-  The LMDB backend is considered stable as of 4.4.0. Version 4.3.0 was stable but had important `known bug <https://github.com/PowerDNS/pdns/issues/8012>`__, that affects anybody with big records such as long TXT content.
+  The LMDB backend is considered stable as of 4.4.0. Version 4.3.0 was stable but had an important `known bug <https://github.com/PowerDNS/pdns/issues/8012>`__, that affects anybody with big records such as long TXT content.
 
 Enabling the backend
 --------------------
