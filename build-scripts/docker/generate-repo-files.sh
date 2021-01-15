@@ -28,7 +28,7 @@ if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
     echo
     echo "  • RELEASE: [ auth-41 | auth-42 | auth-43 | auth-44 | auth-master |"
-    echo "               rec-41 | rec-42 | rec-43 | rec-44 | rec-45 | rec-master |"
+    echo "               rec-42 | rec-43 | rec-44 | rec-45 | rec-master |"
     echo "               dnsdist-15 | dnsdist-master ]"
     exit 1
 fi
@@ -180,9 +180,6 @@ elif [ "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o "$RELEASE" = "auth-ma
     write_debian buster pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
     write_ubuntu focal pdns-server pdns_server
-elif [ "$RELEASE" = "rec-41" ]; then
-    write_centos 7 pdns-recursor pdns_recursor
-    write_ubuntu bionic pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-42" ]; then
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
