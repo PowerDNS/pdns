@@ -222,7 +222,13 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   struct timespec until = now;
   until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks.lookup(name);
+  /* be careful, if you try to insert a longer suffix
+     lookup() might return a shorter one if it is
+     already in the tree as a final node */
+  const DynBlock* got = blocks.lookup(name);
+  if (got && got->domain != name) {
+    got = nullptr;
+  }
   bool expired = false;
   DNSName domain(name.makeLowerCase());
 
