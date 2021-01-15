@@ -86,11 +86,11 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
 
       const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
       if (rcodeIt != counters.d_rcodeCounts.cend()) {
-        if (pair.second.warningRatioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.warningRatioExceeded(counters.responses, rcodeIt->second)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.ratioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.ratioExceeded(counters.responses, rcodeIt->second)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -318,7 +318,8 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
 
       auto& entry = counts[c.requestor];
-      ++entry.queries;
+      ++entry.responses;
+
       bool respRateMatches = d_respRateRule.matches(c.when);
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(c.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(c);

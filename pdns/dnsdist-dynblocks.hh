@@ -63,6 +63,7 @@ private:
     std::map<uint8_t, uint64_t> d_rcodeCounts;
     std::map<uint16_t, uint64_t> d_qtypeCounts;
     uint64_t queries{0};
+    uint64_t responses{0};
     uint64_t respBytes{0};
   };
 
