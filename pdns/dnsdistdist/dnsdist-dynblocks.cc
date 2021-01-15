@@ -294,26 +294,44 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     return;
   }
 
+  struct timespec responseCutOff = now;
+
   d_respRateRule.d_cutOff = d_respRateRule.d_minTime = now;
   d_respRateRule.d_cutOff.tv_sec -= d_respRateRule.d_seconds;
+  if (d_respRateRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_respRateRule.d_cutOff;
+  }
 
   d_suffixMatchRule.d_cutOff = d_suffixMatchRule.d_minTime = now;
   d_suffixMatchRule.d_cutOff.tv_sec -= d_suffixMatchRule.d_seconds;
+  if (d_suffixMatchRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_suffixMatchRule.d_cutOff;
+  }
 
   for (auto& rule : d_rcodeRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (auto& rule : d_rcodeRatioRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (const auto& shard : g_rings.d_shards) {
     std::lock_guard<std::mutex> rl(shard->respLock);
     for(const auto& c : shard->respRing) {
       if (now < c.when) {
+        continue;
+      }
+
+      if (c.when < responseCutOff) {
         continue;
       }
 
