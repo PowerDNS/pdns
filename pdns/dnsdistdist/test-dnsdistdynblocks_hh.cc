@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   {
     /* insert just above 50 qps from a given client in the last 10s
        this should trigger the rule this time */
-    size_t numberOfQueries = 50 * numberOfSeconds + 1;
+    size_t numberOfQueries = (50 * numberOfSeconds) + 1;
     g_rings.clear();
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
@@ -81,6 +81,63 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
+  {
+    /* clear the rings and dynamic blocks */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* Insert 100 qps from a given client in the last 10s
+       this should trigger the rule */
+    size_t numberOfQueries = 100;
+
+    for (size_t timeIdx = 0; timeIdx < numberOfSeconds; timeIdx++) {
+      for (size_t idx = 0; idx < numberOfQueries; idx++) {
+        struct timespec when = now;
+        when.tv_sec -= (9 - timeIdx);
+        g_rings.insertQuery(when, requestor1, qname, qtype, size, dh);
+      }
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * numberOfSeconds);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+
+    /* now we clean up the dynamic blocks, simulating an admin removing the block */
+    g_dynblockNMG.setState(emptyNMG);
+    /* we apply the rules again, but as if we were 20s in the future.
+       Since we have a time windows of 10s nothing should be added,
+       regardless of the number of queries
+    */
+    struct timespec later = now;
+    later.tv_sec += 20;
+    dbrg.apply(later);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+
+    /* just in case */
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* we apply the rules again, this tile as if we were 5s in the future.
+       Since we have a time windows of 10s, and 100 qps over 5s then 0 qps over 5s
+       is more than 50qps over 10s, the block should be added
+    */
+    later = now;
+    later.tv_sec += 5;
+    dbrg.apply(later);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+
+    /* clean up */
+    g_dynblockNMG.setState(emptyNMG);
+
+    /* we apply the rules again, this tile as if we were 6s in the future.
+       Since we have a time windows of 10s, and 100 qps over 4s then 0 qps over 6s
+       is LESS than 50qps over 10s, the block should NOT be added
+    */
+    later = now;
+    later.tv_sec += 6;
+    dbrg.apply(later);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+}
 }
 
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
