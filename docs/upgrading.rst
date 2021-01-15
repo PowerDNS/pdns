@@ -59,7 +59,7 @@ New LMDB schema
 ^^^^^^^^^^^^^^^
 
 An LMDB schema upgrade is mandatory.
-Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4.x.
+Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4.x. The new schema version is version 3.
 
 Removed features
 ^^^^^^^^^^^^^^^^
