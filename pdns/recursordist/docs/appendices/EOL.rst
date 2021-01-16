@@ -1,3 +1,5 @@
+.. _eol:
+
 End of life statements
 ======================
 
