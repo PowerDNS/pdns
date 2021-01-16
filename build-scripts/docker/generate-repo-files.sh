@@ -28,7 +28,7 @@ if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo "Usage: generate-repo-files.sh RELEASE"
     echo
     echo "  • RELEASE: [ auth-41 | auth-42 | auth-43 | auth-44 | auth-master |"
-    echo "               rec-41 | rec-42 | rec-43 | rec-44 | rec-master |"
+    echo "               rec-42 | rec-43 | rec-44 | rec-45 | rec-master |"
     echo "               dnsdist-15 | dnsdist-master ]"
     exit 1
 fi
@@ -69,7 +69,7 @@ RUN curl -o /etc/yum.repos.d/powerdns-$RELEASE.repo https://repo.powerdns.com/re
 RUN yum install --assumeyes $CENTOS8_FLAGS $PKG
 EOF
 
-    if [ "$RELEASE" = "rec-43"  -o "$RELEASE" = "rec-44" ]; then
+    if [ "$RELEASE" = "rec-43"  -o "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-45" ]; then
     cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 
 RUN mkdir /var/run/pdns-recursor
@@ -135,7 +135,7 @@ RUN apt-get update
 RUN apt-get install -y $PKG
 EOF
 
-    if [ "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" ]; then
+    if [ "$RELEASE" = "rec-43" -o "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-45" ]; then
         cat <<EOF >> Dockerfile.$RELEASE.$OS-$VERSION
 
 RUN mkdir /var/run/pdns-recursor
@@ -180,9 +180,6 @@ elif [ "$RELEASE" = "auth-43" -o "$RELEASE" = "auth-44" -o "$RELEASE" = "auth-ma
     write_debian buster pdns-server pdns_server
     write_ubuntu bionic pdns-server pdns_server
     write_ubuntu focal pdns-server pdns_server
-elif [ "$RELEASE" = "rec-41" ]; then
-    write_centos 7 pdns-recursor pdns_recursor
-    write_ubuntu bionic pdns-recursor pdns_recursor
 elif [ "$RELEASE" = "rec-42" ]; then
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
@@ -194,7 +191,7 @@ elif [ "$RELEASE" = "rec-43" ]; then
     write_debian buster pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
     write_ubuntu focal pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-master" ]; then
+elif [ "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-45" -o "$RELEASE" = "rec-master" ]; then
     write_centos 7 pdns-recursor pdns_recursor
     write_centos 8 pdns-recursor pdns_recursor
     write_debian buster pdns-recursor pdns_recursor
