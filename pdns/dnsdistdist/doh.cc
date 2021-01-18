@@ -831,13 +831,15 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         ++dsc->cs->tlsUnknownqueries;
     }
 
-    // would be nice to be able to use a pdns_string_view there, but we would need heterogeneous lookups
-    // (having string in the set and compare them to string_view, for example. Note that comparing
-    // two boost::string_view uses the pointer, not the content).
-    const std::string pathOnly(req->path_normalized.base, req->path_normalized.len);
-    if (dsc->paths.count(pathOnly) == 0) {
-      h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
-      return 0;
+    if (dsc->df->d_exactPathMatching) {
+      // would be nice to be able to use a pdns_string_view there, but we would need heterogeneous lookups
+      // (having string in the set and compare them to string_view, for example. Note that comparing
+      // two boost::string_view uses the pointer, not the content).
+      const std::string pathOnly(req->path_normalized.base, req->path_normalized.len);
+      if (dsc->paths.count(pathOnly) == 0) {
+        h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
+        return 0;
+      }
     }
 
     // would be nice to be able to use a pdns_string_view there,
@@ -1404,7 +1406,6 @@ void dohThread(ClientState* cs)
     dsc->cs = cs;
     dsc->df = cs->dohFrontend;
     dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
-
 
     std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1]);
     dnsdistThread.detach(); // gets us better error reporting

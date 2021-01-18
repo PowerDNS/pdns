@@ -118,7 +118,10 @@ Listen Sockets
 
   .. versionchanged:: 1.5.0
     ``internalPipeBufferSize``, ``sendCacheControlHeaders``, ``sessionTimeout``, ``trustForwardedForHeader`` options added.
-    ``url`` now defaults to ``/dns-query`` instead of ``/``. Added ``tcpListenQueueSize`` parameter.
+    ``url`` now defaults to ``/dns-query`` instead of ``/``, and does exact matching instead of accepting sub-paths. Added ``tcpListenQueueSize`` parameter.
+
+  .. versionchanged:: 1.6.0
+    ``exactPathMatching`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -127,7 +130,7 @@ Listen Sockets
                       The default port is 443.
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
-  :param str-or-list urls: The path part of a URL, or a list of paths, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /dns-query.
+  :param str-or-list urls: The path part of a URL, or a list of paths, to accept queries on. Any query with a path matching exactly one of these will be treated as a DoH query (sub-paths can be accepted by setting the ``exactPathMatching`` to false). The default is /dns-query.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
@@ -155,6 +158,7 @@ Listen Sockets
   * ``trustForwardedForHeader``: bool - Whether to parse any existing X-Forwarded-For header in the HTTP query and use the right-most value as the client source address and port, for ACL checks, rules, logging and so on. Default is false.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
   * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used.
+  * ``exactPathMatching=true``: bool - Whether to do exact path matching of the query path against the paths configured in ``urls`` (true, the default since 1.5.0) or to accepts sub-paths (false, and was the default before 1.5.0).
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
