@@ -42,10 +42,11 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, 
   return count;
 }
 
-bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass)
+bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)
 {
   // this ignores checking on the EDNS subnet flags!
-  if (qname != iter->d_name || iter->d_type != qtype || iter->d_class != qclass) {
+  // XXX OM tcp check is likely not needed, enforced by index
+  if (qname != iter->d_name || iter->d_type != qtype || iter->d_class != qclass || iter->d_tcp != tcp) {
     return false;
   }
 
@@ -53,11 +54,11 @@ bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::ite
   return queryMatches(iter->d_query, queryPacket, qname, optionsToSkip);
 }
 
-bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata)
+bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata, bool tcp)
 {
   for(auto iter = range.first ; iter != range.second ; ++iter) {
     // the possibility is VERY real that we get hits that are not right - birthday paradox
-    if (!qrMatch(iter, queryPacket, qname, qtype, qclass)) {
+    if (!qrMatch(iter, queryPacket, qname, qtype, qclass, tcp)) {
       continue;
     }
 
@@ -111,37 +112,37 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
   DNSName qname;
   uint16_t qtype, qclass;
   vState valState;
-  return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr);
+  return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
                                             std::string* responsePacket, uint32_t* age, uint32_t* qhash)
 {
   vState valState;
-  return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr);
+  return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata)
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp)
 {
   *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
-  auto range = idx.equal_range(tie(tag,*qhash));
+  auto range = idx.equal_range(tie(tag, *qhash, tcp));
 
   if(range.first == range.second) {
     d_misses++;
     return false;
   }
 
-  return checkResponseMatches(range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, pbdata);
+  return checkResponseMatches(range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, pbdata, tcp);
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData *pbdata)
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData *pbdata, bool tcp)
 {
   *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
-  auto range = idx.equal_range(tie(tag,*qhash));
+  auto range = idx.equal_range(tie(tag, *qhash, tcp));
 
   if(range.first == range.second) {
     d_misses++;
@@ -150,18 +151,19 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 
   qname = DNSName(queryPacket.c_str(), queryPacket.length(), sizeof(dnsheader), false, qtype, qclass, 0);
 
-  return checkResponseMatches(range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata);
+  return checkResponseMatches(range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata, tcp);
 }
 
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp)
 {
   auto& idx = d_packetCache.get<HashTag>();
-  auto range = idx.equal_range(tie(tag,qhash));
+  auto range = idx.equal_range(tie(tag, qhash, tcp));
   auto iter = range.first;
 
   for( ; iter != range.second ; ++iter)  {
-    if (iter->d_type != qtype || iter->d_class != qclass || iter->d_name != qname) {
+    // XXX OM tcp check not needed?
+    if (iter->d_type != qtype || iter->d_class != qclass || iter->d_tcp != tcp || iter->d_name != qname ) {
       continue;
     }
 
@@ -180,15 +182,14 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   }
 
   if(iter == range.second) { // nothing to refresh
-    struct Entry e(qname, std::move(responsePacket), std::move(query));
+    struct Entry e(qname, std::move(responsePacket), std::move(query), tcp);
     e.d_qhash = qhash;
     e.d_type = qtype;
     e.d_class = qclass;
-    e.d_ttd = now+ttl;
+    e.d_ttd = now + ttl;
     e.d_creation = now;
     e.d_tag = tag;
     e.d_vstate = valState;
-    e.d_submitted = false;
     if (pbdata) {
       e.d_pbdata = std::move(*pbdata);
     }
@@ -219,23 +220,24 @@ void RecursorPacketCache::doPruneTo(size_t maxCached)
 uint64_t RecursorPacketCache::doDump(int fd)
 {
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
-  if(!fp) { // dup probably failed
+  if (!fp) { // dup probably failed
     return 0;
   }
-  fprintf(fp.get(), "; main packet cache dump from thread follows\n;\n");
-  const auto& sidx=d_packetCache.get<1>();
 
-  uint64_t count=0;
-  time_t now=time(0);
-  for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
+  fprintf(fp.get(), "; main packet cache dump from thread follows\n;\n");
+
+  const auto& sidx = d_packetCache.get<SequencedTag>();
+  uint64_t count = 0;
+  time_t now = time(nullptr);
+
+  for (const auto& i : sidx) {
     count++;
     try {
-      fprintf(fp.get(), "%s %" PRId64 " %s  ; tag %d\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
+      fprintf(fp.get(), "%s %" PRId64 " %s  ; tag %d %s\n", i.d_name.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_type).c_str(), i.d_tag, i.d_tcp ? "tcp" : "udp");
     }
     catch(...) {
-      fprintf(fp.get(), "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());
+      fprintf(fp.get(), "; error printing '%s'\n", i.d_name.empty() ? "EMPTY" : i.d_name.toString().c_str());
     }
   }
   return count;
-
 }
