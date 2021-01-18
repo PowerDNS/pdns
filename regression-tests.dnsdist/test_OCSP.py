@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import base64
 import dns
 import os
 import subprocess
@@ -15,13 +16,27 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
             process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
             output = process.communicate(input='')
         except subprocess.CalledProcessError as exc:
-            raise AssertionError('dnsdist --check-config failed (%d): %s' % (exc.returncode, exc.output))
+            raise AssertionError('openssl s_client failed (%d): %s' % (exc.returncode, exc.output))
 
         return output[0].decode()
+
+    @classmethod
+    def getOCSPSerial(cls, output):
+        serialNumber = None
+        for line in output.splitlines():
+            line = line.strip()
+            print(line)
+            if line.startswith('Serial Number:'):
+                (_, serialNumber) = line.split(':')
+                break
+
+        return serialNumber
 
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -31,12 +46,14 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     _dohServerPort = 8443
     _config_template = """
     newServer{address="127.0.0.1:%s"}
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
 
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { ocspResponses={"%s"}})
     """
-    _config_params = ['_testServerPort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_dohServerPort', '_serverCert', '_serverKey', '_ocspFile']
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_dohServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
     @classmethod
     def setUpClass(cls):
@@ -58,8 +75,23 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._dohServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
 
+        serialNumber = self.getOCSPSerial(output)
+        self.assertTrue(serialNumber)
+
+        self.generateNewCertificateAndKey()
+        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+        self.sendConsoleCommand("reloadAllCertificates()")
+
+        output = self.checkOCSPStaplingStatus('127.0.0.1', self._dohServerPort, self._serverName, self._caCert)
+        self.assertIn('OCSP Response Status: successful (0x0)', output)
+        serialNumber2 = self.getOCSPSerial(output)
+        self.assertTrue(serialNumber2)
+        self.assertNotEquals(serialNumber, serialNumber2)
+
 class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -69,12 +101,14 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _tlsServerPort = 8443
     _config_template = """
     newServer{address="127.0.0.1:%s"}
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
 
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls", ocspResponses={"%s"}})
     """
-    _config_params = ['_testServerPort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
     def testOCSPStapling(self):
         """
@@ -83,8 +117,23 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
 
+        serialNumber = self.getOCSPSerial(output)
+        self.assertTrue(serialNumber)
+
+        self.generateNewCertificateAndKey()
+        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+        self.sendConsoleCommand("reloadAllCertificates()")
+
+        output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
+        self.assertIn('OCSP Response Status: successful (0x0)', output)
+        serialNumber2 = self.getOCSPSerial(output)
+        self.assertTrue(serialNumber2)
+        self.assertNotEquals(serialNumber, serialNumber2)
+
 class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -94,12 +143,14 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _tlsServerPort = 8443
     _config_template = """
     newServer{address="127.0.0.1:%s"}
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
 
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", ocspResponses={"%s"}})
     """
-    _config_params = ['_testServerPort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
     def testOCSPStapling(self):
         """
@@ -107,3 +158,16 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
+
+        serialNumber = self.getOCSPSerial(output)
+        self.assertTrue(serialNumber)
+
+        self.generateNewCertificateAndKey()
+        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+        self.sendConsoleCommand("reloadAllCertificates()")
+
+        output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
+        self.assertIn('OCSP Response Status: successful (0x0)', output)
+        serialNumber2 = self.getOCSPSerial(output)
+        self.assertTrue(serialNumber2)
+        self.assertNotEquals(serialNumber, serialNumber2)

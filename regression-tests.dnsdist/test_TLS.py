@@ -1,11 +1,17 @@
 #!/usr/bin/env python
+import base64
 import dns
 import socket
 import ssl
+import subprocess
 import unittest
 from dnsdisttests import DNSDistTest
 
 class TLSTests(object):
+
+    def getServerCertificate(self):
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+        return conn.getpeercert()
 
     def testTLSSimple(self):
         """
@@ -30,6 +36,52 @@ class TLSTests(object):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
+
+        # check the certificate
+        cert = self.getServerCertificate()
+        self.assertIn('subject', cert)
+        self.assertIn('serialNumber', cert)
+        self.assertIn('subjectAltName', cert)
+        subject = cert['subject']
+        altNames = cert['subjectAltName']
+        self.assertEquals(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
+        self.assertEquals(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
+        names = []
+        for entry in altNames:
+            names.append(entry[1])
+        self.assertEquals(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+        serialNumber = cert['serialNumber']
+
+        self.generateNewCertificateAndKey()
+        self.sendConsoleCommand("reloadAllCertificates()")
+
+        # open a new connection
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        # check that the certificate is OK
+        cert = self.getServerCertificate()
+        self.assertIn('subject', cert)
+        self.assertIn('serialNumber', cert)
+        self.assertIn('subjectAltName', cert)
+        subject = cert['subject']
+        altNames = cert['subjectAltName']
+        self.assertEquals(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
+        self.assertEquals(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
+        names = []
+        for entry in altNames:
+            names.append(entry[1])
+        self.assertEquals(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+
+        # and that the serial is different
+        self.assertNotEquals(serialNumber, cert['serialNumber'])
 
     def testTLKA(self):
         """
@@ -199,34 +251,43 @@ class TLSTests(object):
 
 class TestOpenSSL(DNSDistTest, TLSTests):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _tlsServerPort = 8453
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
     newServer{address="127.0.0.1:%s"}
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
-    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
 class TestGnuTLS(DNSDistTest, TLSTests):
 
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _tlsServerPort = 8453
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
     newServer{address="127.0.0.1:%s"}
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls" })
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
-    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
 class TestDOTWithCache(DNSDistTest):
-
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
