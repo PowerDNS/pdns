@@ -53,9 +53,12 @@ Global configuration
 
   .. versionadded:: 1.4.0
 
+  .. versionchanged:: 1.6.0
+    ``facility`` can now be a string.
+
   Set the syslog logging facility to ``facility``.
 
-  :param int facility: The new facility as a numeric value. Defaults to LOG_DAEMON.
+  :param int or str facility: The new facility as a numeric value (raw value as defined in syslog.h), or as a case-insensitive string ("LOCAL0", or "daemon", for example). Defaults to LOG_DAEMON.
 
 Listen Sockets
 ~~~~~~~~~~~~~~

@@ -1984,13 +1984,69 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_secPollInterval = newInterval;
   });
 
-  luaCtx.writeFunction("setSyslogFacility", [](int facility) {
+  luaCtx.writeFunction("setSyslogFacility", [](boost::variant<int,std::string> facility) {
     setLuaSideEffect();
     if (g_configurationDone) {
       g_outputBuffer="setSyslogFacility cannot be used at runtime!\n";
       return;
     }
-    setSyslogFacility(facility);
+    if (facility.type() == typeid(std::string)) {
+      static std::map<std::string, int> const facilities = {
+        { "local0", LOG_LOCAL0 },
+        { "log_local0", LOG_LOCAL0 },
+        { "local1", LOG_LOCAL1 },
+        { "log_local1", LOG_LOCAL1 },
+        { "local2", LOG_LOCAL2 },
+        { "log_local2", LOG_LOCAL2 },
+        { "local3", LOG_LOCAL3 },
+        { "log_local3", LOG_LOCAL3 },
+        { "local4", LOG_LOCAL4 },
+        { "log_local4", LOG_LOCAL4 },
+        { "local5", LOG_LOCAL5 },
+        { "log_local5", LOG_LOCAL5 },
+        { "local6", LOG_LOCAL6 },
+        { "log_local6", LOG_LOCAL6 },
+        { "local7", LOG_LOCAL7 },
+        { "log_local7", LOG_LOCAL7 },
+        /* most of these likely make very little sense
+           for dnsdist, but why not? */
+        { "kern", LOG_KERN },
+        { "log_kern", LOG_KERN },
+        { "user", LOG_USER },
+        { "log_user", LOG_USER },
+        { "mail", LOG_MAIL },
+        { "log_mail", LOG_MAIL },
+        { "daemon", LOG_DAEMON },
+        { "log_daemon", LOG_DAEMON },
+        { "auth", LOG_AUTH },
+        { "log_auth", LOG_AUTH },
+        { "syslog", LOG_SYSLOG },
+        { "log_syslog", LOG_SYSLOG },
+        { "lpr", LOG_LPR },
+        { "log_lpr", LOG_LPR },
+        { "news", LOG_NEWS },
+        { "log_news", LOG_NEWS },
+        { "uucp", LOG_UUCP },
+        { "log_uucp", LOG_UUCP },
+        { "cron", LOG_CRON },
+        { "log_cron", LOG_CRON },
+        { "authpriv", LOG_AUTHPRIV },
+        { "log_authpriv", LOG_AUTHPRIV },
+        { "ftp", LOG_FTP },
+        { "log_ftp", LOG_FTP }
+      };
+      auto facilityStr = boost::get<std::string>(facility);
+      toLowerInPlace(facilityStr);
+      auto it = facilities.find(facilityStr);
+      if (it == facilities.end()) {
+        g_outputBuffer="Unknown facility '" + facilityStr + "' passed to setSyslogFacility()!\n";
+        return;
+      }
+      setSyslogFacility(it->second);
+    }
+    else {
+      setSyslogFacility(boost::get<int>(facility));
+    }
   });
 
   luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
