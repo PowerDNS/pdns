@@ -316,6 +316,7 @@ struct DNSDistStats
   stat_t ruleNXDomain{0};
   stat_t ruleRefused{0};
   stat_t ruleServFail{0};
+  stat_t ruleTruncated{0};
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
@@ -344,6 +345,7 @@ struct DNSDistStats
     {"rule-nxdomain", &ruleNXDomain},
     {"rule-refused", &ruleRefused},
     {"rule-servfail", &ruleServFail},
+    {"rule-truncated", &ruleTruncated},
     {"self-answered", &selfAnswered},
     {"downstream-timeouts", &downstreamTimeouts},
     {"downstream-send-errors", &downstreamSendErrors},
@@ -368,6 +370,7 @@ struct DNSDistStats
     {"udp-sndbuf-errors", boost::bind(udpErrorStats, "udp-sndbuf-errors")},
     {"noncompliant-queries", &nonCompliantQueries},
     {"noncompliant-responses", &nonCompliantResponses},
+    {"proxy-protocol-invalid", &proxyProtocolInvalid},
     {"rdqueries", &rdQueries},
     {"empty-queries", &emptyQueries},
     {"cache-hits", &cacheHits},

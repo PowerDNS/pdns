@@ -236,9 +236,9 @@ class TestAPIBasics(DNSDistTest):
                     'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
-                    'dyn-block-nmg-size', 'rule-servfail', 'security-status',
+                    'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
                     'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
-                    'doh-query-pipe-full', 'doh-response-pipe-full']
+                    'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid']
 
         for key in expected:
             self.assertIn(key, values)
@@ -261,7 +261,7 @@ class TestAPIBasics(DNSDistTest):
 
         expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
                     'frontend-noerror', 'frontend-nxdomain', 'frontend-servfail',
-                    'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
+                    'rule-drop', 'rule-nxdomain', 'rule-refused', 'rule-truncated', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
                     'latency-slow', 'latency-avg100', 'latency-avg1000', 'latency-avg10000',
@@ -269,7 +269,7 @@ class TestAPIBasics(DNSDistTest):
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
                     'dyn-block-nmg-size', 'packetcache-hits', 'packetcache-misses', 'over-capacity-drops',
-                    'too-old-drops']
+                    'too-old-drops', 'proxy-protocol-invalid', 'doh-query-pipe-full', 'doh-response-pipe-full']
 
         for key in expected:
             self.assertIn(key, content)

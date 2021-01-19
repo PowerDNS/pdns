@@ -73,6 +73,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "rule-nxdomain",          MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers returned because of a rule")},
   { "rule-refused",           MetricDefinition(PrometheusMetricType::counter, "Number of Refused answers returned because of a rule")},
   { "rule-servfail",          MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received because of a rule")},
+  { "rule-truncated",         MetricDefinition(PrometheusMetricType::counter, "Number of truncated answers returned because of a rule")},
   { "self-answered",          MetricDefinition(PrometheusMetricType::counter, "Number of self-answered responses")},
   { "downstream-timeouts",    MetricDefinition(PrometheusMetricType::counter, "Number of queries not answered in time by a backend")},
   { "downstream-send-errors", MetricDefinition(PrometheusMetricType::counter, "Number of errors when sending a query to a backend")},
@@ -110,6 +111,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "udp-noport-errors",      MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp NoPorts") },
   { "udp-recvbuf-errors",     MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp RcvbufErrors") },
   { "udp-sndbuf-errors",      MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp SndbufErrors") },
+  { "proxy-protocol-invalid", MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of an invalid Proxy Protocol header") },
 };
 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)

@@ -54,6 +54,14 @@ cpu-user-msec
 -------------
 Milliseconds spent by :program:`dnsdist` in the "user" state.
 
+doh-query-pipe-full
+-------------------
+Number of queries dropped because the internal DoH pipe was full.
+
+doh-response-pipe-full
+----------------------
+Number of responses dropped because the internal DoH pipe was full.
+
 downstream-send-errors
 ----------------------
 Number of errors when sending a query to a backend.
@@ -156,6 +164,12 @@ noncompliant-responses
 ----------------------
 Number of answers from a backend dropped as non-compliant.
 
+proxy-protocol-invalid
+----------------------
+.. versionadded:: 1.6.0
+
+Number of queries dropped because of an invalid Proxy Protocol header.
+
 queries
 -------
 Number of received queries.
@@ -189,6 +203,12 @@ Number of Refused answers returned because of a rule.
 rule-servfail
 -------------
 Number of ServFail answers returned because of a rule.
+
+rule-truncated
+--------------
+.. versionadded:: 1.6.0
+
+Number of truncated answers returned because of a rule.
 
 security-status
 ---------------
