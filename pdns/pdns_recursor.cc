@@ -49,7 +49,6 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include "misc.hh"
 #include "mtasker.hh"
 #include <utility>
@@ -136,7 +135,7 @@ std::unique_ptr<NegCache> g_negCache;
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
-thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t>>> t_queryring, t_servfailqueryring, t_bogusqueryring;
+thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 #ifdef NOD_ENABLED
 thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
@@ -449,7 +448,7 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
-  ssize_t ret=recvfrom(fd, resp, sizeof(resp), 0, (struct sockaddr *)&fromaddr, &addrlen);
+  ssize_t ret=recvfrom(fd, resp, sizeof(resp), 0, (sockaddr *)&fromaddr, &addrlen);
   if (fromaddr != pident.remote) {
     g_log<<Logger::Notice<<"Response received from the wrong remote host ("<<fromaddr.toStringWithPort()<<" instead of "<<pident.remote.toStringWithPort()<<"), discarding"<<endl;
 
@@ -782,16 +781,17 @@ static void terminateTCPConnection(int fd)
   }
 }
 
+/* this function is called with both a string and a vector<uint8_t> representing a packet */
 template <class T>
 static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& dc, const T& packet)
 {
-  char buf[2];
+  uint8_t buf[2];
   buf[0] = packet.size() / 256;
   buf[1] = packet.size() % 256;
 
   Utility::iovec iov[2];
-  iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
-  iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
+  iov[0].iov_base = (void*)buf;              iov[0].iov_len = 2;
+  iov[1].iov_base = (void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
   int wret = Utility::writev(dc->d_socket, iov, 2);
   bool hadError = true;
@@ -2353,11 +2353,13 @@ static bool handleTCPReadResult(int fd, ssize_t bytes)
 static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                              DNSName& qname, uint16_t& qtype, uint16_t& qclass,
                              const struct timeval& now,
-                             string& response, uint32_t& age, vState& valState, uint32_t& qhash,
+                             string& response, uint32_t& qhash,
                              RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source) 
 {
   bool cacheHit = false;
-
+  uint32_t age;
+  vState valState;
+  
   if (qnameParsed) {
     cacheHit = !SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
   } else {
@@ -2378,9 +2380,8 @@ static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& d
     SyncRes::s_queries++;
     ageDNSPacket(response, age);
     if (response.length() >= sizeof(struct dnsheader)) {
-      struct dnsheader tmpdh;
-      memcpy(&tmpdh, response.data(), sizeof(tmpdh)); // XXX Only needed if response.data() isn't aligned
-      updateResponseStats(tmpdh.rcode, source, response.length(), 0, 0);
+      const struct dnsheader *dh = reinterpret_cast<const dnsheader*>(response.data());
+      updateResponseStats(dh->rcode, source, response.length(), 0, 0);
     }
     g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
     g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
@@ -2660,13 +2661,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         ++g_stats.tcpqcounter;
 
         string response;
-        uint32_t age;
-        vState valState;
         uint32_t qhash = 0;
         RecursorPacketCache::OptPBData pbData{boost::none};
 
-        bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, age, valState, qhash, pbData, true, dc->d_source);
-        dc->d_qhash=qhash;
+        bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, qhash, pbData, true, dc->d_source);
+        dc->d_qhash = qhash;
 
         if (cacheHit) {
           if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
@@ -2719,7 +2718,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
             t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
           } else {
-            Utility::gettimeofday(&g_now, 0); // needed?
+            Utility::gettimeofday(&g_now, nullptr); // needed?
             struct timeval ttd = g_now;
             t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
           }
@@ -2867,7 +2866,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     DNSName qname;
     uint16_t qtype=0;
     uint16_t qclass=0;
-    uint32_t age;
     bool qnameParsed=false;
 #ifdef MALLOC_TRACE
     /*
@@ -2932,8 +2930,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-    vState valState;
-    bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, age, valState, qhash, pbData, false, source);
+    bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
     if (cacheHit) {
       if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
         protobufLogResponse(dh, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName);
@@ -2957,15 +2954,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
               << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
               << strerror(sendErr) << endl;
       }
-#if 0
-      if(response.length() >= sizeof(struct dnsheader)) {
-        struct dnsheader tmpdh;
-        memcpy(&tmpdh, response.c_str(), sizeof(tmpdh));
-        updateResponseStats(tmpdh.rcode, source, response.length(), 0, 0);
-      }
-      g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
-      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
-#endif
       return 0;
     }
   }

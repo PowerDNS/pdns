@@ -42,11 +42,10 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, 
   return count;
 }
 
-bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)
+bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass)
 {
   // this ignores checking on the EDNS subnet flags!
-  // XXX OM tcp check is likely not needed, enforced by index
-  if (qname != iter->d_name || iter->d_type != qtype || iter->d_class != qclass || iter->d_tcp != tcp) {
+  if (qname != iter->d_name || iter->d_type != qtype || iter->d_class != qclass) {
     return false;
   }
 
@@ -54,11 +53,11 @@ bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::ite
   return queryMatches(iter->d_query, queryPacket, qname, optionsToSkip);
 }
 
-bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata, bool tcp)
+bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata)
 {
   for(auto iter = range.first ; iter != range.second ; ++iter) {
     // the possibility is VERY real that we get hits that are not right - birthday paradox
-    if (!qrMatch(iter, queryPacket, qname, qtype, qclass, tcp)) {
+    if (!qrMatch(iter, queryPacket, qname, qtype, qclass)) {
       continue;
     }
 
@@ -134,7 +133,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
     return false;
   }
 
-  return checkResponseMatches(range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, pbdata, tcp);
+  return checkResponseMatches(range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, pbdata);
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now,
@@ -151,7 +150,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 
   qname = DNSName(queryPacket.c_str(), queryPacket.length(), sizeof(dnsheader), false, qtype, qclass, 0);
 
-  return checkResponseMatches(range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata, tcp);
+  return checkResponseMatches(range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata);
 }
 
 
@@ -162,8 +161,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   auto iter = range.first;
 
   for( ; iter != range.second ; ++iter)  {
-    // XXX OM tcp check not needed?
-    if (iter->d_type != qtype || iter->d_class != qclass || iter->d_tcp != tcp || iter->d_name != qname ) {
+    if (iter->d_type != qtype || iter->d_class != qclass || iter->d_name != qname ) {
       continue;
     }
 

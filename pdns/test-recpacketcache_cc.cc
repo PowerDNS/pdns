@@ -281,4 +281,116 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   BOOST_CHECK_EQUAL(fpacket, r2packet);
 }
 
+BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP) {
+  /* Insert a response with UDP, the exact same query with a TCP flag
+     should lead to a miss. 
+  */
+  RecursorPacketCache rpc;
+  string fpacket;
+  uint32_t age=0;
+  uint32_t qhash=0;
+  uint32_t temphash=0;
+  uint32_t ttd=3600;
+  BOOST_CHECK_EQUAL(rpc.size(), 0U);
+
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  DNSName qname("www.powerdns.com");
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, qname, QType::A);
+  pw.getHeader()->rd=true;
+  pw.getHeader()->qr=false;
+  pw.getHeader()->id=dns_random_uint16();
+  string qpacket(reinterpret_cast<const char*>(&packet[0]), packet.size());
+  pw.startRecord(qname, QType::A, ttd);
+
+  /* Both interfaces (with and without the qname/qtype/qclass) should get the same hash */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, false), false);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+
+  /* Different tcp/udp, should still get get the same hash, for both interfaces */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, true), false);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+
+  {
+    ARecordContent ar("127.0.0.1");
+    ar.toPacket(pw);
+    pw.commit();
+  }
+  string r1packet(reinterpret_cast<const char*>(&packet[0]), packet.size());
+
+  {
+    ARecordContent ar("127.0.0.2");
+    ar.toPacket(pw);
+    pw.commit();
+  }
+  string r2packet(reinterpret_cast<const char*>(&packet[0]), packet.size());
+
+  BOOST_CHECK(r1packet != r2packet);
+
+  /* inserting a response for udp */
+  rpc.insertResponsePacket(0, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, boost::none, false);
+  BOOST_CHECK_EQUAL(rpc.size(), 1U);
+
+  /* inserting a different response for tcp, should not override the first one */
+  rpc.insertResponsePacket(0, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, boost::none, true);
+  BOOST_CHECK_EQUAL(rpc.size(), 2U);
+
+  /* remove all responses from the cache */
+  rpc.doPruneTo(0);
+  BOOST_CHECK_EQUAL(rpc.size(), 0U);
+
+  /* reinsert both */
+  rpc.insertResponsePacket(0, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, boost::none, false);
+  BOOST_CHECK_EQUAL(rpc.size(), 1U);
+
+  rpc.insertResponsePacket(0, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, boost::none, true);
+  BOOST_CHECK_EQUAL(rpc.size(), 2U);
+
+  /* remove the responses by qname, should remove both */
+  rpc.doWipePacketCache(qname);
+  BOOST_CHECK_EQUAL(rpc.size(), 0U);
+
+  /* insert the response for tcp */
+  rpc.insertResponsePacket(0, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r1packet), time(0), ttd, vState::Indeterminate, boost::none, true);
+  BOOST_CHECK_EQUAL(rpc.size(), 1U);
+
+  vState vState;
+  /* we can retrieve it */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, true), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+
+  /* first interface assumes udp */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &temphash), false);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+
+  /* and not with expliclit udp */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, false), false);
+  /* we should still get the same hash */
+  BOOST_CHECK_EQUAL(temphash, qhash);
+
+  /* adding a response for udp */
+  rpc.insertResponsePacket(0, qhash, string(qpacket), qname, QType::A, QClass::IN, string(r2packet), time(0), ttd, vState::Indeterminate, boost::none, false);
+  BOOST_CHECK_EQUAL(rpc.size(), 2U);
+
+  /* We get the correct response for udp now */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r2packet);
+
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &temphash), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r2packet);
+
+  /* and the correct response for tcp */
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, true), true);
+  BOOST_CHECK_EQUAL(qhash, temphash);
+  BOOST_CHECK_EQUAL(fpacket, r1packet);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
