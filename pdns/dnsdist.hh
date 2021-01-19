@@ -811,11 +811,9 @@ class TCPClientCollection {
   const bool d_useSinglePipe;
 public:
 
-  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
+  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
 
   {
-    d_tcpclientthreads.reserve(maxThreads);
-
     if (d_useSinglePipe) {
       if (pipe(d_singlePipe) < 0) {
         int err = errno;
@@ -841,7 +839,7 @@ public:
   {
     uint64_t pos = d_pos++;
     ++d_queued;
-    return d_tcpclientthreads[pos % d_numthreads];
+    return d_tcpclientthreads.at(pos % d_numthreads);
   }
   bool hasReachedMaxThreads() const
   {
@@ -1172,7 +1170,7 @@ extern int g_tcpSendTimeout;
 extern int g_udpTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
-extern uint64_t g_maxTCPClientThreads;
+extern boost::optional<uint64_t> g_maxTCPClientThreads;
 extern uint64_t g_maxTCPQueuedConnections;
 extern size_t g_maxTCPQueriesPerConn;
 extern size_t g_maxTCPConnectionDuration;

@@ -3,7 +3,12 @@ Tuning related functions
 
 .. function:: setMaxTCPClientThreads(num)
 
+  .. versionchanged:: 1.6.0
+    Before 1.6.0 the default value was 10.
+
   Set the maximum of TCP client threads, handling TCP connections. Before 1.4.0 a TCP thread could only handle a single incoming TCP connection at a time, while after 1.4.0 it can handle a larger number of them simultaneously.
+  Since 1.6.0, the default value is at least 10 TCP workers, but might be more if there is more than 10 TCP listeners (added via :func:`addDNSCryptBind`, :func:`addLocal`, or :func:`addTLSLocal`). In that last case there will be as many TCP workers as TCP listeners.
+  Note that before 1.6.0 the TCP worker threads were created at runtime, adding a new thread when the existing ones seemed to struggle with the load, until the maximum number of threads had been reached. Starting with 1.6.0 the configured number of worker threads are immediately created at startup.
 
   :param int num:
 

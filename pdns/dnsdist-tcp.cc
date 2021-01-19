@@ -221,8 +221,8 @@ void TCPClientCollection::addTCPClientThread()
   {
     std::lock_guard<std::mutex> lock(d_mutex);
 
-    if (d_numthreads >= d_tcpclientthreads.capacity()) {
-      warnlog("Adding a new TCP client thread would exceed the vector capacity (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.capacity());
+    if (d_numthreads >= d_tcpclientthreads.size()) {
+      vinfolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.size());
       if (!d_useSinglePipe) {
         close(pipefds[0]);
         close(pipefds[1]);
@@ -244,7 +244,7 @@ void TCPClientCollection::addTCPClientThread()
       return;
     }
 
-    d_tcpclientthreads.push_back(pipefds[1]);
+    d_tcpclientthreads.at(d_numthreads) = pipefds[1];
     ++d_numthreads;
   }
 }
@@ -1023,10 +1023,6 @@ void tcpAcceptorThread(ClientState* cs)
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
-
-  if(!g_tcpclientthreads->hasReachedMaxThreads()) {
-    g_tcpclientthreads->addTCPClientThread();
-  }
 
   auto acl = g_ACL.getLocal();
   for(;;) {

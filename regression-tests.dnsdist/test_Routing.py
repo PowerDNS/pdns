@@ -258,6 +258,9 @@ class TestRoutingLuaFFIPerThreadRoundRobinLB(DNSDistTest):
     _testServer2Port = 5351
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
+    -- otherwise we start too many TCP workers, and as each thread
+    -- uses it own counter this makes the TCP queries distribution hard to predict
+    setMaxTCPClientThreads(1)
     setServerPolicyLuaFFIPerThread("luaffiroundrobin", [[
       local ffi = require("ffi")
       local C = ffi.C
