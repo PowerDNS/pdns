@@ -791,6 +791,7 @@ public:
   static bool s_qnameminimization;
   static HardenNXD s_hardenNXD;
   static unsigned int s_refresh_ttlperc;
+  static int s_tcp_fast_open;
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;

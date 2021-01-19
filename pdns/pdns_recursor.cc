@@ -3290,10 +3290,9 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
 #endif
     }
 
-    if (::arg().asNum("tcp-fast-open") > 0) {
+    if (SyncRes::s_tcp_fast_open > 0) {
 #ifdef TCP_FASTOPEN
-      int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
-      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
+      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::tcp_fast_open, sizeof SyncRes::tcp_fast_open) < 0) {
         int err = errno;
         g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(err)<<endl;
       }
@@ -4013,11 +4012,11 @@ static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID* pid=boost::any_cast<PacketID>(&var);
-  ssize_t ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
-  if(ret > 0) {
-    pid->outPos+=(ssize_t)ret;
-    if(pid->outPos==pid->outMSG.size()) {
+  PacketID* pid = boost::any_cast<PacketID>(&var);
+  ssize_t ret = send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
+  if (ret > 0) {
+    pid->outPos += (ssize_t)ret;
+    if (pid->outPos == pid->outMSG.size()) {
       PacketID tmp=*pid;
       t_fdm->removeWriteFD(fd);
       MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
@@ -4671,6 +4670,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
+  SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
   RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
 
   if(SyncRes::s_serverID.empty()) {

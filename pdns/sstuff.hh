@@ -127,6 +127,13 @@ public:
     }
   }
 
+  void setFastOpen(int fastOpenQueueSize)
+  {
+#ifdef TCP_FASTOPEN_CONNECT
+    setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &fastOpenQueueSize, sizeof fastOpenQueueSize);
+#endif
+  }
+
   //! Bind the socket to a specified endpoint
   void bind(const ComboAddress &local, bool reuseaddr=true)
   {

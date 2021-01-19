@@ -328,11 +328,14 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 
       s.setNonBlocking();
       ComboAddress local = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
+      if (SyncRes::s_tcp_fast_open > 0) {
+        s.setFastOpen(SyncRes::s_tcp_fast_open);
+      }
 
       s.bind(local);
-        
+
       s.connect(ip);
-      
+
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
       const char *msgP=(const char*)&*vpacket.begin();
@@ -341,7 +344,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       if (ret != LWResult::Result::Success) {
         return ret;
       }
-      
+
       packet.clear();
       ret = arecvtcp(packet, 2, &s, false);
       if (ret != LWResult::Result::Success) {
