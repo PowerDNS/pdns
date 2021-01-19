@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <fstream>
+
 #include "dnsdist-rings.hh"
 
 size_t Rings::numDistinctRequestors()
@@ -78,4 +80,74 @@ std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBand
   }
   ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
   return ret;
+}
+
+size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& now)
+{
+  ifstream ifs(filepath);
+  if (!ifs) {
+    throw std::runtime_error("unable to open the file at " + filepath);
+  }
+
+  size_t inserted = 0;
+  string line;
+  dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
+
+  while (std::getline(ifs, line)) {
+    boost::trim_right_if(line, boost::is_any_of(" \r\n\x1a"));
+    boost::trim_left(line);
+    bool isResponse = false;
+    vector<string> parts;
+    stringtok(parts, line, " \t,");
+
+    if (parts.size() == 7) {
+    }
+    else if (parts.size() >= 10 && parts.size() <= 12) {
+      isResponse = true;
+    }
+    else {
+      cerr<<"skipping line with "<<parts.size()<<"parts: "<<line<<endl;
+      continue;
+    }
+
+    size_t idx = 0;
+    vector<string> timeStr;
+    stringtok(timeStr, parts.at(idx++), ".");
+    if (timeStr.size() != 2) {
+      cerr<<"skipping invalid time "<<parts.at(0)<<endl;
+      continue;
+    }
+
+    struct timespec when;
+    try {
+      when.tv_sec = now.tv_sec + std::stoi(timeStr.at(0));
+      when.tv_nsec = now.tv_nsec + std::stoi(timeStr.at(1)) * 100 * 1000 * 1000;
+    }
+    catch (const std::exception& e) {
+      cerr<<"error parsing time "<<parts.at(idx-1)<<" from line "<<line<<endl;
+      continue;
+    }
+
+    ComboAddress from(parts.at(idx++));
+    ComboAddress to;
+
+    if (isResponse) {
+      to = ComboAddress(parts.at(idx++));
+    }
+    /* skip ID */
+    idx++;
+    DNSName qname(parts.at(idx++));
+    QType qtype(QType::chartocode(parts.at(idx++).c_str()));
+
+    if (!isResponse) {
+      insertResponse(when, from, qname, qtype.getCode(), 0, 0, dh, to);
+    }
+    else {
+      insertQuery(when, from, qname, qtype.getCode(), 0, dh);
+    }
+    ++inserted;
+  }
+
+  return inserted;
 }

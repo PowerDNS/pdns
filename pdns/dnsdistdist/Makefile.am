@@ -233,7 +233,7 @@ testrunner_SOURCES = \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-vars.cc \
-	dnsdist-rings.hh \
+	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \
