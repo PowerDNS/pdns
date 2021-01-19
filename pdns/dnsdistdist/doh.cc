@@ -216,6 +216,27 @@ struct DOHServerConfig
   int dohresponsepair[2]{-1,-1};
 };
 
+
+static void sendDoHUnitToTheMainThread(DOHUnit* du, const char* description)
+{
+  /* increase the ref counter before sending the pointer */
+  du->get();
+
+  static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+  ssize_t sent = write(du->rsock, &du, sizeof(du));
+  if (sent != sizeof(du)) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      ++g_stats.dohResponsePipeFull;
+      vinfolog("Unable to pass a %s to the DoH worker thread because the pipe is full", description);
+    }
+    else {
+      vinfolog("Unable to pass a %s to the DoH worker thread because we couldn't write to the pipe: %s", description, stringerror());
+    }
+
+    du->release();
+  }
+}
+
 /* This function is called from other threads than the main DoH one,
    instructing it to send a 502 error to the client */
 void handleDOHTimeout(DOHUnit* oldDU)
@@ -227,22 +248,7 @@ void handleDOHTimeout(DOHUnit* oldDU)
 /* we are about to erase an existing DU */
   oldDU->status_code = 502;
 
-  /* increase the ref counter before sending the pointer */
-  oldDU->get();
-
-  static_assert(sizeof(oldDU) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
-  ssize_t sent = write(oldDU->rsock, &oldDU, sizeof(oldDU));
-  if (sent != sizeof(oldDU)) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      ++g_stats.dohResponsePipeFull;
-      vinfolog("Unable to pass a DoH timeout to the DoH worker thread because the pipe is full");
-    }
-    else {
-      vinfolog("Unable to pass a DoH timeout to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
-    }
-
-    oldDU->release();
-  }
+  sendDoHUnitToTheMainThread(oldDU, "DoH timeout");
 
   oldDU->release();
   oldDU = nullptr;
@@ -445,6 +451,16 @@ static int processDOHQuery(DOHUnit* du)
         return -1; // drop
       }
 
+      if (dh->qdcount == 0) {
+        dh->rcode = RCode::NotImp;
+        dh->qr = true;
+        du->response = std::move(du->query);
+
+        sendDoHUnitToTheMainThread(du, "DoH self-answered response");
+
+        return 0;
+      }
+
       queryId = ntohs(dh->id);
     }
 
@@ -468,23 +484,9 @@ static int processDOHQuery(DOHUnit* du)
       if (du->response.empty()) {
         du->response = std::move(du->query);
       }
-      /* increase the ref counter before sending the pointer */
-      du->get();
 
-      static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+      sendDoHUnitToTheMainThread(du, "DoH self-answered response");
 
-      ssize_t sent = write(du->rsock, &du, sizeof(du));
-      if (sent != sizeof(du)) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          ++g_stats.dohResponsePipeFull;
-          vinfolog("Unable to pass a DoH self-answered response to the DoH worker thread because the pipe is full");
-        }
-        else {
-          vinfolog("Unable to pass a DoH self-answered to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
-        }
-
-        du->release();
-      }
       return 0;
     }
 
@@ -1105,24 +1107,9 @@ static void dnsdistclient(int qsock)
 
       if (processDOHQuery(du) < 0) {
         du->status_code = 500;
-        /* increase the ref count before sending the pointer */
-        du->get();
 
-        static_assert(sizeof(du) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
-
-        ssize_t sent = write(du->rsock, &du, sizeof(du));
-        if (sent != sizeof(du)) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            ++g_stats.dohResponsePipeFull;
-            vinfolog("Unable to pass a DoH internal error to the DoH worker thread because the pipe is full");
-          }
-          else {
-            vinfolog("Unable to pass a DoH internal error to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
-          }
-
-          // XXX but now what - will h2o time this out for us?
-          du->release();
-        }
+        sendDoHUnitToTheMainThread(du, "DoH internal error");
+        // XXX if we failed to send it to the main thread, now what - will h2o eventually time this out for us
       }
       du->release();
     }

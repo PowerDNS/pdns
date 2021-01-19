@@ -422,3 +422,17 @@ class TestBasics(DNSDistTest):
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEquals(receivedResponse, expectedResponse)
 
+    def testEmptyQueries(self):
+        """
+        Basic: NotImp on empty queries
+        """
+        name = 'notimp-empty-queries.basic.tests.powerdns.com.'
+        query = dns.message.Message()
+
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NOTIMP)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)

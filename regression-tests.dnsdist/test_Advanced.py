@@ -55,6 +55,7 @@ class TestAdvancedAllow(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, None)
 
 class TestAdvancedFixupCase(DNSDistTest):
 
@@ -2128,3 +2129,22 @@ class TestAdvancedLuaFFI(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEquals(receivedResponse, response)
+
+class TestAdvancedDropEmptyQueries(DNSDistTest):
+
+    _config_template = """
+    setDropEmptyQueries(true)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedDropEmptyQueries(self):
+        """
+        Advanced: Drop empty queries
+        """
+        name = 'drop-empty-queries.advanced.tests.powerdns.com.'
+        query = dns.message.Message()
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, None)

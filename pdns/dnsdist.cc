@@ -141,6 +141,7 @@ int g_udpTimeout{2};
 bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};
 bool g_fixupCase{false};
+bool g_dropEmptyQueries{false};
 
 std::set<std::string> g_capabilitiesToRetain;
 
@@ -1092,7 +1093,9 @@ bool checkQueryHeaders(const struct dnsheader* dh)
 
   if (dh->qdcount == 0) {
     ++g_stats.emptyQueries;
-    return false;
+    if (g_dropEmptyQueries) {
+      return false;
+    }
   }
 
   if (dh->rd) {
@@ -1305,11 +1308,21 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query.data());
-    queryId = ntohs(dh->id);
+    {
+      /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
+      struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query.data());
+      queryId = ntohs(dh->id);
 
-    if (!checkQueryHeaders(dh)) {
-      return;
+      if (!checkQueryHeaders(dh)) {
+        return;
+      }
+
+      if (dh->qdcount == 0) {
+        dh->rcode = RCode::NotImp;
+        dh->qr = true;
+        sendUDPResponse(cs.udpFD, query, 0, dest, remote);
+        return;
+      }
     }
 
     uint16_t qtype, qclass;
@@ -1330,7 +1343,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     // the buffer might have been invalidated by now (resized)
-    dh = dq.getHeader();
+    struct dnsheader* dh = dq.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dq.delayMsec == 0 && responsesVect != nullptr) {

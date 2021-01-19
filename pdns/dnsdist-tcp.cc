@@ -528,9 +528,23 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
     return state->sendResponse(state, now, std::move(response));
   }
 
-  const auto* dh = reinterpret_cast<dnsheader*>(state->d_buffer.data());
-  if (!checkQueryHeaders(dh)) {
-    return IOState::NeedRead;
+  {
+    /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
+    auto* dh = reinterpret_cast<dnsheader*>(state->d_buffer.data());
+    if (!checkQueryHeaders(dh)) {
+      return IOState::NeedRead;
+    }
+
+    if (dh->qdcount == 0) {
+      TCPResponse response;
+      dh->rcode = RCode::NotImp;
+      dh->qr = true;
+      response.d_selfGenerated = true;
+      response.d_buffer = std::move(state->d_buffer);
+      state->d_state = IncomingTCPConnectionState::State::idle;
+      ++state->d_currentQueriesCount;
+      return state->sendResponse(state, now, std::move(response));
+    }
   }
 
   uint16_t qtype, qclass;
@@ -558,7 +572,7 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   }
 
   // the buffer might have been invalidated by now
-  dh = dq.getHeader();
+  const dnsheader* dh = dq.getHeader();
   if (result == ProcessQueryResult::SendAnswer) {
     TCPResponse response;
     response.d_selfGenerated = true;
