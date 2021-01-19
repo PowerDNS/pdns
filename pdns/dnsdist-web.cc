@@ -41,6 +41,21 @@
 #include "threadname.hh"
 #include "sstuff.hh"
 
+struct WebserverConfig
+{
+  WebserverConfig()
+  {
+    acl.toMasks("127.0.0.1, ::1");
+  }
+
+  std::mutex lock;
+  NetmaskGroup acl;
+  std::string password;
+  std::string apiKey;
+  boost::optional<std::map<std::string, std::string> > customHeaders;
+  bool statsRequireAuthentication{true};
+};
+
 bool g_apiReadWrite{false};
 WebserverConfig g_webserverConfig;
 std::string g_apiConfigDirectory;
@@ -190,9 +205,18 @@ static bool isAStatsRequest(const YaHTTP::Request& req)
   return req.url.path == "/jsonstat" || req.url.path == "/metrics";
 }
 
-static bool compareAuthorization(const YaHTTP::Request& req)
+static bool handleAuthorization(const YaHTTP::Request& req)
 {
+  cerr<<"handling auth for "<<req.url.path<<endl;
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  if (isAStatsRequest(req)) {
+    if (g_webserverConfig.statsRequireAuthentication) {
+      /* Access to the stats is allowed for both API and Web users */
+      return checkAPIKey(req, g_webserverConfig.apiKey) || checkWebPassword(req, g_webserverConfig.password);
+    }
+    return true;
+  }
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
@@ -201,11 +225,6 @@ static bool compareAuthorization(const YaHTTP::Request& req)
     }
 
     return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, g_webserverConfig.password);
-  }
-
-  if (isAStatsRequest(req)) {
-    /* Access to the stats is allowed for both API and Web users */
-    return checkAPIKey(req, g_webserverConfig.apiKey) || checkWebPassword(req, g_webserverConfig.password);
   }
 
   return checkWebPassword(req, g_webserverConfig.password);
@@ -1276,7 +1295,7 @@ static void connectionThread(int sockFD, ComboAddress remote)
       handleCORS(req, resp);
       resp.status = 200;
     }
-    else if (!compareAuthorization(req)) {
+    else if (!handleAuthorization(req)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end()) {
         errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
@@ -1350,10 +1369,24 @@ void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::
   g_webserverConfig.customHeaders = customHeaders;
 }
 
+void setWebserverStatsRequireAuthentication(bool require)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.statsRequireAuthentication = require;
+}
+
 void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
   setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
+
+  {
+    std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+    if (g_webserverConfig.password.empty()) {
+      warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
+    }
+  }
 
   for(;;) {
     try {

@@ -22,7 +22,8 @@ class TestBrokenTCPFastOpen(DNSDistTest):
     _config_params = ['_testServerPort', '_testServerRetries', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     newServer{address="127.0.0.1:%s", useClientSubnet=true, tcpFastOpen=true, retries=%d }
-    webserver("127.0.0.1:%s", "%s", "%s")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
 
     @classmethod

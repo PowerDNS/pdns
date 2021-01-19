@@ -841,7 +841,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_carbon.setState(ours);
   });
 
-  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
+  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, const boost::optional<std::string> password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
       setLuaSideEffect();
       ComboAddress local;
       try {
@@ -855,36 +855,49 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         return;
       }
 
+      if (password || apiKey || customHeaders || acl) {
+        warnlog("Passing additional parameters to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
+      }
+
       try {
-	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
-	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
-	SBind(sock, local);
-	SListen(sock, 5);
-	auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
-          setWebserverPassword(password);
-          setWebserverAPIKey(apiKey);
-          setWebserverCustomHeaders(customHeaders);
+        int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
+        SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+        SBind(sock, local);
+        SListen(sock, 5);
+        auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
+          if (password) {
+            setWebserverPassword(*password);
+          }
+
+          if (apiKey) {
+            setWebserverAPIKey(apiKey);
+          }
+
+          if (customHeaders) {
+            setWebserverCustomHeaders(customHeaders);
+          }
+
           if (acl) {
             setWebserverACL(*acl);
           }
           thread t(dnsdistWebserverThread, sock, local);
-	  t.detach();
-	};
-	if (g_launchWork) {
-	  g_launchWork->push_back(launch);
+          t.detach();
+        };
+        if (g_launchWork) {
+          g_launchWork->push_back(launch);
         }
-	else {
-	  launch();
+        else {
+          launch();
         }
       }
-      catch(std::exception& e) {
-	g_outputBuffer="Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
-	errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
+      catch (const std::exception& e) {
+        g_outputBuffer="Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
+        errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
       }
 
     });
 
-  typedef std::unordered_map<std::string, boost::variant<std::string, std::map<std::string, std::string>> > webserveropts_t;
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string, std::map<std::string, std::string>> > webserveropts_t;
 
   luaCtx.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
       setLuaSideEffect();
@@ -892,25 +905,33 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (!vars) {
         return ;
       }
-      if(vars->count("password")) {
+
+      if (vars->count("password")) {
         const std::string password = boost::get<std::string>(vars->at("password"));
 
         setWebserverPassword(password);
       }
-      if(vars->count("apiKey")) {
+
+      if (vars->count("apiKey")) {
         const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
 
         setWebserverAPIKey(apiKey);
       }
+
       if (vars->count("acl")) {
         const std::string acl = boost::get<std::string>(vars->at("acl"));
 
         setWebserverACL(acl);
       }
-      if(vars->count("customHeaders")) {
+
+      if (vars->count("customHeaders")) {
         const boost::optional<std::map<std::string, std::string> > headers = boost::get<std::map<std::string, std::string> >(vars->at("customHeaders"));
 
         setWebserverCustomHeaders(headers);
+      }
+
+      if (vars->count("statsRequireAuthentication")) {
+        setWebserverStatsRequireAuthentication(boost::get<bool>(vars->at("statsRequireAuthentication")));
       }
     });
 
