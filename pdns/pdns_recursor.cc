@@ -2057,11 +2057,12 @@ static void startDoResolve(void *p)
       }
     }
 
-    if(variableAnswer || sr.wasVariable()) {
+    if (variableAnswer || sr.wasVariable()) {
       g_stats.variableResponses++;
     }
-    if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
-      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
+    if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
+      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
+                                          dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                           string((const char*)&*packet.begin(), packet.size()),
                                           g_now.tv_sec,
                                           pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
@@ -2069,7 +2070,7 @@ static void startDoResolve(void *p)
                                           dq.validationState,
                                           std::move(pbDataForCache), dc->d_tcp);
     }
-    if(!dc->d_tcp) {
+    if (!dc->d_tcp) {
       struct msghdr msgh;
       struct iovec iov;
       cmsgbuf_aligned cbuf;
@@ -2533,7 +2534,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dest.reset();
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
-      getsockname(conn->getFD(), (struct sockaddr*)&dest, &len); // if this fails, we're ok with it
+      getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
       dc->setLocal(dest);
       dc->setDestination(conn->d_destination);
       /* we can't move this if we want to be able to access the values in
@@ -2657,6 +2658,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
       else {
+        // We have read a proper query
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
 
@@ -2664,6 +2666,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         uint32_t qhash = 0;
         RecursorPacketCache::OptPBData pbData{boost::none};
 
+        /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
+           but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
+           as cacheable we would cache it with a wrong tag, so better safe than sorry. */
         bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, qhash, pbData, true, dc->d_source);
         dc->d_qhash = qhash;
 
@@ -2712,8 +2717,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
               }
             }
           }
-          return;
         } else {
+          // No cache hit, setup for startDoResolve() in an mthread
           ++conn->d_requestsInFlight;
           if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
             t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
@@ -2723,11 +2728,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
           }
           MT->makeThread(startDoResolve, dc.release()); // deletes dc
-          return;
-        }
-      }
-    }
-  }
+        } // Cache hit or not
+      } // good query
+    } // read full query
+  } // reading query
 }
 
 static bool expectProxyProtocol(const ComboAddress& from)
@@ -3151,7 +3155,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             else {
               dest.sin4.sin_family = fromaddr.sin4.sin_family;
               socklen_t slen = dest.getSocklen();
-              getsockname(fd, (struct sockaddr*)&dest, &slen); // if this fails, we're ok with it
+              getsockname(fd, (sockaddr*)&dest, &slen); // if this fails, we're ok with it
             }
           }
           if (!proxyProto) {
