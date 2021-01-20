@@ -326,14 +326,6 @@ ruleServFail OBJECT-TYPE
 	"Number of ServFail responses returned because of a rule"
     ::= { stats 37 }
 
-specialMemoryUsage OBJECT-TYPE
-    SYNTAX CounterBasedGauge64
-    MAX-ACCESS read-only
-    STATUS current
-    DESCRIPTION
-	"Memory usage (more precise but expensive to retrieve)"
-    ::= { stats 38 }
-
 securityStatus OBJECT-TYPE
     SYNTAX CounterBasedGauge64
     MAX-ACCESS read-only
@@ -341,6 +333,22 @@ securityStatus OBJECT-TYPE
     DESCRIPTION
 	"Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory"
     ::= { stats 38 }
+
+specialMemoryUsage OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Memory usage (more precise but expensive to retrieve)"
+    ::= { stats 39 }
+
+ruleTruncated OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Number of Truncated responses returned because of a rule"
+    ::= { stats 40 }
 
 backendStatTable OBJECT-TYPE
     SYNTAX SEQUENCE OF BackendStatEntry
@@ -658,6 +666,8 @@ dnsdistGroup OBJECT-GROUP
         ruleDrop,
         ruleNXDomain,
         ruleRefused,
+        ruleServFail,
+        ruleTruncated,
         selfAnswered,
         downstreamTimeouts,
         downstreamSendErrors,

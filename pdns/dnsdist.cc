@@ -811,6 +811,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     dq.getHeader()->ra = dq.getHeader()->rd;
     dq.getHeader()->aa = false;
     dq.getHeader()->ad = false;
+    ++g_stats.ruleTruncated;
     return true;
     break;
   case DNSAction::Action::HeaderModify:
