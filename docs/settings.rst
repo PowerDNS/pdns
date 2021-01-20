@@ -1379,7 +1379,7 @@ Specify which random number generator to use. Permissible choices are:
 -  Boolean
 -  Default: no
 
-Turn on operationg as a secondary. See :ref:`secondary-operation`.
+Turn on operating as a secondary. See :ref:`secondary-operation`.
 
 .. _setting-secondary-do-renotify:
 

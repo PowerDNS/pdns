@@ -5,7 +5,7 @@ This document lists categorized answers and questions with links to the relevant
 
 Replication
 -----------
-Please note that not all PowerDNS Server backends support primary or secondary op[eration, see the :doc:`table of backends <../backends/index>`.
+Please note that not all PowerDNS Server backends support primary or secondary operation, see the :doc:`table of backends <../backends/index>`.
 
 My PowerDNS Authoritative Server does not send NOTIFY messages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
