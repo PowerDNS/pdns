@@ -189,7 +189,7 @@ void declareArguments()
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
   ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates")="no";
-  ::arg().set("secondary-renotify", "If we should send out notifications for secondaried updates")="no";
+  ::arg().set("secondary-do-renotify", "If this secondary should send out notifications after receiving zone transfers from a primary")="no";
   ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of master or slave settings")="";
 
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";

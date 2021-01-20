@@ -429,13 +429,13 @@ int main(int argc, char **argv)
 
     if (::arg().mustDo("master")) ::arg().set("primary")="yes";
     if (::arg().mustDo("slave")) ::arg().set("secondary")="yes";
-    if (::arg().mustDo("slave-renotify")) ::arg().set("secondary-renotify")="yes";
+    if (::arg().mustDo("slave-renotify")) ::arg().set("secondary-do-renotify")="yes";
     if (::arg().mustDo("superslave")) ::arg().set("autosecondary")="yes";
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
     if (::arg().mustDo("primary")) ::arg().set("master")="yes";
     if (::arg().mustDo("secondary")) ::arg().set("slave")="yes";
-    if (::arg().mustDo("secondary-renotify")) ::arg().set("slave-renotify")="yes";
+    if (::arg().mustDo("secondary-do-renotify")) ::arg().set("slave-renotify")="yes";
     if (::arg().mustDo("autosecondary")) ::arg().set("superslave")="yes";
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
