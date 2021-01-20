@@ -1418,13 +1418,8 @@ Turn on slave support. See :ref:`slave-operation`.
 ``slave-cycle-interval``
 ------------------------
 
--  Integer
--  Default: 60
-
-On a master, this is the amount of seconds between the master checking
-the SOA serials in its database to determine to send out NOTIFYs to the
-slaves. On slaves, this is the number of seconds between the slave
-checking for updates to zones.
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-xfr-cycle-interval`.
 
 .. _setting-slave-renotify:
 
@@ -1773,6 +1768,22 @@ If the webserver should print arguments.
 -  Default: yes
 
 If a PID file should be written.
+
+.. _setting-xfr-cycle-interval:
+
+``xfr-cycle-interval``
+----------------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-slave-cycle-interval` before 4.5.0.
+
+-  Integer
+-  Default: 60
+
+On a master, this is the amount of seconds between the master checking
+the SOA serials in its database to determine to send out NOTIFYs to the
+slaves. On slaves, this is the number of seconds between the slave
+checking for updates to zones.
 
 .. _setting-xfr-max-received-mbytes:
 

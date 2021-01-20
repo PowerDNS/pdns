@@ -101,10 +101,10 @@ the domain is declared 'fresh', and will only be checked again after
 
 When the freshness of a domain cannot be checked, e.g. because the
 master is offline, PowerDNS will retry the domain after
-:ref:`setting-slave-cycle-interval` seconds.
+:ref:`setting-xfr-cycle-interval` seconds.
 Every time the domain fails it's freshness check, PowerDNS will hold
 back on checking the domain for
-``amount of failures * slave-cycle-interval`` seconds, with a maximum of
+``amount of failures * xfr-cycle-interval`` seconds, with a maximum of
 :ref:`setting-soa-retry-default` seconds
 between checks. With default settings, this means that PowerDNS will
 back off for 1, then 2, then 3 etc. minutes, to a maximum of 60 minutes
