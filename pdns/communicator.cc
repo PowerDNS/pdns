@@ -114,7 +114,7 @@ void CommunicatorClass::mainloop()
     signal(SIGPIPE,SIG_IGN);
     g_log<<Logger::Error<<"Primary/secondary communicator launching"<<endl;
     PacketHandler P;
-    d_tickinterval=min(::arg().asNum("slave-cycle-interval"), ::arg().asNum("replication-cycle-interval"));
+    d_tickinterval=min(::arg().asNum("slave-cycle-interval"), ::arg().asNum("xfr-cycle-interval"));
     makeNotifySockets();
 
     int rc;

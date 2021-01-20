@@ -35,7 +35,7 @@ __EOF__
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=gsqlite32 --socket-dir=./ --no-shuffle \
 		--secondary --retrieval-threads=4 \
-		--replication-cycle-interval=300 --dname-processing &
+		--xfr-cycle-interval=300 --dname-processing &
 
 	echo 'waiting for zones to be slaved'
 	set +e
