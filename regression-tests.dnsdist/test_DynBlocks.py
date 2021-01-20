@@ -934,7 +934,9 @@ class TestDynBlockGroupServFails(DynBlocksTest):
 
 class TestDynBlockGroupServFailsRatio(DynBlocksTest):
 
-    _dynBlockPeriod = 2
+    # we need this period to be quite long because we request the valid
+    # queries to be still looked at to reach the 20 queries count!
+    _dynBlockPeriod = 6
     _dynBlockDuration = 5
     _config_params = ['_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """

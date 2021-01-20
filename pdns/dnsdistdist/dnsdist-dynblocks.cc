@@ -86,11 +86,11 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
 
       const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
       if (rcodeIt != counters.d_rcodeCounts.cend()) {
-        if (pair.second.warningRatioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.warningRatioExceeded(counters.responses, rcodeIt->second)) {
           handleWarning(blocks, now, requestor, pair.second, updated);
         }
 
-        if (pair.second.ratioExceeded(counters.queries, rcodeIt->second)) {
+        if (pair.second.ratioExceeded(counters.responses, rcodeIt->second)) {
           addBlock(blocks, now, requestor, pair.second, updated);
           break;
         }
@@ -222,7 +222,13 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   struct timespec until = now;
   until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks.lookup(name);
+  /* be careful, if you try to insert a longer suffix
+     lookup() might return a shorter one if it is
+     already in the tree as a final node */
+  const DynBlock* got = blocks.lookup(name);
+  if (got && got->domain != name) {
+    got = nullptr;
+  }
   bool expired = false;
   DNSName domain(name.makeLowerCase());
 
@@ -294,20 +300,34 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     return;
   }
 
+  struct timespec responseCutOff = now;
+
   d_respRateRule.d_cutOff = d_respRateRule.d_minTime = now;
   d_respRateRule.d_cutOff.tv_sec -= d_respRateRule.d_seconds;
+  if (d_respRateRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_respRateRule.d_cutOff;
+  }
 
   d_suffixMatchRule.d_cutOff = d_suffixMatchRule.d_minTime = now;
   d_suffixMatchRule.d_cutOff.tv_sec -= d_suffixMatchRule.d_seconds;
+  if (d_suffixMatchRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_suffixMatchRule.d_cutOff;
+  }
 
   for (auto& rule : d_rcodeRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (auto& rule : d_rcodeRatioRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
+    if (rule.second.d_cutOff < responseCutOff) {
+      responseCutOff = rule.second.d_cutOff;
+    }
   }
 
   for (const auto& shard : g_rings.d_shards) {
@@ -317,8 +337,13 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
         continue;
       }
 
+      if (c.when < responseCutOff) {
+        continue;
+      }
+
       auto& entry = counts[c.requestor];
-      ++entry.queries;
+      ++entry.responses;
+
       bool respRateMatches = d_respRateRule.matches(c.when);
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(c.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(c);
