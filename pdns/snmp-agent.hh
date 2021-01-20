@@ -20,7 +20,7 @@
 class SNMPAgent
 {
 public:
-  SNMPAgent(const std::string& name, const std::string& masterSocket);
+  SNMPAgent(const std::string& name, const std::string& daemonSocket);
   virtual ~SNMPAgent()
   {
 #ifdef HAVE_NET_SNMP

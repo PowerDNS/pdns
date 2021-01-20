@@ -547,7 +547,7 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
 #endif /* HAVE_NET_SNMP */
 }
 
-DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket): SNMPAgent(name, masterSocket)
+DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket): SNMPAgent(name, daemonSocket)
 {
 #ifdef HAVE_NET_SNMP
 

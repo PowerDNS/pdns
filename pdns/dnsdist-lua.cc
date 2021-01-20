@@ -1805,7 +1805,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_useTCPSinglePipe = flag;
     });
 
-  luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> masterSocket) {
+  luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
       if(client || configCheck)
         return;
 #ifdef HAVE_NET_SNMP
@@ -1823,7 +1823,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       g_snmpEnabled = true;
       g_snmpTrapsEnabled = enableTraps;
-      g_snmpAgent = new DNSDistSNMPAgent("dnsdist", masterSocket ? *masterSocket : std::string());
+      g_snmpAgent = new DNSDistSNMPAgent("dnsdist", daemonSocket ? *daemonSocket : std::string());
 #else
       errlog("NET SNMP support is required to use snmpAgent()");
       g_outputBuffer="NET SNMP support is required to use snmpAgent()\n";

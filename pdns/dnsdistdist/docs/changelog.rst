@@ -2045,7 +2045,7 @@ Changelog
     :pullreq: 5328
     :tickets: 5327
 
-    Handle SNMP alarms so we can reconnect to the master.
+    Handle SNMP alarms so we can reconnect to the daemon.
 
   .. change::
     :tags: New Features

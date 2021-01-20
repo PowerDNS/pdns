@@ -161,15 +161,15 @@ void SNMPAgent::worker()
 #endif /* HAVE_NET_SNMP */
 }
 
-SNMPAgent::SNMPAgent(const std::string& name, const std::string& masterSocket)
+SNMPAgent::SNMPAgent(const std::string& name, const std::string& daemonSocket)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_enable_subagent();
   snmp_disable_log();
-  if (!masterSocket.empty()) {
+  if (!daemonSocket.empty()) {
     netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID,
                           NETSNMP_DS_AGENT_X_SOCKET,
-                          masterSocket.c_str());
+                          daemonSocket.c_str());
   }
   /* no need to load any MIBS,
      and it causes import errors if some modules are not present */
@@ -179,7 +179,7 @@ SNMPAgent::SNMPAgent(const std::string& name, const std::string& masterSocket)
 
   /* we use select() so don't use SIGALARM to handle alarms.
      Note that we need to handle alarms for automatic reconnection
-     to the master to work.
+     to the daemon to work.
   */
   netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID,
                          NETSNMP_DS_LIB_ALARM_DONT_USE_SIG,

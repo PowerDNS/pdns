@@ -4,12 +4,12 @@ SNMP reporting
 .. versionadded:: 1.2.0
 
 
-.. function:: snmpAgent(enableTraps [, masterSocket])
+.. function:: snmpAgent(enableTraps [, daemonSocket])
 
   Enable SNMP support.
 
   :param bool enableTraps: Indicates whether traps should be sent
-  :param string masterSocket: A string specifying how to connect to the master agent. This is a file path to a unix socket, but e.g. ``tcp:localhost:705`` can be used as well. By default, SNMP agent's default socket is used.
+  :param string daemonSocket: A string specifying how to connect to the daemon agent. This is a file path to a unix socket, but e.g. ``tcp:localhost:705`` can be used as well. By default, SNMP agent's default socket is used.
 
 .. function:: sendCustomTrap(message)
 
