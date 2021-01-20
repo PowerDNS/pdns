@@ -152,8 +152,8 @@ void declareArguments()
   ::arg().setSwitch("secondary","Act as a secondary")="no";
   ::arg().setSwitch("master","Act as a primary")="no";
   ::arg().setSwitch("primary","Act as a primary")="no";
-  ::arg().setSwitch("superslave", "Act as a autosecondary (formerly superslave)")="no";
-  ::arg().setSwitch("autosecondary", "Act as an autosecondary")="no";
+  ::arg().setSwitch("superslave", "Act as a autosecondary")="no";
+  ::arg().setSwitch("autosecondary", "Act as an autosecondary (formerly superslave)")="no";
   ::arg().setSwitch("disable-axfr-rectify","Disable the rectify step during an outgoing AXFR. Only required for regression testing.")="no";
   ::arg().setSwitch("guardian","Run within a guardian process")="no";
   ::arg().setSwitch("prevent-self-notification","Don't send notifications to what we think is ourself")="yes";
