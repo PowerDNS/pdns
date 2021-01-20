@@ -822,19 +822,19 @@ class TestDynBlockServFails(DynBlocksTest):
         name = 'servfailrate.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRate(name, dns.rcode.SERVFAIL)
 
-class TestDynBlockWhitelist(DynBlocksTest):
+class TestDynBlockAllowlist(DynBlocksTest):
 
     _dynBlockQPS = 10
     _dynBlockPeriod = 2
     _dynBlockDuration = 5
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
-    whitelisted = false
+    allowlisted = false
     function maintenance()
         toBlock = exceedQRate(%d, %d)
         for addr, count in pairs(toBlock) do
             if addr:toString() == "127.0.0.1" then
-                whitelisted = true
+                allowlisted = true
                 toBlock[addr] = nil
             end
         end
@@ -842,23 +842,23 @@ class TestDynBlockWhitelist(DynBlocksTest):
     end
 
     function spoofrule(dq)
-        if (whitelisted)
+        if (allowlisted)
         then
                 return DNSAction.Spoof, "192.0.2.42"
         else
                 return DNSAction.None, ""
         end
     end
-    addAction("whitelisted-test.dynblocks.tests.powerdns.com.", LuaAction(spoofrule))
+    addAction("allowlisted-test.dynblocks.tests.powerdns.com.", LuaAction(spoofrule))
 
     newServer{address="127.0.0.1:%s"}
     """
 
-    def testWhitelisted(self):
+    def testAllowlisted(self):
         """
-        Dyn Blocks: Whitelisted from the dynamic blocks
+        Dyn Blocks: Allowlisted from the dynamic blocks
         """
-        name = 'whitelisted.dynblocks.tests.powerdns.com.'
+        name = 'allowlisted.dynblocks.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -895,8 +895,8 @@ class TestDynBlockWhitelist(DynBlocksTest):
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, receivedResponse)
 
-        # check that we would have been blocked without the whitelisting
-        name = 'whitelisted-test.dynblocks.tests.powerdns.com.'
+        # check that we would have been blocked without the allowlisting
+        name = 'allowlisted-test.dynblocks.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         # dnsdist set RA = RD for spoofed responses
         query.flags &= ~dns.flags.RD
