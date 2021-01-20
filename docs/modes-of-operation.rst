@@ -29,6 +29,7 @@ master or slave in zone transfers, or has a frontend attached for
 managing records etc.
 
 .. _master-operation:
+.. _primary-operation:
 
 Master operation
 ----------------
@@ -86,6 +87,7 @@ the :ref:`pdns_control <running-pdnscontrol>` tool:
    happen in contrived configurations.
 
 .. _slave-operation:
+.. _secondary-operation:
 
 Slave operation
 ---------------
@@ -182,50 +184,54 @@ PowerDNS itself is currently only able to retrieve updates via IXFR. It
 can not serve IXFR updates.
 
 .. _supermaster-operation:
+.. _autoprimary-operation:
 
-Supermaster: automatic provisioning of slaves
----------------------------------------------
+Autoprimary: automatic provisioning of secondaries
+--------------------------------------------------
 
-PowerDNS can recognize so called 'supermasters'. A supermaster is a host
-which is master for domains and for which we are to be a slave. When a
-master (re)loads a domain, it sends out a notification to its slaves.
+.. versionchanged:: 4.5.0
+  Before version 4.5.0, this feature was called 'supermaster'
+
+PowerDNS can recognize so called 'autoprimaries'. An autoprimary is a host
+which is primary for domains and for which we are to be a secondary. When a
+primary (re)loads a domain, it sends out a notification to its secondaries.
 Normally, such a notification is only accepted if PowerDNS already knows
-that it is a slave for a domain.
+that it is a secondary for a domain.
 
-However, a notification from a supermaster carries more persuasion. When
-PowerDNS determines that a notification comes from a supermaster and it
+However, a notification from an autoprimary carries more persuasion. When
+PowerDNS determines that a notification comes from a autoprimary and it
 is bonafide, it can provision the domain automatically, and configure
-itself as a slave for that zone.
+itself as a secondary for that zone.
 
-Before a supermaster notification succeeds, the following conditions
+Before an autoprimary notification succeeds, the following conditions
 must be met:
 
-
-- :ref:`setting-superslave` support must be enabled
-- The supermaster must carry a SOA record for the notified domain
-- The supermaster IP must be present in the 'supermasters' table in the database on the slave, along with any name that is in the NS set.
-- The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermasters table
-- If your master sends signed NOTIFY it will mark that TSIG key as the TSIG key used for retrieval as well
-- If you turn off :ref:`setting-allow-unsigned-supermaster`, then your supermaster(s) are required to sign their notifications.
+- :ref:`setting-autosecondary` support must be enabled
+- The autoprimary must carry a SOA record for the notified domain
+- The autoprimary IP must be present in the ``supermasters`` table in the database on the secondary, along with any name that is in the NS set.
+- The set of NS records for the domain, as retrieved by the secondary from the autoprimary, must include the name that goes with the IP address in the ``supermasters`` table
+- If your primary sends signed NOTIFY it will mark that TSIG key as the TSIG key used for retrieval as well
+- If you turn off :ref:`setting-allow-unsigned-autoprimary`, then your autoprimaries are required to sign their notifications.
 
 .. warning::
-  If you use another PowerDNS server as master and have
+  If you use another PowerDNS server as primary and have
   DNSSEC enabled on that server please don't forget to rectify the domains
   after every change. If you don't do this there is no SOA record
   available and one requirement will fail.
 
 So, to benefit from this feature, a backend needs to know about the IP
-address of the supermaster, and how PowerDNS will be listed in the set
-of NS records remotely, and the 'account' name of your supermaster.
+address of the autoprimary, and how PowerDNS will be listed in the set
+of NS records remotely, and the 'account' name of your autoprimary.
 There is no need to fill the account name out but it does help keep
-track of where a domain comes from. 
-Adding a supermaster can be done either directly in the database,
+track of where a domain comes from.
+Additionally, if a secondary selects multiple autoprimaries for a zone based on the name of the primary, it also checks that the ``account`` field is the same for all.
+Adding a autoprimary can be done either directly in the database,
 or by using the 'pdnsutil add-supermaster' command. 
 
 .. note::
-  Removal of zones provisioned using the supermaster must be
-  done on the slaves themselves. As there is no way to signal this removal
-  from the master to the slave.
+  Removal of zones provisioned using the autoprimary must be
+  done on the secondaries themselves, as there is no way to signal this removal
+  from the primary to the secondary.
 
 .. _modes-of-operation-axfrfilter:
 

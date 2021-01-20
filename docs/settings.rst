@@ -125,6 +125,19 @@ Enable/disable the :doc:`http-api/index`.
 
 Static pre-shared authentication key for access to the REST API.
 
+.. _setting-autosecondary:
+
+``autosecondary``
+---------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-superslave` before 4.5.0.
+
+-  Boolean
+-  Default: no
+
+Turn on autosecondary support. See :ref:`autoprimary-operation`.
+
 .. _setting-axfr-fetch-timeout:
 
 ``axfr-fetch-timeout``
@@ -929,6 +942,9 @@ Setting this to any value less than or equal to 0 will set no limit.
 ``master``
 ----------
 
++.. deprecated:: 4.5.0
++  Renamed to :ref:`setting-primary`.
+ 
 -  Boolean
 -  Default: no
 
@@ -1200,6 +1216,19 @@ itself in master mode. In very complicated situations we could guess
 wrong and not notify a server that should be notified. In that case, set
 prevent-self-notification to "no".
 
+.. _setting-primary:
+
+``primary``
+----------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-master` before 4.5.0.
+
+-  Boolean
+-  Default: no
+
+Turn on operating as a primary. See :ref:`primary-operation`.
+
 .. _setting-query-cache-ttl:
 
 ``query-cache-ttl``
@@ -1339,6 +1368,36 @@ Specify which random number generator to use. Permissible choices are:
 .. note::
   Not all choices are available on all systems.
 
+.. _setting-secondary:
+
+``secondary``
+-------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-slave` before 4.5.0.
+
+-  Boolean
+-  Default: no
+
+Turn on operationg as a secondary. See :ref:`secondary-operation`.
+
+.. _setting-secondary-do-renotify:
+
+``secondary-do-renotify``
+------------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-slave-renotify` before 4.5.0.
+
+-  Boolean
+-  Default: no
+
+This setting will make PowerDNS renotify the secondaries after an AXFR is
+*received* from a primary. This is useful, among other situations, when running a
+signing secondary.
+
+See :ref:`metadata-slave-renotify` to set this per-zone.
+
 .. _setting-security-poll-suffix:
 
 ``security-poll-suffix``
@@ -1408,10 +1467,8 @@ signing speed by changing this number.
 ``slave``
 ---------
 
--  Boolean
--  Default: no
-
-Turn on slave support. See :ref:`slave-operation`.
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-secondary`.
 
 .. _setting-slave-cycle-interval:
 
@@ -1425,6 +1482,9 @@ Turn on slave support. See :ref:`slave-operation`.
 
 ``slave-renotify``
 ------------------
+
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-secondary-do-renotify`.
 
 -  Boolean
 -  Default: no
@@ -1506,6 +1566,9 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
 ``superslave``
 ---------------
+
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-autosecondary`.
 
 -  Boolean
 -  Default: no
