@@ -38,9 +38,14 @@ static void usage()
 {
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
+<<<<<<< HEAD
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] "
           "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[xpf XPFDATA] [class CLASSNUM] "
+=======
+          "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] "
+          "[recurse] [showflags] [tcp] [fastopen] [xpf XPFDATA] [class CLASSNUM] "
+>>>>>>> 5b8fccd32 (sdig now works with fastopen)
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
           "dumpluaraw"
        << endl;
@@ -212,6 +217,7 @@ try {
   bool dnssec = false;
   bool recurse = false;
   bool tcp = false;
+  bool fastopen = false;
   bool showflags = false;
   bool hidesoadetails = false;
   bool doh = false;
@@ -262,6 +268,7 @@ try {
         hidettl = true;
       else if (strcmp(argv[i], "tcp") == 0)
         tcp = true;
+<<<<<<< HEAD
       else if (strcmp(argv[i], "dot") == 0)
         dot = true;
       else if (strcmp(argv[i], "insecure") == 0)
@@ -269,6 +276,11 @@ try {
       else if (strcmp(argv[i], "fastOpen") == 0)
         fastOpen = true;
       else if (strcmp(argv[i], "ednssubnet") == 0) {
+=======
+      if (strcmp(argv[i], "fastopen") == 0)
+        fastopen = true;
+      if (strcmp(argv[i], "ednssubnet") == 0) {
+>>>>>>> 5b8fccd32 (sdig now works with fastopen)
         if (argc < i + 2) {
           cerr << "ednssubnet needs an argument" << endl;
           exit(EXIT_FAILURE);

@@ -329,7 +329,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       s.setNonBlocking();
       ComboAddress local = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
       if (SyncRes::s_tcp_fast_open > 0) {
-        s.setFastOpen(SyncRes::s_tcp_fast_open);
+        s.setFastOpenConnect();
       }
 
       s.bind(local);

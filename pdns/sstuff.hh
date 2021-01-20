@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <fcntl.h>
@@ -127,10 +128,12 @@ public:
     }
   }
 
-  void setFastOpen(int fastOpenQueueSize)
+  void setFastOpenConnect()
   {
 #ifdef TCP_FASTOPEN_CONNECT
-    setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &fastOpenQueueSize, sizeof fastOpenQueueSize);
+    int on = 1;
+    if (setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &on, sizeof(on)) < 0)
+      throw NetworkError("While setting TCP_FASTOPEN_CONNECT: " + stringerror());
 #endif
   }
 

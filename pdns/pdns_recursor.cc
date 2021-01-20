@@ -3292,7 +3292,7 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
 
     if (SyncRes::s_tcp_fast_open > 0) {
 #ifdef TCP_FASTOPEN
-      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::tcp_fast_open, sizeof SyncRes::tcp_fast_open) < 0) {
+      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
         g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(err)<<endl;
       }
