@@ -334,7 +334,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 
       s.bind(local);
 
-      s.connect(ip);
+      s.connect(ip, g_networkTimeoutMsec * 1000); // needed for fastopen EINPROGRESS and better anyway than the system wide connect timeout
 
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
