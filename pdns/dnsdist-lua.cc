@@ -2475,6 +2475,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       });
 
     luaCtx.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
+    luaCtx.writeFunction("setDropEmptyQueries", [](bool drop) { extern bool g_dropEmptyQueries; g_dropEmptyQueries = drop; });
 
 #if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
     luaCtx.writeFunction("generateOCSPResponse", [client](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
