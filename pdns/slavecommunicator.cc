@@ -962,18 +962,18 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     unique_ptr<AuthLua4> laes{nullptr};
     vector<string> axfr_end_scripts;
     string axfr_end_script=::arg()["lua-axfr-end-script"];
-    if(B.getDomainMetadata(domain, "LUA-AXFR-END-SCRIPT", axfr_end_scripts) && !afxr_end_scripts.empty()) {
-      if (pdns_iequals(afxr_end_scripts[0], "NONE")) {
-        afxr_end_script.clear();
+    if(B.getDomainMetadata(domain, "LUA-AXFR-END-SCRIPT", axfr_end_scripts) && !axfr_end_scripts.empty()) {
+      if (pdns_iequals(axfr_end_scripts[0], "NONE")) {
+        axfr_end_script.clear();
       } else {
-        afxr_end_script=afxr_end_scripts[0];
+        axfr_end_script=axfr_end_scripts[0];
       }
     }
     if(!axfr_end_script.empty()){
       try {
         laes = make_unique<AuthLua4>();
         laes->loadFile(axfr_end_script);
-        g_log<<Logger::Info<<logPrefix<<"loaded Lua script '"<<afxr_end_script<<"'"<<endl;
+        g_log<<Logger::Info<<logPrefix<<"loaded Lua script '"<<axfr_end_script<<"'"<<endl;
       }
       catch(std::exception& e) {
         g_log<<Logger::Error<<logPrefix<<"failed to load Lua script '"<<axfr_end_script<<"': "<<e.what()<<endl;
