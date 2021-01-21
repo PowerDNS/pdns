@@ -61,6 +61,20 @@ Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DN
 Allow AXFR NOTIFY from these IP ranges. Setting this to an empty string
 will drop all incoming notifies.
 
+.. _setting-allow-unsigned-autoprimary:
+
+``allow-unsigned-autoprimary``
+------------------------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-allow-unsigned-supermaster` before 4.5.0.
+
+-  Boolean
+-  Default: yes
+
+Turning this off requires all autoprimary notifications to be signed by
+valid TSIG signature. It will accept any existing key on slave.
+
 .. _setting-allow-unsigned-notify:
 
 ``allow-unsigned-notify``
@@ -77,11 +91,8 @@ signed by valid TSIG signature for the zone.
 ``allow-unsigned-supermaster``
 ------------------------------
 
--  Boolean
--  Default: yes
-
-Turning this off requires all supermaster notifications to be signed by
-valid TSIG signature. It will accept any existing key on slave.
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-allow-unsigned-autoprimary`.
 
 .. _setting-also-notify:
 

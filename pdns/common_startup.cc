@@ -94,6 +94,7 @@ void declareArguments()
   ::arg().setSwitch("send-signed-notify","Send TSIG secured NOTIFY if TSIG key is configured for a domain")="yes";
   ::arg().set("allow-unsigned-notify","Allow unsigned notifications for TSIG secured domains")="yes"; //FIXME: change to 'no' later
   ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY")="yes";
+  ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY")="yes";
   ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="no";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";

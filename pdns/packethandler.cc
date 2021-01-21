@@ -920,7 +920,7 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& 
   string nameserver, account;
   DNSBackend *db;
 
-  if (!::arg().mustDo("allow-unsigned-supermaster") && tsigkeyname.empty()) {
+  if (!::arg().mustDo("allow-unsigned-autoprimary") && tsigkeyname.empty()) {
     g_log<<Logger::Error<<"Received unsigned NOTIFY for "<<p.qdomain<<" from potential supermaster "<<remote<<". Refusing."<<endl;
     return RCode::Refused;
   }
