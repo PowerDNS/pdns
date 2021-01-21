@@ -128,7 +128,7 @@ Static pre-shared authentication key for access to the REST API.
 .. _setting-autosecondary:
 
 ``autosecondary``
----------------
+-----------------
 
 .. versionchanged:: 4.5.0
   This was called :ref:`setting-superslave` before 4.5.0.
@@ -1219,7 +1219,7 @@ prevent-self-notification to "no".
 .. _setting-primary:
 
 ``primary``
-----------
+-----------
 
 .. versionchanged:: 4.5.0
   This was called :ref:`setting-master` before 4.5.0.
@@ -1384,7 +1384,7 @@ Turn on operating as a secondary. See :ref:`secondary-operation`.
 .. _setting-secondary-do-renotify:
 
 ``secondary-do-renotify``
-------------------
+-------------------------
 
 .. versionchanged:: 4.5.0
   This was called :ref:`setting-slave-renotify` before 4.5.0.

@@ -520,7 +520,7 @@ available. The exact definitions:
 .. _rw-secondary:
 
 Read/write secondary-capable backends
----------------------------------
+-------------------------------------
 
 The backends above are 'natively capable' in that they contain all data
 relevant for a domain and do not pull in data from other nameservers. To
@@ -681,7 +681,7 @@ The actual code in PowerDNS is currently:
         g_log<<Logger::Error<<"AXFR done for '"<<domain<<"'"<<endl;
 
 Autoprimary/autosecondary capability
----------------------------------
+------------------------------------
 
 A backend that wants to act as an 'autosecondary' (formerly 'superslave') for a primary should
 implement the following method:

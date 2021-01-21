@@ -19,7 +19,7 @@ In :ref:`secondary mode<secondary-operation>` PowerDNS Authoritative Server list
 and will also periodically check for SOA serial number changes at the primary.
 
 Can PowerDNS Server act as Secondary and Primary at the same time?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Yes totally, enable both by saying ``yes`` to :ref:`setting-primary` and :ref:`setting-secondary` in your configuration.
 
 How can I limit Zone Transfers (AXFR) per Domain?
@@ -27,7 +27,7 @@ How can I limit Zone Transfers (AXFR) per Domain?
 With the ALLOW-AXFR-FROM metadata, See :ref:`the documentation <metadata-allow-axfr-from>`.
 
 I have a working Autoprimary/Autosecondary setup but when I remove Domains from the Primary they still remain on the Secondary. Am I doing something wrong?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You're not doing anything wrong.
 This is the perfectly normal and expected behavior because the AXFR (DNS Zonetransfer) Protocol does not provide for zone deletion.
 You need to remove the zones from the secondary manually or via a custom script.
@@ -51,13 +51,13 @@ Invite such operators to look at :rfc:`section 6.2.1 of RFC 1034 <1034#section-6
 In fact, none of the non-deprecated authoritative answers shown have authority records!
 
 Primary or Secondary support is not working, PowerDNS is not picking up changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The Primary/Secondary apparatus is off by default.
 Turn it on by adding a :ref:`setting-secondary` and/or :ref:`setting-primary` statement to the configuration file.
 Also, check that the configured backend is primary or secondary capable and you entered exactly the same string to the Domains tables without the ending dot.
 
 My primaries won't allow PowerDNS to access zones as it is using the wrong local IP address
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default, PowerDNS lets the kernel pick the source address.
 To set an explicit source address, use the :ref:`setting-query-local-address` setting.
 
