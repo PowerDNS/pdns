@@ -329,7 +329,7 @@ Renamed options
 The following options have been renamed:
 
 -  ``experimental-json-interface`` ==> :ref:`setting-api`
--  ``experimental-api-readonly`` ==> :ref:`setting-api-readonly`
+-  ``experimental-api-readonly`` ==> ``api-readonly``
 -  ``experimental-api-key`` ==> :ref:`setting-api-key`
 -  ``experimental-dname-processing`` ==> :ref:`setting-dname-processing`
 -  ``experimental-dnsupdate`` ==> :ref:`setting-dnsupdate`
