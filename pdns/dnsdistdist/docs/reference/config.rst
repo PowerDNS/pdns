@@ -244,6 +244,14 @@ Control Socket, Console and Webserver
 
   :param bool enabled: Default to true.
 
+.. function:: setConsoleMaximumConcurrentConnections(max)
+
+  .. versionadded:: 1.6.0
+
+  Set the maximum number of concurrent console connections.
+
+  :param int max: The maximum number of concurrent console connections, or 0 which means an unlimited number. Defaults to 100
+
 .. function:: setKey(key)
 
   Use ``key`` as shared secret between the client and the server

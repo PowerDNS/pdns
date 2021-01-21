@@ -1014,6 +1014,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
+  luaCtx.writeFunction("setConsoleMaximumConcurrentConnections", [](size_t max) {
+      setLuaSideEffect();
+      setConsoleMaximumConcurrentConnections(max);
+  });
+
   luaCtx.writeFunction("clearQueryCounters", []() {
       unsigned int size{0};
       {
