@@ -30,6 +30,7 @@
 #include <yahttp/yahttp.hpp>
 
 #include "base64.hh"
+#include "connection-management.hh"
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-healthchecks.hh"
@@ -60,6 +61,46 @@ bool g_apiReadWrite{false};
 WebserverConfig g_webserverConfig;
 std::string g_apiConfigDirectory;
 static const MetricDefinitionStorage s_metricDefinitions;
+
+static ConcurrentConnectionManager s_connManager(100);
+
+class WebClientConnection
+{
+public:
+  WebClientConnection(const ComboAddress& client, int fd): d_client(client), d_socket(fd)
+  {
+    if (!s_connManager.registerConnection()) {
+      throw std::runtime_error("Too many concurrent web client connections");
+    }
+  }
+  WebClientConnection(WebClientConnection&& rhs): d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
+  {
+  }
+
+  WebClientConnection(const WebClientConnection&) = delete;
+  WebClientConnection& operator=(const WebClientConnection&) = delete;
+
+  ~WebClientConnection()
+  {
+    if (d_socket.getHandle() != -1) {
+      s_connManager.releaseConnection();
+    }
+  }
+
+  const Socket& getSocket() const
+  {
+    return d_socket;
+  }
+
+  const ComboAddress& getClient() const
+  {
+    return d_client;
+  }
+
+private:
+  ComboAddress d_client;
+  Socket d_socket;
+};
 
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
   { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
@@ -1246,14 +1287,11 @@ void registerBuiltInWebHandlers()
   }
 }
 
-static void connectionThread(int sockFD, ComboAddress remote)
+static void connectionThread(WebClientConnection&& conn)
 {
   setThreadName("dnsdist/webConn");
 
-  vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
-
-  Socket sock(sockFD);
-  sockFD = -1;
+  vinfolog("Webserver handling connection from %s", conn.getClient().toStringWithPort());
 
   try {
     YaHTTP::AsyncRequestLoader yarl;
@@ -1264,7 +1302,7 @@ static void connectionThread(int sockFD, ComboAddress remote)
     while (!finished) {
       int bytes;
       char buf[1024];
-      bytes = read(sock.getHandle(), buf, sizeof(buf));
+      bytes = read(conn.getSocket().getHandle(), buf, sizeof(buf));
       if (bytes > 0) {
         string data = string(buf, bytes);
         finished = yarl.feed(data);
@@ -1300,7 +1338,7 @@ static void connectionThread(int sockFD, ComboAddress remote)
     else if (!handleAuthorization(req)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end()) {
-        errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
+        errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort());
       }
       resp.status = 401;
       resp.body = "<h1>Unauthorized</h1>";
@@ -1322,16 +1360,16 @@ static void connectionThread(int sockFD, ComboAddress remote)
     std::ostringstream ofs;
     ofs << resp;
     string done = ofs.str();
-    writen2(sock.getHandle(), done.c_str(), done.size());
+    writen2(conn.getSocket().getHandle(), done.c_str(), done.size());
   }
   catch (const YaHTTP::ParseError& e) {
-    vinfolog("Webserver thread died with parse error exception while processing a request from %s: %s", remote.toStringWithPort(), e.what());
+    vinfolog("Webserver thread died with parse error exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
   catch (const std::exception& e) {
-    errlog("Webserver thread died with exception while processing a request from %s: %s", remote.toStringWithPort(), e.what());
+    errlog("Webserver thread died with exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
   catch (...) {
-    errlog("Webserver thread died with exception while processing a request from %s", remote.toStringWithPort());
+    errlog("Webserver thread died with exception while processing a request from %s", conn.getClient().toStringWithPort());
   }
 }
 
@@ -1378,6 +1416,11 @@ void setWebserverStatsRequireAuthentication(bool require)
   g_webserverConfig.statsRequireAuthentication = require;
 }
 
+void setWebserverMaxConcurrentConnections(size_t max)
+{
+  s_connManager.setMaxConcurrentConnections(max);
+}
+
 void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
   setThreadName("dnsdist/webserv");
@@ -1394,13 +1437,17 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
     try {
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);
+
       if (!isClientAllowedByACL(remote)) {
         vinfolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort());
         close(fd);
         continue;
       }
+
+      WebClientConnection conn(remote, fd);
       vinfolog("Got a connection to the webserver from %s", remote.toStringWithPort());
-      std::thread t(connectionThread, fd, remote);
+
+      std::thread t(connectionThread, std::move(conn));
       t.detach();
     }
     catch (const std::exception& e) {

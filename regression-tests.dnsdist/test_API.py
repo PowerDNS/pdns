@@ -4,6 +4,8 @@ import os.path
 import base64
 import json
 import requests
+import socket
+import time
 from dnsdisttests import DNSDistTest
 
 class TestAPIBasics(DNSDistTest):
@@ -674,3 +676,44 @@ class TestCustomLuaEndpoint(DNSDistTest):
         self.assertEquals(r.status_code, 200)
         self.assertEquals(r.content, b'It works!')
         self.assertEquals(r.headers.get('foo'), "Bar")
+
+class TestWebConcurrentConnectionsL(DNSDistTest):
+
+    _webTimeout = 2.0
+    _webServerPort = 8083
+    _webServerBasicAuthPassword = 'secret'
+    _webServerAPIKey = 'apisecret'
+    _maxConns = 2
+
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey', '_maxConns']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({password="%s", apiKey="%s", maxConcurrentConnections=%d})
+    """
+
+    def testConcurrentConnections(self):
+        """
+        Web: Concurrent connections
+        """
+
+        conns = []
+        # open the maximum number of connections
+        for _ in range(self._maxConns):
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect(("127.0.0.1", self._webServerPort))
+            conns.append(conn)
+
+        # we now hold all the slots, let's try to establish a new connection
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + "/"
+        self.assertRaises(requests.exceptions.ConnectionError, requests.get, url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
+
+        # free one slot
+        conns[0].close()
+        conns[0] = None
+        time.sleep(1)
+
+        # this should work
+        r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)

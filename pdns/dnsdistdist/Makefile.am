@@ -126,6 +126,7 @@ dnsdist_SOURCES = \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
 	circular_buffer.hh \
+	connection-management.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-backend.cc \

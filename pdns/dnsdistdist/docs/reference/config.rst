@@ -315,7 +315,7 @@ Webserver configuration
     ``acl`` optional parameter added.
 
   .. versionchanged:: 1.6.0
-    ``statsRequireAuthentication`` optional parameter added.
+    ``statsRequireAuthentication``, ``maxConcurrentConnections`` optional parameters added.
 
   Setup webserver configuration. See :func:`webserver`.
 
@@ -328,6 +328,7 @@ Webserver configuration
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
+  * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
 
 .. function:: registerWebHandler(path, handler)
 

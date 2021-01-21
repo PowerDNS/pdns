@@ -36,6 +36,7 @@
 
 #include "ext/json11/json11.hpp"
 
+#include "connection-management.hh"
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
@@ -49,47 +50,14 @@ bool g_logConsoleConnections{true};
 bool g_consoleEnabled{false};
 uint32_t g_consoleOutputMsgMaxSize{10000000};
 
-class ConcurrentConnectionManager
-{
-public:
-  static void setMaxConcurrentConnections(size_t max)
-  {
-    std::lock_guard<decltype(s_concurrentConsoleConnectionsLock)> lock(s_concurrentConsoleConnectionsLock);
-    s_maxConcurrentConsoleConnections = max;
-  }
-
-  static bool registerConnection()
-  {
-    std::lock_guard<decltype(s_concurrentConsoleConnectionsLock)> lock(s_concurrentConsoleConnectionsLock);
-    if (s_maxConcurrentConsoleConnections == 0 || s_currentConnectionsCount < s_maxConcurrentConsoleConnections) {
-      ++s_currentConnectionsCount;
-      return true;
-    }
-    return false;
-  }
-
-  static void releaseConnection()
-  {
-    std::lock_guard<decltype(s_concurrentConsoleConnectionsLock)> lock(s_concurrentConsoleConnectionsLock);
-    --s_currentConnectionsCount;
-  }
-
-private:
-  static std::mutex s_concurrentConsoleConnectionsLock;
-  static size_t s_maxConcurrentConsoleConnections;
-  static size_t s_currentConnectionsCount;
-};
-
-size_t ConcurrentConnectionManager::s_maxConcurrentConsoleConnections{100};
-size_t ConcurrentConnectionManager::s_currentConnectionsCount{0};
-std::mutex ConcurrentConnectionManager::s_concurrentConsoleConnectionsLock;
+static ConcurrentConnectionManager s_connManager(100);
 
 class ConsoleConnection
 {
 public:
   ConsoleConnection(const ComboAddress& client, int fd): d_client(client), d_fd(fd)
   {
-    if (!ConcurrentConnectionManager::registerConnection()) {
+    if (!s_connManager.registerConnection()) {
       close(fd);
       throw std::runtime_error("Too many concurrent console connections");
     }
@@ -106,7 +74,7 @@ public:
   {
     if (d_fd != -1) {
       close(d_fd);
-      ConcurrentConnectionManager::releaseConnection();
+      s_connManager.releaseConnection();
     }
   }
 
@@ -127,7 +95,7 @@ private:
 
 void setConsoleMaximumConcurrentConnections(size_t max)
 {
-  ConcurrentConnectionManager::setMaxConcurrentConnections(max);
+  s_connManager.setMaxConcurrentConnections(max);
 }
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
