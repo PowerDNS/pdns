@@ -23,6 +23,19 @@ Then, disable the setting again, because it has a serious performance impact on 
 On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 45 and 62.
 Leave the setting on until all zones have been re-transferred.
 
+Wording changes
+^^^^^^^^^^^^^^^
+
+Various settings have been renamed.
+Their old names still work in 4.5.x, but will be removed in the release after it.
+
+* :ref:`setting-allow-unsigned-supermaster` is now :ref:`setting-allow-unsigned-autoprimary`
+* :ref:`setting-master` is now :ref:`setting-primary`
+* :ref:`setting-slave-cycle-interval` is now :ref:`setting-xfr-cycle-interval`
+* :ref:`setting-slave-renotify` is now :ref:`setting-secondary-do-renotify`
+* :ref:`setting-slave` is now :ref:`setting-secondary`
+* :ref:`setting-superslave` is now :ref:`setting-autosecondary`
+
 4.3.x to 4.4.0
 --------------
 
