@@ -987,10 +987,11 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         return;
       }
     }
-    
-    if (!laes) {
-      laes->axfr_finished(domain);
-      g_log<<Logger::Info << logPrefix << "Executed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+
+    if (laes) {
+      g_log<<Logger::Info << logPrefix << "Initiated LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+      laes->axfr_end(domain);
+      g_log<<Logger::Info << logPrefix << "Completed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
     }
   }
   catch(DBException &re) {

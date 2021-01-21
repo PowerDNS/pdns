@@ -90,7 +90,7 @@ void AuthLua4::postLoad() {
   d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(nullptr);
   d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(nullptr);
   d_prequery = d_lw->readVariable<boost::optional<luacall_prequery_t>>("prequery").get_value_or(nullptr);
-  d_axfr_finished = d_lw->readVariable<boost::optional<luacall_axfr_finished_t>>("axfr_finished").get_value_or(nullptr);
+  d_axfr_end = d_lw->readVariable<boost::optional<luacall_axfr_end_t>>("axfr_end").get_value_or(nullptr);
 }
 
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) {
@@ -170,12 +170,12 @@ std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
   return nullptr;
 }
 
-bool AuthLua4::axfr_finished(const DNSName& zone) {
-  luacall_axfr_finished_t::result_type rcode;
+bool AuthLua4::axfr_end(const DNSName& zone) {
+  luacall_axfr_end_t::result_type rcode;
   
-  if (d_axfr_finished == NULL) return false;
+  if (d_axfr_end == NULL) return false;
 
-  rcode = d_axfr_finished(zone);
+  rcode = d_axfr_end(zone);
   
   if (rcode < 0) {
     // failed to execute the AFXR finished notification
@@ -186,7 +186,7 @@ bool AuthLua4::axfr_finished(const DNSName& zone) {
     return true;
   }
   else
-    throw PDNSException("Cannot understand return code "+std::to_string(rcode)+" in axfr finished response");
+    throw PDNSException("Cannot understand return code "+std::to_string(rcode)+" in axfr end response");
 
   return true;
 }
