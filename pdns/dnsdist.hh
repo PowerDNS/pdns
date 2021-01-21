@@ -447,22 +447,37 @@ public:
 
   bool check(unsigned int rate, unsigned int burst) const // this is not quite fair
   {
+    if (checkOnly(rate, burst)) {
+      addHit();
+      return true;
+    }
+
+    return false;
+  }
+
+  bool checkOnly(unsigned int rate, unsigned int burst) const // this is not quite fair
+  {
     auto delta = d_prev.udiffAndSet();
 
-    if(delta > 0.0) // time, frequently, does go backwards..
+    if (delta > 0.0) { // time, frequently, does go backwards..
       d_tokens += 1.0 * rate * (delta/1000000.0);
+    }
 
-    if(d_tokens > burst) {
+    if (d_tokens > burst) {
       d_tokens = burst;
     }
 
-    bool ret=false;
-    if(d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
-      ret=true;
-      --d_tokens;
+    bool ret = false;
+    if (d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
+      ret = true;
     }
 
     return ret;
+  }
+
+  virtual void addHit() const
+  {
+    --d_tokens;
   }
 
   bool seenSince(const struct timespec& cutOff) const
@@ -492,35 +507,32 @@ public:
     return d_passthrough ? 0 : d_rate;
   }
 
-  int getPassed() const
-  {
-    return d_passed;
-  }
-
-  int getBlocked() const
-  {
-    return d_blocked;
-  }
-
   bool check() const // this is not quite fair
   {
     if (d_passthrough) {
       return true;
     }
 
-    bool ret = BasicQPSLimiter::check(d_rate, d_burst);
-    if (ret) {
-      d_passed++;
-    }
-    else {
-      d_blocked++;
+    return BasicQPSLimiter::check(d_rate, d_burst);
+  }
+
+  bool checkOnly() const
+  {
+    if (d_passthrough) {
+      return true;
     }
 
-    return ret;
+    return BasicQPSLimiter::checkOnly(d_rate, d_burst);
   }
+
+  void addHit() const override
+  {
+    if (!d_passthrough) {
+      --d_tokens;
+    }
+  }
+
 private:
-  mutable unsigned int d_passed{0};
-  mutable unsigned int d_blocked{0};
   unsigned int d_rate;
   unsigned int d_burst;
   bool d_passthrough{true};
@@ -994,6 +1006,13 @@ struct DownstreamState
     tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (nbQueries / 100.0);
     tcpAvgConnectionDuration = (99.0 * tcpAvgConnectionDuration / 100.0) + (durationMs / 100.0);
   }
+
+  void incQueriesCount()
+  {
+    ++queries;
+    qps.addHit();
+  }
+
 private:
   std::string name;
   std::string nameWithAddr;

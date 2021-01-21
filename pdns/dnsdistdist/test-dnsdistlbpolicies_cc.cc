@@ -179,6 +179,43 @@ BOOST_AUTO_TEST_CASE(test_firstAvailable) {
   benchPolicy(pol);
 }
 
+BOOST_AUTO_TEST_CASE(test_firstAvailableWithOrderAndQPS) {
+  auto dq = getDQ();
+  size_t qpsLimit = 10;
+
+  ServerPolicy pol{"firstAvailable", firstAvailable, false};
+  ServerPolicy::NumberedServerVector servers;
+  servers.push_back({ 1, std::make_shared<DownstreamState>(ComboAddress("192.0.2.1:53")) });
+  servers.push_back({ 2, std::make_shared<DownstreamState>(ComboAddress("192.0.2.2:53")) });
+  /* Second server has a higher order, so most queries should be routed to the first (remember that
+     we need to keep them ordered!).
+     However the first server has a QPS limit at 10 qps, so any query above that should be routed 
+     to the second server. */
+  servers.at(0).second->order = 1;
+  servers.at(1).second->order = 2;
+  servers.at(0).second->qps = QPSLimiter(qpsLimit, qpsLimit);
+  /* mark the servers as 'up' */
+  servers.at(0).second->setUp();
+  servers.at(1).second->setUp();
+
+  /* the first queries under the QPS limit should be
+     sent to the first server */
+  for (size_t idx = 0; idx < qpsLimit; idx++) {
+    auto server = pol.getSelectedBackend(servers, dq);
+    BOOST_REQUIRE(server != nullptr);
+    BOOST_CHECK(server == servers.at(0).second);
+    server->incQueriesCount();
+  }
+
+  /* then to the second server */
+  for (size_t idx = 0; idx < 100; idx++) {
+    auto server = pol.getSelectedBackend(servers, dq);
+    BOOST_REQUIRE(server != nullptr);
+    BOOST_CHECK(server == servers.at(1).second);
+    server->incQueriesCount();
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_roundRobin) {
   auto dq = getDQ();
 

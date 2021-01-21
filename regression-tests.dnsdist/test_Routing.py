@@ -397,6 +397,122 @@ class TestRoutingOrder(DNSDistTest):
             self.assertEquals(self._responsesCounter['TCP Responder'], 0)
         self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries)
 
+class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
+
+    _verboseMode = True
+    _testServer2Port = 5351
+    _config_params = ['_testServerPort', '_testServer2Port']
+    _config_template = """
+    setServerPolicy(firstAvailable)
+    s1 = newServer{address="127.0.0.1:%s", order=2}
+    s1:setUp()
+    s2 = newServer{address="127.0.0.1:%s", order=1, qps=10}
+    s2:setUp()
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.start()
+        cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.start()
+
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.start()
+
+        cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.start()
+
+    def testOrderQPSCacheHits(self):
+        """
+        Routing: firstAvailable policy with QPS limit and packet cache
+
+        Send 50 A queries for "order-qps-cache.routing.tests.powerdns.com.",
+        then 10 A queries for "order-qps-cache-2.routing.tests.powerdns.com." (uncached)
+        check that dnsdist routes all of the (uncached) queries to the second backend, because it has the lower order value,
+        and the QPS should only be counted for cache misses.
+        """
+        numberOfQueries = 50
+        name = 'order-qps-cache.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        # first queries to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEquals(receivedResponse, response)
+
+        numberOfQueries = 10
+        name = 'order-qps-cache-2.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        # first queries to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEquals(receivedResponse, response)
+
+        # 4 queries should made it through, 2 UDP and 2 TCP
+        for k,v in self._responsesCounter.items():
+            print(k)
+            print(v)
+
+        if 'UDP Responder' in self._responsesCounter:
+            self.assertEquals(self._responsesCounter['UDP Responder'], 0)
+        self.assertEquals(self._responsesCounter['UDP Responder 2'], 2)
+        if 'TCP Responder' in self._responsesCounter:
+            self.assertEquals(self._responsesCounter['TCP Responder'], 0)
+        self.assertEquals(self._responsesCounter['TCP Responder 2'], 2)
+
 class TestRoutingNoServer(DNSDistTest):
 
     _config_template = """
