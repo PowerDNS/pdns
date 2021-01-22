@@ -57,6 +57,10 @@ Removed settings
 ^^^^^^^^^^^^^^^^
 - The :ref:`setting-query-local-address6` has been removed. It already was deprecated.
 
+New settings
+^^^^^^^^^^^^
+- A new setting :ref:`setting-tcp-fast-open-connect` has been introduced, it enables TCP Fast Connect for outgoing connections. Please read :ref:`tcp-fast-open-support` before enabling this feature.
+
 4.3.x to 4.4.0
 --------------
 
