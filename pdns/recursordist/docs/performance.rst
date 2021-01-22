@@ -113,7 +113,7 @@ TCP Fast Open Support
 ---------------------
 On Linux systems, the recursor can use TCP Fast Open for passive (incoming, since 4.1) and active (outgoing, since 4.5) TCP connections.
 TCP Fast Open allows the initial SYN packet to carry data, saving one network round-trip.
-For details, consult RFC 7413.
+For details, consult `:rfc:7413`.
 
 To enable TCP Fast Open, it might be need change the value of the ``net.ipv4.tcp_fastopen`` sysctl.
 Value 0 means Fast Open is disabled, 1 is only use Fast Open for active connections, 2 is only for passive connections and 3 is for both.
