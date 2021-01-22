@@ -273,6 +273,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       purgeAuthCaches(zone.first.toString() + "$");
     }
 
+<<<<<<< HEAD
     // retrieve new and updated zones with new primaries
     auto masters = di.masters;
     if (!masters.empty()) {
@@ -421,7 +422,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   return catalogDiff(di, fromXFR, fromDB, logPrefix);
 }
 
-void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl, ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   string logPrefix="IXFR-in zone '"+domain.toLogString()+"', primary '"+remote.toString()+"', ";
 
@@ -754,7 +755,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         logPrefix = "I" + logPrefix; // XFR -> IXFR
         vector<DNSRecord> axfr;
         g_log<<Logger::Notice<<logPrefix<<"starting IXFR"<<endl;
-        ixfrSuck(domain, tt, laddr, remote, zs, &axfr);
+        ixfrSuck(domain, tt, laddr, remote, pdl, zs, &axfr);
         if(!axfr.empty()) {
           g_log<<Logger::Notice<<logPrefix<<"IXFR turned into an AXFR"<<endl;
           logPrefix[0]='A'; // IXFR -> AXFR
