@@ -99,6 +99,7 @@ bool SyncRes::s_qnameminimization;
 SyncRes::HardenNXD SyncRes::s_hardenNXD;
 unsigned int SyncRes::s_refresh_ttlperc;
 int SyncRes::s_tcp_fast_open;
+bool SyncRes::s_tcp_fast_open_connect;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 

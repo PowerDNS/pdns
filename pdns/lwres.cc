@@ -327,14 +327,20 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       Socket s(ip.sin4.sin_family, SOCK_STREAM);
 
       s.setNonBlocking();
-      ComboAddress local = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
-      if (SyncRes::s_tcp_fast_open > 0) {
-        s.setFastOpenConnect();
+      // v6 tcp does not seem to have fast open
+      if (ip.sin4.sin_family == AF_INET && SyncRes::s_tcp_fast_open_connect) {
+        try {
+          s.setFastOpenConnect();
+        }
+        catch (const NetworkError& e) {
+          g_log << Logger::Error << "tcp-fast-connect enabled but returned error: " << e.what() << endl;
+        }
       }
 
+      ComboAddress local = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
       s.bind(local);
 
-      s.connect(ip, g_networkTimeoutMsec * 1000); // needed for fastopen EINPROGRESS and better anyway than the system wide connect timeout
+      s.connect(ip);
 
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;

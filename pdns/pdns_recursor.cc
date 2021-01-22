@@ -3222,6 +3222,27 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
+static void checkFastOpenSysctl(bool active)
+{
+#ifdef __linux__
+  string line;
+  if (readFileIfThere("/proc/sys/net/ipv4/tcp_fastopen", &line)) {
+    int flag = std::stoi(line);
+    if (active && !(flag & 1)) {
+      g_log << Logger::Error << "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+    }
+    if (!active && !(flag & 2)) {
+      g_log << Logger::Error << "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+    }
+  }
+  else {
+    g_log << Logger::Error << "Cannot determine if kernel setting allow fast-open" << endl;
+ }
+#else
+  g_log << Logger::Error << "Cannot determine if kernel setting allow fast-open" << endl;
+#endif
+}
+
 static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets)
 {
   int fd;
@@ -3291,6 +3312,7 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
     }
 
     if (SyncRes::s_tcp_fast_open > 0) {
+      checkFastOpenSysctl(false);
 #ifdef TCP_FASTOPEN
       if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
@@ -4670,8 +4692,13 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
-  SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
   RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
+  SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
+  SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
+
+  if (SyncRes::s_tcp_fast_open_connect) {
+    checkFastOpenSysctl(true);
+  }
 
   if(SyncRes::s_serverID.empty()) {
     SyncRes::s_serverID = myHostname;
@@ -5554,6 +5581,7 @@ int main(int argc, char **argv)
     ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
+    ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets")="no";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
 
     ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs")="";
