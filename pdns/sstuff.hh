@@ -132,8 +132,11 @@ public:
   {
 #ifdef TCP_FASTOPEN_CONNECT
     int on = 1;
-    if (setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &on, sizeof(on)) < 0)
+    if (setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &on, sizeof(on)) < 0) {
       throw NetworkError("While setting TCP_FASTOPEN_CONNECT: " + stringerror());
+    }
+#else
+   throw NetworkError("While setting TCP_FASTOPEN_CONNECT: not compiled in");
 #endif
   }
 
@@ -276,7 +279,9 @@ public:
     while(bytes) {
       ret=::write(d_socket, ptr, bytes);
       if(ret < 0) {
-        if(errno==EAGAIN) {
+        // some systems (e.g. OpenBSD) return ENOTCONN on non-blocking sockets on which connect *has been* called
+        // we have to wait for the opportunity to write after the connect is done
+        if (errno == EAGAIN || errno == ENOTCONN) {
           ret=waitForRWData(d_socket, false, timeout, 0);
           if(ret < 0)
             throw NetworkError("Waiting for data write");
