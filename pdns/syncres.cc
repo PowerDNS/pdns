@@ -202,7 +202,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, co
       answers.push_back({QType::PTR, "localhost."});
   }
 
-  if (qname == localhost &&
+  if (qname.isPartOf(localhost) &&
       qclass == QClass::IN) {
     handled = true;
     if (qtype == QType::A || qtype == QType::ANY)
