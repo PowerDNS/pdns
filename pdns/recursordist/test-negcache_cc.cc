@@ -69,6 +69,30 @@ BOOST_AUTO_TEST_CASE(test_get_entry)
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
+BOOST_AUTO_TEST_CASE(test_get_entry2038)
+{
+  /* Add a full name negative entry to the cache and attempt to get an entry for
+   * the A record. Should yield the full name does not exist entry
+   */
+  DNSName qname("www2.powerdns.com");
+  DNSName auth("powerdns.com");
+
+  struct timeval now{INT_MAX - 300, 0};
+
+  NegCache cache;
+  cache.add(genNegCacheEntry(qname, auth, now));
+
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
+
+  NegCache::NegCacheEntry ne;
+  bool ret = cache.get(qname, QType(1), now, ne);
+
+  BOOST_CHECK(ret);
+  BOOST_CHECK_EQUAL(ne.d_name, qname);
+  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(0).getName());
+  BOOST_CHECK_EQUAL(ne.d_auth, auth);
+}
+
 BOOST_AUTO_TEST_CASE(test_get_entry_exact_type)
 {
   /* Add a full name negative entry to the cache and attempt to get an entry for
