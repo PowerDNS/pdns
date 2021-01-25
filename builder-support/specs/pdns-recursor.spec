@@ -16,6 +16,7 @@ BuildRequires: systemd-devel
 BuildRequires: openssl-devel
 BuildRequires: net-snmp-devel
 BuildRequires: libsodium-devel
+BuildRequires: fstrm-devel
 
 %ifarch aarch64
 BuildRequires: lua-devel
@@ -27,10 +28,6 @@ BuildRequires: luajit-devel
 
 %ifarch ppc64 ppc64le
 BuildRequires: libatomic
-%endif
-
-%if 0%{?rhel} >= 7
-BuildRequires: fstrm-devel
 %endif
 
 Requires(pre): shadow-utils
