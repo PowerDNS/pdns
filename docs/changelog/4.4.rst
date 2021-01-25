@@ -73,31 +73,31 @@ Changelogs for 4.4.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: #9884
+    :pullreq: 9884
 
     clear the LMDB set state when performing a new lookup or list to prevent corruption cases (Robin Geuze)
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: #9878
+    :pullreq: 9878
 
     SVCB: Correctly parse and print unknown params
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: #9873
+    :pullreq: 9873
 
     fix direct-dnskey in AXFR-out (Kees Monshouwer)
 
   .. change::
     :tags: Improvements
-    :pullreq: #9866
+    :pullreq: 9866
 
     don't log trusted-notification-proxy notify at error level (Kees Monshouwer)
 
   .. change::
     :tags: Improvements
-    :pullreq: #9853
+    :pullreq: 9853
 
     Stop using incbin and use od & sed to generate constant string data.
 
