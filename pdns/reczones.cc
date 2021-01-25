@@ -261,10 +261,31 @@ static void convertServersForAD(const std::string& input, SyncRes::AuthDomain& a
     if(verbose && iter != servers.begin()) 
       g_log<<", ";
 
-    ComboAddress addr=parseIPAndPort(*iter, 53);
-    if(verbose)
-      g_log<<addr.toStringWithPort();
-    ad.d_servers.push_back(EndPoint{addr, EndPoint::Unspecified});
+    vector<string> parts;
+    stringtok(parts, *iter, "/");
+    EndPoint::Method m = EndPoint::Do53;
+    if (parts.size() == 1) {
+      parts.resize(2);
+      parts[1] = parts[0];
+    }
+    else if (parts.size() == 2) {
+      toLowerInPlace(parts[0]);
+      if (parts[0] == "tcp") {
+        m = EndPoint::TCP;
+      }
+      else if (parts[0] == "udp") {
+        m = EndPoint::UDP;
+      }
+      else if (parts[0] == "dot") {
+        m = EndPoint::DoT;
+      }
+      // everything else Do53
+    }
+    EndPoint ep{ComboAddress{parseIPAndPort(parts[1], 53)}, m};
+    if (verbose) {
+      g_log << ep.toString();
+    }
+    ad.d_servers.push_back(ep);
   }
   if(verbose)
     g_log<<endl;

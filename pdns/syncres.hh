@@ -68,9 +68,14 @@ class RecursorLua4;
 
 struct EndPoint
 {
-  enum Method : uint8_t { Unspecified, UDP, TCP, TLS };
+  enum Method : uint8_t { Do53, UDP, TCP, DoT };
   ComboAddress d_address;
-  Method d_method{Unspecified};
+  Method d_method{Do53};
+
+  string toString() const {
+    const std::array<string, 4> names = { "Do53/", "UDP/", "TCP/", "DoT/" };
+    return names[d_method] + d_address.toStringWithPort();
+  }
 };
 
 struct NSData

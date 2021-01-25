@@ -1070,7 +1070,7 @@ vector<EndPoint> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set
       for (auto const &i : resv4) {
         if (i.d_type == QType::A) {
           if (auto rec = getRR<ARecordContent>(i)) {
-            ret.push_back({rec->getCA(53), EndPoint::Unspecified});
+            ret.push_back({rec->getCA(53), EndPoint::Do53});
           }
         }
       }
@@ -1084,7 +1084,7 @@ vector<EndPoint> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set
           for (const auto &i : resv6) {
             if (i.d_type == QType::AAAA) {
               if (auto rec = getRR<AAAARecordContent>(i))
-                ret.push_back({rec->getCA(53), EndPoint::Unspecified});
+                ret.push_back({rec->getCA(53), EndPoint::Do53});
             }
           }
         }
@@ -1096,7 +1096,7 @@ vector<EndPoint> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set
           for (const auto &i : cset) {
             if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
-                ret.push_back({rec->getCA(53), EndPoint::Unspecified});
+                ret.push_back({rec->getCA(53), EndPoint::Do53});
               }
             }
           }
@@ -4090,14 +4090,30 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             continue;
           }
 
+          bool gotAnswer = false;
           bool truncated = false;
           bool spoofed = false;
-          bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                             tns->first, remoteIP->d_address, false, truncated, spoofed);
-          if (spoofed || (gotAnswer && truncated) ) {
-            /* retry, over TCP this time */
+
+          switch (remoteIP->d_method) {
+          case EndPoint::Do53:
+            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
+                                               tns->first, remoteIP->d_address, false, truncated, spoofed);
+            if (spoofed || (gotAnswer && truncated) ) {
+              /* retry, over TCP this time */
+              gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
+                                            tns->first, remoteIP->d_address, true, truncated, spoofed);
+            }
+            break;
+          case EndPoint::UDP:
+            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
+                                          tns->first, remoteIP->d_address, false, truncated, spoofed);
+            break;
+          case EndPoint::TCP:
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, remoteIP->d_address, true, truncated, spoofed);
+            break;
+          case EndPoint::DoT:
+            throw ImmediateServFailException("DoT not implemented yet");
           }
 
           if (!gotAnswer) {
