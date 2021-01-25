@@ -134,8 +134,8 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   const SyncRes::AuthDomain& zone = iter->second;
 
   Json::array servers;
-  for(const ComboAddress& server : zone.d_servers) {
-    servers.push_back(server.toStringWithPort());
+  for(const auto& ep  : zone.d_servers) {
+    servers.push_back(ep.d_address.toStringWithPort());
   }
 
   Json::array records;
@@ -285,8 +285,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
   for(const SyncRes::domainmap_t::value_type& val :  *SyncRes::t_sstorage.domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
-    for(const ComboAddress& server : zone.d_servers) {
-      servers.push_back(server.toStringWithPort());
+    for(const auto& ep : zone.d_servers) {
+      servers.push_back(ep.d_address.toStringWithPort());
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);

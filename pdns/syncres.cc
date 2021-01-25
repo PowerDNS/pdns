@@ -853,8 +853,8 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
           return res;
         }
         else if (considerforwards) {
-          const vector<ComboAddress>& servers = iter->second.d_servers;
-          const ComboAddress remoteIP = servers.front();
+          const vector<EndPoint>& servers = iter->second.d_servers;
+          const ComboAddress remoteIP = servers.front().d_address;
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
 
           boost::optional<Netmask> nm;
@@ -1038,19 +1038,19 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 struct speedOrderCA
 {
   speedOrderCA(std::map<ComboAddress,float>& speeds): d_speeds(speeds) {}
-  bool operator()(const ComboAddress& a, const ComboAddress& b) const
+  bool operator()(const EndPoint& a, const EndPoint& b) const
   {
-    return d_speeds[a] < d_speeds[b];
+    return d_speeds[a.d_address] < d_speeds[b.d_address];
   }
   std::map<ComboAddress, float>& d_speeds;
 };
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS)
+vector<EndPoint> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS)
 {
   typedef vector<DNSRecord> res_t;
-  typedef vector<ComboAddress> ret_t;
+  typedef vector<EndPoint> ret_t;
   ret_t ret;
 
   bool oldCacheOnly = setCacheOnly(cacheOnly);
@@ -1070,7 +1070,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       for (auto const &i : resv4) {
         if (i.d_type == QType::A) {
           if (auto rec = getRR<ARecordContent>(i)) {
-            ret.push_back(rec->getCA(53));
+            ret.push_back({rec->getCA(53), EndPoint::Unspecified});
           }
         }
       }
@@ -1084,7 +1084,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
           for (const auto &i : resv6) {
             if (i.d_type == QType::AAAA) {
               if (auto rec = getRR<AAAARecordContent>(i))
-                ret.push_back(rec->getCA(53));
+                ret.push_back({rec->getCA(53), EndPoint::Unspecified});
             }
           }
         }
@@ -1096,7 +1096,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
           for (const auto &i : cset) {
             if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
-                ret.push_back(rec->getCA(53));
+                ret.push_back({rec->getCA(53), EndPoint::Unspecified});
               }
             }
           }
@@ -1126,7 +1126,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   auto& collection = t_sstorage.nsSpeeds[qname];
   float factor = collection.getFactor(d_now);
   for(const auto& val: ret) {
-    speeds[val] = collection.d_collection[val].get(factor);
+    speeds[val.d_address] = collection.d_collection[val.d_address].get(factor);
   }
 
   t_sstorage.nsSpeeds[qname].purge(speeds);
@@ -1141,14 +1141,14 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       prefix.append(depth, ' ');
       LOG(prefix<<"Nameserver "<<qname<<" IPs: ");
       bool first = true;
-      for(const auto& addr : ret) {
+      for(const auto& ep : ret) {
         if (first) {
           first = false;
         }
         else {
           LOG(", ");
         }
-        LOG((addr.toString())<<"(" << (boost::format("%0.2f") % (speeds[addr]/1000.0)).str() <<"ms)");
+        LOG((ep.d_address.toString())<<"(" << (boost::format("%0.2f") % (speeds[ep.d_address]/1000.0)).str() <<"ms)");
       }
       LOG(endl);
     }
@@ -1929,7 +1929,7 @@ struct speedOrder
   }
 };
 
-inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const string &prefix)
+std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet &tnameservers, const string &prefix)
 {
   std::vector<std::pair<DNSName, float>> rnameservers;
   rnameservers.reserve(tnameservers.size());
@@ -1960,16 +1960,16 @@ inline std::vector<std::pair<DNSName, float>> SyncRes::shuffleInSpeedOrder(NsSet
   return rnameservers;
 }
 
-inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd)
+vector<EndPoint> SyncRes::shuffleForwardSpeed(const vector<EndPoint> &rnameservers, const string &prefix, const bool wasRd)
 {
-  vector<ComboAddress> nameservers = rnameservers;
+  vector<EndPoint> nameservers = rnameservers;
   map<ComboAddress, float> speeds;
 
   for(const auto& val: nameservers) {
     float speed;
-    DNSName nsName = DNSName(val.toStringWithPort());
+    DNSName nsName = DNSName(val.d_address.toStringWithPort());
     speed=t_sstorage.nsSpeeds[nsName].get(d_now);
-    speeds[val]=speed;
+    speeds[val.d_address]=speed;
   }
   shuffle(nameservers.begin(),nameservers.end(), pdns::dns_random_engine());
   speedOrderCA so(speeds);
@@ -1977,14 +1977,14 @@ inline vector<ComboAddress> SyncRes::shuffleForwardSpeed(const vector<ComboAddre
 
   if(doLog()) {
     LOG(prefix<<"Nameservers: ");
-    for(vector<ComboAddress>::const_iterator i=nameservers.cbegin();i!=nameservers.cend();++i) {
+    for(vector<EndPoint>::const_iterator i=nameservers.cbegin();i!=nameservers.cend();++i) {
       if(i!=nameservers.cbegin()) {
         LOG(", ");
         if(!((i-nameservers.cbegin())%3)) {
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG((wasRd ? string("+") : string("-")) << i->toStringWithPort() <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((wasRd ? string("+") : string("-")) << i->d_address.toStringWithPort() <<"(" << (boost::format("%0.2f") % (speeds[i->d_address]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
@@ -2227,12 +2227,12 @@ bool SyncRes::nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& n
       }
 
       // Traverse all IP addresses for this NS to see if they have an RPN NSIP policy
-      for (auto const &address : ns.second.first) {
-        match = dfe.getProcessingPolicy(address, d_discardedPolicies, d_appliedPolicy);
+      for (auto const &ep : ns.second.d_endpoints) {
+        match = dfe.getProcessingPolicy(ep.d_address, d_discardedPolicies, d_appliedPolicy);
         if (match) {
           mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
           if (d_appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) { // client query needs an RPZ response
-            LOG(", however nameserver "<<ns.first<<" IP address "<<address.toString()<<" was blocked by RPZ policy '"<<d_appliedPolicy.getName()<<"'"<<endl);
+            LOG(", however nameserver "<<ns.first<<" IP address "<<ep.d_address.toString()<<" was blocked by RPZ policy '"<<d_appliedPolicy.getName()<<"'"<<endl);
             return true;
           }
         }
@@ -2263,9 +2263,9 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &retrieveAddressesForNS)
+vector<EndPoint> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &retrieveAddressesForNS)
 {
-  vector<ComboAddress> result;
+  vector<EndPoint> result;
 
   if(!tns->first.empty()) {
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
@@ -2275,13 +2275,13 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
   else {
     LOG(prefix<<qname<<": Domain has hardcoded nameserver");
 
-    if(nameservers[tns->first].first.size() > 1) {
+    if(nameservers[tns->first].d_endpoints.size() > 1) {
       LOG("s");
     }
     LOG(endl);
 
-    sendRDQuery = nameservers[tns->first].second;
-    result = shuffleForwardSpeed(nameservers[tns->first].first, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
+    sendRDQuery = nameservers[tns->first].d_recurse;
+    result = shuffleForwardSpeed(nameservers[tns->first].d_endpoints, doLog() ? (prefix+qname.toString()+": ") : string(), sendRDQuery);
     pierceDontQuery=true;
   }
   return result;
@@ -4015,14 +4015,14 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         cacheOnly = true;
       }
 
-      typedef vector<ComboAddress> remoteIPs_t;
+      typedef vector<EndPoint> remoteIPs_t;
       remoteIPs_t remoteIPs;
       remoteIPs_t::const_iterator remoteIP;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
       LWResult lwr;
-      const bool wasForwarded = tns->first.empty() && (!nameservers[tns->first].first.empty());
+      const bool wasForwarded = tns->first.empty() && (!nameservers[tns->first].d_endpoints.empty());
       int rcode = RCode::NoError;
       bool gotNewServers = false;
 
@@ -4065,8 +4065,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             if(remoteIP != remoteIPs.cbegin()) {
               LOG(", ");
             }
-            LOG(remoteIP->toString());
-            if(nameserverIPBlockedByRPZ(luaconfsLocal->dfe, *remoteIP)) {
+            LOG(remoteIP->d_address.toString());
+            if(nameserverIPBlockedByRPZ(luaconfsLocal->dfe, remoteIP->d_address)) {
               hitPolicy = true;
             }
           }
@@ -4084,27 +4084,27 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
 
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
-          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
+          LOG(prefix<<qname<<": Trying IP "<< remoteIP->d_address.toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
 
-          if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
+          if (throttledOrBlocked(prefix, remoteIP->d_address, qname, qtype, pierceDontQuery)) {
             continue;
           }
 
           bool truncated = false;
           bool spoofed = false;
           bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                             tns->first, *remoteIP, false, truncated, spoofed);
+                                             tns->first, remoteIP->d_address, false, truncated, spoofed);
           if (spoofed || (gotAnswer && truncated) ) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, truncated, spoofed);
+                                          tns->first, remoteIP->d_address, true, truncated, spoofed);
           }
 
           if (!gotAnswer) {
             continue;
           }
 
-          LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<tns->first<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
+          LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_records.size()<<" answers from "<<tns->first<<" ("<< remoteIP->d_address.toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
           /*  // for you IPv6 fanatics :-)
               if(remoteIP->sin4.sin_family==AF_INET6)
@@ -4112,10 +4112,10 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           */
           //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
-          t_sstorage.nsSpeeds[tns->first.empty()? DNSName(remoteIP->toStringWithPort()) : tns->first].submit(*remoteIP, lwr.d_usec, d_now);
+          t_sstorage.nsSpeeds[tns->first.empty()? DNSName(remoteIP->d_address.toStringWithPort()) : tns->first].submit(remoteIP->d_address, lwr.d_usec, d_now);
 
           /* we have received an answer, are we done ? */
-          bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state, *remoteIP);
+          bool done = processAnswer(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, nameservers, ret, luaconfsLocal->dfe, &gotNewServers, &rcode, state, remoteIP->d_address);
           if (done) {
             return rcode;
           }
@@ -4127,7 +4127,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             break;
           }
           /* was lame */
-          t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
+          t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP->d_address, qname, qtype.getCode()), 60, 100);
         }
 
         if (gotNewServers) {

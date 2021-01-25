@@ -560,7 +560,8 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_refused)
   const DNSName target("www.refused.");
 
   SyncRes::AuthDomain ad;
-  const std::vector<ComboAddress> forwardedNSs{ComboAddress("192.0.2.42:53"), ComboAddress("192.0.2.43:53")};
+  const std::vector<EndPoint> forwardedNSs{{ComboAddress("192.0.2.42:53"), EndPoint::Unspecified},
+                                           {ComboAddress("192.0.2.43:53"), EndPoint::Unspecified}};
   ad.d_rdForward = false;
   ad.d_servers = forwardedNSs;
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
@@ -590,11 +591,11 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_refused)
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   for (const auto& server : forwardedNSs) {
-    BOOST_CHECK_EQUAL(downServers.count(server), 1U);
+    BOOST_CHECK_EQUAL(downServers.count(server.d_address), 1U);
     /* same as any other server */
-    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server, target, QType::A));
-    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName("a.gtld-servers.net."), server), 0U);
-    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+    BOOST_CHECK(SyncRes::isThrottled(time(nullptr), server.d_address, target, QType::A));
+    BOOST_CHECK_EQUAL(SyncRes::getNSSpeed(DNSName("a.gtld-servers.net."), server.d_address), 0U);
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server.d_address), SyncRes::EDNSStatus::EDNSOK);
   }
 }
 
@@ -611,7 +612,7 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail)
   const DNSName target("www.refused.");
 
   SyncRes::AuthDomain ad;
-  const std::vector<ComboAddress> forwardedNSs{ComboAddress("192.0.2.42:53"), ComboAddress("192.0.2.43:53")};
+  const std::vector<EndPoint> forwardedNSs{{ComboAddress("192.0.2.42:53")}, {ComboAddress("192.0.2.43:53")}};
   ad.d_rdForward = false;
   ad.d_servers = forwardedNSs;
   (*SyncRes::t_sstorage.domainmap)[DNSName("refused.")] = ad;
@@ -640,7 +641,8 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_servfail)
   BOOST_CHECK_EQUAL(downServers.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 
-  for (const auto& server : forwardedNSs) {
+  for (const auto& ep : forwardedNSs) {
+    const auto& server = ep.d_address;
     BOOST_CHECK_EQUAL(downServers.count(server), 1U);
     /* on servfail from a server we forward to we only increase the NS speed so
        that a different server might be tried instead, but we don't throttle */

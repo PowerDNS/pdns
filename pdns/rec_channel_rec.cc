@@ -118,8 +118,6 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
 
 static boost::optional<uint64_t> get(const string& name)
 {
-  boost::optional<uint64_t> ret;
-
   if(d_get32bitpointers.count(name))
     return *d_get32bitpointers.find(name)->second;
   if(d_getatomics.count(name))
@@ -131,8 +129,8 @@ static boost::optional<uint64_t> get(const string& name)
   auto f = rplookup(d_dynmetrics, name);
   if (f)
     return f->d_ptr->load();
-  
-  return ret;
+
+  return boost::none;
 }
 
 boost::optional<uint64_t> getStatByName(const std::string& name)

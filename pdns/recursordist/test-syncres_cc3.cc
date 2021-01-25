@@ -664,7 +664,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord)
 
   const DNSName target("powerdns.com.");
   const ComboAddress ns("192.0.2.1:53");
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
 
   SyncRes::AuthDomain ad;
   ad.d_rdForward = false;
@@ -672,7 +672,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord)
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-    if (ip == forwardedNS) {
+    if (ip == forwardedNS.d_address) {
       BOOST_CHECK_EQUAL(sendRDQuery, false);
 
       setLWResult(res, 0, true, false, true);
@@ -701,7 +701,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd)
 
   const DNSName target("powerdns.com.");
   const ComboAddress ns("192.0.2.1:53");
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
 
   size_t queriesCount = 0;
   SyncRes::AuthDomain ad;
@@ -712,7 +712,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd)
   sr->setAsyncCallback([forwardedNS, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
     queriesCount++;
 
-    if (ip == forwardedNS) {
+    if (ip == forwardedNS.d_address) {
       BOOST_CHECK_EQUAL(sendRDQuery, true);
 
       /* set AA=0, we are a recursor */
@@ -751,7 +751,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord)
 
   const DNSName target("powerdns.com.");
   const ComboAddress ns("192.0.2.1:53");
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
 
   SyncRes::AuthDomain ad;
   ad.d_rdForward = true;
@@ -759,7 +759,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord)
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-    if (ip == forwardedNS) {
+    if (ip == forwardedNS.d_address) {
       BOOST_CHECK_EQUAL(sendRDQuery, false);
 
       setLWResult(res, 0, true, false, true);
@@ -788,7 +788,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd)
 
   const DNSName target("powerdns.com.");
   const ComboAddress ns("192.0.2.1:53");
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
 
   SyncRes::AuthDomain ad;
   ad.d_rdForward = true;
@@ -796,7 +796,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd)
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
   sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-    if (ip == forwardedNS) {
+    if (ip == forwardedNS.d_address) {
       BOOST_CHECK_EQUAL(sendRDQuery, true);
 
       setLWResult(res, 0, true, false, true);
@@ -833,7 +833,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec)
   generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
   size_t queriesCount = 0;
 
   SyncRes::AuthDomain ad;
@@ -846,7 +846,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec)
 
     BOOST_CHECK_EQUAL(sendRDQuery, true);
 
-    if (ip != forwardedNS) {
+    if (ip != forwardedNS.d_address) {
       return LWResult::Result::Timeout;
     }
 
@@ -903,7 +903,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord_dnssec)
   generateKeyMaterial(DNSName("test."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
   size_t queriesCount = 0;
   size_t DSforParentCount = 0;
 
@@ -936,7 +936,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord_dnssec)
       addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
     }
 
-    if (ip != forwardedNS) {
+    if (ip != forwardedNS.d_address) {
       return LWResult::Result::Timeout;
     }
 
@@ -1008,7 +1008,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_bogus)
   generateKeyMaterial(cnameTarget, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
   size_t queriesCount = 0;
 
   SyncRes::AuthDomain ad;
@@ -1021,7 +1021,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_bogus)
 
     BOOST_CHECK_EQUAL(sendRDQuery, true);
 
-    if (ip != forwardedNS) {
+    if (ip != forwardedNS.d_address) {
       return LWResult::Result::Timeout;
     }
 
@@ -1076,7 +1076,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
   generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
-  const ComboAddress forwardedNS("192.0.2.42:53");
+  const EndPoint forwardedNS{ComboAddress{"192.0.2.42:53"}};
   SyncRes::AuthDomain ad;
   ad.d_rdForward = true;
   ad.d_servers.push_back(forwardedNS);
@@ -1089,7 +1089,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
 
     BOOST_CHECK_EQUAL(sendRDQuery, true);
 
-    if (ip != forwardedNS) {
+    if (ip != forwardedNS.d_address) {
       return LWResult::Result::Timeout;
     }
 

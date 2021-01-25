@@ -264,7 +264,7 @@ static void convertServersForAD(const std::string& input, SyncRes::AuthDomain& a
     ComboAddress addr=parseIPAndPort(*iter, 53);
     if(verbose)
       g_log<<addr.toStringWithPort();
-    ad.d_servers.push_back(addr);
+    ad.d_servers.push_back(EndPoint{addr, EndPoint::Unspecified});
   }
   if(verbose)
     g_log<<endl;
