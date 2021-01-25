@@ -244,6 +244,9 @@ static uint16_t s_maxUdpSourcePort;
 static double s_balancingFactor;
 static bool s_addExtendedResolutionDNSErrors;
 
+static bool s_EDNS0Padding;
+static long unsigned int s_EDNS0PaddingMaxBytes;
+
 RecursorControlChannel s_rcc; // only active in the handler thread
 RecursorStats g_stats;
 string s_programname="pdns_recursor";
@@ -1930,10 +1933,10 @@ static void startDoResolve(void *p)
         }
       }
 
-      if (shouldPad && pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize)) {
+      if (s_EDNS0Padding && shouldPad && pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize)) {
         string to_add;
         // Add 512 bytes, or fewer if the packet is full
-        to_add.resize(std::min(maxanswersize - pw.size() - EDNSOptionCodeSize - EDNSOptionLengthSize, static_cast<long unsigned int>(512)));
+        to_add.resize(std::min(maxanswersize - pw.size() - EDNSOptionCodeSize - EDNSOptionLengthSize, s_EDNS0PaddingMaxBytes));
         returnedEdnsOptions.push_back(std::make_pair(EDNSOptionCode::PADDING, to_add));
       }
       /* we try to add the EDNS OPT RR even for truncated answers,
@@ -4682,6 +4685,9 @@ static int serviceMain(int argc, char*argv[])
 
   s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
+  s_EDNS0Padding = ::arg().mustDo("edns-padding");
+  s_EDNS0PaddingMaxBytes = ::arg().asNum("edns-padding-max-bytes");
+
   {
     SuffixMatchNode dontThrottleNames;
     vector<string> parts;
@@ -5442,6 +5448,9 @@ int main(int argc, char **argv)
 #endif /* NOD_ENABLED */
 
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
+
+    ::arg().setSwitch("edns-padding", "Respond with EDNS0 padding options when the client indicates support")="no";
+    ::arg().set("edns-padding-max-bytes", "The maximum number of bytes to add to a padded response")="512";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
