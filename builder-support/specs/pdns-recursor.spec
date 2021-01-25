@@ -13,8 +13,6 @@ BuildRequires: boost-devel
 BuildRequires: libcap-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
-BuildRequires: protobuf-compiler
-BuildRequires: protobuf-devel
 BuildRequires: openssl-devel
 BuildRequires: net-snmp-devel
 BuildRequires: libsodium-devel
