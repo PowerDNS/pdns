@@ -2,6 +2,55 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.1
+  :released: 29th of January 2021
+
+  This is version 4.4.1 of the Authoritative Server.
+  This releases fixes several small issues discovered since the release of 4.4.0.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9985
+
+    lmdb: do not reuse backend that has seen corrupted data
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9953
+
+    dockerfiles: do not claim equivs-dummy is sourced from pdns
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9952
+
+    Fix missing #include for gcc-11
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9949
+
+    lmdb: serialise LMDBBackend construction to ensure only a single schema upgrade is attempted
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9946
+
+    lmdb: Do a mdb_readers_check to clean up stale readers on database load
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9923
+
+    backport some asan/ubsan fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9912
+
+    pdnsutil edit-zone: do not exit on ZoneParser exception
+
+.. changelog::
   :version: 4.4.0
   :released: 18th of December 2020
 
