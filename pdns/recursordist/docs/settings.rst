@@ -579,6 +579,31 @@ found, the recursor fallbacks to sending 127.0.0.1.
 This is the value set for the EDNS0 buffer size in outgoing packets.
 Lower this if you experience timeouts.
 
+.. _setting-edns-padding:
+
+``edns-padding``
+----------------
+.. versionadded:: 4.5.0
+
+- Boolean
+- default: no
+
+Set to ``yes`` to respond with padded responses to queries with the EDNS0 'PADDING' option set (:rfc:`7830`).
+Enabling this options might lead to a reduce hitrate in the packetcache, depending
+on the padding lengths of the clients.
+
+.. _setting-edns-padding-max-bytes:
+
+``edns-padding-max-bytes``
+--------------------------
+.. versionadded:: 4.5.0
+
+- Integer
+- default: 512
+
+Maximum number of bytes to add to a padded response (see :ref:`setting-edns-padding`).
+Responses can contain fewer padding bytes, if adding the maximum number of bytes would make the packet go over the advertised EDNS buffer size of the client.
+
 .. _setting-edns-subnet-whitelist:
 
 ``edns-subnet-whitelist``
