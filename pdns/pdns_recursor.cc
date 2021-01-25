@@ -1384,6 +1384,7 @@ static void startDoResolve(void *p)
 #ifdef NOD_ENABLED
     bool hasUDR = false;
 #endif /* NOD_ENABLED */
+    bool shouldPad = false;
     DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
     uint8_t ednsExtRCode = 0;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
@@ -1412,6 +1413,8 @@ static void startDoResolve(void *p)
             variableAnswer = true; // Can't packetcache an answer with NSID
             maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size();
           }
+        } else if (o.first == EDNSOptionCode::PADDING) {
+          shouldPad = true;
         }
       }
     }
@@ -1927,6 +1930,12 @@ static void startDoResolve(void *p)
         }
       }
 
+      if (shouldPad && pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (EDNSOptionCodeSize + EDNSOptionLengthSize)) {
+        string to_add;
+        // Add 512 bytes, or fewer if the packet is full
+        to_add.resize(std::min(maxanswersize - pw.size() - EDNSOptionCodeSize - EDNSOptionLengthSize, static_cast<long unsigned int>(512)));
+        returnedEdnsOptions.push_back(std::make_pair(EDNSOptionCode::PADDING, to_add));
+      }
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
          "The minimal response MUST be the DNS header, question section, and an

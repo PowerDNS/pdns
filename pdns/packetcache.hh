@@ -31,7 +31,7 @@ public:
 
   /* hash the packet from the provided position, which should point right after tje qname. This skips:
      - the query ID ;
-     - EDNS Cookie options, if any ;
+     - EDNS Cookie and PADDING options, if any ;
      - EDNS Client Subnet options, if any and skipECS is true.
   */
   static uint32_t hashAfterQname(const pdns_string_view& packet, uint32_t currentHash, size_t pos, bool skipECS)
@@ -84,13 +84,16 @@ public:
       }
 
       bool skip = false;
-      if (optionCode == EDNSOptionCode::COOKIE) {
-        skip = true;
-      }
-      else if (optionCode == EDNSOptionCode::ECS) {
-        if (skipECS) {
+      switch (optionCode) {
+        case EDNSOptionCode::COOKIE:
           skip = true;
-        }
+          break;
+        case EDNSOptionCode::ECS:
+          skip = skipECS;
+          break;
+        case EDNSOptionCode::PADDING:
+          skip = true;
+          break;
       }
 
       if (!skip) {
@@ -140,7 +143,7 @@ public:
 
   /* hash the packet from the beginning, including the qname. This skips:
      - the query ID ;
-     - EDNS Cookie options, if any ;
+     - EDNS Cookie or padding options, if any ;
      - EDNS Client Subnet options, if any and skipECS is true.
   */
   static uint32_t canHashPacket(const std::string& packet, bool skipECS)
