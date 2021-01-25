@@ -18,7 +18,7 @@ Changelogs for 4.4.x
     :tags: Improvements
     :pullreq: 9953
 
-    dockerfiles: do not claim equivs-dummy is sourced from pdns
+    dockerfiles: do not claim equivs-dummy is built from the pdns source package
 
   .. change::
     :tags: Improvements
