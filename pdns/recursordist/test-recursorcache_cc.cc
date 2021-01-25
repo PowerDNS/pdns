@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple)
   std::vector<std::shared_ptr<DNSRecord>> authRecords;
   std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   const DNSName authZone(".");
-  time_t now = time(nullptr);
+  time_t now = INT_MAX - 15;
 
   time_t ttd = now + 30;
   DNSName power("powerdns.com.");
