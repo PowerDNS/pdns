@@ -204,6 +204,7 @@ dnsdist_SOURCES = \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
+	stat_t.hh \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	tcpiohandler-mplexer.hh \
@@ -257,6 +258,7 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	stat_t.hh \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \

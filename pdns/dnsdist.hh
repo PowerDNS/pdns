@@ -23,7 +23,6 @@
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
 
-#include <atomic>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -51,6 +50,7 @@
 #include "tcpiohandler.hh"
 #include "uuid-utils.hh"
 #include "proxy-protocol.hh"
+#include "stat_t.hh"
 
 void carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
@@ -297,9 +297,10 @@ extern vector<pair<struct timeval, std::string> > g_confDelta;
 
 extern uint64_t getLatencyCount(const std::string&);
 
+using pdns::stat_t;
+
 struct DNSDistStats
 {
-  using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
   stat_t responses{0};
   stat_t servfailResponses{0};
   stat_t queries{0};
@@ -723,26 +724,26 @@ struct ClientState
   std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
   std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
   std::string interface;
-  std::atomic<uint64_t> queries{0};
-  mutable std::atomic<uint64_t> responses{0};
-  std::atomic<uint64_t> tcpDiedReadingQuery{0};
-  std::atomic<uint64_t> tcpDiedSendingResponse{0};
-  std::atomic<uint64_t> tcpGaveUp{0};
-  std::atomic<uint64_t> tcpClientTimeouts{0};
-  std::atomic<uint64_t> tcpDownstreamTimeouts{0};
-  std::atomic<uint64_t> tcpCurrentConnections{0};
-  std::atomic<uint64_t> tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
-  std::atomic<uint64_t> tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
-  std::atomic<uint64_t> tlsUnknownTicketKey{0}; // A TLS ticket has been presented but we don't have the associated key (might have expired)
-  std::atomic<uint64_t> tlsInactiveTicketKey{0}; // A TLS ticket has been successfully resumed but the key is no longer active, we should issue a new one
-  std::atomic<uint64_t> tls10queries{0};   // valid DNS queries received via TLSv1.0
-  std::atomic<uint64_t> tls11queries{0};   // valid DNS queries received via TLSv1.1
-  std::atomic<uint64_t> tls12queries{0};   // valid DNS queries received via TLSv1.2
-  std::atomic<uint64_t> tls13queries{0};   // valid DNS queries received via TLSv1.3
-  std::atomic<uint64_t> tlsUnknownqueries{0};   // valid DNS queries received via unknown TLS version
-  std::atomic<double> tcpAvgQueriesPerConnection{0.0};
+  stat_t queries{0};
+  mutable stat_t responses{0};
+  stat_t tcpDiedReadingQuery{0};
+  stat_t tcpDiedSendingResponse{0};
+  stat_t tcpGaveUp{0};
+  stat_t tcpClientTimeouts{0};
+  stat_t tcpDownstreamTimeouts{0};
+  stat_t tcpCurrentConnections{0};
+  stat_t tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
+  stat_t tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
+  stat_t tlsUnknownTicketKey{0}; // A TLS ticket has been presented but we don't have the associated key (might have expired)
+  stat_t tlsInactiveTicketKey{0}; // A TLS ticket has been successfully resumed but the key is no longer active, we should issue a new one
+  stat_t tls10queries{0};   // valid DNS queries received via TLSv1.0
+  stat_t tls11queries{0};   // valid DNS queries received via TLSv1.1
+  stat_t tls12queries{0};   // valid DNS queries received via TLSv1.2
+  stat_t tls13queries{0};   // valid DNS queries received via TLSv1.3
+  stat_t tlsUnknownqueries{0};   // valid DNS queries received via unknown TLS version
+  pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
-  std::atomic<double> tcpAvgConnectionDuration{0.0};
+  pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   size_t d_maxInFlightQueriesPerConn{1};
   int udpFD{-1};
   int tcpFD{-1};
@@ -817,9 +818,9 @@ struct ClientState
 
 class TCPClientCollection {
   std::vector<int> d_tcpclientthreads;
-  std::atomic<uint64_t> d_numthreads{0};
-  std::atomic<uint64_t> d_pos{0};
-  std::atomic<uint64_t> d_queued{0};
+  stat_t d_numthreads{0};
+  stat_t d_pos{0};
+  stat_t d_queued{0};
   const uint64_t d_maxthreads{0};
   std::mutex d_mutex;
   int d_singlePipe[2];
@@ -903,25 +904,25 @@ struct DownstreamState
   QType checkType{QType::A};
   uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
-  std::atomic<uint64_t> sendErrors{0};
-  std::atomic<uint64_t> outstanding{0};
-  std::atomic<uint64_t> reuseds{0};
-  std::atomic<uint64_t> queries{0};
-  std::atomic<uint64_t> responses{0};
+  stat_t sendErrors{0};
+  stat_t outstanding{0};
+  stat_t reuseds{0};
+  stat_t queries{0};
+  stat_t responses{0};
   struct {
-    std::atomic<uint64_t> sendErrors{0};
-    std::atomic<uint64_t> reuseds{0};
-    std::atomic<uint64_t> queries{0};
+    stat_t sendErrors{0};
+    stat_t reuseds{0};
+    stat_t queries{0};
   } prev;
-  std::atomic<uint64_t> tcpDiedSendingQuery{0};
-  std::atomic<uint64_t> tcpDiedReadingResponse{0};
-  std::atomic<uint64_t> tcpGaveUp{0};
-  std::atomic<uint64_t> tcpReadTimeouts{0};
-  std::atomic<uint64_t> tcpWriteTimeouts{0};
-  std::atomic<uint64_t> tcpCurrentConnections{0};
-  std::atomic<double> tcpAvgQueriesPerConnection{0.0};
+  stat_t tcpDiedSendingQuery{0};
+  stat_t tcpDiedReadingResponse{0};
+  stat_t tcpGaveUp{0};
+  stat_t tcpReadTimeouts{0};
+  stat_t tcpWriteTimeouts{0};
+  stat_t tcpCurrentConnections{0};
+  pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
-  std::atomic<double> tcpAvgConnectionDuration{0.0};
+  pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   size_t socketsOffset{0};
   size_t d_maxInFlightQueriesPerConn{1};
   double queryLoad{0.0};
@@ -1033,7 +1034,7 @@ public:
   }
   virtual bool matches(const DNSQuestion* dq) const =0;
   virtual string toString() const = 0;
-  mutable std::atomic<uint64_t> d_matches{0};
+  mutable stat_t d_matches{0};
 };
 
 struct ServerPool
@@ -1197,8 +1198,8 @@ extern uint64_t g_maxTCPQueuedConnections;
 extern size_t g_maxTCPQueriesPerConn;
 extern size_t g_maxTCPConnectionDuration;
 extern size_t g_maxTCPConnectionsPerClient;
-extern std::atomic<uint16_t> g_cacheCleaningDelay;
-extern std::atomic<uint16_t> g_cacheCleaningPercentage;
+extern pdns::stat16_t g_cacheCleaningDelay;
+extern pdns::stat16_t g_cacheCleaningPercentage;
 extern uint32_t g_staleCacheEntriesTTL;
 extern bool g_apiReadWrite;
 extern std::string g_apiConfigDirectory;
