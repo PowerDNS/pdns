@@ -1257,10 +1257,10 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toLogString(), QType(dq.qtype).getName(), dq.remote->toStringWithPort());
       if (g_servFailOnNoPolicy) {
-        restoreFlags(dq.dh, dq.origFlags);
-
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr = true;
+
+        fixUpQueryTurnedResponse(dq, dq.origFlags);
 
         if (!prepareOutgoingResponse(holders, cs, dq, false)) {
           return ProcessQueryResult::Drop;

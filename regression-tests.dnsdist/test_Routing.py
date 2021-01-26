@@ -329,6 +329,7 @@ class TestRoutingNoServer(DNSDistTest):
         """
         Routing: No server should return ServFail
         """
+        # without EDNS
         name = 'noserver.routing.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         expectedResponse = dns.message.make_response(query)
@@ -337,7 +338,19 @@ class TestRoutingNoServer(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.checkMessageNoEDNS(expectedResponse, receivedResponse)
+
+        # now with EDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        expectedResponse = dns.message.make_response(query, our_payload=1500)
+        expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
+            self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
+            self.assertEquals(receivedResponse.payload, 1500)
 
 class TestRoutingWRandom(DNSDistTest):
 
