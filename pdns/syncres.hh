@@ -1110,7 +1110,7 @@ uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype=0xffff);
 void doCarbonDump(void*);
-bool primeHints(void);
+bool primeHints(time_t now = time(nullptr));
 void primeRootNSZones(bool, unsigned int depth);
 
 extern __thread struct timeval g_now;

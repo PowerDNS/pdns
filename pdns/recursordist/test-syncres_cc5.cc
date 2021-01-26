@@ -107,6 +107,132 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos)
   BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
+static void testFixedPointInTime(time_t fixedNow)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true, false, fixedNow);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints(fixedNow);
+  const DNSName target("powerdns.com.");
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA384, DNSSECKeeper::DIGEST_SHA384, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, targetAddr, &queriesCount, keys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    DNSName auth = domain;
+    if (domain == target) {
+      auth = DNSName("powerdns.com.");
+    }
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, auth, type, keys, true, fixedNow);
+    }
+
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+      addDS(DNSName("com."), 300, res->d_records, keys);
+      addRRSIG(keys, res->d_records, DNSName("."), 300, false, boost::none, boost::none, fixedNow);
+      addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    if (ip == ComboAddress("192.0.2.1:53")) {
+      if (domain == DNSName("com.")) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
+        addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, fixedNow);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, fixedNow);
+      }
+      else {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, auth, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(auth, 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300, false, boost::none, boost::none, fixedNow);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+      }
+      return LWResult::Result::Success;
+    }
+
+    if (ip == ComboAddress("192.0.2.2:53")) {
+      if (type == QType::NS) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
+      }
+      else {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
+      }
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos1970)
+{
+  /* validity period in ye olde times */
+  const time_t fixedNow = 1800;
+  testFixedPointInTime(fixedNow);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos2038)
+{
+  /* validity period contains the wrapping point in 2038 */
+  const time_t fixedNow = INT_MAX - 1800;
+  testFixedPointInTime(fixedNow);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos2041)
+{
+  /* validity period completely after 2038 but not wrapping uint32_t*/
+  const time_t fixedNow = time_t(INT_MAX) + 100000000;
+  testFixedPointInTime(fixedNow);
+}
+
+#if 0
+// Currently fails see validate.cc:isRRSIGNotExpired() and isRRSIGIncepted()
+BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos2106)
+{
+  /* validity period beyond 2106 uint32_t wrapping point */
+  const time_t fixedNow = 2 * time_t(INT_MAX);
+  testFixedPointInTime(fixedNow);
+}
+#endif
+
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_a_then_ns)
 {
   std::unique_ptr<SyncRes> sr;

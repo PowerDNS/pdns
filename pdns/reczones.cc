@@ -42,7 +42,7 @@ static void insertIntoRootNSZones(const DNSName &name) {
   }
 }
 
-bool primeHints(void)
+bool primeHints(time_t ignored)
 {
   // prime root cache
   const vState validationState = vState::Insecure;
