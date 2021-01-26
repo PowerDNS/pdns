@@ -1267,7 +1267,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       addXPF(dq, selectedBackend->xpfRRCode);
     }
 
-    selectedBackend->queries++;
+    selectedBackend->incQueriesCount();
     return ProcessQueryResult::PassToBackend;
   }
   catch (const std::exception& e){
