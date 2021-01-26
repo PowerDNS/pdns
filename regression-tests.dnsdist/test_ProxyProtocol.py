@@ -454,8 +454,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
     -- add these values for all queries
     addAction("proxy-protocol-incoming.tests.powerdns.com.", LuaAction(addValues))
-    addAction("proxy-protocol-incoming.tests.powerdns.com.", AddProxyProtocolValueAction(1, "dnsdist"))
-    addAction("proxy-protocol-incoming.tests.powerdns.com.", AddProxyProtocolValueAction(255, "proxy-protocol"))
+    addAction("proxy-protocol-incoming.tests.powerdns.com.", SetAdditionalProxyProtocolValueAction(1, "dnsdist"))
+    addAction("proxy-protocol-incoming.tests.powerdns.com.", SetAdditionalProxyProtocolValueAction(255, "proxy-protocol"))
 
     -- override all existing values
     addAction("override.proxy-protocol-incoming.tests.powerdns.com.", SetProxyProtocolValuesAction({["50"]="overridden"}))

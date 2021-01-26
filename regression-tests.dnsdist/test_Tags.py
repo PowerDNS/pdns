@@ -13,10 +13,10 @@ class TestTags(DNSDistTest):
     end
     addAction(AllRule(), LuaAction(lol))
 
-    addAction("tag-me-dns-1.tags.tests.powerdns.com.", TagAction("dns", "value1"))
-    addAction("tag-me-dns-2.tags.tests.powerdns.com.", TagAction("dns", "value2"))
-    addAction("tag-me-response-1.tags.tests.powerdns.com.", TagAction("response", "value1"))
-    addAction("tag-me-response-2.tags.tests.powerdns.com.", TagAction("response", "value2"))
+    addAction("tag-me-dns-1.tags.tests.powerdns.com.", SetTagAction("dns", "value1"))
+    addAction("tag-me-dns-2.tags.tests.powerdns.com.", SetTagAction("dns", "value2"))
+    addAction("tag-me-response-1.tags.tests.powerdns.com.", SetTagAction("response", "value1"))
+    addAction("tag-me-response-2.tags.tests.powerdns.com.", SetTagAction("response", "value2"))
 
     addAction(TagRule("not-dns"), SpoofAction("1.2.3.4"))
     addAction(TagRule("dns", "value1"), SpoofAction("1.2.3.50"))
@@ -36,7 +36,7 @@ class TestTags(DNSDistTest):
     addResponseAction(TagRule("response", "value1"), LuaResponseAction(responseHandlerSetTC))
     addResponseAction(TagRule("response", "no-match-value"), DropResponseAction())
 
-    addResponseAction("tag-me-response-3.tags.tests.powerdns.com.", TagResponseAction("response-tag", "value"))
+    addResponseAction("tag-me-response-3.tags.tests.powerdns.com.", SetTagResponseAction("response-tag", "value"))
     addResponseAction(TagRule("response-tag"), LuaResponseAction(responseHandlerUnsetQR))
     """
 
