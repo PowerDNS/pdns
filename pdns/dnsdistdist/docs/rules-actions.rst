@@ -148,12 +148,6 @@ Rule Generators
 
 .. function:: addLuaAction(DNSrule, function [, options])
 
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
-  .. versionchanged:: 1.3.0
-    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
-
   .. deprecated:: 1.4.0
     Removed in 1.4.0, use :func:`LuaAction` with :func:`addAction` instead.
 
@@ -186,12 +180,6 @@ Rule Generators
     addLuaAction(AllRule(), luaaction)
 
 .. function:: addLuaResponseAction(DNSrule, function [, options])
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
-  .. versionchanged:: 1.3.0
-    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
 
   .. deprecated:: 1.4.0
     Removed in 1.4.0, use :func:`LuaResponseAction` with :func:`addResponseAction` instead.
@@ -282,9 +270,6 @@ For Rules related to the incoming query:
 
 .. function:: addAction(DNSrule, action [, options])
 
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
@@ -325,9 +310,6 @@ For Rules related to the incoming query:
 
 .. function:: newRuleAction(rule, action[, options])
 
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
@@ -350,9 +332,6 @@ For Rules related to the incoming query:
 
 .. function:: showRules([options])
 
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added
-
   Show all defined rules for queries, optionally displaying their UUIDs.
 
   :param table options: A table with key: value pairs with display options.
@@ -371,9 +350,6 @@ For Rules related to the incoming query:
 
 .. function:: rmRule(id)
 
-  .. versionchanged:: 1.3.0
-    ``id`` can now be an UUID.
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
@@ -384,9 +360,6 @@ For Rules related to the incoming query:
 For Rules related to responses:
 
 .. function:: addResponseAction(DNSRule, action [, options])
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
 
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
@@ -418,9 +391,6 @@ For Rules related to responses:
 
 .. function:: rmResponseRule(id)
 
-  .. versionchanged:: 1.3.0
-    ``id`` can now be an UUID.
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
@@ -429,9 +399,6 @@ For Rules related to responses:
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showResponseRules([options])
-
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added
 
   Show all defined response rules, optionally displaying their UUIDs.
 
@@ -452,9 +419,6 @@ For Rules related to responses:
 Functions for manipulating Cache Hit Response Rules:
 
 .. function:: addCacheHitResponseAction(DNSRule, action [, options])
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
 
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
@@ -486,18 +450,12 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: rmCacheHitResponseRule(id)
 
-  .. versionchanged:: 1.3.0
-    ``id`` can now be an UUID.
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showCacheHitResponseRules([options])
-
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added
 
   Show all defined cache hit response rules, optionally displaying their UUIDs.
 
@@ -687,9 +645,6 @@ These ``DNSRule``\ s be one of the following items:
   :param string function: the name of a Lua function
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
-
-  .. versionchanged:: 1.3.1
-    Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
 
   Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
   This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
@@ -1278,9 +1233,6 @@ The following actions exist.
 
 .. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
 
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added.
-
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
@@ -1298,9 +1250,6 @@ The following actions exist.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
-
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added.
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.

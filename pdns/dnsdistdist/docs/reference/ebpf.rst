@@ -5,9 +5,6 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
 .. function:: addBPFFilterDynBlocks(addresses, dynbpf[[, seconds=10], msg])
 
-  .. versionchanged:: 1.3.0
-    ``msg`` optional parameter added.
-
   This is the eBPF equivalent of :func:`addDynBlocks`, blocking a set of addresses for (optionally) a number of seconds, using an eBPF dynamic filter.
   The default number of seconds to block for is 10.
 

@@ -65,9 +65,6 @@ Listen Sockets
 
 .. function:: addLocal(address[, options])
 
-  .. versionchanged:: 1.3.0
-    Added ``cpus`` to the options.
-
   .. versionchanged:: 1.4.0
     Removed ``doTCP`` from the options. A listen socket on TCP is always created.
 
@@ -163,11 +160,6 @@ Listen Sockets
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
-  .. versionchanged:: 1.3.1
-    ``certFile(s)`` and ``keyFile(s)`` parameters accept a list of files.
-    ``sessionTickets`` option added.
-  .. versionchanged:: 1.3.3
-    ``numberOfStoredSessions`` option added.
   .. versionchanged:: 1.4.0
     ``ciphersTLS13``, ``minTLSVersion``, ``ocspResponses``, ``preferServerCiphers``, ``keyLogFile`` options added.
   .. versionchanged:: 1.5.0
@@ -481,9 +473,6 @@ Ringbuffers
 
 .. function:: setRingBuffersSize(num [, numberOfShards])
 
-  .. versionchanged:: 1.3.0
-    ``numberOfShards`` optional parameter added.
-
   Set the capacity of the ringbuffers used for live traffic inspection to ``num``, and the number of shards to ``numberOfShards`` if specified.
 
   :param int num: The maximum amount of queries to keep in the ringbuffer. Defaults to 10000
@@ -494,9 +483,6 @@ Servers
 
 .. function:: newServer(server_string)
               newServer(server_table)
-
-  .. versionchanged:: 1.3.0
-    Added ``checkClass``, ``sockets`` and ``checkFunction`` to server_table.
 
   .. versionchanged:: 1.4.0
     Added ``checkInterval``, ``checkTimeout`` and ``rise`` to server_table.
@@ -646,9 +632,6 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:setAuto([status])
 
-    .. versionchanged:: 1.3.0
-        ``status`` optional parameter added.
-
     Set the server in the default auto state.
     This will enable health check queries that will set the server ``up`` and ``down`` appropriately.
 
@@ -755,12 +738,6 @@ See :doc:`../guides/cache` for a how to.
 
 .. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
 
-  .. versionchanged:: 1.3.0
-    ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
-
-  .. versionchanged:: 1.3.1
-    ``maxNegativeTTL`` and ``parseECS`` parameters added.
-
   .. deprecated:: 1.4.0
 
   Creates a new :class:`PacketCache` with the settings specified.
@@ -818,9 +795,6 @@ See :doc:`../guides/cache` for a how to.
     :param int n: Number of entries to keep
 
   .. method:: PacketCache:expungeByName(name [, qtype=DNSQType.ANY[, suffixMatch=false]])
-
-    .. versionchanged:: 1.2.0
-      ``suffixMatch`` parameter added.
 
     .. versionchanged:: 1.6.0
       ``name`` can now also be a string
@@ -1148,9 +1122,6 @@ Dynamic Blocks
 
 .. function:: addDynBlocks(addresses, message[, seconds=10[, action]])
 
-  .. versionchanged:: 1.2.0
-    ``action`` parameter added.
-
   Block a set of addresses with ``message`` for (optionally) a number of seconds.
   The default number of seconds to block for is 10.
 
@@ -1170,9 +1141,6 @@ Dynamic Blocks
   List all dynamic blocks in effect.
 
 .. function:: setDynBlocksAction(action)
-
-  .. versionchanged:: 1.3.3
-    ``DNSAction.NXDomain`` action added.
 
   Set which action is performed when a query is blocked.
   Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.NXDomain, DNSAction.Refused, DNSAction.Truncate and DNSAction.NoRecurse are supported.
@@ -1248,9 +1216,6 @@ faster than the existing rules.
 
   .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
 
-    .. versionchanged:: 1.3.3
-        ``warningRate`` parameter added.
-
     Adds a query rate-limiting rule, equivalent to:
     ```
     addDynBlocks(exceedQRate(rate, seconds), reason, blockingTime, action)
@@ -1264,9 +1229,6 @@ faster than the existing rules.
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
   .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
-
-    .. versionchanged:: 1.3.3
-        ``warningRate`` parameter added.
 
     Adds a rate-limiting rule for responses of code ``rcode``, equivalent to:
     ```
@@ -1298,9 +1260,6 @@ faster than the existing rules.
 
   .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate]])
 
-    .. versionchanged:: 1.3.3
-        ``warningRate`` parameter added.
-
     Adds a rate-limiting rule for queries of type ``qtype``, equivalent to:
     ```
     addDynBlocks(exceedQTypeRate(type, rate, seconds), reason, blockingTime, action)
@@ -1315,9 +1274,6 @@ faster than the existing rules.
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
   .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
-
-    .. versionchanged:: 1.3.3
-        ``warningRate`` parameter added.
 
     Adds a bandwidth rate-limiting rule for responses, equivalent to:
     ```

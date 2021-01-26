@@ -3,9 +3,6 @@ DNSCrypt objects and functions
 
 .. function:: addDNSCryptBind(address, provider, certFile(s), keyFile(s) [, options])
 
-  .. versionchanged:: 1.3.0
-    ``cpus`` option added.
-
   .. versionchanged:: 1.4.0
     Removed ``doTCP`` from the options. A listen socket on TCP is always created.
     ``certFile(s)`` and ``keyFile(s)`` now accept a list of files.
@@ -34,9 +31,6 @@ DNSCrypt objects and functions
   :param string privateKey: path to write the private key to
 
 .. function:: generateDNSCryptCertificate(privatekey, certificate, keyfile, serial, validFrom, validUntil[, version])
-
-  .. versionchanged:: 1.3.0
-    ``version`` optional parameter added.
 
   generate a new resolver private key and related certificate, valid from the ``validFrom`` UNIX timestamp until the ``validUntil`` one, signed with the provider private key.
 
@@ -145,9 +139,6 @@ Context
 
   .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version])
 
-    .. versionchanged:: 1.3.0
-      ``version`` optional parameter added.
-
     Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and add it to the context
 
     :param string keyfile: Path to the provider key file to use
@@ -198,9 +189,6 @@ Context
     Return the provider name
 
   .. method:: DNSCryptContext:loadNewCertificate(certificate, keyfile[, active])
-
-    .. versionchanged:: 1.3.0
-      ``active`` optional parameter added.
 
     Load a new certificate and the corresponding private key. If `active` is false, the
     certificate will not be advertised to clients but can still be used to answer queries
