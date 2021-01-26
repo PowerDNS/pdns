@@ -96,20 +96,6 @@ Listen Sockets
 
   This will bind to both UDP and TCP on port 5300 with SO_REUSEPORT enabled.
 
-.. function:: addLocal(address[[[,do_tcp], so_reuseport], tcp_fast_open_qsize])
-
-  .. deprecated:: 1.2.0
-
-  Add to the list of addresses listened on.
-
-  :param str address: The IP Address with an optional port to listen on.
-                      The default port is 53.
-  :param bool do_tcp: Also bind a TCP port on ``address``, defaults to true.
-  :param bool so_reuseport: Use ``SO_REUSEPORT`` if it is available, defaults to false
-  :param int tcp_fast_open_qsize: The size of the TCP Fast Open queue. Set to a number
-                                  higher than 0 to enable TCP Fast Open when available.
-                                  Default is 0.
-
 .. function:: addDOHLocal(address, [certFile(s) [, keyFile(s) [, urls [, options]]]])
 
   .. versionadded:: 1.4.0
@@ -206,20 +192,6 @@ Listen Sockets
   :param table options: A table with key: value pairs with listen options.
 
   The options that can be set are the same as :func:`addLocal`.
-
-.. function:: setLocal(address[[[,do_tcp], so_reuseport], tcp_fast_open_qsize])
-
-  .. deprecated:: 1.2.0
-
-  Remove the list of listen addresses and add a new one.
-
-  :param str address: The IP Address with an optional port to listen on.
-                      The default port is 53.
-  :param bool do_tcp: Also bind a TCP port on ``address``, defaults to true.
-  :param bool so_reuseport: Use ``SO_REUSEPORT`` if it is available, defaults to false
-  :param int tcp_fast_open_qsize: The size of the TCP Fast Open queue. Set to a number
-                                  higher than 0 to enable TCP Fast Open when available.
-                                  Default is 0.
 
 Control Socket, Console and Webserver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
