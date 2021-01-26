@@ -1270,7 +1270,7 @@ The following actions exist.
 
   .. deprecated:: 1.6.0
 
-  This function has been deprecated in 1.6.0, please use :func:`NoRecurseAction` instead.
+  This function has been deprecated in 1.6.0, please use :func:`SetNoRecurseAction` instead.
 
   Strip RD bit from the question, let it go through.
   Subsequent rules are processed after this action.
@@ -1619,7 +1619,7 @@ The following actions exist.
 
   .. versionadded:: 1.3.0
 
-   .. deprecated:: 1.6.0
+  .. deprecated:: 1.6.0
 
   This function has been deprecated in 1.6.0, please use :func:`SetTagAction` instead.
 
