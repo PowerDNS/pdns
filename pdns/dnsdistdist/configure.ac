@@ -9,6 +9,9 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
+AX_COMPILE_CHECK_SIZEOF(time_t)
+AS_IF([test $ac_size -lt 8], [AC_MSG_ERROR([size of time_t is $ac_size, which is not large enough to fix the y2k38 bug])])
+
 AC_DEFINE([DNSDIST], [1],
   [This is dnsdist]
 )
