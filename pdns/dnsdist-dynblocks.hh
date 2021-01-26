@@ -276,9 +276,19 @@ public:
     d_excludedSubnets.addMask(range);
   }
 
+  void excludeRange(const NetmaskGroup& group)
+  {
+    d_excludedSubnets.addMasks(group, true);
+  }
+
   void includeRange(const Netmask& range)
   {
     d_excludedSubnets.addMask(range, false);
+  }
+
+  void includeRange(const NetmaskGroup& group)
+  {
+    d_excludedSubnets.addMasks(group, false);
   }
 
   void excludeDomain(const DNSName& domain)

@@ -772,21 +772,27 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->setQTypeRate(qtype, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup> ranges) {
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           group->excludeRange(Netmask(range.second));
         }
       }
+      else if (ranges.type() == typeid(NetmaskGroup)) {
+        group->excludeRange(*boost::get<NetmaskGroup>(&ranges));
+      }
       else {
         group->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>, NetmaskGroup> ranges) {
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           group->includeRange(Netmask(range.second));
         }
+      }
+      else if (ranges.type() == typeid(NetmaskGroup)) {
+        group->includeRange(*boost::get<NetmaskGroup>(&ranges));
       }
       else {
         group->includeRange(Netmask(*boost::get<std::string>(&ranges)));

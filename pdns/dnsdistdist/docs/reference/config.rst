@@ -1417,17 +1417,23 @@ faster than the existing rules.
 
     .. versionadded:: 1.3.1
 
+    .. versionchanged:: 1.6.0
+      This method now accepts a :class:`NetmaskGroup` object.
+
     Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBlockRulesGroup:includeRange`, the more specific entry wins.
 
-    :param list netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+    :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
   .. method:: DynBlockRulesGroup:includeRange(netmasks)
 
     .. versionadded:: 1.3.1
 
+    .. versionchanged:: 1.6.0
+      This method now accepts a :class:`NetmaskGroup` object.
+
     Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBlockRulesGroup:excludeRange`, the more specific entry wins.
 
-    :param list netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+    :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
   .. method:: DynBlockRulesGroup:toString()
 
