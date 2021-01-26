@@ -67,7 +67,9 @@ edns-padding-max-bytes=%i
         query = dns.message.make_query('version.bind.', 'TXT', 'CH',
                                        use_edns=0, payload=512, options=[opt])
         response = self.sendUDPQuery(query)
+        print(response)
         self.assertRcodeEqual(response, dns.rcode.NOERROR)
         self.assertEqual(len(response.options), 1)
+        print(response.options[0].to_wire())
         self.assertEqual(response.options[0],
                          dns.edns.GenericOption(dns.edns.PADDING, 326 * '\0'))
