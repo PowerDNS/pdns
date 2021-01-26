@@ -136,8 +136,6 @@ Context
 
   .. method:: DNSCryptContext:addNewCertificate(cert, key[, active])
 
-    .. versionadded:: 1.3.0
-
     Add a new certificate to the the given context. Active certificates are advertised to
     clients, inactive ones are not.
 
@@ -181,23 +179,17 @@ Context
 
   .. method:: DNSCryptContext:getCertificate(index) -> DNSCryptCert
 
-    .. versionadded:: 1.3.0
-
     Return the certificate with index `index`.
 
     :param int index: The index of the certificate, starting at 0
 
   .. method:: DNSCryptContext:getCertificatePair(index) -> DNSCryptCertificatePair
 
-    .. versionadded:: 1.3.0
-
     Return the certificate pair with index `index`.
 
     :param int index: The index of the certificate, starting at 0
 
   .. method:: DNSCryptContext:getCertificatePair(index) -> table of DNSCryptCertificatePair
-
-    .. versionadded:: 1.3.0
 
     Return a table of certificate pairs.
 
@@ -220,15 +212,11 @@ Context
 
   .. method:: DNSCryptContext:markActive(serial)
 
-    .. versionadded:: 1.3.0
-
     Mark the certificate with serial `serial` as active, meaning it will be advertised to clients.
 
     :param int serial: The serial of the number to mark as active
 
   .. method:: DNSCryptContext:markInactive(serial)
-
-    .. versionadded:: 1.3.0
 
     Mark the certificate with serial `serial` as inactive, meaning it will not be advertised
     to clients but can still be used to answer queries tied to this certificate.
@@ -237,13 +225,9 @@ Context
 
   .. method:: DNSCryptContext:printCertificates()
 
-    .. versionadded:: 1.3.0
-
     Print all the certificates.
 
   .. method:: DNSCryptContext:removeInactiveCertificate(serial)
-
-    .. versionadded:: 1.3.0
 
     Remove the certificate with serial `serial`. It will not be possible to answer queries tied
     to this certificate, so it should have been marked as inactive for a certain time before that.

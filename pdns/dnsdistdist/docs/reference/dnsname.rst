@@ -37,8 +37,6 @@ Functions and methods of a ``DNSName``
 
   .. method:: DNSName:chopOff() -> bool
 
-    .. versionadded:: 1.2.0
-
     Removes the left-most label and returns ``true``.
     ``false`` is returned if no label was removed
 

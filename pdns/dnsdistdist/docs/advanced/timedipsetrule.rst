@@ -1,8 +1,6 @@
 Runtime-modifiable IP address sets
 ==================================
 
-.. versionadded:: 1.2.0
-
 From within :func:`maintenance` or other places, we may find that certain IP
 addresses must be treated differently for a certain time.
 
