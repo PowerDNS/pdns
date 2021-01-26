@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(test_get_entry2038)
   DNSName qname("www2.powerdns.com");
   DNSName auth("powerdns.com");
 
-  struct timeval now{INT_MAX - 300, 0};
+  timeval now{INT_MAX - 300, 0};
 
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now));
