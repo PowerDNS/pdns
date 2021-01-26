@@ -124,9 +124,9 @@ The operation of TCP Fast Open can be monitored by looking at these kernel metri
 
 Please note that if active TCP Fast Open attempts fail in particular ways, the Linux kernel stops using active TCP Fast Open for a while for all connections, even connection to servers that previously worked.
 This behaviour can be monitored by watching the ``TCPFastOpenBlackHole`` kernel metric and influenced by setting the ``net.ipv4.tcp_fastopen_blackhole_timeout_sec`` sysctl.
+While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fastopen_blackhole_timeout_sec`` to zero to circumvent the issue, since it was triggered regularly while forcing TCP connections to nameservers for popular domains.
 
-At the moment of writing, the Google operated nameservers (both recursive and authoritative) trigger the pause in use of TCP Fast Open, since they indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
-While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fastopen_blackhole_timeout_sec`` to zero to circumvent the issue.
+At the moment of writing, the Google operated nameservers (both recursive and authoritative) indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
 We can only hope Google will fix this issue soon.
 
 If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you wil create a similar issue the Google servers have.
