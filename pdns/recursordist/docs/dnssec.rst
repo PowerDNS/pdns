@@ -2,10 +2,6 @@ DNSSEC in the PowerDNS Recursor
 ===============================
 As of 4.0.0, the PowerDNS Recursor has support for DNSSEC processing and experimental support for DNSSEC validation.
 
-.. warning::
-  The DNSSEC implementation in the PowerDNS Recursor 4.0.x is known to have deficiencies due to its original design.
-  When doing DNSSEC validation, ensure you are running 4.1.0 or later which has a fully reworked (and correct) DNSSEC implementation.
-
 DNSSEC settings
 ---------------
 The PowerDNS Recursor has 5 different levels of DNSSEC processing, which can be set with the :ref:`setting-dnssec` setting in the ``recursor.conf``.
@@ -15,7 +11,6 @@ In order from least to most processing, these are:
 ^^^^^^^
 In this mode, **no** DNSSEC processing takes place.
 The PowerDNS Recursor will not set the DNSSEC OK (DO) bit in the outgoing queries and will ignore the DO and AD bits in queries.
-In this mode, the behaviour is equal to the PowerDNS Recursor 3.X.
 
 ``process-no-validate``
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -39,41 +34,42 @@ Responses to client queries are the same as with `process`_.
 ``validate``
 ^^^^^^^^^^^^
 The highest mode of DNSSEC processing.
-In this mode, all queries will be be validated and will be answered with a SERVFAIL in case of bogus data, regardless of the client's request.
+In this mode, all responses will be be validated and and queries will be answered with a SERVFAIL in case of bogus data, even if the client did not request validation by setting the AD or DO bit.
+
+**Note**: the CD-bit is honored for ``process``, ``log-fail`` and
+``validate``. This mean that even if validation fails, results are
+returned if the CD-bit is set by the client. For ``log-fail``, failures will be logged too.
 
 What, when?
 ^^^^^^^^^^^
 The descriptions above are a bit terse, here's a table describing different scenarios with regards to the ``dnssec`` mode.
 
-+--------------+---------+-------------------------+---------------+---------------+---------------+
-|              | ``off`` | ``process-no-validate`` | ``process``   | ``log-fail``  | ``validate``  |
-+==============+=========+=========================+===============+===============+===============+
-| Perform      | No      | No                      | Only on +AD   | Always (logs  | Always        |
-| validation   |         |                         | or +DO from   | result)       |               |
-|              |         |                         | client        |               |               |
-+--------------+---------+-------------------------+---------------+---------------+---------------+
-| SERVFAIL on  | No      | No                      | Only on +AD   | Only on +AD   | Always        |
-| bogus        |         |                         | or +DO from   | or +DO from   |               |
-|              |         |                         | client        | client        |               |
-+--------------+---------+-------------------------+---------------+---------------+---------------+
-| AD in        | Never   | Never                   | Only on +AD   | Only on +AD   | Only on +AD   |
-| response on  |         |                         | or +DO from   | or +DO from   | or +DO from   |
-| authenticate |         |                         | client        | client        | client        |
-| d            |         |                         |               |               |               |
-| data         |         |                         |               |               |               |
-+--------------+---------+-------------------------+---------------+---------------+---------------+
-| RRSIGs/NSECs | No      | Yes                     | Yes           | Yes           | Yes           |
-| in answer on |         |                         |               |               |               |
-| +DO from     |         |                         |               |               |               |
-| client       |         |                         |               |               |               |
-+--------------+---------+-------------------------+---------------+---------------+---------------+
++---------------+---------+-------------------------+---------------+---------------+---------------+
+|               | ``off`` | ``process-no-validate`` | ``process``   | ``log-fail``  | ``validate``  |
++===============+=========+=========================+===============+===============+===============+
+| Perform       | No      | No                      | Only on +AD   | Always (logs  | Always        |
+| validation    |         |                         | or +DO from   | result)       |               |
+|               |         |                         | client        |               |               |
++---------------+---------+-------------------------+---------------+---------------+---------------+
+| SERVFAIL on   | No      | No                      | Only on +AD   | Only on +AD   | If -CD        |
+| bogus         |         |                         | or +DO and    | or +DO and    | from client   |
+|               |         |                         | -CD from      | -CD from      |               |
+|               |         |                         | client        | client        |               |
++---------------+---------+-------------------------+---------------+---------------+---------------+
+| AD in         | Never   | Never                   | Only on +AD   | Only on +AD   | Only on +AD   |
+| response on   |         |                         | or +DO from   | or +DO from   | or +DO from   |
+| authenticated |         |                         | client        | client        | client        |
+| data          |         |                         |               |               |               |
++---------------+---------+-------------------------+---------------+---------------+---------------+
+| RRSIGs/NSECs  | No      | Yes                     | Yes           | Yes           | Yes           |
+| in answer on  |         |                         |               |               |               |
+| +DO from      |         |                         |               |               |               |
+| client        |         |                         |               |               |               |
++---------------+---------+-------------------------+---------------+---------------+---------------+
 
 **Note**: the ``dig`` tool sets the AD-bit in the query.
 This might lead to unexpected query results when testing.
 Set ``+noad`` on the ``dig`` commandline when this is the case.
-
-**Note**: the CD-bit is honored correctly for ``process`` and
-``validate``. For ``log-fail``, failures will be logged too.
 
 Trust Anchor Management
 -----------------------
