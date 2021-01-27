@@ -1039,17 +1039,8 @@ static uint64_t doGetMallocated()
 
 extern ResponseStats g_rs;
 
-void registerAllStats()
+static void registerAllStats1()
 {
-  static std::mutex s_lock;
-  static bool s_inited = false;
-
-  std::lock_guard<std::mutex> lock(s_lock);
-
-  if (s_inited) {
-    return;
-  }
-
   addGetStat("questions", &g_stats.qcounter);
   addGetStat("ipv6-questions", &g_stats.ipv6qcounter);
   addGetStat("tcp-questions", &g_stats.tcpqcounter);
@@ -1252,8 +1243,12 @@ void registerAllStats()
     const std::string name = "ecs-v6-response-bits-" + std::to_string(idx + 1);
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
   }
-  
-  s_inited = true;
+}
+
+void registerAllStats()
+{
+  static std::once_flag s_once;
+  std::call_once(s_once, registerAllStats1);
 }
 
 void doExitGeneric(bool nicely)
