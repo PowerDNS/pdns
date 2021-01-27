@@ -763,11 +763,13 @@ static const vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& en
 
 bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent>& sig)
 {
+  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5 
   return sig->d_sigexpire >= now;
 }
 
 bool isRRSIGIncepted(const time_t now, const shared_ptr<RRSIGRecordContent>& sig)
 {
+  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5 
   return sig->d_siginception - g_signatureInceptionSkew <= now;
 }
 
