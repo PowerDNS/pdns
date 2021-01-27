@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(test_get_entry2038)
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   NegCache::NegCacheEntry ne;
-  bool ret = cache.get(qname, QType(1), now, ne);
+  bool ret = cache.get(qname, QType(QType::A), now, ne);
 
   BOOST_CHECK(ret);
   BOOST_CHECK_EQUAL(ne.d_name, qname);
