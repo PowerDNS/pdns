@@ -418,7 +418,7 @@ number of erroneous received packets
 
 nod-lookups-dropped-oversize
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Number of NOD lookups dropped because they would exceed the maximum name length"^^
+Number of NOD lookups dropped because they would exceed the maximum name length
 
 noedns-outqueries
 ^^^^^^^^^^^^^^^^^
@@ -566,23 +566,23 @@ sys-msec
 ^^^^^^^^
 number of CPU milliseconds spent in 'system' mode
 
-tastqueue-pushed
+taskqueue-pushed
 ^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
 number of tasks pushed to the taskqueue
 
-tastqueue-expired
+taskqueue-expired
 ^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
 number of tasks expired before they could be run
 
-tastqueue-size
+taskqueue-size
 ^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
-number of tasks currenlty in the taskqueues
+number of tasks currently in the taskqueues
 
 tcp-client-overflow
 ^^^^^^^^^^^^^^^^^^^
