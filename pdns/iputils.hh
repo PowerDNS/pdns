@@ -1326,6 +1326,13 @@ public:
     tree.insert(nm).second=positive;
   }
 
+  void addMasks(const NetmaskGroup& group, boost::optional<bool> positive)
+  {
+    for (const auto& entry : group.tree) {
+      addMask(entry.first, positive ? *positive : entry.second);
+    }
+  }
+
   //! Delete this Netmask from the list of possible matches
   void deleteMask(const Netmask& nm)
   {
