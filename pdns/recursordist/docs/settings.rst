@@ -405,31 +405,22 @@ See :doc:`dns64` for more flexible but slower alternatives using Lua.
 -  One of ``off``, ``process-no-validate``, ``process``, ``log-fail``, ``validate``, String
 -  Default: ``process-no-validate``
 
-Set the mode for DNSSEC processing:
+Set the mode for DNSSEC processing, as detailed in :doc:`dnssec`.
 
-off
-^^^
-No DNSSEC processing whatsoever.
-Ignore DO-bits in queries, don't request any DNSSEC information from authoritative servers.
-This behaviour is similar to PowerDNS Recursor pre-4.0.
-
-process-no-validate
-^^^^^^^^^^^^^^^^^^^
-Respond with DNSSEC records to clients that ask for it, set the DO bit on all outgoing queries.
-Don't do any validation.
-
-process
-^^^^^^^
-Respond with DNSSEC records to clients that ask for it, set the DO bit on all outgoing queries.
-Do validation for clients that request it (by means of the AD- bit or DO-bit in the query).
-
-log-fail
-^^^^^^^^
-Similar behaviour to ``process``, but validate RRSIGs on responses and log bogus responses.
-
-validate
-^^^^^^^^
-Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
+``off``
+   No DNSSEC processing whatsoever.
+   Ignore DO-bits in queries, don't request any DNSSEC information from authoritative servers.
+   This behaviour is similar to PowerDNS Recursor pre-4.0.
+``process-no-validate``
+   Respond with DNSSEC records to clients that ask for it, set the DO bit on all outgoing queries.
+   Don't do any validation.
+``process``
+   Respond with DNSSEC records to clients that ask for it, set the DO bit on all outgoing queries.
+   Do validation for clients that request it (by means of the AD- bit or DO-bit in the query).
+``log-fail``
+   Similar behaviour to ``process``, but validate RRSIGs on responses and log bogus responses.
+``validate``
+   Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
 
 .. _setting-dnssec-log-bogus:
 
@@ -1248,19 +1239,16 @@ For instance, when ``foo.example.net`` is negatively cached, any query
 matching ``*.foo.example.net`` will be answered with NXDOMAIN directly
 without consulting authoritative servers.
 
-no
-^^
-No :rfc:`8020` processing is done.
+``no``
+  No :rfc:`8020` processing is done.
 
-dnssec
-^^^^^^
-:rfc:`8020` processing is only done using cached NXDOMAIN records that are
-DNSSEC validated.
+``dnssec``
+  :rfc:`8020` processing is only done using cached NXDOMAIN records that are
+  DNSSEC validated.
 
-yes
-^^^
-:rfc:`8020` processing is done using any non-Bogus NXDOMAIN record
-available in the cache.
+``yes``
+  :rfc:`8020` processing is done using any non-Bogus NXDOMAIN record
+  available in the cache.
 
 .. _setting-nsec3-max-iterations:
 
