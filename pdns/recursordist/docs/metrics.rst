@@ -573,7 +573,7 @@ taskqueue-pushed
 number of tasks pushed to the taskqueue
 
 taskqueue-expired
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
 number of tasks expired before they could be run
