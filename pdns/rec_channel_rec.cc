@@ -1041,9 +1041,14 @@ extern ResponseStats g_rs;
 
 void registerAllStats()
 {
-  static std::atomic_flag s_init = ATOMIC_FLAG_INIT;
-  if(s_init.test_and_set())
+  static std::mutex s_lock;
+  static bool s_inited = false;
+
+  std::lock_guard<std::mutex> lock(s_lock);
+
+  if (s_inited) {
     return;
+  }
 
   addGetStat("questions", &g_stats.qcounter);
   addGetStat("ipv6-questions", &g_stats.ipv6qcounter);
@@ -1247,6 +1252,8 @@ void registerAllStats()
     const std::string name = "ecs-v6-response-bits-" + std::to_string(idx + 1);
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
   }
+  
+  s_inited = true;
 }
 
 void doExitGeneric(bool nicely)

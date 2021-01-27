@@ -984,7 +984,6 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   registerAllStats();
 
 #if CHECK_PROMETHEUS_METRICS
-  // There is a race here if another thread already called registerAllStats(); but it is not ready yet
   validatePrometheusMetrics();
 #endif
 
