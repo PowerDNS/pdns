@@ -446,6 +446,10 @@ public:
     d_prev.start();
   }
 
+  virtual ~BasicQPSLimiter()
+  {
+  }
+
   bool check(unsigned int rate, unsigned int burst) const // this is not quite fair
   {
     if (checkOnly(rate, burst)) {
