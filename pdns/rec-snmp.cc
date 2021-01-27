@@ -122,6 +122,9 @@ static const oid proxyProtocolInvalidOID[] = { RECURSOR_STATS_OID, 101 };
 static const oid recordCacheContendedOID[] = { RECURSOR_STATS_OID, 102 };
 static const oid recordCacheAcquiredOID[] = { RECURSOR_STATS_OID, 103 };
 static const oid nodLookupsDroppedOversizeOID[] = { RECURSOR_STATS_OID, 104 };
+static const oid taskQueuePushedOID[] = { RECURSOR_STATS_OID, 105 };
+static const oid taskQueueExpiredOID[] = { RECURSOR_STATS_OID, 106 };
+static const oid taskQueueSizeOID[] = { RECURSOR_STATS_OID, 107 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -335,5 +338,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("record-cache-contended", recordCacheContendedOID, OID_LENGTH(recordCacheContendedOID));
   registerCounter64Stat("record-cache-acquired", recordCacheAcquiredOID, OID_LENGTH(recordCacheAcquiredOID));
   registerCounter64Stat("nod-lookups-dropped-oversize", nodLookupsDroppedOversizeOID, OID_LENGTH(nodLookupsDroppedOversizeOID));
+  registerCounter64Stat("tasqueue-pushed", taskQueuePushedOID, OID_LENGTH(taskQueuePushedOID));
+  registerCounter64Stat("taskqueue-expired", taskQueueExpiredOID, OID_LENGTH(taskQueueExpiredOID));
+  registerCounter64Stat("taskqueue-size", taskQueueSizeOID, OID_LENGTH(taskQueueSizeOID));
 #endif /* HAVE_NET_SNMP */
 }

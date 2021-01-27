@@ -416,6 +416,10 @@ no-packet-error
 ^^^^^^^^^^^^^^^
 number of erroneous received packets
 
+nod-lookups-dropped-oversize
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Number of NOD lookups dropped because they would exceed the maximum name length
+
 noedns-outqueries
 ^^^^^^^^^^^^^^^^^
 number of queries sent out without EDNS
@@ -561,6 +565,24 @@ number of times PowerDNS considered itself   spoofed, and dropped the data
 sys-msec
 ^^^^^^^^
 number of CPU milliseconds spent in 'system' mode
+
+taskqueue-pushed
+^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5.0
+
+number of tasks pushed to the taskqueue
+
+taskqueue-expired
+^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5.0
+
+number of tasks expired before they could be run
+
+taskqueue-size
+^^^^^^^^^^^^^^
+.. versionadded:: 4.5.0
+
+number of tasks currently in the taskqueues
 
 tcp-client-overflow
 ^^^^^^^^^^^^^^^^^^^

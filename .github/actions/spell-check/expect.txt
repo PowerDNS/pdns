@@ -1931,6 +1931,7 @@ szw
 tarball
 Tarjei
 Tarnell
+taskqueue
 tbhandler
 tbody
 tcely
@@ -2106,7 +2107,6 @@ versionchanged
 versionmodified
 vh
 viewcode
-venv
 virtualized
 visitedlinkcolor
 vixie

@@ -871,6 +871,30 @@ nodLookupsDroppedOversize OBJECT-TYPE
         "Number of NOD lookups dropped because they would exceed the maximum name length"
     ::= { stats 104 }
 
+taskQueuePushed OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of tasks pushed to the taskqueues"
+    ::= { stats 105 }
+
+taskQueueExpired OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of tasks expired before they could be run"
+    ::= { stats 106 }
+
+taskQueueSize OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of tasks currenlty in the taskqueues"
+    ::= { stats 107 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1018,7 +1042,10 @@ recGroup OBJECT-GROUP
         proxyProtocolInvalid,
         recordCacheContended,
         recordCacheAcquired,
-        nodLookupsDroppedOversize
+        nodLookupsDroppedOversize,
+        taskQueuePushed,
+        taskQueueExpired,
+        taskQueueSize
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"
