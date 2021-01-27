@@ -8,10 +8,12 @@
 
 #include <boost/tuple/tuple.hpp>
 
+#include "base32.hh"
 #include "base64.hh"
 #include "dnsseckeeper.hh"
 #include "dnssecinfra.hh"
 #include "misc.hh"
+
 BOOST_AUTO_TEST_SUITE(test_signers)
 
 static const std::string message = "Very good, young padawan.";
@@ -255,5 +257,30 @@ BOOST_AUTO_TEST_CASE(test_ed448_signer) {
     BOOST_CHECK_EQUAL(b64, "3cPAHkmlnxcDHMyg7vFC34l0blBhuG1qpwLmjInI8w1CMB29FkEAIJUA0amxWndkmnBZ6SKiwZSAxGILn/NBtOXft0+Gj7FSvOKxE/07+4RQvE581N3Aj/JtIyaiYVdnYtyMWbSNyGEY2213WKsJlwEA");
 }
 #endif /* defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448) */
+
+BOOST_AUTO_TEST_CASE(test_hash_qname_with_salt) {
+  const unsigned char salt[] = { 0xaa, 0xbb, 0xcc, 0xdd };
+  const unsigned int iterations{12};
+  const std::vector<std::pair<std::string, std::string>> namesToHashes = {
+    // rfc5155 appendix A
+    { "example", "0p9mhaveqvm6t7vbl5lop2u3t2rp3tom" },
+    { "a.example", "35mthgpgcu1qg68fab165klnsnk3dpvl" },
+    { "ai.example", "gjeqe526plbf1g8mklp59enfd789njgi" },
+    { "ns1.example", "2t7b4g4vsa5smi47k61mv5bv1a22bojr" },
+    { "ns2.example", "q04jkcevqvmu85r014c7dkba38o0ji5r" },
+    { "w.example", "k8udemvp1j2f7eg6jebps17vp3n8i58h" },
+    { "*.w.example", "r53bq7cc2uvmubfu5ocmm6pers9tk9en" },
+    { "x.w.example", "b4um86eghhds6nea196smvmlo4ors995" },
+    { "y.w.example", "ji6neoaepv8b5o6k4ev33abha8ht9fgc" },
+    { "x.y.w.example", "2vptu5timamqttgl4luu9kg21e0aor3s" },
+    { "xx.example", "t644ebqk9bibcna874givr6joj62mlhv" },
+    { "2t7b4g4vsa5smi47k61mv5bv1a22bojr.example", "kohar7mbb8dc2ce8a9qvl8hon4k53uhi" },
+  };
+
+  for (const auto& [name, expectedHash] : namesToHashes) {
+    auto hash = hashQNameWithSalt(std::string(reinterpret_cast<const char*>(salt), sizeof(salt)), iterations, DNSName(name));
+    BOOST_CHECK_EQUAL(toBase32Hex(hash), expectedHash);
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END()

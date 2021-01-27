@@ -491,6 +491,7 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname)
 {
+  // rfc5155 section 5
   unsigned int times = iterations;
   unsigned char hash[SHA_DIGEST_LENGTH];
   string toHash(qname.toDNSStringLC() + salt);
