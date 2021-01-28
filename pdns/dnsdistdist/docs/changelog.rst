@@ -112,7 +112,7 @@ Changelog
     Prioritize ChaCha20-Poly1305 when client does (Sukhbir Singh)
 
   .. change::
-    :tags: Bug Fxies
+    :tags: Bug Fixes
     :pullreq: 9583
 
     Make: two fixes
@@ -296,7 +296,7 @@ Changelog
     Add SkipCacheResponseAction
 
   .. change::
-    :tags: Imoprovements, DNS over HTTPS
+    :tags: Improvements, DNS over HTTPS
     :pullreq: 9962
 
     Add an option to allow sub-paths for DoH

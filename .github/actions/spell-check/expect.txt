@@ -152,6 +152,7 @@ BADTRUNC
 BADVERS
 baf
 Baj
+Bakhos
 Bakker
 Baltus
 basedn
@@ -740,6 +741,7 @@ geobackend
 geoip
 geoipbackend
 geolocated
+Georgeto
 Gergely
 Gerritsen
 Gervai
@@ -1349,6 +1351,7 @@ nsupdate
 nta
 ntei
 ntlworld
+Nuitari
 nullptr
 NULs
 NUMA
@@ -1897,6 +1900,7 @@ submitters
 subnetmask
 sudo
 suffixmatchtree
+Sukhbir
 supermaster
 supermasterbackend
 supernotification
