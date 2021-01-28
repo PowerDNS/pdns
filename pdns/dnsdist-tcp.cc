@@ -222,7 +222,7 @@ void TCPClientCollection::addTCPClientThread()
     std::lock_guard<std::mutex> lock(d_mutex);
 
     if (d_numthreads >= d_tcpclientthreads.size()) {
-      vinfolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping", d_numthreads.load(), d_tcpclientthreads.size());
+      vinfolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", d_numthreads.load(), d_tcpclientthreads.size());
       if (!d_useSinglePipe) {
         close(pipefds[0]);
         close(pipefds[1]);
