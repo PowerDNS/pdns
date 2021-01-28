@@ -6,9 +6,6 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
-# Vendor and version
-CXXFLAGS += -DPACKAGEVERSION='"$(DEB_VERSION).$(DEB_VENDOR)"'
-
 # Avoid test failure in docker.
 export PDNS_TEST_NO_IPV6=1
 
