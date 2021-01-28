@@ -12,12 +12,22 @@ Several actions have been renamed so that almost all actions that allow further 
 - ``ECSOverrideAction`` to :func:`SetECSOverrideAction`
 - ``ECSPrefixLengthAction`` to :func:`SetECSPrefixLengthAction`
 - ``MacAddrAction`` to :func:`SetMacAddrAction`
-- ``NoRecurseAction`` to :func:`SetTagResponseAction`
-- ``SkipCacheAction`` to :func:`SetTagResponseAction`
-- ``TagAction`` to :func:`SetTagResponseAction`
+- ``NoRecurseAction`` to :func:`SetNoRecurseAction`
+- ``SkipCacheAction`` to :func:`SetSkipCacheAction`
+- ``TagAction`` to :func:`SetTagAction`
 - ``TagResponseAction`` to :func:`SetTagResponseAction`
 - ``TempFailureCacheTTLAction`` to :func:`SetAdditionalProxyProtocolValueAction`
 - ``SetNegativeAndSOAAction`` to :func:`NegativeAndSOAAction`
+
+Some ambiguous commands have also been renamed to prevent mistakes:
+- `topCacheHitResponseRule` to :func:`mvCacheHitResponseRuleToTop`
+- `topResponseRule` to :func:`mvResponseRuleToTop`
+- `topRule` to :func:`mvRuleToTop`
+- `topSelfAnsweredResponseRule` to :func:`mvSelfAnsweredResponseRuleToTop`
+
+The use of additional parameters on the :func:`webserver` command has been deprecated in favor of using :func:`setWebserverConfig`.
+
+Regular users should not be impacted by this change, but packagers should be aware that since 1.6.0 dnsdist now uses the C++17 standard instead of the C++11 one it was previously using.
 
 1.4.x to 1.5.0
 --------------
