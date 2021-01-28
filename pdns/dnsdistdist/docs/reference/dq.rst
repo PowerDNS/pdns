@@ -87,15 +87,11 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:getDO() -> bool
 
-    .. versionadded:: 1.2.0
-
     Get the value of the DNSSEC OK bit.
 
     :returns: true if the DO bit was set, false otherwise
 
   .. method:: DNSQuestion:getEDNSOptions() -> table
-
-    .. versionadded:: 1.3.3
 
     Return the list of EDNS Options, if any.
 
@@ -160,16 +156,12 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:getTag(key) -> string
 
-    .. versionadded:: 1.2.0
-
     Get the value of a tag stored into the DNSQuestion object.
 
     :param string key: The tag's key
     :returns: The tag's value if it was set, an empty string otherwise
 
   .. method:: DNSQuestion:getTagArray() -> table
-
-    .. versionadded:: 1.2.0
 
     Get all the tags stored into the DNSQuestion object.
 
@@ -184,8 +176,6 @@ This state can be modified from the various hooks.
     :returns: The trailing data as a null-safe string
 
   .. method:: DNSQuestion:sendTrap(reason)
-
-    .. versionadded:: 1.2.0
 
     Send an SNMP trap.
 
@@ -231,16 +221,12 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:setTag(key, value)
 
-    .. versionadded:: 1.2.0
-
     Set a tag into the DNSQuestion object.
 
     :param string key: The tag's key
     :param string value: The tag's value
 
   .. method:: DNSQuestion:setTagArray(tags)
-
-    .. versionadded:: 1.2.0
 
     Set an array of tags into the DNSQuestion object.
 
@@ -360,8 +346,6 @@ EDNSOptionView object
 =====================
 
 .. class:: EDNSOptionView
-
-  .. versionadded:: 1.3.3
 
   An object that represents the values of a single EDNS option received in a query.
 

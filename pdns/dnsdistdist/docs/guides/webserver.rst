@@ -465,9 +465,6 @@ JSON Objects
 
   This object represents a backend server.
 
-  .. versionchanged:: 1.3.1
-    The ``dropRate`` property was added
-
   :property string address: The remote IP and port
   :property integer id: Internal identifier
   :property integer latency: The current latency of this backend server

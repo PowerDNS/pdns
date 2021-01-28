@@ -212,8 +212,6 @@ Number of truncated answers returned because of a rule.
 
 security-status
 ---------------
-.. versionadded:: 1.3.4
-
 The security status of :program:`dnsdist`. This is regularly polled.
 
  * 0 = Unknown status or unreleased version

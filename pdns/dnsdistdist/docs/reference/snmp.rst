@@ -1,9 +1,6 @@
 SNMP reporting
 ==============
 
-.. versionadded:: 1.2.0
-
-
 .. function:: snmpAgent(enableTraps [, daemonSocket])
 
   Enable SNMP support.

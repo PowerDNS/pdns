@@ -74,85 +74,7 @@ Rule Generators
 
 :program:`dnsdist` contains several functions that make it easier to add actions and rules.
 
-.. function:: addAnyTCRule()
-
-  .. deprecated:: 1.2.0
-
-  Set the TC-bit (truncate) on ANY queries received over UDP, forcing a retry over TCP.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0. This is equivalent to doing::
-
-   addAction(AndRule({QTypeRule(DNSQType.ANY), TCPRule(false)}), TCAction())
-
-  .. versionchanged:: 1.4.0
-    Before 1.4.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.ANY`` in these versions.
-
-.. function:: addDelay(DNSrule, delay)
-
-  .. deprecated:: 1.2.0
-
-  Delay the query for ``delay`` milliseconds before sending to a backend.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, please use instead:
-
-    addAction(DNSRule, DelayAction(delay))
-
-  :param DNSRule: The DNSRule to match traffic
-  :param int delay: The delay time in milliseconds.
-
-.. function:: addDisableValidationRule(DNSrule)
-
-  .. deprecated:: 1.2.0
-
-  Set the CD (Checking Disabled) flag to 1 for all queries matching the DNSRule.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0. Please use the :func:`SetDisableValidationAction` action instead.
-
-.. function:: addDomainBlock(domain)
-
-  .. deprecated:: 1.2.0
-
-  Drop all queries for ``domain`` and all names below it.
-  Deprecated as of 1.2.0 and will be removed in 1.3.0, please use instead:
-
-    addAction(domain, DropAction())
-
-  :param string domain: The domain name to block
-
-.. function:: addDomainSpoof(domain, IPv4[, IPv6])
-              addDomainSpoof(domain, {IP[,...]})
-
-  .. deprecated:: 1.2.0
-
-  Generate answers for A/AAAA/ANY queries.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, please use:
-
-    addAction(domain, SpoofAction({IP[,...]}))
-
-  or:
-
-    addAction(domain, SpoofAction(IPv4[, IPv6]))
-
-  :param string domain: Domain name to spoof for
-  :param string IPv4: IPv4 address to spoof in the reply
-  :param string IPv6: IPv6 address to spoof in the reply
-  :param string IP: IP address to spoof in the reply
-
-.. function:: addDomainCNAMESpoof(domain, cname)
-
-  .. deprecated:: 1.2.0
-
-  Generate CNAME answers for queries. This function has been deprecated as of 1.2.0 and removed in 1.3.0, in favor of using:
-
-    addAction(domain, SpoofCNAMEAction(cname))
-
-  :param string domain: Domain name to spoof for
-  :param string cname: Domain name to add CNAME to
-
 .. function:: addLuaAction(DNSrule, function [, options])
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
-  .. versionchanged:: 1.3.0
-    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
 
   .. deprecated:: 1.4.0
     Removed in 1.4.0, use :func:`LuaAction` with :func:`addAction` instead.
@@ -187,12 +109,6 @@ Rule Generators
 
 .. function:: addLuaResponseAction(DNSrule, function [, options])
 
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
-  .. versionchanged:: 1.3.0
-    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
-
   .. deprecated:: 1.4.0
     Removed in 1.4.0, use :func:`LuaResponseAction` with :func:`addResponseAction` instead.
 
@@ -209,60 +125,6 @@ Rule Generators
   Options:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
-
-.. function:: addNoRecurseRule(DNSrule)
-
-  .. deprecated:: 1.2.0
-
-  Clear the RD flag for all queries matching the rule.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, please use:
-
-    addAction(DNSRule, SetNoRecurseAction())
-
-  :param DNSRule: match queries based on this rule
-
-.. function:: addPoolRule(DNSRule, pool)
-
-  .. deprecated:: 1.2.0
-
-  Send queries matching the first argument to the pool ``pool``.
-  e.g.::
-
-    addPoolRule("example.com", "myPool")
-
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, this is equivalent to::
-
-    addAction("example.com", PoolAction("myPool"))
-
-  :param DNSRule: match queries based on this rule
-  :param string pool: The name of the pool to send the queries to
-
-.. function:: addQPSLimit(DNSrule, limit)
-
-  .. deprecated:: 1.2.0
-
-  Limit queries matching the DNSRule to ``limit`` queries per second.
-  All queries over the limit are dropped.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, please use:
-
-    addAction(DNSRule, QPSAction(limit))
-
-  :param DNSRule: match queries based on this rule
-  :param int limit: QPS limit for this rule
-
-.. function:: addQPSPoolRule(DNSRule, limit, pool)
-
-  .. deprecated:: 1.2.0
-
-  Send at most ``limit`` queries/s for this pool, letting the subsequent rules apply otherwise.
-  This function has been deprecated as of 1.2.0 and removed in 1.3.0, as it is only a convenience function for the following syntax::
-
-    addAction("192.0.2.0/24", QPSPoolAction(15, "myPool")
-
-  :param DNSRule: match queries based on this rule
-  :param int limit: QPS limit for this rule
-  :param string pool: The name of the pool to send the queries to
-
 
 Managing Rules
 --------------
@@ -281,9 +143,6 @@ Active Rules can be shown with :func:`showRules` and removed with :func:`rmRule`
 For Rules related to the incoming query:
 
 .. function:: addAction(DNSrule, action [, options])
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
 
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
@@ -325,9 +184,6 @@ For Rules related to the incoming query:
 
 .. function:: newRuleAction(rule, action[, options])
 
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
@@ -350,9 +206,6 @@ For Rules related to the incoming query:
 
 .. function:: showRules([options])
 
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added
-
   Show all defined rules for queries, optionally displaying their UUIDs.
 
   :param table options: A table with key: value pairs with display options.
@@ -371,9 +224,6 @@ For Rules related to the incoming query:
 
 .. function:: rmRule(id)
 
-  .. versionchanged:: 1.3.0
-    ``id`` can now be an UUID.
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
@@ -384,9 +234,6 @@ For Rules related to the incoming query:
 For Rules related to responses:
 
 .. function:: addResponseAction(DNSRule, action [, options])
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
 
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
@@ -418,9 +265,6 @@ For Rules related to responses:
 
 .. function:: rmResponseRule(id)
 
-  .. versionchanged:: 1.3.0
-    ``id`` can now be an UUID.
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
@@ -429,9 +273,6 @@ For Rules related to responses:
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showResponseRules([options])
-
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added
 
   Show all defined response rules, optionally displaying their UUIDs.
 
@@ -453,11 +294,6 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: addCacheHitResponseAction(DNSRule, action [, options])
 
-  .. versionadded:: 1.2.0
-
-  .. versionchanged:: 1.3.0
-    Added the optional parameter ``options``.
-
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
@@ -474,8 +310,6 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: mvCacheHitResponseRule(from, to)
 
-  .. versionadded:: 1.2.0
-
   Move cache hit response rule ``from`` to a position where it is in front of ``to``.
   ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
 
@@ -490,22 +324,12 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: rmCacheHitResponseRule(id)
 
-  .. versionadded:: 1.2.0
-
-  .. versionchanged:: 1.3.0
-    ``id`` can now be an UUID.
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showCacheHitResponseRules([options])
-
-  .. versionadded:: 1.2.0
-
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added
 
   Show all defined cache hit response rules, optionally displaying their UUIDs.
 
@@ -518,8 +342,6 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: topCacheHitResponseRule()
 
-  .. versionadded:: 1.2.0
-
   .. versionchanged:: 1.6.0
     Replaced by :func:`mvCacheHitResponseRuleToTop`
 
@@ -528,8 +350,6 @@ Functions for manipulating Cache Hit Response Rules:
 Functions for manipulating Self-Answered Response Rules:
 
 .. function:: addSelfAnsweredResponseAction(DNSRule, action [, options])
-
-  .. versionadded:: 1.3.0
 
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
@@ -547,8 +367,6 @@ Functions for manipulating Self-Answered Response Rules:
 
 .. function:: mvSelfAnsweredResponseRule(from, to)
 
-  .. versionadded:: 1.3.0
-
   Move self answered response rule ``from`` to a position where it is in front of ``to``.
   ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
 
@@ -563,8 +381,6 @@ Functions for manipulating Self-Answered Response Rules:
 
 .. function:: rmSelfAnsweredResponseRule(id)
 
-  .. versionadded:: 1.3.0
-
   .. versionchanged:: 1.6.0
     ``id`` can now be a string representing the name of the rule.
 
@@ -573,8 +389,6 @@ Functions for manipulating Self-Answered Response Rules:
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showSelfAnsweredResponseRules([options])
-
-  .. versionadded:: 1.3.0
 
   Show all defined self answered response rules, optionally displaying their UUIDs.
 
@@ -586,8 +400,6 @@ Functions for manipulating Self-Answered Response Rules:
   * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topSelfAnsweredResponseRule()
-
-  .. versionadded:: 1.3.0
 
   .. versionchanged:: 1.6.0
     Replaced by :func:`mvSelfAnsweredResponseRuleToTop`
@@ -609,9 +421,6 @@ These ``DNSRule``\ s be one of the following items:
   * A :class:`DNSName`
   * A list of :class:`DNSName`\ s
   * A (compounded) ``Rule``
-
-.. versionadded:: 1.2.0
-   A DNSRule can also be a :class:`DNSName` or a list of these
 
 .. function:: AllRule()
 
@@ -711,9 +520,6 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
 
-  .. versionchanged:: 1.3.1
-    Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
-
   Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
   This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
   removing existing netmasks or IP addresses that have not been seen in the last ``expiration`` seconds.
@@ -756,8 +562,6 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: ProbaRule(probability)
 
-  .. versionadded:: 1.3.0
-
   Matches queries with a given probability. 1.0 means "always"
 
   :param double probability: Probability of a match
@@ -780,8 +584,6 @@ These ``DNSRule``\ s be one of the following items:
   :param int qclass: The Query Class to match on
 
 .. function:: QNameRule(qname)
-
-  .. versionadded:: 1.2.0
 
    Matches queries with the specified qname exactly.
 
@@ -828,8 +630,6 @@ These ``DNSRule``\ s be one of the following items:
   :param int rcode: The RCODE to match on
 
 .. function:: RDRule()
-
-  .. versionadded:: 1.2.0
 
   Matches queries with the RD flag set.
 
@@ -904,8 +704,6 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: TagRule(name [, value])
 
-  .. versionadded:: 1.3.0
-
   Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
 
   :param bool name: The name of the tag that has to be set
@@ -922,8 +720,6 @@ These ``DNSRule``\ s be one of the following items:
   Matches if the query has trailing data.
 
 .. function:: PoolAvailableRule(poolname)
-
-  .. versionadded:: 1.3.3
 
   Check whether a pool has any servers available to handle queries
 
@@ -1039,8 +835,6 @@ The following actions exist.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
-  .. versionadded:: 1.3.0
-
   Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
   Subsequent rules are processed after this action.
@@ -1050,8 +844,6 @@ The following actions exist.
   :param alterFunction: A Lua function to alter the message before sending
 
 .. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
-
-  .. versionadded:: 1.3.0
 
   Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
@@ -1315,9 +1107,6 @@ The following actions exist.
 
 .. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
 
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added.
-
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
@@ -1335,9 +1124,6 @@ The following actions exist.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
-
-  .. versionchanged:: 1.3.0
-    ``options`` optional parameter added.
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
@@ -1389,8 +1175,6 @@ The following actions exist.
   Note that this function was called :func:`DisableValidationAction` before 1.6.0.
 
 .. function:: SetECSAction(v4 [, v6])
-
-  .. versionadded:: 1.3.1
 
   Set the ECS prefix and prefix length sent to backends to an arbitrary value.
   If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
@@ -1617,11 +1401,8 @@ The following actions exist.
 
 .. function:: TagAction(name, value)
 
-  .. versionadded:: 1.3.0
-
   .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0, please use :func:`SetTagAction` instead.
+    This function has been deprecated in 1.6.0, please use :func:`SetTagAction` instead.
 
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
   Subsequent rules are processed after this action.
@@ -1631,11 +1412,8 @@ The following actions exist.
 
 .. function:: TagResponseAction(name, value)
 
-  .. versionadded:: 1.3.0
-
   .. deprecated:: 1.6.0
-
-  This function has been deprecated in 1.6.0, please use :func:`SetTagResponseAction` instead.
+    This function has been deprecated in 1.6.0, please use :func:`SetTagResponseAction` instead.
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
   Subsequent rules are processed after this action.

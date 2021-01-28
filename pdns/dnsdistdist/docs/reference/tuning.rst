@@ -83,8 +83,6 @@ Tuning related functions
 
 .. function:: setUDPMultipleMessagesVectorSize(num)
 
-  .. versionadded:: 1.3.0
-
   Set the maximum number of UDP queries messages to accept in a single ``recvmmsg()`` call. Only available if the underlying OS
   support ``recvmmsg()`` with the ``MSG_WAITFORONE`` option. Defaults to 1, which means only query at a time is accepted, using
   ``recvmsg()`` instead of ``recvmmsg()``.
