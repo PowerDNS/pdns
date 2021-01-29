@@ -106,7 +106,7 @@ static shared_ptr<DownstreamState> valrandom(unsigned int val, const ServerPolic
   }
 
   // Catch poss & sum are empty to avoid SIGFPE
-  if (poss.empty()) {
+  if (poss.empty() || sum == 0) {
     return shared_ptr<DownstreamState>();
   }
 

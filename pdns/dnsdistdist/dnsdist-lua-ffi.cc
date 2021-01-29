@@ -267,6 +267,10 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
 {
   if (dq->dq->ednsOptions == nullptr) {
     parseEDNSOptions(*(dq->dq));
+
+    if (dq->dq->ednsOptions == nullptr) {
+      return 0;
+    }
   }
 
   size_t totalCount = 0;
