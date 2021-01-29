@@ -115,17 +115,17 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimplePost2038) {
   pw.commit();
   string rpacket((const char*)&packet[0], packet.size());
 
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   rpc.doPruneTo(0);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
 
   rpc.doWipePacketCache(qname);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   uint32_t qhash2 = 0;
   bool found = rpc.getResponsePacket(tag, qpacket, future, &fpacket, &age, &qhash2);
