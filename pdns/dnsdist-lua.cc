@@ -897,7 +897,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     });
 
-  typedef std::unordered_map<std::string, boost::variant<bool, size_t, std::string, std::map<std::string, std::string>> > webserveropts_t;
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string, std::map<std::string, std::string>> > webserveropts_t;
 
   luaCtx.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
       setLuaSideEffect();
@@ -935,7 +935,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (vars->count("maxConcurrentConnections")) {
-        setWebserverMaxConcurrentConnections(boost::get<size_t>(vars->at("maxConcurrentConnections")));
+        setWebserverMaxConcurrentConnections(std::stoi(boost::get<std::string>(vars->at("maxConcurrentConnections"))));
       }
     });
 
