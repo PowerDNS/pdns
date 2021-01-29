@@ -6,6 +6,7 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(YAHTTP_CFLAGS) \
 	$(NET_SNMP_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
+	-I$(top_srcdir)/ext/protozero/include \
 	-DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4

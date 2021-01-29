@@ -3,7 +3,7 @@
 #include "gettime.hh"
 #include "dnstap.hh"
 
-#include "ext/protozero/include/protozero/pbf_writer.hpp"
+#include <protozero/pbf_writer.hpp>
 
 namespace DnstapBaseFields {
   enum : protozero::pbf_tag_type { identity = 1, version = 2, extra = 3, message = 14, type = 15 };

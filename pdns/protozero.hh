@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include "ext/protozero/include/protozero/pbf_writer.hpp"
+#include <protozero/pbf_writer.hpp>
 
 #include "config.h"
 #include "iputils.hh"
