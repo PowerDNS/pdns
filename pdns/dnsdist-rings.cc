@@ -147,7 +147,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     DNSName qname(parts.at(idx++));
     QType qtype(QType::chartocode(parts.at(idx++).c_str()));
 
-    if (!isResponse) {
+    if (isResponse) {
       insertResponse(when, from, qname, qtype.getCode(), 0, 0, dh, to);
     }
     else {
