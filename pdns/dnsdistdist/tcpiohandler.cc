@@ -294,10 +294,8 @@ int OpenSSLTLSConnection::s_tlsConnIndex = -1;
 class OpenSSLTLSIOCtx: public TLSCtx
 {
 public:
-  OpenSSLTLSIOCtx(TLSFrontend& fe)
+  OpenSSLTLSIOCtx(TLSFrontend& fe): d_feContext(std::make_shared<OpenSSLFrontendContext>(fe.d_addr, fe.d_tlsConfig))
   {
-    d_feContext = std::make_shared<OpenSSLFrontendContext>(fe.d_addr, fe.d_tlsConfig);
-
     d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
 
     if (fe.d_tlsConfig.d_enableTickets && fe.d_tlsConfig.d_numberOfTicketsKeys > 0) {
