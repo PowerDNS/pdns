@@ -78,7 +78,14 @@ std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBand
       ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
     }
   }
-  ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
+
+  if (total > 0) {
+    ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+  }
+  else {
+    ret.insert({count, {"Rest", rest, 100.0 }});
+  }
+
   return ret;
 }
 
