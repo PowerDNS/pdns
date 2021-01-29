@@ -21,36 +21,39 @@
  */
 #pragma once
 
-struct ConsoleKeyword {
-  std::string name;
-  bool function;
-  std::string parameters;
-  std::string description;
-  std::string toString() const
+#include <mutex>
+
+class ConcurrentConnectionManager
+{
+public:
+  ConcurrentConnectionManager(size_t max): d_maxConcurrentConnections(max)
   {
-    std::string res(name);
-    if (function) {
-      res += "(" + parameters + ")";
-    }
-    res += ": ";
-    res += description;
-    return res;
   }
+
+  void setMaxConcurrentConnections(size_t max)
+  {
+    std::lock_guard<decltype(d_concurrentConnectionsLock)> lock(d_concurrentConnectionsLock);
+    d_maxConcurrentConnections = max;
+  }
+
+  bool registerConnection()
+  {
+    std::lock_guard<decltype(d_concurrentConnectionsLock)> lock(d_concurrentConnectionsLock);
+    if (d_maxConcurrentConnections == 0 || d_currentConnectionsCount < d_maxConcurrentConnections) {
+      ++d_currentConnectionsCount;
+      return true;
+    }
+    return false;
+  }
+
+  void releaseConnection()
+  {
+    std::lock_guard<decltype(d_concurrentConnectionsLock)> lock(d_concurrentConnectionsLock);
+    --d_currentConnectionsCount;
+  }
+
+private:
+  std::mutex d_concurrentConnectionsLock;
+  size_t d_maxConcurrentConnections{0};
+  size_t d_currentConnectionsCount{0};
 };
-
-extern GlobalStateHolder<NetmaskGroup> g_consoleACL;
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
-extern std::string g_consoleKey; // in theory needs locking
-extern bool g_logConsoleConnections;
-extern bool g_consoleEnabled;
-extern uint32_t g_consoleOutputMsgMaxSize;
-
-void doClient(ComboAddress server, const std::string& command);
-void doConsole();
-extern "C" {
-char** my_completion( const char * text , int start,  int end);
-}
-void controlThread(int fd, ComboAddress local);
-void clearConsoleHistory();
-
-void setConsoleMaximumConcurrentConnections(size_t max);

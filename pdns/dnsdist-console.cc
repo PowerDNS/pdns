@@ -21,9 +21,9 @@
  */
 
 #include <fstream>
+// we need this to get the home directory of the current user
 #include <pwd.h>
 #include <thread>
-#include <boost/scoped_array.hpp>
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 // If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
@@ -36,6 +36,7 @@
 
 #include "ext/json11/json11.hpp"
 
+#include "connection-management.hh"
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
@@ -48,6 +49,54 @@ std::string g_consoleKey;
 bool g_logConsoleConnections{true};
 bool g_consoleEnabled{false};
 uint32_t g_consoleOutputMsgMaxSize{10000000};
+
+static ConcurrentConnectionManager s_connManager(100);
+
+class ConsoleConnection
+{
+public:
+  ConsoleConnection(const ComboAddress& client, int fd): d_client(client), d_fd(fd)
+  {
+    if (!s_connManager.registerConnection()) {
+      close(fd);
+      throw std::runtime_error("Too many concurrent console connections");
+    }
+  }
+  ConsoleConnection(ConsoleConnection&& rhs): d_client(rhs.d_client), d_fd(rhs.d_fd)
+  {
+    rhs.d_fd = -1;
+  }
+
+  ConsoleConnection(const ConsoleConnection&) = delete;
+  ConsoleConnection& operator=(const ConsoleConnection&) = delete;
+
+  ~ConsoleConnection()
+  {
+    if (d_fd != -1) {
+      close(d_fd);
+      s_connManager.releaseConnection();
+    }
+  }
+
+  int getFD() const
+  {
+    return d_fd;
+  }
+
+  const ComboAddress& getClient() const
+  {
+    return d_client;
+  }
+
+private:
+  ComboAddress d_client;
+  int d_fd{-1};
+};
+
+void setConsoleMaximumConcurrentConnections(size_t max)
+{
+  s_connManager.setMaxConcurrentConnections(max);
+}
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
@@ -144,9 +193,9 @@ static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& re
     return true;
   }
 
-  boost::scoped_array<char> resp(new char[len]);
-  readn2(fd, resp.get(), len);
-  msg.assign(resp.get(), len);
+  msg.clear();
+  msg.resize(len);
+  readn2(fd, msg.data(), len);
   msg = sodDecryptSym(msg, g_consoleKey, readingNonce);
   cout << msg;
   cout.flush();
@@ -161,7 +210,7 @@ void doClient(ComboAddress server, const std::string& command)
     return;
   }
 
-  if(g_verbose) {
+  if (g_verbose) {
     cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   }
 
@@ -525,6 +574,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setConsistentHashingBalancingFactor", true, "factor", "Set the balancing factor for bounded-load consistent hashing" },
   { "setConsoleACL", true, "{netmask, netmask}", "replace the console ACL set with these netmasks" },
   { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
+  { "setConsoleMaximumConcurrentConnections", true, "max", "Set the maximum number of concurrent console connections" },
   { "setConsoleOutputMaxMsgSize", true, "messageSize", "set console message maximum size in bytes, default is 10 MB" },
   { "setDefaultBPFFilter", true, "filter", "When used at configuration time, the corresponding BPFFilter will be attached to every bind" },
   { "setDynBlocksAction", true, "action", "set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported" },
@@ -683,38 +733,40 @@ char** my_completion( const char * text , int start,  int end)
 }
 }
 
-static void controlClientThread(int fd, ComboAddress client)
+static void controlClientThread(ConsoleConnection&& conn)
 {
   try
   {
     setThreadName("dnsdist/conscli");
-    setTCPNoDelay(fd);
+
+    setTCPNoDelay(conn.getFD());
+
     SodiumNonce theirs, ours, readingNonce, writingNonce;
     ours.init();
-    readn2(fd, (char*)theirs.value, sizeof(theirs.value));
-    writen2(fd, (char*)ours.value, sizeof(ours.value));
+    readn2(conn.getFD(), (char*)theirs.value, sizeof(theirs.value));
+    writen2(conn.getFD(), (char*)ours.value, sizeof(ours.value));
     readingNonce.merge(ours, theirs);
     writingNonce.merge(theirs, ours);
 
     for(;;) {
       uint32_t len;
-      if(!getMsgLen32(fd, &len))
+      if (!getMsgLen32(conn.getFD(), &len)) {
         break;
+      }
 
       if (len == 0) {
         /* just ACK an empty message
            with an empty response */
-        putMsgLen32(fd, 0);
+        putMsgLen32(conn.getFD(), 0);
         continue;
       }
 
-      boost::scoped_array<char> msg(new char[len]);
-      readn2(fd, msg.get(), len);
-
-      string line(msg.get(), len);
+      std::string line;
+      line.resize(len);
+      readn2(conn.getFD(), line.data(), len);
 
       line = sodDecryptSym(line, g_consoleKey, readingNonce);
-      //    cerr<<"Have decrypted line: "<<line<<endl;
+
       string response;
       try {
         bool withReturn=true;
@@ -799,20 +851,16 @@ static void controlClientThread(int fd, ComboAddress client)
         response = "Error: " + string(e.what()) + ": ";
       }
       response = sodEncryptSym(response, g_consoleKey, writingNonce);
-      putMsgLen32(fd, response.length());
-      writen2(fd, response.c_str(), response.length());
+      putMsgLen32(conn.getFD(), response.length());
+      writen2(conn.getFD(), response.c_str(), response.length());
     }
     if (g_logConsoleConnections) {
-      infolog("Closed control connection from %s", client.toStringWithPort());
+      infolog("Closed control connection from %s", conn.getClient().toStringWithPort());
     }
-    close(fd);
-    fd=-1;
   }
   catch (const std::exception& e)
   {
-    errlog("Got an exception in client connection from %s: %s", client.toStringWithPort(), e.what());
-    if(fd >= 0)
-      close(fd);
+    errlog("Got an exception in client connection from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
 }
 
@@ -840,18 +888,24 @@ void controlThread(int fd, ComboAddress local)
         continue;
       }
 
-      if (g_logConsoleConnections) {
-        warnlog("Got control connection from %s", client.toStringWithPort());
-      }
+      try {
+        ConsoleConnection conn(client, sock);
+        if (g_logConsoleConnections) {
+          warnlog("Got control connection from %s", client.toStringWithPort());
+        }
 
-      std::thread t(controlClientThread, sock, client);
-      t.detach();
+        std::thread t(controlClientThread, std::move(conn));
+        t.detach();
+      }
+      catch (const std::exception& e) {
+        errlog("Control connection died: %s", e.what());
+      }
     }
   }
   catch (const std::exception& e)
   {
     close(fd);
-    errlog("Control connection died: %s", e.what());
+    errlog("Control thread died: %s", e.what());
   }
 }
 
