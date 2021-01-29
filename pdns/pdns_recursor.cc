@@ -860,40 +860,40 @@ static void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, b
   if (hadError) {
     terminateTCPConnection(dc->d_socket);
     dc->d_socket = -1;
+    return;
   }
-  else {
-    dc->d_tcpConnection->queriesCount++;
-    if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
-      try {
-        t_fdm->removeReadFD(dc->d_socket);
-      }
-      catch (FDMultiplexerException &) {
-      }
-      dc->d_socket = -1;
+  dc->d_tcpConnection->queriesCount++;
+  if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+    try {
+      t_fdm->removeReadFD(dc->d_socket);
     }
-    else {
-      Utility::gettimeofday(&g_now, 0); // needs to be updated
-      struct timeval ttd = g_now;
-      // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
-      if (updateInFlight && dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
-        // A read error might have happened. If we add the fd back, it will most likely error again.
-        // This is not a big issue, the next handleTCPClientReadable() will see another read error
-        // and take action.
-        ttd.tv_sec += g_tcpTimeout;
-        t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
-      } else {
-        // fd might have been removed by read error code, or a read timeout, so expect an exception
-        try {
-          t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
-        }
-        catch (const FDMultiplexerException &) {
-          // but if the FD was removed because of a timeout while we were sending a response,
-          // we need to re-arm it. If it was an error it will error again.
-          ttd.tv_sec += g_tcpTimeout;
-          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
-        }
-      }
+    catch (FDMultiplexerException &) {
     }
+    dc->d_socket = -1;
+    return;
+  }
+
+  Utility::gettimeofday(&g_now, nullptr); // needs to be updated
+  struct timeval ttd = g_now;
+
+  // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
+  if (updateInFlight && dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+    // A read error might have happened. If we add the fd back, it will most likely error again.
+    // This is not a big issue, the next handleTCPClientReadable() will see another read error
+    // and take action.
+    ttd.tv_sec += g_tcpTimeout;
+    t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+    return;
+  }
+  // fd might have been removed by read error code, or a read timeout, so expect an exception
+  try {
+    t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
+  }
+  catch (const FDMultiplexerException &) {
+    // but if the FD was removed because of a timeout while we were sending a response,
+    // we need to re-arm it. If it was an error it will error again.
+    ttd.tv_sec += g_tcpTimeout;
+    t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
   }
 }
 
