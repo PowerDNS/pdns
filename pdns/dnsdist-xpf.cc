@@ -52,6 +52,7 @@ bool addXPF(DNSQuestion& dq, uint16_t optionCode)
   pos += sizeof(drh);
   memcpy(reinterpret_cast<char*>(&data.at(pos)), payload.data(), payload.size());
   pos += payload.size();
+  (void) pos;
 
   dq.getHeader()->arcount = htons(ntohs(dq.getHeader()->arcount) + 1);
 

@@ -2184,8 +2184,10 @@ int main(int argc, char** argv)
       }
     }
 
-    argc-=optind;
-    argv+=optind;
+    argc -= optind;
+    argv += optind;
+    (void) argc;
+
     for(auto p = argv; *p; ++p) {
       if(g_cmdLine.beClient) {
         clientAddress = ComboAddress(*p, 5199);
