@@ -846,6 +846,57 @@ static void sendErrorOverTCP(std::unique_ptr<DNSComboWriter>& dc, int rcode)
 
 static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
+static void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight)
+{
+  // update tcp connection status, closing if needed and doing the fd multiplexer accounting
+  if (updateInFlight && dc->d_tcpConnection->d_requestsInFlight > 0) {
+    dc->d_tcpConnection->d_requestsInFlight--;
+  }
+
+  // In the code below, we try to remove the fd from the set, but
+  // we don't know if another mthread already did the remove, so we can get a
+  // "Tried to remove unlisted fd" exception.  Not that an inflight < limit test
+  // will not work since we do not know if the other mthread got an error or not.
+  if (hadError) {
+    terminateTCPConnection(dc->d_socket);
+    dc->d_socket = -1;
+  }
+  else {
+    dc->d_tcpConnection->queriesCount++;
+    if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+      try {
+        t_fdm->removeReadFD(dc->d_socket);
+      }
+      catch (FDMultiplexerException &) {
+      }
+      dc->d_socket = -1;
+    }
+    else {
+      Utility::gettimeofday(&g_now, 0); // needs to be updated
+      struct timeval ttd = g_now;
+      // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
+      if (updateInFlight && dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+        // A read error might have happened. If we add the fd back, it will most likely error again.
+        // This is not a big issue, the next handleTCPClientReadable() will see another read error
+        // and take action.
+        ttd.tv_sec += g_tcpTimeout;
+        t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+      } else {
+        // fd might have been removed by read error code, or a read timeout, so expect an exception
+        try {
+          t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
+        }
+        catch (const FDMultiplexerException &) {
+          // but if the FD was removed because of a timeout while we were sending a response,
+          // we need to re-arm it. If it was an error it will error again.
+          ttd.tv_sec += g_tcpTimeout;
+          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+        }
+      }
+    }
+  }
+}
+
 // the idea is, only do things that depend on the *response* here. Incoming accounting is on incoming.
 static void updateResponseStats(int res, const ComboAddress& remote, unsigned int packetsize, const DNSName* query, uint16_t qtype)
 {
@@ -879,13 +930,13 @@ catch(...)
   return "Exception making error message for exception";
 }
 
-static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName)
+static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName)
 {
   if (!t_protobufServers) {
     return;
   }
 
-  Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
+  Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
   ComboAddress requestor = requestorNM.getMaskedNetwork();
   requestor.setPort(remote.getPort());
 
@@ -893,7 +944,7 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   m.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
   m.setRequest(uniqueId, requestor, local, qname, qtype, qclass, id, tcp, len);
   m.setServerIdentity(SyncRes::s_serverID);
-  m.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? maskV4 : maskV6);
+  m.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
   m.setRequestorId(requestorId);
   m.setDeviceId(deviceId);
   m.setDeviceName(deviceName);
@@ -920,7 +971,7 @@ static void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
   }
 }
 
-static void protobufLogResponse(const struct dnsheader* dh,
+static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                                 const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                                 bool tcp, const ComboAddress& source, const ComboAddress& destination,
                                 const EDNSSubnetOpts& ednssubnet,
@@ -928,9 +979,9 @@ static void protobufLogResponse(const struct dnsheader* dh,
                                 const string& deviceName) 
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
-  if (pbData) {
-    // We take the inmutable string from the cache and are appending a few values
-  } else {
+  // Normally we take the immutable string from the cache and append a few values, but if it's not there (can this happen?)
+  // we start with an empty string and append the minimal
+  if (!pbData) {
     pbMessage.setType(pdns::ProtoZero::Message::MessageType::DNSResponseType);
     pbMessage.setServerIdentity(SyncRes::s_serverID);
   }
@@ -943,7 +994,6 @@ static void protobufLogResponse(const struct dnsheader* dh,
     pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
   }
 
-  auto luaconfsLocal = g_luaconfs.getLocal(); 
   // In message part
   Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
   ComboAddress requestor = requestorNM.getMaskedNetwork();
@@ -2089,54 +2139,7 @@ static void startDoResolve(void *p)
     }
     else {
       bool hadError = sendResponseOverTCP(dc, packet);
-
-      // update tcp connection status, closing if needed and doing the fd multiplexer accounting
-      if  (dc->d_tcpConnection->d_requestsInFlight > 0) {
-        dc->d_tcpConnection->d_requestsInFlight--;
-      }
-
-      // In the code below, we try to remove the fd from the set, but
-      // we don't know if another mthread already did the remove, so we can get a
-      // "Tried to remove unlisted fd" exception.  Not that an inflight < limit test
-      // will not work since we do not know if the other mthread got an error or not.
-      if(hadError) {
-        terminateTCPConnection(dc->d_socket);
-        dc->d_socket = -1;
-      }
-      else {
-        dc->d_tcpConnection->queriesCount++;
-        if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
-          try {
-            t_fdm->removeReadFD(dc->d_socket);
-          }
-          catch (FDMultiplexerException &) {
-          }
-          dc->d_socket = -1;
-        }
-        else {
-          Utility::gettimeofday(&g_now, 0); // needs to be updated
-          struct timeval ttd = g_now;
-          // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
-          if (dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
-            // A read error might have happened. If we add the fd back, it will most likely error again.
-            // This is not a big issue, the next handleTCPClientReadable() will see another read error
-            // and take action.
-            ttd.tv_sec += g_tcpTimeout;
-            t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
-          } else {
-            // fd might have been removed by read error code, or a read timeout, so expect an exception
-            try {
-              t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
-            }
-            catch (const FDMultiplexerException &) {
-              // but if the FD was removed because of a timeout while we were sending a response,
-              // we need to re-arm it. If it was an error it will error again.
-              ttd.tv_sec += g_tcpTimeout;
-              t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
-            }
-          }
-        }
-      }
+      finishTCPReply(dc, hadError, true);
     }
 
     float spent=makeFloat(sr.getNow()-dc->d_now);
@@ -2612,7 +2615,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         try {
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
-            protobufLogQuery(luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
+            protobufLogQuery(luaconfsLocal, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
           }
         }
         catch (const std::exception& e) {
@@ -2663,19 +2666,17 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         ++g_stats.tcpqcounter;
 
         string response;
-        uint32_t qhash = 0;
         RecursorPacketCache::OptPBData pbData{boost::none};
 
         /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
            but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
            as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-        bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, qhash, pbData, true, dc->d_source);
-        dc->d_qhash = qhash;
+        bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
 
         if (cacheHit) {
           if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
             struct timeval tv{0, 0};
-            protobufLogResponse(dh, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
+            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
           }
 
           if (!g_quiet) {
@@ -2683,40 +2684,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
 
           bool hadError = sendResponseOverTCP(dc, response);
-
-          // In the code below, we try to remove the fd from the set, but
-          // we don't know if another mthread already did the remove, so we can get a
-          // "Tried to remove unlisted fd" exception.  Not that an inflight < limit test
-          // will not work since we do not know if the other mthread got an error or not.
-          if (hadError) {
-            terminateTCPConnection(dc->d_socket);
-            dc->d_socket = -1;
-          }
-          else {
-            dc->d_tcpConnection->queriesCount++;
-            if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
-              try {
-                t_fdm->removeReadFD(dc->d_socket);
-              }
-              catch (FDMultiplexerException &) {
-              }
-              dc->d_socket = -1;
-            }
-            else {
-              Utility::gettimeofday(&g_now, nullptr); // needs to be updated
-              struct timeval ttd = g_now;
-              // fd might have been removed by read error code, or a read timeout, so expect an exception
-              try {
-                t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
-              }
-              catch (const FDMultiplexerException &) {
-                // but if the FD was removed because of a timeout while we were sending a response,
-                // we need to re-arm it. If it was an error it will error again.
-                ttd.tv_sec += g_tcpTimeout;
-                t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
-              }
-            }
-          }
+          finishTCPReply(dc, hadError, false);
         } else {
           // No cache hit, setup for startDoResolve() in an mthread
           ++conn->d_requestsInFlight;
@@ -2927,7 +2895,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
     if (t_protobufServers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName);
       }
     }
 
@@ -2937,7 +2905,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
     if (cacheHit) {
       if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-        protobufLogResponse(dh, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName);
+        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName);
       }
 
       if (!g_quiet) {
