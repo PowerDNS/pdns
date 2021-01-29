@@ -382,6 +382,13 @@ Changelog
 
     Silence clang 12 warning
 
+  .. change::
+    :tags: Improvements, Webserver
+    :pullreq: 9997
+    :tickets: 4978
+
+    Limit the number of concurrent console and web connections
+
 .. changelog::
   :version: 1.5.1
   :released: 1st of October 2020
