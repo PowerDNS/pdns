@@ -220,6 +220,7 @@ testrunner_SOURCES = \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
 	circular_buffer.hh \
+	connection-management.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-backend.cc \
@@ -263,6 +264,7 @@ testrunner_SOURCES = \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
+	test-connectionmanagement_hh.cc \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
