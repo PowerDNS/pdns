@@ -143,12 +143,6 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   PacketBuffer plainQuery;
   GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
-  size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
-  if (requiredSize < DNSCryptQuery::s_minUDPLength) {
-    requiredSize = DNSCryptQuery::s_minUDPLength;
-  }
-
-  plainQuery.resize(requiredSize);
 
   size_t initialSize = plainQuery.size();
   int res = ctx->encryptQuery(plainQuery, 4096, clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
@@ -224,11 +218,6 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   PacketBuffer plainQuery;
   GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
-
-  size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
-  if (requiredSize < DNSCryptQuery::s_minUDPLength) {
-    requiredSize = DNSCryptQuery::s_minUDPLength;
-  }
 
   size_t initialSize = plainQuery.size();
   int res = ctx->encryptQuery(plainQuery, 4096, clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));

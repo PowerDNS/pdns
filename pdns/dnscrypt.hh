@@ -175,7 +175,12 @@ class DNSCryptQuery
 public:
   DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
   {
+    memset(&d_header, 0, sizeof(d_header));
+#ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
+    memset(&d_sharedKey, 0, sizeof(d_sharedKey));
+#endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
   }
+
   ~DNSCryptQuery();
 
   bool isValid() const

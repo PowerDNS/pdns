@@ -138,8 +138,8 @@ public:
   struct DOHUnit* du{nullptr};
   int delayMsec{0};
   boost::optional<uint32_t> tempFailureTTL;
-  uint32_t cacheKeyNoECS;
-  uint32_t cacheKey;
+  uint32_t cacheKeyNoECS{0};
+  uint32_t cacheKey{0};
   const uint16_t qtype;
   const uint16_t qclass;
   uint16_t ecsPrefixLength;
@@ -492,7 +492,7 @@ public:
 
 protected:
   mutable StopWatch d_prev;
-  mutable double d_tokens;
+  mutable double d_tokens{0.0};
 };
 
 class QPSLimiter : public BasicQPSLimiter
@@ -538,8 +538,8 @@ public:
   }
 
 private:
-  unsigned int d_rate;
-  unsigned int d_burst;
+  unsigned int d_rate{0};
+  unsigned int d_burst{0};
   bool d_passthrough{true};
 };
 
@@ -681,13 +681,13 @@ struct IDState
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
   DOHUnit* du{nullptr};
-  uint32_t cacheKey;                                          // 4
-  uint32_t cacheKeyNoECS;                                     // 4
-  uint16_t age;                                               // 4
-  uint16_t qtype;                                             // 2
-  uint16_t qclass;                                            // 2
-  uint16_t origID;                                            // 2
-  uint16_t origFlags;                                         // 2
+  uint32_t cacheKey{0};                                       // 4
+  uint32_t cacheKeyNoECS{0};                                  // 4
+  uint16_t age{0};                                            // 4
+  uint16_t qtype{0};                                          // 2
+  uint16_t qclass{0};                                         // 2
+  uint16_t origID{0};                                         // 2
+  uint16_t origFlags{0};                                      // 2
   int origFD{-1};
   int delayMsec{0};
   boost::optional<uint32_t> tempFailureTTL;
