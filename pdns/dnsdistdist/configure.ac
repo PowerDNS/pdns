@@ -16,8 +16,8 @@ AC_DEFINE([DNSDIST], [1],
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
-CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter $CFLAGS"
-CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
+CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror -Wno-error=missing-declarations -Wno-error=redundant-decls -Wno-error=shadow $CFLAGS"
+CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -Werror -Wno-error=missing-declarations -Wno-error=redundant-decls -Wno-error=shadow $CXXFLAGS"
 
 PDNS_WITH_LIBSODIUM
 PDNS_CHECK_DNSTAP([auto])

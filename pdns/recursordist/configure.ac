@@ -12,8 +12,8 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_HOST
 # Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
-CFLAGS="-Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -g -O2 $CFLAGS"
-CXXFLAGS="-Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -g -O2 $CXXFLAGS"
+CFLAGS="-Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -Werror -Wno-error=missing-declarations -Wno-error=redundant-decls -Wno-error=shadow -g -O2 $CFLAGS"
+CXXFLAGS="-Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -Werror -Wno-error=missing-declarations -Wno-error=redundant-decls -Wno-error=shadow -g -O2 $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args],["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],

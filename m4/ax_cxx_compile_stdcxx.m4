@@ -632,7 +632,7 @@ namespace cxx17
   namespace test_auto_brace_init_list
   {
 
-    auto foo = {5};
+    auto foo = {test_constexpr_lambdas::foo};
     auto bar {5};
 
     static_assert(std::is_same<std::initializer_list<int>, decltype(foo)>::value);
