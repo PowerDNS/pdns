@@ -276,6 +276,7 @@ testrunner_SOURCES = \
 	test-dnsdistrules_cc.cc \
 	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
+	test-luawrapper.cc \
 	test-mplexer.cc \
 	test-proxy_protocol_cc.cc \
 	testrunner.cc \
