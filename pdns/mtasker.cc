@@ -277,6 +277,9 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   ++d_threadsCount;
   auto& thread = d_threads[d_maxtid];
   auto mt = this;
+  // we will get a better approximation when the task is executed, but that prevents notifying a stack at nullptr
+  // on the first invocation
+  d_threads[d_maxtid].startOfStack = &uc->uc_stack[uc->uc_stack.size()-1];
   thread.start = [start, val, mt]() {
       char dummy;
       mt->d_threads[mt->d_tid].startOfStack = mt->d_threads[mt->d_tid].highestStackSeen = &dummy;
