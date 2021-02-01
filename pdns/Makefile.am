@@ -6,7 +6,8 @@ AM_CPPFLAGS += \
 	$(LIBEDIT_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
 	$(SYSTEMD_CFLAGS) \
-	$(YAML_CFLAGS)
+	$(YAML_CFLAGS) \
+	-I$(top_srcdir)/ext/protozero/include
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
