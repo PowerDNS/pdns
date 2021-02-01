@@ -1328,6 +1328,10 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
 
 bool GSQLBackend::deleteDomain(const DNSName &domain)
 {
+  if (!d_inTransaction) {
+    throw PDNSException("deleteDomain called outside of transaction");
+  }
+
   DomainInfo di;
   if (!getDomainInfo(domain, di)) {
     return false;

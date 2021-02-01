@@ -1792,8 +1792,17 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   }
   else if(req->method == "DELETE") {
     // delete domain
-    if(!di.backend->deleteDomain(zonename))
-      throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+
+    di.backend->startTransaction(zonename, -1);
+    try {
+      if(!di.backend->deleteDomain(zonename))
+        throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+
+      di.backend->commitTransaction();
+    } catch (...) {
+      di.backend->abortTransaction();
+      throw;
+    }
 
     // clear caches
     DNSSECKeeper::clearCaches(zonename);
