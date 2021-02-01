@@ -285,6 +285,7 @@ testrunner_SOURCES = \
 	test-filterpo_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
+	test-luawrapper.cc \
 	test-misc_hh.cc \
 	test-mplexer.cc \
 	test-mtasker.cc \
