@@ -491,17 +491,36 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 
 string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const DNSName& qname)
 {
+  // rfc5155 section 5
   unsigned int times = iterations;
-  unsigned char hash[20];
-  string toHash(qname.toDNSStringLC());
+  unsigned char hash[SHA_DIGEST_LENGTH];
+  string toHash(qname.toDNSStringLC() + salt);
 
-  for(;;) {
-    toHash.append(salt);
-    SHA1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-    toHash.assign((char*)hash, sizeof(hash));
-    if(!times--)
+  for (;;) {
+    /* so the first time we hash the (lowercased) qname plus the salt,
+       then the result of the last iteration plus the salt */
+    SHA1(reinterpret_cast<const unsigned char*>(toHash.c_str()), toHash.length(), hash);
+    if (!times--) {
+      /* we are done, just copy the result and return it */
+      toHash.assign(reinterpret_cast<char*>(hash), sizeof(hash));
       break;
+    }
+    if (times == (iterations-1)) {
+      /* first time, we need to replace the qname + salt with
+         the hash plus salt, since the qname will not likely
+         match the size of the hash */
+      if (toHash.capacity() < (sizeof(hash) + salt.size())) {
+        toHash.reserve(sizeof(hash) + salt.size());
+      }
+      toHash.assign(reinterpret_cast<char*>(hash), sizeof(hash));
+      toHash.append(salt);
+    }
+    else {
+      /* starting with the second iteration, the hash size does not change, so we don't need to copy the salt again */
+      std::copy(reinterpret_cast<char*>(hash), reinterpret_cast<char*>(hash) + sizeof(hash), toHash.begin());
+    }
   }
+
   return toHash;
 }
 
