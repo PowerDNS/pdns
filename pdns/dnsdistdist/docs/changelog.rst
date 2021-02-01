@@ -425,6 +425,12 @@ Changelog
 
     Only add EDNS on negative answers if the query had EDNS
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 10035
+
+    Fix a few warnings reported by clang's static analyzer and cppcheck
+
 .. changelog::
   :version: 1.5.0
   :released: 30th of July 2020
