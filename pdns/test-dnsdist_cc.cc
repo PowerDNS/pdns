@@ -1709,8 +1709,8 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
   */
   const ComboAddress lc("127.0.0.1");
   const ComboAddress rem("127.0.0.1");
-  size_t optContentStart;
-  uint16_t optContentLen;
+  size_t optContentStart{std::numeric_limits<size_t>::max()};
+  uint16_t optContentLen{0};
 
   const size_t optRDExpectedOffset = sizeof(dnsheader) + qname.wirelength() + DNS_TYPE_SIZE + DNS_CLASS_SIZE + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + DNS_TTL_SIZE;
 

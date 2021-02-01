@@ -108,6 +108,8 @@ bool parseXPFPayload(const char* payload, size_t len, ComboAddress& source, Comb
 
   memcpy(&destinationPort, payload + pos, sizeof(destinationPort));
   pos += sizeof(destinationPort);
+  (void) pos;
+
   if (destination != nullptr) {
     destination->sin4.sin_port = destinationPort;
   }

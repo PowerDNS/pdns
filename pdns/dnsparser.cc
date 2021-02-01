@@ -111,6 +111,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   if (serialized.size() > 0) {
     memcpy(&packet[pos], serialized.c_str(), serialized.size());
     pos += (uint16_t) serialized.size();
+    (void) pos;
   }
 
   MOADNSParser mdp(false, (char*)&*packet.begin(), (unsigned int)packet.size());

@@ -390,7 +390,6 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       firstTry = false;
       iov.iov_len -= written;
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
-      written = 0;
     }
     else if (res == 0) {
       return res;

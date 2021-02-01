@@ -107,6 +107,8 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
   rrname = pr.getName();
   rrtype = pr.get16BitInt();
   rrclass = pr.get16BitInt();
+  (void) rrtype;
+  (void) rrclass;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {

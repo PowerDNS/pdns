@@ -204,7 +204,7 @@ public:
     class WrongTypeException : public std::runtime_error
     {
     public:
-        WrongTypeException(std::string luaType_, const std::type_info& destination_) :
+        WrongTypeException(const std::string& luaType_, const std::type_info& destination_) :
             std::runtime_error("Trying to cast a lua variable from \"" + luaType_ + "\" to \"" + destination_.name() + "\""),
             luaType(luaType_),
             destination(destination_)

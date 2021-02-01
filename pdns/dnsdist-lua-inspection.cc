@@ -75,7 +75,14 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
     else
       ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
   }
-  ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
+
+  if (total > 0) {
+    ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+  }
+  else {
+    ret.insert({count, {"Rest", rest, 100.0 }});
+  }
+
   return ret;
 }
 
@@ -302,7 +309,14 @@ void setupLuaInspection(LuaContext& luaCtx)
 	else
 	  ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
       }
-      ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
+
+      if (total > 0) {
+        ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+      }
+      else {
+        ret.insert({count, {"Rest", rest, 100.0}});
+      }
+
       return ret;
 
     });

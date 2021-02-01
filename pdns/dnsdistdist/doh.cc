@@ -251,7 +251,6 @@ void handleDOHTimeout(DOHUnit* oldDU)
   sendDoHUnitToTheMainThread(oldDU, "DoH timeout");
 
   oldDU->release();
-  oldDU = nullptr;
 }
 
 struct DOHConnection

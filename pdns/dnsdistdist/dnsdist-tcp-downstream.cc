@@ -552,14 +552,18 @@ void TCPConnectionToBackend::setProxyProtocolValuesSent(std::unique_ptr<std::vec
 
 bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs) const
 {
-  if (tlvs == nullptr && d_proxyProtocolValuesSent == nullptr) {
-    return true;
+  if (tlvs == nullptr) {
+    if (d_proxyProtocolValuesSent == nullptr) {
+      return true;
+    }
+    else {
+      return false;
+    }
   }
-  if (tlvs == nullptr && d_proxyProtocolValuesSent != nullptr) {
+
+  if (d_proxyProtocolValuesSent == nullptr) {
     return false;
   }
-  if (tlvs != nullptr && d_proxyProtocolValuesSent == nullptr) {
-    return false;
-  }
+
   return *tlvs == *d_proxyProtocolValuesSent;
 }

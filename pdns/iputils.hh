@@ -353,7 +353,7 @@ union ComboAddress {
 
       uint32_t ls_addr = ntohl(sin4.sin_addr.s_addr);
 
-      return ((ls_addr & (1<<index)) != 0x00000000);
+      return ((ls_addr & (1U<<index)) != 0x00000000);
     }
     if(isIPv6()) {
       if (index >= 128)
@@ -368,7 +368,7 @@ union ComboAddress {
       uint8_t byte_idx = index / 8;
       uint8_t bit_idx = index % 8;
 
-      return ((ls_addr[15-byte_idx] & (1 << bit_idx)) != 0x00);
+      return ((ls_addr[15-byte_idx] & (1U << bit_idx)) != 0x00);
     }
     return false;
   }
@@ -781,8 +781,8 @@ private:
       branch_node->parent = parent;
 
       // create second new leaf node for the new key
-      TreeNode* new_node = new TreeNode(key);
-      unique_ptr<TreeNode> new_child2(new_node);
+      unique_ptr<TreeNode> new_child2 = make_unique<TreeNode>(key);
+      TreeNode* new_node = new_child2.get();
 
       // attach the new child nodes below the branch node
       // (left or right depending on bit)

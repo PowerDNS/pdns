@@ -37,6 +37,7 @@ bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, u
 
   optionLen = (static_cast<uint16_t>(p[pos]) * 256) + p[pos + 1];
   pos += EDNS_OPTION_LENGTH_SIZE;
+  (void) pos;
 
   return true;
 }
