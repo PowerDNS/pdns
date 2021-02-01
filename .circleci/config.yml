@@ -208,7 +208,7 @@ commands:
             libkrb5-3 \
             libldap-2.4-2 \
             liblmdb0 \
-            libluajit-5.1-2 \
+            libluajit-5.1 \
             libmaxminddb0 \
             libp11-kit0 \
             libpq5 \
@@ -791,7 +791,7 @@ jobs:
       - run:
           name: Set up mysql client lib to force TCP
           command: echo 'export GMYSQLHOST=127.0.0.1' > ./vars
-          workdir: ~/project/regression-tests            
+          workdir: ~/project/regression-tests
       - auth-regress:
           context: bind-hybrid-nsec3
 
@@ -1062,7 +1062,75 @@ jobs:
           name: Test all algorithms
           command: /opt/pdns-auth/bin/pdnsutil test-algorithms
 
-  test-auth-api:
+  test-auth-api-gmysql:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: circleci/mysql:5
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev default-mysql-client
+      - run:
+          name: Set up mysql client lib to force TCP
+          command: |
+            cat >> ~/.my.cnf \<<- __EOF__
+            [client]
+            protocol=TCP
+            default-character-set=latin1
+            __EOF__
+      - run:
+          name: Run API tests gmysql
+          workdir: ~/project/regression-tests.api
+          command: |
+            MYSQL_HOST="127.0.0.1" \
+            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ./runtests authoritative gmysql
+
+  test-auth-api-gpgsql:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+      - image: circleci/postgres:9
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_HOST_AUTH_METHOD: trust
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev postgresql-client
+      - run:
+          name: Run API tests gpgsql
+          workdir: ~/project/regression-tests.api
+          command: |
+            PGHOST="127.0.0.1" \
+            PGPORT="5432" \
+            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ./runtests authoritative gpgsql
+
+  test-auth-api-gsqlite3:
     resource_class: small
 
     docker:
@@ -1075,16 +1143,15 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0
     steps:
       - auth-regress-setup
-      - run: apt-get -y -qq install python3-venv
+      - run: apt-get -y -qq install python3-venv python3-dev default-libmysqlclient-dev libpq-dev
       - run:
-          name: Run API tests
+          name: Run API tests gsqlite3
           workdir: ~/project/regression-tests.api
           command: |
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
-            ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
-            ./runtests authoritative
+            ./runtests authoritative gsqlite3
 
   build-recursor:
     docker:
@@ -1431,7 +1498,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y python3-venv pdns-tools
+      - run: apt-get --no-install-recommends install -qq -y python3-venv python3-dev default-libmysqlclient-dev libpq-dev pdns-tools
       - install-recursor-deps
       - get-workspace
       - run:
@@ -1887,7 +1954,13 @@ workflows:
       - build-auth:
           requires:
             - checkout
-      - test-auth-api:
+      - test-auth-api-gmysql:
+          requires:
+            - build-auth
+      - test-auth-api-gpgsql:
+          requires:
+            - build-auth
+      - test-auth-api-gsqlite3:
           requires:
             - build-auth
       - test-auth-algorithms:

@@ -1,8 +1,11 @@
 from __future__ import print_function
 from datetime import datetime
 import os
+import getpass
 import requests
 import unittest
+import mysql.connector
+import psycopg2
 import sqlite3
 import subprocess
 import sys
@@ -14,7 +17,15 @@ else:
 
 DAEMON = os.environ.get('DAEMON', 'authoritative')
 PDNSUTIL_CMD = os.environ.get('PDNSUTIL_CMD', 'NOT_SET BUT_THIS MIGHT_BE_A_LIST').split(' ')
+BACKEND =  os.environ.get('BACKEND', 'gsqlite3')
+MYSQL_DB = os.environ.get('MYSQL_DB', 'pdnsapi')
+MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
+MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
+MYSQL_PASSWD = os.environ.get('MYSQL_PASWORD', '')
+PGSQL_DB = os.environ.get('PGSQL_DB', 'pdnsapi')
+PGSQL_USER = os.environ.get('PGSQ_USER', getpass.getuser())
 SQLITE_DB = os.environ.get('SQLITE_DB', 'pdns.sqlite3')
+LMDB_DB = os.environ.get('SQLITE_DB', 'pdns.lmdb')
 SDIG = os.environ.get('SDIG', 'sdig')
 DNSPORT = os.environ.get('DNSPORT', '53')
 
@@ -69,20 +80,29 @@ def is_recursor():
 
 def get_auth_db():
     """Return Connection to Authoritative backend DB."""
-    return sqlite3.Connection(SQLITE_DB)
+    if BACKEND == 'gmysql':
+        return mysql.connector.connect(database=MYSQL_DB, user=MYSQL_USER, host=MYSQL_HOST, password=MYSQL_PASSWD), "%s"
+    elif BACKEND == 'gpgsql':
+        return psycopg2.connect(database=PGSQL_DB, user=PGSQL_USER), "%s"
+    else:
+        return sqlite3.Connection(SQLITE_DB), "?"
 
 
 def get_db_records(zonename, qtype):
-    with get_auth_db() as db:
-        rows = db.execute("""
-            SELECT name, type, content, ttl, ordername
-            FROM records
-            WHERE type = ? AND domain_id = (
-                SELECT id FROM domains WHERE name = ?
-            )""", (qtype, zonename.rstrip('.'))).fetchall()
-        recs = [{'name': row[0], 'type': row[1], 'content': row[2], 'ttl': row[3], 'ordername': row[4]} for row in rows]
-        print("DB Records:", recs)
-        return recs
+    db, placeholder = get_auth_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT name, type, content, ttl, ordername
+        FROM records
+        WHERE type = """+placeholder+""" AND domain_id = (
+            SELECT id FROM domains WHERE name = """+placeholder+"""
+        )""", (qtype, zonename.rstrip('.')))
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    recs = [{'name': row[0], 'type': row[1], 'content': row[2], 'ttl': row[3], 'ordername': row[4]} for row in rows]
+    print("DB Records:", recs)
+    return recs
 
 
 def pdnsutil(subcommand, *args):
@@ -102,12 +122,15 @@ def sdig(*args):
         raise RuntimeError("sdig %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
 
 def get_db_tsigkeys(keyname):
-    with get_auth_db() as db:
-        rows = db.execute("""
-            SELECT name, algorithm, secret
-            FROM tsigkeys
-            WHERE name = ?""", (keyname, )).fetchall()
-        keys = [{'name': row[0], 'algorithm': row[1], 'secret': row[2]} for row in rows]
-        print("DB TSIG keys:", keys)
-        return keys
-
+    db, placeholder = get_auth_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT name, algorithm, secret
+        FROM tsigkeys
+        WHERE name = """+placeholder, (keyname, ))
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    keys = [{'name': row[0], 'algorithm': row[1], 'secret': row[2]} for row in rows]
+    print("DB TSIG keys:", keys)
+    return keys
