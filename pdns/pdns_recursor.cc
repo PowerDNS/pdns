@@ -100,6 +100,7 @@
 
 #include "rec-snmp.hh"
 #include "rec-taskqueue.hh"
+#include "rec-tcp-out.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -3362,6 +3363,9 @@ static void doStats(void)
   auto taskPushes = getTaskPushes();
   auto taskExpired = getTaskExpired();
   auto taskSize = getTaskSize();
+  auto tcpQueries = pdns::TCPOutConnectionManager::getAllQueriesDone();
+  auto tcpConn = pdns::TCPOutConnectionManager::getAllConnectionsCreated();
+  auto tcpCurrent = pdns::TCPOutConnectionManager::getCurrentIdleConnections();
 
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
@@ -3378,7 +3382,7 @@ static void doStats(void)
     g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)<<"%";
     g_log<<Logger::Notice<<", "<<ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries+SyncRes::s_throttledqueries)<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
-    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
+    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp queries, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
     uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
@@ -3394,7 +3398,8 @@ static void doStats(void)
       }
     }
 
-    g_log<<Logger::Notice<<"stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl; 
+    g_log<<Logger::Notice<<"stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl;
+    g_log<<Logger::Notice<<"stats: tcp created/queries/currentidle: " << tcpConn << '/' << tcpQueries << '/' << tcpCurrent << endl;
     time_t now = time(0);
     if(lastOutputTime && lastQueryCount && now != lastOutputTime) {
       g_log<<Logger::Notice<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
@@ -3436,6 +3441,7 @@ static void houseKeeping(void *)
     past.tv_sec -= 5;
     if (last_prune < past) {
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
+      t_tcpConnections.cleanup(now);
 
       time_t limit;
       if(!((cleanCounter++)%40)) {  // this is a full scan!
@@ -3798,9 +3804,16 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
   }
 
   unsigned int n = 0;
-  T ret=T();
+  T ret = T();
+
   for (const auto& threadInfo : s_threadInfos) {
+    T* resp = nullptr;
     if (n++ == t_id) {
+      resp = func();
+      if (resp != nullptr) {
+        ret += *resp;
+        delete resp;
+      }
       continue;
     }
 
@@ -3809,19 +3822,18 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
     tmsg->func = [func]{ return voider<T>(func); };
     tmsg->wantAnswer = true;
 
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+    if (write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
       delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
     }
 
-    T* resp = nullptr;
-    if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
+    if (read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
+      delete tmsg;
       unixDie("read from thread pipe returned wrong size or error");
-
-    if(resp) {
+    }
+    if (resp != nullptr) {
       ret += *resp;
       delete resp;
-      resp = nullptr;
     }
   }
   return ret;
@@ -4120,17 +4132,18 @@ static void checkLinuxIPv6Limits()
 }
 static void checkOrFixFDS()
 {
-  unsigned int availFDs=getFilenumLimit(); 
-  unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads +25; // even healthier margin then before
+  unsigned int availFDs = getFilenumLimit(); 
+  unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads + 25; // even healthier margin then before
+  wantFDs += g_numWorkerThreads * pdns::TCPOutConnectionManager::maxPerThread;
 
   if(wantFDs > availFDs) {
-    unsigned int hardlimit= getFilenumLimit(true);
-    if(hardlimit >= wantFDs) {
+    unsigned int hardlimit = getFilenumLimit(true);
+    if (hardlimit >= wantFDs) {
       setFilenumLimit(wantFDs);
-      g_log<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
+      g_log<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads, tcpout-maxperthread and threads settings" << endl;
     }
     else {
-      int newval = (hardlimit - 25) / g_numWorkerThreads;
+      int newval = (hardlimit - 25 -  pdns::TCPOutConnectionManager::maxPerThread) / g_numWorkerThreads;
       g_log<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<hardlimit<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
@@ -4666,6 +4679,12 @@ static int serviceMain(int argc, char*argv[])
   } else {
     TCPConnection::s_maxInFlight = maxInFlight;
   }
+
+  int64_t millis = ::arg().asNum("tcpout-maxidle");
+  pdns::TCPOutConnectionManager::maxIdle = timeval{millis / 1000, (millis % 1000) * 1000 };
+  pdns::TCPOutConnectionManager::maxPerAuth = ::arg().asNum("tcpout-maxperauth");
+  pdns::TCPOutConnectionManager::maxQueries = ::arg().asNum("tcpout-maxqueries");
+  pdns::TCPOutConnectionManager::maxPerThread = ::arg().asNum("tcpout-maxperthread");
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
@@ -5433,6 +5452,11 @@ int main(int argc, char **argv)
 #endif /* NOD_ENABLED */
 
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
+
+    ::arg().set("tcpout-maxidle", "Maximum time TCP connections that are left idle in milliseconds or 0 if no limit") = "60000";
+    ::arg().set("tcpout-maxperauth", "Maximum number of idle TCP connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
+    ::arg().set("tcpout-maxqueries", "Maximum number of queries per connection, 0 means no limit") = "0";
+    ::arg().set("tcpout-maxperthread", "Maximum number of idle TCP connections per thread") = "100";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

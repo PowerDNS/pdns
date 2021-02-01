@@ -38,6 +38,7 @@
 #include "pubsuffix.hh"
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
+#include "rec-tcp-out.hh"
 
 std::mutex g_carbon_config_lock;
 
@@ -1234,7 +1235,11 @@ void registerAllStats()
   addGetStat("taskqueue-pushed",  []() { return getTaskPushes(); });
   addGetStat("taskqueue-expired",  []() { return getTaskExpired(); });
   addGetStat("taskqueue-size",  []() { return getTaskSize(); });
-  
+
+  addGetStat("tcpout-created",  []() { return pdns::TCPOutConnectionManager::getAllConnectionsCreated(); });
+  addGetStat("tcpout-queries",  []() { return pdns::TCPOutConnectionManager::getAllQueriesDone(); });
+  addGetStat("tcpout-current",  []() { return pdns::TCPOutConnectionManager::getCurrentIdleConnections(); });
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {

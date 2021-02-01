@@ -48,6 +48,7 @@
 #include "validate-recursor.hh"
 #include "ednssubnet.hh"
 #include "query-local-address.hh"
+#include "rec-tcp-out.hh"
 
 #include "rec-protozero.hh"
 #include "uuid-utils.hh"
@@ -324,49 +325,52 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   }
   else {
     try {
-      Socket s(ip.sin4.sin_family, SOCK_STREAM);
+      // We try first existing connections from the pool if available
+      // Only if a new, fresh connetcion fails, we give up
+      while (1) {
+        bool isNew;
+        auto tcp = t_tcpConnections.getConnection(ip, *now, isNew);
+        uint16_t tlen=htons(vpacket.size());
+        char *lenP=(char*)&tlen;
+        const char *msgP=(const char*)&*vpacket.begin();
+        string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
+        ret = asendtcp(packet, &tcp->getSocket());
+        if (ret != LWResult::Result::Success) {
+          if (!isNew) {
+            continue;
+          }
+        }
 
-      s.setNonBlocking();
-      ComboAddress local = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
+        packet.clear();
+        ret = arecvtcp(packet, 2, &tcp->getSocket(), false);
+        if (ret != LWResult::Result::Success) {
+          if (!isNew) {
+            continue;
+          }
+          return ret;
+        }
 
-      s.bind(local);
-        
-      s.connect(ip);
-      
-      uint16_t tlen=htons(vpacket.size());
-      char *lenP=(char*)&tlen;
-      const char *msgP=(const char*)&*vpacket.begin();
-      string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
-      ret = asendtcp(packet, &s);
-      if (ret != LWResult::Result::Success) {
-        return ret;
+        memcpy(&tlen, packet.c_str(), sizeof(tlen));
+        len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
+
+        ret = arecvtcp(packet, len, &tcp->getSocket(), false);
+        if (ret != LWResult::Result::Success) {
+          return ret;
+        }
+
+        buf.resize(len);
+        memcpy(const_cast<char*>(buf.data()), packet.c_str(), len);
+
+        ret = LWResult::Result::Success;
+        t_tcpConnections.setIdle(ip, std::move(tcp), *now);
+        break;
       }
-      
-      packet.clear();
-      ret = arecvtcp(packet, 2, &s, false);
-      if (ret != LWResult::Result::Success) {
-        return ret;
-      }
-
-      memcpy(&tlen, packet.c_str(), sizeof(tlen));
-      len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
-
-      ret = arecvtcp(packet, len, &s, false);
-      if (ret != LWResult::Result::Success) {
-        return ret;
-      }
-
-      buf.resize(len);
-      memcpy(const_cast<char*>(buf.data()), packet.c_str(), len);
-
-      ret = LWResult::Result::Success;
     }
     catch (const NetworkError& ne) {
       ret = LWResult::Result::OSLimitError; // OS limits error
     }
   }
 
-  
   lwr->d_usec=dt.udiff();
   *now=dt.getTimeval();
 
