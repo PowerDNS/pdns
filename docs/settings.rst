@@ -982,8 +982,6 @@ Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilte
 
 Script to be used on AXFR transfer end, see :ref:`modes-of-operation-axfrend`
 
-.. _setting-lua-health-checks-expire-delay:
-
 ``lua-health-checks-expire-delay``
 ----------------------------------
 
