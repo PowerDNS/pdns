@@ -164,8 +164,8 @@ public:
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES ($1, $2, $3, $4, $5, $6)");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=$1 AND name=$2 AND type=$3");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=$1");
-    declare(suffix, "search-records-query", "", record_query+" name LIKE $1 OR content LIKE $2 LIMIT $3");
-    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE $1 OR comment LIKE $2 LIMIT $3");
+    declare(suffix, "search-records-query", "", record_query+" name ILIKE $1 OR content ILIKE $2 LIMIT $3");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name ILIKE $1 OR comment ILIKE $2 LIMIT $3");
 
   }
 
