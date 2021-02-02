@@ -819,8 +819,18 @@ static int deleteZone(const DNSName &zone) {
     return EXIT_FAILURE;
   }
 
-  if(di.backend->deleteDomain(zone))
-    return EXIT_SUCCESS;
+  di.backend->startTransaction(zone, -1);
+  try {
+    if(di.backend->deleteDomain(zone)) {
+      di.backend->commitTransaction();
+      return EXIT_SUCCESS;
+    }
+  } catch (...) {
+    di.backend->abortTransaction();
+    throw;
+  }
+
+  di.backend->abortTransaction();
 
   cerr<<"Failed to delete domain '"<<zone<<"'"<<endl;;
   return EXIT_FAILURE;
