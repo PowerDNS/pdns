@@ -389,6 +389,12 @@ Changelog
 
     Limit the number of concurrent console and web connections
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 10035
+
+    Fix a few warnings reported by clang's static analyzer and cppcheck
+
 .. changelog::
   :version: 1.5.1
   :released: 1st of October 2020
@@ -424,12 +430,6 @@ Changelog
     :pullreq: 9555
 
     Only add EDNS on negative answers if the query had EDNS
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 10035
-
-    Fix a few warnings reported by clang's static analyzer and cppcheck
 
 .. changelog::
   :version: 1.5.0
