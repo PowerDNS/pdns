@@ -29,7 +29,7 @@ if [ "$1" = "" -o "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]; then
     echo
     echo "  • RELEASE: [ auth-41 | auth-42 | auth-43 | auth-44 | auth-master |"
     echo "               rec-42 | rec-43 | rec-44 | rec-45 | rec-master |"
-    echo "               dnsdist-15 | dnsdist-master ]"
+    echo "               dnsdist-15 | dnsdist-16 | dnsdist-master ]"
     exit 1
 fi
 
@@ -197,7 +197,7 @@ elif [ "$RELEASE" = "rec-44" -o "$RELEASE" = "rec-45" -o "$RELEASE" = "rec-maste
     write_debian buster pdns-recursor pdns_recursor
     write_ubuntu bionic pdns-recursor pdns_recursor
     write_ubuntu focal pdns-recursor pdns_recursor
-elif [ "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-master" ]; then
+elif [ "$RELEASE" = "dnsdist-15" -o "$RELEASE" = "dnsdist-16" -o "$RELEASE" = "dnsdist-master" ]; then
     write_centos 7 dnsdist dnsdist
     write_centos 8 dnsdist dnsdist
     write_debian buster dnsdist dnsdist
