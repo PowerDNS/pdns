@@ -561,7 +561,7 @@ BOOST_AUTO_TEST_CASE(test_forward_ns_send_refused)
 
   SyncRes::AuthDomain ad;
   const std::vector<EndPoint> forwardedNSs{{ComboAddress("192.0.2.42:53")},
-                                           {ComboAddress("192.0.2.43:53")}};
+    {ComboAddress("192.0.2.43:53")}};
   ad.d_rdForward = false;
   ad.d_servers = forwardedNSs;
   (*SyncRes::t_sstorage.domainmap)[target] = ad;

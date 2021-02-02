@@ -36,7 +36,6 @@ size_t TCPOutConnectionManager::maxQueries;
 size_t TCPOutConnectionManager::maxPerAuth;
 size_t TCPOutConnectionManager::maxPerThread;
 
-
 unique_ptr<TCPOutConnectionManager::TCPOutConnection> TCPOutConnectionManager::getConnection(const ComboAddress& address, const timeval& now, bool& isNew)
 {
   if (d_idle_connections.count(address) > 0) {
@@ -112,8 +111,9 @@ void TCPOutConnectionManager::cleanup(const timeval& now)
     while (i != d_idle_connections.end()) {
       // this will throw away 4/10 on average
       if (dis(gen) > fraction) {
-         i = d_idle_connections.erase(i);
-      } else {
+        i = d_idle_connections.erase(i);
+      }
+      else {
         ++i;
       }
     }

@@ -43,7 +43,8 @@ public:
   {
   public:
     TCPOutConnection(unique_ptr<Socket>&& s, const timeval& now) :
-      d_socket(std::move(s)), d_last_used(now)
+      d_socket(std::move(s)),
+      d_last_used(now)
     {
     }
     Socket& getSocket()
@@ -66,6 +67,7 @@ public:
     {
       ++d_queries;
     }
+
   private:
     unique_ptr<Socket> d_socket;
     struct timeval d_last_used;
@@ -110,7 +112,7 @@ public:
   // Per thread max # of connections, here 0 means a real limit
   static size_t maxPerThread;
 
-  static uint64_t getAllQueriesDone();         // actually redundant, there's already "tcp-outqueries" maintained by Syncres
+  static uint64_t getAllQueriesDone(); // actually redundant, there's already "tcp-outqueries" maintained by Syncres
   static uint64_t getAllConnectionsCreated();
   static uint64_t getCurrentIdleConnections();
 
@@ -119,8 +121,6 @@ private:
   uint64_t d_created{0};
   uint64_t d_queries{0};
 };
-
-
 
 } // namespace pdns
 
