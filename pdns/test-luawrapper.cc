@@ -10,8 +10,11 @@ BOOST_AUTO_TEST_SUITE(test_lua_lightuserdata)
 
 BOOST_AUTO_TEST_CASE(test_registerFunction)
 {
-  // this test comes from luawrapper/tests/custom_types.cc, TEST(CustomTypes, MemberFunctions)
-  // on luajit/arm64, as shipped by Debian Buster and others, this test crashes because lightuserdata can only hold 47 bits of address
+  // This test comes from luawrapper/tests/custom_types.cc, TEST(CustomTypes, MemberFunctions).
+  // In some versions of luajit, as shipped by Debian Buster and others, Lua lightuserdata
+  // objects can only hold 47 bits of the address of a pointer. If the kernel puts our heap
+  // above that 47 bit limit, this test crashes. Many arm64 Linux kernels are known to put
+  // the heap in that problematic area.
   struct Object
   {
     void increment() { ++value; }
