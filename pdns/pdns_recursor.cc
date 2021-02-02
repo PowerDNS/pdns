@@ -3798,9 +3798,16 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
   }
 
   unsigned int n = 0;
-  T ret=T();
+  T ret = T();
+
   for (const auto& threadInfo : s_threadInfos) {
+    T* resp = nullptr;
     if (n++ == t_id) {
+      resp = func();
+      if (resp != nullptr) {
+        ret += *resp;
+        delete resp;
+      }
       continue;
     }
 
@@ -3809,19 +3816,18 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
     tmsg->func = [func]{ return voider<T>(func); };
     tmsg->wantAnswer = true;
 
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+    if (write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
       delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
     }
 
-    T* resp = nullptr;
-    if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
+    if (read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
+      delete tmsg;
       unixDie("read from thread pipe returned wrong size or error");
-
-    if(resp) {
+    }
+    if (resp != nullptr) {
       ret += *resp;
       delete resp;
-      resp = nullptr;
     }
   }
   return ret;
