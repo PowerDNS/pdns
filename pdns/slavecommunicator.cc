@@ -469,7 +469,6 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
       // however, IXFR does not, and removes and adds *records* (bummer)
       // this means that we must group updates by {qname,qtype}, retrieve the RRSET, apply
       // the add/remove updates, and replaceRRSet the whole thing.
-
       map<pair<DNSName,uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord> > > grouped;
 
       for(const auto& x: remove)
@@ -982,9 +981,9 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     }
 
     if (laes) {
-      g_log<<Logger::Info << logPrefix << "Initiated LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+      g_log<<Logger::Debug << logPrefix << "Initiated LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
       laes->axfr_end(domain);
-      g_log<<Logger::Info << logPrefix << "Completed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+      g_log<<Logger::Debug << logPrefix << "Completed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
     }
   }
   catch(DBException &re) {
