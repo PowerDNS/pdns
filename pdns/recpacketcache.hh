@@ -61,10 +61,10 @@ public:
   RecursorPacketCache();
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata);
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t *qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t *qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
   
-  void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata);
+  void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp);
   void doPruneTo(size_t maxSize=250000);
   uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
@@ -79,22 +79,23 @@ private:
   struct NameTag {};
   struct Entry 
   {
-    Entry(const DNSName& qname, std::string&& packet, std::string&& query): d_name(qname), d_packet(std::move(packet)), d_query(std::move(query))
+    Entry(const DNSName& qname, std::string&& packet, std::string&& query, bool tcp): d_name(qname), d_packet(std::move(packet)), d_query(std::move(query)), d_tcp(tcp)
     {
     }
 
     DNSName d_name;
-    mutable std::string d_packet; // "I know what I am doing"
+    mutable std::string d_packet;
     mutable std::string d_query;
     mutable OptPBData d_pbdata;
     mutable time_t d_ttd;
-    mutable time_t d_creation; // so we can 'age' our packets
+    mutable time_t d_creation;  // so we can 'age' our packets
     uint32_t d_qhash;
     uint32_t d_tag;
     uint16_t d_type;
     uint16_t d_class;
     mutable vState d_vstate;
-    mutable bool d_submitted;   // whether this entry has been queued for refetch
+    mutable bool d_submitted{false}; // whether this entry has been queued for refetch
+    bool d_tcp;                      // whether this entry was created from a TCP query
     inline bool operator<(const struct Entry& rhs) const;
 
     time_t getTTD() const
@@ -110,13 +111,19 @@ private:
   struct SequencedTag{};
   typedef multi_index_container<
     Entry,
-    indexed_by  <
-      hashed_non_unique<tag<HashTag>, composite_key<Entry, member<Entry,uint32_t,&Entry::d_tag>, member<Entry,uint32_t,&Entry::d_qhash> > >,
-      sequenced<tag<SequencedTag>> ,
-      ordered_non_unique<tag<NameTag>, member<Entry,DNSName,&Entry::d_name>, CanonDNSNameCompare >
+    indexed_by <
+      hashed_non_unique<tag<HashTag>,
+                        composite_key<Entry,
+                                      member<Entry, uint32_t, &Entry::d_tag>,
+                                      member<Entry, uint32_t, &Entry::d_qhash>,
+                                      member<Entry, bool, &Entry::d_tcp>
+                                      >
+                        >,
+      sequenced<tag<SequencedTag>>,
+      ordered_non_unique<tag<NameTag>, member<Entry,DNSName, &Entry::d_name>, CanonDNSNameCompare>
       >
-  > packetCache_t;
-  
+    > packetCache_t;
+
   packetCache_t d_packetCache;
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
