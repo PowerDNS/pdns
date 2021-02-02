@@ -173,16 +173,16 @@ std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
 
 bool AuthLua4::axfr_end(const DNSName& zone) {
   luacall_axfr_end_t::result_type rcode;
-  
+
   if (d_axfr_end == NULL) return false;
 
   rcode = d_axfr_end(zone);
-  
+
   if (rcode < 0) {
-    // failed to execute the AFXR finished notification
+    // failed to execute the AFXR end notification
     return false;
   }
-  else if (rcode == 0) {
+  else if (rcode >= 0) {
     // success
     return true;
   }
