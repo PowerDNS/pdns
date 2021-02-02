@@ -34,7 +34,7 @@ ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
 RUN touch dnsdist.1 # avoid having to install pandoc and venv
 
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
-      BUILDER_VERSION="$(BUILDER_MODULES=dnsdist ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')" set-configure-ac-version.sh;\
+      BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=dnsdist ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
     fi && \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
