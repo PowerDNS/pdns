@@ -28,6 +28,7 @@ The following options can only be read (not written to) via the HTTP API metadat
 * API-RECTIFY
 * AXFR-MASTER-TSIG
 * LUA-AXFR-SCRIPT
+* LUA-AXFR-END-SCRIPT
 * NSEC3NARROW
 * NSEC3PARAM
 * PRESIGNED
@@ -141,6 +142,13 @@ LUA-AXFR-SCRIPT
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`.
 This value will override the :ref:`setting-lua-axfr-script` setting. Use
+'NONE' to remove a global script.
+
+LUA-AXFR-END-SCRIPT
+---------------
+
+Script to be used on AXFR END, see :ref:`modes-of-operation-axfrend`.
+This value will override the :ref:`setting-lua-axfr-end-script` setting. Use
 'NONE' to remove a global script.
 
 NSEC3NARROW
