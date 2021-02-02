@@ -10,6 +10,12 @@ Changelogs for 4.4.x
 
   .. change::
     :tags: Bug Fixes
+    :pullreq: 10039
+
+    run deleteDomain() inside a transaction
+
+  .. change::
+    :tags: Bug Fixes
     :pullreq: 9985
 
     lmdb: do not reuse backend that has seen corrupted data
