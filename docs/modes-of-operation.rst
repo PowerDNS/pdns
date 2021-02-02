@@ -345,3 +345,56 @@ of 99 seconds and the specified string. TXT Records with names starting
 with ``_tstamp.`` get their value (rdata) set to the current timestamp.
 A records are appended with a TXT record. All other records are
 unhandled.
+
+.. _modes-of-operation-axfrend:
+
+Signaling end of an AXFR transfer for specific zone(s) using a script
+---------------------------------------------------------------------
+
+The PowerDNS Authoritative Server can invoke a Lua script on the of
+incoming AXFR zone transfer. The user-defined function ``axfr_end(zone)``
+within your script is invoked for each zone that has LUA-AXFR-END-SCRIPT
+defined in the ``domainmetadata``.
+
+What you can accomplish using a Lua script:
+
+- trigger a notification for a post processing event downstream
+- perform specific operation on the zone as a whole vs specific record/RRset
+
+To enable a Lua script for a particular slave zone, determine the
+``domain_id`` for the zone from the ``domains`` table, and add a row to
+the ``domainmetadata`` table for the domain. Supposing the domain we
+want has an ``id`` of 3, the following SQL statement will enable the Lua
+script ``axfr-end.lua`` for that domain:
+
+.. code-block:: SQL
+
+    INSERT INTO domainmetadata (domain_id, kind, content) VALUES (3, "LUA-AXFR-END-SCRIPT", "/lua/axfr-end.lua");
+
+.. warning::
+  The Lua script must both exist and be syntactically
+  correct; 
+
+Returning negative result code in your axfr_end(zone) function indicates
+an error condition; returning 0 or greater result code signals
+successful operation
+
+Example:
+
+.. code-block:: lua
+
+        function axfr_end(zone)
+                -- call queue
+                update_queue(zone)
+                -- notify an API endpoint
+                notify_api_endpoint(zone)
+
+                return 0
+
+        function update_queue(zone)
+                -- update queue DB
+                return 0
+
+        function notify_api_endpoint(zone)
+                -- execute HTTP call to API endpoint
+                return 0
