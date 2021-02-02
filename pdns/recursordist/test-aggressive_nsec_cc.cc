@@ -406,7 +406,20 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
     if (type == QType::DS || type == QType::DNSKEY) {
       if (domain != DNSName("powerdns.com.") && domain.isPartOf(DNSName("powerdns.com."))) {
         /* no cut, NSEC3 */
-        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false, boost::none, true);
+        setLWResult(res, RCode::NXDomain, true, false, true);
+        addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "powerdns.com. powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+        /* no record for this name */
+        /* first the closest encloser */
+        addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A, QType::TXT, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+        /* then the next closer */
+        addNSEC3UnhashedRecordToLW(DNSName("a.powerdns.com."), DNSName("powerdns.com."), "v", {QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+        /* no wildcard */
+        addNSEC3NarrowRecordToLW(DNSName("*.powerdns.com."), DNSName("powerdns.com."), {QType::AAAA, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+        return LWResult::Result::Success;
       }
       else if (domain == DNSName("com.")) {
         /* no cut */
