@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.6.0-alpha1
-  :released: TBD
+  :released: 2nd of February 2021
 
   .. change::
     :tags: Improvements
