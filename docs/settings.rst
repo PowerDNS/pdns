@@ -910,6 +910,16 @@ e.g. error = 3, warning = 4, notice = 5, info = 6
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
+.. _setting-lua-axfr-end-script:
+
+``lua-axfr-end-script``
+-------------------
+
+-  String
+-  Default: empty
+
+Script to be used to on AXFR transfer end, see :ref:`modes-of-operation-axfrend`
+
 .. _setting-lua-health-checks-expire-delay:
 
 ``lua-health-checks-expire-delay``
