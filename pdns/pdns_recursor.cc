@@ -3822,7 +3822,6 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
     }
 
     if (read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
-      delete tmsg;
       unixDie("read from thread pipe returned wrong size or error");
     }
     if (resp != nullptr) {
