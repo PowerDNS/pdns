@@ -775,9 +775,11 @@ private:
       TreeNode* branch_node = new TreeNode(node.first.getSuper(bits));
       branch_node->d_bits = bits;
 
+      // the current node will now be a child of the new branch node
+      // (hereafter new_child1 points to "this")
+      unique_ptr<TreeNode> new_child1 = std::move(parent_ref);
       // attach the branch node under our former parent
-      unique_ptr<TreeNode> new_child1(branch_node);
-      std::swap(parent_ref, new_child1); // hereafter new_child1 points to "this"
+      parent_ref = std::unique_ptr<TreeNode>(branch_node);
       branch_node->parent = parent;
 
       // create second new leaf node for the new key
@@ -789,12 +791,16 @@ private:
       new_child1->parent = branch_node;
       new_child2->parent = branch_node;
       if (new_child1->node.first.getBit(-1-bits)) {
-        std::swap(branch_node->right, new_child1);
-        std::swap(branch_node->left, new_child2);
+        branch_node->right = std::move(new_child1);
+        branch_node->left = std::move(new_child2);
       } else {
-        std::swap(branch_node->right, new_child2);
-        std::swap(branch_node->left, new_child1);
+        branch_node->right = std::move(new_child2);
+        branch_node->left = std::move(new_child1);
       }
+      // now we have attached the new unique pointers to the tree:
+      // - branch_node is below its parent
+      // - new_child1 (ourselves) is below branch_node
+      // - new_child2, the new leaf node, is below branch_node as well
 
       return new_node;
     }
