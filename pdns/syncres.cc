@@ -1036,7 +1036,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
   LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<state<<endl);
 
-  #warning move aggressive NSEC check here? We know more about the zone and its status by now..
+  // XXX: We could move aggressive NSEC check here? We know more about the zone and its status by now,
+  // but on the other hand it means we have already done the zone cut determination which is not good
+  // Perhaps delay that change until after the DNSSEC zone cut refactoring?
 
   res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
 
