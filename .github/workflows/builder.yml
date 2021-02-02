@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build packages on older OSes
+    name: build.sh
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     strategy:
