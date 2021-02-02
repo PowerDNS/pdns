@@ -336,11 +336,12 @@ Webserver configuration
 
   Register a function named ``handler`` that will be called for every query sent to the exact ``path`` path. The function will receive a :class:`WebRequest` object
   and a :class:`WebResponse` object, representing respectively the HTTP request received and the HTTP response to send.
-  For example an handler registered for '/foo' will receive these queries:
-  - GET /foo
-  - POST /foo
-  - GET /foo?param=1
-  - ...
+  For example a handler registered for '/foo' will receive these queries:
+
+  - ``GET /foo``
+  - ``POST /foo``
+  - ``GET /foo?param=1``
+
   But not queries for /foobar or /foo/bar.
 
   A sample handler function could be:
