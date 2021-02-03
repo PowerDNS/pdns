@@ -38,8 +38,9 @@ static void usage()
 {
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
-          "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] "
-          "[recurse] [showflags] [tcp] [dot] [insecure] [subjectName name][xpf XPFDATA] [class CLASSNUM] "
+          "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] "
+          "[tcp] [dot] [insecure] [subjectName name] [caStore file] [tlsProvider provider] "
+          "[xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
        << endl;
 }
@@ -219,6 +220,8 @@ try {
   uint16_t qclass = QClass::IN;
   string proxyheader;
   string subjectName;
+  string caStore;
+  string tlsProvider = "openssl";
 
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
@@ -283,11 +286,25 @@ try {
         qclass = atoi(argv[++i]);
       }
       else if (strcmp(argv[i], "subjectName") == 0) {
-        if (argc < i+2) {
+        if (argc < i + 2) {
           cerr << "subjectName needs an argument"<<endl;
           exit(EXIT_FAILURE);
         }
         subjectName = argv[++i];
+      }
+      else if (strcmp(argv[i], "caStore") == 0) {
+        if (argc < i + 2) {
+          cerr << "caStore needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        caStore = argv[++i];
+      }
+      else if (strcmp(argv[i], "tlsProvider") == 0) {
+        if (argc < i + 2) {
+          cerr << "tlsProvider needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        tlsProvider = argv[++i];
       }
       else if (strcmp(argv[i], "proxy") == 0) {
         if(argc < i+4) {
@@ -385,8 +402,9 @@ try {
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (dot) {
       TLSContextParameters tlsParams;
-      tlsParams.d_provider = "openssl";
+      tlsParams.d_provider = tlsProvider;
       tlsParams.d_validateCertificates = !insecureDoT;
+      tlsParams.d_caStore = caStore;
       tlsCtx = getTLSContext(tlsParams);
     }
     uint16_t counter = 0;

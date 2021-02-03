@@ -431,11 +431,10 @@ public:
 
     registerOpenSSLUser();
 #if 0 // XXX
-      s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
-
-      if (s_ticketsKeyIndex == -1) {
-        throw std::runtime_error("Error getting an index for tickets key");
-      }
+    s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+    
+    if (s_ticketsKeyIndex == -1) {
+      throw std::runtime_error("Error getting an index for tickets key");
     }
 #endif
 
@@ -470,9 +469,14 @@ public:
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
     if (params.d_validateCertificates) {
-      // XXX parameter!
-      if (SSL_CTX_set_default_verify_paths(d_tlsCtx.get()) != 1) {
-        warnlog("could not load default CA store");
+      if (params.d_caStore.empty())  {
+        if (SSL_CTX_set_default_verify_paths(d_tlsCtx.get()) != 1) {
+          throw std::runtime_error("Error adding the system's default trusted CAs");
+        }
+      } else {
+        if (SSL_CTX_load_verify_locations(d_tlsCtx.get(), params.d_caStore.c_str(), nullptr) != 1) {
+          throw std::runtime_error("Error adding the trusted CAs file " + params.d_caStore);
+        }
       }
 
       SSL_CTX_set_verify(d_tlsCtx.get(), SSL_VERIFY_PEER, nullptr);
