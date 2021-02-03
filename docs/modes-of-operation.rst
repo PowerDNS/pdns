@@ -354,22 +354,18 @@ Signaling end of an AXFR transfer for specific zone(s) using a script
 The PowerDNS Authoritative Server can invoke a Lua script on the of
 incoming AXFR zone transfer. The user-defined function ``axfr_end(zone)``
 within your script is invoked for each zone that has LUA-AXFR-END-SCRIPT
-defined in the ``domainmetadata``.
+defined in the ``domainmetadata``. The type of the zone argument is DNSName.
 
 What you can accomplish using a Lua script:
 
 - trigger a notification for a post processing event downstream
 - perform specific operation on the zone as a whole vs specific record/RRset
 
-To enable a Lua script for a particular slave zone, determine the
-``domain_id`` for the zone from the ``domains`` table, and add a row to
-the ``domainmetadata`` table for the domain. Supposing the domain we
-want has an ``id`` of 3, the following SQL statement will enable the Lua
-script ``axfr-end.lua`` for that domain:
+To enable a Lua script for a particular slave zone:
 
-.. code-block:: SQL
+.. code-block:: bash
 
-    INSERT INTO domainmetadata (domain_id, kind, content) VALUES (3, "LUA-AXFR-END-SCRIPT", "/lua/axfr-end.lua");
+   pdnsutil set-meta example.com LUA-AXFR-END-SCRIPT /lua/axfr-end.lua
 
 .. warning::
   The Lua script must both exist and be syntactically
@@ -389,6 +385,7 @@ Example:
                 -- notify an API endpoint
                 notify_api_endpoint(zone)
 
+                -- or return < 0 on failure
                 return 0
 
         function update_queue(zone)
