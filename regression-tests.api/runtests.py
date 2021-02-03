@@ -54,6 +54,8 @@ launch=gpgsql
 gpgsql-dnssec=on
 gpgsql-dbname="""+PGSQL_DB+"""
 gpgsql-user="""+PGSQL_USER+"""
+# on conflict is available in pg 9.5 and up
+gpgsql-set-tsig-key-query=insert into tsigkeys (name,algorithm,secret) values($1,$2,$3) on conflict(name, algorithm) do update set secret=Excluded.secret
 """
 
 AUTH_SQLITE_TPL = """
