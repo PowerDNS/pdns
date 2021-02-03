@@ -250,7 +250,6 @@ static bool isAStatsRequest(const YaHTTP::Request& req)
 
 static bool handleAuthorization(const YaHTTP::Request& req)
 {
-  cerr<<"handling auth for "<<req.url.path<<endl;
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
 
   if (isAStatsRequest(req)) {
