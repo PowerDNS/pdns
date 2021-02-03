@@ -102,6 +102,10 @@ autoreconf
 autosecondary
 autoserial
 autotools
+AXF
+axfer
+axfr
+axfrend
 axfrfilter
 Baan
 backend
