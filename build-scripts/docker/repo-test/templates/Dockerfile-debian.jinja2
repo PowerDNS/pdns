@@ -1,0 +1,25 @@
+FROM {{ os_image }}:{{ os_version }}
+
+RUN apt-get update
+RUN apt-get install -y curl gnupg dnsutils apt-transport-https
+
+{% if release.startswith('dnsdist-') %}
+COPY pkg-pin /etc/apt/preferences.d/dnsdist
+{% else %}
+COPY pkg-pin /etc/apt/preferences.d/pdns
+{% endif %}
+
+COPY pdns.list.{{ release }}.{{ os }}-{{ os_version }} /etc/apt/sources.list.d/pdns.list
+
+RUN curl https://repo.powerdns.com/FD380FBB-pub.asc | apt-key add -
+RUN curl https://repo.powerdns.com/CBC8B383-pub.asc | apt-key add -
+RUN apt-get update
+RUN apt-get install -y {{ pkg }}
+
+{# in the old script this was just for rec-43, -44 and -45 #}
+{% if release.startswith('rec-') %}
+RUN mkdir /var/run/pdns-recursor
+{% endif %}
+
+CMD {{ cmd }} --version
+
