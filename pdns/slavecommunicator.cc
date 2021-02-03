@@ -972,7 +972,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       try {
         laes = make_unique<AuthLua4>();
         laes->loadFile(axfr_end_script);
-        g_log<<Logger::Info<<logPrefix<<"loaded Lua script '"<<axfr_end_script<<"'"<<endl;
+        g_log<<Logger::Debug<<logPrefix<<"loaded Lua script '"<<axfr_end_script<<"'"<<endl;
       }
       catch(std::exception& e) {
         g_log<<Logger::Error<<logPrefix<<"failed to load Lua script '"<<axfr_end_script<<"': "<<e.what()<<endl;
