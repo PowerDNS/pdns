@@ -182,12 +182,6 @@ bool AuthLua4::axfr_end(const DNSName& zone) {
     // failed to execute the AFXR end notification
     return false;
   }
-  else if (rcode >= 0) {
-    // success
-    return true;
-  }
-  else
-    throw PDNSException("Cannot understand return code "+std::to_string(rcode)+" in axfr end response");
 
   return true;
 }
