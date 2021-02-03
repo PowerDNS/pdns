@@ -354,7 +354,7 @@ Signaling end of an AXFR transfer for specific zone(s) using a script
 The PowerDNS Authoritative Server can invoke a Lua script on the of
 incoming AXFR zone transfer. The user-defined function ``axfr_end(zone)``
 within your script is invoked for each zone that has LUA-AXFR-END-SCRIPT
-defined in the ``domainmetadata``. The type of the zone argument is DNSName.
+defined in the :doc:`domainmetadata`. The type of the zone argument is DNSName.
 
 What you can accomplish using a Lua script:
 
