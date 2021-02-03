@@ -110,8 +110,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_secure)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(dsQueriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(dsQueriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
@@ -119,8 +119,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_secure)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
-  BOOST_CHECK_EQUAL(dsQueriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(dsQueriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusSelfSignedDS);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* again, to test the cache */
   ret.clear();
@@ -235,7 +235,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusSelfSignedDS);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
@@ -268,6 +268,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
       addRRSIG(keys, res->d_records, DNSName("."), 300);
       return LWResult::Result::Success;
     }
+    else if (type == QType::DNSKEY) {
+      setLWResult(res, 0, true, false, true);
+      addDNSKEY(keys, domain, 300, res->d_records);
+      addRRSIG(keys, res->d_records, DNSName("."), 300);
+      return LWResult::Result::Success;
+    }
 
     return LWResult::Result::Timeout;
   });
@@ -277,7 +283,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
@@ -285,7 +291,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_root)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child)
@@ -387,7 +393,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -395,7 +401,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_insecure)
@@ -585,7 +591,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_CHECK_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -593,7 +599,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_unsigned_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec)
@@ -673,7 +679,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
   BOOST_CHECK_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -681,7 +687,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_bogus_no_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure)
@@ -781,10 +787,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  /* 4 NS: com at ., com at com, powerdns.com at com, powerdns.com at powerdns.com
-     4 DNSKEY: ., com (not for powerdns.com because DS denial in referral)
+  /* 2 NS: com at ., powerdns.com at com
+     2 DNSKEY: ., com (not for powerdns.com because DS denial in referral)
      1 query for A */
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -793,7 +799,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_optout)
@@ -1007,7 +1013,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nxd_optout)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1016,7 +1022,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nxd_optout)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_direct_ds)
@@ -1263,7 +1269,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_skipped_cut)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1272,7 +1278,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_skipped_cut)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 static void testFixedPointInTime(time_t fixedNow)
@@ -192,14 +192,14 @@ static void testFixedPointInTime(time_t fixedNow)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos1970)
@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_a_then_ns)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_a_then_ns)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* this time we ask for the NS that should be in the cache, to check
      the validation status */
@@ -334,7 +334,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_a_then_ns)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_a_then_ns)
@@ -418,7 +418,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_a_then_ns)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_a_then_ns)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* this time we ask for the NS that should be in the cache, to check
      the validation status */
@@ -435,7 +435,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_a_then_ns)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_with_nta)
@@ -616,7 +616,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_nta)
   /* Should be insecure because of the NTA */
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache */
   ret.clear();
@@ -624,7 +624,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_nta)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec)
@@ -707,7 +707,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -715,7 +715,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec)
@@ -823,7 +823,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -831,7 +831,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nxdomain_nsec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
@@ -932,7 +932,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -944,7 +944,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
     BOOST_CHECK_LE(rec.d_ttl, 60U);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
@@ -1054,7 +1054,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1066,7 +1066,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
     BOOST_CHECK_LE(rec.d_ttl, 60U);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
@@ -1138,7 +1138,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1146,7 +1146,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
@@ -1229,7 +1229,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1237,7 +1237,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_nsec3)
@@ -1323,7 +1323,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* because we pass along the duplicated NSEC3 */
   BOOST_REQUIRE_EQUAL(ret.size(), 9U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1332,7 +1332,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* because we pass along the duplicated NSEC3 */
   BOOST_REQUIRE_EQUAL(ret.size(), 9U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_iterations)
@@ -1416,7 +1416,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_ite
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1424,7 +1424,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_ite
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
@@ -1534,7 +1534,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1546,7 +1546,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
     /* check that we applied the lowest TTL, here this is from the NSEC3 proving that the exact name did not exist (next closer) */
     BOOST_CHECK_LE(rec.d_ttl, 60U);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
@@ -1653,7 +1653,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1661,7 +1661,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
@@ -1759,7 +1759,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1767,7 +1767,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
@@ -2004,14 +2004,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_incomplete_cache_zonecut_qm)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 12U);
+  BOOST_CHECK_EQUAL(queriesCount, 10U);
 
   ret.clear();
   res = sr->beginResolve(DNSName("dns1.p03.nsone.net."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 16U);
+  BOOST_CHECK_EQUAL(queriesCount, 14U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_servfail_ds)

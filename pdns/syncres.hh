@@ -873,11 +873,10 @@ private:
   void computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, QType qtype, const int res, vState& state, unsigned int depth);
   vState getTA(const DNSName& zone, dsmap_t& ds);
   bool haveExactValidationStatus(const DNSName& domain);
-  vState getValidationStatus(const DNSName& subdomain, bool allowIndeterminate=true);
-  void updateValidationStatusInCache(const DNSName &qname, QType qt, bool aa, vState newState) const;
 
-  bool lookForCut(const DNSName& qname, unsigned int depth, const vState existingState, vState& newState);
-  void computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth);
+  vState getValidationStatus(const DNSName& subdomain, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool typeIsDS, unsigned int depth);
+  void updateValidationStatusInCache(const DNSName &qname, QType qt, bool aa, vState newState) const;
+  void initZoneCutsFromTA(const DNSName& from);
 
   void handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, QType qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state);
 

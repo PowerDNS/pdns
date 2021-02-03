@@ -965,7 +965,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
   BOOST_CHECK_EQUAL(DSforParentCount, 1U);
 
   /* again, to test the cache */
@@ -974,16 +974,16 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
   BOOST_CHECK_EQUAL(DSforParentCount, 1U);
 
-  /* new target should no cause a DS query for tets. */
+  /* new target should not cause a DS query for test. */
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
   BOOST_CHECK_EQUAL(DSforParentCount, 1U);
 }
 

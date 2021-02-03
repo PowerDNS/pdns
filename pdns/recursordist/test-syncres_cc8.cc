@@ -1075,7 +1075,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_insecure)
@@ -1313,7 +1313,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   ret.clear();
   /* last one also requires validation */
@@ -1325,7 +1325,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

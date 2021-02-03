@@ -94,14 +94,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nxdomain)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata)
@@ -180,14 +180,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata_wildcard)
@@ -271,14 +271,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, target);
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(DNSName("b.powerdns.com."), QType(QType::A), QClass::IN, ret);
@@ -371,7 +371,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("b.powerdns.com."));
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
@@ -470,14 +470,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata)
@@ -556,14 +556,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
@@ -659,14 +659,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
@@ -758,7 +758,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, target);
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(DNSName("b.powerdns.com."), QType(QType::A), QClass::IN, ret);
@@ -767,7 +767,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("b.powerdns.com."));
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)

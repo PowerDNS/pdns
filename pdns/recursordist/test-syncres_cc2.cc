@@ -723,7 +723,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 1U);
 
   ret.clear();
@@ -731,7 +731,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 1U);
 
   ret.clear();
@@ -739,7 +739,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 1U);
 
   ret.clear();
@@ -747,7 +747,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 1U);
 
   // Now test without RFC 8020 to see the cache and query count grow
@@ -759,7 +759,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 1U);
 
   // New query
@@ -768,7 +768,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 2U);
 
   ret.clear();
@@ -776,7 +776,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 13U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 3U);
 
   ret.clear();
@@ -784,7 +784,7 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_CHECK_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 15U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
   BOOST_CHECK_EQUAL(g_negCache->size(), 4U);
 
   // reset
