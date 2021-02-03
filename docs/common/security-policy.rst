@@ -10,6 +10,8 @@ We fully credit reporters of security issues, and respond quickly, but please al
 We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY.
 This license is included in this documentation.
 
+If you believe you have found a security vulnerability that applies to DNS implementations generally, and you want to report this responsibly to a number of implementers, you might consider also using the `Open Source DNS Vulnerability mailing list <https://www.dns-oarc.net/oarc/oss-dns-vulns/>`_, managed by `DNS-OARC <https://www.dns-oarc.net/>`_.
+
 HackerOne
 ^^^^^^^^^
 Security issues can also be reported on `our HackerOne page <https://hackerone.com/powerdns>`_ and might fetch a bounty.
