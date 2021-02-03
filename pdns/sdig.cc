@@ -16,7 +16,13 @@
 #include "minicurl.hh"
 #endif
 
+#include "tcpiohandler.hh"
+
 StatBag S;
+
+// Vars below used by tcpiohandler.cc
+bool g_verbose = true;
+bool g_syslog = false;
 
 static bool hidettl = false;
 
@@ -33,7 +39,7 @@ static void usage()
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] "
-          "[recurse] [showflags] [tcp] [xpf XPFDATA] [class CLASSNUM] "
+          "[recurse] [showflags] [tcp] [dot] [xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
        << endl;
 }
@@ -195,12 +201,17 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails)
 
 int main(int argc, char** argv)
 try {
+    /* default timeout of 10s */
+  int timeout = 10;
   bool dnssec = false;
   bool recurse = false;
   bool tcp = false;
   bool showflags = false;
   bool hidesoadetails = false;
   bool doh = false;
+  bool dot = false;
+  bool fastOpen = false;
+  bool insecureDoT = false;
   bool fromstdin = false;
   boost::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
@@ -241,6 +252,10 @@ try {
         hidettl = true;
       if (strcmp(argv[i], "tcp") == 0)
         tcp = true;
+      if (strcmp(argv[i], "dot") == 0)
+        dot = true;
+      if (strcmp(argv[i], "insecure") == 0)
+        insecureDoT = true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
         if (argc < i + 2) {
           cerr << "ednssubnet needs an argument" << endl;
@@ -278,6 +293,17 @@ try {
       }
     }
   }
+
+  if (dot) {
+    tcp = true;
+  }
+
+#ifndef HAVE_DNS_OVER_TLS
+  if (dot) {
+    cerr << "DoT requested but not compiled in" << endl;
+    exit(EXIT_FAILURE);
+  }
+#endif
 
   string reply;
   ComboAddress dest;
@@ -344,41 +370,46 @@ try {
 
     printReply(reply, showflags, hidesoadetails);
   } else if (tcp) {
+    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+    if (dot) {
+      TLSContextParameters tlsParams;
+      tlsParams.d_provider = "openssl";
+      tlsParams.d_validateCertificates = !insecureDoT;
+      tlsCtx = getTLSContext(tlsParams);
+    }
     uint16_t counter = 0;
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
-    sock.connect(dest);
-    sock.writen(proxyheader);
+    SConnectWithTimeout(sock.getHandle(), dest, timeout);
+    TCPIOHandler handler("buab", sock.getHandle(), timeout, tlsCtx, time(nullptr));
+    handler.connect(fastOpen, dest, timeout);
+    // we are writing the proxyheader inside the TLS connection. Is that right?
+    if (proxyheader.size() > 0 && handler.write(proxyheader.data(), proxyheader.size(), timeout) != proxyheader.size()) {
+      throw PDNSException("tcp write failed");
+    }
+
     for (const auto& it : questions) {
       vector<uint8_t> packet;
       s_expectedIDs.insert(counter);
       fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, xpfcode,
                  xpfversion, xpfproto, xpfsrc, xpfdst, qclass, counter);
       counter++;
-
       uint16_t len = htons(packet.size());
-      if (sock.write((const char *)&len, 2) != 2)
+      if (handler.write(&len, sizeof(len), timeout) != sizeof(len))
         throw PDNSException("tcp write failed");
-      string question(packet.begin(), packet.end());
-      sock.writen(question);
+      if (handler.write(packet.data(), packet.size(), timeout) != packet.size()) {
+        throw PDNSException("tcp write failed");
+      }
     }
     for (size_t i = 0; i < questions.size(); i++) {
       uint16_t len;
-      if (sock.read((char *)&len, 2) != 2)
+      if (handler.read((char *)&len, sizeof(len), timeout) != sizeof(len)) {
         throw PDNSException("tcp read failed");
-
-      len = ntohs(len);
-      char* creply = new char[len];
-      int n = 0;
-      int numread;
-      while (n < len) {
-        numread = sock.read(creply + n, len - n);
-        if (numread < 0)
-          throw PDNSException("tcp read failed");
-        n += numread;
       }
-
-      reply = string(creply, len);
-      delete[] creply;
+      len = ntohs(len);
+      reply.resize(len);
+      if (handler.read(&reply[0], len, timeout) != len) {
+        throw PDNSException("tcp read failed");
+      }
       printReply(reply, showflags, hidesoadetails);
     }
   } else // udp
@@ -391,7 +422,7 @@ try {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;
     sock.sendTo(question, dest);
-    int result = waitForData(sock.getHandle(), 10);
+    int result = waitForData(sock.getHandle(), timeout);
     if (result < 0)
       throw std::runtime_error("Error waiting for data: " + stringerror());
     if (!result)
