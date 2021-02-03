@@ -1,0 +1,1 @@
+../../../../docs/common/security-policy.rst
