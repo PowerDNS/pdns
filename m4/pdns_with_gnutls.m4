@@ -1,4 +1,4 @@
-AC_DEFUN([DNSDIST_WITH_GNUTLS], [
+AC_DEFUN([PDNS_WITH_GNUTLS], [
   AC_MSG_CHECKING([whether we will be linking in GnuTLS])
   HAVE_GNUTLS=0
   AC_ARG_WITH([gnutls],

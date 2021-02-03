@@ -1,4 +1,4 @@
-AC_DEFUN([DNSDIST_WITH_LIBSSL], [
+AC_DEFUN([PDNS_WITH_LIBSSL], [
   AC_MSG_CHECKING([whether we will be linking in OpenSSL libssl])
   HAVE_LIBSSL=0
   AC_ARG_WITH([libssl],
