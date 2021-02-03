@@ -26,3 +26,4 @@ PowerDNS Authoritative Server
     security-advisories/index
     changelog/index
     appendices/*
+    common/license

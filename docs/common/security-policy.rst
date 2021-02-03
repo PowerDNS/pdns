@@ -8,7 +8,7 @@ Please do not mail security issues to public lists, nor file a ticket, unless we
 We fully credit reporters of security issues, and respond quickly, but please allow us a reasonable timeframe to coordinate a response.
 
 We remind PowerDNS and dnsdist users that under the terms of the GNU General Public License, PowerDNS and dnsdist come with ABSOLUTELY NO WARRANTY.
-This license is included in this documentation.
+This :doc:`license <../common/license>`  is included in this documentation.
 
 If you believe you have found a security vulnerability that applies to DNS implementations generally, and you want to report this responsibly to a number of implementers, you might consider also using the `Open Source DNS Vulnerability mailing list <https://www.dns-oarc.net/oarc/oss-dns-vulns/>`_, managed by `DNS-OARC <https://www.dns-oarc.net/>`_.
 

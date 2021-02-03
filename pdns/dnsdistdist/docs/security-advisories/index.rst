@@ -9,4 +9,4 @@ All security advisories for the DNSDist are listed here.
 
     powerdns-advisory-for-dnsdist*
 
-If you have a security problem to report, please see our :doc:`security policy <security-policy>`.
+If you have a security problem to report, please see our :doc:`security policy <../common/security-policy>`.

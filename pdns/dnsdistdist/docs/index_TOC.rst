@@ -18,5 +18,6 @@ Table of Contents
    changelog
    upgrade_guide
    security-advisories/index
-   security-advisories/security-policy
+   common/security-policy
    glossary
+   common/license
