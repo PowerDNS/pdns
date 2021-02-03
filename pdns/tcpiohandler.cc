@@ -12,14 +12,11 @@
 #ifdef HAVE_DNS_OVER_TLS
 #ifdef HAVE_LIBSSL
 
-#ifdef ___OpenBSD__
-#define LIBRESSL_HAS_TLS1_3
-#endif
-
 #include <openssl/conf.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 
 #include "libssl.hh"
 
@@ -98,8 +95,8 @@ public:
       throw std::runtime_error("Error assigning socket");
     }
 
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL)
-    // XXX SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && HAVE_SSL_SET_HOSTFLAGS // grrr libressl
+    SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     if (SSL_set1_host(d_conn.get(), d_hostname.c_str()) != 1) {
       throw std::runtime_error("Error setting TLS hostname for certificate validation");
     }
@@ -125,9 +122,10 @@ public:
       return IOState::NeedWrite;
     }
     else if (error == SSL_ERROR_SYSCALL) {
-      throw std::runtime_error("Error while processing TLS connection: " + std::string(strerror(errno)));
+      throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
     }
     else {
+      ERR_print_errors_fp(stderr);
       throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
     }
   }
@@ -431,10 +429,8 @@ public:
       SSL_OP_SINGLE_ECDH_USE |
       SSL_OP_CIPHER_SERVER_PREFERENCE;
 
+    registerOpenSSLUser();
 #if 0 // XXX
-    if (s_users.fetch_add(1) == 0) {
-      registerOpenSSLUser();
-
       s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
 
       if (s_ticketsKeyIndex == -1) {
@@ -474,6 +470,11 @@ public:
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
     if (params.d_validateCertificates) {
+      // XXX parameter!
+      if (SSL_CTX_set_default_verify_paths(d_tlsCtx.get()) != 1) {
+        warnlog("could not load default CA store");
+      }
+
       SSL_CTX_set_verify(d_tlsCtx.get(), SSL_VERIFY_PEER, nullptr);
 #if (OPENSSL_VERSION_NUMBER < 0x10002000L)
       warnlog("TLS hostname validation requested but not supported for OpenSSL < 1.0.2");
@@ -484,11 +485,7 @@ public:
   ~OpenSSLTLSIOCtx() override
   {
     d_tlsCtx.reset();
-#if 0 // XXX
-    if (s_users.fetch_sub(1) == 1) {
-      unregisterOpenSSLUser();
-    }
-#endif
+    unregisterOpenSSLUser();
   }
 
   static int ticketKeyCb(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)

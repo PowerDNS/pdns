@@ -39,7 +39,7 @@ static void usage()
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] "
-          "[recurse] [showflags] [tcp] [dot] [xpf XPFDATA] [class CLASSNUM] "
+          "[recurse] [showflags] [tcp] [dot] [insecure] [subjectName name][xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
        << endl;
 }
@@ -218,6 +218,7 @@ try {
   char *xpfsrc = NULL, *xpfdst = NULL;
   uint16_t qclass = QClass::IN;
   string proxyheader;
+  string subjectName;
 
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
@@ -242,28 +243,28 @@ try {
     for (int i = 5; i < argc; i++) {
       if (strcmp(argv[i], "dnssec") == 0)
         dnssec = true;
-      if (strcmp(argv[i], "recurse") == 0)
+      else if (strcmp(argv[i], "recurse") == 0)
         recurse = true;
-      if (strcmp(argv[i], "showflags") == 0)
+      else if (strcmp(argv[i], "showflags") == 0)
         showflags = true;
-      if (strcmp(argv[i], "hidesoadetails") == 0)
+      else if (strcmp(argv[i], "hidesoadetails") == 0)
         hidesoadetails = true;
-      if (strcmp(argv[i], "hidettl") == 0)
+      else if (strcmp(argv[i], "hidettl") == 0)
         hidettl = true;
-      if (strcmp(argv[i], "tcp") == 0)
+      else if (strcmp(argv[i], "tcp") == 0)
         tcp = true;
-      if (strcmp(argv[i], "dot") == 0)
+      else if (strcmp(argv[i], "dot") == 0)
         dot = true;
-      if (strcmp(argv[i], "insecure") == 0)
+      else if (strcmp(argv[i], "insecure") == 0)
         insecureDoT = true;
-      if (strcmp(argv[i], "ednssubnet") == 0) {
+      else if (strcmp(argv[i], "ednssubnet") == 0) {
         if (argc < i + 2) {
           cerr << "ednssubnet needs an argument" << endl;
           exit(EXIT_FAILURE);
         }
         ednsnm = Netmask(argv[++i]);
       }
-      if (strcmp(argv[i], "xpf") == 0) {
+      else if (strcmp(argv[i], "xpf") == 0) {
         if (argc < i + 6) {
           cerr << "xpf needs five arguments" << endl;
           exit(EXIT_FAILURE);
@@ -274,14 +275,21 @@ try {
         xpfsrc = argv[++i];
         xpfdst = argv[++i];
       }
-      if (strcmp(argv[i], "class") == 0) {
+      else if (strcmp(argv[i], "class") == 0) {
         if (argc < i+2) {
           cerr << "class needs an argument"<<endl;
           exit(EXIT_FAILURE);
         }
         qclass = atoi(argv[++i]);
       }
-      if (strcmp(argv[i], "proxy") == 0) {
+      else if (strcmp(argv[i], "subjectName") == 0) {
+        if (argc < i+2) {
+          cerr << "subjectName needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        subjectName = argv[++i];
+      }
+      else if (strcmp(argv[i], "proxy") == 0) {
         if(argc < i+4) {
           cerr<<"proxy needs three arguments"<<endl;
           exit(EXIT_FAILURE);
@@ -290,6 +298,10 @@ try {
         ComboAddress src(argv[++i]);
         ComboAddress dest(argv[++i]);
         proxyheader = makeProxyHeader(ptcp, src, dest, {});
+      }
+      else {
+        cerr << argv[i] << ": unknown argument" << endl;
+        exit(EXIT_FAILURE);
       }
     }
   }
@@ -380,7 +392,7 @@ try {
     uint16_t counter = 0;
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     SConnectWithTimeout(sock.getHandle(), dest, timeout);
-    TCPIOHandler handler("buab", sock.getHandle(), timeout, tlsCtx, time(nullptr));
+    TCPIOHandler handler(subjectName, sock.getHandle(), timeout, tlsCtx, time(nullptr));
     handler.connect(fastOpen, dest, timeout);
     // we are writing the proxyheader inside the TLS connection. Is that right?
     if (proxyheader.size() > 0 && handler.write(proxyheader.data(), proxyheader.size(), timeout) != proxyheader.size()) {
