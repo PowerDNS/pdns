@@ -49,7 +49,8 @@ RUN mkdir /build && \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
       --enable-tools \
-      --enable-ixfrdist && \
+      --enable-ixfrdist \
+      --with-unixodbc-lib=/usr/lib/$(uname -m)-linux-gnu && \
     make clean && \
     make $MAKEFLAGS -C ext && make $MAKEFLAGS -C modules && make $MAKEFLAGS -C pdns && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
