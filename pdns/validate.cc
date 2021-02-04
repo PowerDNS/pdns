@@ -485,12 +485,16 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthesized from a wildcard");
   }
 
-  for(const auto& v : validrrsets) {
+  for (const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
 
-    if(v.first.second==QType::NSEC) {
-      for(const auto& r : v.second.records) {
+    if (v.first.second==QType::NSEC) {
+      for (const auto& r : v.second.records) {
         LOG("\t"<<r->getZoneRepresentation()<<endl);
+
+        if (v.second.signatures.empty()) {
+          continue;
+        }
 
         auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
         if (!nsec) {
@@ -501,7 +505,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         const DNSName signer = getSigner(v.second.signatures);
         if (!v.first.first.isPartOf(signer) || !owner.isPartOf(signer) ) {
            continue;
-         }
+        }
 
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
@@ -616,11 +620,16 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->isSet(qtype)<<", next: "<<nsec->d_next<<endl);
       }
     } else if(v.first.second==QType::NSEC3) {
-      for(const auto& r : v.second.records) {
+      for (const auto& r : v.second.records) {
         LOG("\t"<<r->getZoneRepresentation()<<endl);
         auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
-        if(!nsec3)
+        if (!nsec3) {
           continue;
+        }
+
+        if (v.second.signatures.empty()) {
+          continue;
+        }
 
         const DNSName signer = getSigner(v.second.signatures);
         if (!v.first.first.isPartOf(signer)) {
@@ -805,10 +814,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
               nextCloserFound = true;
 
-              if ((qtype == QType::DS || qtype == 0) && nsec3->isOptOut()) {
+              if (nsec3->isOptOut()) {
                 LOG(" but is opt-out!");
                 isOptOut = true;
               }
+
               LOG(endl);
               break;
             }

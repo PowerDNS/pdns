@@ -807,6 +807,60 @@ BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
   BOOST_CHECK_EQUAL(denialState, dState::NODENIAL);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec3_ent_opt_out)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  /*
+   * RFC 7129 section 5.1:
+   * A recently discovered corner case (see RFC Errata ID 3441 [Err3441])
+   * shows that not only those delegations remain insecure but also the
+   * empty non-terminal space that is derived from those delegations.
+  */
+  /*
+    We have a NSEC3 proving that was.here does exist, and a second
+    one proving that ent.was.here. does not,
+    There NSEC3 are opt-out, so the result should be insecure (and we don't need
+    a wildcard proof).
+  */
+  addNSEC3UnhashedRecordToLW(DNSName("was.here."), DNSName("."), "whatever", {}, 600, records, 10, true /* opt out */);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  ContentSigPair pair;
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  cspmap_t denialMap;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* it can not be used to deny any RRs below that owner name either */
+  /* Add NSEC3 for the next closer */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3NarrowRecordToLW(DNSName("ent.was.here."), DNSName("."), {QType::RRSIG, QType::NSEC3}, 600, records, 10, true /* opt-out */);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, DNSName("."), 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::make_pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* Insecure because the opt-out bit is set */
+  dState denialState = getDenial(denialMap, DNSName("ent.was.here."), QType::A, false, true);
+  BOOST_CHECK_EQUAL(denialState, dState::OPTOUT);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity)
 {
   std::unique_ptr<SyncRes> sr;

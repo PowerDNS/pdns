@@ -1448,7 +1448,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
       if (!wasAuthZone && shouldValidate() && (wasAuth || wasForwardRecurse) && state == vState::Indeterminate && d_requireAuthData) {
         /* This means we couldn't figure out the state when this entry was cached */
 
-        vState recordState = getValidationStatus(foundName, signatures, qtype == QType::DS, depth);
+        vState recordState = getValidationStatus(foundName, !signatures.empty(), qtype == QType::DS, depth);
         if (recordState == vState::Secure) {
           LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.getName()<<" cache, validating.."<<endl);
           state = SyncRes::validateRecordsWithSigs(depth, qname, qtype, foundName, foundQT, cset, signatures);
@@ -1655,7 +1655,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
 
     const DNSName& owner = entry.first.name;
 
-    vState recordState = getValidationStatus(owner, entry.second.signatures, qtype == QType::DS, depth);
+    vState recordState = getValidationStatus(owner, !entry.second.signatures.empty(), qtype == QType::DS, depth);
     if (state == vState::Indeterminate) {
       state = recordState;
     }
@@ -1675,8 +1675,8 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne,
   if (state == vState::Secure) {
     vState neValidationState = ne.d_validationState;
     dState expectedState = res == RCode::NXDomain ? dState::NXDOMAIN : dState::NXQTYPE;
-    dState denialState = getDenialValidationState(ne, state, expectedState, false);
-    updateDenialValidationState(neValidationState, ne.d_name, state, denialState, expectedState, qtype == QType::DS || expectedState == dState::NXDOMAIN);
+    dState denialState = getDenialValidationState(ne, expectedState, false);
+    updateDenialValidationState(neValidationState, ne.d_name, state, denialState, expectedState);
   }
   if (state != vState::Indeterminate) {
     /* validation succeeded, let's update the cache entry so we don't have to validate again */
@@ -1799,7 +1799,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == vState::Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached */
-      vState recordState = getValidationStatus(qname, signatures, qtype == QType::DS, depth);
+      vState recordState = getValidationStatus(qname, !signatures.empty(), qtype == QType::DS, depth);
 
       if (recordState == vState::Secure) {
         LOG(prefix<<sqname<<": got vState::Indeterminate state from the cache, validating.."<<endl);
@@ -2571,7 +2571,7 @@ bool SyncRes::haveExactValidationStatus(const DNSName& domain)
   return false;
 }
 
-vState SyncRes::getValidationStatus(const DNSName& name, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool typeIsDS, unsigned int depth)
+vState SyncRes::getValidationStatus(const DNSName& name, bool hasSignatures, bool typeIsDS, unsigned int depth)
 {
   vState result = vState::Indeterminate;
 
@@ -2610,9 +2610,9 @@ vState SyncRes::getValidationStatus(const DNSName& name, const std::vector<std::
      but we don't know if we missed a cut (or several).
      We could see see if we have DS (or denial of) in cache but let's not worry for now,
      we will if we don't have a signature, or if the signer doesn't match what we expect */
-  if (signatures.empty() && best != subdomain) {
+  if (!hasSignatures && best != subdomain) {
     /* no signatures, we likely missed a cut, let's try to find it */
-    LOG(d_prefix<<": no signatures, we likely missed a cut between "<<best<<" and "<<subdomain<<", looking for it"<<endl);
+    LOG(d_prefix<<": no signatures for "<<name<<", we likely missed a cut between "<<best<<" and "<<subdomain<<", looking for it"<<endl);
     DNSName ds(best);
     std::vector<string> labelsToAdd = subdomain.makeRelative(ds).getRawLabels();
 
@@ -2629,6 +2629,8 @@ vState SyncRes::getValidationStatus(const DNSName& name, const std::vector<std::
       if (foundCut) {
         LOG(d_prefix<<": - Found cut at "<<ds<<endl);
         LOG(d_prefix<<": New state for "<<ds<<" is "<<dsState<<endl);
+        d_cutStates[ds] = dsState;
+
         if (dsState != vState::Secure) {
           return dsState;
         }
@@ -2639,15 +2641,14 @@ vState SyncRes::getValidationStatus(const DNSName& name, const std::vector<std::
     return result;
   }
 
-#warning test me, write a unit test if needed
 #if 0
+  /* we don't need this, we actually do the right thing later */
   DNSName signer = getSigner(signatures);
 
   if (!signer.empty() && name.isPartOf(signer)) {
     if (signer == best) {
       return result;
     }
-
     /* the zone cut is not the one we expected,
        this is fine because we will retrieve the needed DNSKEYs and DSs
        later, and even go Insecure if we missed a cut to Insecure (no DS)
@@ -3008,7 +3009,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           wildcardLabelsCount = rrsig->d_labels;
         }
 
-        //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
+        // cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"' and place "<<rec.d_place<<endl;
         tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
         tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signaturesTTL = std::min(tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signaturesTTL, rec.d_ttl);
       }
@@ -3077,7 +3078,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       else {
         bool haveLogged = false;
         if (isDNAMEAnswer && rec.d_type == QType::CNAME) {
-          LOG("NO - we already have a DNAME answer for this domain");
+          LOG("NO - we already have a DNAME answer for this domain"<<endl);
           continue;
         }
         if (!t_sstorage.domainmap->empty()) {
@@ -3137,7 +3138,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
   for(tcache_t::iterator i = tcache.begin(); i != tcache.end(); ++i) {
 
-    if(i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
+    if (i->second.records.empty()) // this happens when we did store signatures, but passed on the records themselves
       continue;
 
     /* Even if the AA bit is set, additional data cannot be considered
@@ -3189,10 +3190,26 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       continue;
     }
 
+    /*
+     * RFC 6672 section 5.3.1
+     *  In any response, a signed DNAME RR indicates a non-terminal
+     *  redirection of the query.  There might or might not be a server-
+     *  synthesized CNAME in the answer section; if there is, the CNAME will
+     *  never be signed.  For a DNSSEC validator, verification of the DNAME
+     *  RR and then that the CNAME was properly synthesized is sufficient
+     *  proof.
+     *
+     * We do the synthesis check in processRecords, here we make sure we
+     * don't validate the CNAME.
+     */
+    if (isDNAMEAnswer && i->first.type == QType::CNAME) {
+      expectSignature = false;
+    }
+
     vState recordState = vState::Indeterminate;
 
     if (expectSignature && shouldValidate()) {
-      vState initialState = getValidationStatus(i->first.name, i->second.signatures, i->first.type == QType::DS, depth);
+      vState initialState = getValidationStatus(i->first.name, !i->second.signatures.empty(), i->first.type == QType::DS, depth);
       LOG(d_prefix<<": got initial zone status "<<initialState<<" for record "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
 
       if (initialState == vState::Secure) {
@@ -3201,25 +3218,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
         }
         else {
-          /*
-           * RFC 6672 section 5.3.1
-           *  In any response, a signed DNAME RR indicates a non-terminal
-           *  redirection of the query.  There might or might not be a server-
-           *  synthesized CNAME in the answer section; if there is, the CNAME will
-           *  never be signed.  For a DNSSEC validator, verification of the DNAME
-           *  RR and then that the CNAME was properly synthesized is sufficient
-           *  proof.
-           *
-           * We do the synthesis check in processRecords, here we make sure we
-           * don't validate the CNAME.
-           */
-          if (!(isDNAMEAnswer && i->first.type == QType::CNAME)) {
-            LOG(d_prefix<<"Validating non-additional "<<QType(i->first.type).getName()<<" record for "<<i->first.name<<endl);
-            recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, QType(i->first.type), i->second.records, i->second.signatures);
-            /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
-            if (qtype == QType::NS && i->second.signatures.empty() && vStateIsBogus(recordState) && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name, i->second.signatures, i->first.type == QType::DS, depth) == vState::Indeterminate) {
-                recordState = vState::Indeterminate;
-            }
+          LOG(d_prefix<<"Validating non-additional "<<QType(i->first.type).getName()<<" record for "<<i->first.name<<endl);
+          recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, QType(i->first.type), i->second.records, i->second.signatures);
+          /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
+          if (qtype == QType::NS && i->second.signatures.empty() && vStateIsBogus(recordState) && haveExactValidationStatus(i->first.name) && initialState == vState::Indeterminate) {
+            recordState = vState::Indeterminate;
           }
         }
       }
@@ -3314,13 +3317,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   return RCode::NoError;
 }
 
-void SyncRes::updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState, bool allowOptOut)
+void SyncRes::updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState)
 {
   if (denialState == expectedState) {
     neValidationState = vState::Secure;
   }
   else {
-    if (denialState == dState::OPTOUT && allowOptOut) {
+    if (denialState == dState::OPTOUT) {
       LOG(d_prefix<<"OPT-out denial found for "<<neName<<endl);
       /* rfc5155 states:
          "The AD bit, as defined by [RFC4035], MUST NOT be set when returning a
@@ -3350,7 +3353,7 @@ void SyncRes::updateDenialValidationState(vState& neValidationState, const DNSNa
   }
 }
 
-dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, const vState state, const dState expectedState, bool referralToUnsigned)
+dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, const dState expectedState, bool referralToUnsigned)
 {
   cspmap_t csp = harvestCSPFromNE(ne);
   return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE);
@@ -3394,12 +3397,20 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       ne.d_auth = rec.d_name;
       harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
 
-      if (state == vState::Secure) {
-        dState denialState = getDenialValidationState(ne, state, dState::NXDOMAIN, false);
-        updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, dState::NXDOMAIN, true);
+      if (vStateIsBogus(state)) {
+        ne.d_validationState = state;
       }
       else {
-        ne.d_validationState = state;
+#warning FIXME: DS ?
+        auto recordState = getValidationStatus(ne.d_name, !ne.authoritySOA.signatures.empty(), false, depth);
+        if (recordState == vState::Secure) {
+          dState denialState = getDenialValidationState(ne, dState::NXDOMAIN, false);
+          updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, dState::NXDOMAIN);
+        }
+        else {
+          ne.d_validationState = recordState;
+          updateValidationState(state, ne.d_validationState);
+        }
       }
 
       if (vStateIsBogus(ne.d_validationState)) {
@@ -3478,36 +3489,45 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       done = true;
       rcode = RCode::NoError;
 
-      if (state == vState::Secure && needWildcardProof) {
-        /* We have a positive answer synthesized from a wildcard, we need to check that we have
-           proof that the exact name doesn't exist so the wildcard can be used,
-           as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
-        */
+      if (needWildcardProof) {
         NegCache::NegCacheEntry ne;
-
-        uint32_t lowestTTL = rec.d_ttl;
         ne.d_name = qname;
         ne.d_qtype = QType::ENT; // this encodes 'whole record'
+        uint32_t lowestTTL = rec.d_ttl;
         harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
 
-        cspmap_t csp = harvestCSPFromNE(ne);
-        dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, false, wildcardLabelsCount);
-        if (res != dState::NXDOMAIN) {
-          vState st = vState::BogusInvalidDenial;
-          if (res == dState::INSECURE) {
-            /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
-               this is not enough to warrant a Bogus, but go Insecure. */
-            st = vState::Insecure;
-            LOG(d_prefix<<"Unable to validate denial in wildcard expanded positive response found for "<<qname<<", returning Insecure, res="<<res<<endl);
-          }
-          else {
-            LOG(d_prefix<<"Invalid denial in wildcard expanded positive response found for "<<qname<<", returning Bogus, res="<<res<<endl);
-            rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
-          }
+        if (vStateIsBogus(state)) {
+          ne.d_validationState = state;
+        }
+        else {
+          auto recordState = getValidationStatus(qname, !ne.authoritySOA.signatures.empty(), false, depth);
 
-          updateValidationState(state, st);
-          /* we already stored the record with a different validation status, let's fix it */
-          updateValidationStatusInCache(qname, qtype, lwr.d_aabit, st);
+          if (recordState == vState::Secure) {
+            /* We have a positive answer synthesized from a wildcard, we need to check that we have
+               proof that the exact name doesn't exist so the wildcard can be used,
+               as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
+            */
+
+            cspmap_t csp = harvestCSPFromNE(ne);
+            dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, false, wildcardLabelsCount);
+            if (res != dState::NXDOMAIN) {
+              vState st = vState::BogusInvalidDenial;
+              if (res == dState::INSECURE) {
+                /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
+                   this is not enough to warrant a Bogus, but go Insecure. */
+                st = vState::Insecure;
+                LOG(d_prefix<<"Unable to validate denial in wildcard expanded positive response found for "<<qname<<", returning Insecure, res="<<res<<endl);
+              }
+              else {
+                LOG(d_prefix<<"Invalid denial in wildcard expanded positive response found for "<<qname<<", returning Bogus, res="<<res<<endl);
+                rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
+              }
+
+              updateValidationState(state, st);
+              /* we already stored the record with a different validation status, let's fix it */
+              updateValidationStatusInCache(qname, qtype, lwr.d_aabit, st);
+            }
+          }
         }
       }
 
@@ -3541,33 +3561,38 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
     else if(realreferral && rec.d_place==DNSResourceRecord::AUTHORITY && (rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && newauth.isPartOf(auth)) {
       /* we might have received a denial of the DS, let's check */
-      if (state == vState::Secure) {
-        NegCache::NegCacheEntry ne;
-        ne.d_auth = auth;
-        ne.d_name = newauth;
-        ne.d_qtype = QType::DS;
-        rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
-        uint32_t lowestTTL = rec.d_ttl;
-        harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
+      NegCache::NegCacheEntry ne;
+      uint32_t lowestTTL = rec.d_ttl;
+      harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
 
-        dState denialState = getDenialValidationState(ne, state, dState::NXQTYPE, true);
+      if (!vStateIsBogus(state)) {
+        auto recordState = getValidationStatus(newauth, !ne.authoritySOA.signatures.empty(), true, depth);
 
-        if (denialState == dState::NXQTYPE || denialState == dState::OPTOUT || denialState == dState::INSECURE) {
-          ne.d_ttd = lowestTTL + d_now.tv_sec;
-          ne.d_validationState = vState::Secure;
-          if (denialState == dState::OPTOUT) {
-            ne.d_validationState = vState::Insecure;
-          }
-          LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
+        if (recordState == vState::Secure) {
+          ne.d_auth = auth;
+          ne.d_name = newauth;
+          ne.d_qtype = QType::DS;
+          rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
 
-          if(!wasVariable()) {
-            g_negCache->add(ne);
-          }
+          dState denialState = getDenialValidationState(ne, dState::NXQTYPE, true);
 
-          if (qname == newauth && qtype == QType::DS) {
-            /* we are actually done! */
-            negindic=true;
-            nsset.clear();
+          if (denialState == dState::NXQTYPE || denialState == dState::OPTOUT || denialState == dState::INSECURE) {
+            ne.d_ttd = lowestTTL + d_now.tv_sec;
+            ne.d_validationState = vState::Secure;
+            if (denialState == dState::OPTOUT) {
+              ne.d_validationState = vState::Insecure;
+            }
+            LOG(prefix<<qname<<": got negative indication of DS record for '"<<newauth<<"'"<<endl);
+
+            if (!wasVariable()) {
+              g_negCache->add(ne);
+            }
+
+            if (qname == newauth && qtype == QType::DS) {
+              /* we are actually done! */
+              negindic=true;
+              nsset.clear();
+            }
           }
         }
       }
@@ -3589,11 +3614,18 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_qtype = qtype;
         harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
 
-        if (state == vState::Secure) {
-          dState denialState = getDenialValidationState(ne, state, dState::NXQTYPE, false);
-          updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, dState::NXQTYPE, qtype == QType::DS);
-        } else {
+        if (vStateIsBogus(state)) {
           ne.d_validationState = state;
+        }
+        else {
+          auto recordState = getValidationStatus(qname, ne.authoritySOA.signatures.empty(), qtype == QType::DS, depth);
+          if (recordState == vState::Secure) {
+            dState denialState = getDenialValidationState(ne, dState::NXQTYPE, false);
+            updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, dState::NXQTYPE);
+          } else {
+            ne.d_validationState = recordState;
+            updateValidationState(state, ne.d_validationState);
+          }
         }
 
         if (vStateIsBogus(ne.d_validationState)) {
@@ -3913,7 +3945,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if (lwr.d_rcode == RCode::NXDomain) {
     LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
 
-    auto tempState = getValidationStatus(qname, {}, qtype == QType::DS, depth);
+    auto tempState = getValidationStatus(qname, false, qtype == QType::DS, depth);
     if (tempState == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       LOG(prefix<<qname<<": NXDOMAIN without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::BogusMissingNegativeIndication);
@@ -3929,7 +3961,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if (nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 
-    auto tempState = getValidationStatus(qname, {}, qtype == QType::DS, depth);
+    auto tempState = getValidationStatus(qname, false, qtype == QType::DS, depth);
     if (tempState == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       LOG(prefix<<qname<<": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::BogusMissingNegativeIndication);
