@@ -1896,9 +1896,6 @@ workflows:
       - test-auth-regress-tinydns:
           requires:
             - build-auth
-      - check-formatting:
-          requires:
-            - checkout
       - build-recursor:
           requires:
             - checkout
