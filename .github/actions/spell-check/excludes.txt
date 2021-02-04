@@ -3,6 +3,7 @@
 (?:^|/)go\.sum$
 (?:^|/)m4/
 (?:^|/)package-lock\.json$
+(?:^|/)requirements\.txt$
 /expected_result
 /test-dnsrecords_cc\.cc$
 SUMS$
