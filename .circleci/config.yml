@@ -186,7 +186,7 @@ commands:
       - run:
           command: |
             apt-get install -qq -y \
-              libluajit-5.1 \
+              libluajit-5.1-2 \
               libboost-all-dev \
               libcap2 \
               libssl1.1 \
@@ -208,7 +208,7 @@ commands:
             libkrb5-3 \
             libldap-2.4-2 \
             liblmdb0 \
-            libluajit-5.1 \
+            libluajit-5.1-2 \
             libmaxminddb0 \
             libp11-kit0 \
             libpq5 \
@@ -226,7 +226,7 @@ commands:
       - run:
           command: |
             apt-get install -qq -y \
-              libluajit-5.1 \
+              libluajit-5.1-2 \
               libboost-all-dev \
               libcap2 \
               libcdb1 \
