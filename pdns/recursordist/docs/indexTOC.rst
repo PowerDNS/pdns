@@ -22,4 +22,4 @@ PowerDNS Recursor
     upgrade
     changelog/index
     appendices/*
-
+    common/license
