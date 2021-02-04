@@ -872,7 +872,6 @@ private:
   void updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState);
   void computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, QType qtype, const int res, vState& state, unsigned int depth);
   vState getTA(const DNSName& zone, dsmap_t& ds);
-  bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain, bool hasSignatures, bool typeIsDS, unsigned int depth);
   void updateValidationStatusInCache(const DNSName &qname, QType qt, bool aa, vState newState) const;
   void initZoneCutsFromTA(const DNSName& from);
