@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build packages on older OSes
+    name: build.sh
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     strategy:
@@ -18,6 +18,7 @@ jobs:
         os:
           - centos-7
           - ubuntu-bionic
+          - oraclelinux-8
     steps:
       - uses: actions/checkout@v2.3.4
         with:
