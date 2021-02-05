@@ -435,18 +435,18 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
   uint16_t tsigPos = mdp.getTSIGPos();
   if(!tsigPos)
     return false;
-  
+
   bool gotit=false;
-  for(const auto & d_answer : mdp.d_answers) {          
+  for(const auto & answer : mdp.d_answers) {
     if(d_answer.first.d_type == QType::TSIG && d_answer.first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(d_answer.first.d_content);
+      shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
       if (!content) {
         g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *trc = *content;
-      *keyname = d_answer.first.d_name;
+      *keyname = answer.first.d_name;
       gotit=true;
     }
   }
@@ -456,7 +456,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
   if (tsigPosOut) {
     *tsigPosOut = tsigPos;
   }
-  
+
   return true;
 }
 
@@ -465,21 +465,21 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
   MOADNSParser mdp(d_isQuery, d_rawpacket);
   bool gotit=false;
 
-  for(const auto & d_answer : mdp.d_answers) {
+  for(const auto & answer : mdp.d_answers) {
     if (gotit) {
       g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl;
       return false;
     }
 
-    if(d_answer.first.d_type == QType::TKEY) {
+    if(answer.first.d_type == QType::TKEY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(d_answer.first.d_content);
+      shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(answer.first.d_content);
       if (!content) {
         g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *tr = *content;
-      *keyname = d_answer.first.d_name;
+      *keyname = answer.first.d_name;
       gotit=true;
     }
   }
