@@ -3550,7 +3550,7 @@ Bug fixes
    (`#3290 <https://github.com/PowerDNS/pdns/issues/3290>`__)
 -  Outstanding TCP queries count was not always correct
    (`#3288 <https://github.com/PowerDNS/pdns/issues/3288>`__)
--  A locking issue in exceedRespGen() might have caused crashs
+-  A locking issue in exceedRespGen() might have caused crashes
    (`#3277 <https://github.com/PowerDNS/pdns/issues/3277>`__)
 -  Useless sockets were created in client mode
    (`#3257 <https://github.com/PowerDNS/pdns/issues/3257>`__)
