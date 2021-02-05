@@ -24,7 +24,9 @@ BraceWrapping:
   AfterUnion: true
   BeforeCatch: true
   BeforeElse: true
+  SplitEmptyFunction: false
 
 AllowAllParametersOfDeclarationOnNextLine: true
 BreakConstructorInitializers: AfterColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
+SpaceInEmptyBlock: false
