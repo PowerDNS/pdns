@@ -149,8 +149,8 @@ void Logger::setName(const string &_name)
   open();
 }
 
-Logger::Logger(const string &n, int facility) :
-  name(n), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
+Logger::Logger(string n, int facility) :
+  name(std::move(n)), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
   consoleUrgency(Error), opened(false), d_disableSyslog(false)
 {
   open();

@@ -208,7 +208,7 @@ boilerplate_conv(TSIG, QType::TSIG,
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
-MXRecordContent::MXRecordContent(uint16_t preference, const DNSName& mxname):  d_preference(preference), d_mxname(mxname)
+MXRecordContent::MXRecordContent(uint16_t preference, DNSName  mxname):  d_preference(preference), d_mxname(std::move(mxname))
 {
 }
 
@@ -274,8 +274,8 @@ boilerplate_conv(NAPTR, QType::NAPTR,
                  )
 
 
-SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target) 
-: d_weight(weight), d_port(port), d_target(target), d_preference(preference)
+SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target) 
+: d_weight(weight), d_port(port), d_target(std::move(target)), d_preference(preference)
 {}
 
 boilerplate_conv(SRV, QType::SRV, 
@@ -283,8 +283,8 @@ boilerplate_conv(SRV, QType::SRV,
                  conv.xfrName(d_target); 
                  )
 
-SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
-: d_mname(mname), d_rname(rname), d_st(st)
+SOARecordContent::SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st) 
+: d_mname(std::move(mname)), d_rname(std::move(rname)), d_st(st)
 {
 }
 

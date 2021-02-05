@@ -56,8 +56,8 @@ catch(...) {
   return nullptr;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, unsigned int workers)
-  : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
+ChunkedSigningPipe::ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int workers)
+  : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(std::move(signerName)),
     d_maxchunkrecords(100), d_threads(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
   d_rrsetToSign = make_unique<rrset_t>();

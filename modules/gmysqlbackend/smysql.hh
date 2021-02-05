@@ -29,9 +29,9 @@
 class SMySQL : public SSql
 {
 public:
-  SMySQL(const string &database, const string &host="", uint16_t port=0,
-         const string &msocket="",const string &user="",
-         const string &password="", const string &group="",
+  SMySQL(string database, string host="", uint16_t port=0,
+         string msocket="",string user="",
+         string password="", string group="",
          bool setIsolation=false, unsigned int timeout=10,
          bool threadCleanup=false, bool clientSSL=false);
 

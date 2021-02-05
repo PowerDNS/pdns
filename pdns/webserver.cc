@@ -449,8 +449,8 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
   }
 }
 
-WebServer::WebServer(const string &listenaddress, int port) :
-  d_listenaddress(listenaddress),
+WebServer::WebServer(string listenaddress, int port) :
+  d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),
   d_maxbodysize(2*1024*1024)

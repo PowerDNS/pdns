@@ -96,7 +96,7 @@ private:
 class MXRecordContent : public DNSRecordContent
 {
 public:
-  MXRecordContent(uint16_t preference, const DNSName& mxname);
+  MXRecordContent(uint16_t preference, DNSName  mxname);
 
   includeboilerplate(MX)
 
@@ -153,7 +153,7 @@ private:
 class SRVRecordContent : public DNSRecordContent
 {
 public:
-  SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target);
+  SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target);
 
   includeboilerplate(SRV)
 
@@ -562,7 +562,7 @@ class SOARecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(SOA)
-  SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st);
+  SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st);
 
   DNSName d_mname;
   DNSName d_rname;

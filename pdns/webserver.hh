@@ -156,7 +156,7 @@ protected:
 class WebServer : public boost::noncopyable
 {
 public:
-  WebServer(const string &listenaddress, int port);
+  WebServer(string listenaddress, int port);
   virtual ~WebServer() { };
 
   void setApiKey(const string &apikey) {

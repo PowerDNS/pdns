@@ -39,7 +39,7 @@ public:
 class RecordTextReader
 {
 public:
-  RecordTextReader(const string& str, const DNSName& zone=DNSName(""));
+  RecordTextReader(string  str, DNSName  zone=DNSName(""));
   void xfr64BitInt(uint64_t& val);
   void xfr48BitInt(uint64_t& val);
   void xfr32BitInt(uint32_t& val);
