@@ -526,12 +526,12 @@ public:
   {
     handleTicketsKeyRotation(now);
 
-    return std::unique_ptr<OpenSSLTLSConnection>(new OpenSSLTLSConnection(socket, timeout, d_feContext));
+    return std::make_unique<OpenSSLTLSConnection>(socket, timeout, d_feContext);
   }
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) override
   {
-    return std::unique_ptr<OpenSSLTLSConnection>(new OpenSSLTLSConnection(host, socket, timeout, d_tlsCtx.get()));
+    return std::make_unique<OpenSSLTLSConnection>(host, socket, timeout, d_tlsCtx.get());
   }
 
   void rotateTicketsKey(time_t now) override
@@ -1148,12 +1148,12 @@ public:
       ticketsKey = d_ticketsKey;
     }
 
-    return std::unique_ptr<GnuTLSConnection>(new GnuTLSConnection(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets));
+    return std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
   }
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) override
   {
-    return std::unique_ptr<GnuTLSConnection>(new GnuTLSConnection(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts));
+    return std::make_unique<GnuTLSConnection>(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts);
   }
 
   void rotateTicketsKey(time_t now) override
