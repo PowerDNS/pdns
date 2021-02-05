@@ -125,8 +125,11 @@ public:
       throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
     }
     else {
-      ERR_print_errors_fp(stderr);
-      throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
+      if (g_verbose) {
+        throw std::runtime_error("Error while processing TLS connection: " + libssl_get_error_string());
+      } else {
+        throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
+      }
     }
   }
 
@@ -383,7 +386,7 @@ class OpenSSLTLSIOCtx: public TLSCtx
 {
 public:
   /* server side context */
-  OpenSSLTLSIOCtx(TLSFrontend& fe): d_feContext(std::make_shared<OpenSSLFrontendContext>(fe.d_addr, fe.d_tlsConfig)), d_ticketKeys{0}, d_tlsCtx(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(nullptr, SSL_CTX_free))
+  OpenSSLTLSIOCtx(TLSFrontend& fe): d_feContext(std::make_shared<OpenSSLFrontendContext>(fe.d_addr, fe.d_tlsConfig)), d_tlsCtx(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(nullptr, SSL_CTX_free))
   {
     d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
 
@@ -418,7 +421,7 @@ public:
   }
 
   /* client side context */
-  OpenSSLTLSIOCtx(const TLSContextParameters& params): d_ticketKeys(0), d_tlsCtx(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(nullptr, SSL_CTX_free))
+  OpenSSLTLSIOCtx(const TLSContextParameters& params): d_tlsCtx(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(nullptr, SSL_CTX_free))
   {
     int sslOptions =
       SSL_OP_NO_SSLv2 |
@@ -430,13 +433,6 @@ public:
       SSL_OP_CIPHER_SERVER_PREFERENCE;
 
     registerOpenSSLUser();
-#if 0 // XXX
-    s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
-    
-    if (s_ticketsKeyIndex == -1) {
-      throw std::runtime_error("Error getting an index for tickets key");
-    }
-#endif
 
 #ifdef HAVE_TLS_CLIENT_METHOD
     d_tlsCtx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(TLS_client_method()), SSL_CTX_free);
@@ -563,9 +559,7 @@ public:
 
 private:
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
-  OpenSSLTLSTicketKeysRing d_ticketKeys;
-  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx;
-  static std::atomic<uint64_t> s_users;
+  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx; // client context
 };
 
 #endif /* HAVE_LIBSSL */

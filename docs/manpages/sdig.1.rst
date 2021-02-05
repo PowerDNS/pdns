@@ -39,6 +39,16 @@ showflags
     Show the NSEC3 flags in the response (they are hidden by default).
 tcp
     Use TCP instead of UDP to send the query.
+dot
+    use DoT instead of UDP to send a query. Implies tcp.
+insecure
+    when using DoT, do not validate the server certificate.
+subjectName *name*
+    when using DoT, verify the server certificate is issued for *name*.
+caStore *file*
+    when using Dot, read the trusted CA certificates from *file*. Default is to use the system provided CA store.
+tlsProvider *name*
+    when using DoT, use TLS provider *name*. Currently supported (if compiled in): `openssl` and `gnutls`. Default is `openssl` if available.
 xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFDST*
 	Send an *XPF* additional with these parameters.
 

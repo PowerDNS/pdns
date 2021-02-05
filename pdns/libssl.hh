@@ -120,4 +120,7 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
                                                                        std::map<int, std::string>& ocspResponses);
 
 std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile);
+
+std::string libssl_get_error_string();
+
 #endif /* HAVE_LIBSSL */

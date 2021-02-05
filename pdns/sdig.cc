@@ -39,7 +39,7 @@ static void usage()
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] "
-          "[tcp] [dot] [insecure] [subjectName name] [caStore file] [tlsProvider provider] "
+          "[tcp] [dot] [insecure] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
        << endl;

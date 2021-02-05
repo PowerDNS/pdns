@@ -782,4 +782,19 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 
+std::string libssl_get_error_string()
+{
+  BIO *mem = BIO_new(BIO_s_mem());
+  ERR_print_errors(mem);
+  char *p;
+  size_t len = BIO_get_mem_data(mem, &p);
+  std::string msg(p, len);
+  // replace newlines by /
+  if (msg.back() == '\n') {
+    msg.pop_back();
+  }
+  std::replace(msg.begin(), msg.end(), '\n', '/');
+  BIO_free(mem);
+  return msg;
+}
 #endif /* HAVE_LIBSSL */
