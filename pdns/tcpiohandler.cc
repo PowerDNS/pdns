@@ -734,13 +734,17 @@ public:
     gnutls_handshake_set_timeout(d_conn.get(), timeout * 1000);
     gnutls_record_set_timeout(d_conn.get(), timeout * 1000);
 
-    if (!d_host.empty()) {
+#if HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
+    if (validateCerts && !d_host.empty()) {
       gnutls_session_set_verify_cert(d_conn.get(), d_host.c_str(), GNUTLS_VERIFY_ALLOW_UNSORTED_CHAIN);
       rc = gnutls_server_name_set(d_conn.get(), GNUTLS_NAME_DNS, d_host.c_str(), d_host.size());
       if (rc != GNUTLS_E_SUCCESS) {
         throw std::runtime_error("Error setting the SNI value to '" + d_host + "' on TLS connection: " + std::string(gnutls_strerror(rc)));
       }
     }
+#else
+    /* no hostname validation for you */
+#endif
   }
 
   IOState tryConnect(bool fastOpen, const ComboAddress& remote) override

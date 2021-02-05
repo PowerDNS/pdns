@@ -44,7 +44,9 @@ dot
 insecure
     when using DoT, do not validate the server certificate.
 subjectName *name*
-    when using DoT, verify the server certificate is issued for *name*.
+    when using DoT, verify the server certificate is issued for *name*. The `openssl` provider will accept an empty name and still
+    make sure the certificate is issued by a trusted CA, `gnutls` will only do the validation if a name is given.
+    Default is the empty name.
 caStore *file*
     when using Dot, read the trusted CA certificates from *file*. Default is to use the system provided CA store.
 tlsProvider *name*
