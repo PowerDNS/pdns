@@ -949,13 +949,13 @@ Status, Statistics and More
 
   .. versionadded:: 1.4.0
 
-  Print the list of all availables DNS over HTTPS frontends.
+  Print the list of all available DNS over HTTPS frontends.
 
 .. function:: showDOHResponseCodes()
 
   .. versionadded:: 1.4.0
 
-  Print the HTTP response codes statistics for all availables DNS over HTTPS frontends.
+  Print the HTTP response codes statistics for all available DNS over HTTPS frontends.
 
 .. function:: showResponseLatency()
 
@@ -995,7 +995,7 @@ Status, Statistics and More
 
 .. function:: showTLSContexts()
 
-  Print the list of all availables DNS over TLS contexts.
+  Print the list of all available DNS over TLS contexts.
 
 .. function:: showTLSErrorCounters()
 
