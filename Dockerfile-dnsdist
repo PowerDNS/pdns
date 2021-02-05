@@ -1,6 +1,8 @@
 # our chosen base image
 FROM debian:10-slim AS builder
 
+ENV NO_LUA_JIT="s390x aarch64"
+
 # TODO: make sure /source looks roughly the same from git or tar
 
 # Reusable layer for base update
@@ -39,8 +41,8 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
 RUN mkdir /build && \
-    ./configure \
-      --with-lua=luajit \
+    /bin/bash -c ./configure \
+      --with-lua=$([[ "${NO_LUA_JIT}" == *"$(uname -m)"* ]] && echo "lua5.3" || echo "luajit") \
       LDFLAGS=-rdynamic \
       --sysconfdir=/etc/dnsdist \
       --enable-option-checking=fatal \

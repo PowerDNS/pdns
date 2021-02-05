@@ -7,6 +7,8 @@
 # Builder
 FROM debian:10-slim AS builder
 
+ENV NO_LUA_JIT="s390x aarch64"
+
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
@@ -47,8 +49,8 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     BUILDER_MODULES=recursor autoreconf -vfi
 
 RUN mkdir /build && \
-    ./configure \
-      --with-lua=luajit \
+    /bin/bash -c ./configure \
+      --with-lua=$([[ "${NO_LUA_JIT}" == *"$(uname -m)"* ]] && echo "lua5.3" || echo "luajit")  \
       LDFLAGS=-rdynamic \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal && \
