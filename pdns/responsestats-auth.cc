@@ -7,7 +7,7 @@ extern StatBag S;
  *  Function that creates all the stats
  *  when udpOrTCP is true, it is udp
  */
-void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP) {
+void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) {
   const string& buf=p.getString();
   static AtomicCounter &udpnumanswered=*S.getPointer("udp-answers");
   static AtomicCounter &udpnumanswered4=*S.getPointer("udp4-answers");
@@ -44,14 +44,19 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP) {
       udpbytesanswered6+=buf.length();
     }
   } else { //tcp
-    tcpnumanswered++;
     tcpbytesanswered+=buf.length();
     if(p.d_remote.sin4.sin_family==AF_INET) {
-      tcpnumanswered4++;
       tcpbytesanswered4+=buf.length();
     } else {
-      tcpnumanswered6++;
       tcpbytesanswered6+=buf.length();
+    }
+    if(last) {
+     tcpnumanswered++;
+     if(p.d_remote.sin4.sin_family==AF_INET) {
+      tcpnumanswered4++;
+     } else {
+      tcpnumanswered6++;
+     }
     }
   }
 
