@@ -1599,9 +1599,9 @@ compilation-time macro can be used to set a distributor suffix.
 
 .. function:: setSecurityPollInterval(interval)
 
-  Set the interval, in seconds, between two security pollings.
+  Set the interval, in seconds, between two security polls.
 
-  :param int interval: The interval, in seconds, between two pollings. Default is 3600.
+  :param int interval: The interval, in seconds, between two polls. Default is 3600.
 
 .. function:: setSecurityPollSuffix(suffix)
 
