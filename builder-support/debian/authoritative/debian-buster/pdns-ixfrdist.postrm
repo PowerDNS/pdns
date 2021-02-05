@@ -1,0 +1,14 @@
+#! /bin/sh
+
+set -e
+
+if [ "$1" = "purge" ]; then
+  if dpkg-statoverride --list /var/lib/ixfrdist > /dev/null 2>&1
+  then
+    dpkg-statoverride --remove /var/lib/ixfrdist
+  fi
+fi
+
+#DEBHELPER#
+
+exit 0

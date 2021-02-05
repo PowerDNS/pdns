@@ -1,0 +1,2 @@
+# ucf presence is checked.
+pdns-backend-mysql: maintainer-script-needs-depends-on-ucf postinst
