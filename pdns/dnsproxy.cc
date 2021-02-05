@@ -253,17 +253,17 @@ void DNSProxy::mainloop()
         MOADNSParser mdp(false, p.getString());
         //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
         if (mdp.d_header.rcode == RCode::NoError) {
-          for(const auto & d_answer : mdp.d_answers) {        
+          for(const auto & answer : mdp.d_answers) {        
             //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-            if(d_answer.first.d_place == DNSResourceRecord::ANSWER || (d_answer.first.d_place == DNSResourceRecord::AUTHORITY && d_answer.first.d_type == QType::SOA)) {
+            if(answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
 
-              if(d_answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (d_answer.first.d_type == QType::A || d_answer.first.d_type == QType::AAAA))) {
+              if(answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
                 dzr.dr.d_name=i->second.aname;
-                dzr.dr.d_type = d_answer.first.d_type;
-                dzr.dr.d_ttl=d_answer.first.d_ttl;
-                dzr.dr.d_place= d_answer.first.d_place;
-                dzr.dr.d_content=d_answer.first.d_content;
+                dzr.dr.d_type = answer.first.d_type;
+                dzr.dr.d_ttl=answer.first.d_ttl;
+                dzr.dr.d_place= answer.first.d_place;
+                dzr.dr.d_content=answer.first.d_content;
                 i->second.complete->addRecord(std::move(dzr));
               }
             }

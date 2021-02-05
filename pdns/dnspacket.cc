@@ -132,8 +132,8 @@ void DNSPacket::addRecord(DNSZoneRecord&& rr)
     std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
     auto hash = boost::hash< std::pair<DNSName, std::string> >()({rr.dr.d_name, ser});
     if(d_dedup.count(hash)) { // might be a dup
-      for(auto & d_rr : d_rrs) {
-        if(rr.dr == d_rr.dr)  // XXX SUPER SLOW
+      for(auto & i : d_rrs) {
+        if(rr.dr == i.dr)  // XXX SUPER SLOW
           return;
       }
     }
@@ -147,14 +147,14 @@ vector<DNSZoneRecord*> DNSPacket::getAPRecords()
 {
   vector<DNSZoneRecord*> arrs;
 
-  for(auto & d_rr : d_rrs)
+  for(auto & i : d_rrs)
     {
-      if(d_rr.dr.d_place!=DNSResourceRecord::ADDITIONAL &&
-         (d_rr.dr.d_type==QType::MX ||
-          d_rr.dr.d_type==QType::NS ||
-          d_rr.dr.d_type==QType::SRV))
+      if(i.dr.d_place!=DNSResourceRecord::ADDITIONAL &&
+         (i.dr.d_type==QType::MX ||
+          i.dr.d_type==QType::NS ||
+          i.dr.d_type==QType::SRV))
         {
-          arrs.push_back(&d_rr);
+          arrs.push_back(&i);
         }
     }
   return arrs;

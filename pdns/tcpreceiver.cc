@@ -1000,8 +1000,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
   uint32_t serial = 0;
   MOADNSParser mdp(false, q->getString());
-  for(const auto & d_answer : mdp.d_answers) {
-    const DNSRecord *rr = &d_answer.first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());

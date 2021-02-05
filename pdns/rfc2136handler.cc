@@ -729,8 +729,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     return forwardPacket(msgPrefix, p, di);
 
   // Check if all the records provided are within the zone
-  for(const auto & d_answer : mdp.d_answers) {
-    const DNSRecord *rr = &d_answer.first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
     if (! (rr->d_place == DNSResourceRecord::ANSWER || rr->d_place == DNSResourceRecord::AUTHORITY))
@@ -751,8 +751,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   }
 
   // 3.2.1 and 3.2.2 - Prerequisite check
-  for(const auto & d_answer : mdp.d_answers) {
-    const DNSRecord *rr = &d_answer.first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
@@ -816,8 +816,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   try {
     uint changedRecords = 0;
     // 3.4.1 - Prescan section
-    for(const auto & d_answer : mdp.d_answers) {
-      const DNSRecord *rr = &d_answer.first;
+    for(const auto & answer : mdp.d_answers) {
+      const DNSRecord *rr = &answer.first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         int res = checkUpdatePrescan(rr);
         if (res>0) {
@@ -862,8 +862,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     }
 
     vector<const DNSRecord *> cnamesToAdd, nonCnamesToAdd;
-    for(const auto & d_answer : mdp.d_answers) {
-      const DNSRecord *rr = &d_answer.first;
+    for(const auto & answer : mdp.d_answers) {
+      const DNSRecord *rr = &answer.first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
         if (this->d_update_policy_lua != nullptr) {
