@@ -58,6 +58,11 @@ static std::mutex s_lmdbStartupLock;
 
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
+  // overlapping domain ids in combination with relative names are a recipe for disater
+  if (!suffix.empty()) {
+    throw std::runtime_error("LMDB backend does not suport multiple instances");
+  }
+
   setArgPrefix("lmdb"+suffix);
   
   string syncMode = toLower(getArg("sync-mode"));
