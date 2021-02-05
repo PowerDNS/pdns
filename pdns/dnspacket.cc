@@ -438,7 +438,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
 
   bool gotit=false;
   for(const auto & answer : mdp.d_answers) {
-    if(d_answer.first.d_type == QType::TSIG && d_answer.first.d_class == QType::ANY) {
+    if(answer.first.d_type == QType::TSIG && answer.first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
       if (!content) {
