@@ -224,7 +224,7 @@ void WebServer::registerWebHandler(const string& url, const HandlerFunction& han
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
   setThreadName("pdns-r/webhndlr");
   try {
-    webServer->serveConnection(std::move(client));
+    webServer->serveConnection(client);
   }
   catch(PDNSException &e) {
     g_log<<Logger::Error<<"PDNSException while serving a connection in main webserver thread: "<<e.reason<<endl;

@@ -120,7 +120,7 @@ int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& optio
     EDNSOptionViewValue value;
     value.content = optRR + pos;
     value.size = optionLen;
-    options[optionCode].values.push_back(std::move(value));
+    options[optionCode].values.push_back(value);
 
     /* skip this option */
     pos += optionLen;

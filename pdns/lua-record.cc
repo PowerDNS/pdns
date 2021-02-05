@@ -824,7 +824,7 @@ static void setupLuaRecords()
    * @example pickwrandom({ {100, '1.2.3.4'}, {50, '5.4.3.2'}, {1, '192.168.1.0'} })
    */
   lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) {
-      vector<pair<int,ComboAddress> > conv = convWIplist(std::move(ips));
+      vector<pair<int,ComboAddress> > conv = convWIplist(ips);
 
       return pickwrandom(conv).toString();
     });

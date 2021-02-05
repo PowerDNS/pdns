@@ -76,7 +76,7 @@ SvcParam::SvcParam(const SvcParamKey &key, const std::string &value) {
     d_echconfig = value;
     return;
   }
-  d_value = std::move(value);
+  d_value = value;
 }
 
 SvcParam::SvcParam(const SvcParamKey &key, std::vector<std::string> &&value) {
@@ -96,7 +96,7 @@ SvcParam::SvcParam(const SvcParamKey &key, std::set<std::string> &&value) {
   }
   if (d_key == SvcParamKey::mandatory) {
     for (auto const &v: value) {
-      d_mandatory.insert(keyFromString(std::move(v)));
+      d_mandatory.insert(keyFromString(v));
     }
   }
 }
