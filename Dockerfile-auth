@@ -1,6 +1,8 @@
 # our chosen base image
 FROM debian:10-slim AS builder
 
+ENV NO_LUA_JIT="s390x aarch64"
+
 # TODO: make sure /source looks roughly the same from git or tar
 
 # Reusable layer for base update
@@ -44,7 +46,7 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
     ./configure \
-      --with-lua=luajit \
+      --with-lua=$([[ "${NO_LUA_JIT}" == *"$(uname -m)"* ]] && echo "lua5.3" || echo "luajit") \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
