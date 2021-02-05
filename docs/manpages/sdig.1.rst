@@ -46,9 +46,9 @@ insecure
 subjectName *name*
     when using DoT, verify the server certificate is issued for *name*. The `openssl` provider will accept an empty name and still
     make sure the certificate is issued by a trusted CA, `gnutls` will only do the validation if a name is given.
-    Default is the empty name.
+    Default is the empty name. Also, note that older provide libraries might not validate at all.
 caStore *file*
-    when using Dot, read the trusted CA certificates from *file*. Default is to use the system provided CA store.
+    when using DoT, read the trusted CA certificates from *file*. Default is to use the system provided CA store.
 tlsProvider *name*
     when using DoT, use TLS provider *name*. Currently supported (if compiled in): `openssl` and `gnutls`. Default is `openssl` if available.
 xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFDST*

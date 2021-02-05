@@ -18,7 +18,7 @@ AC_DEFUN([PDNS_WITH_GNUTLS], [
         save_LIBS=$LIBS
         CFLAGS="$GNUTLS_CFLAGS $CFLAGS"
         LIBS="$GNUTLS_LIBS $LIBS"
-        AC_CHECK_FUNCS([gnutls_memset, gnutls_session_set_verify_cert])
+        AC_CHECK_FUNCS([gnutls_memset gnutls_session_set_verify_cert])
         CFLAGS=$save_CFLAGS
         LIBS=$save_LIBS
 

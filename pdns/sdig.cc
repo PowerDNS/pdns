@@ -202,7 +202,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails)
 
 int main(int argc, char** argv)
 try {
-    /* default timeout of 10s */
+  /* default timeout of 10s */
   int timeout = 10;
   bool dnssec = false;
   bool recurse = false;
