@@ -517,7 +517,9 @@ sdig_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	dolog.hh \
 	ednssubnet.cc iputils.cc \
+	libssl.cc libssl.hh \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -529,14 +531,35 @@ sdig_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	svc-records.cc svc-records.hh \
+	tcpiohandler.cc tcpiohandler.hh \
 	unix_utility.cc
 
+sdig_CPPFLAGS = $(AM_CPPFLAGS)
 sdig_LDADD = $(LIBCRYPTO_LIBS)
 sdig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 if HAVE_LIBCURL
 sdig_SOURCES += minicurl.cc minicurl.hh
 sdig_LDADD += $(LIBCURL)
+endif
+
+if HAVE_DNS_OVER_TLS
+
+if HAVE_GNUTLS
+sdig_CPPFLAGS += $(GNUTLS_CFLAGS)
+sdig_LDADD += -lgnutls
+endif
+
+if HAVE_LIBSSL
+sdig_CPPFLAGS += $(LIBSSL_CFLAGS)
+sdig_LDADD += $(LIBSSL_LIBS)
+endif
+
+if LIBSODIUM
+sdig_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
+sdig_LDADD += $(LIBSODIUM_LIBS)
+endif
+
 endif
 
 calidns_SOURCES = \
