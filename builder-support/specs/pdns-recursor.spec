@@ -31,10 +31,7 @@ BuildRequires: luajit-devel
 BuildRequires: libatomic
 %endif
 
-%if 0%{?rhel} == 7
-# No fstrm in EPEL 8 yet
 BuildRequires: fstrm-devel
-%endif
 
 Requires(pre): shadow-utils
 %systemd_requires
