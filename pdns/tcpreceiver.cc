@@ -168,9 +168,9 @@ static void writenWithTimeout(int fd, const void *buffer, unsigned int n, unsign
   }
 }
 
-void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock)
+void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool last)
 {
-  g_rs.submitResponse(*p, false);
+  g_rs.submitResponse(*p, false, last);
 
   uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
@@ -186,15 +186,6 @@ try
 }
 catch(NetworkError& ae) {
   throw NetworkError("Error reading DNS data from TCP client "+remote.toString()+": "+ae.what());
-}
-
-static void incTCPAnswerCount(const ComboAddress& remote)
-{
-  S.inc("tcp-answers");
-  if(remote.sin4.sin_family == AF_INET6)
-    S.inc("tcp6-answers");
-  else
-    S.inc("tcp4-answers");
 }
 
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
@@ -301,14 +292,12 @@ void TCPNameserver::doConnection(int fd)
         break;
       
       if(packet->qtype.getCode()==QType::AXFR) {
-        if(doAXFR(packet->qdomain, packet, fd))
-          incTCPAnswerCount(remote);
+        doAXFR(packet->qdomain, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
-        if(doIXFR(packet, fd))
-          incTCPAnswerCount(remote);
+        doIXFR(packet, fd);
         continue;
       }
 
@@ -597,7 +586,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
   
-  sendPacket(outpacket, outsock);
+  sendPacket(outpacket, outsock, false);
   
   trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
@@ -865,7 +854,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
         if(!outpacket->getRRS().empty()) {
           if(haveTSIGDetails && !tsigkeyname.empty())
             outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
-          sendPacket(outpacket, outsock);
+          sendPacket(outpacket, outsock, false);
           trc.d_mac=outpacket->d_trc.d_mac;
           outpacket=getFreshAXFRPacket(q);
         }
@@ -918,7 +907,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
               if(!outpacket->getRRS().empty()) {
                 if(haveTSIGDetails && !tsigkeyname.empty())
                   outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
-                sendPacket(outpacket, outsock);
+                sendPacket(outpacket, outsock, false);
                 trc.d_mac=outpacket->d_trc.d_mac;
                 outpacket=getFreshAXFRPacket(q);
               }
@@ -952,7 +941,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           if(!outpacket->getRRS().empty()) {
             if(haveTSIGDetails && !tsigkeyname.empty())
               outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
-            sendPacket(outpacket, outsock);
+            sendPacket(outpacket, outsock, false);
             trc.d_mac=outpacket->d_trc.d_mac;
             outpacket=getFreshAXFRPacket(q);
           }
@@ -973,7 +962,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     if(!outpacket->getRRS().empty()) {
       if(haveTSIGDetails && !tsigkeyname.empty())
         outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
-      sendPacket(outpacket, outsock);
+      sendPacket(outpacket, outsock, false);
       trc.d_mac=outpacket->d_trc.d_mac;
       outpacket=getFreshAXFRPacket(q);
     }
