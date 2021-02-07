@@ -29,7 +29,7 @@ A more complicated (and more realistic) example is when you want to indicate met
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
 
 It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend.setResponsesMap`.
-For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used:
+For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used::
 
   map = { newDOHResponseMapEntry("^/rfc$", 307, "https://www.rfc-editor.org/info/rfc8484") }
   dohFE = getDOHFrontend(0)
