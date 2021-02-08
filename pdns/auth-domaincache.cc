@@ -108,7 +108,7 @@ void AuthDomainCache::replace(const vector<tuple<DNSName, int>> &domain_indices)
   {
     auto& mc = d_maps[mapIndex];
     WriteLock l(mc.d_mut);
-    mc.d_map = newMaps[mapIndex].d_map;
+    mc.d_map = std::move(newMaps[mapIndex].d_map);
   }
 
   d_statnumentries->store(count);
