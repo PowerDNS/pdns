@@ -227,4 +227,79 @@ BOOST_AUTO_TEST_CASE(test_getCarbonHostName)
   BOOST_CHECK_EQUAL(my_hostname.size(), hostname.size());
 }
 
+BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
+{
+  vector<string> out;
+
+  parseSVCBValueList("foobar123", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+
+  parseSVCBValueList("h2,h3", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "h2");
+  BOOST_CHECK_EQUAL(out[1], "h3");
+
+  parseSVCBValueList("h2,h3-19,h3-20,h3-22", out);
+  BOOST_CHECK_EQUAL(out.size(), 4);
+  BOOST_CHECK_EQUAL(out[0], "h2");
+  BOOST_CHECK_EQUAL(out[1], "h3-19");
+  BOOST_CHECK_EQUAL(out[2], "h3-20");
+  BOOST_CHECK_EQUAL(out[3], "h3-22");
+
+  parseSVCBValueList("foobar123,bazquux456", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+  BOOST_CHECK_EQUAL(out[1], "bazquux456");
+
+  parseSVCBValueList("foobar123\\,bazquux456", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  parseSVCBValueList("foobar123\\044bazquux456", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  // Again, but quoted
+  parseSVCBValueList("\"foobar123\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+
+  parseSVCBValueList("\"foobar123,bazquux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+  BOOST_CHECK_EQUAL(out[1], "bazquux456");
+
+  parseSVCBValueList("\"foobar123\\,bazquux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  parseSVCBValueList("\"foobar123\\044bazquux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  // Quoted, with some whitespace
+  parseSVCBValueList("\"foobar123 \"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 ");
+
+  parseSVCBValueList("\"foobar123 blabla bla,baz quux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla");
+  BOOST_CHECK_EQUAL(out[1], "baz quux456");
+
+  parseSVCBValueList("\"foobar123,baz quux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+  BOOST_CHECK_EQUAL(out[1], "baz quux456");
+
+  parseSVCBValueList("\"foobar123 blabla bla\\,baz quux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
+
+  parseSVCBValueList("\"foobar123 blabla bla\\044baz quux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
