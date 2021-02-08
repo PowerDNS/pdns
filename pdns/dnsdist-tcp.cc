@@ -190,6 +190,32 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
 
 static void tcpClientThread(int pipefd);
 
+TCPClientCollection::TCPClientCollection(size_t maxThreads, bool useSinglePipe): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
+{
+  if (d_useSinglePipe) {
+    if (pipe(d_singlePipe) < 0) {
+      int err = errno;
+      throw std::runtime_error("Error creating the TCP single communication pipe: " + stringerror(err));
+    }
+
+    if (!setNonBlocking(d_singlePipe[0])) {
+      int err = errno;
+      close(d_singlePipe[0]);
+      close(d_singlePipe[1]);
+      throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
+    }
+
+    if (!setNonBlocking(d_singlePipe[1])) {
+      int err = errno;
+      close(d_singlePipe[0]);
+      close(d_singlePipe[1]);
+      throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
+    }
+
+    setPipeBufferSize(d_singlePipe[0], 1048576);
+  }
+}
+
 void TCPClientCollection::addTCPClientThread()
 {
   int pipefds[2] = { -1, -1};

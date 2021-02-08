@@ -831,30 +831,7 @@ class TCPClientCollection {
   const bool d_useSinglePipe;
 public:
 
-  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
-
-  {
-    if (d_useSinglePipe) {
-      if (pipe(d_singlePipe) < 0) {
-        int err = errno;
-        throw std::runtime_error("Error creating the TCP single communication pipe: " + stringerror(err));
-      }
-
-      if (!setNonBlocking(d_singlePipe[0])) {
-        int err = errno;
-        close(d_singlePipe[0]);
-        close(d_singlePipe[1]);
-        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
-      }
-
-      if (!setNonBlocking(d_singlePipe[1])) {
-        int err = errno;
-        close(d_singlePipe[0]);
-        close(d_singlePipe[1]);
-        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
-      }
-    }
-  }
+  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false);
   int getThread()
   {
     if (d_numthreads == 0) {
