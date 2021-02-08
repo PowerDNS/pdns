@@ -839,7 +839,7 @@ public:
         return IOState::NeedRead;
       }
       else if (gnutls_error_is_fatal(ret) || ret == GNUTLS_E_WARNING_ALERT_RECEIVED) {
-        throw std::runtime_error("Error accepting a new connection");
+        throw std::runtime_error("Error accepting a new connection: " + std::string(gnutls_strerror(ret)));
       }
     } while (ret == GNUTLS_E_INTERRUPTED);
 
