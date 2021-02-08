@@ -664,7 +664,7 @@ loop:;
     
     if(!dq.followupFunction.empty()) {
       if(dq.followupFunction=="followCNAMERecords") {
-        ret = followCNAMERecords(dq.records, QType(dq.qtype));
+        ret = followCNAMERecords(dq.records, QType(dq.qtype), ret);
       }
       else if(dq.followupFunction=="getFakeAAAARecords") {
         ret=getFakeAAAARecords(dq.followupName, ComboAddress(dq.followupPrefix), dq.records);
