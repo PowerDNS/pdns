@@ -189,8 +189,8 @@ void AuthWebServer::printargs(ostringstream &ret)
   ret<<R"(<table border=1><tr><td colspan=3 bgcolor="#0000ff"><font color="#ffffff">Arguments</font></td>)"<<endl;
 
   vector<string>entries=arg().list();
-  for(const auto & entrie : entries) {
-    ret<<"<tr><td>"<<entrie<<"</td><td>"<<arg()[entrie]<<"</td><td>"<<arg().getHelp(entrie)<<"</td>"<<endl;
+  for(const auto & entry : entries) {
+    ret<<"<tr><td>"<<entry<<"</td><td>"<<arg()[entry]<<"</td><td>"<<arg().getHelp(entry)<<"</td>"<<endl;
   }
 }
 

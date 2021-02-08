@@ -164,10 +164,10 @@ vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
 {
   vector<DNSZoneRecord*> arrs;
 
-  for(auto & d_rr : d_rrs)
+  for(auto & rr : d_rrs)
     {
-      if(d_rr.dr.d_place!=DNSResourceRecord::ADDITIONAL)
-        arrs.push_back(&d_rr);
+      if(rr.dr.d_place!=DNSResourceRecord::ADDITIONAL)
+        arrs.push_back(&rr);
     }
   return arrs;
 }
@@ -524,12 +524,12 @@ try
     if(edo.d_extFlags & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 
-    for(const auto & d_option : edo.d_options) {
-      if(d_option.first == EDNSOptionCode::NSID) {
+    for(const auto & option : edo.d_options) {
+      if(option.first == EDNSOptionCode::NSID) {
         d_wantsnsid=true;
       }
-      else if(s_doEDNSSubnetProcessing && (d_option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
-        if(getEDNSSubnetOptsFromString(d_option.second, &d_eso)) {
+      else if(s_doEDNSSubnetProcessing && (option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
+        if(getEDNSSubnetOptsFromString(option.second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
         } 
