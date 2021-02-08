@@ -41,8 +41,9 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
 RUN mkdir /build && \
-    /bin/bash -c ./configure \
-      --with-lua=$([[ "${NO_LUA_JIT}" == *"$(uname -m)"* ]] && echo "lua5.3" || echo "luajit") \
+    LUAVER=$([ -z "${NO_LUA_JIT##*$(uname -m)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    ./configure \
+      --with-lua=${LUAVER} \
       LDFLAGS=-rdynamic \
       --sysconfdir=/etc/dnsdist \
       --enable-option-checking=fatal \

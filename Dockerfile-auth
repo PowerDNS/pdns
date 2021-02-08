@@ -45,8 +45,9 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
-    /bin/bash -c ./configure \
-      --with-lua=$([[ "${NO_LUA_JIT}" == *"$(uname -m)"* ]] && echo "lua5.3" || echo "luajit") \
+    LUAVER=$([ -z "${NO_LUA_JIT##*$(uname -m)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    ./configure \
+      --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
