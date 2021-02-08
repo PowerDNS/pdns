@@ -84,7 +84,7 @@ private:
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
 
-  time_t d_ttl;
+  time_t d_ttl{0};
 };
 
 extern AuthDomainCache g_domainCache;
