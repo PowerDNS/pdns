@@ -64,6 +64,7 @@ public:
 
   void xfrSvcParamKeyVals(set<SvcParam>& val);
   void xfrRFC1035CharString(string &val);
+  void xfrSVCBValueList(vector<string> &val);
 
   const string getRemaining() const {
     return d_string.substr(d_pos);

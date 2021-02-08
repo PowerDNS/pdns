@@ -303,6 +303,11 @@ void RecordTextReader::xfrRFC1035CharString(string &val) {
   d_pos += ctr;
 }
 
+void RecordTextReader::xfrSVCBValueList(vector<string> &val) {
+  auto ctr = parseSVCBValueList(d_string.substr(d_pos, d_end - d_pos), val);
+  d_pos += ctr;
+}
+
 void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
 {
   while (d_pos != d_end) {
@@ -347,16 +352,13 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       break;
     case SvcParam::ipv4hint: /* fall-through */
     case SvcParam::ipv6hint: {
+      vector<string> value;
+      xfrSVCBValueList(value);
       vector<ComboAddress> hints;
-      do {
-        ComboAddress address;
-        xfrCAWithoutPort(key, address); // The SVBC authors chose 4 and 6 to represent v4hint and v6hint :)
-        hints.push_back(address);
-        if (d_pos < d_end && d_string.at(d_pos) == ',') {
-          d_pos++; // Go to the next address
-        }
-      } while (d_pos != d_end && d_string.at(d_pos) != ' ');
       try {
+        for (auto const &v: value) {
+          hints.push_back(ComboAddress(v));
+        }
         val.insert(SvcParam(key, std::move(hints)));
       }
       catch (const std::invalid_argument& e) {
@@ -365,18 +367,14 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       break;
     }
     case SvcParam::alpn: {
-      string value;
-      xfrUnquotedText(value, false);
-      vector<string> parts;
-      stringtok(parts, value, ",");
-      val.insert(SvcParam(key, std::move(parts)));
+      vector<string> value;
+      xfrSVCBValueList(value);
+      val.insert(SvcParam(key, std::move(value)));
       break;
     }
     case SvcParam::mandatory: {
-      string value;
-      xfrUnquotedText(value, false);
       vector<string> parts;
-      stringtok(parts, value, ",");
+      xfrSVCBValueList(parts);
       set<string> values(parts.begin(), parts.end());
       val.insert(SvcParam(key, std::move(values)));
       break;
@@ -395,6 +393,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       string value;
       xfrBlobNoSpaces(value);
       if (haveQuote) {
+        if (d_string.at(d_pos) != '"') {
+          throw RecordTextException("echconfig value starts, but does not end with a '\"' symbol");
+        }
         d_pos++;
       }
       val.insert(SvcParam(key, value));
