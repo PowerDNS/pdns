@@ -3,7 +3,13 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
+@IF [ ${BUILDER_TARGET} = centos-7 ]
 FROM centos:7 as dist-base
+@ENDIF
+@IF [ ${BUILDER_TARGET} = centos-7-amd64 ]
+FROM amd64/centos:7 as dist-base
+@ENDIF
+
 ARG BUILDER_CACHE_BUSTER=
 RUN touch /var/lib/rpm/* && yum install -y epel-release centos-release-scl-rh
 RUN touch /var/lib/rpm/* && yum install -y --nogpgcheck devtoolset-8-gcc-c++
