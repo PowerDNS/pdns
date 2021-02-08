@@ -333,7 +333,6 @@ public:
 
 struct UeberBackendSetupArgFixture {
   UeberBackendSetupArgFixture() {
-    extern AuthDomainCache g_domainCache;
     extern AuthQueryCache QC;
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
@@ -349,7 +348,6 @@ struct UeberBackendSetupArgFixture {
 
 static void testWithoutThenWithCache(std::function<void(UeberBackend& ub)> func)
 {
-  extern AuthDomainCache g_domainCache;
   extern AuthQueryCache QC;
 
   {

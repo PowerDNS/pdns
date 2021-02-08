@@ -21,13 +21,8 @@
  */
 #pragma once
 #include <string>
-#include <map>
-#include "dns.hh"
-
 #include <unordered_map>
-
-#include "dns.hh"
-#include "dnspacket.hh"
+#include "dnsname.hh"
 #include "lock.hh"
 
 class AuthDomainCache : public boost::noncopyable
@@ -91,3 +86,5 @@ private:
 
   time_t d_ttl;
 };
+
+extern AuthDomainCache g_domainCache;

@@ -39,7 +39,6 @@ extern ArgvMap theArg;
 extern StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
 extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 extern AuthQueryCache QC;
-extern AuthDomainCache g_domainCache;
 extern std::unique_ptr<DNSProxy> DP;
 extern std::unique_ptr<DynListener> dl;
 extern CommunicatorClass Communicator;

@@ -48,7 +48,6 @@
 #include "logger.hh"
 #include "statbag.hh"
 
-extern AuthDomainCache g_domainCache;
 extern StatBag S;
 
 vector<UeberBackend *>UeberBackend::instances;
