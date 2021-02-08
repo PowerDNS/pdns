@@ -168,6 +168,13 @@ public:
     return d_ioState != nullptr;
   }
 
+  std::string toString() const
+  {
+    ostringstream o;
+    o << "Incoming TCP connection from "<<d_ci.remote.toStringWithPort()<<" over FD "<<d_ci.fd<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queriesCount<<", current queries count is "<<d_currentQueriesCount<<", "<<d_queuedResponses.size()<<" queued responses, "<<d_activeConnectionsToBackend.size()<<" active connections to a backend";
+    return o.str();
+  }
+
   enum class State { doingHandshake, readingProxyProtocolHeader, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
   std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
