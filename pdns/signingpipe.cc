@@ -132,12 +132,12 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
 {
   vector<pollfd> pfds;
 
-  for(int & d_socket : d_sockets) {    
-    if(d_eof.count(d_socket))  
+  for(int & socket : d_sockets) {    
+    if(d_eof.count(socket))  
       continue;
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
-    pfd.fd = d_socket;
+    pfd.fd = socket;
     if(rd)
       pfd.events |= POLLIN;
     if(wr)
