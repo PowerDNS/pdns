@@ -105,6 +105,8 @@ public:
   void xfrSvcParamKeyVals(const set<SvcParam>& val);
   bool eof() { return true; };
 
+  void xfrSVCBValueList(const vector<string> &val);
+
   const string getRemaining() const {
      return "";
   }

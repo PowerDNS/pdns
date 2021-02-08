@@ -29,6 +29,7 @@
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include <iostream>
 #include "base32.hh"
@@ -742,6 +743,27 @@ static string txtEscape(const string &name)
   return ret;
 }
 
+void RecordTextWriter::xfrSVCBValueList(const vector<string> &val) {
+  bool shouldQuote{false};
+  vector<string> escaped;
+  escaped.reserve(val.size());
+  for (auto const &v : val) {
+    if (v.find_first_of(' ') != string::npos) {
+      shouldQuote = true;
+    }
+    string tmp = txtEscape(v);
+    boost::replace_all(tmp, ",", "\\,");
+    escaped.push_back(tmp);
+  }
+  if (shouldQuote) {
+    d_string.append(1, '"');
+  }
+  d_string.append(boost::join(escaped, ","));
+  if (shouldQuote) {
+    d_string.append(1, '"');
+  }
+}
+
 void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
   for (auto const &param : val) {
     if (!d_string.empty())
@@ -762,8 +784,7 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
       d_string.append(ComboAddress::caContainerToString(param.getIPHints(), false));
       break;
     case SvcParam::alpn:
-      // This is safe, as this value needs no quotes
-      d_string.append(boost::join(param.getALPN(), ","));
+      xfrSVCBValueList(param.getALPN());
       break;
     case SvcParam::mandatory:
     {
