@@ -166,6 +166,11 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
     auto diff = now - d_connectionStartTime;
     d_ci.cs->updateTCPMetrics(d_queriesCount, diff.tv_sec * 1000.0 + diff.tv_usec / 1000.0);
   }
+
+  // would have been done when the object is destroyed anyway,
+  // but that way we make sure it's done before the ConnectionInfo is destroyed,
+  // closing the descriptor, instead of relying on the declaration order of the objects in the class
+  d_handler.close();
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)

@@ -198,11 +198,19 @@ public:
 
   ~TCPIOHandler()
   {
+    close();
+  }
+
+  /* Prepare the connection but does not close the descriptor */
+  void close()
+  {
     if (d_conn) {
       d_conn->close();
+      d_conn.reset();
     }
     else if (d_socket != -1) {
       shutdown(d_socket, SHUT_RDWR);
+      d_socket = -1;
     }
   }
 
