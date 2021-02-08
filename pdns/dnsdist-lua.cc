@@ -1817,6 +1817,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_useTCPSinglePipe = flag;
     });
 
+  luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](size_t size) { g_tcpInternalPipeBufferSize = size; });
+
   luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {
       if(client || configCheck)
         return;

@@ -62,6 +62,7 @@ uint64_t g_maxTCPQueuedConnections{1000};
 size_t g_maxTCPQueriesPerConn{0};
 size_t g_maxTCPConnectionDuration{0};
 size_t g_maxTCPConnectionsPerClient{0};
+size_t g_tcpInternalPipeBufferSize{0};
 uint16_t g_downstreamTCPCleanupInterval{60};
 bool g_useTCPSinglePipe{false};
 
@@ -212,7 +213,9 @@ TCPClientCollection::TCPClientCollection(size_t maxThreads, bool useSinglePipe):
       throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
     }
 
-    setPipeBufferSize(d_singlePipe[0], 1048576);
+    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(d_singlePipe[0]) < g_tcpInternalPipeBufferSize) {
+      setPipeBufferSize(d_singlePipe[0], g_tcpInternalPipeBufferSize);
+    }
   }
 }
 
@@ -246,6 +249,10 @@ void TCPClientCollection::addTCPClientThread()
       close(pipefds[1]);
       errlog("Error setting the TCP thread communication pipe non-blocking: %s", stringerror(err));
       return;
+    }
+
+    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(pipefds[0]) < g_tcpInternalPipeBufferSize) {
+      setPipeBufferSize(pipefds[0], g_tcpInternalPipeBufferSize);
     }
   }
 
