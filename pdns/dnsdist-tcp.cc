@@ -423,17 +423,40 @@ IOState IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConn
   state->d_currentPos = 0;
   state->d_currentResponse = std::move(response);
 
-  auto iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
-  if (iostate == IOState::Done) {
-    DEBUGLOG("response sent");
-    if (!handleResponseSent(state, now)) {
-      return IOState::Done;
+  try {
+    auto iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
+    if (iostate == IOState::Done) {
+      DEBUGLOG("response sent");
+      if (!handleResponseSent(state, now)) {
+        return IOState::Done;
+      }
+      return sendQueuedResponses(state, now);
+    } else {
+      return IOState::NeedWrite;
+      DEBUGLOG("partial write");
     }
-    return sendQueuedResponses(state, now);
-  } else {
-    return IOState::NeedWrite;
-    DEBUGLOG("partial write");
   }
+  catch (const std::exception& e) {
+    vinfolog("Closing TCP client connection with %s: %s", state->d_ci.remote.toStringWithPort(), e.what());
+    DEBUGLOG("Closing TCP client connection: "<<e.what());
+    ++state->d_ci.cs->tcpDiedSendingResponse;
+
+    state->terminateClientConnection();
+
+    return IOState::Done;
+  }
+}
+
+void IncomingTCPConnectionState::terminateClientConnection()
+{
+  d_queuedResponses.clear();
+  /* we have already released idle connections that could be reused,
+     we don't care about the ones still waiting for responses */
+  d_activeConnectionsToBackend.clear();
+  /* meaning we will no longer be 'active' when the backend
+     response or timeout comes in */
+  d_ioState->reset();
+  d_handler.close();
 }
 
 /* called when handling a response or error coming from a backend */
@@ -465,8 +488,13 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
 
       for (auto it = list.begin(); it != list.end(); ++it) {
         if (*it == response.d_connection) {
-          response.d_connection->release();
-          DownstreamConnectionsManager::releaseDownstreamConnection(std::move(*it));
+          try {
+            response.d_connection->release();
+            DownstreamConnectionsManager::releaseDownstreamConnection(std::move(*it));
+          }
+          catch (const std::exception& e) {
+            vinfolog("Error releasing connection: %s", e.what());
+          }
           list.erase(it);
           break;
         }
@@ -670,8 +698,8 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
 void IncomingTCPConnectionState::handleIOCallback(int fd, FDMultiplexer::funcparam_t& param)
 {
   auto conn = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
-  if (fd != conn->d_ci.fd) {
-    throw std::runtime_error("Unexpected socket descriptor " + std::to_string(fd) + " received in " + std::string(__PRETTY_FUNCTION__) + ", expected " + std::to_string(conn->d_ci.fd));
+  if (fd != conn->d_handler.getDescriptor()) {
+    throw std::runtime_error("Unexpected socket descriptor " + std::to_string(fd) + " received in " + std::string(__PRETTY_FUNCTION__) + ", expected " + std::to_string(conn->d_handler.getDescriptor()));
   }
 
   struct timeval now;
@@ -913,7 +941,12 @@ void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnec
     TCPResponse resp = std::move(state->d_queuedResponses.front());
     state->d_queuedResponses.pop_front();
     state->d_state = IncomingTCPConnectionState::State::idle;
-    sendOrQueueResponse(state, now, std::move(resp));
+    try {
+      sendOrQueueResponse(state, now, std::move(resp));
+    }
+    catch (const std::exception& e) {
+      vinfolog("exception in notifyIOError: %s", e.what());
+    }
   }
   else {
     // the backend code already tried to reconnect if it was possible
@@ -1041,7 +1074,7 @@ static void tcpClientThread(int pipefd)
       for (const auto& cbData : expiredReadConns) {
         if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
           auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
-          if (cbData.first == state->d_ci.fd) {
+          if (cbData.first == state->d_handler.getDescriptor()) {
             vinfolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
             state->handleTimeout(state, false);
           }
@@ -1057,7 +1090,7 @@ static void tcpClientThread(int pipefd)
       for (const auto& cbData : expiredWriteConns) {
         if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
           auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
-          if (cbData.first == state->d_ci.fd) {
+          if (cbData.first == state->d_handler.getDescriptor()) {
             vinfolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
             state->handleTimeout(state, true);
           }

@@ -44,6 +44,7 @@ struct ConnectionInfo
       close(fd);
       fd = -1;
     }
+
     if (cs) {
       --cs->tcpCurrentConnections;
     }
@@ -65,6 +66,8 @@ public:
     if (getsockname(d_ci.fd, reinterpret_cast<sockaddr*>(&d_origDest), &socklen)) {
       d_origDest = d_ci.cs->local;
     }
+    /* belongs to the handler now */
+    d_ci.fd = -1;
     d_proxiedDestination = d_origDest;
     d_proxiedRemote = d_ci.remote;
   }
@@ -159,6 +162,7 @@ public:
   static void handleXFRResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
   static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
 
+  void terminateClientConnection();
   void queueQuery(TCPQuery&& query);
 
   bool canAcceptNewQueries() const;
@@ -171,7 +175,7 @@ public:
   std::string toString() const
   {
     ostringstream o;
-    o << "Incoming TCP connection from "<<d_ci.remote.toStringWithPort()<<" over FD "<<d_ci.fd<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queriesCount<<", current queries count is "<<d_currentQueriesCount<<", "<<d_queuedResponses.size()<<" queued responses, "<<d_activeConnectionsToBackend.size()<<" active connections to a backend";
+    o << "Incoming TCP connection from "<<d_ci.remote.toStringWithPort()<<" over FD "<<d_handler.getDescriptor()<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queriesCount<<", current queries count is "<<d_currentQueriesCount<<", "<<d_queuedResponses.size()<<" queued responses, "<<d_activeConnectionsToBackend.size()<<" active connections to a backend";
     return o.str();
   }
 

@@ -25,6 +25,13 @@ void TCPConnectionToBackend::assignToClientConnection(std::shared_ptr<IncomingTC
 
 void TCPConnectionToBackend::release()
 {
+  if (!d_usedForXFR) {
+    d_ds->outstanding -= d_pendingResponses.size();
+  }
+
+  d_pendingResponses.clear();
+  d_pendingQueries.clear();
+
   d_clientConn.reset();
   if (d_ioState) {
     d_ioState.reset();
@@ -169,6 +176,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         }
         catch (const std::exception& e) {
           vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getName() : "unknown", conn->d_currentQuery.d_idstate.origRemote.toStringWithPort(), e.what());
+          ioGuard.release();
+          conn->release();
+          return;
         }
       }
     }
@@ -390,20 +400,22 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
     ++d_ds->tcpReadTimeouts;
   }
 
-  if (d_ioState) {
-    d_ioState->reset();
+  try {
+    notifyAllQueriesFailed(now, FailureReason::timeout);
+  }
+  catch (const std::exception& e) {
+    vinfolog("Got an exception while notifying a timeout: %s", e.what());
+  }
+  catch (...) {
+    vinfolog("Got exception while notifying a timeout");
   }
 
-  notifyAllQueriesFailed(now, FailureReason::timeout);
+  release();
 }
 
 void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, FailureReason reason)
 {
   d_connectionDied = true;
-
-  if (!d_usedForXFR) {
-    d_ds->outstanding -= d_pendingResponses.size();
-  }
 
   auto& clientConn = d_clientConn;
   if (!clientConn->active()) {
@@ -419,22 +431,27 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
     ++clientConn->d_ci.cs->tcpGaveUp;
   }
 
-  if (d_state == State::sendingQueryToBackend) {
-    clientConn->notifyIOError(clientConn, std::move(d_currentQuery.d_idstate), now);
+  try {
+    if (d_state == State::sendingQueryToBackend) {
+      clientConn->notifyIOError(clientConn, std::move(d_currentQuery.d_idstate), now);
+    }
+
+    for (auto& query : d_pendingQueries) {
+      clientConn->notifyIOError(clientConn, std::move(query.d_idstate), now);
+    }
+
+    for (auto& response : d_pendingResponses) {
+      clientConn->notifyIOError(clientConn, std::move(response.second.d_idstate), now);
+    }
+  }
+  catch (const std::exception& e) {
+    vinfolog("Got an exception while notifying: %s", e.what());
+  }
+  catch (...) {
+    vinfolog("Got exception while notifying");
   }
 
-  for (auto& query : d_pendingQueries) {
-    clientConn->notifyIOError(clientConn, std::move(query.d_idstate), now);
-  }
-
-  for (auto& response : d_pendingResponses) {
-    clientConn->notifyIOError(clientConn, std::move(response.second.d_idstate), now);
-  }
-
-  d_pendingQueries.clear();
-  d_pendingResponses.clear();
-
-  d_clientConn.reset();
+  release();
 }
 
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
@@ -445,11 +462,8 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   if (!clientConn || !clientConn->active()) {
     // a client timeout occured, or something like that */
     d_connectionDied = true;
-    d_clientConn.reset();
 
-    if (!conn->d_usedForXFR) {
-      --conn->d_ds->outstanding;
-    }
+    release();
 
     return IOState::Done;
   }
