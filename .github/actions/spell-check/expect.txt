@@ -523,6 +523,7 @@ dnswasher
 dnszone
 dnt
 Dobrawy
+dockerfiles
 docnamecachelookup
 doctrees
 documentclass
