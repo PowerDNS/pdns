@@ -55,8 +55,8 @@
    Let's start naively.
 */
 
-static std::mutex tcpClientsCountMutex;
-static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClientsCount;
+static std::mutex s_tcpClientsCountMutex;
+static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_tcpClientsCount;
 
 uint64_t g_maxTCPQueuedConnections{1000};
 size_t g_maxTCPQueriesPerConn{0};
@@ -147,10 +147,10 @@ const size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{2
 static void decrementTCPClientCount(const ComboAddress& client)
 {
   if (g_maxTCPConnectionsPerClient) {
-    std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
-    tcpClientsCount.at(client)--;
-    if (tcpClientsCount[client] == 0) {
-      tcpClientsCount.erase(client);
+    std::lock_guard<std::mutex> lock(s_tcpClientsCountMutex);
+    s_tcpClientsCount.at(client)--;
+    if (s_tcpClientsCount[client] == 0) {
+      s_tcpClientsCount.erase(client);
     }
   }
 }
@@ -1080,13 +1080,13 @@ void tcpAcceptorThread(ClientState* cs)
       }
 
       if (g_maxTCPConnectionsPerClient) {
-        std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
+        std::lock_guard<std::mutex> lock(s_tcpClientsCountMutex);
 
-        if (tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
+        if (s_tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
           vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
           continue;
         }
-        tcpClientsCount[remote]++;
+        s_tcpClientsCount[remote]++;
         tcpClientCountIncremented = true;
       }
 
