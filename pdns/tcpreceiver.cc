@@ -88,7 +88,7 @@ void TCPNameserver::go()
     g_log<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
   }
 
-  std::thread th(std::bind(&TCPNameserver::thread, this));
+  std::thread th([this](){thread();});
   th.detach();
 }
 
@@ -101,7 +101,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
   time_t start = 0;
   unsigned int remainingTotal = totalTimeout;
   if (totalTimeout) {
-    start = time(NULL);
+    start = time(nullptr);
   }
   while(bytes) {
     ret=read(fd, ptr, bytes);
@@ -127,7 +127,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
     ptr += ret;
     bytes -= ret;
     if (totalTimeout) {
-      time_t now = time(NULL);
+      time_t now = time(nullptr);
       unsigned int elapsed = now - start;
       if (elapsed >= remainingTotal) {
         throw NetworkError("Timeout while reading data");
@@ -191,7 +191,7 @@ catch(NetworkError& ae) {
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
 {
   if (maxConnectionDuration) {
-    time_t elapsed = time(NULL) - start;
+    time_t elapsed = time(nullptr) - start;
     if (elapsed >= maxConnectionDuration) {
       return true;
     }
@@ -220,7 +220,7 @@ void TCPNameserver::doConnection(int fd)
   size_t transactions = 0;
   time_t start = 0;
   if (d_maxConnectionDuration) {
-    start = time(NULL);
+    start = time(nullptr);
   }
 
   if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
@@ -419,9 +419,9 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
     // cerr<<"got backend and SOA"<<endl;
     vector<string> acl;
     s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
-    for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
+    for (const auto & i : acl) {
       // cerr<<"matching against "<<*i<<endl;
-      if(pdns_iequals(*i, "AUTO-NS")) {
+      if(pdns_iequals(i, "AUTO-NS")) {
         // cerr<<"AUTO-NS magic please!"<<endl;
 
         DNSResourceRecord rr;
@@ -433,9 +433,9 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
         }
         for(const auto & j: nsset) {
           vector<string> nsips=fns.lookup(j, s_P->getBackend());
-          for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          for(const auto & nsip : nsips) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
-            if(*k == q->getRemote().toString())
+            if(nsip == q->getRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
               g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in NSset"<<endl;
@@ -446,7 +446,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
       }
       else
       {
-        Netmask nm = Netmask(*i);
+        Netmask nm = Netmask(i);
         if(nm.match( (ComboAddress *) &q->d_remote ))
         {
           g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is in per-zone ACL"<<endl;
@@ -989,8 +989,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
   uint32_t serial = 0;
   MOADNSParser mdp(false, q->getString());
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());

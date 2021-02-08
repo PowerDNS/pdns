@@ -146,7 +146,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     } catch(PDNSException& pe) {
       throw std::runtime_error("TSIG algorithm '"+tt.algo.toLogString()+"' is unknown.");
     }
-    trc.d_time = time((time_t*)NULL);
+    trc.d_time = time((time_t*)nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;

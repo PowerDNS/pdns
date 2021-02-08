@@ -116,7 +116,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
   time_t start = 0;
   int remainingTime = totalTimeout;
   if (totalTimeout) {
-    start = time(NULL);
+    start = time(nullptr);
   }
 
   do {
@@ -145,7 +145,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
     }
 
     if (totalTimeout) {
-      time_t now = time(NULL);
+      time_t now = time(nullptr);
       int elapsed = now - start;
       if (elapsed >= remainingTime) {
         throw runtime_error("Timeout while reading data");
@@ -466,9 +466,9 @@ void stripLine(string &line)
 string urlEncode(const string &text)
 {
   string ret;
-  for(string::const_iterator i=text.begin();i!=text.end();++i)
-    if(*i==' ')ret.append("%20");
-    else ret.append(1,*i);
+  for(char i : text)
+    if(i==' ')ret.append("%20");
+    else ret.append(1,i);
   return ret;
 }
 
@@ -565,8 +565,8 @@ string makeHexDump(const string& str)
   string ret;
   ret.reserve((int)(str.size()*2.2));
 
-  for(string::size_type n=0;n<str.size();++n) {
-    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)str[n]);
+  for(char n : str) {
+    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)n);
     ret+=tmp;
   }
   return ret;
@@ -688,7 +688,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     hints.ai_flags = AI_NUMERICHOST;
 
     // getaddrinfo has anomalous return codes, anything nonzero is an error, positive or negative
-    if (getaddrinfo(ourAddr.c_str(), 0, &hints, &res) != 0) {
+    if (getaddrinfo(ourAddr.c_str(), nullptr, &hints, &res) != 0) {
       return -1;
     }
 
@@ -793,7 +793,7 @@ Regex::Regex(const string &expr)
 // Note that cmsgbuf should be aligned the same as a struct cmsghdr
 void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAddress* source, int itfIndex)
 {
-  struct cmsghdr *cmsg = NULL;
+  struct cmsghdr *cmsg = nullptr;
 
   if(source->sin4.sin_family == AF_INET6) {
     struct in6_pktinfo *pkt;
@@ -1109,8 +1109,8 @@ string getMACAddress(const ComboAddress& ca)
       if (sscanf(parts[3].c_str(), "%02x:%02x:%02x:%02x:%02x:%02x", tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5) != 6) {
         return ret;
       }
-      for(int i = 0 ; i< 6 ; ++i)
-        ret.append(1, (char)tmp[i]);
+      for(unsigned int i : tmp)
+        ret.append(1, (char)i);
       return ret;
     }
   }
@@ -1344,7 +1344,7 @@ uid_t strToUID(const string &str)
   const char * cstr = str.c_str();
   struct passwd * pwd = getpwnam(cstr);
 
-  if (pwd == NULL) {
+  if (pwd == nullptr) {
     long long val;
 
     try {
@@ -1373,7 +1373,7 @@ gid_t strToGID(const string &str)
   const char * cstr = str.c_str();
   struct group * grp = getgrnam(cstr);
 
-  if (grp == NULL) {
+  if (grp == nullptr) {
     long long val;
 
     try {

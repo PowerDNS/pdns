@@ -247,10 +247,10 @@ void declareArguments()
   ::arg().setDefaults();
 }
 
-static time_t s_start=time(0);
+static time_t s_start=time(nullptr);
 static uint64_t uptimeOfProcess(const std::string& str)
 {
-  return time(0) - s_start;
+  return time(nullptr) - s_start;
 }
 
 static uint64_t getSysUserTimeMsec(const std::string& str)
@@ -298,7 +298,7 @@ static uint64_t getLatency(const std::string& str)
   return round(avg_latency);
 }
 
-void declareStats(void)
+void declareStats()
 {
   S.declare("udp-queries","Number of UDP queries received");
   S.declare("udp-do-queries","Number of UDP queries received with DO bit");

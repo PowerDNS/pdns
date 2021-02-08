@@ -40,7 +40,7 @@
 #include "threadname.hh"
 
 // there can be MANY OF THESE
-void CommunicatorClass::retrievalLoopThread(void)
+void CommunicatorClass::retrievalLoopThread()
 {
   setThreadName("pdns/comm-retre");
   for(;;) {
@@ -62,9 +62,9 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
 {
   vector<string> parts;
   stringtok(parts, ::arg()[listname], ", \t");
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+  for (const auto & part : parts) {
     try {
-      ComboAddress caIp(*iter, 53);
+      ComboAddress caIp(part, 53);
       listset.insert(caIp.toStringWithPort());
     }
     catch(PDNSException &e) {
@@ -84,11 +84,11 @@ void CommunicatorClass::go()
     _exit(1);
   }
 
-  std::thread mainT(std::bind(&CommunicatorClass::mainloop, this));
+  std::thread mainT([this](){mainloop();});
   mainT.detach();
 
   for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n) {
-    std::thread retrieve(std::bind(&CommunicatorClass::retrievalLoopThread, this));
+    std::thread retrieve([this](){retrievalLoopThread();});
     retrieve.detach();
   }
 
@@ -107,7 +107,7 @@ void CommunicatorClass::go()
   loadArgsIntoSet("forward-notify", PacketHandler::s_forwardNotify);
 }
 
-void CommunicatorClass::mainloop(void)
+void CommunicatorClass::mainloop()
 {
   try {
     setThreadName("pdns/comm-main");
@@ -127,9 +127,9 @@ void CommunicatorClass::mainloop(void)
       
       tick = min (tick, d_tickinterval); 
       
-      next=time(0)+tick;
+      next=time(nullptr)+tick;
 
-      while(time(0) < next) {
+      while(time(nullptr) < next) {
         rc=d_any_sem.tryWait();
 
         if(rc) {

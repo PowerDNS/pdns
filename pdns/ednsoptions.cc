@@ -94,7 +94,7 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
 int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& options)
 {
-  assert(optRR != NULL);
+  assert(optRR != nullptr);
   size_t pos = 0;
   if (len < DNS_RDLENGTH_SIZE)
     return EINVAL;
@@ -120,7 +120,7 @@ int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& optio
     EDNSOptionViewValue value;
     value.content = optRR + pos;
     value.size = optionLen;
-    options[optionCode].values.push_back(std::move(value));
+    options[optionCode].values.push_back(value);
 
     /* skip this option */
     pos += optionLen;

@@ -57,14 +57,14 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
     g_signatureCount = S.getPointer("signatures");
 
   DNSKEYRecordContent drc = dpk.getDNSKEY();
-  const std::shared_ptr<DNSCryptoKeyEngine> rc = dpk.getKey();
+  const std::shared_ptr<DNSCryptoKeyEngine>& rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
 
   string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
   pair<string, string> lookup(rc->getPubKeyHash(), getLookupKey(msg));  // this hash is a memory saving exercise
 
-  bool doCache=1;
+  bool doCache=true;
   if(doCache)
   {
     ReadLock l(&g_signatures_lock);
@@ -80,7 +80,7 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   (*g_signatureCount)++;
   if(doCache) {
     /* we add some jitter here so not all your slaves start pruning their caches at the very same millisecond */
-    int weekno = (time(0) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
+    int weekno = (time(nullptr) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
     const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
 
     WriteLock l(&g_signatures_lock);

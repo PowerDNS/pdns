@@ -31,8 +31,8 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, const DNSName& zname=g_rootdnsname, const string& reldir="", bool upgradeContent=false);
-  ZoneParserTNG(const vector<string> zonedata, const DNSName& zname, bool upgradeContent=false);
+  ZoneParserTNG(const string& fname, DNSName  zname=g_rootdnsname, string  reldir="", bool upgradeContent=false);
+  ZoneParserTNG(const vector<string>& zonedata, DNSName  zname, bool upgradeContent=false);
 
   ~ZoneParserTNG();
   bool get(DNSResourceRecord& rr, std::string* comment=0);

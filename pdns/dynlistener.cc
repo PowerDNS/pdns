@@ -204,7 +204,7 @@ DynListener::DynListener(const string &progname)
 void DynListener::go()
 {
   d_ppid=getpid();
-  std::thread listener(std::bind(&DynListener::theListener,this));
+  std::thread listener([this](){theListener();});
   listener.detach();
 }
 

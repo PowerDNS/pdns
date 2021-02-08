@@ -25,6 +25,7 @@
 #include "dns_random.hh"
 #include "ipcipher.hh"
 #include <fstream>
+#include <utility>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
 #ifdef HAVE_LIBSODIUM
@@ -56,6 +57,7 @@ ArgvMap &arg()
 
 static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec) {
   vector<string> strs;
+  strs.reserve(vec.size());
   for (const auto& ca : vec) {
     strs.push_back(ca.toStringWithPortExcept(53));
   }
@@ -224,7 +226,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   bool result = true;
 
   B.getAllDomains(&domainInfo);
-  for(DomainInfo di :  domainInfo) {
+  for(const DomainInfo& di :  domainInfo) {
     if (!quiet) {
       cerr<<"Rectifying "<<di.zone<<": ";
     }
@@ -238,7 +240,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   return result;
 }
 
-static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
+static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr)
 {
   uint64_t numerrors=0, numwarnings=0;
 
@@ -582,8 +584,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   for (const auto &svcb : svcbTargets) {
-    auto name = std::get<0>(svcb);
-    auto target = std::get<2>(svcb);
+    const auto& name = std::get<0>(svcb);
+    const auto& target = std::get<2>(svcb);
     auto prio = std::get<1>(svcb);
 
     if (name == target) {
@@ -606,8 +608,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   for (const auto &httpsRecord : httpsTargets) {
-    auto name = std::get<0>(httpsRecord);
-    auto target = std::get<2>(httpsRecord);
+    const auto& name = std::get<0>(httpsRecord);
+    const auto& target = std::get<2>(httpsRecord);
     auto prio = std::get<1>(httpsRecord);
 
     if (name == target) {
@@ -1010,7 +1012,7 @@ static int editZone(const DNSName &zone) {
     unixDie("Making temporary filename in "+string(tmpnam));
   struct deleteme {
     ~deleteme() { unlink(d_name.c_str()); }
-    deleteme(string name) : d_name(name) {}
+    deleteme(string name) : d_name(std::move(name)) {}
     string d_name;
   } dm(tmpnam);
 
@@ -1217,7 +1219,7 @@ static int xcryptIP(const std::string& cmd, const std::string& ip, const std::st
 }
 
 
-static int loadZone(DNSName zone, const string& fname) {
+static int loadZone(const DNSName& zone, const string& fname) {
   UeberBackend B;
   DomainInfo di;
 
@@ -1277,7 +1279,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
 
   DNSResourceRecord rr;
   rr.qname = zone;
-  rr.auth = 1;
+  rr.auth = true;
   rr.ttl = ::arg().asNum("default-ttl");
   rr.qtype = "SOA";
 
@@ -1365,7 +1367,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
     return EXIT_FAILURE;
   }
-  rr.auth = 1;
+  rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
   DNSResourceRecord oldrr;
@@ -1528,7 +1530,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
   rr.qname=DNSName("blah")+zone;
   rr.qtype=QType::A;
   rr.ttl=3600;
-  rr.auth=1;
+  rr.auth=true;
   rr.qclass = QClass::IN;
 
   UeberBackend db("key-only");
@@ -1538,7 +1540,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
     throw runtime_error("No backends available for DNSSEC key storage");
   }
 
-  ChunkedSigningPipe csp(DNSName(zone), 1, cores);
+  ChunkedSigningPipe csp(DNSName(zone), true, cores);
 
   vector<DNSZoneRecord> signatures;
   uint32_t rnd;
@@ -1824,7 +1826,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       cout << "keys: "<<endl;
     }
 
-    for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
+    for(const DNSSECKeeper::keyset_t::value_type& value :  keyset) {
       string algname = DNSSECKeeper::algorithm2name(value.first.d_algorithm);
       if (!exportDS) {
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
@@ -1986,7 +1988,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   rr.qname=zone;
   rr.ttl=86400;
   rr.domain_id=di.id;
-  rr.auth=1;
+  rr.auth=true;
   rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
   cout<<"Feeding SOA"<<endl;
   db->feedRecord(rr, DNSName());
@@ -2023,7 +2025,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   rr.qname=zone;
   rr.ttl=86400;
   rr.domain_id=di.id;
-  rr.auth=1;
+  rr.auth=true;
   rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
   cout<<"Feeding SOA"<<endl;
   db->feedRecord(rr, DNSName());
@@ -2637,7 +2639,7 @@ try
   }
   else if(cmds[0] == "add-record") {
     if(cmds.size() < 5) {
-      cerr<<"Syntax: pdnsutil add-record ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      cerr<<R"(Syntax: pdnsutil add-record ZONE name type [ttl] "content" ["content"...])"<<endl;
       return 0;
     }
     return addOrReplaceRecord(true, cmds);
@@ -2651,7 +2653,7 @@ try
   }
   else if(cmds[0] == "replace-rrset") {
     if(cmds.size() < 5) {
-      cerr<<"Syntax: pdnsutil replace-rrset ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+      cerr<<R"(Syntax: pdnsutil replace-rrset ZONE name type [ttl] "content" ["content"...])"<<endl;
       return 0;
     }
     return addOrReplaceRecord(false , cmds);
@@ -2751,7 +2753,7 @@ try
     B.getAllDomains(&domainInfo);
 
     unsigned int zonesSecured=0, zoneErrors=0;
-    for(DomainInfo di :  domainInfo) {
+    for(const DomainInfo& di :  domainInfo) {
       if(!dk.isSecuredZone(di.zone)) {
         cout<<"Securing "<<di.zone<<": ";
         if (secureZone(dk, di.zone)) {
@@ -3026,13 +3028,13 @@ try
       else if(pdns_iequals(cmds[n], "KSK"))
         dpk.d_flags = 257;
       else if(pdns_iequals(cmds[n], "active"))
-        active = 1;
+        active = true;
       else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive")) // passive eventually needs to be removed
-        active = 0;
+        active = false;
       else if(pdns_iequals(cmds[n], "published"))
-        published = 1;
+        published = true;
       else if(pdns_iequals(cmds[n], "unpublished"))
-        published = 0;
+        published = false;
       else {
         cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
         return 1;
@@ -3215,7 +3217,7 @@ try
        return 1;
      }
      bool found = false;
-     for(std::string tmpname :  meta) {
+     for(const std::string& tmpname :  meta) {
           if (tmpname == name) { found = true; break; }
      }
      if (!found) meta.push_back(name);
@@ -3471,7 +3473,7 @@ try
     }
 
     DNSBackend *src,*tgt;
-    src = tgt = NULL;
+    src = tgt = nullptr;
 
     for(DNSBackend *b : BackendMakers().all()) {
       if (b->getPrefix() == cmds[1]) src = b;
@@ -3571,7 +3573,7 @@ try
     }
 
     DNSBackend *db;
-    db = NULL;
+    db = nullptr;
 
     for(DNSBackend *b : BackendMakers().all()) {
       if (b->getPrefix() == cmds[1]) db = b;

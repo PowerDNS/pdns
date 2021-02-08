@@ -35,7 +35,7 @@
 #include "base64.hh"
 #include "namespaces.hh"
 
-RecordTextReader::RecordTextReader(const string& str, const DNSName& zone) : d_string(str), d_zone(zone), d_pos(0)
+RecordTextReader::RecordTextReader(string  str, DNSName  zone) : d_string(std::move(str)), d_zone(std::move(zone)), d_pos(0)
 {
    /* remove whitespace */
    if(!d_string.empty() && ( dns_isspace(*d_string.begin()) || dns_isspace(*d_string.rbegin()) ))
@@ -629,7 +629,7 @@ void RecordTextWriter::xfrIP6(const std::string& val)
   
   val.copy(tmpbuf,16);
 
-  if (inet_ntop(AF_INET6, tmpbuf, addrbuf, sizeof addrbuf) == NULL)
+  if (inet_ntop(AF_INET6, tmpbuf, addrbuf, sizeof addrbuf) == nullptr)
     throw RecordTextException("Unable to convert to ipv6 address");
   
   d_string += std::string(addrbuf);
@@ -726,17 +726,17 @@ static string txtEscape(const string &name)
   string ret;
   char ebuf[5];
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if((unsigned char) *i >= 127 || (unsigned char) *i < 32) {
-      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)*i);
+  for(char i : name) {
+    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
+      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
       ret += ebuf;
     }
-    else if(*i=='"' || *i=='\\'){
+    else if(i=='"' || i=='\\'){
       ret += '\\';
-      ret += *i;
+      ret += i;
     }
     else
-      ret += *i;
+      ret += i;
   }
   return ret;
 }

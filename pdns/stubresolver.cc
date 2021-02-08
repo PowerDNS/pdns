@@ -159,10 +159,10 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     if(mdp.d_header.rcode == RCode::ServFail)
       continue;
 
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-      if(i->first.d_place == 1 && i->first.d_type==qtype) {
+    for(const auto & d_answer : mdp.d_answers) {
+      if(d_answer.first.d_place == 1 && d_answer.first.d_type==qtype) {
         DNSZoneRecord zrr;
-        zrr.dr = i->first;
+        zrr.dr = d_answer.first;
         zrr.auth=true;
         ret.push_back(zrr);
       }

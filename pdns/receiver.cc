@@ -101,7 +101,7 @@ const char *funnytext=
 This file is where it all happens - main is here, as are the two pivotal threads qthread() and athread()
 */
 
-static void daemonize(void)
+static void daemonize()
 {
   if(fork())
     exit(0); // bye bye
@@ -129,7 +129,7 @@ static void takedown(int i)
   }
 }
 
-static void writePid(void)
+static void writePid()
 {
   if(!::arg().mustDo("write-pid"))
     return;
@@ -231,7 +231,7 @@ static int guardian(int argc, char **argv)
       g_log<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
       exit(1);
     }
-    setbuf(g_fp,0); // no buffering please, confuses select
+    setbuf(g_fp,nullptr); // no buffering please, confuses select
 
     if(!(pid=fork())) { // child
       signal(SIGTERM, SIG_DFL);
@@ -252,7 +252,7 @@ static int guardian(int argc, char **argv)
       for(n=1;n<argc;n++) {
         newargv[n]=argv[n];
       }
-      newargv[n]=0;
+      newargv[n]=nullptr;
       
       g_log<<Logger::Error<<"Guardian is launching an instance"<<endl;
       close(g_fd1[1]);
@@ -317,7 +317,7 @@ static int guardian(int argc, char **argv)
       g_guardian_lock.lock();
       close(g_fd1[1]);
       fclose(g_fp);
-      g_fp=0;
+      g_fp=nullptr;
 
       if(WIFEXITED(status)) {
         int ret=WEXITSTATUS(status);
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
   reportAllTypes(); // init MOADNSParser
 
   s_programname="pdns";
-  s_starttime=time(0);
+  s_starttime=time(nullptr);
 
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
   signal(SIGSEGV,tbhandler);

@@ -347,7 +347,7 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPEMString(DNSKEY
     {
     }
   }
-  return 0;
+  return nullptr;
 }
 
 /**
@@ -479,7 +479,7 @@ static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_pt
 
 uint32_t getStartOfWeek()
 {
-  uint32_t now = time(0);
+  uint32_t now = time(nullptr);
   now -= (now % (7*86400));
   return now;
 }
@@ -588,7 +588,7 @@ static string calculateHMAC(const std::string& key, const std::string& text, TSI
   }
 
   unsigned char* out = HMAC(md_type, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, &outlen);
-  if (out == NULL || outlen == 0) {
+  if (out == nullptr || outlen == 0) {
     throw PDNSException("HMAC computation failed");
   }
 

@@ -28,7 +28,7 @@
 
 using json11::Json;
 
-int intFromJson(const Json container, const std::string& key)
+int intFromJson(const Json& container, const std::string& key)
 {
   auto val = container[key];
   if (val.is_number()) {
@@ -40,7 +40,7 @@ int intFromJson(const Json container, const std::string& key)
   }
 }
 
-int intFromJson(const Json container, const std::string& key, const int default_value)
+int intFromJson(const Json& container, const std::string& key, const int default_value)
 {
   auto val = container[key];
   if (val.is_number()) {
@@ -57,7 +57,7 @@ int intFromJson(const Json container, const std::string& key, const int default_
   }
 }
 
-double doubleFromJson(const Json container, const std::string& key)
+double doubleFromJson(const Json& container, const std::string& key)
 {
   auto val = container[key];
   if (val.is_number()) {
@@ -73,7 +73,7 @@ double doubleFromJson(const Json container, const std::string& key)
   }
 }
 
-double doubleFromJson(const Json container, const std::string& key, const double default_value)
+double doubleFromJson(const Json& container, const std::string& key, const double default_value)
 {
   auto val = container[key];
   if (val.is_number()) {
@@ -86,7 +86,7 @@ double doubleFromJson(const Json container, const std::string& key, const double
   }
 }
 
-string stringFromJson(const Json container, const std::string &key)
+string stringFromJson(const Json& container, const std::string &key)
 {
   const Json val = container[key];
   if (val.is_string()) {
@@ -96,7 +96,7 @@ string stringFromJson(const Json container, const std::string &key)
   }
 }
 
-bool boolFromJson(const Json container, const std::string& key)
+bool boolFromJson(const Json& container, const std::string& key)
 {
   auto val = container[key];
   if (val.is_bool()) {
@@ -105,7 +105,7 @@ bool boolFromJson(const Json container, const std::string& key)
   throw JsonException("Key '" + string(key) + "' not present or not a Bool");
 }
 
-bool boolFromJson(const Json container, const std::string& key, const bool default_value)
+bool boolFromJson(const Json& container, const std::string& key, const bool default_value)
 {
   auto val = container[key];
   if (val.is_bool()) {

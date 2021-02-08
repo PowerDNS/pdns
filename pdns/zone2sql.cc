@@ -76,13 +76,13 @@ static string sqlstr(const string &name)
   
   string a;
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='\'' || *i=='\\'){
+  for(char i : name) {
+    if(i=='\'' || i=='\\'){
       a+='\\';
-      a+=*i;
+      a+=i;
     }
     else
-      a+=*i;
+      a+=i;
   }
   if(g_mode == POSTGRES)
     return "E'"+a+"'";
@@ -103,7 +103,7 @@ static void startNewTransaction()
       cout<<"COMMIT;"<<endl;
     }
   }
-  g_intransaction=1;
+  g_intransaction=true;
   
   if(g_mode == MYSQL)
     cout<<"BEGIN;"<<endl;
@@ -111,7 +111,7 @@ static void startNewTransaction()
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
-static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = 0) {
+static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = nullptr) {
   string iDomain = domain.toStringRootDot();
   if(!::arg().mustDo("slave")) {
     cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
@@ -119,7 +119,7 @@ static void emitDomain(const DNSName& domain, const vector<ComboAddress> *master
   else
   {
     string mstrs;
-    if (masters != 0 && ! masters->empty()) {
+    if (masters != nullptr && ! masters->empty()) {
       for(const auto& mstr :  *masters) {
         mstrs.append(mstr.toStringWithPortExcept(53));
         mstrs.append(1, ' ');
@@ -177,7 +177,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
     " from domains where name="<<toLower(sqlstr(zname))<<";\n";
 
   if(!recordcomment.empty()) {
-    cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(stripDot(qname)))<<", "<<sqlstr(qtype)<<", "<<time(0)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zname))<<";\n";
+    cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(stripDot(qname)))<<", "<<sqlstr(qtype)<<", "<<time(nullptr)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zname))<<";\n";
   }
 }
 
@@ -270,10 +270,10 @@ try
     
       vector<BindDomainInfo> domains=BP.getDomains();
       struct stat st;
-      for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) {
-        if(stat(i->filename.c_str(), &st) == 0) {
-          i->d_dev = st.st_dev;
-          i->d_ino = st.st_ino;
+      for(auto & domain : domains) {
+        if(stat(domain.filename.c_str(), &st) == 0) {
+          domain.d_dev = st.st_dev;
+          domain.d_ino = st.st_ino;
         }
       }
       
@@ -282,20 +282,18 @@ try
       int numdomains=domains.size();
       int tick=numdomains/100;
     
-      for(vector<BindDomainInfo>::const_iterator i=domains.begin();
-          i!=domains.end();
-          ++i)
+      for(const auto & domain : domains)
         {
-          if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+          if(domain.type!="master" && domain.type!="slave") {
+            cerr<<" Warning! Skipping '"<<domain.type<<"' zone '"<<domain.name<<"'"<<endl;
             continue;
           }
           try {
             startNewTransaction();
             
-            emitDomain(i->name, &(i->masters));
+            emitDomain(domain.name, &(domain.masters));
             
-            ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+            ZoneParserTNG zpt(domain.filename, domain.name, BP.getDirectory());
             zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
             DNSResourceRecord rr;
             bool seenSOA=false;
@@ -306,7 +304,7 @@ try
               if(rr.qtype.getCode() == QType::SOA)
                 seenSOA=true;
 
-              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+              emitRecord(domain.name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
             }
             num_domainsdone++;
           }
@@ -325,7 +323,7 @@ try
 
           
           if(!tick || !((count++)%tick))
-            cerr<<"\r"<<count*100/numdomains<<"% done ("<<i->filename<<")\033\133\113";
+            cerr<<"\r"<<count*100/numdomains<<"% done ("<<domain.filename<<")\033\133\113";
         }
       cerr<<"\r100% done\033\133\113"<<endl;
     }

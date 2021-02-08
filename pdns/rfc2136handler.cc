@@ -329,27 +329,27 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           if (rec.qtype.getCode() && rec.qtype.getCode() != QType::DS && rr->d_name != rec.qname) // Skip ENT, DS and our already corrected record.
             qnames.push_back(rec.qname);
         }
-        for(vector<DNSName>::const_iterator qname=qnames.begin(); qname != qnames.end(); ++qname) {
+        for(const auto & qname : qnames) {
           if(*haveNSEC3)  {
             DNSName ordername;
             if(! *narrow)
-              ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, *qname)));
+              ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, qname)));
 
             if (*narrow)
-              di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, DNSName(), auth);
+              di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), auth);
             else
-              di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, ordername, auth);
+              di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, ordername, auth);
 
             if (ns3pr->d_flags)
-              di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, DNSName(), false, QType::NS);
+              di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::NS);
           }
           else { // NSEC
-            DNSName ordername=DNSName(*qname).makeRelative(di->zone);
-            di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, ordername, false, QType::NS);
+            DNSName ordername=DNSName(qname).makeRelative(di->zone);
+            di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, ordername, false, QType::NS);
           }
 
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, DNSName(), false, QType::A);
-          di->backend->updateDNSSECOrderNameAndAuth(di->id, *qname, DNSName(), false, QType::AAAA);
+          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::A);
+          di->backend->updateDNSSECOrderNameAndAuth(di->id, qname, DNSName(), false, QType::AAAA);
         }
       }
     }
@@ -648,7 +648,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
-  if (this->d_update_policy_lua == NULL) {
+  if (this->d_update_policy_lua == nullptr) {
 
     // Check permissions - IP based
     vector<string> allowedRanges;
@@ -719,7 +719,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   }
 
   DomainInfo di;
-  di.backend=0;
+  di.backend=nullptr;
   if(!B.getDomainInfo(p.qdomain, di) || !di.backend) {
     g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p.qdomain<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
@@ -729,8 +729,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     return forwardPacket(msgPrefix, p, di);
 
   // Check if all the records provided are within the zone
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
     if (! (rr->d_place == DNSResourceRecord::ANSWER || rr->d_place == DNSResourceRecord::AUTHORITY))
@@ -751,8 +751,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   }
 
   // 3.2.1 and 3.2.2 - Prerequisite check
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-    const DNSRecord *rr = &i->first;
+  for(const auto & answer : mdp.d_answers) {
+    const DNSRecord *rr = &answer.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
@@ -785,9 +785,9 @@ int PacketHandler::processUpdate(DNSPacket& p) {
 
   if (preReqRRsets.size() > 0) {
     RRsetMap_t zoneRRsets;
-    for (RRsetMap_t::iterator preRRSet = preReqRRsets.begin(); preRRSet != preReqRRsets.end(); ++preRRSet) {
-      rrSetKey_t rrSet=preRRSet->first;
-      rrVector_t *vec = &preRRSet->second;
+    for (auto & preReqRRset : preReqRRsets) {
+      rrSetKey_t rrSet=preReqRRset.first;
+      rrVector_t *vec = &preReqRRset.second;
 
       DNSResourceRecord rec;
       di.backend->lookup(QType(QType::ANY), rrSet.first, di.id);
@@ -795,9 +795,9 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       while (di.backend->get(rec)) {
         if (rec.qtype == rrSet.second) {
           foundRR++;
-          for(rrVector_t::iterator rrItem=vec->begin(); rrItem != vec->end(); ++rrItem) {
-            rrItem->ttl = rec.ttl; // The compare one line below also compares TTL, so we make them equal because TTL is not user within prerequisite checks.
-            if (*rrItem == rec)
+          for(auto & rrItem : *vec) {
+            rrItem.ttl = rec.ttl; // The compare one line below also compares TTL, so we make them equal because TTL is not user within prerequisite checks.
+            if (rrItem == rec)
               matchRR++;
           }
         }
@@ -816,8 +816,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
   try {
     uint changedRecords = 0;
     // 3.4.1 - Prescan section
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-      const DNSRecord *rr = &i->first;
+    for(const auto & answer : mdp.d_answers) {
+      const DNSRecord *rr = &answer.first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         int res = checkUpdatePrescan(rr);
         if (res>0) {
@@ -862,11 +862,11 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     }
 
     vector<const DNSRecord *> cnamesToAdd, nonCnamesToAdd;
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-      const DNSRecord *rr = &i->first;
+    for(const auto & answer : mdp.d_answers) {
+      const DNSRecord *rr = &answer.first;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
-        if (this->d_update_policy_lua != NULL) {
+        if (this->d_update_policy_lua != nullptr) {
           if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Not permitted by policy"<<endl;
             continue;

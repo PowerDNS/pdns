@@ -62,7 +62,7 @@ try
     string msg;
     vector<string> entries = S.getEntries();
     ostringstream str;
-    time_t now=time(0);
+    time_t now=time(nullptr);
     for(const string& entry : entries) {
       str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
     }

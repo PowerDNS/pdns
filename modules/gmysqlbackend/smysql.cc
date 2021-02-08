@@ -77,8 +77,8 @@ public:
     d_query = query;
     d_paridx = d_fnum = d_resnum = d_residx = 0;
     d_parnum = nparams;
-    d_req_bind = d_res_bind = NULL;
-    d_stmt = NULL;
+    d_req_bind = d_res_bind = nullptr;
+    d_stmt = nullptr;
 
     if (query.empty()) {
       return;
@@ -374,7 +374,7 @@ private:
       return;
     }
 
-    if ((d_stmt = mysql_stmt_init(d_db))==NULL)
+    if ((d_stmt = mysql_stmt_init(d_db))==nullptr)
       throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
 
     if (mysql_stmt_prepare(d_stmt, d_query.c_str(), d_query.size()) != 0) {
@@ -400,14 +400,14 @@ private:
     d_prepared = false;
     if (d_stmt)
       mysql_stmt_close(d_stmt);
-    d_stmt = NULL;
+    d_stmt = nullptr;
     if (d_req_bind) {
       for(int i=0;i<d_parnum;i++) {
         if (d_req_bind[i].buffer) delete [] (char*)d_req_bind[i].buffer;
         if (d_req_bind[i].length) delete [] d_req_bind[i].length;
       }
       delete [] d_req_bind;
-      d_req_bind = NULL;
+      d_req_bind = nullptr;
     }
     if (d_res_bind) {
       for(int i=0;i<d_fnum;i++) {
@@ -417,7 +417,7 @@ private:
         if (d_res_bind[i].is_null) delete [] d_res_bind[i].is_null;
       }
       delete [] d_res_bind;
-      d_res_bind = NULL;
+      d_res_bind = nullptr;
     }
     d_paridx = d_fnum = d_resnum = d_residx = 0;
   }
@@ -470,12 +470,12 @@ void SMySQL::connect()
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
-    if (!mysql_real_connect(&d_db, d_host.empty() ? NULL : d_host.c_str(),
-                            d_user.empty() ? NULL : d_user.c_str(),
-                            d_password.empty() ? NULL : d_password.c_str(),
-                            d_database.empty() ? NULL : d_database.c_str(),
+    if (!mysql_real_connect(&d_db, d_host.empty() ? nullptr : d_host.c_str(),
+                            d_user.empty() ? nullptr : d_user.c_str(),
+                            d_password.empty() ? nullptr : d_password.c_str(),
+                            d_database.empty() ? nullptr : d_database.c_str(),
                             d_port,
-                            d_msocket.empty() ? NULL : d_msocket.c_str(),
+                            d_msocket.empty() ? nullptr : d_msocket.c_str(),
                             (d_clientSSL ? CLIENT_SSL : 0) | CLIENT_MULTI_RESULTS)) {
 
       if (retry == 0)
@@ -491,9 +491,9 @@ void SMySQL::connect()
   } while (retry >= 0);
 }
 
-SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
-               const string &password, const string &group, bool setIsolation, unsigned int timeout, bool threadCleanup, bool clientSSL):
-  d_database(database), d_host(host), d_msocket(msocket), d_user(user), d_password(password), d_group(group), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup), d_clientSSL(clientSSL)
+SMySQL::SMySQL(string database, string host, uint16_t port, string msocket, string user,
+               string password, string group, bool setIsolation, unsigned int timeout, bool threadCleanup, bool clientSSL):
+  d_database(std::move(database)), d_host(std::move(host)), d_msocket(std::move(msocket)), d_user(std::move(user)), d_password(std::move(password)), d_group(std::move(group)), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup), d_clientSSL(clientSSL)
 {
   connect();
 }

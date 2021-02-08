@@ -56,8 +56,8 @@ catch(...) {
   return nullptr;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, unsigned int workers)
-  : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
+ChunkedSigningPipe::ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int workers)
+  : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(std::move(signerName)),
     d_maxchunkrecords(100), d_threads(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
   d_rrsetToSign = make_unique<rrset_t>();
@@ -132,12 +132,12 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
 {
   vector<pollfd> pfds;
 
-  for(unsigned int n = 0; n < d_sockets.size(); ++n) {    
-    if(d_eof.count(d_sockets[n]))  
+  for(int & d_socket : d_sockets) {    
+    if(d_eof.count(d_socket))  
       continue;
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
-    pfd.fd = d_sockets[n];
+    pfd.fd = d_socket;
     if(rd)
       pfd.events |= POLLIN;
     if(wr)
@@ -149,11 +149,11 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
   if(res < 0)
     unixDie("polling for activity from signers, "+std::to_string(d_sockets.size()));
   pair<vector<int>, vector<int> > vects;
-  for(unsigned int n = 0; n < pfds.size(); ++n) 
-    if(pfds[n].revents & POLLIN)
-      vects.first.push_back(pfds[n].fd);
-    else if(pfds[n].revents & POLLOUT)
-      vects.second.push_back(pfds[n].fd);
+  for(auto & pfd : pfds) 
+    if(pfd.revents & POLLIN)
+      vects.first.push_back(pfd.fd);
+    else if(pfd.revents & POLLOUT)
+      vects.second.push_back(pfd.fd);
   
   return vects;
 }

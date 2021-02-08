@@ -338,14 +338,14 @@ string apiZoneNameToId(const DNSName& dname) {
   string name=dname.toString();
   ostringstream ss;
 
-  for(string::const_iterator iter = name.begin(); iter != name.end(); ++iter) {
-    if ((*iter >= 'A' && *iter <= 'Z') ||
-        (*iter >= 'a' && *iter <= 'z') ||
-        (*iter >= '0' && *iter <= '9') ||
-        (*iter == '.') || (*iter == '-')) {
-      ss << *iter;
+  for(char iter : name) {
+    if ((iter >= 'A' && iter <= 'Z') ||
+        (iter >= 'a' && iter <= 'z') ||
+        (iter >= '0' && iter <= '9') ||
+        (iter == '.') || (iter == '-')) {
+      ss << iter;
     } else {
-      ss << (boost::format("=%02X") % (int)(*iter));
+      ss << (boost::format("=%02X") % (int)iter);
     }
   }
 

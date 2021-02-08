@@ -39,16 +39,16 @@
 
 static string g_INstr("IN");
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir, bool upgradeContent):
-  d_reldir(reldir), d_zonename(zname), d_defaultttl(3600), 
+ZoneParserTNG::ZoneParserTNG(const string& fname, DNSName  zname, string  reldir, bool upgradeContent):
+  d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600), 
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
 {
   stackFile(fname);
 }
 
-ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname, bool upgradeContent):
-  d_zonename(zname), d_zonedata(zonedata), d_defaultttl(3600),
+ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, DNSName  zname, bool upgradeContent):
+  d_zonename(std::move(zname)), d_zonedata(zonedata), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(false), d_upgradeContent(upgradeContent)
 {

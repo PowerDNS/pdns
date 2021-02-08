@@ -66,7 +66,7 @@ bool UeberBackend::loadmodule(const string &name)
 
   void *dlib=dlopen(name.c_str(), RTLD_NOW);
 
-  if(dlib == NULL) {
+  if(dlib == nullptr) {
     g_log<<Logger::Error <<"Unable to load module '"<<name<<"': "<<dlerror() << endl;
     return false;
   }
@@ -78,7 +78,7 @@ bool UeberBackend::loadModules(const vector<string>& modules, const string& path
 {
   for (const auto& module: modules) {
     bool res;
-    if (module.find(".")==string::npos) {
+    if (module.find('.')==string::npos) {
       res = UeberBackend::loadmodule(path+"/lib"+module+"backend.so");
     } else if (module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.')) {
       // absolute or current path
@@ -94,7 +94,7 @@ bool UeberBackend::loadModules(const vector<string>& modules, const string& path
   return true;
 }
 
-void UeberBackend::go(void)
+void UeberBackend::go()
 {
   if (::arg().mustDo("consistent-backends")) {
     s_doANYLookupsOnly = true;
@@ -112,8 +112,8 @@ void UeberBackend::go(void)
 
 bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
 {
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getDomainInfo(domain, di, getSerial))
+  for(auto backend : backends)
+    if(backend->getDomainInfo(domain, di, getSerial))
       return true;
   return false;
 }
@@ -267,9 +267,9 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 
 void UeberBackend::reload()
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    ( *i )->reload();
+    backend->reload();
   }
 }
 
@@ -288,9 +288,9 @@ void UeberBackend::rediscover(string *status)
 
 void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    ( *i )->getUnfreshSlaveInfos( domains );
+    backend->getUnfreshSlaveInfos( domains );
   }  
 }
 
@@ -298,9 +298,9 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
 void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    ( *i )->getUpdatedMasters( domains );
+    backend->getUpdatedMasters( domains );
   }
 }
 
@@ -432,8 +432,8 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
   d_question.qname=domain;
   d_question.zoneId=-1;
 
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getSOA(domain, sd)) {
+  for(auto backend : backends)
+    if(backend->getSOA(domain, sd)) {
       if(domain != sd.qname) {
         throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '"+domain.toLogString()+"', answer: '"+sd.qname.toLogString()+"'");
       }
@@ -458,16 +458,16 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
 
 bool UeberBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account) 
 {
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->superMasterAdd(ip, nameserver, account)) 
+  for(auto backend : backends)
+    if(backend->superMasterAdd(ip, nameserver, account)) 
       return true;
   return false;
 }
 
 bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->superMasterBackend(ip, domain, nsset, nameserver, account, db))
+  for(auto backend : backends)
+    if(backend->superMasterBackend(ip, domain, nsset, nameserver, account, db))
       return true;
   return false;
 }
@@ -479,8 +479,8 @@ UeberBackend::UeberBackend(const string &pname)
     instances.push_back(this); // report to the static list of ourself
   }
 
-  d_negcached=0;
-  d_cached=0;
+  d_negcached=false;
+  d_cached=false;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
   d_qtype = 0;
@@ -556,8 +556,8 @@ void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 {
-  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
-    (*i)->alsoNotifies(domain,ips);
+  for (auto & backend : backends)
+    backend->alsoNotifies(domain,ips);
 }
 
 UeberBackend::~UeberBackend()
@@ -626,9 +626,9 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
-  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
+  for (auto & backend : backends)
   {
-    (*i)->getAllDomains(domains, include_disabled);
+    backend->getAllDomains(domains, include_disabled);
   }
 }
 
@@ -692,9 +692,9 @@ UeberBackend::handle::handle()
 {
   //  g_log<<Logger::Warning<<"Handle instances: "<<instances<<endl;
   ++instances;
-  parent=NULL;
-  d_hinterBackend=NULL;
-  pkt_p=NULL;
+  parent=nullptr;
+  d_hinterBackend=nullptr;
+  pkt_p=nullptr;
   i=0;
   zoneId = -1;
 }

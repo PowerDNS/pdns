@@ -124,7 +124,7 @@ string DLStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream os;
-  os<<humanDuration(time(0)-s_starttime);
+  os<<humanDuration(time(nullptr)-s_starttime);
   return os.str();
 }
 
@@ -212,7 +212,7 @@ string DLRemotesHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  static const char *whitelist[]={"query-logging",0};
+  static const char *whitelist[]={"query-logging",nullptr};
   const char **p;
 
   if(parts.size()!=3) {

@@ -144,10 +144,10 @@ try
     
       vector<BindDomainInfo> domains=BP.getDomains();
       struct stat st;
-      for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) {
-        if(stat(i->filename.c_str(), &st) == 0) {
-          i->d_dev = st.st_dev;
-          i->d_ino = st.st_ino;
+      for(auto & domain : domains) {
+        if(stat(domain.filename.c_str(), &st) == 0) {
+          domain.d_dev = st.st_dev;
+          domain.d_ino = st.st_ino;
         }
       }
       

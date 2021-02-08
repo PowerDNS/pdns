@@ -35,7 +35,7 @@
 class Logger
 {
 public:
-  Logger(const string &, int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
+  Logger(string , int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
   enum Urgency {All=32767,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,

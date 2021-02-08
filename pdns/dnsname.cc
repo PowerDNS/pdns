@@ -126,7 +126,7 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
           throw std::range_error("Invalid label position during decompression ("+std::to_string(newpos)+ " < "+std::to_string(minOffset)+")");
         if (++depth > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
-        packetParser((const char*)opos, len, newpos, true, 0, 0, 0, depth, minOffset);
+        packetParser((const char*)opos, len, newpos, true, nullptr, nullptr, nullptr, depth, minOffset);
       } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;

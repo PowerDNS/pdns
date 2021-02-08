@@ -83,9 +83,9 @@ AuthWebServer::AuthWebServer() :
 void AuthWebServer::go()
 {
   S.doRings();
-  std::thread webT(std::bind(&AuthWebServer::webThread, this));
+  std::thread webT([this](){webThread();});
   webT.detach();
-  std::thread statT(std::bind(&AuthWebServer::statThread, this));
+  std::thread statT([this](){statThread();});
   statT.detach();
 }
 
@@ -110,8 +110,8 @@ void AuthWebServer::statThread()
 
 static string htmlescape(const string &s) {
   string result;
-  for(string::const_iterator it=s.begin(); it!=s.end(); ++it) {
-    switch (*it) {
+  for(char it : s) {
+    switch (it) {
     case '&':
       result += "&amp;";
       break;
@@ -125,7 +125,7 @@ static string htmlescape(const string &s) {
       result += "&quot;";
       break;
     default:
-      result += *it;
+      result += it;
     }
   }
   return result;
@@ -137,8 +137,8 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
   int entries=0;
   vector<pair <string,unsigned int> >ring=S.getRing(ringname);
 
-  for(vector<pair<string, unsigned int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {
-    tot+=i->second;
+  for(const auto & i : ring) {
+    tot+=i.second;
     entries++;
   }
 
@@ -177,8 +177,8 @@ void AuthWebServer::printvars(ostringstream &ret)
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
   vector<string>entries=S.getEntries();
-  for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
-    ret<<"<tr><td>"<<*i<<"</td><td>"<<S.read(*i)<<"</td><td>"<<S.getDescrip(*i)<<"</td>"<<endl;
+  for(const auto & entrie : entries) {
+    ret<<"<tr><td>"<<entrie<<"</td><td>"<<S.read(entrie)<<"</td><td>"<<S.getDescrip(entrie)<<"</td>"<<endl;
   }
 
   ret<<"</table></div>"<<endl;
@@ -186,11 +186,11 @@ void AuthWebServer::printvars(ostringstream &ret)
 
 void AuthWebServer::printargs(ostringstream &ret)
 {
-  ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
+  ret<<R"(<table border=1><tr><td colspan=3 bgcolor="#0000ff"><font color="#ffffff">Arguments</font></td>)"<<endl;
 
   vector<string>entries=arg().list();
-  for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
-    ret<<"<tr><td>"<<*i<<"</td><td>"<<arg()[*i]<<"</td><td>"<<arg().getHelp(*i)<<"</td>"<<endl;
+  for(const auto & entrie : entries) {
+    ret<<"<tr><td>"<<entrie<<"</td><td>"<<arg()[entrie]<<"</td><td>"<<arg().getHelp(entrie)<<"</td>"<<endl;
   }
 }
 
@@ -222,20 +222,20 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"<!DOCTYPE html>"<<endl;
   ret<<"<html><head>"<<endl;
   ret<<"<title>PowerDNS Authoritative Server Monitor</title>"<<endl;
-  ret<<"<link rel=\"stylesheet\" href=\"style.css\"/>"<<endl;
+  ret<<R"(<link rel="stylesheet" href="style.css"/>)"<<endl;
   ret<<"</head><body>"<<endl;
 
   ret<<"<div class=\"row\">"<<endl;
   ret<<"<div class=\"headl columns\">";
-  ret<<"<a href=\"/\" id=\"appname\">PowerDNS "<<htmlescape(VERSION);
+  ret<<R"(<a href="/" id="appname">PowerDNS )"<<htmlescape(VERSION);
   if(!arg()["config-name"].empty()) {
     ret<<" ["<<htmlescape(arg()["config-name"])<<"]";
   }
   ret<<"</a></div>"<<endl;
   ret<<"<div class=\"headr columns\"></div></div>";
-  ret<<"<div class=\"row\"><div class=\"all columns\">";
+  ret<<R"(<div class="row"><div class="all columns">)";
 
-  time_t passed=time(0)-s_starttime;
+  time_t passed=time(nullptr)-s_starttime;
 
   ret<<"<p>Uptime: "<<
     humanDuration(passed)<<
@@ -496,7 +496,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   }
 
   // add uptime
-  out["uptime"] = std::to_string(time(0) - s_starttime);
+  out["uptime"] = std::to_string(time(nullptr) - s_starttime);
 }
 
 boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
@@ -516,11 +516,11 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
-  rr.auth = 1;
+  rr.auth = true;
   rr.ttl = ttl;
 
   validateGatheredRRType(rr);
@@ -556,13 +556,13 @@ static void gatherRecords(UeberBackend& B, const string& logprefix, const Json c
   }
 }
 
-static void gatherComments(const Json container, const DNSName& qname, const QType qtype, vector<Comment>& new_comments) {
+static void gatherComments(const Json& container, const DNSName& qname, const QType& qtype, vector<Comment>& new_comments) {
   Comment c;
   c.qname = qname;
   c.qtype = qtype;
 
-  time_t now = time(0);
-  for (auto comment : container["comments"].array_items()) {
+  time_t now = time(nullptr);
+  for (const auto& comment : container["comments"].array_items()) {
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
@@ -598,7 +598,7 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 
-static void extractDomainInfoFromDocument(const Json document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<string>& account) {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   } else {
@@ -607,7 +607,7 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
 
   if (document["masters"].is_array()) {
     masters = vector<ComboAddress>();
-    for(auto value : document["masters"].array_items()) {
+    for(const auto& value : document["masters"].array_items()) {
       string master = value.string_value();
       if (master.empty())
         throw ApiException("Master can not be an empty string");
@@ -628,7 +628,7 @@ static void extractDomainInfoFromDocument(const Json document, boost::optional<D
   }
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool rectifyTransaction=true) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<string> account;
@@ -795,7 +795,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (!document["master_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(auto value : document["master_tsig_key_ids"].array_items()) {
+    for(const auto& value : document["master_tsig_key_ids"].array_items()) {
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
@@ -811,7 +811,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(auto value : document["slave_tsig_key_ids"].array_items()) {
+    for(const auto& value : document["slave_tsig_key_ids"].array_items()) {
       auto keyname(apiZoneIdToName(value.string_value()));
       DNSName keyAlgo;
       string keyContent;
@@ -916,7 +916,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
     for (const auto& i : md) {
       Json::array entries;
-      for (string j : i.second)
+      for (const string& j : i.second)
         entries.push_back(j);
 
       Json::object key {
@@ -1051,7 +1051,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
 }
 
 // Throws 404 if the key with inquireKeyId does not exist
-static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, DNSSECKeeper *dk) {
+static void apiZoneCryptoKeysCheckKeyExists(const DNSName& zonename, int inquireKeyId, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
   bool found = false;
   for(const auto& value : keyset) {
@@ -1065,7 +1065,7 @@ static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, 
   }
 }
 
-static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
 
   bool inquireSingleKey = inquireKeyId >= 0;
@@ -1131,7 +1131,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  * Case 3: the key or zone does not exist.
  *      The server returns 404 Not Found
  * */
-static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysDELETE(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   if (dk->removeKey(zonename, inquireKeyId)) {
     resp->body = "";
     resp->status = 204;
@@ -1176,7 +1176,7 @@ static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequ
  *    The server returns 201 Created and all public data about the added cryptokey
  */
 
-static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   auto document = req->json();
   string privatekey_fieldname = "privatekey";
   auto privatekey = document["privatekey"];
@@ -1277,7 +1277,7 @@ static void apiZoneCryptokeysPOST(DNSName zonename, HttpRequest *req, HttpRespon
  * Case 3: the backend returns false on de/activation. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"
  * */
-static void apiZoneCryptokeysPUT(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPUT(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
   //throws an exception if the Body is empty
   auto document = req->json();
   //throws an exception if the key does not exist or is not a bool
@@ -1350,7 +1350,7 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   }
 }
 
-static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, DNSName zonename) {
+static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, const DNSName& zonename) {
   DNSResourceRecord rr;
   vector<string> zonedata;
   stringtok(zonedata, zonestring, "\r\n");
@@ -1640,7 +1640,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // synthesize RRs as needed
     DNSResourceRecord autorr;
     autorr.qname = zonename;
-    autorr.auth = 1;
+    autorr.auth = true;
     autorr.ttl = ::arg().asNum("default-ttl");
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
@@ -1657,8 +1657,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     // create NS records if nameservers are given
-    for (auto value : nameservers.array_items()) {
-      string nameserver = value.string_value();
+    for (const auto& value : nameservers.array_items()) {
+      const string& nameserver = value.string_value();
       if (nameserver.empty())
         throw ApiException("Nameservers must be non-empty strings");
       if (!isCanonical(nameserver))
@@ -2327,8 +2327,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api", &apiDiscovery);
     }
     if (::arg().mustDo("webserver")) {
-      d_ws->registerWebHandler("/style.css", std::bind(&AuthWebServer::cssfunction, this, std::placeholders::_1, std::placeholders::_2));
-      d_ws->registerWebHandler("/", std::bind(&AuthWebServer::indexfunction, this, std::placeholders::_1, std::placeholders::_2));
+      d_ws->registerWebHandler("/style.css", [this](HttpRequest *req, HttpResponse *resp){cssfunction(req, resp);});
+      d_ws->registerWebHandler("/", [this](HttpRequest *req, HttpResponse *resp){indexfunction(req, resp);});
       d_ws->registerWebHandler("/metrics", prometheusMetrics);
     }
     d_ws->go();

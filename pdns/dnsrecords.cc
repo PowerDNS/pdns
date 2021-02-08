@@ -208,7 +208,7 @@ boilerplate_conv(TSIG, QType::TSIG,
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
-MXRecordContent::MXRecordContent(uint16_t preference, const DNSName& mxname):  d_preference(preference), d_mxname(mxname)
+MXRecordContent::MXRecordContent(uint16_t preference, DNSName  mxname):  d_preference(preference), d_mxname(std::move(mxname))
 {
 }
 
@@ -274,8 +274,8 @@ boilerplate_conv(NAPTR, QType::NAPTR,
                  )
 
 
-SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target) 
-: d_weight(weight), d_port(port), d_target(target), d_preference(preference)
+SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target) 
+: d_weight(weight), d_port(port), d_target(std::move(target)), d_preference(preference)
 {}
 
 boilerplate_conv(SRV, QType::SRV, 
@@ -283,8 +283,8 @@ boilerplate_conv(SRV, QType::SRV,
                  conv.xfrName(d_target); 
                  )
 
-SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
-: d_mname(mname), d_rname(rname), d_st(st)
+SOARecordContent::SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st) 
+: d_mname(std::move(mname)), d_rname(std::move(rname)), d_st(st)
 {
 }
 
@@ -418,7 +418,7 @@ boilerplate_conv(RKEY, 57,
 RKEYRecordContent::RKEYRecordContent() {}
 
 /* EUI48 start */
-void EUI48RecordContent::report(void) 
+void EUI48RecordContent::report()
 {
   regist(1, QType::EUI48, &make, &make, "EUI48");
 }
@@ -461,7 +461,7 @@ string EUI48RecordContent::getZoneRepresentation(bool noDot) const
 
 /* EUI64 start */
 
-void EUI64RecordContent::report(void)
+void EUI64RecordContent::report()
 {
   regist(1, QType::EUI64, &make, &make, "EUI64");
 }
@@ -506,7 +506,7 @@ string EUI64RecordContent::getZoneRepresentation(bool noDot) const
 
 /* APL start */
 /* https://tools.ietf.org/html/rfc3123 */
-void APLRecordContent::report(void)
+void APLRecordContent::report()
 {
   regist(1, QType::APL, &make, &make, "APL");
 }
@@ -568,7 +568,7 @@ APLRDataElement APLRecordContent::parseAPLElement(const string& element) {
     record = element;
   }
 
-  if (record.find("/") == string::npos) { // Required by RFC section 5
+  if (record.find('/') == string::npos) { // Required by RFC section 5
     throw MOADNSException("Asked to decode '"+element+"' as an APL record, but missing subnet mask");
   }
 
@@ -646,9 +646,9 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
   auto ret=std::make_shared<APLRecordContent>();
 
   boost::split(elements, zone, boost::is_any_of(" "));
-  for (std::vector<std::string>::iterator elem = elements.begin() ; elem != elements.end(); ++elem) {
-    if (!elem->empty()) {
-      ard = ret->parseAPLElement(*elem);
+  for (auto & element : elements) {
+    if (!element.empty()) {
+      ard = ret->parseAPLElement(element);
       ret->aplrdata.push_back(ard);
     }
   }
@@ -658,17 +658,17 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
 
 // DNSRecord to Packet conversion
 void APLRecordContent::toPacket(DNSPacketWriter& pw) {
-  for (std::vector<APLRDataElement>::iterator ard = aplrdata.begin() ; ard != aplrdata.end(); ++ard) {
-    pw.xfr16BitInt(ard->d_family);
-    pw.xfr8BitInt(ard->d_prefix);
-    pw.xfr8BitInt((ard->d_n << 7) + ard->d_afdlength);
-    if (ard->d_family == APL_FAMILY_IPV4) {
-      for (int i=0; i<ard->d_afdlength; i++) {
-        pw.xfr8BitInt(ard->d_ip.d_ip4[i]);
+  for (auto & ard : aplrdata) {
+    pw.xfr16BitInt(ard.d_family);
+    pw.xfr8BitInt(ard.d_prefix);
+    pw.xfr8BitInt((ard.d_n << 7) + ard.d_afdlength);
+    if (ard.d_family == APL_FAMILY_IPV4) {
+      for (int i=0; i<ard.d_afdlength; i++) {
+        pw.xfr8BitInt(ard.d_ip.d_ip4[i]);
       }
-    } else if (ard->d_family == APL_FAMILY_IPV6) {
-      for (int i=0; i<ard->d_afdlength; i++) {
-        pw.xfr8BitInt(ard->d_ip.d_ip6[i]);
+    } else if (ard.d_family == APL_FAMILY_IPV6) {
+      for (int i=0; i<ard.d_afdlength; i++) {
+        pw.xfr8BitInt(ard.d_ip.d_ip6[i]);
       }
     }
   }
@@ -831,9 +831,9 @@ void reportBasicTypes()
 #ifdef HAVE_LUA_RECORDS
   LUARecordContent::report();
 #endif
-  DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
-  DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
-  DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");
+  DNSRecordContent::regist(QClass::IN, QType::ANY, nullptr, nullptr, "ANY");
+  DNSRecordContent::regist(QClass::IN, QType::AXFR, nullptr, nullptr, "AXFR");
+  DNSRecordContent::regist(QClass::IN, QType::IXFR, nullptr, nullptr, "IXFR");
 }
 
 void reportOtherTypes()

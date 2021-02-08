@@ -71,7 +71,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
-    d_pdl = NULL;
+    d_pdl = nullptr;
   }
   else
   {
@@ -81,7 +81,7 @@ PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
   {
-    d_update_policy_lua = NULL;
+    d_update_policy_lua = nullptr;
   }
   else
   {
@@ -354,7 +354,7 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &ta
       rr.dr.d_type = QType::CNAME;
       rr.dr.d_name = prefix + rr.dr.d_name;
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
-      rr.auth = 0; // don't sign CNAME
+      rr.auth = false; // don't sign CNAME
       target= getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr); 
     }
@@ -1003,9 +1003,9 @@ int PacketHandler::processNotify(const DNSPacket& p)
 
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
-    for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
-      g_log<<Logger::Notice<<"Relaying notification of domain "<<p.qdomain<<" from "<<p.getRemote()<<" to "<<*j<<endl;
-      Communicator.notify(p.qdomain,*j);
+    for(const auto & j : forwardNotify) {
+      g_log<<Logger::Notice<<"Relaying notification of domain "<<p.qdomain<<" from "<<p.getRemote()<<" to "<<j<<endl;
+      Communicator.notify(p.qdomain,j);
     }
   }
 
@@ -1180,7 +1180,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   set<DNSName> authSet;
 
   vector<DNSZoneRecord> rrset;
-  bool weDone=0, weRedirected=0, weHaveUnauth=0, doSigs=0;
+  bool weDone=false, weRedirected=false, weHaveUnauth=false, doSigs=false;
   DNSName haveAlias;
   uint8_t aliasScopeMask;
 
@@ -1196,7 +1196,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p.d_remote);
-    return 0;
+    return nullptr;
   }
 
   if(p.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
@@ -1204,7 +1204,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p.d_remote);
-    return 0;
+    return nullptr;
   }
 
   if (p.hasEDNS() && p.getEDNSVersion() > 0) {
@@ -1276,7 +1276,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           r->setOpcode(Opcode::Notify);
           return r;
         }
-        return 0;
+        return nullptr;
       }
       
       g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemote()<<" for "<<p.qdomain<<endl;
@@ -1376,7 +1376,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
 
     // this TRUMPS a cname!
-    if(d_dnssec && p.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.qname, 0)) {
+    if(d_dnssec && p.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.qname, nullptr)) {
       addNSEC(p, r, target, DNSName(), 5);
       if (!r->isEmpty())
         goto sendit;
@@ -1431,9 +1431,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
                 rrset.push_back(rr);
               }
               if(rec->d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
-                weRedirected = 1;
+                weRedirected = true;
               else
-                weDone = 1;
+                weDone = true;
             }
           }
           catch(std::exception &e) {
@@ -1455,13 +1455,13 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.dr.d_type == p.qtype)<<", "<<rr.dr.d_type.getName()<<endl;
       if((p.qtype.getCode() == QType::ANY || rr.dr.d_type == p.qtype.getCode()) && rr.auth) 
-        weDone=1;
+        weDone=true;
       // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
       if((rr.dr.d_type == p.qtype.getCode() && !rr.auth) || (rr.dr.d_type == QType::NS && (!rr.auth || !(d_sd.qname==rr.dr.d_name))))
-        weHaveUnauth=1;
+        weHaveUnauth=true;
 
       if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME) 
-        weRedirected=1;
+        weRedirected=true;
 
       if(DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY)) {
         if (!d_doExpandALIAS) {
@@ -1496,7 +1496,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(!haveAlias.empty() && (!weDone || p.qtype.getCode() == QType::ANY)) {
       DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
       DP->completePacket(r, haveAlias, target, aliasScopeMask);
-      return 0;
+      return nullptr;
     }
 
 

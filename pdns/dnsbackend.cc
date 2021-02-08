@@ -130,7 +130,7 @@ void BackendMakerClass::load(const string &module)
 {
   bool res;
 
-  if(module.find(".")==string::npos)
+  if(module.find('.')==string::npos)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/lib"+module+"backend.so");
   else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
     res=UeberBackend::loadmodule(module);
@@ -155,9 +155,7 @@ void BackendMakerClass::launch(const string &instr)
     if (count(parts.begin(), parts.end(), part) > 1)
       throw ArgException("Refusing to launch multiple backends with the same name '" + part + "', verify all 'launch' statements in your configuration");
 
-  for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i) {
-    const string &part=*i;
-
+  for(const auto & part : parts) {
     string module, name;
     vector<string>pparts;
     stringtok(pparts,part,": ");
