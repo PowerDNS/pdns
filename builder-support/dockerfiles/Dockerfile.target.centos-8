@@ -13,7 +13,7 @@ FROM amd64/centos:8 as dist-base
 FROM arm64v8/centos:8 as dist-base
 @ENDIF
 ARG BUILDER_CACHE_BUSTER=
-RUN touch /var/lib/rpm/* && yum install -y epel-release && \
+RUN touch /var/lib/rpm/* && dnf install -y epel-release && \
     dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --set-enabled powertools
 
