@@ -151,28 +151,31 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return result;
   });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(const std::vector<std::pair<int, ComboAddress>>& responses)>("spoof", [](DNSQuestion& dq, const std::vector<std::pair<int, ComboAddress>>& responses) {
-    std::vector<ComboAddress> cas;
-    cas.reserve(responses.size());
-    for (const auto& addr : responses) {
-      cas.push_back(addr.second);
-    }
-
-    std::string result;
-    SpoofAction sa(cas);
-    sa(&dq, &result);
-  });
-
-  luaCtx.registerFunction<void(DNSQuestion::*)(const std::vector<std::pair<int, std::string>>& responses)>("spoofRaw", [](DNSQuestion& dq, const std::vector<std::pair<int, std::string>>& responses) {
-    std::vector<std::string> data;
-    data.reserve(responses.size());
-    for (const auto& resp : responses) {
-      data.push_back(resp.second);
-    }
-
-    std::string result;
-    SpoofAction sa(data);
-    sa(&dq, &result);
+  luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<std::vector<std::pair<int, ComboAddress>>, std::vector<std::pair<int, std::string>>>& response)>("spoof", [](DNSQuestion& dq, const boost::variant<std::vector<std::pair<int, ComboAddress>>, std::vector<std::pair<int, std::string>>>& response) {
+      if (response.type() == typeid(vector<pair<int, ComboAddress>>)) {
+          std::vector<ComboAddress> data;
+          auto responses = boost::get<vector<pair<int, ComboAddress>>>(response);
+          data.reserve(responses.size());
+          for (const auto& resp : responses) {
+            data.push_back(resp.second);
+          }
+          std::string result;
+          SpoofAction sa(data);
+          sa(&dq, &result);
+	  return;
+      }
+      if (response.type() == typeid(vector<pair<int, string>>)) {
+          std::vector<std::string> data;
+          auto responses = boost::get<vector<pair<int, string>>>(response);
+          data.reserve(responses.size());
+          for (const auto& resp : responses) {
+            data.push_back(resp.second);
+          }
+          std::string result;
+          SpoofAction sa(data);
+          sa(&dq, &result);
+	  return;
+      }
   });
 
   /* LuaWrapper doesn't support inheritance */
