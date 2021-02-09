@@ -160,6 +160,19 @@ vector<DNSZoneRecord*> DNSPacket::getAPRecords()
   return arrs;
 }
 
+vector<DNSZoneRecord*> DNSPacket::getServiceRecords()
+{
+  vector<DNSZoneRecord*> arrs;
+
+  for(auto & i : d_rrs) {
+    if (i.dr.d_type==QType::SVCB ||
+        i.dr.d_type==QType::HTTPS) {
+      arrs.push_back(&i);
+    }
+  }
+  return arrs;
+}
+
 vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
 {
   vector<DNSZoneRecord*> arrs;

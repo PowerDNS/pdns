@@ -506,6 +506,8 @@ class SVCBBaseRecordContent : public DNSRecordContent
     bool autoHint(const SvcParam::SvcParamKey &key) const;
     // Sets the |addresses| to the existing hints for |key|
     void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
+    // Removes the parameter for |key| from d_params
+    void removeParam(const SvcParam::SvcParamKey &key);
 
   protected:
     uint16_t d_priority;

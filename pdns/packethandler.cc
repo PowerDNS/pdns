@@ -522,6 +522,41 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
       }
     }
   }
+  // TODO should we have a setting to do this?
+  for (auto &rec : r->getServiceRecords()) {
+    // Process auto hints
+    auto rrc = getRR<SVCBBaseRecordContent>(rec->dr);
+    DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
+    if (rrc->autoHint(SvcParam::ipv4hint)) {
+      B.lookup(QType::A, target, d_sd.domain_id);
+      vector<ComboAddress> hints;
+      DNSZoneRecord rr;
+      while (B.get(rr)) {
+        auto arrc = getRR<ARecordContent>(rr.dr);
+        hints.push_back(arrc->getCA());
+      }
+      if (hints.size() == 0) {
+        rrc->removeParam(SvcParam::ipv4hint);
+      } else {
+        rrc->setHints(SvcParam::ipv4hint, hints);
+      }
+    }
+
+    if (rrc->autoHint(SvcParam::ipv6hint)) {
+      B.lookup(QType::AAAA, target, d_sd.domain_id);
+      vector<ComboAddress> hints;
+      DNSZoneRecord rr;
+      while (B.get(rr)) {
+        auto arrc = getRR<AAAARecordContent>(rr.dr);
+        hints.push_back(arrc->getCA());
+      }
+      if (hints.size() == 0) {
+        rrc->removeParam(SvcParam::ipv6hint);
+      } else {
+        rrc->setHints(SvcParam::ipv6hint, hints);
+      }
+    }
+  }
 
   DNSZoneRecord dzr;
   for(const auto& name : lookup) {

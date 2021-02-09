@@ -109,6 +109,7 @@ public:
 
   vector<DNSZoneRecord*> getAPRecords(); //!< get a vector with DNSZoneRecords that need additional processing
   vector<DNSZoneRecord*> getAnswerRecords(); //!< get a vector with DNSZoneRecords that are answers
+  vector<DNSZoneRecord*> getServiceRecords(); //!< Get a vector with all Service-style (SVCB) records
   void setCompress(bool compress);
 
   std::unique_ptr<DNSPacket> replyPacket() const; //!< convenience function that creates a virgin answer packet to this question

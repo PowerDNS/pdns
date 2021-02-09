@@ -749,6 +749,17 @@ void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std
   }
 }
 
+void SVCBBaseRecordContent::removeParam(const SvcParam::SvcParamKey &key) {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
+      [&key](const SvcParam &param) {
+        return param.getKey() == key;
+      });
+  if (p == d_params.end()) {
+    return;
+  }
+  d_params.erase(p);
+}
+
 /* SVCB end */
 
 boilerplate_conv(TKEY,

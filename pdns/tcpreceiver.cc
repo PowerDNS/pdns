@@ -726,6 +726,47 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     }
   }
 
+  for (auto loopRR : zrrs) {
+    if ((loopRR.dr.d_type == QType::SVCB || loopRR.dr.d_type == QType::HTTPS)) {
+      // Process auto hints
+      // TODO this is an almost copy of the code in the packethandler
+      auto rrc = getRR<SVCBBaseRecordContent>(loopRR.dr);
+      if (rrc == nullptr) {
+        continue;
+      }
+      DNSName svcTarget = rrc->getTarget().isRoot() ? loopRR.dr.d_name : rrc->getTarget();
+      if (rrc->autoHint(SvcParam::ipv4hint)) {
+        sd.db->lookup(QType::A, svcTarget, sd.domain_id);
+        vector<ComboAddress> hints;
+        DNSZoneRecord rr;
+        while (sd.db->get(rr)) {
+          auto arrc = getRR<ARecordContent>(rr.dr);
+          hints.push_back(arrc->getCA());
+        }
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv4hint);
+        } else {
+          rrc->setHints(SvcParam::ipv4hint, hints);
+        }
+      }
+
+      if (rrc->autoHint(SvcParam::ipv6hint)) {
+        sd.db->lookup(QType::AAAA, svcTarget, sd.domain_id);
+        vector<ComboAddress> hints;
+        DNSZoneRecord rr;
+        while (sd.db->get(rr)) {
+          auto arrc = getRR<AAAARecordContent>(rr.dr);
+          hints.push_back(arrc->getCA());
+        }
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv6hint);
+        } else {
+          rrc->setHints(SvcParam::ipv6hint, hints);
+        }
+      }
+    }
+  }
+
   // Group records by name and type, signpipe stumbles over interrupted rrsets
   if(securedZone && !presignedZone) {
     sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
