@@ -5,6 +5,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
 
@@ -81,6 +82,11 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
 
 void setLuaNoSideEffect()
 {
+}
+
+DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
+{
+  return DNSAction::Action::None;
 }
 
 string g_outputBuffer;
