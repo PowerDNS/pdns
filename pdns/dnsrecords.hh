@@ -497,30 +497,28 @@ private:
   string d_keyring;
 };
 
-class SVCBRecordContent : public DNSRecordContent
+class SVCBBaseRecordContent : public DNSRecordContent
+{
+  public:
+    const DNSName& getTarget() const {return d_target;}
+    uint16_t getPriority() const {return d_priority;}
+
+  protected:
+    uint16_t d_priority;
+    DNSName d_target;
+    set<SvcParam> d_params;
+};
+
+class SVCBRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(SVCB)
-  const DNSName& getTarget() const {return d_target;}
-  uint16_t getPriority() const {return d_priority;}
-
-private:
-  uint16_t d_priority;
-  DNSName d_target;
-  set<SvcParam> d_params;
 };
 
-class HTTPSRecordContent : public DNSRecordContent
+class HTTPSRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(HTTPS)
-  const DNSName& getTarget() const {return d_target;}
-  uint16_t getPriority() const {return d_priority;}
-
-private:
-  uint16_t d_priority;
-  DNSName d_target;
-  set<SvcParam> d_params;
 };
 
 class RRSIGRecordContent : public DNSRecordContent
