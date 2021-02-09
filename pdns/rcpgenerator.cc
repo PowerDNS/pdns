@@ -356,11 +356,19 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       vector<string> value;
       xfrSVCBValueList(value);
       vector<ComboAddress> hints;
+      bool doAuto{false};
       try {
         for (auto const &v: value) {
+          if (v == "auto") {
+            doAuto = true;
+            hints.clear();
+            break;
+          }
           hints.push_back(ComboAddress(v));
         }
-        val.insert(SvcParam(key, std::move(hints)));
+        auto p = SvcParam(key, std::move(hints));
+        p.setAutoHint(doAuto);
+        val.insert(p);
       }
       catch (const std::invalid_argument& e) {
         throw RecordTextException(e.what());
@@ -781,6 +789,10 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
     case SvcParam::ipv4hint: /* fall-through */
     case SvcParam::ipv6hint:
       // TODO use xfrCA and put commas in between?
+      if (param.getAutoHint()) {
+        d_string.append("auto");
+        break;
+      }
       d_string.append(ComboAddress::caContainerToString(param.getIPHints(), false));
       break;
     case SvcParam::alpn:
