@@ -234,7 +234,7 @@ public:
     }
   }
 
-  IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite) override
+  IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
     do {
       int res = SSL_write(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), static_cast<int>(toWrite - pos));
@@ -846,7 +846,7 @@ public:
     throw std::runtime_error("Error accepting a new connection");
   }
 
-  IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite) override
+  IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
     do {
       ssize_t res = gnutls_record_send(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), toWrite - pos);

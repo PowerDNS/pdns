@@ -18,7 +18,7 @@ public:
   virtual IOState tryHandshake() = 0;
   virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
-  virtual IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
+  virtual IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) = 0;
   virtual bool hasBufferedData() const = 0;
   virtual std::string getServerNameIndication() const = 0;
@@ -106,6 +106,14 @@ protected:
 class TLSFrontend
 {
 public:
+  TLSFrontend()
+  {
+  }
+
+  TLSFrontend(std::shared_ptr<TLSCtx> ctx): d_ctx(std::move(ctx))
+  {
+  }
+
   bool setupTLS();
 
   void rotateTicketsKey(time_t now)
@@ -122,7 +130,7 @@ public:
     }
   }
 
-  std::shared_ptr<TLSCtx> getContext()
+  std::shared_ptr<TLSCtx>& getContext()
   {
     return d_ctx;
   }
@@ -173,7 +181,7 @@ public:
   ComboAddress d_addr;
   std::string d_provider;
 
-private:
+protected:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};
 };
 
@@ -302,7 +310,7 @@ public:
      return Done when toWrite bytes have been written, needRead or needWrite if the IO operation
      would block.
   */
-  IOState tryWrite(PacketBuffer& buffer, size_t& pos, size_t toWrite)
+  IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite)
   {
     if (buffer.size() < toWrite || pos >= toWrite) {
       throw std::out_of_range("Calling tryWrite() with a too small buffer (" + std::to_string(buffer.size()) + ") for a write of " + std::to_string(toWrite - pos) + " bytes starting at " + std::to_string(pos));

@@ -107,7 +107,7 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
   eevent.data.u64=0; // placate valgrind (I love it so much)
   eevent.data.fd=fd;
 
-  if(epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0) {
+  if (epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0) {
     cbmap.erase(fd);
     throw FDMultiplexerException("Adding fd to epoll set: "+stringerror());
   }

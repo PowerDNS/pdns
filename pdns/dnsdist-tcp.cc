@@ -64,6 +64,8 @@ size_t g_maxTCPConnectionDuration{0};
 size_t g_maxTCPConnectionsPerClient{0};
 size_t g_tcpInternalPipeBufferSize{0};
 uint16_t g_downstreamTCPCleanupInterval{60};
+int g_tcpRecvTimeout{2};
+int g_tcpSendTimeout{2};
 bool g_useTCPSinglePipe{false};
 
 class DownstreamConnectionsManager
@@ -703,7 +705,7 @@ void IncomingTCPConnectionState::handleIOCallback(int fd, FDMultiplexer::funcpar
   }
 
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   handleIO(conn, now);
 }
 
@@ -1008,7 +1010,7 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
     g_tcpclientthreads->decrementQueuedCount();
 
     struct timeval now;
-    gettimeofday(&now, 0);
+    gettimeofday(&now, nullptr);
     auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*citmp), *threadData, now);
     delete citmp;
     citmp = nullptr;
@@ -1036,7 +1038,7 @@ static void tcpClientThread(int pipefd)
 
   data.mplexer->addReadFD(pipefd, handleIncomingTCPQuery, &data);
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   time_t lastTCPCleanup = now.tv_sec;
   time_t lastTimeoutScan = now.tv_sec;
 
@@ -1054,7 +1056,7 @@ static void tcpClientThread(int pipefd)
       data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
       {
         struct timeval lnow;
-        gettimeofday(&lnow, 0);
+        gettimeofday(&lnow, nullptr);
         cerr<<"- "<<isRead<<" "<<fd<<": "<<" "<<(ttd.tv_sec-lnow.tv_sec)<<endl;
         if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
           auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);

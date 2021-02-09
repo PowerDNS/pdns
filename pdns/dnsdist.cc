@@ -133,8 +133,6 @@ GlobalStateHolder<servers_t> g_dstates;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
-int g_tcpRecvTimeout{2};
-int g_tcpSendTimeout{2};
 int g_udpTimeout{2};
 
 bool g_servFailOnNoPolicy{false};
