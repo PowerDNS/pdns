@@ -735,7 +735,9 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent,
   string result;
 
   if (raw) {
-    SpoofAction sa(spoofContent);
+    std::vector<std::string> raws;
+    stringtok(raws, spoofContent, ",");
+    SpoofAction sa(raws);
     sa(&dq, &result);
   }
   else {

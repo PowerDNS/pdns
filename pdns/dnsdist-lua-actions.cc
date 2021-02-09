@@ -540,21 +540,29 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   uint16_t qtype = dq->qtype;
   // do we even have a response?
   if (d_cname.empty() &&
-      d_rawResponse.empty() &&
+      d_rawResponses.empty() &&
       d_types.count(qtype) == 0) {
     return Action::None;
   }
 
   vector<ComboAddress> addrs;
+  vector<std::string> rawResponses;
   unsigned int totrdatalen = 0;
   uint16_t numberOfRecords = 0;
   if (!d_cname.empty()) {
     qtype = QType::CNAME;
     totrdatalen += d_cname.getStorage().size();
     numberOfRecords = 1;
-  } else if (!d_rawResponse.empty()) {
-    totrdatalen += d_rawResponse.size();
-    numberOfRecords = 1;
+  } else if (!d_rawResponses.empty()) {
+    rawResponses.reserve(d_rawResponses.size());
+    for(const auto& rawResponse : d_rawResponses){
+      totrdatalen += rawResponse.size();
+      rawResponses.push_back(rawResponse);
+      ++numberOfRecords;
+    }
+    if (rawResponses.size() > 1) {
+      shuffle(rawResponses.begin(), rawResponses.end(), t_randomEngine);
+    }
   }
   else {
     for(const auto& addr : d_addrs) {
@@ -617,16 +625,21 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
     memcpy(dest, wireData.c_str(), wireData.length());
     dq->getHeader()->ancount++;
   }
-  else if (!d_rawResponse.empty()) {
-    uint16_t rdataLen = htons(d_rawResponse.size());
+  else if (!rawResponses.empty()) {
     qtype = htons(qtype);
-    memcpy(&recordstart[2], &qtype, sizeof(qtype));
-    memcpy(&recordstart[10], &rdataLen, sizeof(rdataLen));
+    for(const auto& rawResponse : rawResponses){
+      uint16_t rdataLen = htons(rawResponse.size());
+      memcpy(&recordstart[2], &qtype, sizeof(qtype));
+      memcpy(&recordstart[10], &rdataLen, sizeof(rdataLen));
 
-    memcpy(dest, recordstart, sizeof(recordstart));
-    dest += sizeof(recordstart);
-    memcpy(dest, d_rawResponse.c_str(), d_rawResponse.size());
-    dq->getHeader()->ancount++;
+      memcpy(dest, recordstart, sizeof(recordstart));
+      dest += sizeof(recordstart);
+
+      memcpy(dest, rawResponse.c_str(), rawResponse.size());
+      dest += rawResponse.size();
+
+      dq->getHeader()->ancount++;
+    }
     raw = true;
   }
   else {
@@ -1707,12 +1720,13 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
       vector<ComboAddress> addrs;
-      if(auto s = boost::get<std::string>(&inp))
+      if(auto s = boost::get<std::string>(&inp)) {
         addrs.push_back(ComboAddress(*s));
-      else {
+      } else {
         const auto& v = boost::get<vector<pair<int,std::string>>>(inp);
-        for(const auto& a: v)
+        for(const auto& a: v) {
           addrs.push_back(ComboAddress(a.second));
+        }
       }
 
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
@@ -1728,8 +1742,18 @@ void setupLuaActions(LuaContext& luaCtx)
       return ret;
     });
 
-  luaCtx.writeFunction("SpoofRawAction", [](const std::string& raw, boost::optional<responseParams_t> vars) {
-      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raw));
+  luaCtx.writeFunction("SpoofRawAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<responseParams_t> vars) {
+      vector<string> raws;
+      if(auto s = boost::get<std::string>(&inp)) {
+        raws.push_back(*s);
+      } else {
+        const auto& v = boost::get<vector<pair<int,std::string>>>(inp);
+        for(const auto& raw: v) {
+          raws.push_back(raw.second);
+        }
+      }
+
+      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       return ret;

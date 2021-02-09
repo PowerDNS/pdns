@@ -1373,15 +1373,19 @@ The following actions exist.
   * ``ttl``: int - The TTL of the record.
 
 .. function:: SpoofRawAction(rawAnswer [, options])
+              SpoofRawAction(rawAnswers [, options])
 
   .. versionadded:: 1.5.0
+
+  .. versionchanged:: 1.6.0
+    Up to 1.6.0, it was only possible to spoof one answer.
 
   Forge a response with the specified raw bytes as record data.
 
   .. code-block:: Lua
 
-    -- select queries for the 'raw.powerdns.com.' name and TXT type, and answer with a "aaa" "bbb" TXT record:
-    addAction(AndRule({QNameRule('raw.powerdns.com.'), QTypeRule(DNSQType.TXT)}), SpoofRawAction("\003aaa\004bbbb"))
+    -- select queries for the 'raw.powerdns.com.' name and TXT type, and answer with both a "aaa" "bbbb" and "ccc" TXT record:
+    addAction(AndRule({QNameRule('raw.powerdns.com.'), QTypeRule(DNSQType.TXT)}), SpoofRawAction({"\003aaa\004bbbb", "\003ccc"}))
     -- select queries for the 'raw-srv.powerdns.com.' name and SRV type, and answer with a '0 0 65535 srv.powerdns.com.' SRV record, setting the AA bit to 1 and the TTL to 3600s
     addAction(AndRule({QNameRule('raw-srv.powerdns.com.'), QTypeRule(DNSQType.SRV)}), SpoofRawAction("\000\000\000\000\255\255\003srv\008powerdns\003com\000", { aa=true, ttl=3600 }))
     -- select reverse queries for '127.0.0.1' and answer with 'localhost'
@@ -1390,6 +1394,7 @@ The following actions exist.
   :func:`DNSName:toDNSString` is convenient for converting names to wire format for passing to ``SpoofRawAction``.
 
   :param string rawAnswer: The raw record data
+  :param {string} rawAnswers: A table of raw record data to spoof
   :param table options: A table with key: value pairs with options.
 
   Options:
