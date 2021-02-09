@@ -1478,7 +1478,8 @@ fuzz_targets_programs =  \
 	fuzz_target_moadnsparser \
 	fuzz_target_packetcache \
 	fuzz_target_proxyprotocol \
-	fuzz_target_zoneparsertng
+	fuzz_target_zoneparsertng \
+	fuzz_target_dnslabeltext_parseRFC1035CharString
 
 fuzz_targets: $(fuzz_targets_programs)
 
@@ -1592,6 +1593,14 @@ fuzz_target_zoneparsertng_SOURCES = \
 fuzz_target_zoneparsertng_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_zoneparsertng_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_zoneparsertng_LDADD = $(fuzz_targets_libs)
+
+fuzz_target_dnslabeltext_parseRFC1035CharString_SOURCES = \
+	dnslabeltext.cc \
+	fuzz_dnslabeltext_parseRFC1035CharString.cc
+
+fuzz_target_dnslabeltext_parseRFC1035CharString_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_dnslabeltext_parseRFC1035CharString_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_dnslabeltext_parseRFC1035CharString_LDADD = $(fuzz_targets_libs)
 
 endif
 
