@@ -463,17 +463,9 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
     while (B.get(rr)) {
       rr.dr.d_place = DNSResourceRecord::ADDITIONAL;
       switch (qtype) {
-        case QType::SVCB: {
-          auto rrc = getRR<SVCBRecordContent>(rr.dr);
-          r->addRecord(std::move(rr));
-          ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
-          if (rrc->getPriority() == 0) {
-            done = false;
-          }
-          break;
-        }
+        case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
-          auto rrc = getRR<HTTPSRecordContent>(rr.dr);
+          auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
           r->addRecord(std::move(rr));
           ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
           if (rrc->getPriority() == 0) {
@@ -512,17 +504,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         case QType::SRV:
           content=getRR<SRVRecordContent>(rr.dr)->d_target;
           break;
-        case QType::SVCB: {
-          auto rrc = getRR<SVCBRecordContent>(rr.dr);
-          content = rrc->getTarget();
-          if (content.isRoot()) {
-            content = rr.dr.d_name;
-          }
-          content = doAdditionalServiceProcessing(content, rr.dr.d_type, r);
-          break;
-        }
+        case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
-          auto rrc = getRR<HTTPSRecordContent>(rr.dr);
+          auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
           content = rrc->getTarget();
           if (content.isRoot()) {
             content = rr.dr.d_name;

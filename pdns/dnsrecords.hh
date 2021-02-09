@@ -502,6 +502,10 @@ class SVCBBaseRecordContent : public DNSRecordContent
   public:
     const DNSName& getTarget() const {return d_target;}
     uint16_t getPriority() const {return d_priority;}
+    // Returns true if a value for |key| was set to 'auto'
+    bool autoHint(const SvcParam::SvcParamKey &key) const;
+    // Sets the |addresses| to the existing hints for |key|
+    void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
 
   protected:
     uint16_t d_priority;

@@ -716,6 +716,41 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
 
 /* APL end */
 
+/* SVCB start */
+bool SVCBBaseRecordContent::autoHint(const SvcParam::SvcParamKey &key) const {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
+      [&key](const SvcParam &param) {
+        return param.getKey() == key;
+      });
+  if (p == d_params.end()) {
+    return false;
+  }
+  return p->getAutoHint();
+}
+
+void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses) {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
+      [&key](const SvcParam &param) {
+        return param.getKey() == key;
+      });
+  if (p == d_params.end()) {
+    return;
+  }
+  std::vector<ComboAddress> h;
+  h.reserve(h.size() + addresses.size());
+  h.insert(h.end(), addresses.begin(), addresses.end());
+  try {
+    auto newParam = SvcParam(key, std::move(h));
+    d_params.erase(p);
+    d_params.insert(newParam);
+  } catch(...) {
+    // XXX maybe we should SERVFAIL instead?
+    return;
+  }
+}
+
+/* SVCB end */
+
 boilerplate_conv(TKEY,
                  conv.xfrName(d_algo);
                  conv.xfr32BitInt(d_inception);
