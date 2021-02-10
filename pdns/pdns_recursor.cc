@@ -1352,7 +1352,7 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
 }
 #endif /* NOD_ENABLED */
 
-int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype, int rcode)
+int followCNAMERecords(vector<DNSRecord>& ret, const QType qtype, int rcode)
 {
   vector<DNSRecord> resolved;
   DNSName target;

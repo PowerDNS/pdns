@@ -86,7 +86,7 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
     tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
-boilerplate_conv(A, QType::A, conv.xfrIP(d_ip));
+boilerplate_conv(A, conv.xfrIP(d_ip));
 
 ARecordContent::ARecordContent(uint32_t ip) 
 {
@@ -132,32 +132,32 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
     throw MOADNSException("Wrong size for A record ("+std::to_string(dr.d_clen)+")");
 }
 
-boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
+boilerplate_conv(AAAA, conv.xfrIP6(d_ip6); );
 
-boilerplate_conv(NS, QType::NS, conv.xfrName(d_content, true));
-boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
-boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
-boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, false));
-boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
-boilerplate_conv(MB, QType::MB, conv.xfrName(d_madname, true));
-boilerplate_conv(MG, QType::MG, conv.xfrName(d_mgmname, true));
-boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
-boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
-boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
+boilerplate_conv(NS, conv.xfrName(d_content, true));
+boilerplate_conv(PTR, conv.xfrName(d_content, true));
+boilerplate_conv(CNAME, conv.xfrName(d_content, true));
+boilerplate_conv(ALIAS, conv.xfrName(d_content, false));
+boilerplate_conv(DNAME, conv.xfrName(d_content));
+boilerplate_conv(MB, conv.xfrName(d_madname, true));
+boilerplate_conv(MG, conv.xfrName(d_mgmname, true));
+boilerplate_conv(MR, conv.xfrName(d_alias, true));
+boilerplate_conv(MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
+boilerplate_conv(TXT, conv.xfrText(d_text, true));
 #ifdef HAVE_LUA_RECORDS
-boilerplate_conv(LUA, QType::LUA, conv.xfrType(d_type); conv.xfrText(d_code, true));
+boilerplate_conv(LUA, conv.xfrType(d_type); conv.xfrText(d_code, true));
 #endif
-boilerplate_conv(ENT, 0, );
-boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
-boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
+boilerplate_conv(ENT, );
+boilerplate_conv(SPF, conv.xfrText(d_text, true));
+boilerplate_conv(HINFO, conv.xfrText(d_cpu);   conv.xfrText(d_host));
 
-boilerplate_conv(RP, QType::RP,
+boilerplate_conv(RP,
                  conv.xfrName(d_mbox);   
                  conv.xfrName(d_info)
                  );
 
 
-boilerplate_conv(OPT, QType::OPT, 
+boilerplate_conv(OPT,
                    conv.xfrBlob(d_data)
                  );
 
@@ -194,7 +194,7 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
   }
 }
 
-boilerplate_conv(TSIG, QType::TSIG,
+boilerplate_conv(TSIG,
                  conv.xfrName(d_algoName);
                  conv.xfr48BitInt(d_time);
                  conv.xfr16BitInt(d_fudge);
@@ -212,17 +212,17 @@ MXRecordContent::MXRecordContent(uint16_t preference, DNSName  mxname):  d_prefe
 {
 }
 
-boilerplate_conv(MX, QType::MX, 
+boilerplate_conv(MX,
                  conv.xfr16BitInt(d_preference);
                  conv.xfrName(d_mxname, true);
                  )
 
-boilerplate_conv(KX, QType::KX, 
+boilerplate_conv(KX,
                  conv.xfr16BitInt(d_preference);
                  conv.xfrName(d_exchanger, false);
                  )
 
-boilerplate_conv(IPSECKEY, QType::IPSECKEY,
+boilerplate_conv(IPSECKEY,
    conv.xfr8BitInt(d_preference);
    conv.xfr8BitInt(d_gatewaytype);
    conv.xfr8BitInt(d_algorithm);
@@ -256,18 +256,18 @@ boilerplate_conv(IPSECKEY, QType::IPSECKEY,
    }
 ) 
 
-boilerplate_conv(DHCID, 49, 
+boilerplate_conv(DHCID,
                  conv.xfrBlob(d_content);
                  )
 
 
-boilerplate_conv(AFSDB, QType::AFSDB, 
+boilerplate_conv(AFSDB,
                  conv.xfr16BitInt(d_subtype);
                  conv.xfrName(d_hostname);
                  )
 
 
-boilerplate_conv(NAPTR, QType::NAPTR,
+boilerplate_conv(NAPTR,
                  conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
                  conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
                  conv.xfrName(d_replacement);
@@ -278,7 +278,7 @@ SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_
 : d_weight(weight), d_port(port), d_target(std::move(target)), d_preference(preference)
 {}
 
-boilerplate_conv(SRV, QType::SRV, 
+boilerplate_conv(SRV,
                  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
                  conv.xfrName(d_target); 
                  )
@@ -288,7 +288,7 @@ SOARecordContent::SOARecordContent(DNSName  mname, DNSName  rname, const struct 
 {
 }
 
-boilerplate_conv(SOA, QType::SOA,
+boilerplate_conv(SOA,
                  conv.xfrName(d_mname, true);
                  conv.xfrName(d_rname, true);
                  conv.xfr32BitInt(d_st.serial);
@@ -298,14 +298,14 @@ boilerplate_conv(SOA, QType::SOA,
                  conv.xfr32BitInt(d_st.minimum);
                  );
 #undef KEY
-boilerplate_conv(KEY, QType::KEY, 
+boilerplate_conv(KEY,
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_certificate);
                  );
 
-boilerplate_conv(CERT, 37, 
+boilerplate_conv(CERT,
                  conv.xfr16BitInt(d_type); 
                  if (d_type == 0) throw MOADNSException("CERT type 0 is reserved");
 
@@ -314,18 +314,18 @@ boilerplate_conv(CERT, 37,
                  conv.xfrBlob(d_certificate);
                  )
 
-boilerplate_conv(TLSA, 52, 
+boilerplate_conv(TLSA,
                  conv.xfr8BitInt(d_certusage); 
                  conv.xfr8BitInt(d_selector); 
                  conv.xfr8BitInt(d_matchtype); 
                  conv.xfrHexBlob(d_cert, true);
                  )                 
                  
-boilerplate_conv(OPENPGPKEY, 61,
+boilerplate_conv(OPENPGPKEY,
                  conv.xfrBlob(d_keyring);
                  )
 
-boilerplate_conv(SVCB, 64,
+boilerplate_conv(SVCB,
                  conv.xfr16BitInt(d_priority);
                  conv.xfrName(d_target, false, true);
                  if (d_priority != 0) {
@@ -333,7 +333,7 @@ boilerplate_conv(SVCB, 64,
                  }
                  )
 
-boilerplate_conv(HTTPS, 65,
+boilerplate_conv(HTTPS,
                  conv.xfr16BitInt(d_priority);
                  conv.xfrName(d_target, false, true);
                  if (d_priority != 0) {
@@ -341,7 +341,7 @@ boilerplate_conv(HTTPS, 65,
                  }
                  )
 
-boilerplate_conv(SMIMEA, 53,
+boilerplate_conv(SMIMEA,
                  conv.xfr8BitInt(d_certusage);
                  conv.xfr8BitInt(d_selector);
                  conv.xfr8BitInt(d_matchtype);
@@ -349,7 +349,7 @@ boilerplate_conv(SMIMEA, 53,
                  )
 
 DSRecordContent::DSRecordContent() {}
-boilerplate_conv(DS, 43, 
+boilerplate_conv(DS,
                  conv.xfr16BitInt(d_tag); 
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfr8BitInt(d_digesttype); 
@@ -357,7 +357,7 @@ boilerplate_conv(DS, 43,
                  )
 
 CDSRecordContent::CDSRecordContent() {}
-boilerplate_conv(CDS, 59, 
+boilerplate_conv(CDS,
                  conv.xfr16BitInt(d_tag); 
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfr8BitInt(d_digesttype); 
@@ -365,7 +365,7 @@ boilerplate_conv(CDS, 59,
                  )
 
 DLVRecordContent::DLVRecordContent() {}
-boilerplate_conv(DLV,32769 , 
+boilerplate_conv(DLV,
                  conv.xfr16BitInt(d_tag); 
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfr8BitInt(d_digesttype); 
@@ -373,13 +373,13 @@ boilerplate_conv(DLV,32769 ,
                  )
 
 
-boilerplate_conv(SSHFP, 44, 
+boilerplate_conv(SSHFP,
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfr8BitInt(d_fptype); 
                  conv.xfrHexBlob(d_fingerprint, true);
                  )
 
-boilerplate_conv(RRSIG, 46, 
+boilerplate_conv(RRSIG,
                  conv.xfrType(d_type); 
                    conv.xfr8BitInt(d_algorithm); 
                    conv.xfr8BitInt(d_labels); 
@@ -393,7 +393,7 @@ boilerplate_conv(RRSIG, 46,
                  
 RRSIGRecordContent::RRSIGRecordContent() {}
 
-boilerplate_conv(DNSKEY, 48, 
+boilerplate_conv(DNSKEY,
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -401,7 +401,7 @@ boilerplate_conv(DNSKEY, 48,
                  )
 DNSKEYRecordContent::DNSKEYRecordContent() {}
 
-boilerplate_conv(CDNSKEY, 60, 
+boilerplate_conv(CDNSKEY,
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -409,7 +409,7 @@ boilerplate_conv(CDNSKEY, 60,
                  )
 CDNSKEYRecordContent::CDNSKEYRecordContent() {}
 
-boilerplate_conv(RKEY, 57, 
+boilerplate_conv(RKEY,
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -716,7 +716,7 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
 
 /* APL end */
 
-boilerplate_conv(TKEY, QType::TKEY,
+boilerplate_conv(TKEY,
                  conv.xfrName(d_algo);
                  conv.xfr32BitInt(d_inception);
                  conv.xfr32BitInt(d_expiration);
@@ -729,13 +729,13 @@ boilerplate_conv(TKEY, QType::TKEY,
                  )
 TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
-boilerplate_conv(URI, QType::URI,
+boilerplate_conv(URI,
                  conv.xfr16BitInt(d_priority);
                  conv.xfr16BitInt(d_weight);
                  conv.xfrText(d_target, true, false);
                  )
 
-boilerplate_conv(CAA, QType::CAA,
+boilerplate_conv(CAA,
                  conv.xfr8BitInt(d_flags);
                  conv.xfrUnquotedText(d_tag, true);
                  conv.xfrText(d_value, true, false); /* no lenField */
