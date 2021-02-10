@@ -1612,8 +1612,11 @@ Owner and group can be specified by name, mode is in octal.
 
 ``spoof-nearmiss-max``
 ----------------------
+.. versionchanged:: 4.5.0
+  Old versions used default 20.
+
 -  Integer
--  Default: 20
+-  Default: 1
 
 If set to non-zero, PowerDNS will assume it is being spoofed after seeing this many answers with the wrong id.
 
