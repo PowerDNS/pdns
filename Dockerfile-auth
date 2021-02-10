@@ -1,7 +1,7 @@
 # our chosen base image
 FROM debian:10-slim AS builder
 
-ENV NO_LUA_JIT="s390x aarch64"
+ENV NO_LUA_JIT="s390x arm64"
 
 # TODO: make sure /source looks roughly the same from git or tar
 
@@ -45,7 +45,7 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
-    LUAVER=$([ -z "${NO_LUA_JIT##*$(uname -m)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     ./configure \
       --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
