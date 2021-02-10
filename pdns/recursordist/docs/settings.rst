@@ -483,7 +483,7 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
 -  Default: 24
 
 Maximum number of bits of client IPv4 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
-That is, only if both the limits apply, the record will not be cached.
+That is, only if both the limits apply, the record will not be cached. This decision can be overridden by ``ecs-ipv4-never-cache`` and ``ecs-ipv6-never-cache``.
 
 .. _setting-ecs-ipv6-bits:
 
@@ -506,7 +506,31 @@ Number of bits of client IPv6 address to pass when sending EDNS Client Subnet ad
 -  Default: 56
 
 Maximum number of bits of client IPv6 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
-That is, only if both the limits apply, the record will not be cached.
+That is, only if both the limits apply, the record will not be cached. This decision can be overridden by ``ecs-ipv4-never-cache`` and ``ecs-ipv6-never-cache``.
+
+.. _setting-ecs-ipv4-never-cache:
+
+``ecs-ipv4-never-cache``
+------------------------
+.. versionadded:: 4.5.0
+
+-  Boolean
+-  Default: no
+
+When set, never cache replies carrying EDNS IPv4 Client Subnet scope in the record cache.
+In this case the decision made by ```ecs-ipv4-cache-bits`` and ``ecs-cache-limit-ttl`` is no longer relevant.
+
+.. _setting-ecs-ipv6-never-cache:
+
+``ecs-ipv6-never-cache``
+------------------------
+.. versionadded:: 4.5.0
+
+-  Boolean
+-  Default: no
+
+When set, never cache replies carrying EDNS IPv6 Client Subnet scope in the record cache.
+In this case the decision made by ```ecs-ipv6-cache-bits`` and ``ecs-cache-limit-ttl`` is no longer relevant.
 
 .. _setting-ecs-minimum-ttl-override:
 
@@ -534,7 +558,7 @@ Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 -  Default: 0 (disabled)
 
 The minimum TTL for an ECS-specific answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
-That is, only if both the limits apply, the record will not be cached.
+That is, only if both the limits apply, the record will not be cached. This decision can be overridden by ``ecs-ipv4-never-cache`` and ``ecs-ipv6-never-cache``.
 
 .. _setting-ecs-scope-zero-address:
 

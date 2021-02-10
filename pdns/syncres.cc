@@ -84,6 +84,8 @@ uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
 uint8_t SyncRes::s_ecsipv4cachelimit;
 uint8_t SyncRes::s_ecsipv6cachelimit;
+bool SyncRes::s_ecsipv4nevercache;
+bool SyncRes::s_ecsipv6nevercache;
 
 bool SyncRes::s_doIPv4;
 bool SyncRes::s_doIPv6;
@@ -3257,10 +3259,14 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
       bool doCache = true;
       if (i->first.place == DNSResourceRecord::ANSWER && ednsmask) {
+        const bool isv4 = ednsmask->isIPv4();
+        if ((isv4 && s_ecsipv4nevercache) || (!isv4 && s_ecsipv6nevercache)) {
+          doCache = false;
+        }
         // If ednsmask is relevant, we do not want to cache if the scope prefix length is large and TTL is small
-        if (SyncRes::s_ecscachelimitttl > 0) {
-          bool manyMaskBits = (ednsmask->isIPv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit) ||
-            (ednsmask->isIPv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
+        if (doCache && s_ecscachelimitttl > 0) {
+          bool manyMaskBits = (isv4 && ednsmask->getBits() > s_ecsipv4cachelimit) ||
+            (!isv4 && ednsmask->getBits() > s_ecsipv6cachelimit);
 
           if (manyMaskBits) {
             uint32_t minttl = UINT32_MAX;
@@ -3268,7 +3274,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
               if (it.d_ttl < minttl)
                 minttl = it.d_ttl;
             }
-            bool ttlIsSmall = minttl < SyncRes::s_ecscachelimitttl + d_now.tv_sec;
+            bool ttlIsSmall = minttl < s_ecscachelimitttl + d_now.tv_sec;
             if (ttlIsSmall) {
               // Case: many bits and ttlIsSmall
               doCache = false;
