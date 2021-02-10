@@ -28,6 +28,9 @@ A small example of the functionality of a :class:`DNSName` is shown below:
     print('it is')
   end
 
+Functions and methods of a ``DNSName``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. function:: newDN(name) -> DNSName
 
   Returns the :class:`DNSName` object of ``name``.
@@ -37,6 +40,41 @@ A small example of the functionality of a :class:`DNSName` is shown below:
 .. class:: DNSName
 
   A ``DNSName`` object represents a name in the DNS.
+  It is returned by several functions and has several functions to programmatically interact with it.
+
+  .. method:: DNSName:canonCompare(name) -> bool
+
+    Performs a comparison of DNS names in canonical order.
+    Returns true if the DNSName comes before ``name``.
+    See https://tools.ietf.org/html/rfc4034#section-6
+
+    :param DNSName name: The name to compare to
+
+  .. method:: DNSName:makeRelative(name) -> DNSName
+
+    Returns a new DNSName that is relative to ``name``
+
+    .. code-block:: lua
+
+      name = newDN("bb.a.example.com.")
+      parent = newDN("example.com.")
+      rel = name:makeRelative(parent) -- contains DNSName("bb.a.")
+
+    :param DNSName name: The name to compare to
+
+  .. method:: DNSName:isPartOf(name) -> bool
+
+    Returns true if the DNSName is part of the DNS tree of ``name``.
+
+    :param DNSName name: The name to check against
+
+  .. method:: DNSName:toString() -> string
+
+    Returns a human-readable form of the DNSName
+
+  .. method:: DNSName:toStringNoDot() -> string
+
+    Returns a human-readable form of the DNSName without the trailing dot
 
   .. method:: DNSName:chopOff() -> bool
 
@@ -47,33 +85,25 @@ A small example of the functionality of a :class:`DNSName` is shown below:
 
     Returns the number of DNSLabels in the name
 
-  .. method:: DNSName:equal(name) -> bool
-
-    Returns true when both names are equal for the DNS, i.e case insensitive.
-    
-    To compare two ``DNSName`` objects, use ``==``.
-
-    :param DNSName string: The name to compare against.
-
-  .. method:: DNSName:isPartOf(name) -> bool
-
-    Returns true if the DNSName is part of the DNS tree of ``name``.
-
-    .. code-block:: Lua
-
-      newDN("www.powerdns.com"):isPartOf(newDN("CoM.")) -- true
-
-    :param DNSName name: The name to check against
-
-  .. method:: DNSName:toString() -> str
-              DNSName:toStringNoDot() -> str
-
-    Returns a human-readable form of the DNSName.
-    With or without trailing dot.
-
-  .. method:: DNSName:wirelength() -> int
+  .. method:: DNSName:wireLength() -> int
 
     Returns the length in bytes of the DNSName as it would be on the wire.
+
+  .. method:: DNSName::getRawLabels() -> [ string ]
+
+    Returns a table that contains the raw labels of the DNSName
+
+  .. method:: DNSName::countLabels() -> int
+
+    Returns the number of labels of the DNSName
+
+  .. method:: DNSName::equal(name) -> bool
+
+    Perform a comparison of the DNSName to the given ``name``.
+    You can also compare directly two DNSName objects using
+    the ``==`` operator
+
+    :param string name: The name to compare to
 
 DNS Suffix Match Groups
 -----------------------
