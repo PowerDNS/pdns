@@ -5374,7 +5374,7 @@ int main(int argc, char **argv)
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY;
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("max-tcp-queries-per-connection", "If set, maximum number of TCP queries in a TCP connection")="0";
-    ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
+    ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="1";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("lua-config-file", "More powerful configuration options")="";
