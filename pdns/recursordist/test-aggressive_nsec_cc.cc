@@ -796,27 +796,27 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   /* remove just that zone */
   cache->removeZoneInfo(DNSName("powerdns.org"), false);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
 
   /* add it back */
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   /* remove everything under .org (which should end up in the same way) */
   cache->removeZoneInfo(DNSName("org."), true);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
 
   /* add it back */
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   /* remove everything */
   cache->removeZoneInfo(DNSName("."), true);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
@@ -838,11 +838,11 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
   /* we are at the limit of the number of entries, so we will scan 1/5th of the entries,
      and prune the expired ones, which mean we should not remove anything */
   cache->prune(now.tv_sec);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
 
   rec.d_name = DNSName("www.powerdns.org");
   rec.d_type = QType::NSEC3;
@@ -851,23 +851,23 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   /* we have set a upper bound to 2 entries, so we are above,
      and all entries are actually expired, so we will prune one entry
      to get below the limit */
   cache->prune(now.tv_sec + 600);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
 
   /* now we are at the limit, so we will scan 1/5th of the entries,
      and prune the expired ones, which mean we will also remove only one */
   cache->prune(now.tv_sec + 600);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
   /* now we are below the limit, so we will scan 1/5th of the entries again,
      and prune the expired ones, which mean we will remove the last one */
   cache->prune(now.tv_sec + 600);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
@@ -906,14 +906,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
   if (!fp) {
     BOOST_FAIL("Temporary file could not be opened");
   }
 
-  BOOST_CHECK_EQUAL(cache->dumpToFile(fp, now), 3);
+  BOOST_CHECK_EQUAL(cache->dumpToFile(fp, now), 3U);
 
   rewind(fp.get());
   char* line = nullptr;
