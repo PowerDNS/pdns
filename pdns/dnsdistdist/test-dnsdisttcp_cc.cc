@@ -26,6 +26,7 @@
 
 #include "dnswriter.hh"
 #include "dnsdist.hh"
+#include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
@@ -339,7 +340,7 @@ public:
     ready.insert(fd);
   }
 
-  void setNotdReady(int fd)
+  void setNotReady(int fd)
   {
     ready.erase(fd);
   }
@@ -348,11 +349,10 @@ private:
   std::set<int> ready;
 };
 
-BOOST_AUTO_TEST_CASE(test_IncomingConnection)
+#warning TODO: outgoing proxy protocol, out-of-order query from cache while pending response (short write) from backend, exception while processing the response
+
+BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 {
-  //int sockets[2];
-  //int res = socketpair(AF_UNIX, SOCK_STREAM, 0, sockets);
-  //BOOST_REQUIRE_EQUAL(res, 0);
   ComboAddress local("192.0.2.1:80");
   ClientState localCS(local, true, false, false, "", {});
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
@@ -413,15 +413,19 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection)
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size());
+    BOOST_CHECK(s_writeBuffer == query);
   }
 
   {
-    /* short read on the size, then on the query itself,
-       self-generated REFUSED, short write on the response, 
+    /* need write then read during handshake,
+       short read on the size, then on the query itself,
+       self-generated REFUSED, short write on the response,
        client closes connection right away */
     s_readBuffer = query;
     s_writeBuffer.clear();
     s_steps = {
+      { ExpectedStep::ExpectedRequest::handshake, IOState::NeedWrite },
+      { ExpectedStep::ExpectedRequest::handshake, IOState::NeedRead },
       { ExpectedStep::ExpectedRequest::handshake, IOState::Done },
       { ExpectedStep::ExpectedRequest::read, IOState::NeedRead, 1 },
       { ExpectedStep::ExpectedRequest::read, IOState::Done, 1 },
@@ -446,11 +450,31 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection)
       threadData.mplexer->run(&now);
     }
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size());
+    BOOST_CHECK(s_writeBuffer == query);
+  }
+
+  {
+    /* Exception raised while handling the query */
+    s_readBuffer = query;
+    s_writeBuffer.clear();
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshake, IOState::Done },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, query.size() - 2 },
+      { ExpectedStep::ExpectedRequest::close, IOState::Done },
+    };
+    s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      throw std::runtime_error("Something unexpected happened");
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0);
   }
 
   {
 #if 0
-    /* 10k self-generated REFUSED on the same connection */
+    /* 10k self-generated REFUSED pipelined on the same connection */
     size_t count = 10000;
     s_readBuffer->clear();
     s_writeBuffer.clear();
@@ -476,6 +500,165 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection)
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * count);
 #endif
   }
+
+  {
+    /* timeout while reading the query */
+    s_readBuffer = query;
+    s_writeBuffer.clear();
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshake, IOState::Done },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::read, IOState::NeedRead, query.size() - 2 - 2 },
+      { ExpectedStep::ExpectedRequest::close, IOState::Done },
+    };
+    s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      /* should not be reached */
+      BOOST_CHECK(false);
+      return ProcessQueryResult::SendAnswer;
+    };
+
+    /* mark the incoming FD as NOT ready */
+    dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
+    struct timeval later = now;
+    later.tv_sec += g_tcpRecvTimeout + 1;
+    auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
+    for (const auto& cbData : expiredReadConns) {
+      BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
+      if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
+        BOOST_CHECK_EQUAL(cbData.first, cbState->d_handler.getDescriptor());
+        cbState->handleTimeout(cbState, false);
+      }
+    }
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0);
+  }
+
+  {
+    /* timeout while writing the response */
+    s_readBuffer = query;
+    s_writeBuffer.clear();
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshake, IOState::Done },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, query.size() - 2 },
+      { ExpectedStep::ExpectedRequest::write, IOState::NeedWrite, 1 },
+      { ExpectedStep::ExpectedRequest::close, IOState::Done },
+    };
+    s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      return ProcessQueryResult::SendAnswer;
+    };
+
+    /* mark the incoming FD as NOT ready */
+    dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
+    struct timeval later = now;
+    later.tv_sec += g_tcpRecvTimeout + 1;
+    auto expiredWriteConns = threadData.mplexer->getTimeouts(later, true);
+    for (const auto& cbData : expiredWriteConns) {
+      BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
+      if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
+        BOOST_CHECK_EQUAL(cbData.first, cbState->d_handler.getDescriptor());
+        cbState->handleTimeout(cbState, false);
+      }
+    }
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), 1);
+  }
+
+  {
+    /* reading a proxy protocol payload */
+    auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
+    BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
+    s_readBuffer = query;
+    // preprend the proxy protocol payload
+    s_readBuffer->insert(s_readBuffer->begin(), proxyPayload.begin(), proxyPayload.end());
+    // append a second query
+    s_readBuffer->insert(s_readBuffer->end(), query.begin(), query.end());
+    s_writeBuffer.clear();
+    g_proxyProtocolACL.clear();
+    g_proxyProtocolACL.addMask("0.0.0.0/0");
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshake, IOState::Done },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, s_proxyProtocolMinimumHeaderSize },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, proxyPayload.size() - s_proxyProtocolMinimumHeaderSize },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, query.size() - 2 },
+      { ExpectedStep::ExpectedRequest::write, IOState::Done, 65537 },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, query.size() - 2 },
+      { ExpectedStep::ExpectedRequest::write, IOState::Done, 65537 },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::close, IOState::Done },
+    };
+    s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      return ProcessQueryResult::SendAnswer;
+    };
+
+    /* mark the incoming FD as NOT ready */
+    dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * 2U);
+  }
+
+  {
+    /* timeout while reading the proxy protocol payload */
+    auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
+    BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
+    s_readBuffer = query;
+    // preprend the proxy protocol payload
+    s_readBuffer->insert(s_readBuffer->begin(), proxyPayload.begin(), proxyPayload.end());
+    // append a second query
+    s_readBuffer->insert(s_readBuffer->end(), query.begin(), query.end());
+    s_writeBuffer.clear();
+    g_proxyProtocolACL.clear();
+    g_proxyProtocolACL.addMask("0.0.0.0/0");
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshake, IOState::Done },
+      { ExpectedStep::ExpectedRequest::read, IOState::Done, s_proxyProtocolMinimumHeaderSize },
+      { ExpectedStep::ExpectedRequest::read, IOState::NeedRead, proxyPayload.size() - s_proxyProtocolMinimumHeaderSize - 1},
+      { ExpectedStep::ExpectedRequest::close, IOState::Done },
+    };
+    s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      return ProcessQueryResult::SendAnswer;
+    };
+
+    /* mark the incoming FD as NOT ready */
+    dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
+    struct timeval later = now;
+    later.tv_sec += g_tcpRecvTimeout + 1;
+    auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
+    for (const auto& cbData : expiredReadConns) {
+      BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
+      if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
+        BOOST_CHECK_EQUAL(cbData.first, cbState->d_handler.getDescriptor());
+        cbState->handleTimeout(cbState, false);
+      }
+    }
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0);
+  }
+
+}
+
+BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendAnswersRightAway)
+{
+//int sockets[2];
+//int res = socketpair(AF_UNIX, SOCK_STREAM, 0, sockets);
+//BOOST_REQUIRE_EQUAL(res, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
