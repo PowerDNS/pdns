@@ -762,7 +762,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         }
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
+      if (!wouldBlock && state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
         DEBUGLOG("reading proxy protocol header");
         do {
           iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_proxyProtocolNeed);
@@ -806,7 +806,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         while (!wouldBlock);
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
+      if (!wouldBlock && state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
         DEBUGLOG("reading query size");
         iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t));
         if (iostate == IOState::Done) {
@@ -832,7 +832,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         }
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::readingQuery) {
+      if (!wouldBlock && state->d_state == IncomingTCPConnectionState::State::readingQuery) {
         DEBUGLOG("reading query");
         iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_querySize);
         if (iostate == IOState::Done) {
@@ -858,7 +858,13 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
               ioGuard.release();
               state->d_state = IncomingTCPConnectionState::State::idle;
               iostate = sendResponse(state, now, std::move(resp));
+              if (iostate != IOState::Done) {
+                wouldBlock = true;
+              }
             }
+          }
+          else if (iostate != IOState::Done) {
+            wouldBlock = true;
           }
         }
         else {
@@ -866,7 +872,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         }
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
+      if (!wouldBlock && state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
         DEBUGLOG("sending response");
         iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
         if (iostate == IOState::Done) {
