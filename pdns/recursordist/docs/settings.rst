@@ -1613,7 +1613,7 @@ Owner and group can be specified by name, mode is in octal.
 ``spoof-nearmiss-max``
 ----------------------
 .. versionchanged:: 4.5.0
-  Old versions used default 20.
+  Older versions used 20 as the default value.
 
 -  Integer
 -  Default: 1
