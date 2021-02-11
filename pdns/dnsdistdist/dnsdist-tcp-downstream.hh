@@ -52,7 +52,7 @@ public:
 
   ~TCPConnectionToBackend()
   {
-    if (d_ds && d_socket) {
+    if (d_ds && d_handler) {
       --d_ds->tcpCurrentConnections;
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -66,11 +66,11 @@ public:
 
   int getHandle() const
   {
-    if (!d_socket) {
+    if (!d_handler) {
       throw std::runtime_error("Attempt to get the socket handle from a non-established TCP connection");
     }
 
-    return d_socket->getHandle();
+    return d_handler->getDescriptor();
   }
 
   const std::shared_ptr<DownstreamState>& getDS() const
@@ -172,7 +172,7 @@ public:
   std::string toString() const
   {
     ostringstream o;
-    o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_socket ? std::to_string(d_socket->getHandle()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_clientConn ? " a client" : "no client");
+    o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_clientConn ? " a client" : "no client");
     return o.str();
   }
 
@@ -228,7 +228,7 @@ private:
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
   std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValuesSent{nullptr};
-  std::unique_ptr<Socket> d_socket{nullptr};
+  std::unique_ptr<TCPIOHandler> d_handler{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
   std::shared_ptr<IncomingTCPConnectionState> d_clientConn;

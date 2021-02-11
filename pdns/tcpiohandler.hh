@@ -230,24 +230,64 @@ public:
 
   IOState tryConnect(bool fastOpen, const ComboAddress& remote)
   {
-    /* yes, this is only the TLS connect not the socket one,
-       sorry about that */
+    d_remote = remote;
+
+#ifdef TCP_FASTOPEN_CONNECT /* Linux >= 4.11 */
+    if (fastOpen) {
+      int value = 1;
+      int res = setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &value, sizeof(value));
+      if (res == 0) {
+        fastOpen = false;
+      }
+    }
+#endif /* TCP_FASTOPEN_CONNECT */
+
+#ifdef MSG_FASTOPEN
+    if (!d_conn && fastOpen) {
+      d_fastOpen = true;
+    }
+    else {
+      SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ 0);
+    }
+#else
+    SConnectWithTimeout(d_socket, d_ds->remote, /* no timeout, we will handle it ourselves */ 0);
+#endif /* MSG_FASTOPEN */
+
     if (d_conn) {
       return d_conn->tryConnect(fastOpen, remote);
     }
-    d_fastOpen = fastOpen;
 
     return IOState::Done;
   }
 
   void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout)
   {
-    /* yes, this is only the TLS connect not the socket one,
-       sorry about that */
+    d_remote = remote;
+
+#ifdef TCP_FASTOPEN_CONNECT /* Linux >= 4.11 */
+    if (fastOpen) {
+      int value = 1;
+      int res = setsockopt(d_socket, IPPROTO_TCP, TCP_FASTOPEN_CONNECT, &value, sizeof(value));
+      if (res == 0) {
+        fastOpen = false;
+      }
+    }
+#endif /* TCP_FASTOPEN_CONNECT */
+
+#ifdef MSG_FASTOPEN
+    if (!d_conn && fastOpen) {
+      d_fastOpen = true;
+    }
+    else {
+      SConnectWithTimeout(d_socket, remote, timeout);
+    }
+#else
+    SConnectWithTimeout(d_socket, d_ds->remote, timeout);
+#endif /* MSG_FASTOPEN */
+
     if (d_conn) {
       d_conn->connect(fastOpen, remote, timeout);
     }
-    d_fastOpen = fastOpen;
   }
 
   IOState tryHandshake()
@@ -319,8 +359,24 @@ public:
       return d_conn->tryWrite(buffer, pos, toWrite);
     }
 
+    if (d_fastOpen) {
+      int socketFlags = MSG_FASTOPEN;
+      size_t sent = sendMsgWithOptions(d_socket, reinterpret_cast<const char *>(&buffer.at(pos)), toWrite - pos, &d_remote, nullptr, 0, socketFlags);
+      if (sent > 0) {
+        d_fastOpen = false;
+        pos += sent;
+      }
+
+      if (pos < toWrite) {
+        return IOState::NeedWrite;
+      }
+
+      return IOState::Done;
+    }
+
     do {
       ssize_t res = ::write(d_socket, reinterpret_cast<const char*>(&buffer.at(pos)), toWrite - pos);
+
       if (res == 0) {
         throw runtime_error("EOF while sending message");
       }
@@ -389,13 +445,14 @@ public:
     return d_conn && d_conn->getResumedFromInactiveTicketKey();
   }
 
-    bool getUnknownTicketKey() const
+  bool getUnknownTicketKey() const
   {
     return d_conn && d_conn->getUnknownTicketKey();
   }
 
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
+  ComboAddress d_remote;
   int d_socket{-1};
   bool d_fastOpen{false};
 };

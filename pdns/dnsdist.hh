@@ -879,6 +879,7 @@ struct DownstreamState
   std::mutex socketsLock;
   std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+  std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::thread tid;
   const ComboAddress remote;
   QPSLimiter qps;

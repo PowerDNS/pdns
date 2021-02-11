@@ -409,7 +409,6 @@ try {
     }
     uint16_t counter = 0;
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
-    SConnectWithTimeout(sock.getHandle(), dest, timeout);
     TCPIOHandler handler(subjectName, sock.releaseHandle(), timeout, tlsCtx, time(nullptr));
     handler.connect(fastOpen, dest, timeout);
     // we are writing the proxyheader inside the TLS connection. Is that right?
