@@ -155,7 +155,7 @@ public:
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static void notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now);
   static IOState sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
-  static void sendOrQueueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
+  static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
 
   /* we take a copy of a shared pointer, not a reference, because the initial shared pointer might be released during the handling of the response */
   static void handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response);
@@ -165,7 +165,7 @@ public:
   void terminateClientConnection();
   void queueQuery(TCPQuery&& query);
 
-  bool canAcceptNewQueries() const;
+  bool canAcceptNewQueries(const struct timeval& now);
 
   bool active() const
   {
@@ -179,7 +179,7 @@ public:
     return o.str();
   }
 
-  enum class State { doingHandshake, readingProxyProtocolHeader, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
+  enum class State { doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
   std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
   PacketBuffer d_buffer;
@@ -209,5 +209,5 @@ public:
   bool d_isXFR{false};
   bool d_xfrStarted{false};
   bool d_proxyProtocolPayloadHasTLV{false};
+  bool d_lastIOBlocked{false};
 };
-
