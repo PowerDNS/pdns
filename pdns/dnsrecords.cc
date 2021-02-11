@@ -881,6 +881,7 @@ void reportOtherTypes()
    CAARecordContent::report();
    APLRecordContent::report();
    IPSECKEYRecordContent::report();
+   CSYNCRecordContent::report();
 }
 
 void reportAllTypes()
