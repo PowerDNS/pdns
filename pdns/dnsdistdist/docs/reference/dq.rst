@@ -241,6 +241,17 @@ This state can be modified from the various hooks.
     :param string tail: The new data
     :returns: true if the operation succeeded, false otherwise
 
+  .. method:: DNSQuestion:spoof(ip|ips|raw|raws)
+
+    .. versionadded:: 1.6.0
+
+    Forge a response with the specified record data as raw bytes. If you specify list of raws (it is assumed they match the query type), all will get spoofed in.
+
+    :param ComboAddress ip: The `ComboAddress` to be spoofed, e.g. `newCA("192.0.2.1")`.
+    :param table ComboAddresses ips: The `ComboAddress`es to be spoofed, e.g. `{ newCA("192.0.2.1"), newCA("192.0.2.2") }`.
+    :param string raw: The raw string to be spoofed, e.g. `"\\192\\000\\002\\001"`.
+    :param table raws: The raw strings to be spoofed, e.g. `{ "\\192\\000\\002\\001", "\\192\\000\\002\\002" }`.
+
 .. _DNSResponse:
 
 DNSResponse object
