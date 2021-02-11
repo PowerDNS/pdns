@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
-   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that " << q.getCode() << " >= " << lq);
+   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that qtype " << q.getCode() << " is before " << lq);
    lq = q.getCode();
    n++;
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
