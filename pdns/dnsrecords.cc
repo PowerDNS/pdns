@@ -760,6 +760,10 @@ void SVCBBaseRecordContent::removeParam(const SvcParam::SvcParamKey &key) {
   d_params.erase(p);
 }
 
+bool SVCBBaseRecordContent::hasParams() const {
+  return d_params.size() > 0;
+}
+
 /* SVCB end */
 
 boilerplate_conv(TKEY,

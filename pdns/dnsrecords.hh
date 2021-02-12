@@ -508,6 +508,8 @@ class SVCBBaseRecordContent : public DNSRecordContent
     void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
     // Removes the parameter for |key| from d_params
     void removeParam(const SvcParam::SvcParamKey &key);
+    // Whether or not there are any param
+    bool hasParams() const;
 
   protected:
     uint16_t d_priority;
