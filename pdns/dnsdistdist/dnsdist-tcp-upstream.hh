@@ -151,6 +151,8 @@ public:
     return d_threadData.mplexer;
   }
 
+  static void clearAllDownstreamConnections();
+
   static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static void notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now);
@@ -210,4 +212,5 @@ public:
   bool d_xfrStarted{false};
   bool d_proxyProtocolPayloadHasTLV{false};
   bool d_lastIOBlocked{false};
+  bool d_hadErrors{false};
 };

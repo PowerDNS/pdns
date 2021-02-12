@@ -133,6 +133,11 @@ public:
     }
   }
 
+  static void clear()
+  {
+    t_downstreamConnections.clear();
+  }
+
 private:
   static thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
   static const size_t s_maxCachedConnectionsPerDownstream;
@@ -168,6 +173,11 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
   // but that way we make sure it's done before the ConnectionInfo is destroyed,
   // closing the descriptor, instead of relying on the declaration order of the objects in the class
   d_handler.close();
+}
+
+void IncomingTCPConnectionState::clearAllDownstreamConnections()
+{
+  DownstreamConnectionsManager::clear();
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
@@ -304,7 +314,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
   return IOState::Done;
 }
 
-static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state)
+static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
 {
   if (state->d_isXFR) {
     return;
@@ -312,7 +322,6 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
 
   --state->d_currentQueriesCount;
 
-  const auto& currentResponse = state->d_currentResponse;
   if (currentResponse.d_selfGenerated == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
     const auto& ds = currentResponse.d_connection->getDS();
     struct timespec answertime;
@@ -339,6 +348,11 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
 
 bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
 {
+  if (d_hadErrors) {
+    DEBUGLOG("not accepting new queries because we encountered some error during the processing already");
+    return false;
+  }
+
   if (d_isXFR) {
     DEBUGLOG("not accepting new queries because used for XFR");
     return false;
@@ -413,7 +427,7 @@ IOState IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConn
     auto iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
     if (iostate == IOState::Done) {
       DEBUGLOG("response sent from "<<__PRETTY_FUNCTION__);
-      handleResponseSent(state);
+      handleResponseSent(state, state->d_currentResponse);
       return iostate;
     } else {
       state->d_lastIOBlocked = true;
@@ -434,7 +448,7 @@ IOState IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConn
 
 void IncomingTCPConnectionState::terminateClientConnection()
 {
-  cerr<<"terminating client connection"<<endl;
+  DEBUGLOG("terminating client connection");
   d_queuedResponses.clear();
   /* we have already released idle connections that could be reused,
      we don't care about the ones still waiting for responses */
@@ -459,10 +473,15 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
       state->d_state == IncomingTCPConnectionState::State::waitingForQuery) {
     auto iostate = sendQueuedResponses(state, now);
 
-    if (iostate == IOState::Done && state->canAcceptNewQueries(now)) {
-      state->resetForNewQuery();
-      state->d_state = IncomingTCPConnectionState::State::waitingForQuery;
-      iostate = IOState::NeedRead;
+    if (iostate == IOState::Done) {
+      if (state->canAcceptNewQueries(now)) {
+        state->resetForNewQuery();
+        state->d_state = IncomingTCPConnectionState::State::waitingForQuery;
+        iostate = IOState::NeedRead;
+      }
+      else {
+        state->d_state = IncomingTCPConnectionState::State::idle;
+      }
     }
 
     // for the same reason we need to update the state right away, nobody will do that for us
@@ -473,7 +492,6 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
 /* called from the backend code when a new response has been received */
 void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response)
 {
-  cerr<<"in "<<__PRETTY_FUNCTION__<<endl;
   if (!state->d_isXFR && response.d_connection && response.d_connection->isIdle()) {
     // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool yet, no one else will be able to use it anyway
     if (response.d_connection->canBeReused()) {
@@ -496,23 +514,30 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
   }
 
   if (response.d_buffer.size() < sizeof(dnsheader)) {
-    cerr<<"too small!"<<endl;
+    state->terminateClientConnection();
     return;
   }
 
-  auto& ids = response.d_idstate;
-  unsigned int qnameWireLength;
-  if (!responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
-    cerr<<"does not match!"<<endl;
-    return;
+  try {
+    auto& ids = response.d_idstate;
+    unsigned int qnameWireLength;
+    if (!responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
+      state->terminateClientConnection();
+      return;
+    }
+
+    DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer, true);
+
+    memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
+
+    if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
+      state->terminateClientConnection();
+      return;
+    }
   }
-
-  DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer, true);
-
-  memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
-
-  if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
-    cerr<<"processResponse failed"<<endl;
+  catch (const std::exception& e) {
+    vinfolog("Unxpected exception while handling response from backend: %s", e.what());
+    state->terminateClientConnection();
     return;
   }
 
@@ -534,7 +559,6 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
     }
   }
 
-  cerr<<"calling queueResponse"<<endl;
   queueResponse(state, now, std::move(response));
 }
 
@@ -764,8 +788,8 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
       }
 
       if (!state->d_lastIOBlocked && state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
-        DEBUGLOG("reading proxy protocol header");
         do {
+          DEBUGLOG("reading proxy protocol header");
           iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_proxyProtocolNeed);
           if (iostate == IOState::Done) {
             state->d_buffer.resize(state->d_currentPos);
@@ -848,7 +872,6 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 
           state->d_state = IncomingTCPConnectionState::State::idle;
           handleQuery(state, now);
-          cerr<<"out of handleQuery, state is "<<(int)state->d_state<<", iostate is "<<(int)iostate<<endl;
           /* the state might have been updated in the meantime, we don't want to override it
              in that case */
           if (state->active() && state->d_state != IncomingTCPConnectionState::State::idle) {
@@ -865,7 +888,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
         if (iostate == IOState::Done) {
           DEBUGLOG("response sent from "<<__PRETTY_FUNCTION__);
-          handleResponseSent(state);
+          handleResponseSent(state, state->d_currentResponse);
           state->d_state = IncomingTCPConnectionState::State::idle;
         }
         else {
@@ -880,16 +903,21 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
            state->d_state == IncomingTCPConnectionState::State::waitingForQuery))
       {
         // try sending querued responses
-        cerr<<"send responses, if any"<<endl;
+        DEBUGLOG("send responses, if any");
         iostate = sendQueuedResponses(state, now);
 
         if (!state->d_lastIOBlocked && iostate == IOState::Done) {
           // if the query has been passed to a backend, or dropped, and the responses have been sent,
           // we can start reading again
-          if (!state->d_isXFR && state->canAcceptNewQueries(now)) {
-            cerr<<"reset for new query"<<endl;
-            state->resetForNewQuery();
-            iostate = IOState::NeedRead;
+          if (!state->d_isXFR) {
+            if (state->canAcceptNewQueries(now)) {
+              state->resetForNewQuery();
+              iostate = IOState::NeedRead;
+            }
+            else {
+              state->d_state = IncomingTCPConnectionState::State::idle;
+              iostate = IOState::Done;
+            }
           }
         }
       }
@@ -930,11 +958,11 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         DEBUGLOG("Closing TCP client connection: "<<e.what());
       }
       /* remove this FD from the IO multiplexer */
-      iostate = IOState::Done;
+      state->terminateClientConnection();
     }
 
     if (!state->active()) {
-      cerr<<"state is no longer active"<<endl;
+      DEBUGLOG("state is no longer active");
       return;
     }
 
@@ -952,6 +980,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now)
 {
   --state->d_currentQueriesCount;
+  state->d_hadErrors = true;
 
   if (state->d_state == State::sendingResponse) {
     /* if we have responses to send, let's do that first */
@@ -970,7 +999,7 @@ void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnec
   }
   else {
     // the backend code already tried to reconnect if it was possible
-    state->d_ioState->reset();
+    state->terminateClientConnection();
   }
 }
 
@@ -981,16 +1010,18 @@ void IncomingTCPConnectionState::handleXFRResponse(std::shared_ptr<IncomingTCPCo
 
 void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write)
 {
+  vinfolog("Timeout while %s TCP client %s", (write ? "writing to" : "reading from"), state->d_ci.remote.toStringWithPort());
   DEBUGLOG("client timeout");
   DEBUGLOG("Processed "<<state->d_queriesCount<<" queries, current count is "<<state->d_currentQueriesCount<<", "<<state->d_activeConnectionsToBackend.size()<<" active connections, "<<state->d_queuedResponses.size()<<" response queued");
 
   if (write || state->d_currentQueriesCount == 0) {
     ++state->d_ci.cs->tcpClientTimeouts;
-    state->d_ioState->reset();
+    state->d_ioState.reset();
   }
   else {
     DEBUGLOG("Going idle");
     /* we still have some queries in flight, let's just stop reading for now */
+    state->d_hadErrors = true;
     state->d_state = IncomingTCPConnectionState::State::idle;
     state->d_ioState->update(IOState::Done, handleIOCallback, state);
 

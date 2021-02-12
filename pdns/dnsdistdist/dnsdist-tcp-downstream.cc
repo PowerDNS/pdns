@@ -84,155 +84,161 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
   bool connectionDied = false;
   IOState iostate = IOState::Done;
   IOStateGuard ioGuard(conn->d_ioState);
+  bool reconnected = false;
 
-  try {
-    if (conn->d_state == State::sendingQueryToBackend) {
-      iostate = sendQuery(conn, now);
+  do {
+    reconnected = false;
 
-      while (iostate == IOState::Done && !conn->d_pendingQueries.empty()) {
-        queueNextQuery(conn);
+    try {
+      if (conn->d_state == State::sendingQueryToBackend) {
         iostate = sendQuery(conn, now);
+
+        while (iostate == IOState::Done && !conn->d_pendingQueries.empty()) {
+          queueNextQuery(conn);
+          iostate = sendQuery(conn, now);
+        }
+
+        if (iostate == IOState::Done && conn->d_pendingQueries.empty()) {
+          conn->d_state = State::readingResponseSizeFromBackend;
+          conn->d_currentPos = 0;
+          conn->d_responseBuffer.resize(sizeof(uint16_t));
+          iostate = IOState::NeedRead;
+        }
       }
 
-      if (iostate == IOState::Done && conn->d_pendingQueries.empty()) {
-        conn->d_state = State::readingResponseSizeFromBackend;
-        conn->d_currentPos = 0;
+      if (conn->d_state == State::readingResponseSizeFromBackend) {
+        DEBUGLOG("reading response size from backend");
+        // then we need to allocate a new buffer (new because we might need to re-send the query if the
+        // backend dies on us)
+        // We also might need to read and send to the client more than one response in case of XFR (yeah!)
         conn->d_responseBuffer.resize(sizeof(uint16_t));
-        iostate = IOState::NeedRead;
+        iostate = conn->d_handler->tryRead(conn->d_responseBuffer, conn->d_currentPos, sizeof(uint16_t));
+        if (iostate == IOState::Done) {
+          DEBUGLOG("got response size from backend");
+          conn->d_state = State::readingResponseFromBackend;
+          conn->d_responseSize = conn->d_responseBuffer.at(0) * 256 + conn->d_responseBuffer.at(1);
+          conn->d_responseBuffer.reserve(conn->d_responseSize + /* we will need to prepend the size later */ 2);
+          conn->d_responseBuffer.resize(conn->d_responseSize);
+          conn->d_currentPos = 0;
+        }
+      }
+
+      if (conn->d_state == State::readingResponseFromBackend) {
+        DEBUGLOG("reading response from backend");
+        iostate = conn->d_handler->tryRead(conn->d_responseBuffer, conn->d_currentPos, conn->d_responseSize);
+        if (iostate == IOState::Done) {
+          DEBUGLOG("got response from backend");
+          try {
+            iostate = conn->handleResponse(conn, now);
+          }
+          catch (const std::exception& e) {
+            vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getName() : "unknown", conn->d_currentQuery.d_idstate.origRemote.toStringWithPort(), e.what());
+            ioGuard.release();
+            conn->release();
+            return;
+          }
+        }
+      }
+
+      if (conn->d_state != State::idle &&
+          conn->d_state != State::sendingQueryToBackend &&
+          conn->d_state != State::readingResponseSizeFromBackend &&
+          conn->d_state != State::readingResponseFromBackend) {
+        vinfolog("Unexpected state %d in TCPConnectionToBackend::handleIO", static_cast<int>(conn->d_state));
       }
     }
-
-    if (conn->d_state == State::readingResponseSizeFromBackend) {
-      DEBUGLOG("reading response size from backend");
-      // then we need to allocate a new buffer (new because we might need to re-send the query if the
-      // backend dies on us)
-      // We also might need to read and send to the client more than one response in case of XFR (yeah!)
-      conn->d_responseBuffer.resize(sizeof(uint16_t));
-      iostate = conn->d_handler->tryRead(conn->d_responseBuffer, conn->d_currentPos, sizeof(uint16_t) - conn->d_currentPos);
-      if (iostate == IOState::Done) {
-        DEBUGLOG("got response size from backend");
-        conn->d_state = State::readingResponseFromBackend;
-        conn->d_responseSize = conn->d_responseBuffer.at(0) * 256 + conn->d_responseBuffer.at(1);
-        conn->d_responseBuffer.reserve(conn->d_responseSize + /* we will need to prepend the size later */ 2);
-        conn->d_responseBuffer.resize(conn->d_responseSize);
-        conn->d_currentPos = 0;
+    catch (const std::exception& e) {
+      /* most likely an EOF because the other end closed the connection,
+         but it might also be a real IO error or something else.
+         Let's just drop the connection
+      */
+      vinfolog("Got an exception while handling (%s backend) TCP query from %s: %s", (conn->d_state == State::sendingQueryToBackend ? "writing to" : "reading from"), conn->d_currentQuery.d_idstate.origRemote.toStringWithPort(), e.what());
+      if (conn->d_state == State::sendingQueryToBackend) {
+        ++conn->d_ds->tcpDiedSendingQuery;
       }
+      else {
+        ++conn->d_ds->tcpDiedReadingResponse;
+      }
+
+      /* don't increase this counter when reusing connections */
+      if (conn->d_fresh) {
+        ++conn->d_downstreamFailures;
+      }
+
+      /* remove this FD from the IO multiplexer */
+      iostate = IOState::Done;
+      connectionDied = true;
     }
 
-    if (conn->d_state == State::readingResponseFromBackend) {
-      DEBUGLOG("reading response from backend");
-      iostate = conn->d_handler->tryRead(conn->d_responseBuffer, conn->d_currentPos, conn->d_responseSize - conn->d_currentPos);
-      if (iostate == IOState::Done) {
-        DEBUGLOG("got response from backend");
+    if (connectionDied) {
+
+      DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
+
+      if ((!conn->d_usedForXFR || conn->d_queries == 0) && conn->d_downstreamFailures < conn->d_ds->retries) {
+
+        conn->d_ioState.reset();
+        ioGuard.release();
+
         try {
-          iostate = conn->handleResponse(conn, now);
+          if (conn->reconnect()) {
+            conn->d_ioState = make_unique<IOStateHandler>(conn->d_clientConn->getIOMPlexer(), conn->d_handler->getDescriptor());
+
+            /* we need to resend the queries that were in flight, if any */
+            for (auto& pending : conn->d_pendingResponses) {
+              conn->d_pendingQueries.push_back(std::move(pending.second));
+              if (!conn->d_usedForXFR) {
+                --conn->d_ds->outstanding;
+              }
+            }
+            conn->d_pendingResponses.clear();
+            conn->d_currentPos = 0;
+
+            if (conn->d_state == State::doingHandshake ||
+                conn->d_state == State::sendingQueryToBackend) {
+              iostate = IOState::NeedWrite;
+              // resume sending query
+            }
+            else {
+              if (conn->d_pendingQueries.empty()) {
+                throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
+              }
+
+              iostate = queueNextQuery(conn);
+            }
+
+            if (!conn->d_proxyProtocolPayloadAdded && !conn->d_proxyProtocolPayload.empty()) {
+              conn->d_currentQuery.d_buffer.insert(conn->d_currentQuery.d_buffer.begin(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
+              conn->d_proxyProtocolPayloadAdded = true;
+            }
+
+            reconnected = true;
+            connectionDied = false;
+          }
         }
         catch (const std::exception& e) {
-          vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getName() : "unknown", conn->d_currentQuery.d_idstate.origRemote.toStringWithPort(), e.what());
-          ioGuard.release();
-          conn->release();
-          return;
+          // reconnect might throw on failure, let's ignore that, we just need to know
+          // it failed
         }
       }
-    }
 
-    if (conn->d_state != State::idle &&
-        conn->d_state != State::sendingQueryToBackend &&
-        conn->d_state != State::readingResponseSizeFromBackend &&
-        conn->d_state != State::readingResponseFromBackend) {
-      vinfolog("Unexpected state %d in TCPConnectionToBackend::handleIO", static_cast<int>(conn->d_state));
-    }
-  }
-  catch (const std::exception& e) {
-    /* most likely an EOF because the other end closed the connection,
-       but it might also be a real IO error or something else.
-       Let's just drop the connection
-    */
-    vinfolog("Got an exception while handling (%s backend) TCP query from %s: %s", (conn->d_ioState->getState() == IOState::NeedRead ? "reading from" : "writing to"), conn->d_currentQuery.d_idstate.origRemote.toStringWithPort(), e.what());
-    if (conn->d_state == State::sendingQueryToBackend) {
-      ++conn->d_ds->tcpDiedSendingQuery;
-    }
-    else {
-      ++conn->d_ds->tcpDiedReadingResponse;
-    }
-
-    /* don't increase this counter when reusing connections */
-    if (conn->d_fresh) {
-      ++conn->d_downstreamFailures;
-    }
-
-    /* remove this FD from the IO multiplexer */
-    iostate = IOState::Done;
-    connectionDied = true;
-  }
-
-  if (connectionDied) {
-
-    bool reconnected = false;
-    DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
-
-    if ((!conn->d_usedForXFR || conn->d_queries == 0) && conn->d_downstreamFailures < conn->d_ds->retries) {
-
-      conn->d_ioState->reset();
-      ioGuard.release();
-
-      try {
-        if (conn->reconnect()) {
-          conn->d_ioState = make_unique<IOStateHandler>(conn->d_clientConn->getIOMPlexer(), conn->d_handler->getDescriptor());
-
-          /* we need to resend the queries that were in flight, if any */
-          for (auto& pending : conn->d_pendingResponses) {
-            conn->d_pendingQueries.push_back(std::move(pending.second));
-            if (!conn->d_usedForXFR) {
-              --conn->d_ds->outstanding;
-            }
-          }
-          conn->d_pendingResponses.clear();
-          conn->d_currentPos = 0;
-
-          if (conn->d_state == State::doingHandshake ||
-              conn->d_state == State::sendingQueryToBackend) {
-            iostate = IOState::NeedWrite;
-            // resume sending query
-          }
-          else {
-            if (conn->d_pendingQueries.empty()) {
-              throw std::runtime_error("TCP connection to a backend in state " + std::to_string((int)conn->d_state) + " with no pending queries");
-            }
-
-            iostate = queueNextQuery(conn);
-          }
-
-          if (!conn->d_proxyProtocolPayloadAdded && !conn->d_proxyProtocolPayload.empty()) {
-            conn->d_currentQuery.d_buffer.insert(conn->d_currentQuery.d_buffer.begin(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
-            conn->d_proxyProtocolPayloadAdded = true;
-          }
-
-          reconnected = true;
-        }
-      }
-      catch (const std::exception& e) {
-        // reconnect might throw on failure, let's ignore that, we just need to know
-        // it failed
+      if (!reconnected) {
+        /* reconnect failed, we give up */
+        DEBUGLOG("reconnect failed, we give up");
+        ++conn->d_ds->tcpGaveUp;
+        conn->notifyAllQueriesFailed(now, FailureReason::gaveUp);
       }
     }
 
-    if (!reconnected) {
-      /* reconnect failed, we give up */
-      DEBUGLOG("reconnect failed, we give up");
-      ++conn->d_ds->tcpGaveUp;
-      conn->notifyAllQueriesFailed(now, FailureReason::gaveUp);
+    if (conn->d_ioState) {
+      if (iostate == IOState::Done) {
+        conn->d_ioState->update(iostate, handleIOCallback, conn);
+      }
+      else {
+        conn->d_ioState->update(iostate, handleIOCallback, conn, iostate == IOState::NeedRead ? conn->getBackendReadTTD(now) : conn->getBackendWriteTTD(now));
+      }
     }
   }
-
-  if (conn->d_ioState) {
-    if (iostate == IOState::Done) {
-      conn->d_ioState->update(iostate, handleIOCallback, conn);
-    }
-    else {
-      conn->d_ioState->update(iostate, handleIOCallback, conn, iostate == IOState::NeedRead ? conn->getBackendReadTTD(now) : conn->getBackendWriteTTD(now));
-    }
-  }
+  while (reconnected);
 
   ioGuard.release();
 }
@@ -326,12 +332,12 @@ bool TCPConnectionToBackend::reconnect()
     catch(const std::runtime_error& e) {
       vinfolog("Connection to downstream server %s failed: %s", d_ds->getName(), e.what());
       d_downstreamFailures++;
-      if (d_downstreamFailures > d_ds->retries) {
+      if (d_downstreamFailures >= d_ds->retries) {
         throw;
       }
     }
   }
-  while (d_downstreamFailures <= d_ds->retries);
+  while (d_downstreamFailures < d_ds->retries);
 
   return false;
 }
@@ -339,6 +345,7 @@ bool TCPConnectionToBackend::reconnect()
 void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write)
 {
   /* in some cases we could retry, here, reconnecting and sending our pending responses again */
+  vinfolog("Timeout while %s TCP backend %s", (write ? "writing to" : "reading from"), d_ds->getName());
   if (write) {
     ++d_ds->tcpWriteTimeouts;
   }
@@ -426,58 +433,57 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     // get ready to read the next packet, if any
     return IOState::NeedRead;
   }
+
+  uint16_t queryId = 0;
+  try {
+    queryId = getQueryIdFromResponse();
+  }
+  catch (const std::exception& e) {
+    DEBUGLOG("Unable to get query ID");
+    notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
+    throw;
+  }
+
+  auto it = d_pendingResponses.find(queryId);
+  if (it == d_pendingResponses.end()) {
+    DEBUGLOG("could not find any corresponding query for ID "<<queryId<<". This is likely a duplicated ID over the same TCP connection, giving up!");
+    notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
+    return IOState::Done;
+  }
+
+  if (!conn->d_usedForXFR) {
+    --conn->d_ds->outstanding;
+  }
+
+  auto ids = std::move(it->second.d_idstate);
+  d_pendingResponses.erase(it);
+  DEBUGLOG("passing response to client connection for "<<ids.qname);
+  /* marking as idle for now, so we can accept new queries if our queues are empty */
+  if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
+    d_state = State::idle;
+  }
+  clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
+
+  if (!d_pendingQueries.empty()) {
+    DEBUGLOG("still have some queries to send");
+    d_state = State::sendingQueryToBackend;
+    d_currentQuery = std::move(d_pendingQueries.front());
+    d_currentPos = 0;
+    d_pendingQueries.pop_front();
+    return IOState::NeedWrite;
+  }
+  else if (!d_pendingResponses.empty()) {
+    DEBUGLOG("still have some responses to read");
+    d_state = State::readingResponseSizeFromBackend;
+    d_currentPos = 0;
+    d_responseBuffer.resize(sizeof(uint16_t));
+    return IOState::NeedRead;
+  }
   else {
-    uint16_t queryId = 0;
-    try {
-      queryId = getQueryIdFromResponse();
-    }
-    catch (const std::exception& e) {
-      DEBUGLOG("Unable to get query ID");
-      notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
-      throw;
-    }
-
-    auto it = d_pendingResponses.find(queryId);
-    if (it == d_pendingResponses.end()) {
-      DEBUGLOG("could not find any corresponding query for ID "<<queryId<<". This is likely a duplicated ID over the same TCP connection, giving up!");
-      notifyAllQueriesFailed(now, FailureReason::unexpectedQueryID);
-      return IOState::Done;
-    }
-
-    if (!conn->d_usedForXFR) {
-      --conn->d_ds->outstanding;
-    }
-
-    auto ids = std::move(it->second.d_idstate);
-    d_pendingResponses.erase(it);
-    DEBUGLOG("passing response to client connection for "<<ids.qname);
-    /* marking as idle for now, so we can accept new queries if our queues are empty */
-    if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
-      d_state = State::idle;
-    }
-    clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
-
-    if (!d_pendingQueries.empty()) {
-      DEBUGLOG("still have some queries to send");
-      d_state = State::sendingQueryToBackend;
-      d_currentQuery = std::move(d_pendingQueries.front());
-      d_currentPos = 0;
-      d_pendingQueries.pop_front();
-      return IOState::NeedWrite;
-    }
-    else if (!d_pendingResponses.empty()) {
-      DEBUGLOG("still have some responses to read");
-      d_state = State::readingResponseSizeFromBackend;
-      d_currentPos = 0;
-      d_responseBuffer.resize(sizeof(uint16_t));
-      return IOState::NeedRead;
-    }
-    else {
-      DEBUGLOG("nothing to do, waiting for a new query");
-      d_state = State::idle;
-      d_clientConn.reset();
-      return IOState::Done;
-    }
+    DEBUGLOG("nothing to do, waiting for a new query");
+    d_state = State::idle;
+    d_clientConn.reset();
+    return IOState::Done;
   }
 }
 
