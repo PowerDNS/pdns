@@ -329,7 +329,7 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     const auto& ids = currentResponse.d_idstate;
     double udiff = ids.sentTime.udiff();
     g_rings.insertResponse(answertime, state->d_ci.remote, ids.qname, ids.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ds->remote);
-    vinfolog("Got answer from %s, relayed to %s (%s), took %f usec", ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), udiff);
+    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f usec", ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), currentResponse.d_buffer.size(), udiff);
   }
 
   switch (currentResponse.d_cleartextDH.rcode) {
