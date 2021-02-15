@@ -151,6 +151,33 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return result;
   });
 
+  luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<std::vector<std::pair<int, ComboAddress>>, std::vector<std::pair<int, std::string>>>& response)>("spoof", [](DNSQuestion& dq, const boost::variant<std::vector<std::pair<int, ComboAddress>>, std::vector<std::pair<int, std::string>>>& response) {
+      if (response.type() == typeid(vector<pair<int, ComboAddress>>)) {
+          std::vector<ComboAddress> data;
+          auto responses = boost::get<vector<pair<int, ComboAddress>>>(response);
+          data.reserve(responses.size());
+          for (const auto& resp : responses) {
+            data.push_back(resp.second);
+          }
+          std::string result;
+          SpoofAction sa(data);
+          sa(&dq, &result);
+	  return;
+      }
+      if (response.type() == typeid(vector<pair<int, string>>)) {
+          std::vector<std::string> data;
+          auto responses = boost::get<vector<pair<int, string>>>(response);
+          data.reserve(responses.size());
+          for (const auto& resp : responses) {
+            data.push_back(resp.second);
+          }
+          std::string result;
+          SpoofAction sa(data);
+          sa(&dq, &result);
+	  return;
+      }
+  });
+
   /* LuaWrapper doesn't support inheritance */
   luaCtx.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
   luaCtx.registerMember<const DNSName (DNSResponse::*)>("qname", [](const DNSResponse& dq) -> const DNSName { return *dq.qname; }, [](DNSResponse& dq, const DNSName newName) { (void) newName; });
