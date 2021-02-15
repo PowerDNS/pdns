@@ -226,10 +226,10 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(std::string* remote,
   }
   int err;
   if (::recvfrom(d_fd, &err, sizeof(err), 0, (struct sockaddr*)&remoteaddr, &addrlen) != sizeof(err)) {
-    throw PDNSException("Unable to receive return status over control channel: " + stringerror());
+    throw PDNSException("Unable to receive return status over control channel1: " + stringerror());
   }
   if ((len = ::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0) {
-    throw PDNSException("Unable to receive message over control channel: "+stringerror());
+    throw PDNSException("Unable to receive message over control channel2: "+stringerror());
   }
 
   if(remote) {

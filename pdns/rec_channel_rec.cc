@@ -219,6 +219,47 @@ string static doGetParameter(T begin, T end)
   return ret;
 }
 
+/* Read an (open) fd from the control channel */
+static int
+getfd(int s)
+{
+  int fd = -1;
+  struct msghdr    msg;
+  struct cmsghdr  *cmsg;
+  union {
+    struct cmsghdr hdr;
+    unsigned char    buf[CMSG_SPACE(sizeof(int))];
+  } cmsgbuf;
+  struct iovec io_vector[1];
+  char ch;
+
+  io_vector[0].iov_base = &ch;
+  io_vector[0].iov_len = 1;
+
+  memset(&msg, 0, sizeof(msg));
+  msg.msg_control = &cmsgbuf.buf;
+  msg.msg_controllen = sizeof(cmsgbuf.buf);
+  msg.msg_iov = io_vector;
+  msg.msg_iovlen = 1;
+
+  if (recvmsg(s, &msg, 0) == -1) {
+    throw PDNSException("recvmsg");
+  }
+  if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC)) {
+    throw PDNSException("control message truncated");
+  }
+  for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+       cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+    if (cmsg->cmsg_len == CMSG_LEN(sizeof(int)) &&
+        cmsg->cmsg_level == SOL_SOCKET &&
+        cmsg->cmsg_type == SCM_RIGHTS) {
+      fd = *(int *)CMSG_DATA(cmsg);
+      break;
+    }
+  }
+  return fd;
+}
+
 
 static uint64_t dumpNegCache(int fd)
 {
@@ -262,83 +303,39 @@ static uint64_t* pleaseDumpFailedServers(int fd)
   return new uint64_t(SyncRes::doDumpFailedServers(fd));
 }
 
-template<typename T>
-static string doDumpNSSpeeds(T begin, T end)
+static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name)
 {
-  T i=begin;
-  string fname;
+  int fd = getfd(s);
 
-  if(i!=end)
-    fname=*i;
+  if (fd < 0) {
+    return { 1, name + ": error opening dump file for writing: " + stringerror() + "\n" };
+  }
 
-  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-  if(fd < 0)
-    return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpNSSpeeds(fd); });
+    total = broadcastAccFunction<uint64_t>([=]{ return function(fd); });
   }
   catch(std::exception& e)
   {
     close(fd);
-    return "error dumping NS speeds: "+string(e.what())+"\n";
+    return { 1, name + ": error dumping data: " + string(e.what()) + "\n" };
   }
   catch(PDNSException& e)
   {
     close(fd);
-    return "error dumping NS speeds: "+e.reason+"\n";
+    return { 1, name + ": error dumping NS speeds: " + e.reason + "\n" };
   }
 
   close(fd);
-  return "dumped "+std::to_string(total)+" records\n";
+  return { 0, name+ ": dumped " + std::to_string(total)+" records\n" };
 }
 
-static int
-getfd(int s)
-{
-  int fd = -1;
-  struct msghdr    msg;
-  struct cmsghdr  *cmsg;
-  union {
-    struct cmsghdr hdr;
-    unsigned char    buf[CMSG_SPACE(sizeof(int))];
-  } cmsgbuf;
-  struct iovec io_vector[1];
-  char ch;
-
-  io_vector[0].iov_base = &ch;
-  io_vector[0].iov_len = 1;
-
-  memset(&msg, 0, sizeof(msg));
-  msg.msg_control = &cmsgbuf.buf;
-  msg.msg_controllen = sizeof(cmsgbuf.buf);
-  msg.msg_iov = io_vector;
-  msg.msg_iovlen = 1;
-
-  if (recvmsg(s, &msg, 0) == -1) {
-    throw PDNSException("recvmsg");
-  }
-  if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC)) {
-    throw PDNSException("control message truncated");
-  }
-  for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
-       cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-    if (cmsg->cmsg_len == CMSG_LEN(sizeof(int)) &&
-        cmsg->cmsg_level == SOL_SOCKET &&
-        cmsg->cmsg_type == SCM_RIGHTS) {
-      fd = *(int *)CMSG_DATA(cmsg);
-      break;
-    }
-  }
-  return fd;
-}
-
-static string doDumpCache(int s)
+static RecursorControlChannel::Answer doDumpCache(int s)
 {
   int fd = getfd(s);
 
-  if(fd < 0) {
-    return "Error opening dump file for writing: "+stringerror()+"\n";
+  if (fd < 0) {
+    return { 1, "Error opening dump file for writing: " + stringerror() + "\n" };
   }
   uint64_t total = 0;
   try {
@@ -347,112 +344,44 @@ static string doDumpCache(int s)
   catch(...){}
 
   close(fd);
-  return "dumped "+std::to_string(total)+" records\n";
+  return { 0, "dumped " + std::to_string(total) + " records\n" };
 }
 
 template<typename T>
-static string doDumpEDNSStatus(T begin, T end)
+static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
 {
-  T i=begin;
-  string fname;
+  int fd = getfd(s);
 
-  if(i!=end) 
-    fname=*i;
-
-  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-  if(fd < 0) 
-    return "Error opening dump file for writing: "+stringerror()+"\n";
-  uint64_t total = 0;
-  try {
-    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpEDNSMap(fd); });
+  if (fd < 0) {
+    return { 1, "Error opening dump file for writing: " + stringerror() + "\n" };
   }
-  catch(...){}
 
-  close(fd);
-  return "dumped "+std::to_string(total)+" records\n";
-}
-
-template<typename T>
-static string doDumpRPZ(T begin, T end)
-{
-  T i=begin;
+  T i = begin;
 
   if (i == end) {
-    return "No zone name specified\n";
+    close(fd);
+    return { 1, "No zone name specified\n" };
   }
   string zoneName = *i;
-  i++;
-
-  if (i == end) {
-    return "No file name specified\n";
-  }
-  string fname = *i;
 
   auto luaconf = g_luaconfs.getLocal();
   const auto zone = luaconf->dfe.getZone(zoneName);
   if (!zone) {
-    return "No RPZ zone named "+zoneName+"\n";
+    close(fd);
+    return { 1, "No RPZ zone named " + zoneName + "\n" };
   }
 
-  int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-
-  if(fd < 0) {
-    return "Error opening dump file for writing: "+stringerror()+"\n";
-  }
 
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w"), fclose);
   if (!fp) {
+    int err = errno;
     close(fd);
-    return "Error converting file descriptor: "+stringerror()+"\n";
+    return { 1, "converting file descriptor: " + stringerror(err) + "\n" };
   }
 
   zone->dump(fp.get());
 
-  return "done\n";
-}
-
-template<typename T>
-static string doDumpThrottleMap(T begin, T end)
-{
-  T i=begin;
-  string fname;
-
-  if(i!=end)
-    fname=*i;
-
-  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-  if(fd < 0)
-    return "Error opening dump file for writing: "+stringerror()+"\n";
-  uint64_t total = 0;
-  try {
-    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpThrottleMap(fd); });
-  }
-  catch(...){}
-
-  close(fd);
-  return "dumped "+std::to_string(total)+" records\n";
-}
-
-template<typename T>
-static string doDumpFailedServers(T begin, T end)
-{
-  T i=begin;
-  string fname;
-
-  if(i!=end)
-    fname=*i;
-
-  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-  if(fd < 0)
-    return "Error opening dump file for writing: "+stringerror()+"\n";
-  uint64_t total = 0;
-  try {
-    total = broadcastAccFunction<uint64_t>([=]{ return pleaseDumpFailedServers(fd); });
-  }
-  catch(...){}
-
-  close(fd);
-  return "dumped "+std::to_string(total)+" records\n";
+  return {0, "done\n"};
 }
 
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
@@ -493,7 +422,7 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
     }
   }
 
-  return "wiped "+std::to_string(count)+" records, "+std::to_string(countNeg)+" negative records, "+std::to_string(pcount)+" packets\n";
+  return "wiped " + std::to_string(count)+" records, " + std::to_string(countNeg)+" negative records, " + std::to_string(pcount)+" packets\n";
 }
 
 template<typename T>
@@ -1213,7 +1142,7 @@ static void registerAllStats1()
 #endif
 
   for (unsigned int n = 0; n < g_numThreads; ++n) {
-    addGetStat("cpu-msec-thread-"+std::to_string(n), [n]{ return doGetThreadCPUMsec(n);});
+    addGetStat("cpu-msec-thread-" + std::to_string(n), [n]{ return doGetThreadCPUMsec(n);});
   }
 
 #ifdef MALLOC_TRACE
@@ -1741,7 +1670,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
-"dump-cache <filename>            dump cache contents to the named file\n"
+"dum-cache <filename>            dump cache contents to the named file\n"
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
@@ -1808,22 +1737,22 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, "bye nicely\n"};
   }
   if (cmd == "dump-cache") {
-    return {0, doDumpCache(s)};
+    return doDumpCache(s);
   }
   if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
-    return {0, doDumpEDNSStatus(begin, end)};
+    return doDumpToFile(s, pleaseDumpEDNSMap, cmd);
   }
   if (cmd == "dump-nsspeeds") {
-    return {0, doDumpNSSpeeds(begin, end)};
+    return doDumpToFile(s, pleaseDumpNSSpeeds, cmd);
   }
   if (cmd == "dump-failedservers") {
-    return {0, doDumpFailedServers(begin, end)};
+    return doDumpToFile(s, pleaseDumpFailedServers, cmd);
   }
   if (cmd == "dump-rpz") {
-    return {0, doDumpRPZ(begin, end)};
+    return doDumpRPZ(s, begin, end);
   }
   if (cmd == "dump-throttlemap") {
-    return {0, doDumpThrottleMap(begin, end)};
+    return doDumpToFile(s, pleaseDumpThrottleMap, cmd);
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
     return {0, doWipeCache(begin, end, 0xffff)};

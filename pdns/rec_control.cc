@@ -83,6 +83,15 @@ static void initArguments(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+  const set<string> fileCommands = {
+    "dump-cache",
+    "dump-edns",
+    "dump-ednsstatus",
+    "dump-nsspeeds",
+    "dump-failedservers",
+    "dump-rpz",
+    "dump-throttlemap"
+  };
   try {
     initArguments(argc, argv);
     RecursorControlChannel rccS;
@@ -101,11 +110,18 @@ int main(int argc, char** argv)
     const vector<string>&commands=arg().getCommands();
     string command;
     int fd = -1;
-    for(unsigned int i=0; i< commands.size(); ++i) {
-      if(i>0)
-        command+=" ";
-      command+=commands[i];
-      if (commands[i] == "dump-cache" && i+1 < commands.size()) {
+    unsigned int i = 0;
+    while (i < commands.size()) {
+      if (i > 0) {
+        command += " ";
+      }
+      command += commands[i];
+      if (fileCommands.count(commands[i]) > 0 && i+1 < commands.size()) {
+        // dump-rpz is different, it also has a zonename as argument
+        if (commands[i] == "dump-rpz" && i+2 < commands.size()) {
+          ++i;
+          command += " " + commands[i]; // add rpzname and continue with filename
+        }
         ++i;
         if (commands[i] == "stdout") {
           fd = STDOUT_FILENO;
@@ -117,6 +133,7 @@ int main(int argc, char** argv)
           throw PDNSException("Error opening dump file for writing: " + stringerror(err));
         }
       }
+      ++i;
     }
 
     auto timeout = arg().asNum("timeout");
