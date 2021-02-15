@@ -27,6 +27,11 @@ or set the 'ENABLE-LUA-RECORDS' per-zone metadata item to 1.
 In addition, to benefit from the geographical features, make sure the PowerDNS
 launch statement includes the ``geoip`` backend.
 
+.. warning::
+  When using AXFR to transfer long LUA records, ensure that the record content is split into segments no longer than 255 bytes.
+  Otherwise, due to the nature of the transfer method (as TXT content), the content will be split into 255 byte chunks.
+  This can lead to the code being split in the wrong places on the secondary.
+
 Examples
 --------
 
