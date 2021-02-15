@@ -315,16 +315,19 @@ getfd(int s)
   msg.msg_iov = io_vector;
   msg.msg_iovlen = 1;
 
-  if (recvmsg(s, &msg, 0) == -1)
+  if (recvmsg(s, &msg, 0) == -1) {
     throw PDNSException("recvmsg");
-  if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC))
+  }
+  if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC)) {
     throw PDNSException("control message truncated");
+  }
   for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
        cmsg = CMSG_NXTHDR(&msg, cmsg)) {
     if (cmsg->cmsg_len == CMSG_LEN(sizeof(int)) &&
         cmsg->cmsg_level == SOL_SOCKET &&
         cmsg->cmsg_type == SCM_RIGHTS) {
       fd = *(int *)CMSG_DATA(cmsg);
+      break;
     }
   }
   return fd;
@@ -1712,21 +1715,21 @@ static string clearDontThrottleNetmasks(T begin, T end) {
 }
 
 
-std::pair<int, string> RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
+RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
   vector<string> words;
   stringtok(words, question);
 
   if(words.empty())
-    return make_pair(1, "invalid command\n");
+    return {1, "invalid command\n"};
 
   string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
 
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
-    return make_pair(0,
+    return {0,
 "add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
 "add-dont-throttle-netmasks [N...]\n"
 "                                 add netmasks that are not allowed to be throttled\n"
@@ -1782,53 +1785,53 @@ std::pair<int, string> RecursorControlParser::getAnswer(int s, const string& que
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-"wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n");
+"wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
 
   if (cmd == "get-all") {
-    return make_pair(0, getAllStats());
+    return {0, getAllStats()};
   }
   if (cmd == "get") {
-    return make_pair(0, doGet(begin, end));
+    return {0, doGet(begin, end)};
   }
   if (cmd == "get-parameter") {
-    return make_pair(0, doGetParameter(begin, end));
+    return {0, doGetParameter(begin, end)};
   }
   if (cmd == "quit") {
     *command=&doExit;
-    return make_pair(0, "bye\n");
+    return {0, "bye\n"};
   }
   if (cmd == "version") {
-    return make_pair(0, getPDNSVersion()+"\n");
+    return {0, getPDNSVersion()+"\n"};
   }
   if (cmd == "quit-nicely") {
     *command=&doExitNicely;
-    return make_pair(0, "bye nicely\n");
+    return {0, "bye nicely\n"};
   }
   if (cmd == "dump-cache") {
-    return make_pair(0, doDumpCache(s));
+    return {0, doDumpCache(s)};
   }
   if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
-    return make_pair(0, doDumpEDNSStatus(begin, end));
+    return {0, doDumpEDNSStatus(begin, end)};
   }
   if (cmd == "dump-nsspeeds") {
-    return make_pair(0, doDumpNSSpeeds(begin, end));
+    return {0, doDumpNSSpeeds(begin, end)};
   }
   if (cmd == "dump-failedservers") {
-    return make_pair(0, doDumpFailedServers(begin, end));
+    return {0, doDumpFailedServers(begin, end)};
   }
   if (cmd == "dump-rpz") {
-    return make_pair(0, doDumpRPZ(begin, end));
+    return {0, doDumpRPZ(begin, end)};
   }
   if (cmd == "dump-throttlemap") {
-    return make_pair(0, doDumpThrottleMap(begin, end));
+    return {0, doDumpThrottleMap(begin, end)};
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
-    return make_pair(0, doWipeCache(begin, end, 0xffff));
+    return {0, doWipeCache(begin, end, 0xffff)};
   }
   if (cmd == "wipe-cache-typed") {
     uint16_t qtype = QType::chartocode(begin->c_str());
     ++begin;
-    return make_pair(0, doWipeCache(begin, end, qtype));
+    return {0, doWipeCache(begin, end, qtype)};
   }
   if (cmd == "reload-lua-script") {
     return doQueueReloadLuaScript(begin, end);
@@ -1842,20 +1845,20 @@ std::pair<int, string> RecursorControlParser::getAnswer(int s, const string& que
       loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
       startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
       g_log<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
-      return make_pair(0, "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n");
+      return {0, "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n"};
     }
     catch(std::exception& e) {
-      return make_pair(1, "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.what()+"\n");
+      return {1, "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.what()+"\n"};
     }
     catch(const PDNSException& e) {
-      return make_pair(1, "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.reason+"\n");
+      return {1, "Unable to load Lua script from '"+::arg()["lua-config-file"]+"': "+e.reason+"\n"};
     }
   }
   if (cmd == "set-carbon-server") {
-    return make_pair(0, doSetCarbonServer(begin, end));
+    return {0, doSetCarbonServer(begin, end)};
   }
   if (cmd == "trace-regex") {
-    return make_pair(0, doTraceRegex(begin, end));
+    return {0, doTraceRegex(begin, end)};
   }
   if (cmd == "unload-lua-script") {
     vector<string> empty;
@@ -1865,7 +1868,7 @@ std::pair<int, string> RecursorControlParser::getAnswer(int s, const string& que
   if (cmd == "reload-acls") {
     if (!::arg()["chroot"].empty()) {
       g_log<<Logger::Error<<"Unable to reload ACL when chroot()'ed, requested via control channel"<<endl;
-      return make_pair(1, "Unable to reload ACL when chroot()'ed, please restart\n");
+      return {1, "Unable to reload ACL when chroot()'ed, please restart\n"};
     }
 
     try {
@@ -1873,114 +1876,114 @@ std::pair<int, string> RecursorControlParser::getAnswer(int s, const string& que
     }
     catch(std::exception& e) {
       g_log<<Logger::Error<<"Reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
-      return make_pair(1, e.what() + string("\n"));
+      return {1, e.what() + string("\n")};
     }
     catch(PDNSException& ae) {
       g_log<<Logger::Error<<"Reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
-      return make_pair(1, ae.reason + string("\n"));
+      return {1, ae.reason + string("\n")};
     }
-    return make_pair(0, "ok\n");
+    return {0, "ok\n"};
   }
   if (cmd == "top-remotes") {
-    return make_pair(0, doGenericTopRemotes(pleaseGetRemotes));
+    return {0, doGenericTopRemotes(pleaseGetRemotes)};
   }
   if (cmd == "top-queries") {
-    return make_pair(0, doGenericTopQueries(pleaseGetQueryRing));
+    return {0, doGenericTopQueries(pleaseGetQueryRing)};
   }
   if (cmd == "top-pub-queries") {
-    return make_pair(0, doGenericTopQueries(pleaseGetQueryRing, getRegisteredName));
+    return {0, doGenericTopQueries(pleaseGetQueryRing, getRegisteredName)};
   }
   if (cmd == "top-servfail-queries") {
-    return make_pair(0, doGenericTopQueries(pleaseGetServfailQueryRing));
+    return {0, doGenericTopQueries(pleaseGetServfailQueryRing)};
   }
   if (cmd == "top-pub-servfail-queries") {
-    return make_pair(0, doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName));
+    return {0, doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName)};
   }
   if (cmd == "top-bogus-queries") {
-    return make_pair(0, doGenericTopQueries(pleaseGetBogusQueryRing));
+    return {0, doGenericTopQueries(pleaseGetBogusQueryRing)};
   }
   if (cmd == "top-pub-bogus-queries") {
-    return make_pair(0, doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName));
+    return {0, doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName)};
   }
   if (cmd == "top-servfail-remotes") {
-    return make_pair(0, doGenericTopRemotes(pleaseGetServfailRemotes));
+    return {0, doGenericTopRemotes(pleaseGetServfailRemotes)};
   }
   if (cmd == "top-bogus-remotes") {
-    return make_pair(0, doGenericTopRemotes(pleaseGetBogusRemotes));
+    return {0, doGenericTopRemotes(pleaseGetBogusRemotes)};
   }
   if (cmd == "top-largeanswer-remotes") {
-    return make_pair(0, doGenericTopRemotes(pleaseGetLargeAnswerRemotes));
+    return {0, doGenericTopRemotes(pleaseGetLargeAnswerRemotes)};
   }
   if (cmd == "top-timeouts") {
-    return make_pair(0, doGenericTopRemotes(pleaseGetTimeouts));
+    return {0, doGenericTopRemotes(pleaseGetTimeouts)};
   }
   if (cmd == "current-queries") {
-    return make_pair(0, doCurrentQueries());
+    return {0, doCurrentQueries()};
   }
   if (cmd == "ping") {
-    return make_pair(0, broadcastAccFunction<string>(nopFunction));
+    return {0, broadcastAccFunction<string>(nopFunction)};
   }
   if (cmd == "reload-zones") {
     if (!::arg()["chroot"].empty()) {
       g_log<<Logger::Error<<"Unable to reload zones and forwards when chroot()'ed, requested via control channel"<<endl;
-      return make_pair(1, "Unable to reload zones and forwards when chroot()'ed, please restart\n");
+      return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
     }
-    return make_pair(0, reloadAuthAndForwards());
+    return {0, reloadAuthAndForwards()};
   }
   if (cmd == "set-ecs-minimum-ttl") {
-    return make_pair(0, setMinimumECSTTL(begin, end));
+    return {0, setMinimumECSTTL(begin, end)};
   }
   if (cmd == "set-max-cache-entries") {
-    return make_pair(0, setMaxCacheEntries(begin, end));
+    return {0, setMaxCacheEntries(begin, end)};
   }
   if (cmd == "set-max-packetcache-entries") {
-    return make_pair(0, setMaxPacketCacheEntries(begin, end));
+    return {0, setMaxPacketCacheEntries(begin, end)};
   }
   if (cmd == "set-minimum-ttl") {
-    return make_pair(0, setMinimumTTL(begin, end));
+    return {0, setMinimumTTL(begin, end)};
   }
   if (cmd == "get-qtypelist") {
-    return make_pair(0, g_rs.getQTypeReport());
+    return {0, g_rs.getQTypeReport()};
   }
   if (cmd == "add-nta") {
-    return make_pair(0, doAddNTA(begin, end));
+    return {0, doAddNTA(begin, end)};
   }
   if (cmd == "clear-nta") {
-    return make_pair(0, doClearNTA(begin, end));
+    return {0, doClearNTA(begin, end)};
   }
   if (cmd == "get-ntas") {
-    return make_pair(0, getNTAs());
+    return {0, getNTAs()};
   }
   if (cmd == "add-ta") {
-    return make_pair(0, doAddTA(begin, end));
+    return {0, doAddTA(begin, end)};
   }
   if (cmd == "clear-ta") {
-    return make_pair(0, doClearTA(begin, end));
+    return {0, doClearTA(begin, end)};
   }
   if (cmd == "get-tas") {
-    return make_pair(0, getTAs());
+    return {0, getTAs()};
   }
   if (cmd == "set-dnssec-log-bogus") {
-    return make_pair(0, doSetDnssecLogBogus(begin, end));
+    return {0, doSetDnssecLogBogus(begin, end)};
   }
   if (cmd == "get-dont-throttle-names") {
-    return make_pair(0, getDontThrottleNames());
+    return {0, getDontThrottleNames()};
   }
   if (cmd == "get-dont-throttle-netmasks") {
-    return make_pair(0, getDontThrottleNetmasks());
+    return {0, getDontThrottleNetmasks()};
   }
   if (cmd == "add-dont-throttle-names") {
-    return make_pair(0, addDontThrottleNames(begin, end));
+    return {0, addDontThrottleNames(begin, end)};
   }
   if (cmd == "add-dont-throttle-netmasks") {
-    return make_pair(0, addDontThrottleNetmasks(begin, end));
+    return {0, addDontThrottleNetmasks(begin, end)};
   }
   if (cmd == "clear-dont-throttle-names") {
-    return make_pair(0, clearDontThrottleNames(begin, end));
+    return {0, clearDontThrottleNames(begin, end)};
   }
   if (cmd == "clear-dont-throttle-netmasks") {
-    return make_pair(0, clearDontThrottleNetmasks(begin, end));
+    return {0, clearDontThrottleNetmasks(begin, end)};
   }
 
-  return make_pair(1, "Unknown command '"+cmd+"', try 'help'\n");
+  return {1, "Unknown command '"+cmd+"', try 'help'\n"};
 }

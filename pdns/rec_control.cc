@@ -120,15 +120,15 @@ int main(int argc, char** argv)
     }
 
     auto timeout = arg().asNum("timeout");
-    rccS.send(make_pair(0, command), nullptr, timeout, fd);
+    rccS.send({0, command}, nullptr, timeout, fd);
 
     auto receive = rccS.recv(0, timeout);
-    if (receive.first != 0) {
-      cerr << receive.second;
+    if (receive.d_ret != 0) {
+      cerr << receive.d_str;
     } else {
-      cout << receive.second;
+      cout << receive.d_str;
     }
-    return receive.first;
+    return receive.d_ret;
   }
   catch(PDNSException& ae) {
     cerr<<"Fatal: "<<ae.reason<<"\n";
