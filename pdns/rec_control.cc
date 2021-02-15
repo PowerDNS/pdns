@@ -116,21 +116,29 @@ int main(int argc, char** argv)
         command += " ";
       }
       command += commands[i];
-      if (fileCommands.count(commands[i]) > 0 && i+1 < commands.size()) {
-        // dump-rpz is different, it also has a zonename as argument
-        if (commands[i] == "dump-rpz" && i+2 < commands.size()) {
+      if (fileCommands.count(commands[i]) > 0) {
+        if (i + 1 < commands.size()) {
+          // dump-rpz is different, it also has a zonename as argument
+          if (commands[i] == "dump-rpz") {
+            if (i + 2 < commands.size()) {
+              ++i;
+              command += " " + commands[i]; // add rpzname and continue with filename
+            } else {
+              throw PDNSException("Command needs a zone and file argument");
+            }
+          }
           ++i;
-          command += " " + commands[i]; // add rpzname and continue with filename
-        }
-        ++i;
-        if (commands[i] == "stdout") {
-          fd = STDOUT_FILENO;
+          if (commands[i] == "-") {
+            fd = STDOUT_FILENO;
+          } else {
+            fd = open(commands[i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+          }
+          if (fd == -1) {
+            int err = errno;
+            throw PDNSException("Error opening dump file for writing: " + stringerror(err));
+          }
         } else {
-          fd = open(commands[i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-        }
-        if (fd == -1) {
-          int err = errno;
-          throw PDNSException("Error opening dump file for writing: " + stringerror(err));
+          throw PDNSException("Command needs a file argument");
         }
       }
       ++i;

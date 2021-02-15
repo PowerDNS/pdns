@@ -347,7 +347,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     var=arg.substr(2);
     val="";
   }
-  else if(arg[0]=='-')
+  else if(arg[0]=='-' && arg.length() > 1)
   {
     var=arg.substr(1);
     val="";

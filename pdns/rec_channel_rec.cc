@@ -303,6 +303,7 @@ static uint64_t* pleaseDumpFailedServers(int fd)
   return new uint64_t(SyncRes::doDumpFailedServers(fd));
 }
 
+// Generic dump to file command
 static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name)
 {
   int fd = getfd(s);
@@ -323,13 +324,14 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
   catch(PDNSException& e)
   {
     close(fd);
-    return { 1, name + ": error dumping NS speeds: " + e.reason + "\n" };
+    return { 1, name + ": error dumping data: " + e.reason + "\n" };
   }
 
   close(fd);
-  return { 0, name+ ": dumped " + std::to_string(total)+" records\n" };
+  return { 0, name + ": dumped " + std::to_string(total) + " records\n" };
 }
 
+// Does not follow the generic dump to file pattern, has a more complex lambda
 static RecursorControlChannel::Answer doDumpCache(int s)
 {
   int fd = getfd(s);
@@ -347,6 +349,7 @@ static RecursorControlChannel::Answer doDumpCache(int s)
   return { 0, "dumped " + std::to_string(total) + " records\n" };
 }
 
+// Does not follow the generic dump to file pattern, has an argument
 template<typename T>
 static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
 {
