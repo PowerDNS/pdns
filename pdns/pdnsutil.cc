@@ -1278,6 +1278,17 @@ static int loadZone(const DNSName& zone, const string& fname) {
       else
         haveSOA = true;
     }
+    try {
+      DNSRecordContent::mastermake(rr.qtype, QClass::IN, rr.content);
+    }
+    catch (const PDNSException &pe) {
+      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.getName()<<": "<<pe.reason<<endl;
+      return EXIT_FAILURE;
+    }
+    catch (const std::exception &e) {
+      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.getName()<<": "<<e.what()<<endl;
+      return EXIT_FAILURE;
+    }
     db->feedRecord(rr, DNSName());
   }
   db->commitTransaction();
