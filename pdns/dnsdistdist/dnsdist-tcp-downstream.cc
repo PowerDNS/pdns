@@ -99,14 +99,15 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         }
 
         if (iostate == IOState::Done && conn->d_pendingQueries.empty()) {
-          conn->d_state = State::readingResponseSizeFromBackend;
+          conn->d_state = State::waitingForResponseFromBackend;
           conn->d_currentPos = 0;
           conn->d_responseBuffer.resize(sizeof(uint16_t));
           iostate = IOState::NeedRead;
         }
       }
 
-      if (conn->d_state == State::readingResponseSizeFromBackend) {
+      if (conn->d_state == State::waitingForResponseFromBackend ||
+          conn->d_state == State::readingResponseSizeFromBackend) {
         DEBUGLOG("reading response size from backend");
         // then we need to allocate a new buffer (new because we might need to re-send the query if the
         // backend dies on us)
@@ -120,6 +121,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           conn->d_responseBuffer.reserve(conn->d_responseSize + /* we will need to prepend the size later */ 2);
           conn->d_responseBuffer.resize(conn->d_responseSize);
           conn->d_currentPos = 0;
+        }
+        else if (conn->d_state == State::waitingForResponseFromBackend && conn->d_currentPos > 0) {
+          conn->d_state = State::readingResponseSizeFromBackend;
         }
       }
 
@@ -142,6 +146,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
       if (conn->d_state != State::idle &&
           conn->d_state != State::sendingQueryToBackend &&
+          conn->d_state != State::waitingForResponseFromBackend &&
           conn->d_state != State::readingResponseSizeFromBackend &&
           conn->d_state != State::readingResponseFromBackend) {
         vinfolog("Unexpected state %d in TCPConnectionToBackend::handleIO", static_cast<int>(conn->d_state));
@@ -264,7 +269,7 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
   // if we are not already sending a query or in the middle of reading a response (so idle or doingHandshake),
   // start sending the query
   if (d_state == State::idle || d_state == State::waitingForResponseFromBackend) {
-
+    DEBUGLOG("Sending new query to backend right away");
     d_state = State::sendingQueryToBackend;
     d_currentPos = 0;
     d_currentQuery = std::move(query);
@@ -280,6 +285,7 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
     // d_ioState->update(IOState::NeedWrite, handleIOCallback, sharedSelf, getBackendWriteTTD(now));
   }
   else {
+    DEBUGLOG("Adding new query to the queue because we are in state "<<(int)d_state);
     // store query in the list of queries to send
     d_pendingQueries.push_back(std::move(query));
   }
@@ -427,7 +433,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
     clientConn->handleXFRResponse(clientConn, now, std::move(response));
-    d_state = State::readingResponseSizeFromBackend;
+    d_state = State::waitingForResponseFromBackend;
     d_currentPos = 0;
     d_responseBuffer.resize(sizeof(uint16_t));
     // get ready to read the next packet, if any
@@ -474,7 +480,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
   else if (!d_pendingResponses.empty()) {
     DEBUGLOG("still have some responses to read");
-    d_state = State::readingResponseSizeFromBackend;
+    d_state = State::waitingForResponseFromBackend;
     d_currentPos = 0;
     d_responseBuffer.resize(sizeof(uint16_t));
     return IOState::NeedRead;
