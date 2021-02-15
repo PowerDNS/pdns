@@ -31,6 +31,12 @@ To dump the cache to disk, execute::
 
   # rec_control dump-cache /tmp/the-cache
 
+.. note::
+
+  Before version 4.5.0, for each command that writes to a file, :program:`pdns_recursor` would open the file to write to.
+  Starting with 4.5.0, the files are opened by the :program:`rec_control` command itself using the credentials and the current working directory of the user running :program:`rec_control`.
+  A single minus *-* can be used as a filename to write the data to the standard output stream.
+
 Options
 -------
 --help                provide this helpful message.
@@ -78,34 +84,18 @@ clear-ta [*DOMAIN*]...
 
 dump-cache *FILENAME*
     Dumps the entire cache to *FILENAME*. This file should not exist already,
-    PowerDNS will refuse to overwrite it. While dumping, the recursor will not
-    answer questions.
+    PowerDNS will refuse to overwrite it. While dumping, the recursor
+    might not answer questions.
 
     Typical PowerDNS Recursors run multiple threads, therefore you'll see
     duplicate, different entries for the same domains. The negative cache is
     also dumped to the same file. The per-thread positive and negative cache
     dumps are separated with an appropriate comment.
 
-    .. note::
-
-      :program:`pdns_recursor` often runs in a chroot. You can
-      retrieve the file using::
-
-        rec_control dump-cache /tmp/file
-        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
-
 dump-edns *FILENAME*
     Dumps the EDNS status to the filename mentioned. This file should not exist
     already, PowerDNS will refuse to overwrite it. While dumping, the recursor
     will not answer questions.
-
-    .. note::
-
-      :program:`pdns_recursor` often runs in a chroot. You can
-      retrieve the file using::
-
-        rec_control dump-edns /tmp/file
-        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 dump-nsspeeds *FILENAME*
     Dumps the nameserver speed statistics to the *FILENAME* mentioned. This
@@ -113,27 +103,11 @@ dump-nsspeeds *FILENAME*
     dumping, the recursor will not answer questions. Statistics are kept per
     thread, and the dumps end up in the same file.
 
-    .. note::
-
-      :program:`pdns_recursor` often runs in a chroot. You can
-      retrieve the file using::
-
-        rec_control dump-nsspeeds /tmp/file
-        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
-
 dump-rpz *ZONE NAME* *FILE NAME*
     Dumps the content of the RPZ zone named *ZONE NAME* to the *FILENAME*
     mentioned. This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
-
-    .. note::
-
-      :program:`pdns_recursor` often runs in a chroot. You can
-      retrieve the file using::
-
-        rec_control dump-rpz ZONE_NAME /tmp/file
-        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 dump-throttlemap *FILENAME*
     Dump the contents of the throttle map to the *FILENAME* mentioned.
@@ -141,27 +115,11 @@ dump-throttlemap *FILENAME*
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
 
-    .. note::
-
-      :program:`pdns_recursor` often runs in a chroot. You can
-      retrieve the file using::
-
-        rec_control dump-throttlemap /tmp/file
-        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
-
 dump-failedservers *FILENAME*
     Dump the contents of the failed server map to the *FILENAME* mentioned.
     This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
-
-    .. note::
-
-      :program:`pdns_recursor` often runs in a chroot. You can
-      retrieve the file using::
-
-        rec_control dump-failedservers /tmp/file
-        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 get *STATISTIC* [*STATISTIC*]...
     Retrieve a statistic. For items that can be queried, see

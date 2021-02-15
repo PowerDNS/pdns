@@ -1673,7 +1673,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
-"dum-cache <filename>            dump cache contents to the named file\n"
+"dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
