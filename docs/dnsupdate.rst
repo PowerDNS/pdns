@@ -382,7 +382,7 @@ via the domainmetadata table:
 
 This will:
 
-1. Add the 'dhcpdupdate' key to our PowerDNSinstallation
+1. Add the 'dhcpdupdate' key to our PowerDNS installation
 2. Associate the domains with the given TSIG key
 
 Restart PowerDNS and you should be ready to go!

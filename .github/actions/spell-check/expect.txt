@@ -1785,7 +1785,6 @@ sigs
 SIGTERM
 SIGUSR
 singlethreaded
-Sinstallation
 Sipek
 sizeof
 Sjoerd
