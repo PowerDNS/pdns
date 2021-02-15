@@ -146,10 +146,6 @@ public:
 
   IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
-    if (buffer.size() < toWrite || pos >= toWrite) {
-      throw std::out_of_range("Calling tryWrite() with a too small buffer (" + std::to_string(buffer.size()) + ") for a write of " + std::to_string(toWrite - pos) + " bytes starting at " + std::to_string(pos));
-    }
-
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, !d_client ? ExpectedStep::ExpectedRequest::writeToClient : ExpectedStep::ExpectedRequest::writeToBackend);
 
@@ -176,10 +172,6 @@ public:
 
   IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
   {
-    if (buffer.size() < toRead || pos >= toRead) {
-      throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead - pos) + " bytes starting at " + std::to_string(pos));
-    }
-
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, !d_client ? ExpectedStep::ExpectedRequest::readFromClient : ExpectedStep::ExpectedRequest::readFromBackend);
 
@@ -384,6 +376,12 @@ private:
   std::set<int> ready;
 };
 
+#if 0
+#define TEST_NAME(str) cerr<<str<<endl
+#else
+#define TEST_NAME(str)
+#endif
+
 BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 {
   ComboAddress local("192.0.2.1:80");
@@ -409,7 +407,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 
   {
     /* drop right away */
-    cerr<<"=> drop right away"<<endl;
+    TEST_NAME("=> drop right away");
     s_readBuffer = query;
     s_writeBuffer.clear();
     s_steps = {
@@ -429,7 +427,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 
   {
     /* self-generated REFUSED, client closes connection right away */
-    cerr<<"=> self-gen"<<endl;
+    TEST_NAME("=> self-gen");
     s_readBuffer = query;
     s_writeBuffer.clear();
     s_steps = {
@@ -452,7 +450,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
   }
 
   {
-    cerr<<"=> shorts"<<endl;
+    TEST_NAME("=> shorts");
     /* need write then read during handshake,
        short read on the size, then on the query itself,
        self-generated REFUSED, short write on the response,
@@ -490,7 +488,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
   }
 
   {
-    cerr<<"=> exception while handling the query"<<endl;
+    TEST_NAME("=> exception while handling the query");
     /* Exception raised while handling the query */
     s_readBuffer = query;
     s_writeBuffer.clear();
@@ -511,7 +509,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 
   {
 #if 0
-    cerr<<"=> 10k self-generated pipelined on the same connection"<<endl;
+    TEST_NAME("=> 10k self-generated pipelined on the same connection");
 
     /* 10k self-generated REFUSED pipelined on the same connection */
     size_t count = 10000;
@@ -541,7 +539,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
   }
 
   {
-    cerr<<"=> timeout while reading the query"<<endl;
+    TEST_NAME("=> timeout while reading the query");
     /* timeout while reading the query */
     s_readBuffer = query;
     s_writeBuffer.clear();
@@ -578,7 +576,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
   }
 
   {
-    cerr<<"=> timeout while writing the response"<<endl;
+    TEST_NAME("=> timeout while writing the response");
     /* timeout while writing the response */
     s_readBuffer = query;
     s_writeBuffer.clear();
@@ -640,7 +638,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
   g_proxyProtocolACL.addMask("0.0.0.0/0");
 
   {
-    cerr<<"=> reading PP"<<endl;
+    TEST_NAME("=> reading PP");
     /* reading a proxy protocol payload */
     auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
     BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
@@ -678,7 +676,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
   }
 
   {
-    cerr<<"=> Invalid PP"<<endl;
+    TEST_NAME("=> Invalid PP");
     /* reading a (broken) proxy protocol payload */
     auto proxyPayload = std::vector<uint8_t>(s_proxyProtocolMinimumHeaderSize);
     std::fill(proxyPayload.begin(), proxyPayload.end(), 0);
@@ -704,7 +702,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
   }
 
   {
-    cerr<<"=> timeout while reading PP"<<endl;
+    TEST_NAME("=> timeout while reading PP");
     /* timeout while reading the proxy protocol payload */
     auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
     BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
@@ -771,7 +769,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* pass to backend, backend answers right away, client closes the connection */
-    cerr<<"=> Query to backend, backend answers right away"<<endl;
+    TEST_NAME("=> Query to backend, backend answers right away");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -816,7 +814,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* pass to backend, backend answers right away, exception while handling the response */
-    cerr<<"=> Exception while handling the response sent by the backend"<<endl;
+    TEST_NAME("=> Exception while handling the response sent by the backend");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -858,7 +856,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* pass to backend, backend answers right away, processResponse() fails */
-    cerr<<"=> Response processing fails "<<endl;
+    TEST_NAME("=> Response processing fails ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -900,7 +898,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* pass to backend, backend answers right away, ID matching fails */
-    cerr<<"=> ID matching fails "<<endl;
+    TEST_NAME("=> ID matching fails ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -946,7 +944,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* connect in progress, short write to the backend, short read from the backend, client */
-    cerr<<"=> Short read and write to backend"<<endl;
+    TEST_NAME("=> Short read and write to backend");
     s_readBuffer = query;
     // append a second query
     s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
@@ -1022,7 +1020,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* connection refused by the backend */
-    cerr<<"=> Connection refused by the backend "<<endl;
+    TEST_NAME("=> Connection refused by the backend ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1084,7 +1082,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* timeout from the backend (write) */
-    cerr<<"=> Timeout from the backend (write) "<<endl;
+    TEST_NAME("=> Timeout from the backend (write) ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1134,7 +1132,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* timeout from the backend (read) */
-    cerr<<"=> Timeout from the backend (read) "<<endl;
+    TEST_NAME("=> Timeout from the backend (read) ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1185,7 +1183,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* connection closed from the backend (write) */
-    cerr<<"=> Connection closed from the backend (write) "<<endl;
+    TEST_NAME("=> Connection closed from the backend (write) ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1237,7 +1235,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* connection closed from the backend (write) 4 times then succeeds */
-    cerr<<"=> Connection closed from the backend (write) 4 times then succeeds"<<endl;
+    TEST_NAME("=> Connection closed from the backend (write) 4 times then succeeds");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1298,7 +1296,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* connection closed from the backend (read) */
-    cerr<<"=> Connection closed from the backend (read) "<<endl;
+    TEST_NAME("=> Connection closed from the backend (read) ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1355,7 +1353,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
 
   {
     /* connection closed from the backend (read) 4 times then succeeds */
-    cerr<<"=> Connection closed from the backend (read) 4 times then succeeds "<<endl;
+    TEST_NAME("=> Connection closed from the backend (read) 4 times then succeeds ");
     s_readBuffer = query;
     s_writeBuffer.clear();
 
@@ -1421,7 +1419,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
   {
 #if 0
     /* 101 queries on the same connection, check that the maximum number of queries kicks in */
-    cerr<<"=> 101 queries on the same connection"<<endl;
+    TEST_NAME("=> 101 queries on the same connection");
 
     g_maxTCPQueriesPerConn = 100;
 
@@ -1552,12 +1550,12 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     ++counter;
   }
 
-  g_verbose = true;
+  //g_verbose = true;
 
   g_proxyProtocolACL.clear();
 
   {
-    cerr<<"=> 5 OOOR queries to the backend, backend responds in reverse order"<<endl;
+    TEST_NAME("=> 5 OOOR queries to the backend, backend responds in reverse order");
     PacketBuffer expectedWriteBuffer;
     PacketBuffer expectedBackendWriteBuffer;
 
@@ -1687,7 +1685,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   }
 
   {
-    cerr<<"=> 3 queries sent to the backend, 1 self-answered, 1 new query sent to the backend which responds to the first query right away, then to the last one, then the connection to the backend times out"<<endl;
+    TEST_NAME("=> 3 queries sent to the backend, 1 self-answered, 1 new query sent to the backend which responds to the first query right away, then to the last one, then the connection to the backend times out");
 
     // increase the client timeout for that test, we want the backend to timeout first
     g_tcpRecvTimeout = 5;
@@ -1836,16 +1834,179 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     // restore the client timeout
     g_tcpRecvTimeout = 2;
   }
+
+  {
+    TEST_NAME("=> 1 query sent to the backend, short read from the backend, 1 new query arrives in the meantime, the first answer is sent to the client, then the second query is handled, a new one arrives but the connection to the backend dies on us, short write on a new connection, the last query arrives and both are answered");
+
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    s_readBuffer.clear();
+    for (const auto& query : queries) {
+      s_readBuffer.insert(s_readBuffer.end(), query.begin(), query.end());
+    }
+    expectedBackendWriteBuffer = s_readBuffer;
+    s_writeBuffer.clear();
+
+    for (const auto& response : responses) {
+      expectedWriteBuffer.insert(expectedWriteBuffer.end(), response.begin(), response.end());
+    }
+
+    s_backendReadBuffer = expectedWriteBuffer;
+    s_backendWriteBuffer.clear();
+
+    bool timeout = false;
+    int backendDesc;
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      /* read response size and the beginning of the response (1) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 1, [&threadData](int desc, const ExpectedStep& step) {
+        /* set the backend descriptor as ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* reading a query from the client (2) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      /* trying to read an additional query, if any */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* set the client descriptor as NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+      } },
+      /* reading the remaining bytes of response (1) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 3 },
+      /* sending response (1) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size() },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      /* the response (2) is already there */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      /* sending response (2) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData](int desc, const ExpectedStep& step) {
+        /* set the client descriptor as ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* reading a query from the client (3) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      /* sending query to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, 0 },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query (3) to the backend, short write */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 1, [&threadData,&backendDesc](int desc, const ExpectedStep& step) {
+        /* set the backend descriptor as NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+        backendDesc = desc;
+        /* but client is ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+      } },
+      /* reading a query from the client (4) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(3).size() - 2 },
+      /* reading a query from the client (5) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData,&backendDesc](int desc, const ExpectedStep& step) {
+        /* set the backend descriptor as ready now */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDesc);
+      } },
+      /* nothing else to read from the client for now */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* set the client descriptor as NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+      } },
+      /* finishing sending the query (3) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() - 1 },
+      /* sending the query (4) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(3).size() },
+      /* sending the query (5) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
+      /* reading a response from the backend (3) */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
+      /* sending it to the client (3) */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size() },
+      /* reading a response from the backend (4) */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
+      /* sending it to the client (4) but short write */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, responses.at(3).size() - 1, [&threadData](int desc, const ExpectedStep& step) {
+        /* set the client descriptor as ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+#warning FIXME? We are trying to write again when coming back from handleQuery, this is a bit useless..
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0 },
+      /* reading a response from the backend (5) */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
+      /* resume sending it to the client (4) */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1 },
+      /* sending it to the client (5) */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size() },
+
+      /* nothing to read from the client, then timeout later */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData,&timeout](int desc, const ExpectedStep& step) {
+        /* set the client descriptor as NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+        timeout = true;
+      } },
+
+      /* closing client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+
+      /* closing a connection to the backend */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+    };
+
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+
+    while (!timeout && (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0)) {
+      threadData.mplexer->run(&now);
+    }
+
+    struct timeval later = now;
+    later.tv_sec += g_tcpRecvTimeout + 1;
+    auto expiredConns = threadData.mplexer->getTimeouts(later, false);
+    BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
+    for (const auto& cbData : expiredConns) {
+      if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
+        cbState->handleTimeout(cbState, false);
+      }
+    }
+
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());
+    BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
+    BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
 }
 
 #warning TODO:
 
-// OOOR: OOOR enabled but packet cache hit
-// OOOR: OOOR enabled but backend answers very fast
 // OOOR: OOOR, get 10 queries before the backend can answer. backend doesn't support OOOR, we should get 10 connections. Check that we do reuse them on two subsequent queries
-// OOOR: OOOR, get 10 queries before the backend can answer. backend does support OOOR, respond out of order we should only have 1 connections. Check that we do reuse them on two subsequent queries
 // OOOR: OOOR, get 10 queries before the backend can answer. backend does support OOOR but only up to 5 conns, respond out of order, we should only have 2 connections. Check that we do reuse one of them on two subsequent queries
-// OOOR: get one query, sent it to the backend, start reading the response, get two new queries during that time, finish getting the first answer, send it, timeout read on the client, get the last two answers and send them
 // out-of-order query from cache while pending response (short write) from backend, exception while processing the response
 
 BOOST_AUTO_TEST_SUITE_END();
