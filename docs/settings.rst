@@ -1854,9 +1854,9 @@ If a PID file should be written.
 -  Integer
 -  Default: 60
 
-On a master, this is the amount of seconds between the master checking
+On a primary, this is the amount of seconds between the primary checking
 the SOA serials in its database to determine to send out NOTIFYs to the
-slaves. On slaves, this is the number of seconds between the slave
+secondaries. On secondaries, this is the number of seconds between the secondary
 checking for updates to zones.
 
 .. _setting-xfr-max-received-mbytes:

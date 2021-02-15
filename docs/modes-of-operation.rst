@@ -31,8 +31,8 @@ managing records etc.
 .. _master-operation:
 .. _primary-operation:
 
-Master operation
-----------------
+Primary operation
+-----------------
 
 When operating as a master, PowerDNS sends out notifications of changes
 to slaves, which react to these notifications by querying PowerDNS to
@@ -89,8 +89,8 @@ the :ref:`pdns_control <running-pdnscontrol>` tool:
 .. _slave-operation:
 .. _secondary-operation:
 
-Slave operation
----------------
+Secondary operation
+-------------------
 
 On launch, PowerDNS requests from all backends a list of domains which
 have not been checked recently for changes. This should happen every
