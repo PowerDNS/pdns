@@ -4612,6 +4612,8 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::clearECSStats();
   SyncRes::s_ecsipv4cachelimit = ::arg().asNum("ecs-ipv4-cache-bits");
   SyncRes::s_ecsipv6cachelimit = ::arg().asNum("ecs-ipv6-cache-bits");
+  SyncRes::s_ecsipv4nevercache = ::arg().mustDo("ecs-ipv4-never-cache");
+  SyncRes::s_ecsipv6nevercache = ::arg().mustDo("ecs-ipv6-never-cache");
   SyncRes::s_ecscachelimitttl = ::arg().asNum("ecs-cache-limit-ttl");
 
   SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
@@ -5395,6 +5397,8 @@ int main(int argc, char **argv)
     ::arg().set("ecs-ipv4-cache-bits", "Maximum number of bits of IPv4 mask to cache ECS response")="24";
     ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet")="56";
     ::arg().set("ecs-ipv6-cache-bits", "Maximum number of bits of IPv6 mask to cache ECS response")="56";
+    ::arg().setSwitch("ecs-ipv4-never-cache", "If we should never cache IPv4 ECS responses")="no";
+    ::arg().setSwitch("ecs-ipv6-never-cache", "If we should never cache IPv6 ECS responses")="no";
     ::arg().set("ecs-minimum-ttl-override", "The minimum TTL for records in ECS-specific answers")="1";
     ::arg().set("ecs-cache-limit-ttl", "Minimum TTL to cache ECS response")="0";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for (deprecated)")="";

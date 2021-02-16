@@ -759,6 +759,9 @@ public:
   static uint8_t s_ecsipv6limit;
   static uint8_t s_ecsipv4cachelimit;
   static uint8_t s_ecsipv6cachelimit;
+  static bool s_ecsipv4nevercache;
+  static bool s_ecsipv6nevercache;
+
   static bool s_doIPv4;
   static bool s_doIPv6;
   static bool s_noEDNSPing;

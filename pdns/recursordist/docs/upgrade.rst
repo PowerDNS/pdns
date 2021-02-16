@@ -20,16 +20,26 @@ Synonyms for various settings names containing ``master``, ``slave``,
 - For :ref:`setting-new-domain-whitelist` use  :ref:`setting-new-domain-ignore-list`.
 - For :ref:`setting-snmp-master-socket` use :ref:`setting-snmp-daemon-socket`.
 - For the LUA config function :func:`rpzMaster` use :func:`rpzPrimary`.
-  
+
 Currently, the older setting names are also accepted and used.
 The next release will start deprecating them.
 Users are advised to start using the new names to avoid future
 trouble.
 
+New Settings
+^^^^^^^^^^^^
+- The :ref:`setting-extended-resolution-errors` has been added, enabling adding EDNS Extended Errors to responses.
+- The :ref:`setting-refresh-on-ttl-perc`, enabling an automatic cache-refresh mechanism.
+- The :ref:`setting-ecs-ipv4-never-cache` and :ref:`setting-ecs-ipv6-never-cache` settings have been added, allowing an overrule of the existing decision whether to cache EDNS responses carrying subnet information.
+
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-minimum-ttl-override` and :ref:`setting-ecs-minimum-ttl-override` defaults have ben changed from 0 to 1.
 - The :ref:`setting-spoof-nearmiss-max` default has been changed from 20 to 1.
+
+Removed settings
+^^^^^^^^^^^^^^^^
+- The :ref:`setting-query-local-address6` has been removed. It already was deprecated.
 
 4.3.x to 4.4.0
 --------------
