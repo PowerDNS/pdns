@@ -980,8 +980,8 @@ struct RecursorStats
   std::atomic<uint64_t> auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
   std::atomic<uint64_t> auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
   std::atomic<uint64_t> ourtime0_1, ourtime1_2, ourtime2_4, ourtime4_8, ourtime8_16, ourtime16_32, ourtimeSlow;
-  double avgLatencyUsec{0};
-  double avgLatencyOursUsec{0};
+  std::atomic<double> avgLatencyUsec;
+  std::atomic<double> avgLatencyOursUsec;
   std::atomic<uint64_t> qcounter;     // not increased for unauth packets
   std::atomic<uint64_t> ipv6qcounter;
   std::atomic<uint64_t> tcpqcounter;

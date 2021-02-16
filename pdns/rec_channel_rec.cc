@@ -1103,7 +1103,7 @@ static void registerAllStats1()
 
 
   addGetStat("qa-latency", doGetAvgLatencyUsec);
-  addGetStat("x-our-latency", []() { return g_stats.avgLatencyOursUsec; });
+  addGetStat("x-our-latency", []() { return g_stats.avgLatencyOursUsec.load(); });
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);

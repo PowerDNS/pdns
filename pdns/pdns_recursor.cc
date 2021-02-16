@@ -2142,7 +2142,7 @@ static void startDoResolve(void *p)
       finishTCPReply(dc, hadError, true);
     }
 
-    float spent=makeFloat(sr.getNow()-dc->d_now);
+    double spent = makeDouble(sr.getNow() - dc->d_now);
     if (!g_quiet) {
       g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       g_log<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
@@ -2162,9 +2162,9 @@ static void startDoResolve(void *p)
       g_recCache->cacheHits++;
     }
 
-    if(spent < 0.001)
+    if (spent < 0.001)
       g_stats.answers0_1++;
-    else if(spent < 0.010)
+    else if(spent < 0.01)
       g_stats.answers1_10++;
     else if(spent < 0.1)
       g_stats.answers10_100++;
@@ -2173,12 +2173,12 @@ static void startDoResolve(void *p)
     else
       g_stats.answersSlow++;
 
-    uint64_t newLat=(uint64_t)(spent*static_cast<uint64_t>(1000000));
-    newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
-    g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
+    double newLat = spent * 1000000.0;
+    newLat = min(newLat, g_networkTimeoutMsec * 1000.0); // outliers of several minutes exist..
+    g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + newLat / g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
 
-    auto ourtime = 1000.0*spent-sr.d_totUsec/1000.0; // in msec
+    double ourtime = 1000.0 * spent - sr.d_totUsec / 1000.0; // in msec
     if(ourtime < 1)
       g_stats.ourtime0_1++;
     else if(ourtime < 2)
@@ -2192,12 +2192,12 @@ static void startDoResolve(void *p)
     else if(ourtime < 32)
       g_stats.ourtime16_32++;
     else {
-      //      cerr<<"SLOW: "<<ourtime<<"ms -> "<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<endl;
       g_stats.ourtimeSlow++;
     }
-    if(ourtime >= 0.0) {
-      newLat=ourtime*1000; // usec
-      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
+
+    if (ourtime >= 0) {
+      newLat = ourtime * 1000.0; // usec
+      g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + newLat / g_latencyStatSize;
     }
 
 #ifdef NOD_ENABLED
