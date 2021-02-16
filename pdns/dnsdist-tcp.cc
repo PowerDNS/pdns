@@ -299,7 +299,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 {
   IOState result = IOState::Done;
 
-  while (!state->d_queuedResponses.empty()) {
+  while (state->active() && !state->d_queuedResponses.empty()) {
     DEBUGLOG("queue size is "<<state->d_queuedResponses.size()<<", sending the next one");
     TCPResponse resp = std::move(state->d_queuedResponses.front());
     state->d_queuedResponses.pop_front();
@@ -473,7 +473,7 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
       state->d_state == IncomingTCPConnectionState::State::waitingForQuery) {
     auto iostate = sendQueuedResponses(state, now);
 
-    if (iostate == IOState::Done) {
+    if (iostate == IOState::Done && state->active()) {
       if (state->canAcceptNewQueries(now)) {
         state->resetForNewQuery();
         state->d_state = IncomingTCPConnectionState::State::waitingForQuery;
@@ -485,7 +485,9 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
     }
 
     // for the same reason we need to update the state right away, nobody will do that for us
-    state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+    if (state->active()) {
+      state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+    }
   }
 }
 
@@ -850,6 +852,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           state->d_querySize = state->d_buffer.at(0) * 256 + state->d_buffer.at(1);
           if (state->d_querySize < sizeof(dnsheader)) {
             /* go away */
+            state->terminateClientConnection();
             return;
           }
 
@@ -906,7 +909,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         DEBUGLOG("send responses, if any");
         iostate = sendQueuedResponses(state, now);
 
-        if (!state->d_lastIOBlocked && iostate == IOState::Done) {
+        if (!state->d_lastIOBlocked && state->active() && iostate == IOState::Done) {
           // if the query has been passed to a backend, or dropped, and the responses have been sent,
           // we can start reading again
           if (!state->d_isXFR) {
@@ -1021,7 +1024,6 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
   else {
     DEBUGLOG("Going idle");
     /* we still have some queries in flight, let's just stop reading for now */
-    state->d_hadErrors = true;
     state->d_state = IncomingTCPConnectionState::State::idle;
     state->d_ioState->update(IOState::Done, handleIOCallback, state);
 
