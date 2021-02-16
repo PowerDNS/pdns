@@ -219,8 +219,30 @@ string static doGetParameter(T begin, T end)
   return ret;
 }
 
+struct FDWrapper : public boost::noncopyable
+{
+  FDWrapper(int descr) : fd(descr) {}
+  ~FDWrapper()
+  {
+    if (fd != -1) {
+      close(fd);
+    }
+    fd = -1;
+  }
+  FDWrapper(FDWrapper&& rhs) : fd(rhs.fd)
+  {
+    rhs.fd = -1;
+  }
+  operator int() const
+  {
+    return fd;
+  }
+private:
+  int fd;
+};
+
 /* Read an (open) fd from the control channel */
-static int
+static FDWrapper
 getfd(int s)
 {
   int fd = -1;
@@ -257,7 +279,7 @@ getfd(int s)
       break;
     }
   }
-  return fd;
+  return FDWrapper(fd);
 }
 
 
@@ -306,46 +328,44 @@ static uint64_t* pleaseDumpFailedServers(int fd)
 // Generic dump to file command
 static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name)
 {
-  int fd = getfd(s);
+  auto fdw = getfd(s);
 
-  if (fd < 0) {
+  if (fdw < 0) {
     return { 1, name + ": error opening dump file for writing: " + stringerror() + "\n" };
   }
 
   uint64_t total = 0;
   try {
-    total = broadcastAccFunction<uint64_t>([=]{ return function(fd); });
+    int fd = fdw;
+    total = broadcastAccFunction<uint64_t>([function, fd]{ return function(fd); });
   }
   catch(std::exception& e)
   {
-    close(fd);
     return { 1, name + ": error dumping data: " + string(e.what()) + "\n" };
   }
   catch(PDNSException& e)
   {
-    close(fd);
     return { 1, name + ": error dumping data: " + e.reason + "\n" };
   }
 
-  close(fd);
   return { 0, name + ": dumped " + std::to_string(total) + " records\n" };
 }
 
 // Does not follow the generic dump to file pattern, has a more complex lambda
 static RecursorControlChannel::Answer doDumpCache(int s)
 {
-  int fd = getfd(s);
+  auto fdw = getfd(s);
 
-  if (fd < 0) {
+  if (fdw < 0) {
     return { 1, "Error opening dump file for writing: " + stringerror() + "\n" };
   }
   uint64_t total = 0;
   try {
-    total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([=]{ return pleaseDump(fd); });
+    int fd = fdw;
+    total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([fd]{ return pleaseDump(fd); });
   }
   catch(...){}
 
-  close(fd);
   return { 0, "dumped " + std::to_string(total) + " records\n" };
 }
 
@@ -353,16 +373,15 @@ static RecursorControlChannel::Answer doDumpCache(int s)
 template<typename T>
 static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
 {
-  int fd = getfd(s);
+  auto fdw = getfd(s);
 
-  if (fd < 0) {
+  if (fdw < 0) {
     return { 1, "Error opening dump file for writing: " + stringerror() + "\n" };
   }
 
   T i = begin;
 
   if (i == end) {
-    close(fd);
     return { 1, "No zone name specified\n" };
   }
   string zoneName = *i;
@@ -370,15 +389,13 @@ static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
   auto luaconf = g_luaconfs.getLocal();
   const auto zone = luaconf->dfe.getZone(zoneName);
   if (!zone) {
-    close(fd);
     return { 1, "No RPZ zone named " + zoneName + "\n" };
   }
 
 
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w"), fclose);
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fdw, "w"), fclose);
   if (!fp) {
     int err = errno;
-    close(fd);
     return { 1, "converting file descriptor: " + stringerror(err) + "\n" };
   }
 
