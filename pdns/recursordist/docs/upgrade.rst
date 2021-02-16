@@ -29,8 +29,8 @@ trouble.
 New Settings
 ^^^^^^^^^^^^
 - The :ref:`setting-extended-resolution-errors` has been added, enabling adding EDNS Extended Errors to responses.
-- The :ref:`setting-refresh-on-ttl-perc`, enabling an automatic cache-refresh mechanism,
-- The :ref:`setting-ecs-ipv4-never-cache` and :ref:`setting-ecs-ipv6-never-cache` settings have been added, allowing an overrule of the existing decision whether to to cache EDNS responses carrying subnet information.
+- The :ref:`setting-refresh-on-ttl-perc`, enabling an automatic cache-refresh mechanism.
+- The :ref:`setting-ecs-ipv4-never-cache` and :ref:`setting-ecs-ipv6-never-cache` settings have been added, allowing an overrule of the existing decision whether to cache EDNS responses carrying subnet information.
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
