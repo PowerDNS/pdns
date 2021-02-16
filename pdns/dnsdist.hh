@@ -857,6 +857,10 @@ public:
   }
   int getThread()
   {
+    if (d_numthreads == 0) {
+      throw std::runtime_error("No TCP worker thread yet");
+    }
+
     uint64_t pos = d_pos++;
     ++d_queued;
     return d_tcpclientthreads.at(pos % d_numthreads);
