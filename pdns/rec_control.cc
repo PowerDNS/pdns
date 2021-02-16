@@ -24,6 +24,7 @@
 #endif
 #include "rec_channel.hh"
 #include <iostream>
+#include <fcntl.h>
 #include "pdnsexception.hh"
 #include "arguments.hh"
 
@@ -81,40 +82,82 @@ static void initArguments(int argc, char** argv)
 }
 
 int main(int argc, char** argv)
-try
 {
-  initArguments(argc, argv);
-  RecursorControlChannel rccS;
-  string sockname="pdns_recursor";
+  const set<string> fileCommands = {
+    "dump-cache",
+    "dump-edns",
+    "dump-ednsstatus",
+    "dump-nsspeeds",
+    "dump-failedservers",
+    "dump-rpz",
+    "dump-throttlemap"
+  };
+  try {
+    initArguments(argc, argv);
+    RecursorControlChannel rccS;
+    string sockname="pdns_recursor";
 
-  if (arg()["config-name"] != "")
-    sockname+="-"+arg()["config-name"];
+    if (arg()["config-name"] != "")
+      sockname+="-"+arg()["config-name"];
 
-  if(!arg()["process"].empty())
-    sockname+="."+arg()["process"];
+    if(!arg()["process"].empty())
+      sockname+="."+arg()["process"];
 
-  sockname.append(".controlsocket");
+    sockname.append(".controlsocket");
 
-  rccS.connect(arg()["socket-dir"], sockname);
+    rccS.connect(arg()["socket-dir"], sockname);
 
-  const vector<string>&commands=arg().getCommands();
-  string command;
-  for(unsigned int i=0; i< commands.size(); ++i) {
-    if(i>0)
-      command+=" ";
-    command+=commands[i];
+    const vector<string>&commands=arg().getCommands();
+    string command;
+    int fd = -1;
+    unsigned int i = 0;
+    while (i < commands.size()) {
+      if (i > 0) {
+        command += " ";
+      }
+      command += commands[i];
+      if (fileCommands.count(commands[i]) > 0) {
+        if (i + 1 < commands.size()) {
+          // dump-rpz is different, it also has a zonename as argument
+          if (commands[i] == "dump-rpz") {
+            if (i + 2 < commands.size()) {
+              ++i;
+              command += " " + commands[i]; // add rpzname and continue with filename
+            } else {
+              throw PDNSException("Command needs a zone and file argument");
+            }
+          }
+          ++i;
+          if (commands[i] == "-") {
+            fd = STDOUT_FILENO;
+          } else {
+            fd = open(commands[i].c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+          }
+          if (fd == -1) {
+            int err = errno;
+            throw PDNSException("Error opening dump file for writing: " + stringerror(err));
+          }
+        } else {
+          throw PDNSException("Command needs a file argument");
+        }
+      }
+      ++i;
+    }
+
+    auto timeout = arg().asNum("timeout");
+    rccS.send({0, command}, nullptr, timeout, fd);
+
+    auto receive = rccS.recv(0, timeout);
+    if (receive.d_ret != 0) {
+      cerr << receive.d_str;
+    } else {
+      cout << receive.d_str;
+    }
+    return receive.d_ret;
   }
-  rccS.send(command, nullptr, arg().asNum("timeout"));
-  string receive=rccS.recv(0, arg().asNum("timeout"));
-  if(receive.compare(0, 7, "Unknown") == 0) {
-    cerr<<receive<<endl;
+  catch(PDNSException& ae) {
+    cerr<<"Fatal: "<<ae.reason<<"\n";
     return 1;
   }
-  cout<<receive;
-  return 0;
 }
-catch(PDNSException& ae)
-{
-  cerr<<"Fatal: "<<ae.reason<<"\n";
-  return 1;
-}
+

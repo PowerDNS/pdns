@@ -3884,6 +3884,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 }
 
 template string broadcastAccFunction(const boost::function<string*()>& fun); // explicit instantiation
+template RecursorControlChannel::Answer broadcastAccFunction(const boost::function<RecursorControlChannel::Answer *()>& fun); // explicit instantiation
 template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun); // explicit instantiation
 template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun); // explicit instantiation
 template vector<pair<DNSName,uint16_t> > broadcastAccFunction(const boost::function<vector<pair<DNSName, uint16_t> > *()>& fun); // explicit instantiation
@@ -3893,12 +3894,12 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
   try {
     string remote;
-    string msg=s_rcc.recv(&remote);
+    string msg = s_rcc.recv(&remote).d_str;
     RecursorControlParser rcp;
     RecursorControlParser::func_t* command;
 
     g_log << Logger::Notice << "Received rec_control command '" << msg << "' from control socket" << endl;
-    string answer=rcp.getAnswer(msg, &command);
+    auto answer = rcp.getAnswer(fd, msg, &command);
 
     // If we are inside a chroot, we need to strip
     if (!arg()["chroot"].empty()) {
@@ -4109,35 +4110,40 @@ static FDMultiplexer* getMultiplexer()
 }
 
 
-static string* doReloadLuaScript()
+static RecursorControlChannel::Answer* doReloadLuaScript()
 {
   string fname= ::arg()["lua-dns-script"];
   try {
     if(fname.empty()) {
       t_pdl.reset();
       g_log<<Logger::Info<<t_id<<" Unloaded current lua script"<<endl;
-      return new string("unloaded\n");
+      return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
     else {
       t_pdl = std::make_shared<RecursorLua4>();
-      t_pdl->loadFile(fname);
+      int err = t_pdl->loadFile(fname);
+      if (err != 0) {
+        string msg = std::to_string(t_id) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
+        g_log<<Logger::Error<<msg<<endl;
+        return new RecursorControlChannel::Answer{1, msg + "\n"};
+      }
     }
   }
   catch(std::exception& e) {
     g_log<<Logger::Error<<t_id<<" Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
-    return new string("retaining current script, error from '"+fname+"': "+e.what()+"\n");
+    return new RecursorControlChannel::Answer{1, string("retaining current script, error from '"+fname+"': "+e.what()+"\n")};
   }
 
   g_log<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
-  return new string("(re)loaded '"+fname+"'\n");
+  return new RecursorControlChannel::Answer{0, string("(re)loaded '"+fname+"'\n")};
 }
 
-string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
+RecursorControlChannel::Answer doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
 {
   if(begin != end)
     ::arg().set("lua-dns-script") = *begin;
 
-  return broadcastAccFunction<string>(doReloadLuaScript);
+  return broadcastAccFunction<RecursorControlChannel::Answer>(doReloadLuaScript);
 }
 
 static string* pleaseUseNewTraceRegex(const std::string& newRegex)

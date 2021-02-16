@@ -144,7 +144,42 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   }
 }
 
-void RecursorControlChannel::send(const std::string& msg, const std::string* remote, unsigned int timeout)
+static void sendfd(int s, int fd, const string* remote)
+{
+  struct msghdr    msg;
+  struct cmsghdr  *cmsg;
+  union {
+    struct cmsghdr hdr;
+    unsigned char    buf[CMSG_SPACE(sizeof(int))];
+  } cmsgbuf;
+  struct iovec io_vector[1];
+  char ch = 'X';
+ 
+  io_vector[0].iov_base = &ch;
+  io_vector[0].iov_len = 1;
+
+  memset(&msg, 0, sizeof(msg));
+  if (remote) {
+    msg.msg_name = const_cast<char*>(remote->c_str());
+    msg.msg_namelen = remote->length();
+  }
+  msg.msg_control = &cmsgbuf.buf;
+  msg.msg_controllen = sizeof(cmsgbuf.buf);
+  msg.msg_iov = io_vector;
+  msg.msg_iovlen = 1;
+
+  cmsg = CMSG_FIRSTHDR(&msg);
+  cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+  cmsg->cmsg_level = SOL_SOCKET;
+  cmsg->cmsg_type = SCM_RIGHTS;
+  *(int *)CMSG_DATA(cmsg) = fd;
+
+  if (sendmsg(s, &msg, 0) == -1) {
+    throw PDNSException("Unable to send fd message over control channel: "+stringerror());
+  }
+}
+
+void RecursorControlChannel::send(const Answer& msg, const std::string* remote, unsigned int timeout, int fd)
 {
   int ret = waitForRWData(d_fd, false, timeout, 0);
   if(ret == 0) {
@@ -162,30 +197,45 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
     strncpy(remoteaddr.sun_path, remote->c_str(), sizeof(remoteaddr.sun_path)-1);
     remoteaddr.sun_path[sizeof(remoteaddr.sun_path)-1] = '\0';
 
-    if(::sendto(d_fd, msg.c_str(), msg.length(), 0, (struct sockaddr*) &remoteaddr, sizeof(remoteaddr) ) < 0)
+    if(::sendto(d_fd, &msg.d_ret, sizeof(msg.d_ret), 0, (struct sockaddr*) &remoteaddr, sizeof(remoteaddr) ) < 0)
+      throw PDNSException("Unable to send message over control channel '"+string(remoteaddr.sun_path)+"': "+stringerror());
+    if(::sendto(d_fd, msg.d_str.c_str(), msg.d_str.length(), 0, (struct sockaddr*) &remoteaddr, sizeof(remoteaddr) ) < 0)
       throw PDNSException("Unable to send message over control channel '"+string(remoteaddr.sun_path)+"': "+stringerror());
   }
-  else if(::send(d_fd, msg.c_str(), msg.length(), 0) < 0)
-    throw PDNSException("Unable to send message over control channel: "+stringerror());
+  else {
+    if(::send(d_fd, &msg.d_ret, sizeof(msg.d_ret), 0) < 0)
+      throw PDNSException("Unable to send message over control channel: "+stringerror());
+    if(::send(d_fd, msg.d_str.c_str(), msg.d_str.length(), 0) < 0)
+      throw PDNSException("Unable to send message over control channel: "+stringerror());
+  }
+  if (fd != -1) {
+    sendfd(d_fd, fd, remote);
+  }
 }
 
-string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
+RecursorControlChannel::Answer RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
 {
   char buffer[16384];
   ssize_t len;
   struct sockaddr_un remoteaddr;
-  socklen_t addrlen=sizeof(remoteaddr);
-  
-  int ret=waitForData(d_fd, timeout, 0);
-  if(ret==0)
+  socklen_t addrlen = sizeof(remoteaddr);
+
+  int ret = waitForData(d_fd, timeout, 0);
+  if (ret == 0) {
     throw PDNSException("Timeout waiting for answer from control channel");
-  
-  if( ret < 0 || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
-    throw PDNSException("Unable to receive message over control channel: "+stringerror());
+  }
+  int err;
+  if (::recvfrom(d_fd, &err, sizeof(err), 0, (struct sockaddr*)&remoteaddr, &addrlen) != sizeof(err)) {
+    throw PDNSException("Unable to receive return status over control channel1: " + stringerror());
+  }
+  if ((len = ::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0) {
+    throw PDNSException("Unable to receive message over control channel2: "+stringerror());
+  }
 
-  if(remote)
+  if(remote) {
     *remote=remoteaddr.sun_path;
+  }
 
-  return string(buffer, buffer+len);
+  return {err, string(buffer, buffer + len)};
 }
 

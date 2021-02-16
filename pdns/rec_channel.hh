@@ -51,11 +51,26 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5);
-  std::string recv(std::string* remote=0, unsigned int timeout=5);
+  struct Answer
+  {
+    Answer& operator+=(const Answer& rhs)
+    {
+      if (d_ret == 0 && rhs.d_ret != 0) {
+        d_ret = rhs.d_ret;
+      }
+      d_str += rhs.d_str;
+      return *this;
+    }
+    int d_ret{0};
+    std::string d_str;
+  };
+
+  void send(const Answer&, const std::string* remote = nullptr, unsigned int timeout = 5, int fd = -1);
+  RecursorControlChannel::Answer recv(std::string* remote = nullptr, unsigned int timeout = 5);
 
   int d_fd;
   static volatile sig_atomic_t stop;
+
 private:
   struct sockaddr_un d_local;
 };
@@ -68,8 +83,10 @@ public:
   }
   static void nop(void){}
   typedef void func_t(void);
-  std::string getAnswer(const std::string& question, func_t** func);
+
+  RecursorControlChannel::Answer getAnswer(int s, const std::string& question, func_t** func);
 };
+
 
 enum class StatComponent { API, Carbon, RecControl, SNMP };
 
@@ -101,3 +118,4 @@ void registerAllStats();
 void doExitGeneric(bool nicely);
 void doExit();
 void doExitNicely();
+RecursorControlChannel::Answer doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
