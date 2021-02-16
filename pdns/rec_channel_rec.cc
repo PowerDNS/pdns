@@ -1198,6 +1198,14 @@ static void registerAllStats1()
     }
     return total;
   });
+  addGetStat("x-dnssec-result-bogus", []() {
+    static std::set<vState> const bogusStates = { vState::BogusNoValidDNSKEY, vState::BogusInvalidDenial, vState::BogusUnableToGetDSs, vState::BogusUnableToGetDNSKEYs, vState::BogusSelfSignedDS, vState::BogusNoRRSIG, vState::BogusNoValidRRSIG, vState::BogusMissingNegativeIndication, vState::BogusSignatureNotYetValid, vState::BogusSignatureExpired, vState::BogusUnsupportedDNSKEYAlgo, vState::BogusUnsupportedDSDigestType, vState::BogusNoZoneKeyBitSet, vState::BogusRevokedDNSKEY, vState::BogusInvalidDNSKEYProtocol };
+    uint64_t total = 0;
+    for (const auto& state : bogusStates) {
+      total += g_stats.xdnssecResults[state];
+    }
+    return total;
+  });
   addGetStat("dnssec-result-bogus-no-valid-dnskey", &g_stats.dnssecResults[vState::BogusNoValidDNSKEY]);
   addGetStat("dnssec-result-bogus-invalid-denial", &g_stats.dnssecResults[vState::BogusInvalidDenial]);
   addGetStat("dnssec-result-bogus-unable-to-get-dss", &g_stats.dnssecResults[vState::BogusUnableToGetDSs]);
@@ -1216,6 +1224,25 @@ static void registerAllStats1()
   addGetStat("dnssec-result-indeterminate", &g_stats.dnssecResults[vState::Indeterminate]);
   addGetStat("dnssec-result-nta", &g_stats.dnssecResults[vState::NTA]);
 
+  addGetStat("x-dnssec-result-bogus-no-valid-dnskey", &g_stats.xdnssecResults[vState::BogusNoValidDNSKEY]);
+  addGetStat("x-dnssec-result-bogus-invalid-denial", &g_stats.xdnssecResults[vState::BogusInvalidDenial]);
+  addGetStat("x-dnssec-result-bogus-unable-to-get-dss", &g_stats.xdnssecResults[vState::BogusUnableToGetDSs]);
+  addGetStat("x-dnssec-result-bogus-unable-to-get-dnskeys", &g_stats.xdnssecResults[vState::BogusUnableToGetDNSKEYs]);
+  addGetStat("x-dnssec-result-bogus-self-signed-ds", &g_stats.xdnssecResults[vState::BogusSelfSignedDS]);
+  addGetStat("x-dnssec-result-bogus-no-rrsig", &g_stats.xdnssecResults[vState::BogusNoRRSIG]);
+  addGetStat("x-dnssec-result-bogus-no-valid-rrsig", &g_stats.xdnssecResults[vState::BogusNoValidRRSIG]);
+  addGetStat("x-dnssec-result-bogus-missing-negative-indication", &g_stats.xdnssecResults[vState::BogusMissingNegativeIndication]);
+  addGetStat("x-dnssec-result-bogus-signature-not-yet-valid", &g_stats.xdnssecResults[vState::BogusSignatureNotYetValid]);
+  addGetStat("x-dnssec-result-bogus-signature-expired", &g_stats.xdnssecResults[vState::BogusSignatureExpired]);
+  addGetStat("x-dnssec-result-bogus-unsupported-dnskey-algo", &g_stats.xdnssecResults[vState::BogusUnsupportedDNSKEYAlgo]);
+  addGetStat("x-dnssec-result-bogus-unsupported-ds-digest-type", &g_stats.xdnssecResults[vState::BogusUnsupportedDSDigestType]);
+  addGetStat("x-dnssec-result-bogus-no-zone-key-bit-set", &g_stats.xdnssecResults[vState::BogusNoZoneKeyBitSet]);
+  addGetStat("x-dnssec-result-bogus-revoked-dnskey", &g_stats.xdnssecResults[vState::BogusRevokedDNSKEY]);
+  addGetStat("x-dnssec-result-bogus-invalid-dnskey-protocol", &g_stats.xdnssecResults[vState::BogusInvalidDNSKEYProtocol]);
+  addGetStat("x-dnssec-result-indeterminate", &g_stats.xdnssecResults[vState::Indeterminate]);
+  addGetStat("x-dnssec-result-nta", &g_stats.xdnssecResults[vState::NTA]);
+
+  
   addGetStat("policy-result-noaction", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NoAction]);
   addGetStat("policy-result-drop", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Drop]);
   addGetStat("policy-result-nxdomain", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NXDOMAIN]);

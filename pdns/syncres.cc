@@ -167,7 +167,12 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, uint16_t qcla
     if (d_queryValidationState != vState::Indeterminate) {
       g_stats.dnssecValidations++;
     }
-    increaseDNSSECStateCounter(d_queryValidationState);
+    auto xdnssec = g_xdnssec.getLocal();
+    if (xdnssec->check(qname)) {
+      increaseXDNSSECStateCounter(d_queryValidationState);
+    } else {
+      increaseDNSSECStateCounter(d_queryValidationState);
+    }
   }
 
   return res;

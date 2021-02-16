@@ -9,6 +9,7 @@
 
 RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
+GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 std::unique_ptr<MemRecursorCache> g_recCache{nullptr};

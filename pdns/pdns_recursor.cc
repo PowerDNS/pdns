@@ -254,6 +254,8 @@ unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
 
+// Used in Syncres to counts DNSSEC stats for names in a different "universe"
+GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 // Used in the Syncres to not throttle certain servers
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
@@ -4749,6 +4751,16 @@ static int serviceMain(int argc, char*argv[])
     g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
   }
 
+  {
+    SuffixMatchNode xdnssecNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["x-dnssec-names"], " ,");
+    for (const auto &p : parts) {
+      xdnssecNames.add(DNSName(p));
+    }
+    g_xdnssec.setState(std::move(xdnssecNames));
+  }
+
   s_balancingFactor = ::arg().asDouble("distribution-load-factor");
   if (s_balancingFactor != 0.0 && s_balancingFactor < 1.0) {
     s_balancingFactor = 0.0;
@@ -5475,6 +5487,8 @@ int main(int argc, char **argv)
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
     ::arg().set("record-cache-shards", "Number of shards in the record cache")="1024";
     ::arg().set("refresh-on-ttl-perc", "If a record is requested from the cache and only this % of original TTL remains, refetch") = "0";
+
+    ::arg().set("x-dnssec-names", "Collect DNSSEC statistics for names or suffixes in this list in separate x-dnssec counters")="";
 
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
