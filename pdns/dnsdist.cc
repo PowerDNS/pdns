@@ -2418,6 +2418,13 @@ int main(int argc, char** argv)
     }
     handleQueuedHealthChecks(mplexer, true);
 
+    /* we need to create the TCP worker threads before the
+       acceptor ones, otherwise we might crash when processing
+       the first TCP query */
+    while (!g_tcpclientthreads->hasReachedMaxThreads()) {
+      g_tcpclientthreads->addTCPClientThread();
+    }
+
     for(auto& cs : g_frontends) {
       if (cs->dohFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -2443,10 +2450,6 @@ int main(int argc, char** argv)
         }
         t1.detach();
       }
-    }
-
-    while (!g_tcpclientthreads->hasReachedMaxThreads()) {
-      g_tcpclientthreads->addTCPClientThread();
     }
 
     thread carbonthread(carbonDumpThread);
