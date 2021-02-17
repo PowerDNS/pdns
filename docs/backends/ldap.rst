@@ -551,7 +551,7 @@ performance improvement:
 
 ::
 
-    indexassociatedDomain pres,eq,sub
+    index associatedDomain pres,eq,sub
 
 Furthermore, if ``ldap-method=strict`` is set, it uses the aRecord and
 aAAARecord attribute for reverse mapping of IP addresses to names. To
@@ -560,8 +560,8 @@ performance of the LDAP server:
 
 ::
 
-    indexaAAARecord pres,eq
-    indexaRecord pres,eq
+    index aAAARecord pres,eq
+    index aRecord pres,eq
 
 All other attributes than associatedDomain, aRecord or aAAARecord are
 only read if the object matches the specified criteria. Thus,
