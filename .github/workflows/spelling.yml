@@ -5,7 +5,7 @@ on:
       - "**"
     tags-ignore:
       - "**"
-  pull_request:
+  pull_request_target:
     branches:
       - "**"
     tags-ignore:
@@ -19,9 +19,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2.0.0
       with:
+        ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 5
-    - uses: check-spelling/check-spelling@0.0.16-alpha
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        bucket: .github/actions
-        project: spell-check
+    - uses: check-spelling/check-spelling@0.0.17-alpha
+      with:
+        config: .github/actions/spell-check

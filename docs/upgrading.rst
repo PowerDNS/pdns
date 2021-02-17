@@ -47,7 +47,7 @@ To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records
 Then, disable the setting again, because it has a serious performance impact on API operations.
 
 On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 42, 45, 64, 65.
-Leave the setting on until all zones have been re-transfered.
+Leave the setting on until all zones have been re-transferred.
 
 PostgreSQL configuration escaping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
