@@ -103,7 +103,7 @@ dump-failedservers *FILENAME*
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
 
-dump-nonresolving *FILENAME*
+dump-non-resolving *FILENAME*
     Dump the contents of the map of nameserver names that did not resolve to
     an address.  This file should not exist already, PowerDNS will
     refuse to overwrite it otherwise. While dumping, the recursor will

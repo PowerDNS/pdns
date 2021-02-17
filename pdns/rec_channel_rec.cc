@@ -1698,7 +1698,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-failedservers <filename>    dump the failed servers to the named file\n"
-"dump-nonresolving <filename>     dump non-resolving nameservers addresses to the named file\n"
+"dump-non-resolving <filename>    dump non-resolving nameservers addresses to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
 "dump-throttlemap <filename>      dump the contents of the throttle map to the named file\n"
@@ -1780,7 +1780,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   if (cmd == "dump-throttlemap") {
     return doDumpToFile(s, pleaseDumpThrottleMap, cmd);
   }
-  if (cmd == "dump-nonresolving") {
+  if (cmd == "dump-non-resolving") {
     return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd);
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
