@@ -73,6 +73,7 @@ module-dir=../regression-tests/modules
 default-soa-edit=INCEPTION-INCREMENT
 launch+=bind
 bind-config=bindbackend.conf
+loglevel=5
 """
 
 BINDBACKEND_CONF_TPL = """
