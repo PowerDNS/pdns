@@ -2463,6 +2463,266 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }
+
+  {
+    TEST_NAME("=> 3 queries to the backend, the first 2 responses arrive and are queued (client write blocks), and the backend closes the connection before sending the last one");
+
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    s_readBuffer.clear();
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
+
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(0).begin(), queries.at(0).end());;
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(1).begin(), queries.at(1).end());;
+    expectedBackendWriteBuffer.insert(expectedBackendWriteBuffer.end(), queries.at(2).begin(), queries.at(2).end());;
+
+    s_writeBuffer.clear();
+
+    s_backendReadBuffer.clear();
+    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(1).begin(), responses.at(1).end());
+    s_backendReadBuffer.insert(s_backendReadBuffer.end(), responses.at(0).begin(), responses.at(0).end());
+
+    s_backendWriteBuffer.clear();
+
+    expectedWriteBuffer = s_backendReadBuffer;
+
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query (1) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(0).size() },
+      /* no response ready yet */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      /* reading a second query from the client */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(1).size() },
+      /* no response ready yet */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
+      /* reading a third query from the client */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2 },
+      /* sending query (3) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(2).size() },
+      /* no response ready yet but the backend descriptor becomes ready */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the backend descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* nothing from the client either */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+#warning this is wasteful as well..
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      /* read the response (2) from the bacend  */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
+      /* trying to send response (2) to the client but blocking */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor is NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+      } },
+      /* reading the response (1) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
+      /* trying to read from the backend again, connection closes on us */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
+      /* so we close the connection */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* try opening a new connection to the backend, it fails (5) times */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc, const ExpectedStep& step) {
+        throw NetworkError("Connection refused by the backend");
+      } },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* try opening a new connection to the backend, it fails (5) times */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc, const ExpectedStep& step) {
+        throw NetworkError("Connection refused by the backend");
+      } },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* try opening a new connection to the backend, it fails (5) times */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc, const ExpectedStep& step) {
+        throw NetworkError("Connection refused by the backend");
+      } },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* try opening a new connection to the backend, it fails (5) times */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc, const ExpectedStep& step) {
+        throw NetworkError("Connection refused by the backend");
+      } },
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+      /* try opening a new connection to the backend, it fails (5) times */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc, const ExpectedStep& step) {
+        throw NetworkError("Connection refused by the backend");
+      } },
+      /* closing a connection to the backend, client becomes ready */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor is ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+      } },
+      /* sending response (2) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size() },
+      /* sending response (1) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size() },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+    };
+
+    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    g_verbose = true;
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    while (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0) {
+      threadData.mplexer->run(&now);
+    }
+
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());
+    BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
+    BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
+
+  {
+    TEST_NAME("=> AXFR");
+
+    PacketBuffer axfrQuery;
+    std::vector<PacketBuffer> axfrResponses(3);
+
+    GenericDNSPacketWriter<PacketBuffer> pwAXFRQuery(axfrQuery, DNSName("powerdns.com."), QType::AXFR, QClass::IN, 0);
+    pwAXFRQuery.getHeader()->rd = 0;
+    pwAXFRQuery.getHeader()->id = 42;
+    uint16_t axfrQuerySize = static_cast<uint16_t>(axfrQuery.size());
+    const uint8_t axfrQuerySizeBytes[] = { static_cast<uint8_t>(axfrQuerySize / 256), static_cast<uint8_t>(axfrQuerySize % 256) };
+    axfrQuery.insert(axfrQuery.begin(), axfrQuerySizeBytes, axfrQuerySizeBytes + 2);
+
+    totalResponsesSize = 0;
+    for (auto& response : axfrResponses) {
+      DNSName name("powerdns.com.");
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
+      pwR.getHeader()->qr = 1;
+      pwR.getHeader()->id = 42;
+      // whatever
+      pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfr32BitInt(0x01020304);
+      pwR.commit();
+
+      uint16_t responseSize = static_cast<uint16_t>(response.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      response.insert(response.begin(), sizeBytes, sizeBytes + 2);
+      totalResponsesSize += response.size();
+    }
+
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    s_readBuffer = axfrQuery;
+
+    expectedBackendWriteBuffer = axfrQuery;
+
+    s_writeBuffer.clear();
+
+    s_backendReadBuffer.clear();
+    for (const auto& response : axfrResponses) {
+      s_backendReadBuffer.insert(s_backendReadBuffer.end(), response.begin(), response.end());
+    }
+
+    s_backendWriteBuffer.clear();
+
+    expectedWriteBuffer = s_backendReadBuffer;
+
+    bool timeout = false;
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, axfrQuery.size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query (1) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, axfrQuery.size() },
+      /* no response ready yet, but setting the backend descriptor readable */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the backend descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* read the response (1) from the bacend  */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2 },
+      /* sending response (1) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(0).size() },
+      /* reading the response (2) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(1).size() - 2 },
+      /* sending response (2) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(1).size() },
+      /* reading the response (3) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(2).size() - 2 },
+      /* sending response (3) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(2).size() },
+      /* trying to read from the backend but blocking and descriptor is no longer ready */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData,&timeout](int desc, const ExpectedStep& step) {
+        /* the backend descriptor is not ready anymore */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+        timeout = true;
+      } },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      /* closing the backend connection */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+    };
+
+    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    g_verbose = true;
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    while (!timeout && (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0)) {
+      threadData.mplexer->run(&now);
+    }
+
+    struct timeval later = now;
+    later.tv_sec += backend->tcpRecvTimeout + 1;
+    auto expiredConns = threadData.mplexer->getTimeouts(later, false);
+    BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
+    for (const auto& cbData : expiredConns) {
+      if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
+        cbState->handleTimeout(later, false);
+      }
+    }
+
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());
+    BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
+    BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
 }
 
 #warning TODO:
