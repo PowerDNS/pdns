@@ -324,6 +324,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
   bool hasNsAtApex = false;
   set<DNSName> tlsas, cnames, noncnames, glue, checkglue, addresses, svcbAliases, httpsAliases, svcbRecords, httpsRecords;
+  vector<DNSResourceRecord> checkCNAME;
   set<pair<DNSName, QType> > checkOcclusion;
   set<string> recordcontents;
   map<string, unsigned int> ttl;
@@ -531,6 +532,10 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         noncnames.insert(rr.qname);
     }
 
+    if (rr.qtype == QType::MX || rr.qtype == QType::NS || rr.qtype == QType::SRV) {
+      checkCNAME.push_back(rr);
+    }
+
     if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
     {
       cout<<"[Error] NSEC or NSEC3 found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
@@ -674,6 +679,29 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
           numwarnings++;
         }
       }
+    }
+  }
+
+  for (auto const &rr : checkCNAME) {
+    DNSName target;
+    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+    switch (rr.qtype) {
+      case QType::MX:
+        target = std::dynamic_pointer_cast<MXRecordContent>(drc)->d_mxname;
+        break;
+      case QType::SRV:
+        target = std::dynamic_pointer_cast<SRVRecordContent>(drc)->d_target;
+        break;
+      case QType::NS:
+        target = std::dynamic_pointer_cast<NSRecordContent>(drc)->getNS();
+        break;
+      default:
+        // programmer error, but let's not abort() :)
+        break;
+    }
+    if (target.isPartOf(zone) && cnames.count(target) != 0) {
+      cout<<"[Warning] '" << rr.qname << "|" << rr.qtype.getName() << " has a target (" << target << ") that is a CNAME." << endl;
+      numwarnings++;
     }
   }
 
