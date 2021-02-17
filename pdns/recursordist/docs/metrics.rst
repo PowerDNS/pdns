@@ -224,9 +224,14 @@ dnssec-queries
 ^^^^^^^^^^^^^^
 number of queries received with the DO bit set
 
+.. _stat-dnssec-result-bogus:
+
 dnssec-result-bogus
 ^^^^^^^^^^^^^^^^^^^
 number of DNSSEC validations that had the   Bogus state. Since 4.4.2 detailed counters are available, see below.
+Since 4.5.0, if :ref:`setting-x-dnssec-names` is set, a separate set of ``x-dnssec-result-...`` metrics become available, counting
+the DNSSEC validation results for names suffix-matching a name in ``x-dnssec-names``.
+
 
 dnssec-result-bogus-no-valid-dnskey
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -727,3 +732,9 @@ x-ourtime-slow
 
 Counts responses where more than 32 milliseconds was spent within the Recursor.
 See :ref:`stat-x-our-latency` for further details.
+
+x-dnssec-result-...
+^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5.0
+
+See :ref:`stat-dnssec-result-bogus`.
