@@ -1806,6 +1806,11 @@ static void startDoResolve(void *p)
 
 	if (t_pdl && t_pdl->postresolve(dq, res)) {
           shouldNotValidate = true;
+          auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
+          // haveAnswer case redundant
+          if (policyResult == PolicyResult::Drop) {
+            return;
+          }
         }
       }
     }

@@ -24,8 +24,13 @@ It also means that to print such names, the ``:toString`` method must be used (o
 Once a script is loaded, PowerDNS looks for the interception functions in the loaded script.
 All of these functions are optional.
 
-If a function returns true, it will indicate that it handled a query.
-If it returns false, the Recursor will continue processing unchanged (with one minor exception).
+If ``ipfilter`` returns ``true``, the query is dropped.
+If ``preresolve`` returns ``true``, it will indicate it handled a query, and the recursor will send to result as constructed in the functions to the client.
+If it returns ``false``, the Recursor will continue processing.
+For the other functions, the return value will indicate if DNSSEC validation should take place.
+For modified results, the functions should return ``true`` to avoid failing DNSSEC validations.
+At specific points the Recursor will check if policy handling should take place.
+These points are immediatly after ``preresolve``, after resolving and after ``postresolve``.
 
 Interception Functions
 ----------------------
@@ -115,7 +120,7 @@ Interception Functions
     It accepts a single, scalable parameter which can be accessed using FFI accessors.
     Like the non-FFI version, it has the ability to set a tag for the packetcache, policy tags, a routing tag, the :attr:`DNSQuestion.requestorId` and :attr:`DNSQuestion.deviceId`values and to fill the :attr:`DNSQuestion.data` table. It also offers ways to mark the answer as variable so it's not inserted into the packetcache, to set a cap on the TTL of the returned records, and to generate a response by adding records and setting the RCode. It can also instruct the recursor to do a proper resolution in order to follow any `CNAME` records added in this step.
 
-.. function:: prerpz(dq)
+.. function:: prerpz(dq) -> bool
 
   This hook is called before any filtering policy have been applied,  making it possible to completely disable filtering by setting  :attr:`dq.wantsRPZ <DNSQuestion.wantsRPZ>` to false.
   Using the :meth:`dq:discardPolicy() <DNSQuestion:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones, based on the content of the ``dq`` object.
@@ -134,44 +139,44 @@ Interception Functions
 
   :param DNSQuestion dq: The DNS question to handle
 
-.. function:: preresolve(dq)
+.. function:: preresolve(dq) -> bool
 
   This function is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the DNS query, overriding the internet.
   This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
 
   :param DNSQuestion dq: The DNS question to handle
 
-.. function:: postresolve(dq)
+.. function:: postresolve(dq) -> bool
 
   is called right before returning a response to a client (and, unless :attr:`dq.variable <DNSQuestion.variable>` is set, to the packet cache too).
   It allows inspection and modification of almost any detail in the return packet.
 
   :param DNSQuestion dq: The DNS question to handle
 
-.. function:: nxdomain(dq)
+.. function:: nxdomain(dq) -> bool
 
   is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain does not exist.
   Works entirely like :func:`postresolve`, but saves a trip through Lua for answers which are not NXDOMAIN.
 
   :param DNSQuestion dq: The DNS question to handle
 
-.. function:: nodata(dq)
+.. function:: nodata(dq) -> bool
 
   is just like :func:`nxdomain`, except it gets called when a domain exists, but the requested type does not.
   This is where one would implement :doc:`DNS64 <../dns64>`.
 
   :param DNSQuestion dq: The DNS question to handle
 
-.. function:: preoutquery(dq)
+.. function:: preoutquery(dq) -> bool
 
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
-  When this hook sets the special result code -3, the whole DNS client query causing this outquery gets dropped.
+  When this hook sets the special result code -3, the whole DNS client query causing this outquery gets a `ServFail`.
 
   However, this function can also return records like :func:`preresolve`.
 
   :param DNSQuestion dq: The DNS question to handle
 
-.. function:: policyEventFilter(event)
+.. function:: policyEventFilter(event) -> bool
 
     .. versionadded:: 4.4.0
 
@@ -210,7 +215,7 @@ Interception Functions
 
 Semantics
 ^^^^^^^^^
-The functions must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with its regular query-processing.
+The `ipfilter` and `preresolve` must return ``true`` if they have taken over the query and wish that the nameserver should not proceed with its regular query-processing.
 When a function returns ``false``, the nameserver will process the query normally until a new function is called.
 
 If a function has taken over a request, it should set an rcode (usually 0), and specify a table with records to be put in the answer section of a packet.
@@ -238,8 +243,23 @@ A minimal sample script:
 **Warning**: Please do NOT use the above sample script in production!
 Responsible NXDomain redirection requires more attention to detail.
 
-Useful 'rcodes' include 0 for "no error", ``pdns.NXDOMAIN`` for "NXDOMAIN", ``pdns.DROP`` to drop the question from further processing.
+Useful 'rcodes' include 0 for "no error" and ``pdns.NXDOMAIN`` for "NXDOMAIN", ``pdns.DROP`` to drop the question from further processing.
 Such a drop is accounted in the 'policy-drops' metric.
+
+Starting with recursor 4.4.0, the method to drop a request is to set the ``dq.appliedPolicy.policyKind`` to the value ``pdns.policykinds.Drop``.
+
+.. code-block:: Lua
+
+    function nxdomain(dq)
+        print("Intercepting and dropping NXDOMAIN for: ",dq.qname:toString())
+        if dq.qtype == pdns.A
+        then
+            dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        end
+        return false
+    end
+
+**Note**: to drop a query from ``preresolve``, set ``policyKind`` and return false, to indicate the Recursor should process the Drop action.
 
 DNS64
 -----
