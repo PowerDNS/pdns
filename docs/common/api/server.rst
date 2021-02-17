@@ -30,4 +30,4 @@ Server
       "zones_url": "/api/v1/servers/localhost/zones{/zone}",
     }
 
-  Note: the servers collection is read-only, and the only allowed returned server is read-only as well. A control proxy could return modifyable resources.
+  Note: the servers collection is read-only, and the only allowed returned server is read-only as well. A control proxy could return modifiable resources.
