@@ -366,6 +366,7 @@ cryptopp
 cryptoshop
 css
 csv
+CSYNC
 ctime
 ctor
 ctx
