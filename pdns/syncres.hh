@@ -186,27 +186,28 @@ private:
   float d_val{0};
 };
 
+template<class T>
 class fails_t : public boost::noncopyable
 {
 public:
-  typedef unsigned long counter_t;
+  typedef unsigned long long counter_t;
   struct value_t {
-    value_t(const ComboAddress &a) : address(a) {}
-    ComboAddress address;
+    value_t(const T &a) : key(a) {}
+    T key;
     mutable counter_t value{0};
     time_t last{0};
   };
 
   typedef multi_index_container<value_t,
                                 indexed_by<
-                                  ordered_unique<tag<ComboAddress>, member<value_t, ComboAddress, &value_t::address>>,
+                                  ordered_unique<tag<T>, member<value_t, T, &value_t::key>>,
                                   ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>
                                   >> cont_t;
 
   cont_t getMap() const {
     return d_cont;
   }
-  counter_t value(const ComboAddress& t) const
+  counter_t value(const T& t) const
   {
     auto i = d_cont.find(t);
 
@@ -216,20 +217,20 @@ public:
     return i->value;
   }
 
-  counter_t incr(const ComboAddress& address, const struct timeval& now)
+  counter_t incr(const T& key, const struct timeval& now)
   {
-    auto i = d_cont.insert(address).first;
+    auto i = d_cont.insert(key).first;
 
     if (i->value < std::numeric_limits<counter_t>::max()) {
       i->value++;
     }
-    auto &ind = d_cont.get<ComboAddress>();
+    auto &ind = d_cont.template get<T>();
     time_t tm = now.tv_sec;
     ind.modify(i, [tm](value_t &val) { val.last = tm; });
     return i->value;
   }
 
-  void clear(const ComboAddress& a)
+  void clear(const T& a)
   {
     d_cont.erase(a);
   }
@@ -245,7 +246,7 @@ public:
   }
 
   void prune(time_t cutoff) {
-    auto &ind = d_cont.get<time_t>();
+    auto &ind = d_cont.template get<time_t>();
     ind.erase(ind.begin(), ind.upper_bound(cutoff));
   }
 
@@ -403,7 +404,8 @@ public:
     nsspeeds_t nsSpeeds;
     throttle_t throttle;
     ednsstatus_t ednsstatus;
-    fails_t fails;
+    fails_t<ComboAddress> fails;
+    fails_t<DNSName> nonresolving;
     std::shared_ptr<domainmap_t> domainmap;
   };
 
@@ -415,6 +417,7 @@ public:
   static uint64_t doDumpNSSpeeds(int fd);
   static uint64_t doDumpThrottleMap(int fd);
   static uint64_t doDumpFailedServers(int fd);
+  static uint64_t doDumpNonResolvingNS(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
   static void clearDelegationOnly()
   {
@@ -554,6 +557,10 @@ public:
   static unsigned long getServerFailsCount(const ComboAddress& server)
   {
     return t_sstorage.fails.value(server);
+  }
+  static void pruneNonResolving(time_t cutoff)
+  {
+    t_sstorage.nonresolving.prune(cutoff);
   }
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
@@ -754,6 +761,9 @@ public:
   static unsigned int s_packetcacheservfailttl;
   static unsigned int s_serverdownmaxfails;
   static unsigned int s_serverdownthrottletime;
+  static unsigned int s_nonresolvingnsmaxfails;
+  static unsigned int s_nonresolvingnsthrottletime;
+
   static unsigned int s_ecscachelimitttl;
   static uint8_t s_ecsipv4limit;
   static uint8_t s_ecsipv6limit;

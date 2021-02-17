@@ -62,6 +62,8 @@ unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
+unsigned int SyncRes::s_nonresolvingnsmaxfails;
+unsigned int SyncRes::s_nonresolvingnsthrottletime;
 unsigned int SyncRes::s_ecscachelimitttl;
 std::atomic<uint64_t> SyncRes::s_authzonequeries;
 std::atomic<uint64_t> SyncRes::s_queries;
@@ -516,8 +518,33 @@ uint64_t SyncRes::doDumpFailedServers(int fd)
     count++;
     char tmp[26];
     ctime_r(&i.last, tmp);
-    fprintf(fp.get(), "%s\t%lld\t%s", i.address.toString().c_str(),
-            static_cast<long long>(i.value), tmp);
+    fprintf(fp.get(), "%s\t%llu\t%s", i.key.toString().c_str(), i.value, tmp);
+  }
+
+  return count;
+}
+
+uint64_t SyncRes::doDumpNonResolvingNS(int fd)
+{
+  int newfd = dup(fd);
+  if (newfd == -1) {
+    return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
+  fprintf(fp.get(), "; non resolving nameserver dump follows\n");
+  fprintf(fp.get(), "; name\tcount\ttimestamp\n");
+  uint64_t count=0;
+
+  for(const auto& i : t_sstorage.nonresolving.getMap())
+  {
+    count++;
+    char tmp[26];
+    ctime_r(&i.last, tmp);
+    fprintf(fp.get(), "%s\t%llu\t%s", i.key.toString().c_str(), i.value, tmp);
   }
 
   return count;
@@ -1133,27 +1160,27 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 
   t_sstorage.nsSpeeds[qname].purge(speeds);
 
-  if(ret.size() > 1) {
+  if (ret.size() > 1) {
     shuffle(ret.begin(), ret.end(), pdns::dns_random_engine());
     speedOrderCA so(speeds);
     stable_sort(ret.begin(), ret.end(), so);
+  }
 
-    if(doLog()) {
-      string prefix=d_prefix;
-      prefix.append(depth, ' ');
-      LOG(prefix<<"Nameserver "<<qname<<" IPs: ");
-      bool first = true;
-      for(const auto& addr : ret) {
-        if (first) {
-          first = false;
-        }
-        else {
-          LOG(", ");
-        }
-        LOG((addr.toString())<<"(" << (boost::format("%0.2f") % (speeds[addr]/1000.0)).str() <<"ms)");
+  if(doLog()) {
+    string prefix=d_prefix;
+    prefix.append(depth, ' ');
+    LOG(prefix<<"Nameserver "<<qname<<" IPs: ");
+    bool first = true;
+    for(const auto& addr : ret) {
+      if (first) {
+        first = false;
       }
-      LOG(endl);
+      else {
+        LOG(", ");
+      }
+      LOG((addr.toString())<<"(" << (boost::format("%0.2f") % (speeds[addr]/1000.0)).str() <<"ms)");
     }
+    LOG(endl);
   }
 
   return ret;
@@ -2269,9 +2296,33 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 {
   vector<ComboAddress> result;
 
-  if(!tns->first.empty()) {
+
+  if (!tns->first.empty()) {
+    if (s_nonresolvingnsmaxfails > 0 && t_sstorage.nonresolving.value(tns->first) >= s_nonresolvingnsmaxfails) {
+      LOG(prefix<<qname<<": NS "<<tns->first<< " in nonresolving map, skipping"<<endl);
+      return result;
+    }
+
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-    result = getAddrs(tns->first, depth, beenthere, cacheOnly, retrieveAddressesForNS);
+    try {
+      result = getAddrs(tns->first, depth, beenthere, cacheOnly, retrieveAddressesForNS);
+    }
+    // Other exceptions should likely not throttle...
+    catch (const ImmediateServFailException& ex) {
+      if (s_nonresolvingnsmaxfails > 0) {
+        auto dontThrottleNames = g_dontThrottleNames.getLocal();
+        if (!dontThrottleNames->check(tns->first)) {
+          t_sstorage.nonresolving.incr(tns->first, d_now);
+        }
+      }
+      throw ex;
+    }
+    if (s_nonresolvingnsmaxfails > 0 && result.empty()) {
+      auto dontThrottleNames = g_dontThrottleNames.getLocal();
+      if (!dontThrottleNames->check(tns->first)) {
+        t_sstorage.nonresolving.incr(tns->first, d_now);
+      }
+    }
     pierceDontQuery=false;
   }
   else {

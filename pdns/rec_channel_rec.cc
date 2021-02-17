@@ -325,6 +325,11 @@ static uint64_t* pleaseDumpFailedServers(int fd)
   return new uint64_t(SyncRes::doDumpFailedServers(fd));
 }
 
+static uint64_t* pleaseDumpNonResolvingNS(int fd)
+{
+  return new uint64_t(SyncRes::doDumpNonResolvingNS(fd));
+}
+
 // Generic dump to file command
 static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name)
 {
@@ -1692,6 +1697,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
+"dump-nonresolving <filename>     dump non-resolving nameservers to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
 "dump-throttlemap <filename>      dump the contents of the throttle map to the named file\n"
@@ -1773,6 +1779,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "dump-throttlemap") {
     return doDumpToFile(s, pleaseDumpThrottleMap, cmd);
+  }
+  if (cmd == "dump-nonresolving") {
+    return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd);
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
     return {0, doWipeCache(begin, end, 0xffff)};
