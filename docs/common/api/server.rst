@@ -5,7 +5,7 @@ Server
   An object representing a single PowerDNS server.
   In the built-in API, only one Server exists (called "localhost").
 
-  pdnsmgrd and pdnscontrol MUST NOT return “localhost”, but SHOULD return
+  A proxy that allows control of multiple servers MUST NOT return “localhost”, but SHOULD return
   other servers.
 
   :property string type: Set to "Server"
@@ -30,6 +30,4 @@ Server
       "zones_url": "/api/v1/servers/localhost/zones{/zone}",
     }
 
-  Note: the servers collection is read-only, and the only allowed returned server is read-only as well.
-  On a pdnscontrol server, the servers collection is read-write, and the returned server resources are read-write as well.
-  Write permissions may depend on the credentials you have supplied.
+  Note: the servers collection is read-only, and the only allowed returned server is read-only as well. A control proxy could return modifyable resources.
