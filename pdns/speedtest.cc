@@ -21,7 +21,7 @@ volatile bool g_ret; // make sure the optimizer does not get too smart
 uint64_t g_totalRuns;
 volatile bool g_stop;
 
-void alarmHandler(int)
+static void alarmHandler(int)
 {
   g_stop=true;
 }
@@ -222,7 +222,7 @@ struct MakeARecordTest
   }
 };
 
-vector<uint8_t> makeBigReferral()
+static vector<uint8_t> makeBigReferral()
 {
 
   vector<uint8_t> packet;
@@ -257,7 +257,7 @@ vector<uint8_t> makeBigReferral()
   return  packet;
 }
 
-vector<uint8_t> makeBigDNSPacketReferral()
+static vector<uint8_t> makeBigDNSPacketReferral()
 {
   vector<DNSResourceRecord> records;
   DNSResourceRecord rr;
@@ -447,14 +447,14 @@ struct SOARecordTest
   int d_records;
 };
 
-vector<uint8_t> makeEmptyQuery()
+static vector<uint8_t> makeEmptyQuery()
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::SOA);
   return  packet;
 }
 
-vector<uint8_t> makeTypicalReferral()
+static vector<uint8_t> makeTypicalReferral()
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::A);
