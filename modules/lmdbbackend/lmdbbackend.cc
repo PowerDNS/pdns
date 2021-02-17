@@ -364,6 +364,10 @@ bool LMDBBackend::startTransaction(const DNSName &domain, int domain_id)
 bool LMDBBackend::commitTransaction()
 {
   // cout<<"Commit transaction" <<endl;
+  if (!d_rwtxn) {
+    throw DBException("Attempt to commit a transaction while there isn't one open");
+  }
+
   d_rwtxn->txn->commit();
   d_rwtxn.reset();
   return true;
@@ -372,6 +376,10 @@ bool LMDBBackend::commitTransaction()
 bool LMDBBackend::abortTransaction()
 {
   // cout<<"Abort transaction"<<endl;
+  if (!d_rwtxn) {
+      throw DBException("Attempt to abort a transaction while there isn't one open");
+  }
+
   d_rwtxn->txn->abort();
   d_rwtxn.reset();
 
