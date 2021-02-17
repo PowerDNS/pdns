@@ -5,7 +5,7 @@ Server
   An object representing a single PowerDNS server.
   In the built-in API, only one Server exists (called "localhost").
 
-  A proxy that allows control of multiple servers MUST NOT return “localhost”, but SHOULD return
+  A proxy that allows control of multiple servers MUST NOT return ``localhost``, but SHOULD return
   other servers.
 
   :property string type: Set to "Server"
