@@ -72,6 +72,9 @@ def unique_tsigkey_name():
 def is_auth():
     return DAEMON == 'authoritative'
 
+def is_auth_lmdb():
+    print('BACKEND=', BACKEND)
+    return DAEMON == 'authoritative'
 
 def is_recursor():
     return DAEMON == 'recursor'
