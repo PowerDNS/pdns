@@ -908,11 +908,11 @@ endif
 speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
-	dnssecinfra.cc dnssecinfra.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
+	dnssecinfra.cc dnssecinfra.hh \
 	dnswriter.cc dnswriter.hh \
 	iputils.cc \
 	logger.cc \
