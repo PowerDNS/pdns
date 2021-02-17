@@ -9,6 +9,7 @@ LMDB backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Multiple instances: No
 * Module name: lmdb
 * Launch name: ``lmdb``
 
