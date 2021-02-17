@@ -1,13 +1,15 @@
 # our chosen base image
 FROM debian:10-slim AS builder
 
+ENV NO_LUA_JIT="s390x arm64"
+
 # TODO: make sure /source looks roughly the same from git or tar
 
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git python3-venv && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts dpkg-dev equivs git python3-venv && apt-get clean
 
 # import everything - this could be pdns.git OR an auth tarball!
 COPY builder-support /source/builder-support
@@ -43,14 +45,15 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 
 # simplify repeated -C calls with SUBDIRS?
 RUN mkdir /build && \
+    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     ./configure \
-      --with-lua=luajit \
+      --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
       --enable-tools \
       --enable-ixfrdist \
-      --with-unixodbc-lib=/usr/lib/$(uname -m)-linux-gnu && \
+      --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
     make clean && \
     make $MAKEFLAGS -C ext && make $MAKEFLAGS -C modules && make $MAKEFLAGS -C pdns && \
     make -C pdns install DESTDIR=/build && make -C modules install DESTDIR=/build && make clean && \
