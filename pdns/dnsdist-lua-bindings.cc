@@ -448,6 +448,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     });
 
     luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (!dbpf) {
+        return;
+      }
+
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           dbpf->excludeRange(Netmask(range.second));
@@ -459,6 +463,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     });
 
     luaCtx.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (!dbpf) {
+        return;
+      }
+
       if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
         for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
           dbpf->includeRange(Netmask(range.second));
