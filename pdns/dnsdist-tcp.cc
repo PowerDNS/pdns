@@ -912,15 +912,13 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         if (!state->d_lastIOBlocked && state->active() && iostate == IOState::Done) {
           // if the query has been passed to a backend, or dropped, and the responses have been sent,
           // we can start reading again
-          if (!state->d_isXFR) {
-            if (state->canAcceptNewQueries(now)) {
-              state->resetForNewQuery();
-              iostate = IOState::NeedRead;
-            }
-            else {
-              state->d_state = IncomingTCPConnectionState::State::idle;
-              iostate = IOState::Done;
-            }
+          if (state->canAcceptNewQueries(now)) {
+            state->resetForNewQuery();
+            iostate = IOState::NeedRead;
+          }
+          else {
+            state->d_state = IncomingTCPConnectionState::State::idle;
+            iostate = IOState::Done;
           }
         }
       }
