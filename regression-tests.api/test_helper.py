@@ -23,7 +23,6 @@ MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
 MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
 MYSQL_PASSWD = os.environ.get('MYSQL_PASWORD', '')
 PGSQL_DB = os.environ.get('PGSQL_DB', 'pdnsapi')
-PGSQL_USER = os.environ.get('PGSQ_USER', getpass.getuser())
 SQLITE_DB = os.environ.get('SQLITE_DB', 'pdns.sqlite3')
 LMDB_DB = os.environ.get('SQLITE_DB', 'pdns.lmdb')
 SDIG = os.environ.get('SDIG', 'sdig')
@@ -83,7 +82,7 @@ def get_auth_db():
     if BACKEND == 'gmysql':
         return mysql.connector.connect(database=MYSQL_DB, user=MYSQL_USER, host=MYSQL_HOST, password=MYSQL_PASSWD), "%s"
     elif BACKEND == 'gpgsql':
-        return psycopg2.connect(database=PGSQL_DB, user=PGSQL_USER), "%s"
+        return psycopg2.connect(database=PGSQL_DB), "%s"
     else:
         return sqlite3.Connection(SQLITE_DB), "?"
 

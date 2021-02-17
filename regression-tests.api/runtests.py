@@ -4,7 +4,6 @@
 
 from __future__ import print_function
 import os
-import getpass
 import requests
 import shutil
 import subprocess
@@ -23,7 +22,6 @@ MYSQL_HOST=os.environ.get('MYSQL_HOST', 'localhost')
 MYSQL_PASSWD=''
 
 PGSQL_DB='pdnsapi'
-PGSQL_USER=getpass.getuser()
 
 SQLITE_DB = 'pdns.sqlite3'
 
@@ -53,7 +51,6 @@ AUTH_PGSQL_TPL = """
 launch=gpgsql
 gpgsql-dnssec=on
 gpgsql-dbname="""+PGSQL_DB+"""
-gpgsql-user="""+PGSQL_USER+"""
 # on conflict is available in pg 9.5 and up
 gpgsql-set-tsig-key-query=insert into tsigkeys (name,algorithm,secret) values($1,$2,$3) on conflict(name, algorithm) do update set secret=Excluded.secret
 """
@@ -175,12 +172,12 @@ if daemon == 'authoritative':
 
     # Prepare pgsql DB with some zones.
     elif backend == 'gpgsql':
-        subprocess.call(["dropdb", "--user="+PGSQL_USER, PGSQL_DB])
+        subprocess.call(["dropdb", PGSQL_DB])
 
-        subprocess.check_call(["createdb", "--user="+PGSQL_USER, PGSQL_DB])
+        subprocess.check_call(["createdb", PGSQL_DB])
 
         with open('../modules/gpgsqlbackend/schema.pgsql.sql', 'r') as schema_file:
-            subprocess.check_call(["psql", "--user="+PGSQL_USER, PGSQL_DB], stdin=schema_file)
+            subprocess.check_call(["psql", PGSQL_DB], stdin=schema_file)
 
         with open('pdns.conf', 'w') as pdns_conf:
             pdns_conf.write(AUTH_PGSQL_TPL + AUTH_COMMON_TPL)
@@ -263,7 +260,6 @@ test_env.update({
     'MYSQL_HOST': MYSQL_HOST,
     'MYSQL_PASSWD': MYSQL_PASSWD,
     'PGSQL_DB': PGSQL_DB,
-    'PGSQL_USER': PGSQL_USER,
     'SQLITE_DB': SQLITE_DB,
     'LMDB_DB': LMDB_DB,
     'PDNSUTIL_CMD': ' '.join(PDNSUTIL_CMD),
