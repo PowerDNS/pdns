@@ -875,8 +875,6 @@ Imhard
 incbin
 includeboilerplate
 includerings
-indexa
-indexassociated
 indextable
 inet
 INFILEs
@@ -1394,7 +1392,6 @@ pdnsbackend
 pdnscontrol
 pdnsldap
 pdnslog
-pdnsmgrd
 pdnsodbx
 pdnsrandom
 pdnssec
@@ -1423,7 +1420,6 @@ pickwrandom
 pid
 piddir
 pidfile
-pidof
 pieter
 pilindex
 Pinski
