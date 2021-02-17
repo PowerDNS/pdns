@@ -908,6 +908,7 @@ endif
 speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	dnssecinfra.cc dnssecinfra.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -1405,6 +1406,8 @@ testrunner_LDADD = \
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
+speedtest_SOURCES += pkcs11signers.cc pkcs11signers.hh
+speedtest_LDADD += $(P11KIT1_LIBS)
 endif
 
 if LIBSODIUM

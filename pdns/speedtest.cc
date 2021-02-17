@@ -9,6 +9,7 @@
 #include "iputils.hh"
 #include <fstream>
 #include "uuid-utils.hh"
+#include "dnssecinfra.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -843,6 +844,24 @@ struct UUIDGenTest
   }
 };
 
+struct NSEC3HashTest
+{
+  explicit NSEC3HashTest(int iterations, string salt) : d_iterations(iterations), d_salt(salt) {}
+
+  string getName() const
+  {
+    return (boost::format("%d NSEC3 iterations, salt length %d") % d_iterations % d_salt.length()).str();
+  }
+
+  void operator()() const
+  {
+    hashQNameWithSalt(d_salt, d_iterations, d_name);
+  }
+  int d_iterations;
+  string d_salt;
+  DNSName d_name = DNSName("www.example.com");
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -929,6 +948,18 @@ try
   doRun(NetmaskTreeTest());
 
   doRun(UUIDGenTest());
+
+  doRun(NSEC3HashTest(1, "ABCD"));
+  doRun(NSEC3HashTest(10, "ABCD"));
+  doRun(NSEC3HashTest(50, "ABCD"));
+  doRun(NSEC3HashTest(150, "ABCD"));
+  doRun(NSEC3HashTest(500, "ABCD"));
+
+  doRun(NSEC3HashTest(1, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(10, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(50, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
 
 #ifndef RECURSOR
   S.doRings();
