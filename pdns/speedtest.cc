@@ -9,6 +9,7 @@
 #include "iputils.hh"
 #include <fstream>
 #include "uuid-utils.hh"
+#include "dnssecinfra.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -20,7 +21,7 @@ volatile bool g_ret; // make sure the optimizer does not get too smart
 uint64_t g_totalRuns;
 volatile bool g_stop;
 
-void alarmHandler(int)
+static void alarmHandler(int)
 {
   g_stop=true;
 }
@@ -221,7 +222,7 @@ struct MakeARecordTest
   }
 };
 
-vector<uint8_t> makeBigReferral()
+static vector<uint8_t> makeBigReferral()
 {
 
   vector<uint8_t> packet;
@@ -256,7 +257,7 @@ vector<uint8_t> makeBigReferral()
   return  packet;
 }
 
-vector<uint8_t> makeBigDNSPacketReferral()
+static vector<uint8_t> makeBigDNSPacketReferral()
 {
   vector<DNSResourceRecord> records;
   DNSResourceRecord rr;
@@ -446,14 +447,14 @@ struct SOARecordTest
   int d_records;
 };
 
-vector<uint8_t> makeEmptyQuery()
+static vector<uint8_t> makeEmptyQuery()
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::SOA);
   return  packet;
 }
 
-vector<uint8_t> makeTypicalReferral()
+static vector<uint8_t> makeTypicalReferral()
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::A);
@@ -843,6 +844,24 @@ struct UUIDGenTest
   }
 };
 
+struct NSEC3HashTest
+{
+  explicit NSEC3HashTest(int iterations, string salt) : d_iterations(iterations), d_salt(salt) {}
+
+  string getName() const
+  {
+    return (boost::format("%d NSEC3 iterations, salt length %d") % d_iterations % d_salt.length()).str();
+  }
+
+  void operator()() const
+  {
+    hashQNameWithSalt(d_salt, d_iterations, d_name);
+  }
+  int d_iterations;
+  string d_salt;
+  DNSName d_name = DNSName("www.example.com");
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -929,6 +948,18 @@ try
   doRun(NetmaskTreeTest());
 
   doRun(UUIDGenTest());
+
+  doRun(NSEC3HashTest(1, "ABCD"));
+  doRun(NSEC3HashTest(10, "ABCD"));
+  doRun(NSEC3HashTest(50, "ABCD"));
+  doRun(NSEC3HashTest(150, "ABCD"));
+  doRun(NSEC3HashTest(500, "ABCD"));
+
+  doRun(NSEC3HashTest(1, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(10, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(50, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+  doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
 
 #ifndef RECURSOR
   S.doRings();
