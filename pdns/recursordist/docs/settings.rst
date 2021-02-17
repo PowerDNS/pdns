@@ -1778,11 +1778,13 @@ Spawn this number of threads on startup.
 
 ``trace``
 ---------
--  Boolean
--  Default: no
+-  String, one of ``no``, ``yes`` or ``fail``
+-  Default: ``no``
 
 If turned on, output impressive heaps of logging.
 May destroy performance under load.
+To log only queries resulting in a ``ServFail`` answer from the resolving process, this value can be set to ``fail``, but note that the performance impact is still large.
+Also note that queries that do produce a result but with a failing DNSSEC validation are not written to the log
 
 .. _setting-udp-source-port-min:
 
