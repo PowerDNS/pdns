@@ -494,7 +494,7 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
 /* called from the backend code when a new response has been received */
 void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response)
 {
-  if (!state->d_isXFR && response.d_connection && response.d_connection->isIdle()) {
+  if (response.d_connection && response.d_connection->isIdle()) {
     // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool yet, no one else will be able to use it anyway
     if (response.d_connection->canBeReused()) {
       auto& list = state->d_activeConnectionsToBackend.at(response.d_connection->getDS());
@@ -543,22 +543,10 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
     return;
   }
 
-  if (state->d_isXFR && !state->d_xfrStarted) {
-    /* don't bother parsing the content of the response for now */
-    state->d_xfrStarted = true;
-    ++g_stats.responses;
-    ++state->d_ci.cs->responses;
-    if (response.d_connection->getDS()) {
-      ++response.d_connection->getDS()->responses;
-    }
-  }
-
-  if (!state->d_isXFR) {
-    ++g_stats.responses;
-    ++state->d_ci.cs->responses;
-    if (response.d_connection->getDS()) {
-      ++response.d_connection->getDS()->responses;
-    }
+  ++g_stats.responses;
+  ++state->d_ci.cs->responses;
+  if (response.d_connection->getDS()) {
+    ++response.d_connection->getDS()->responses;
   }
 
   queueResponse(state, now, std::move(response));
@@ -988,14 +976,16 @@ void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnec
   }
   else if (!state->d_queuedResponses.empty()) {
     /* stop reading and send what we have */
-    TCPResponse resp = std::move(state->d_queuedResponses.front());
-    state->d_queuedResponses.pop_front();
-    state->d_state = IncomingTCPConnectionState::State::idle;
     try {
-      queueResponse(state, now, std::move(resp));
+      auto iostate = sendQueuedResponses(state, now);
+
+      if (state->active() && iostate != IOState::Done) {
+        // we need to update the state right away, nobody will do that for us
+        state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+      }
     }
     catch (const std::exception& e) {
-      vinfolog("exception in notifyIOError: %s", e.what());
+      vinfolog("Exception in notifyIOError: %s", e.what());
     }
   }
   else {

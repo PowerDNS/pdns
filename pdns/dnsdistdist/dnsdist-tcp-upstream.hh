@@ -209,7 +209,6 @@ public:
   State d_state{State::doingHandshake};
   bool d_readingFirstQuery{true};
   bool d_isXFR{false};
-  bool d_xfrStarted{false};
   bool d_proxyProtocolPayloadHasTLV{false};
   bool d_lastIOBlocked{false};
   bool d_hadErrors{false};
