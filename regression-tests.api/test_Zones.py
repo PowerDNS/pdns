@@ -5,7 +5,7 @@ import unittest
 from copy import deepcopy
 from parameterized import parameterized
 from pprint import pprint
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, get_db_records, pdnsutil_rectify
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify
 
 
 def get_rrset(data, qname, qtype):
@@ -123,10 +123,12 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             get_first_rec(data, name, 'SOA')['content'],
             expected_soa
         )
-        # Because we had confusion about dots, check that the DB is without dots.
-        dbrecs = get_db_records(name, 'SOA')
-        self.assertEqual(dbrecs[0]['content'], expected_soa.replace('. ', ' '))
-        self.assertNotEquals(data['serial'], data['edited_serial'])
+
+        if not is_auth_lmdb():
+            # Because we had confusion about dots, check that the DB is without dots.
+            dbrecs = get_db_records(name, 'SOA')
+            self.assertEqual(dbrecs[0]['content'], expected_soa.replace('. ', ' '))
+            self.assertNotEquals(data['serial'], data['edited_serial'])
 
     def test_create_zone_with_soa_edit_api(self):
         # soa_edit_api wins over serial
@@ -230,6 +232,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         # check our record has appeared
         self.assertEquals(get_rrset(data, rrset['name'], 'A')['records'], rrset['records'])
 
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_create_zone_with_comments(self):
         name = unique_zone_name()
         rrsets = [
@@ -327,8 +330,9 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         }
         name, payload, data = self.create_zone(name=name, rrsets=[rrset], soa_edit_api='')
         self.assertEquals(get_rrset(data, name, 'SOA')['records'], rrset['records'])
-        dbrecs = get_db_records(name, 'SOA')
-        self.assertEqual(dbrecs[0]['content'], content.replace('. ', ' '))
+        if not is_auth_lmdb():
+            dbrecs = get_db_records(name, 'SOA')
+            self.assertEqual(dbrecs[0]['content'], content.replace('. ', ' '))
 
     def test_create_zone_double_dot(self):
         name = 'test..' + unique_zone_name()
@@ -418,8 +422,9 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)
-        dbrecs = get_db_records(name, 'SOA')
-        self.assertEqual(dbrecs[0]['name'], name.rstrip('.'))
+        if not is_auth_lmdb():
+            dbrecs = get_db_records(name, 'SOA')
+            self.assertEqual(dbrecs[0]['name'], name.rstrip('.'))
 
     def test_create_zone_with_nameservers_non_string(self):
         # ensure we don't crash
@@ -832,10 +837,11 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
 
         eq_zone_rrsets(data['rrsets'], expected)
 
-        # check content in DB is stored WITHOUT trailing dot.
-        dbrecs = get_db_records(payload['name'], 'NS')
-        dbrec = next((dbrec for dbrec in dbrecs if dbrec['content'].startswith('powerdnssec1')))
-        self.assertEqual(dbrec['content'], 'powerdnssec1.ds9a.nl')
+        if not is_auth_lmdb():
+            # check content in DB is stored WITHOUT trailing dot.
+            dbrecs = get_db_records(payload['name'], 'NS')
+            dbrec = next((dbrec for dbrec in dbrecs if dbrec['content'].startswith('powerdnssec1')))
+            self.assertEqual(dbrec['content'], 'powerdnssec1.ds9a.nl')
 
     def test_import_zone_bind(self):
         payload = {
@@ -932,7 +938,7 @@ $ORIGIN %NAME%
                          name + '\t3600\tIN\tNS\tns2.foo.com.',
                          name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
-        self.assertEquals(data['zone'].strip().split('\n'), expected_data)
+        self.assertCountEqual(data['zone'].strip().split('\n'), expected_data)
 
     def test_export_zone_text(self):
         name, payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
@@ -946,7 +952,7 @@ $ORIGIN %NAME%
                          name + '\t3600\tIN\tNS\tns2.foo.com.',
                          name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
-        self.assertEquals(data, expected_data)
+        self.assertCountEqual(data, expected_data)
 
     def test_update_zone(self):
         name, payload, zone = self.create_zone()
@@ -983,6 +989,7 @@ $ORIGIN %NAME%
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
 
+    @unittest.skipIf(is_auth_lmdb(), "No disabled in LMDB")
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
         # do a replace (= update)
@@ -1010,7 +1017,7 @@ $ORIGIN %NAME%
         self.assert_success(r)
         # verify that (only) the new record is there
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
-        self.assertEquals(get_rrset(data, name, 'NS')['records'], rrset['records'])
+        self.assertCountEqual(get_rrset(data, name, 'NS')['records'], rrset['records'])
 
     def test_zone_rr_update_mx(self):
         # Important to test with MX records, as they have a priority field, which must end up in the content field.
@@ -1575,6 +1582,7 @@ $ORIGIN %NAME%
         self.assertEquals(r.status_code, 422)
         self.assertIn('Not in expected format', r.json()['error'])
 
+    @unittest.skipIf(is_auth_lmdb(), "No out-of-zone storage in LMDB")
     def test_zone_rr_delete_out_of_zone(self):
         name, payload, zone = self.create_zone()
         rrset = {
@@ -1596,6 +1604,7 @@ $ORIGIN %NAME%
         self.assertEquals(r.status_code, 204)
         self.assertNotIn('Content-Type', r.headers)
 
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_create(self):
         name, payload, zone = self.create_zone()
         rrset = {
@@ -1632,6 +1641,7 @@ $ORIGIN %NAME%
         # verify that TTL is correct (regression test)
         self.assertEquals(serverset['ttl'], 3600)
 
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_delete(self):
         # Test: Delete ONLY comments.
         name, payload, zone = self.create_zone()
@@ -1654,6 +1664,7 @@ $ORIGIN %NAME%
         self.assertNotEquals(serverset['records'], [])
         self.assertEquals(serverset['comments'], [])
 
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_out_of_range_modified_at(self):
         # Test if comments on an rrset stay intact if the rrset is replaced
         name, payload, zone = self.create_zone()
@@ -1677,6 +1688,7 @@ $ORIGIN %NAME%
         self.assertEquals(r.status_code, 422)
         self.assertIn("Value for key 'modified_at' is out of range", r.json()['error'])
 
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_stay_intact(self):
         # Test if comments on an rrset stay intact if the rrset is replaced
         name, payload, zone = self.create_zone()
@@ -1725,13 +1737,14 @@ $ORIGIN %NAME%
         self.assertEquals(serverset['records'], rrset2['records'])
         self.assertEquals(serverset['comments'], rrset['comments'])
 
+    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone(self):
         name = unique_zone_name()
         self.create_zone(name=name, serial=22, soa_edit_api='')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.')))
         self.assert_success_json(r)
         print(r.json())
-        self.assertEquals(r.json(), [
+        self.assertCountEqual(r.json(), [
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
@@ -1744,6 +1757,7 @@ $ORIGIN %NAME%
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
+    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone_filter_type_zone(self):
         name = unique_zone_name()
         data_type = "zone"
@@ -1755,6 +1769,7 @@ $ORIGIN %NAME%
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
         ])
 
+    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone_filter_type_record(self):
         name = unique_zone_name()
         data_type = "record"
@@ -1762,7 +1777,7 @@ $ORIGIN %NAME%
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
         self.assert_success_json(r)
         print(r.json())
-        self.assertEquals(r.json(), [
+        self.assertCountEqual(r.json(), [
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
@@ -1774,6 +1789,7 @@ $ORIGIN %NAME%
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
+    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_substring(self):
         name = unique_zone_name()
         search = name[5:-5]
@@ -1784,6 +1800,7 @@ $ORIGIN %NAME%
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
+    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_case_insensitive(self):
         name = unique_zone_name()+'testsuffix.'
         self.create_zone(name=name)
@@ -1793,6 +1810,7 @@ $ORIGIN %NAME%
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
+    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_after_rectify_with_ent(self):
         name = unique_zone_name()
         search = name.split('.')[0]
@@ -1813,6 +1831,7 @@ $ORIGIN %NAME%
         # should return zone, SOA, ns1, ns2, sub.sub A (but not the ENT)
         self.assertEquals(len(r.json()), 5)
 
+    @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
     def test_default_api_rectify(self):
         name = unique_zone_name()
         search = name.split('.')[0]
@@ -1840,6 +1859,7 @@ $ORIGIN %NAME%
         dbrecs = get_db_records(name, 'AAAA')
         self.assertIsNotNone(dbrecs[0]['ordername'])
 
+    @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
     def test_override_api_rectify(self):
         name = unique_zone_name()
         search = name.split('.')[0]
@@ -1867,6 +1887,7 @@ $ORIGIN %NAME%
         dbrecs = get_db_records(name, 'AAAA')
         self.assertIsNone(dbrecs[0]['ordername'])
 
+    @unittest.skipIf(is_auth_lmdb(), "No get_db_records for LMDB")
     def test_explicit_rectify_success(self):
         name, _, data = self.create_zone = self.create_zone(api_rectify=False, dnssec=True, nsec3param='1 0 1 ab')
         dbrecs = get_db_records(name, 'SOA')
@@ -1885,8 +1906,9 @@ $ORIGIN %NAME%
         self.assertEquals(r.status_code, 204)
         r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data['id'] + "/rectify"))
         self.assertEquals(r.status_code, 200)
-        dbrecs = get_db_records(name, 'SOA')
-        self.assertIsNotNone(dbrecs[0]['ordername'])
+        if not is_auth_lmdb():
+            dbrecs = get_db_records(name, 'SOA')
+            self.assertIsNotNone(dbrecs[0]['ordername'])
 
     def test_cname_at_ent_place(self):
         name, payload, zone = self.create_zone(dnssec=True, api_rectify=True)
