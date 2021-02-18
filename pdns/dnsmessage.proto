@@ -86,3 +86,7 @@ message PBDNSMessage {
   optional uint32 fromPort = 20;                // Source port of the DNS query (client)
   optional uint32 toPort = 21;                  // Destination port of the DNS query (server)
 }
+
+message PBDNSMessageList {
+  repeated PBDNSMessage msg = 1;
+}
