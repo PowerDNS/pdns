@@ -1029,7 +1029,7 @@ public:
   void close() override
   {
     if (d_conn) {
-      gnutls_bye(d_conn.get(), GNUTLS_SHUT_WR);
+      gnutls_bye(d_conn.get(), GNUTLS_SHUT_RDWR);
     }
   }
 
