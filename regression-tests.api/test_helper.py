@@ -1,7 +1,6 @@
 from __future__ import print_function
 from datetime import datetime
 import os
-import getpass
 import requests
 import unittest
 import mysql.connector
