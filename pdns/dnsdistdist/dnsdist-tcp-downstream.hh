@@ -18,6 +18,8 @@ struct TCPQuery
 
   IDState d_idstate;
   PacketBuffer d_buffer;
+  std::string d_proxyProtocolPayload;
+  bool d_proxyProtocolPayloadAdded{false};
 };
 
 class TCPConnectionToBackend;
@@ -165,8 +167,6 @@ public:
   void handleTimeout(const struct timeval& now, bool write);
   void release();
 
-  void setProxyProtocolPayload(std::string&& payload);
-  void setProxyProtocolPayloadAdded(bool added);
   void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
 
   std::string toString() const
@@ -191,6 +191,10 @@ private:
   uint16_t getQueryIdFromResponse();
   bool reconnect();
   void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
+  bool needProxyProtocolPayload() const
+  {
+    return !d_proxyProtocolPayloadSent && (d_ds && d_ds->useProxyProtocol);
+  }
 
   boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
@@ -232,7 +236,6 @@ private:
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
   std::shared_ptr<IncomingTCPConnectionState> d_clientConn;
-  std::string d_proxyProtocolPayload;
   TCPQuery d_currentQuery;
   struct timeval d_connectionStartTime;
   size_t d_currentPos{0};
@@ -244,5 +247,5 @@ private:
   bool d_enableFastOpen{false};
   bool d_connectionDied{false};
   bool d_usedForXFR{false};
-  bool d_proxyProtocolPayloadAdded{false};
+  bool d_proxyProtocolPayloadSent{false};
 };

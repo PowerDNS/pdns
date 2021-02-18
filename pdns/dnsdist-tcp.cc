@@ -133,9 +133,16 @@ public:
     }
   }
 
-  static void clear()
+  static size_t clear()
   {
+    size_t count = 0;
+    for (const auto downstream : t_downstreamConnections) {
+      count += downstream.second.size();
+    }
+
     t_downstreamConnections.clear();
+
+    return count;
   }
 
 private:
@@ -175,9 +182,9 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
   d_handler.close();
 }
 
-void IncomingTCPConnectionState::clearAllDownstreamConnections()
+size_t IncomingTCPConnectionState::clearAllDownstreamConnections()
 {
-  DownstreamConnectionsManager::clear();
+  return DownstreamConnectionsManager::clear();
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
@@ -699,16 +706,17 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     downstreamConnection->setProxyProtocolValuesSent(std::move(dq.proxyProtocolValues));
   }
 
+  TCPQuery query(std::move(state->d_buffer), std::move(ids));
   if (proxyProtocolPayloadAdded) {
-    downstreamConnection->setProxyProtocolPayloadAdded(true);
+    query.d_proxyProtocolPayloadAdded = true;
   }
   else {
-    downstreamConnection->setProxyProtocolPayload(std::move(proxyProtocolPayload));
+    query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
   }
 
   ++state->d_currentQueriesCount;
-  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).getName(), state->d_proxiedRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
-  downstreamConnection->queueQuery(TCPQuery(std::move(state->d_buffer), std::move(ids)), downstreamConnection);
+  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).getName(), state->d_proxiedRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), query.d_buffer.size(), ds->getName());
+  downstreamConnection->queueQuery(std::move(query), downstreamConnection);
 }
 
 void IncomingTCPConnectionState::handleIOCallback(int fd, FDMultiplexer::funcparam_t& param)
@@ -935,6 +943,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         ++state->d_ci.cs->tcpDiedReadingQuery;
       }
       else if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
+        /* unlikely to happen here, the exception should be handled in sendResponse() */
         ++state->d_ci.cs->tcpDiedSendingResponse;
       }
 

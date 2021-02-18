@@ -61,6 +61,9 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
 
   DEBUGLOG("query sent to backend");
   /* request sent ! */
+  if (conn->d_currentQuery.d_proxyProtocolPayloadAdded) {
+    conn->d_proxyProtocolPayloadSent = true;
+  }
   conn->incQueries();
   conn->d_currentPos = 0;
 
@@ -211,9 +214,9 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
               iostate = queueNextQuery(conn);
             }
 
-            if (!conn->d_proxyProtocolPayloadAdded && !conn->d_proxyProtocolPayload.empty()) {
-              conn->d_currentQuery.d_buffer.insert(conn->d_currentQuery.d_buffer.begin(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
-              conn->d_proxyProtocolPayloadAdded = true;
+            if (conn->needProxyProtocolPayload() && !conn->d_currentQuery.d_proxyProtocolPayloadAdded && !conn->d_currentQuery.d_proxyProtocolPayload.empty()) {
+              conn->d_currentQuery.d_buffer.insert(conn->d_currentQuery.d_buffer.begin(), conn->d_currentQuery.d_proxyProtocolPayload.begin(), conn->d_currentQuery.d_proxyProtocolPayload.end());
+              conn->d_currentQuery.d_proxyProtocolPayloadAdded = true;
             }
 
             reconnected = true;
@@ -273,16 +276,15 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
     d_state = State::sendingQueryToBackend;
     d_currentPos = 0;
     d_currentQuery = std::move(query);
-    if (!d_proxyProtocolPayloadAdded && !d_proxyProtocolPayload.empty()) {
-      d_currentQuery.d_buffer.insert(d_currentQuery.d_buffer.begin(), d_proxyProtocolPayload.begin(), d_proxyProtocolPayload.end());
-      d_proxyProtocolPayloadAdded = true;
+    if (needProxyProtocolPayload() && !d_currentQuery.d_proxyProtocolPayloadAdded && !d_currentQuery.d_proxyProtocolPayload.empty()) {
+      d_currentQuery.d_buffer.insert(d_currentQuery.d_buffer.begin(), d_currentQuery.d_proxyProtocolPayload.begin(), d_currentQuery.d_proxyProtocolPayload.end());
+      d_currentQuery.d_proxyProtocolPayloadAdded = true;
     }
 
     struct timeval now;
     gettimeofday(&now, 0);
 
     handleIO(sharedSelf, now);
-    // d_ioState->update(IOState::NeedWrite, handleIOCallback, sharedSelf, getBackendWriteTTD(now));
   }
   else {
     DEBUGLOG("Adding new query to the queue because we are in state "<<(int)d_state);
@@ -301,6 +303,7 @@ bool TCPConnectionToBackend::reconnect()
   }
 
   d_fresh = true;
+  d_proxyProtocolPayloadSent = false;
 
   do {
     vinfolog("TCP connecting to downstream %s (%d)", d_ds->getNameWithAddr(), d_downstreamFailures);
@@ -502,16 +505,6 @@ uint16_t TCPConnectionToBackend::getQueryIdFromResponse()
   dnsheader dh;
   memcpy(&dh, &d_responseBuffer.at(0), sizeof(dh));
   return ntohs(dh.id);
-}
-
-void TCPConnectionToBackend::setProxyProtocolPayload(std::string&& payload)
-{
-  d_proxyProtocolPayload = std::move(payload);
-}
-
-void TCPConnectionToBackend::setProxyProtocolPayloadAdded(bool added)
-{
-  d_proxyProtocolPayloadAdded = added;
 }
 
 void TCPConnectionToBackend::setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent)

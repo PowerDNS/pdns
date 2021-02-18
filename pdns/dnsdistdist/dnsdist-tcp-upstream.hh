@@ -151,7 +151,7 @@ public:
     return d_threadData.mplexer;
   }
 
-  static void clearAllDownstreamConnections();
+  static size_t clearAllDownstreamConnections();
 
   static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
