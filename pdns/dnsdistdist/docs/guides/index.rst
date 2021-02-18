@@ -15,5 +15,6 @@ These chapters contain several guides and nuggets of information regarding dnsdi
    carbon
    dns-over-tls
    ocsp-stapling
+   tls-sessions-management
 
 
