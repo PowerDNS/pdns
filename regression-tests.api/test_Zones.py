@@ -938,7 +938,7 @@ $ORIGIN %NAME%
                          name + '\t3600\tIN\tNS\tns2.foo.com.',
                          name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
-        self.assertEquals(data['zone'].strip().split('\n'), expected_data)
+        self.assertCountEqual(data['zone'].strip().split('\n'), expected_data)
 
     def test_export_zone_text(self):
         name, payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
@@ -952,7 +952,7 @@ $ORIGIN %NAME%
                          name + '\t3600\tIN\tNS\tns2.foo.com.',
                          name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
-        self.assertEquals(data, expected_data)
+        self.assertCountEqual(data, expected_data)
 
     def test_update_zone(self):
         name, payload, zone = self.create_zone()
@@ -1017,7 +1017,7 @@ $ORIGIN %NAME%
         self.assert_success(r)
         # verify that (only) the new record is there
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
-        self.assertEquals(get_rrset(data, name, 'NS')['records'], rrset['records'])
+        self.assertCountEqual(get_rrset(data, name, 'NS')['records'], rrset['records'])
 
     def test_zone_rr_update_mx(self):
         # Important to test with MX records, as they have a priority field, which must end up in the content field.
@@ -1744,7 +1744,7 @@ $ORIGIN %NAME%
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.')))
         self.assert_success_json(r)
         print(r.json())
-        self.assertEquals(r.json(), [
+        self.assertCountEqual(r.json(), [
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
@@ -1777,7 +1777,7 @@ $ORIGIN %NAME%
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
         self.assert_success_json(r)
         print(r.json())
-        self.assertEquals(r.json(), [
+        self.assertCountEqual(r.json(), [
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
