@@ -2107,14 +2107,15 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
       /* sending it to the client (4) but short write */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, responses.at(3).size() - 1, [&threadData](int desc, const ExpectedStep& step) {
-        /* set the client descriptor as ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+        /* set the client descriptor as NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
       } },
-#warning FIXME? We are trying to write again when coming back from handleQuery, this is a bit useless..
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0 },
       /* reading a response from the backend (5) */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2, [&threadData](int desc, const ExpectedStep& step) {
+        /* set the client descriptor as ready to resume sending */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+      } },
       /* resume sending it to the client (4) */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 1 },
       /* sending it to the client (5) */
@@ -2518,17 +2519,15 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
       } },
       /* nothing from the client either */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
-#warning this is wasteful as well..
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor is NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+      } },
       /* read the response (2) from the bacend  */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
       /* trying to send response (2) to the client but blocking */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0, [&threadData](int desc, const ExpectedStep& step) {
-        /* the client descriptor is NOT ready */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-      } },
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 0 },
       /* reading the response (1) from the backend */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
@@ -2792,9 +2791,9 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
       }},
       /* nothing from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
-      /* nothing from the client (again) */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
+      } },
       /* backend closes the connection on us */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 0 },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
@@ -2809,13 +2808,14 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() },
       /* sending the response (2) to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size() },
-      /* still nothing from the client */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
       /* got the response for 3 */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() },
       /* sending the response (3) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size() },
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
       /* client closes the connection */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
       /* closing the client connection */
