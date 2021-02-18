@@ -73,8 +73,7 @@ def is_auth():
     return DAEMON == 'authoritative'
 
 def is_auth_lmdb():
-    print('BACKEND=', BACKEND)
-    return DAEMON == 'authoritative'
+    return DAEMON == 'authoritative' and BACKEND == 'lmdb'
 
 def is_recursor():
     return DAEMON == 'recursor'
