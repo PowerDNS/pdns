@@ -2847,6 +2847,90 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
     BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0);
   }
+
+  {
+    TEST_NAME("=> I/O error with the backend with queries not sent to the backend yet");
+
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    s_readBuffer.clear();
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(0).begin(), queries.at(0).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(1).begin(), queries.at(1).end());
+    s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
+
+    s_writeBuffer.clear();
+
+    s_backendReadBuffer.clear();
+
+    s_backendWriteBuffer.clear();
+
+    /* make sure that the backend's timeout is shorter than the client's */
+    backend->tcpSendTimeout = 1;
+    g_tcpRecvTimeout = 5;
+
+    bool timeout = false;
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* backend is not ready yet */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, 0 },
+      /* reading a second query from the client */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
+      /* reading a third query from the client */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2, [&timeout](int desc, const ExpectedStep& step) {
+        timeout = true;
+      } },
+      /* trying to read more from the client but nothing to read */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
+      /* closing the backend connection */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
+    };
+
+    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    while (!timeout && (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0)) {
+      threadData.mplexer->run(&now);
+    }
+
+    struct timeval later = now;
+    later.tv_sec += backend->tcpSendTimeout + 1;
+    auto expiredConns = threadData.mplexer->getTimeouts(later, true);
+    BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
+    for (const auto& cbData : expiredConns) {
+      if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
+        auto cbState = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
+        cbState->handleTimeout(later, true);
+      }
+    }
+
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), 0U);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), 0U);
+
+    /* restore */
+    backend->tcpSendTimeout = 30;
+    g_tcpRecvTimeout = 2;
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0);
+  }
 }
 
 #warning TODO:
