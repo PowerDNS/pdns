@@ -1096,8 +1096,8 @@ static void registerAllStats1()
   addGetStat("auth6-answers100-1000", []() { return g_stats.auth6Answers.getCount(3); });
   addGetStat("auth6-answers-slow", []() { return g_stats.auth6Answers.getCount(4); });
 
-  addGetStat("qa-latency", []() { return g_stats.avgLatencyUsec.load(); });
-  addGetStat("x-our-latency", []() { return g_stats.avgLatencyOursUsec.load(); });
+  addGetStat("qa-latency", []() { return round(g_stats.avgLatencyUsec.load()); });
+  addGetStat("x-our-latency", []() { return round(g_stats.avgLatencyOursUsec.load()); });
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);
