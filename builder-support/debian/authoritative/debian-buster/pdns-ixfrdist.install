@@ -1,4 +1,3 @@
+debian/config/ixfrdist.yml etc/powerdns
+lib/systemd/system/ixfrdist*.service
 usr/bin/ixfrdist
-etc/powerdns/ixfrdist.example.yml
-lib/systemd/system/ixfrdist.service
-lib/systemd/system/ixfrdist@.service

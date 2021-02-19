@@ -1,0 +1,42 @@
+#!/bin/bash
+exec 2>&1
+set -ex
+
+CONFDIR="$PWD"
+
+cat <<EOF >"$CONFDIR/named.conf"
+zone "bind.example.org" { type master; file "$CONFDIR/bind.example.org.zone"; };
+EOF
+
+cat <<EOF >"$CONFDIR/bind.example.org.zone"
+bind.example.org.           172800  IN      SOA     ns1.example.org. dns.example.org. 1 10800 3600 604800 3600
+bind.example.org.           172800  IN      NS      ns1.example.org.
+smoke.bind.example.org.     172800  IN      A       127.0.0.123
+EOF
+
+TMPFILE=$(mktemp)
+cleanup() {
+  rm -f "$TMPFILE"
+  rm -f named.conf bind.example.org.zone
+  kill $(cat pdns.pid) || true
+  rm -f pdns.conf pdns.pid pdns.controlsocket
+}
+trap cleanup EXIT
+
+cat <<EOF >pdns.conf
+module-dir=../../modules/bindbackend/.libs/
+launch=bind
+bind-config=./named.conf
+EOF
+
+./launch-pdns
+
+dig -p 5301 @127.0.0.1 smoke.bind.example.org 2>&1 | tee "$TMPFILE"
+
+if grep -c '127\.0\.0\.123' "$TMPFILE"; then
+    echo success
+else
+    echo smoke could not be resolved
+    exit 1
+fi
+

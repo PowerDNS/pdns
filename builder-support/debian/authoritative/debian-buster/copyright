@@ -3,10 +3,8 @@ Upstream-Name: PowerDNS
 Source: https://www.powerdns.com/downloads.html
 
 Files: *
-Copyright: 2002 - 2021 PowerDNS.COM BV and contributors
+Copyright: 2002 - 2020 PowerDNS.COM BV and contributors
 License: GPL-2 with OpenSSL Exception
-Comment: Sometimes, Netherlabs BV is credited, which is a precursor
- to todays PowerDNS.COM BV.
 
 Files: m4/ax_cxx_compile_stdcxx_11.m4
 Copyright: 2008 Benjamin Kosnik <bkoz@redhat.com>
@@ -17,7 +15,11 @@ License: free-generic
 
 Files: m4/boost.m4
 Copyright: 2007-2011, 2014  Benoit Sigoure <tsuna@lrde.epita.fr>
-License: GPL-3 or Autoconf
+License: GPL-3-Autoconf
+
+Files: m4/libcurl.m4
+Copyright: 2006 David Shaw <dshaw@jabberwocky.com>
+License: curl
 
 Files: m4/libtool.m4 m4/lt*.m4
 Copyright: 1996-2011 Free Software Foundation, Inc.
@@ -26,6 +28,10 @@ License: free-fsf
 Files: m4/systemd.m4
 Copyright: 2014 Luis R. Rodriguez <mcgrof@suse.com>
  2016 Pieter Lexis <pieter.lexis@powerdns.com>
+License: GPL-2+
+
+Files: m4/tm-gmtoff.m4
+Copyright: 2002 Jim Seymour
 License: GPL-2+
 
 Files: m4/warnings.m4
@@ -52,20 +58,32 @@ Files: modules/ldapbackend/* pdns/zone2ldap.cc
 Copyright: 2003-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
 License: GPL-2 with OpenSSL Exception
 
-Files: ext/yahttp/*
-Copyright: 2014 Aki Tuomi
-License: Expat
+Files: ext/incbin/*
+Copyright: 2015-2020 Dale Weiler
+License: Unlicense
+
+Files: ext/ipcrypt/*
+Copyright: 2015-2018, Frank Denis <j@pureftpd.org>
+License: ISC
 
 Files: ext/json11/*
 Copyright: 2013 Dropbox, Inc.
+License: Expat
+
+Files: ext/lmdb-safe/*
+Copyright: 2018 bert hubert <bert.hubert@powerdns.com>
 License: Expat
 
 Files: ext/luawrapper/*
 Copyright: 2013, Pierre KRIEGER
 License: BSD-3
 
+Files: ext/yahttp/*
+Copyright: 2014 Aki Tuomi
+License: Expat
+
 Files: pdns/effective_tld_names.dat
-Copyright: 2007–11 Mozilla Foundation
+Copyright: 2007–2020 Mozilla Foundation
 License: MPL-2.0
 
 License: MPL-2.0
@@ -485,6 +503,19 @@ License: Expat
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
 
+License: ISC
+ Permission to use, copy, modify, and/or distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
 License: GPL-2
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -522,7 +553,7 @@ License: GPL-2+
  License version 2 can be found in the file
  `/usr/share/common-licenses/GPL-2'.
 
-License: GPL-3 or Autoconf
+License: GPL-3-Autoconf
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
@@ -588,6 +619,25 @@ License: LGPL-2.1+
  License version 2.1 can be found in the file
  `/usr/share/common-licenses/LGPL-2.1'.
 
+License: curl
+ All rights reserved.
+ .
+ Permission to use, copy, modify, and distribute this software for any purpose
+ with or without fee is hereby granted, provided that the above copyright
+ notice and this permission notice appear in all copies.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN
+ NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ OR OTHER DEALINGS IN THE SOFTWARE.
+ .
+ Except as contained in this notice, the name of a copyright holder shall not
+ be used in advertising or otherwise to promote the sale, use or other dealings
+ in this Software without prior written authorization of the copyright holder.
+
 License: free-fsf
  This file is free software; the Free Software Foundation gives
  unlimited permission to copy and/or distribute it, with or without
@@ -598,3 +648,29 @@ License: free-generic
  permitted in any medium without royalty provided the copyright notice
  and this notice are preserved. This file is offered as-is, without any
  warranty.
+
+License: Unlicense
+ This is free and unencumbered software released into the public domain.
+ .
+ Anyone is free to copy, modify, publish, use, compile, sell, or
+ distribute this software, either in source code form or as a compiled
+ binary, for any purpose, commercial or non-commercial, and by any
+ means.
+ .
+ In jurisdictions that recognize copyright laws, the author or authors
+ of this software dedicate any and all copyright interest in the
+ software to the public domain. We make this dedication for the benefit
+ of the public at large and to the detriment of our heirs and
+ successors. We intend this dedication to be an overt act of
+ relinquishment in perpetuity of all present and future rights to this
+ software under copyright law.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+ .
+ For more information, please refer to <http://unlicense.org/>

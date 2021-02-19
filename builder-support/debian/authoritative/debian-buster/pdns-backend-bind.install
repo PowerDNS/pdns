@@ -1,3 +1,4 @@
 debian/config/bind.conf etc/powerdns/pdns.d/
 debian/config/named.conf etc/powerdns/
+pdns/bind-dnssec*sql usr/share/pdns-backend-bind/schema
 usr/lib/*/pdns/libbindbackend.so*

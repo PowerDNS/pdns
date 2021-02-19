@@ -1,91 +1,64 @@
 #!/usr/bin/make -f
-include /usr/share/dpkg/architecture.mk
-include /usr/share/dpkg/pkg-info.mk
-
-# (Re-)Enable warnings
-CXXFLAGS += -Wall
 
 # Turn on all hardening flags, as we're a networked daemon.
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+# see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/default.mk
+
+# Avoid test failure in docker.
+export PDNS_TEST_NO_IPV6=1
 
 # Backends
-backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lmdb lua2 remote random tinydns
+backends := bind ldap lmdb lua2 pipe gmysql godbc gpgsql gsqlite3 geoip remote random tinydns
 
-# Only enable systemd integration on Linux operating systems
-ifeq ($(DEB_HOST_ARCH_OS),linux)
-CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
-DH_ARGS += --with systemd
-else
-CONFIGURE_ARGS += --disable-systemd
-endif
 
-# Only disable luajit on arm64
-ifneq ($(DEB_HOST_ARCH),arm64)
-CONFIGURE_ARGS += --with-lua=luajit
-else
-CONFIGURE_ARGS += --with-lua=lua5.3
-endif
-
-# Use new build system
 %:
-	dh $@ \
-	  --with autoreconf \
-	  $(DH_ARGS)
+	dh $@
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f dnslabeltext.cc
 
 override_dh_auto_configure:
-	test -f pdns/dnslabeltext.cc && mv pdns/dnslabeltext.cc debian/dnslabeltext.cc.moved || true
 	dh_auto_configure -- \
 		--sysconfdir=/etc/powerdns \
+		--enable-systemd --with-systemd=/lib/systemd/system \
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \
-		--enable-tools \
-		--with-libsodium \
-		--with-lua=luajit \
-		--enable-unit-tests \
-		--enable-experimental-pkcs11 \
-		--enable-lua-records \
 		--enable-ixfrdist \
+		--enable-tools \
+		--with-protobuf \
+		--enable-unit-tests \
+		--enable-lua-records \
+		--enable-experimental-pkcs11 \
+		--disable-silent-rules \
 		$(CONFIGURE_ARGS)
 
-override_dh_strip:
-	dh_strip --ddeb-migration='pdns-server-dbg (<< 4.0.0-0)'
+override_dh_auto_install:
+	dh_auto_install
+	find debian/tmp/usr/lib -name '*.la' -delete
+	rm debian/tmp/etc/powerdns/ixfrdist.example.yml debian/tmp/etc/powerdns/pdns.conf-dist
 
-override_dh_systemd_enable:
-	dh_systemd_enable --name=pdns
-
-# init script needs to be named pdns, not pdns-server. if no pdns-backend
-# is installed, start will fail, so pass --no-start. backends will trigger
-# a restart.
-override_dh_installinit:
-	dh_installinit --error-handler=initscript_error --no-start --restart-after-upgrade --name=pdns
+override_dh_installsystemd:
+	dh_installsystemd --no-start -ppdns-server --name=pdns
+	dh_installsystemd --no-start -ppdns-ixfrdist --name=ixfrdist
 
 override_dh_install:
 	dh_install
-	./pdns/pdns_server --config=default | sed \
+	./pdns/pdns_server --no-config --config=default | sed \
 	  -e 's!# module-dir=.*!!' \
 	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
 	  -e 's!# launch=.*!&\nlaunch=!' \
-	  -e 's!# setgid=.*!setgid=pdns!' \
-	  -e 's!# setuid=.*!setuid=pdns!' \
 	  > debian/pdns-server/etc/powerdns/pdns.conf
-ifeq ($(DEB_HOST_ARCH_BITS),32)
-	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
-	perl -ni -e 'print unless /RestrictAddressFamilies/' debian/pdns-server/lib/systemd/system/*.service
-endif
 
-# Verbose tests (shows used compiler/linker and their flags)
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	echo Skipping make test, as dependencies are missing.
+	./debian/tests-source/run
 	make check || (cat pdns/test-suite.log; false)
 endif
 
 override_dh_fixperms:
 	dh_fixperms
-	# these files often contain passwords. 640 as it is chowned to root:pdns
+	# these files often contain passwords.
 	chmod 0640 debian/pdns-server/etc/powerdns/pdns.conf
-
-# restore moved files
-override_dh_clean:
-	test -f debian/dnslabeltext.cc.moved && mv debian/dnslabeltext.cc.moved pdns/dnslabeltext.cc || true
-	dh_clean

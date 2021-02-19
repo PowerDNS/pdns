@@ -1,1 +1,2 @@
+debian/config/lmdb.conf etc/powerdns/pdns.d/
 usr/lib/*/pdns/liblmdbbackend.so*
