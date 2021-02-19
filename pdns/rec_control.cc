@@ -90,7 +90,8 @@ int main(int argc, char** argv)
     "dump-nsspeeds",
     "dump-failedservers",
     "dump-rpz",
-    "dump-throttlemap"
+    "dump-throttlemap",
+    "dump-non-resolving"
   };
   try {
     initArguments(argc, argv);

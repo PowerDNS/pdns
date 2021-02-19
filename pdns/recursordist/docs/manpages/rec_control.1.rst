@@ -97,6 +97,18 @@ dump-edns *FILENAME*
     already, PowerDNS will refuse to overwrite it. While dumping, the recursor
     will not answer questions.
 
+dump-failedservers *FILENAME*
+    Dump the contents of the failed server map to the *FILENAME* mentioned.
+    This file should not exist already, PowerDNS will refuse to
+    overwrite it otherwise. While dumping, the recursor will not answer
+    questions.
+
+dump-non-resolving *FILENAME*
+    Dump the contents of the map of nameserver names that did not resolve to
+    an address.  This file should not exist already, PowerDNS will
+    refuse to overwrite it otherwise. While dumping, the recursor will
+    not answer questions.
+
 dump-nsspeeds *FILENAME*
     Dumps the nameserver speed statistics to the *FILENAME* mentioned. This
     file should not exist already, PowerDNS will refuse to overwrite it. While
@@ -111,12 +123,6 @@ dump-rpz *ZONE NAME* *FILE NAME*
 
 dump-throttlemap *FILENAME*
     Dump the contents of the throttle map to the *FILENAME* mentioned.
-    This file should not exist already, PowerDNS will refuse to
-    overwrite it otherwise. While dumping, the recursor will not answer
-    questions.
-
-dump-failedservers *FILENAME*
-    Dump the contents of the failed server map to the *FILENAME* mentioned.
     This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.

@@ -1246,6 +1246,30 @@ a new domain is observed.
 
 Number of milliseconds to wait for a remote authoritative server to respond.
 
+.. _setting-non-resolving-ns-max-fails:
+
+``non-resolving-ns-max-fails``
+------------------------------
+.. versionadded:: 4.5.0
+
+- Integer
+- Default: 1
+
+Number of failed address resolves of a nameserver name to start throttling it, 0 is disabled.
+Nameservers matching :ref:`setting-dont-throttle-names` will not be throttled.
+
+
+.. _setting-non-resolving-ns-throttle-time:
+
+``non-resolving-ns-max-throttle-time``
+--------------------------------------
+.. versionadded:: 4.5.0
+
+- Integer
+- Default: 60
+
+Number of seconds the throttle a nameserver with a name failing to resolve.
+
 .. _setting-nothing-below-nxdomain:
 
 ``nothing-below-nxdomain``

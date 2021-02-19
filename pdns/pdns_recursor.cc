@@ -3503,6 +3503,7 @@ static void houseKeeping(void *)
       limit = now.tv_sec - 2*3600;
       SyncRes::pruneEDNSStatuses(limit);
       SyncRes::pruneThrottledServers();
+      SyncRes::pruneNonResolving(now.tv_sec - SyncRes::s_nonresolvingnsthrottletime);
       Utility::gettimeofday(&last_prune, nullptr);
     }
 
@@ -4600,6 +4601,8 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_packetcacheservfailttl=(packetCacheServFailTTL > SyncRes::s_packetcachettl) ? SyncRes::s_packetcachettl : packetCacheServFailTTL;
   SyncRes::s_serverdownmaxfails=::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
+  SyncRes::s_nonresolvingnsmaxfails=::arg().asNum("non-resolving-ns-max-fails");
+  SyncRes::s_nonresolvingnsthrottletime=::arg().asNum("non-resolving-ns-throttle-time");
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxnsaddressqperq=::arg().asNum("max-ns-address-qperq");
@@ -5365,6 +5368,9 @@ int main(int argc, char **argv)
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";
     ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix")="";
     ::arg().set("dont-throttle-netmasks", "Do not throttle nameservers with this IP netmask")="";
+    ::arg().set("non-resolving-ns-max-fails", "Number of failed address resolves of a nameserver to start throttling it, 0 is disabled")="1";
+    ::arg().set("non-resolving-ns-throttle-time", "Number of seconds the throttle a nameserver with a name failing to resolve")="60";
+
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
