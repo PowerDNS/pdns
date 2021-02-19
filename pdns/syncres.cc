@@ -535,7 +535,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fd)
     close(newfd);
     return 0;
   }
-  fprintf(fp.get(), "; non resolving nameserver dump follows\n");
+  fprintf(fp.get(), "; non-resolving nameserver dump follows\n");
   fprintf(fp.get(), "; name\tcount\ttimestamp\n");
   uint64_t count=0;
 
@@ -2299,7 +2299,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
   if (!tns->first.empty()) {
     if (s_nonresolvingnsmaxfails > 0 && t_sstorage.nonresolving.value(tns->first) >= s_nonresolvingnsmaxfails) {
-      LOG(prefix<<qname<<": NS "<<tns->first<< " in nonresolving map, skipping"<<endl);
+      LOG(prefix<<qname<<": NS "<<tns->first<< " in non-resolving map, skipping"<<endl);
       return result;
     }
 
