@@ -98,32 +98,13 @@ unsigned int SyncRes::s_refresh_ttlperc;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
-static void accountAuthLatency(int usec, int family)
+static inline void accountAuthLatency(uint64_t usec, int family)
 {
-  if(family == AF_INET) {
-    if(usec < 1000)
-      g_stats.auth4Answers0_1++;
-    else if(usec < 10000)
-      g_stats.auth4Answers1_10++;
-    else if(usec < 100000)
-      g_stats.auth4Answers10_100++;
-    else if(usec < 1000000)
-      g_stats.auth4Answers100_1000++;
-    else
-      g_stats.auth4AnswersSlow++;
+  if (family == AF_INET) {
+    g_stats.auth4Answers(usec);
   } else  {
-    if(usec < 1000)
-      g_stats.auth6Answers0_1++;
-    else if(usec < 10000)
-      g_stats.auth6Answers1_10++;
-    else if(usec < 100000)
-      g_stats.auth6Answers10_100++;
-    else if(usec < 1000000)
-      g_stats.auth6Answers100_1000++;
-    else
-      g_stats.auth6AnswersSlow++;
+    g_stats.auth6Answers(usec);
   }
-
 }
 
 
@@ -867,7 +848,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
           accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
           if (fromCache)
             *fromCache = true;
-          
+
           // filter out the good stuff from lwr.result()
           if (resolveRet == LWResult::Result::Success) {
             for(const auto& rec : lwr.d_records) {

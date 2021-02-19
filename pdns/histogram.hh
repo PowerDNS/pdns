@@ -1,9 +1,29 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #pragma once
 
 #include <algorithm>
 #include <atomic>
 #include <vector>
-#include <sstream>
 
 namespace pdns {
 
@@ -11,8 +31,8 @@ namespace pdns {
 struct Bucket
 {
   std::string d_name;
-  uint64_t d_boundary;
-  uint64_t d_count;
+  uint64_t d_boundary{0};
+  uint64_t d_count{0};
 };
 
 inline bool operator<(uint64_t b, const Bucket& bu)
@@ -23,15 +43,14 @@ inline bool operator<(uint64_t b, const Bucket& bu)
 
 struct AtomicBucket
 {
-  // We need the constrcutors in this case, since atomics have a disabled
-  // copy constructor.
+  // We need the constructors in this case, since atomics have a disabled copy constructor.
   AtomicBucket() {}
   AtomicBucket(std::string name, uint64_t boundary, uint64_t val) : d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
   AtomicBucket(const AtomicBucket& rhs) : d_name(rhs.d_name), d_boundary(rhs.d_boundary), d_count(rhs.d_count.load()) {}
 
   std::string d_name;
-  uint64_t d_boundary;
-  std::atomic<uint64_t> d_count;
+  uint64_t d_boundary{0};
+  std::atomic<uint64_t> d_count{0};
 };
 
 inline bool operator<(uint64_t b, const AtomicBucket& bu)
@@ -57,12 +76,10 @@ public:
     }
     d_buckets.reserve(boundaries.size() + 1);
     for (auto b: boundaries) {
-      // to_string gives too many .00000's
-      std::ostringstream str;
-      str << prefix << "le-" << b;
-      d_buckets.push_back(B{str.str(), b, 0});
+      std::string str = prefix + "le-" + std::to_string(b);
+      d_buckets.push_back(B{str, b, 0});
     }
-    // everything above last boundary, plus NaN, Inf etc
+    // everything above last boundary
     d_buckets.push_back(B{prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0});
   }
 

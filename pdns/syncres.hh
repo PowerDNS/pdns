@@ -51,6 +51,7 @@
 #include "negcache.hh"
 #include "proxy-protocol.hh"
 #include "sholder.hh"
+#include "histogram.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -976,10 +977,10 @@ struct RecursorStats
   std::atomic<uint64_t> servFails;
   std::atomic<uint64_t> nxDomains;
   std::atomic<uint64_t> noErrors;
-  std::atomic<uint64_t> answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
-  std::atomic<uint64_t> auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
-  std::atomic<uint64_t> auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
-  std::atomic<uint64_t> ourtime0_1, ourtime1_2, ourtime2_4, ourtime4_8, ourtime8_16, ourtime16_32, ourtimeSlow;
+  pdns::AtomicHistogram<uint64_t> answers;
+  pdns::AtomicHistogram<uint64_t> auth4Answers;
+  pdns::AtomicHistogram<uint64_t> auth6Answers;
+  pdns::AtomicHistogram<uint64_t> ourtime;
   std::atomic<double> avgLatencyUsec;
   std::atomic<double> avgLatencyOursUsec;
   std::atomic<uint64_t> qcounter;     // not increased for unauth packets
@@ -1021,6 +1022,14 @@ struct RecursorStats
   std::atomic<uint64_t> rebalancedQueries{0};
   std::atomic<uint64_t> proxyProtocolInvalidCount{0};
   std::atomic<uint64_t> nodLookupsDroppedOversize{0};
+
+  RecursorStats() :
+    answers("answers", { 1000, 10000, 100000, 1000000 }),
+    auth4Answers("answers", { 1000, 10000, 100000, 1000000 }),
+    auth6Answers("answers", { 1000, 10000, 100000, 1000000 }),
+    ourtime("ourtime", { 1000, 2000, 4000, 8000, 16000, 32000 })
+  {
+  }
 };
 
 //! represents a running TCP/IP client session

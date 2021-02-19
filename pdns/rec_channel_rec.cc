@@ -969,11 +969,6 @@ static uint64_t doGetCacheSize()
   return g_recCache->size();
 }
 
-static uint64_t doGetAvgLatencyUsec()
-{
-  return (uint64_t) g_stats.avgLatencyUsec;
-}
-
 static uint64_t doGetCacheBytes()
 {
   return g_recCache->bytes();
@@ -1075,34 +1070,33 @@ static void registerAllStats1()
   addGetStat("truncated-drops", &g_stats.truncatedDrops);
   addGetStat("query-pipe-full-drops", &g_stats.queryPipeFullDrops);
 
-  addGetStat("answers0-1", &g_stats.answers0_1);
-  addGetStat("answers1-10", &g_stats.answers1_10);
-  addGetStat("answers10-100", &g_stats.answers10_100);
-  addGetStat("answers100-1000", &g_stats.answers100_1000);
-  addGetStat("answers-slow", &g_stats.answersSlow);
+  addGetStat("answers0-1", []() { return g_stats.answers.getCount(0); });
+  addGetStat("answers1-10", []() { return g_stats.answers.getCount(1); });
+  addGetStat("answers10-100", []() { return g_stats.answers.getCount(2); });
+  addGetStat("answers100-1000", []() { return g_stats.answers.getCount(3); });
+  addGetStat("answers-slow", []() { return g_stats.answers.getCount(4); });
 
-  addGetStat("x-ourtime0-1", &g_stats.ourtime0_1);
-  addGetStat("x-ourtime1-2", &g_stats.ourtime1_2);
-  addGetStat("x-ourtime2-4", &g_stats.ourtime2_4);
-  addGetStat("x-ourtime4-8", &g_stats.ourtime4_8);
-  addGetStat("x-ourtime8-16", &g_stats.ourtime8_16);
-  addGetStat("x-ourtime16-32", &g_stats.ourtime16_32);
-  addGetStat("x-ourtime-slow", &g_stats.ourtimeSlow);
+  addGetStat("x-ourtime0-1", []() { return g_stats.ourtime.getCount(0); });
+  addGetStat("x-ourtime1-2", []() { return g_stats.ourtime.getCount(1); });
+  addGetStat("x-ourtime2-4", []() { return g_stats.ourtime.getCount(2); });
+  addGetStat("x-ourtime4-8", []() { return g_stats.ourtime.getCount(3); });
+  addGetStat("x-ourtime8-16", []() { return g_stats.ourtime.getCount(4); });
+  addGetStat("x-ourtime16-32", []() { return g_stats.ourtime.getCount(5); });
+  addGetStat("x-ourtime-slow", []() { return g_stats.ourtime.getCount(6); });
 
-  addGetStat("auth4-answers0-1", &g_stats.auth4Answers0_1);
-  addGetStat("auth4-answers1-10", &g_stats.auth4Answers1_10);
-  addGetStat("auth4-answers10-100", &g_stats.auth4Answers10_100);
-  addGetStat("auth4-answers100-1000", &g_stats.auth4Answers100_1000);
-  addGetStat("auth4-answers-slow", &g_stats.auth4AnswersSlow);
+  addGetStat("auth4-answers0-1", []() { return g_stats.auth4Answers.getCount(0); });
+  addGetStat("auth4-answers1-10", []() { return g_stats.auth4Answers.getCount(1); });
+  addGetStat("auth4-answers10-100", []() { return g_stats.auth4Answers.getCount(2); });
+  addGetStat("auth4-answers100-1000", []() { return g_stats.auth4Answers.getCount(3); });
+  addGetStat("auth4-answers-slow", []() { return g_stats.auth4Answers.getCount(4); });
 
-  addGetStat("auth6-answers0-1", &g_stats.auth6Answers0_1);
-  addGetStat("auth6-answers1-10", &g_stats.auth6Answers1_10);
-  addGetStat("auth6-answers10-100", &g_stats.auth6Answers10_100);
-  addGetStat("auth6-answers100-1000", &g_stats.auth6Answers100_1000);
-  addGetStat("auth6-answers-slow", &g_stats.auth6AnswersSlow);
+  addGetStat("auth6-answers0-1", []() { return g_stats.auth6Answers.getCount(0); });
+  addGetStat("auth6-answers1-10", []() { return g_stats.auth6Answers.getCount(1); });
+  addGetStat("auth6-answers10-100", []() { return g_stats.auth6Answers.getCount(2); });
+  addGetStat("auth6-answers100-1000", []() { return g_stats.auth6Answers.getCount(3); });
+  addGetStat("auth6-answers-slow", []() { return g_stats.auth6Answers.getCount(4); });
 
-
-  addGetStat("qa-latency", doGetAvgLatencyUsec);
+  addGetStat("qa-latency", []() { return g_stats.avgLatencyUsec.load(); });
   addGetStat("x-our-latency", []() { return g_stats.avgLatencyOursUsec.load(); });
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
