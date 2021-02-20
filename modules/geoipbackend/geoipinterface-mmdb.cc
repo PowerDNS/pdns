@@ -148,6 +148,50 @@ public:
     return true;
   }
 
+    bool queryISP(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    MMDB_entry_data_s data;
+    MMDB_lookup_result_s res;
+    if (!mmdbLookup(ip, false, gl, res))
+      return false;
+    if (MMDB_get_value(&res.entry, &data, "isp", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    ret = string(data.utf8_string, data.data_size);
+    return true;
+  }
+
+  bool queryISPV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    MMDB_entry_data_s data;
+    MMDB_lookup_result_s res;
+    if (!mmdbLookup(ip, true, gl, res))
+      return false;
+    if (MMDB_get_value(&res.entry, &data, "isp", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    ret = string(data.utf8_string, data.data_size);
+    return true;
+  }
+
+  bool queryOrg(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    MMDB_entry_data_s data;
+    MMDB_lookup_result_s res;
+    if (!mmdbLookup(ip, false, gl, res))
+      return false;
+    if (MMDB_get_value(&res.entry, &data, "organization", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    ret = string(data.utf8_string, data.data_size);
+    return true;
+  }
+
+  bool queryOrgV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
+    MMDB_entry_data_s data;
+    MMDB_lookup_result_s res;
+    if (!mmdbLookup(ip, true, gl, res))
+      return false;
+    if (MMDB_get_value(&res.entry, &data, "organization", NULL) != MMDB_SUCCESS || !data.has_data)
+      return false;
+    ret = string(data.utf8_string, data.data_size);
+    return true;
+  }
+
   bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) override {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;

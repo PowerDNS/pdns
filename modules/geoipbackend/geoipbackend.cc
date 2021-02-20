@@ -517,6 +517,14 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
       if (addr.isIPv6()) found = gi->queryNameV6(val, gl, ip);
       else found = gi->queryName(val, gl, ip);
       break;
+    case GeoIPInterface::ISP:
+      if (addr.isIPv6()) found = gi->queryISPV6(val, gl, ip);
+      else found = gi->queryISP(val, gl, ip);
+      break;
+    case GeoIPInterface::Org:
+      if (addr.isIPv6()) found = gi->queryOrgV6(val, gl, ip);
+      else found = gi->queryOrg(val, gl, ip);
+      break;
     case GeoIPInterface::Continent:
       if (addr.isIPv6()) found = gi->queryContinentV6(val, gl, ip);
       else found = gi->queryContinent(val, gl, ip);
@@ -630,6 +638,20 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
       rep = queryGeoIP(addr, GeoIPInterface::Name, tmp_gl);
     } else if (!sformat.compare(cur,3,"%ci")) {
       rep = queryGeoIP(addr, GeoIPInterface::City, tmp_gl);
+    } else if (!sformat.compare(cur,4,"%nsp")) {
+      rep = queryGeoIP(addr, GeoIPInterface::ISP, tmp_gl);
+      for (long unsigned int i = 0; i < rep.length(); i++) {
+        if (rep[i] == ' ') {
+          rep[i] = '_';
+        }
+      }
+      nrep = 4;
+    } else if (!sformat.compare(cur,4,"%isp")) {
+      rep = queryGeoIP(addr, GeoIPInterface::ISP, tmp_gl);
+      nrep = 4;
+    } else if (!sformat.compare(cur,4,"%org")) {
+      rep = queryGeoIP(addr, GeoIPInterface::Org, tmp_gl);
+      nrep = 4;
     } else if (!sformat.compare(cur,4,"%loc")) {
       char ns, ew;
       int d1, d2, m1, m2;

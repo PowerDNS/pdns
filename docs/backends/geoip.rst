@@ -190,6 +190,9 @@ Following placeholders are supported, and support subnet caching with EDNS:
 :%loc: LOC record style expansion of location
 :%lat: Decimal degree latitude
 :%lon: Decimal degree longitude
+:%isp: ISP name
+:%org: ISP Organization
+:%nsp: ISP name with underscore (_ no spaces)
 
 These placeholders disable caching for the record completely:
 

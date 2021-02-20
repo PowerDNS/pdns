@@ -34,7 +34,9 @@ public:
     Country2,
     Name,
     Region,
-    Location
+    Location,
+    ISP,
+    Org
   };
 
   virtual bool queryCountry(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
@@ -47,6 +49,10 @@ public:
   virtual bool queryNameV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
   virtual bool queryASnum(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
   virtual bool queryASnumV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryISP(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryISPV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryOrg(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
+  virtual bool queryOrgV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
   virtual bool queryRegion(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
   virtual bool queryRegionV6(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
   virtual bool queryCity(string &ret, GeoIPNetmask& gl, const string &ip) = 0;
