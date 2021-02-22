@@ -27,10 +27,9 @@ All of these functions are optional.
 If ``ipfilter`` returns ``true``, the query is dropped.
 If ``preresolve`` returns ``true``, it will indicate it handled a query, and the recursor will send to result as constructed in the functions to the client.
 If it returns ``false``, the Recursor will continue processing.
-For the other functions, the return value will indicate if DNSSEC validation should take place.
-For modified results, the functions should return ``true`` to avoid failing DNSSEC validations.
+For the other functions, the return value will indicate that an alteration has been made. In that case DNSSEC validation will be automatically disabled since the content might not be genuine anymore.
 At specific points the Recursor will check if policy handling should take place.
-These points are immediatly after ``preresolve``, after resolving and after ``postresolve``.
+These points are immediately after ``preresolve``, after resolving and after ``postresolve``.
 
 Interception Functions
 ----------------------
@@ -243,7 +242,7 @@ A minimal sample script:
 **Warning**: Please do NOT use the above sample script in production!
 Responsible NXDomain redirection requires more attention to detail.
 
-Useful 'rcodes' include 0 for "no error" and ``pdns.NXDOMAIN`` for "NXDOMAIN", ``pdns.DROP`` to drop the question from further processing.
+Useful 'rcodes' include 0 for "no error" and ``pdns.NXDOMAIN`` for "NXDOMAIN". Before 4.4.0, ``pdns.DROP`` can also be used to drop the question without any further processing.
 Such a drop is accounted in the 'policy-drops' metric.
 
 Starting with recursor 4.4.0, the method to drop a request is to set the ``dq.appliedPolicy.policyKind`` to the value ``pdns.policykinds.Drop``.
