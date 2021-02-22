@@ -2065,6 +2065,7 @@ static void startDoResolve(void *p)
       }
       pbMessage.addPolicyTags(dc->d_policyTags);
       pbMessage.setInBytes(packet.size());
+      pbMessage.setValidationState(sr.getValidationState());
 
       // Take s snap of the current protobuf buffer state to store in the PC
       pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{

@@ -176,11 +176,13 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg.question.HasField('qName'))
         self.assertEquals(msg.question.qName, qname)
 
-    def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None):
+    def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None, vstate=dnsmessage_pb2.PBDNSMessage.VState.Indeterminate):
         self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.checkProtobufBase(msg, protocol, response, initiator, receivedSize=receivedSize)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
+        self.assertTrue(msg.response.HasField('validationState'))
+        self.assertEquals(msg.response.validationState, vstate)
 
     def checkProtobufResponseRecord(self, record, rclass, rtype, rname, rttl, checkTTL=True):
         self.assertTrue(record.HasField('class'))

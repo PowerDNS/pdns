@@ -24,6 +24,7 @@
 #include "protozero.hh"
 
 #include "filterpo.hh"
+#include "validate.hh"
 
 namespace pdns
 {
@@ -168,6 +169,77 @@ namespace ProtoZero
         throw std::runtime_error("Unsupported protobuf policy kind");
       }
       d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::appliedPolicyKind), k);
+    }
+
+    void setValidationState(const vState state)
+    {
+      uint32_t s;
+
+      switch (state) {
+      case vState::Indeterminate:
+        s = 1;
+        break;
+      case vState::Insecure:
+        s = 2;
+        break;
+      case vState::Secure:
+        s = 3;
+        break;
+      case vState::NTA:
+        s = 4;
+        break;
+      case vState::TA:
+        s = 5;
+        break;
+      case vState::BogusNoValidDNSKEY:
+        s = 6;
+        break;
+      case vState::BogusInvalidDenial:
+        s = 7;
+        break;
+      case vState::BogusUnableToGetDSs:
+        s = 8;
+        break;
+      case vState::BogusUnableToGetDNSKEYs:
+        s = 9;
+        break;
+      case vState::BogusSelfSignedDS:
+        s = 10;
+        break;
+      case vState::BogusNoRRSIG:
+        s = 11;
+        break;
+      case vState::BogusNoValidRRSIG:
+        s = 12;
+        break;
+      case vState::BogusMissingNegativeIndication:
+        s = 13;
+        break;
+      case vState::BogusSignatureNotYetValid:
+        s = 14;
+        break;
+      case vState::BogusSignatureExpired:
+        s = 15;
+        break;
+      case vState::BogusUnsupportedDNSKEYAlgo:
+        s = 16;
+        break;
+      case vState::BogusUnsupportedDSDigestType:
+        s = 17;
+        break;
+      case vState::BogusNoZoneKeyBitSet:
+        s = 18;
+        break;
+      case vState::BogusRevokedDNSKEY:
+        s = 19;
+        break;
+      case vState::BogusInvalidDNSKEYProtocol:
+        s = 20;
+        break;
+      default:
+        throw std::runtime_error("Unsupported protobuf validation state");
+      }
+      d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::validationState), s);
     }
 
 #ifdef NOD_ENABLED
