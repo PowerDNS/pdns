@@ -29,6 +29,12 @@ vState increaseDNSSECStateCounter(const vState& state)
   return state;
 }
 
+vState increaseXDNSSECStateCounter(const vState& state)
+{
+  g_stats.xdnssecResults[state]++;
+  return state;
+}
+
 // Returns true if dsAnchors were modified
 bool updateTrustAnchorsFromFile(const std::string &fname, map<DNSName, dsmap_t> &dsAnchors) {
   map<DNSName,dsmap_t> newDSAnchors;

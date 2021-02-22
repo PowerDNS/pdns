@@ -61,6 +61,7 @@
 #include "fstrm_logger.hh"
 #endif /* HAVE_FSTRM */
 
+extern GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 
@@ -1027,6 +1028,7 @@ struct RecursorStats
   unsigned int maxMThreadStackUsage;
   std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
+  std::map<vState, std::atomic<uint64_t> > xdnssecResults;
   std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
   std::atomic<uint64_t> rebalancedQueries{0};
   std::atomic<uint64_t> proxyProtocolInvalidCount{0};

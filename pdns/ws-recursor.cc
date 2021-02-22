@@ -618,6 +618,21 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
   {"dnssec-result-secure",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of DNSSEC validations that had the Secure state")},
+  {"x-dnssec-result-bogus",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of DNSSEC validations that had the Bogus state")},
+  {"x-dnssec-result-indeterminate",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of DNSSEC validations that had the Indeterminate state")},
+  {"x-dnssec-result-insecure",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of DNSSEC validations that had the Insecure state")},
+  {"x-dnssec-result-nta",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of DNSSEC validations that had the (negative trust anchor) state")},
+  {"x-dnssec-result-secure",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of DNSSEC validations that had the Secure state")},
 
   {"dnssec-validations",
    MetricDefinition(PrometheusMetricType::counter,
@@ -930,6 +945,64 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
   { "dnssec-result-bogus-unsupported-ds-digest-type",
     MetricDefinition(PrometheusMetricType::counter,
                      "number of DNSSEC validations that had the Bogus state because a DS RRset contained only unsupported digest types")},
+  { "x-dnssec-result-bogus-invalid-denial",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a valid denial of existence proof could not be found")},
+
+  { "x-dnssec-result-bogus-invalid-dnskey-protocol",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because all DNSKEYs had invalid protocols")},
+
+  { "x-dnssec-result-bogus-missing-negative-indication",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a NODATA or NXDOMAIN answer lacked the required SOA and/or NSEC(3) records")},
+
+  { "x-dnssec-result-bogus-no-rrsig",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because required RRSIG records were not present in an answer")},
+
+  { "x-dnssec-result-bogus-no-valid-dnskey",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a valid DNSKEY could not be found")},
+
+  { "x-dnssec-result-bogus-no-valid-rrsig",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because only invalid RRSIG records were present in an answer")},
+
+  { "x-dnssec-result-bogus-no-zone-key-bit-set",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because no DNSKEY with the Zone Key bit set was found")},
+
+  { "x-dnssec-result-bogus-revoked-dnskey",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because all DNSKEYs were revoked")},
+
+  { "x-dnssec-result-bogus-self-signed-ds",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a DS record was signed by itself")},
+
+  { "x-dnssec-result-bogus-signature-expired",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because the signature expired time in the RRSIG was in the past")},
+
+  { "x-dnssec-result-bogus-signature-not-yet-valid",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because the signature inception time in the RRSIG was not yet valid")},
+
+  { "x-dnssec-result-bogus-unable-to-get-dnskeys",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a valid DNSKEY could not be retrieved")},
+
+  { "x-dnssec-result-bogus-unable-to-get-dss",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a valid DS could not be retrieved")},
+  { "x-dnssec-result-bogus-unsupported-dnskey-algo",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a DNSKEY RRset contained only unsupported DNSSEC algorithms")},
+
+  { "x-dnssec-result-bogus-unsupported-ds-digest-type",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "number of DNSSEC validations that had the Bogus state because a DS RRset contained only unsupported digest types")},
 
   { "proxy-protocol-invalid",
     MetricDefinition(PrometheusMetricType::counter,
@@ -950,7 +1023,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
   { "taskqueue-pushed",
     MetricDefinition(PrometheusMetricType::counter,
                      "number of tasks pushed to the taskqueues")},
- 
+
   { "taskqueue-size",
     MetricDefinition(PrometheusMetricType::gauge,
                      "number of tasks currenlty in the taskqueue")},

@@ -2112,3 +2112,18 @@ should be done on the proxy.
 
 This option sets the resource record code to use for XPF records, as long as an official code has not been assigned to it.
 0 means that XPF is disabled.
+
+.. _setting-x-dnssec-names:
+
+``x-dnssec-names``
+------------------
+.. versionadded:: 4.5.0
+
+-  Comma separated list of domain-names
+-  Default: (empty)
+
+List of names whose DNSSEC validation metrics will be counted in a separate set of metrics that start
+with ``x-dnssec-result-``.
+The names are suffix-matched.
+This can be used to not count known failing (test) name validations in the ordinary DNSSEC metrics.
+
