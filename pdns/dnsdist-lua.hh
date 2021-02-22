@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsparser.hh"
 #include <random>
@@ -179,3 +180,40 @@ void setupLuaInspection(LuaContext& luaCtx);
 void setupLuaVars(LuaContext& luaCtx);
 void setupLuaWeb(LuaContext& luaCtx);
 void setupLuaLoadBalancingContext(LuaContext& luaCtx);
+
+/**
+ * getOptionalValue(vars, key, value)
+ *
+ * Attempts to extract value for key in vars.
+ * Erases the key from vars.
+ *
+ * returns: -1 if type wasn't compatible, 0 if not found or number of element(s) found
+ */
+template<class G, class T, class V>
+static inline int getOptionalValue(boost::optional<V>& vars, const std::string& key, T& value) {
+  /* nothing found, nothing to return */
+  if (!vars) {
+    return 0;
+  }
+
+  if (vars->count(key)) {
+    try {
+      value = boost::get<G>((*vars)[key]);
+    } catch (const boost::bad_get& e) {
+      /* key is there but isn't compatible */
+      return -1;
+    }
+  }
+  return vars->erase(key);
+}
+
+template<class V>
+static inline void checkAllParametersConsumed(const std::string& func, const boost::optional<V>& vars) {
+  /* no vars */
+  if (!vars) {
+    return;
+  }
+  for (const auto& [key, value] : *vars) {
+    warnlog("%s: Unknown key '%s' given - ignored", func, key);
+  }
+}

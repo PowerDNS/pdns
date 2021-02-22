@@ -107,29 +107,19 @@ void resetLuaSideEffect()
 
 using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>>>;
 
-static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections)
+static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections)
 {
   if (vars) {
-    if (vars->count("reusePort")) {
-      reusePort = boost::get<bool>((*vars)["reusePort"]);
-    }
-    if (vars->count("tcpFastOpenQueueSize")) {
-      tcpFastOpenQueueSize = boost::get<int>((*vars)["tcpFastOpenQueueSize"]);
-    }
-    if (vars->count("tcpListenQueueSize")) {
-      tcpListenQueueSize = boost::get<int>((*vars)["tcpListenQueueSize"]);
-    }
-    if (vars->count("maxConcurrentTCPConnections")) {
-      tcpMaxConcurrentConnections = boost::get<int>((*vars)["maxConcurrentTCPConnections"]);
-    }
-    if (vars->count("maxInFlight")) {
-      maxInFlightQueriesPerConnection = boost::get<int>((*vars)["maxInFlight"]);
-    }
-    if (vars->count("interface")) {
-      interface = boost::get<std::string>((*vars)["interface"]);
-    }
-    if (vars->count("cpus")) {
-      for (const auto& cpu : boost::get<LuaArray<int>>((*vars)["cpus"])) {
+    LuaArray<int> setCpus;
+
+    getOptionalValue<bool>(vars, "reusePort", reusePort);
+    getOptionalValue<int>(vars, "tcpFastOpenQueueSize", tcpFastOpenQueueSize);
+    getOptionalValue<int>(vars, "tcpListenQueueSize", tcpListenQueueSize);
+    getOptionalValue<int>(vars, "maxConcurrentTCPConnections", tcpMaxConcurrentConnections);
+    getOptionalValue<int>(vars, "maxInFlight", maxInFlightQueriesPerConnection);
+    getOptionalValue<std::string>(vars, "interface", interface);
+    if (getOptionalValue<decltype(setCpus)>(vars, "cpus", setCpus) > 0) {
+      for (const auto& cpu : setCpus) {
         cpus.insert(cpu.second);
       }
     }
@@ -181,65 +171,45 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TL
   return true;
 }
 
-static void parseTLSConfig(TLSConfig& config, const std::string& context, boost::optional<localbind_t> vars)
+static void parseTLSConfig(TLSConfig& config, const std::string& context, boost::optional<localbind_t>& vars)
 {
-  if (vars->count("ciphers")) {
-    config.d_ciphers = boost::get<const string>((*vars)["ciphers"]);
-  }
-
-  if (vars->count("ciphersTLS13")) {
-    config.d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
-  }
+  getOptionalValue<std::string>(vars, "ciphers", config.d_ciphers);
+  getOptionalValue<std::string>(vars, "ciphersTLS13", config.d_ciphers13);
 
 #ifdef HAVE_LIBSSL
-  if (vars->count("minTLSVersion")) {
-    config.d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
-  }
+  std::string minVersion;
+  if (getOptionalValue<std::string>(vars, "minTLSVersion", minVersion) > 0)
+    config.d_minTLSVersion = libssl_tls_version_from_string(minVersion);
+#else /* HAVE_LIBSSL */
+  if (vars->erase("minTLSVersion") > 0)
+    warnlog("minTLSVersion has no effect with chosen TLS library");
 #endif /* HAVE_LIBSSL */
 
-  if (vars->count("ticketKeyFile")) {
-    config.d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
-  }
-
-  if (vars->count("ticketsKeysRotationDelay")) {
-    config.d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
-  }
-
-  if (vars->count("numberOfTicketsKeys")) {
-    config.d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
-  }
-
-  if (vars->count("preferServerCiphers")) {
-    config.d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
-  }
-
-  if (vars->count("sessionTimeout")) {
-    config.d_sessionTimeout = boost::get<int>((*vars)["sessionTimeout"]);
-  }
-
-  if (vars->count("sessionTickets")) {
-    config.d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
-  }
-
-  if (vars->count("numberOfStoredSessions")) {
-    auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
-    if (value < 0) {
-      errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value, context);
-      g_outputBuffer = "Invalid value '" + std::to_string(value) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dismissing";
+  getOptionalValue<std::string>(vars, "ticketKeyFile", config.d_ticketKeyFile);
+  getOptionalValue<int>(vars, "ticketsKeysRotationDelay", config.d_ticketsKeyRotationDelay);
+  getOptionalValue<int>(vars, "numberOfTicketsKeys", config.d_numberOfTicketsKeys);
+  getOptionalValue<bool>(vars, "preferServerCiphers", config.d_preferServerCiphers);
+  getOptionalValue<int>(vars, "sessionTimeout", config.d_sessionTimeout);
+  getOptionalValue<bool>(vars, "sessionTickets", config.d_enableTickets);
+  int numberOfStoredSessions{0};
+  if (getOptionalValue<int>(vars, "numberOfStoredSessions", numberOfStoredSessions) > 0) {
+    if (numberOfStoredSessions < 0) {
+      errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", numberOfStoredSessions, context);
+      g_outputBuffer = "Invalid value '" +  std::to_string(numberOfStoredSessions) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
     }
-    config.d_maxStoredSessions = value;
+    config.d_maxStoredSessions = numberOfStoredSessions;
   }
 
-  if (vars->count("ocspResponses")) {
-    auto files = boost::get<LuaArray<std::string>>((*vars)["ocspResponses"]);
+  LuaArray<std::string> files;
+  if (getOptionalValue<decltype(files)>(vars, "ocspResponses", files) > 0) {
     for (const auto& file : files) {
       config.d_ocspFiles.push_back(file.second);
     }
   }
 
-  if (vars->count("keyLogFile")) {
+  if (vars->count("keyLogFile") > 0) {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-    config.d_keyLogFile = boost::get<const string>((*vars)["keyLogFile"]);
+    getOptionalValue<std::string>(vars, "keyLogFile", config.d_keyLogFile);
 #else
     errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to %s(), but this version of OpenSSL does not support it", context);
     g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to " + context + "(), but this version of OpenSSL does not support it";
@@ -349,6 +319,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            serverAddressStr = boost::get<string>(vars["address"]);
                          }
 
+                         // FIXME: Check vars for unknown keys, needs refactoring to move creation at the end */
+
                          if (vars.count("source")) {
                            /* handle source in the following forms:
                               - v4 address ("192.0.2.1")
@@ -374,7 +346,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              /* try to parse as interface name, or v4/v6@itf */
                              config.sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
                              unsigned int itfIdx = if_nametoindex(config.sourceItfName.c_str());
-
                              if (itfIdx != 0) {
                                if (pos == 0 || pos == std::string::npos) {
                                  /* "eth0" or "@eth0" */
@@ -848,6 +819,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
+    checkAllParametersConsumed("setLocal", vars);
+
     try {
       ComboAddress loc(addr, 53);
       for (auto it = g_frontends.begin(); it != g_frontends.end();) {
@@ -897,6 +870,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::set<int> cpus;
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+    checkAllParametersConsumed("addLocal", vars);
 
     try {
       ComboAddress loc(addr, 53);
@@ -992,11 +966,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("showServers", [](boost::optional<showserversopts_t> vars) {
     setLuaNoSideEffect();
     bool showUUIDs = false;
-    if (vars) {
-      if (vars->count("showUUIDs")) {
-        showUUIDs = boost::get<bool>((*vars)["showUUIDs"]);
-      }
-    }
+    getOptionalValue<bool>(vars, "showUUIDs", showUUIDs);
+    checkAllParametersConsumed("showServers", vars);
+
     try {
       ostringstream ret;
       boost::format fmt;
@@ -1150,8 +1122,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       hashPlaintextCredentials = boost::get<bool>(vars->at("hashPlaintextCredentials"));
     }
 
-    if (vars->count("password")) {
-      std::string password = boost::get<std::string>(vars->at("password"));
+    std::string password;
+    std::string apiKey;
+    std::string acl;
+    LuaAssociativeTable<std::string> headers;
+    bool statsRequireAuthentication{true};
+    bool apiRequiresAuthentication{true};
+    bool dashboardRequiresAuthentication{true};
+    std::string maxConcurrentConnections;
+
+    if (getOptionalValue<std::string>(vars, "password", password) > 0) {
       auto holder = make_unique<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
       if (!holder->wasHashed() && holder->isHashingAvailable()) {
         infolog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
@@ -1160,8 +1140,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       setWebserverPassword(std::move(holder));
     }
 
-    if (vars->count("apiKey")) {
-      std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+    if (getOptionalValue<std::string>(vars, "apiKey", apiKey) > 0) {
       auto holder = make_unique<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
       if (!holder->wasHashed() && holder->isHashingAvailable()) {
         infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
@@ -1170,32 +1149,28 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       setWebserverAPIKey(std::move(holder));
     }
 
-    if (vars->count("acl")) {
-      const std::string acl = boost::get<std::string>(vars->at("acl"));
-
+    if (getOptionalValue<std::string>(vars, "acl", acl) > 0) {
       setWebserverACL(acl);
     }
 
-    if (vars->count("customHeaders")) {
-      const auto headers = boost::get<std::unordered_map<std::string, std::string>>(vars->at("customHeaders"));
-
+    if (getOptionalValue<decltype(headers)>(vars, "customHeaders", headers) > 0) {
       setWebserverCustomHeaders(headers);
     }
 
-    if (vars->count("statsRequireAuthentication")) {
-      setWebserverStatsRequireAuthentication(boost::get<bool>(vars->at("statsRequireAuthentication")));
+    if (getOptionalValue<bool>(vars, "statsRequireAuthentication", statsRequireAuthentication) > 0) {
+      setWebserverStatsRequireAuthentication(statsRequireAuthentication);
     }
 
-    if (vars->count("apiRequiresAuthentication")) {
-      setWebserverAPIRequiresAuthentication(boost::get<bool>(vars->at("apiRequiresAuthentication")));
+    if (getOptionalValue<bool>(vars, "apiRequiresAuthentication", apiRequiresAuthentication) > 0) {
+      setWebserverAPIRequiresAuthentication(apiRequiresAuthentication);
     }
 
-    if (vars->count("dashboardRequiresAuthentication")) {
-      setWebserverDashboardRequiresAuthentication(boost::get<bool>(vars->at("dashboardRequiresAuthentication")));
+    if (getOptionalValue<bool>(vars, "dashboardRequiresAuthentication", dashboardRequiresAuthentication) > 0) {
+      setWebserverDashboardRequiresAuthentication(dashboardRequiresAuthentication);
     }
 
-    if (vars->count("maxConcurrentConnections")) {
-      setWebserverMaxConcurrentConnections(std::stoi(boost::get<std::string>(vars->at("maxConcurrentConnections"))));
+    if (getOptionalValue<std::string>(vars, "maxConcurrentConnections", maxConcurrentConnections) > 0) {
+      setWebserverMaxConcurrentConnections(std::stoi(maxConcurrentConnections));
     }
   });
 
@@ -1675,6 +1650,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<DNSCryptContext::CertKeyPaths> certKeys;
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+    checkAllParametersConsumed("addDNSCryptBind", vars);
 
     if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
       auto certFile = boost::get<std::string>(certFiles);
@@ -2524,43 +2500,25 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (vars) {
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+      getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
+      getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
 
-      if (vars->count("idleTimeout")) {
-        frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
-      }
-
-      if (vars->count("serverTokens")) {
-        frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
-      }
-
-      if (vars->count("customResponseHeaders")) {
-        for (auto const& headerMap : boost::get<LuaAssociativeTable<std::string>>((*vars).at("customResponseHeaders"))) {
-          frontend->d_customResponseHeaders[boost::to_lower_copy(headerMap.first)] = headerMap.second;
+      LuaAssociativeTable<std::string> customResponseHeaders;
+      if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
+        for (auto const& headerMap : customResponseHeaders) {
+          std::pair<std::string,std::string> headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
+          frontend->d_customResponseHeaders.insert(headerResponse);
         }
       }
 
-      if (vars->count("sendCacheControlHeaders")) {
-        frontend->d_sendCacheControlHeaders = boost::get<bool>((*vars)["sendCacheControlHeaders"]);
-      }
+      getOptionalValue<bool>(vars, "sendCacheControlHeaders", frontend->d_sendCacheControlHeaders);
+      getOptionalValue<bool>(vars, "keepIncomingHeaders", frontend->d_keepIncomingHeaders);
+      getOptionalValue<bool>(vars, "trustForwardedForHeader", frontend->d_trustForwardedForHeader);
+      getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
+      getOptionalValue<bool>(vars, "exactPathMatching", frontend->d_exactPathMatching);
 
-      if (vars->count("keepIncomingHeaders")) {
-        frontend->d_keepIncomingHeaders = boost::get<bool>((*vars)["keepIncomingHeaders"]);
-      }
-
-      if (vars->count("trustForwardedForHeader")) {
-        frontend->d_trustForwardedForHeader = boost::get<bool>((*vars)["trustForwardedForHeader"]);
-      }
-
-      if (vars->count("internalPipeBufferSize")) {
-        frontend->d_internalPipeBufferSize = boost::get<int>((*vars)["internalPipeBufferSize"]);
-      }
-
-      if (vars->count("exactPathMatching")) {
-        frontend->d_exactPathMatching = boost::get<bool>((*vars)["exactPathMatching"]);
-      }
-
-      if (vars->count("additionalAddresses")) {
-        auto addresses = boost::get<LuaArray<std::string>>(vars->at("additionalAddresses"));
+      LuaArray<std::string> addresses;
+      if (getOptionalValue<decltype(addresses)>(vars, "additionalAddresses", addresses) > 0) {
         for (const auto& [_, add] : addresses) {
           try {
             ComboAddress address(add);
@@ -2574,20 +2532,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
-      if (vars->count("ignoreTLSConfigurationErrors")) {
-        if (boost::get<bool>((*vars)["ignoreTLSConfigurationErrors"])) {
-          // we are asked to try to load the certificates so we can return a potential error
-          // and properly ignore the frontend before actually launching it
-          try {
-            std::map<int, std::string> ocspResponses = {};
-            auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
-          }
-          catch (const std::runtime_error& e) {
-            errlog("Ignoring DoH frontend: '%s'", e.what());
-            return;
-          }
+
+      bool ignoreTLSConfigurationErrors = false;
+      if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+        // we are asked to try to load the certificates so we can return a potential error
+        // and properly ignore the frontend before actually launching it
+        try {
+          std::map<int, std::string> ocspResponses = {};
+          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+        }
+        catch (const std::runtime_error& e) {
+          errlog("Ignoring DoH frontend: '%s'", e.what());
+          return;
         }
       }
+
+      checkAllParametersConsumed("addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::make_unique<ClientState>(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
@@ -2735,13 +2695,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<std::string (std::shared_ptr<DOHFrontend>::*)() const>("getAddressAndPort", [](const std::shared_ptr<DOHFrontend>& frontend) {
-    if (frontend == nullptr) {
-      return std::string();
-    }
-    return frontend->d_local.toStringWithPort();
-  });
-
   luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
       return;
@@ -2770,13 +2723,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (vars) {
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns);
 
-      if (vars->count("provider")) {
-        frontend->d_provider = boost::get<const string>((*vars)["provider"]);
-        boost::algorithm::to_lower(frontend->d_provider);
-      }
+      getOptionalValue<std::string>(vars, "provider", frontend->d_provider);
+      boost::algorithm::to_lower(frontend->d_provider);
 
-      if (vars->count("additionalAddresses")) {
-        auto addresses = boost::get<LuaArray<std::string>>(vars->at("additionalAddresses"));
+      LuaArray<std::string> addresses;
+      if (getOptionalValue<decltype(addresses)>(vars, "additionalAddresses", addresses) > 0) {
         for (const auto& [_, add] : addresses) {
           try {
             ComboAddress address(add);
@@ -2790,20 +2741,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       parseTLSConfig(frontend->d_tlsConfig, "addTLSLocal", vars);
-      if (vars->count("ignoreTLSConfigurationErrors")) {
-        if (boost::get<bool>((*vars)["ignoreTLSConfigurationErrors"])) {
-          // we are asked to try to load the certificates so we can return a potential error
-          // and properly ignore the frontend before actually launching it
-          try {
-            std::map<int, std::string> ocspResponses = {};
-            auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
-          }
-          catch (const std::runtime_error& e) {
-            errlog("Ignoring TLS frontend: '%s'", e.what());
-            return;
-          }
+
+      bool ignoreTLSConfigurationErrors = false;
+      if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+        // we are asked to try to load the certificates so we can return a potential error
+        // and properly ignore the frontend before actually launching it
+        try {
+          std::map<int, std::string> ocspResponses = {};
+          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+        }
+        catch (const std::runtime_error& e) {
+          errlog("Ignoring TLS frontend: '%s'", e.what());
+          return;
         }
       }
+
+      checkAllParametersConsumed("addTLSLocal", vars);
     }
 
     try {

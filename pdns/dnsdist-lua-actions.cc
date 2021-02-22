@@ -31,7 +31,6 @@
 #include "dnsdist-kvs.hh"
 #include "dnsdist-svc.hh"
 
-#include "dolog.hh"
 #include "dnstap.hh"
 #include "dnswriter.hh"
 #include "ednsoptions.hh"
@@ -2100,6 +2099,7 @@ static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luad
   boost::uuids::uuid uuid;
   uint64_t creationOrder;
   parseRuleParams(params, uuid, name, creationOrder);
+  checkAllParametersConsumed("addAction", params);
 
   auto rule = makeRule(var);
   someRuleActions->modify([&rule, &action, &uuid, creationOrder, &name](vector<T>& ruleactions){
@@ -2109,22 +2109,12 @@ static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luad
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint32_t> > responseParams_t;
 
-static void parseResponseConfig(boost::optional<responseParams_t> vars, ResponseConfig& config)
+static void parseResponseConfig(boost::optional<responseParams_t>& vars, ResponseConfig& config)
 {
-  if (vars) {
-    if (vars->count("ttl")) {
-      config.ttl = boost::get<uint32_t>((*vars)["ttl"]);
-    }
-    if (vars->count("aa")) {
-      config.setAA = boost::get<bool>((*vars)["aa"]);
-    }
-    if (vars->count("ad")) {
-      config.setAD = boost::get<bool>((*vars)["ad"]);
-    }
-    if (vars->count("ra")) {
-      config.setRA = boost::get<bool>((*vars)["ra"]);
-    }
-  }
+  getOptionalValue<uint32_t>(vars, "ttl", config.ttl);
+  getOptionalValue<bool>(vars, "aa", config.setAA);
+  getOptionalValue<bool>(vars, "ad", config.setAD);
+  getOptionalValue<bool>(vars, "ra", config.setRA);
 }
 
 void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config)
@@ -2153,6 +2143,7 @@ void setupLuaActions(LuaContext& luaCtx)
       uint64_t creationOrder;
       std::string name;
       parseRuleParams(params, uuid, name, creationOrder);
+      checkAllParametersConsumed("newRuleAction", params);
 
       auto rule = makeRule(dnsrule);
       DNSDistRuleAction ra({std::move(rule), action, std::move(name), uuid, creationOrder});
@@ -2277,6 +2268,7 @@ void setupLuaActions(LuaContext& luaCtx)
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
+      checkAllParametersConsumed("SpoofAction", vars);
       return ret;
     });
 
@@ -2291,6 +2283,7 @@ void setupLuaActions(LuaContext& luaCtx)
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(DNSName(a)));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
+      checkAllParametersConsumed("SpoofCNAMEAction", vars);
       return ret;
     });
 
@@ -2308,6 +2301,7 @@ void setupLuaActions(LuaContext& luaCtx)
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
+      checkAllParametersConsumed("SpoofRawAction", vars);
       return ret;
     });
 
@@ -2402,6 +2396,7 @@ void setupLuaActions(LuaContext& luaCtx)
       auto ret = std::shared_ptr<DNSAction>(new RCodeAction(rcode));
       auto rca = std::dynamic_pointer_cast<RCodeAction>(ret);
       parseResponseConfig(vars, rca->d_responseConfig);
+      checkAllParametersConsumed("RCodeAction", vars);
       return ret;
     });
 
@@ -2409,6 +2404,7 @@ void setupLuaActions(LuaContext& luaCtx)
       auto ret = std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
       auto erca = std::dynamic_pointer_cast<ERCodeAction>(ret);
       parseResponseConfig(vars, erca->d_responseConfig);
+      checkAllParametersConsumed("ERCodeAction", vars);
       return ret;
     });
 
@@ -2464,14 +2460,9 @@ void setupLuaActions(LuaContext& luaCtx)
 
       std::string serverID;
       std::string ipEncryptKey;
-      if (vars) {
-        if (vars->count("serverID")) {
-          serverID = boost::get<std::string>((*vars)["serverID"]);
-        }
-        if (vars->count("ipEncryptKey")) {
-          ipEncryptKey = boost::get<std::string>((*vars)["ipEncryptKey"]);
-        }
-      }
+      getOptionalValue<std::string>(vars, "serverID", serverID);
+      getOptionalValue<std::string>(vars, "ipEncryptKey", ipEncryptKey);
+      checkAllParametersConsumed("RemoteLogAction", vars);
 
       return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey));
     });
@@ -2488,14 +2479,9 @@ void setupLuaActions(LuaContext& luaCtx)
 
       std::string serverID;
       std::string ipEncryptKey;
-      if (vars) {
-        if (vars->count("serverID")) {
-          serverID = boost::get<std::string>((*vars)["serverID"]);
-        }
-        if (vars->count("ipEncryptKey")) {
-          ipEncryptKey = boost::get<std::string>((*vars)["ipEncryptKey"]);
-        }
-      }
+      getOptionalValue<std::string>(vars, "serverID", serverID);
+      getOptionalValue<std::string>(vars, "ipEncryptKey", ipEncryptKey);
+      checkAllParametersConsumed("RemoteLogResponseAction", vars);
 
       return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false));
     });
@@ -2564,6 +2550,7 @@ void setupLuaActions(LuaContext& luaCtx)
       auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : ""));
       auto hsa = std::dynamic_pointer_cast<HTTPStatusAction>(ret);
       parseResponseConfig(vars, hsa->d_responseConfig);
+      checkAllParametersConsumed("HTTPStatusAction", vars);
       return ret;
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -2580,17 +2567,13 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
       bool soaInAuthoritySection = false;
-      if (vars) {
-        if (vars->count("soaInAuthoritySection")) {
-          soaInAuthoritySection = boost::get<bool>((*vars)["soaInAuthoritySection"]);
-        }
-      }
-
+      getOptionalValue<bool>(vars, "soaInAuthoritySection", soaInAuthoritySection);
       auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, soaInAuthoritySection));
       auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
       parseResponseConfig(vars, action->d_responseConfig);
+      checkAllParametersConsumed("NegativeAndSOAAction", vars);
       return ret;
-    });
+  });
 
   luaCtx.writeFunction("SetProxyProtocolValuesAction", [](const std::vector<std::pair<uint8_t, std::string>>& values) {
       return std::shared_ptr<DNSAction>(new SetProxyProtocolValuesAction(values));
