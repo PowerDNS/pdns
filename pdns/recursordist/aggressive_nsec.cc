@@ -230,6 +230,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
   {
     std::lock_guard<std::mutex> lock(entry->d_lock);
     if (nsec3 && !entry->d_nsec3) {
+      d_entriesCount -= entry->d_entries.size();
       entry->d_entries.clear();
       entry->d_nsec3 = true;
     }
@@ -276,8 +277,16 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
 
 #warning Ponder storing everything in raw form, without the zone instead. It still needs to be a DNSName for NSEC, though
       next = DNSName(toBase32Hex(content->d_nexthash)) + zone;
-      entry->d_iterations = content->d_iterations;
-      entry->d_salt = content->d_salt;
+
+      if (entry->d_iterations != content->d_iterations || entry->d_salt != content->d_salt) {
+        entry->d_iterations = content->d_iterations;
+        entry->d_salt = content->d_salt;
+
+        // Clearing the existing entries since we can't use them, and it's likely a rollover
+        // If it instead is different servers using different parameters, well, too bad.
+        d_entriesCount -= entry->d_entries.size();
+        entry->d_entries.clear();
+      }
     }
 
     /* the TTL is already a TTD by now */
@@ -337,8 +346,6 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
 
   if (it->d_ttd <= now) {
     moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, it);
-    //idx.erase(it);
-    //--d_entriesCount;
     return false;
   }
 
@@ -366,8 +373,6 @@ bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCac
     auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
     if (it->d_ttd <= now) {
       moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
-      //idx.erase(it);
-      //--d_entriesCount;
       return false;
     }
 
@@ -490,8 +495,8 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
   if (getNSEC3(now, zoneEntry, nameHash, exactNSEC3)) {
     LOG("Found a direct NSEC3 match for "<<nameHash);
     auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(exactNSEC3.d_record);
-    if (!nsec3) {
-      LOG(" but the content is not valid"<<endl);
+    if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
+      LOG(" but the content is not valid, or has a different salt or iterations count"<<endl);
       return false;
     }
 
@@ -529,6 +534,13 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
 
     if (getNSEC3(now, zoneEntry, closestHash, closestNSEC3)) {
       LOG("Found closest encloser at "<<closestEncloser<<" ("<<closestHash<<")"<<endl);
+
+      auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(closestNSEC3.d_record);
+      if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
+        LOG(" but the content is not valid, or has a different salt or iterations count"<<endl);
+        break;
+      }
+
       found = true;
       break;
     }
@@ -561,6 +573,12 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     return false;
   }
 
+  auto nextCloserNsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(nextCloserEntry.d_record);
+  if (!nextCloserNsec3 || nextCloserNsec3->d_iterations != iterations || nextCloserNsec3->d_salt != salt) {
+    LOG("The NSEC3 covering the next closer is not valid, or has a different salt or iterations count, bailing out"<<endl);
+    return false;
+  }
+
   DNSName wildcard(g_wildcarddnsname + closestEncloser);
   auto wcHash = toBase32Hex(hashQNameWithSalt(salt, iterations, wildcard));
   LOG("Looking for a NSEC3 covering the wildcard "<<wildcard<<" ("<<wcHash<<")"<<endl);
@@ -575,8 +593,8 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     LOG("Found an exact match for the wildcard");
 
     auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(wcEntry.d_record);
-    if (!nsec3) {
-      LOG(" but the content is not valid"<<endl);
+    if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
+      LOG(" but the content is not valid, or has a different salt or iterations count"<<endl);
       return false;
     }
 
@@ -593,6 +611,13 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       LOG("No covering record found for the wildcard in aggressive cache"<<endl);
       return false;
     }
+
+    auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(wcEntry.d_record);
+    if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
+      LOG("The content of the NSEC3 covering the wildcard is not valid, or has a different salt or iterations count"<<endl);
+      return false;
+    }
+
     res = RCode::NXDomain;
   }
 
@@ -616,6 +641,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   vState cachedState;
   std::vector<DNSRecord> soaSet;
   std::vector<std::shared_ptr<RRSIGRecordContent>> soaSignatures;
+  /* we might not actually need the SOA if we find a matching wildcard, but let's not bother for now */
   if (g_recCache->get(now, zoneEntry->d_zone, QType::SOA, true, &soaSet, who, false, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     LOG("No valid SOA found for "<<zoneEntry->d_zone<<", which is the best match for "<<name<<endl);
     return false;

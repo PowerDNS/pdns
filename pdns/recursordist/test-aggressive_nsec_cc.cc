@@ -881,7 +881,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   expected.push_back("z.powerdns.com. 10 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
   expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
   expected.push_back("; Zone powerdns.org.\n");
-  expected.push_back("www.powerdns.org. 10 IN NSEC3 1 0 500 ab HASG==== A RRSIG NSEC3\n");
+  expected.push_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
   expected.push_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
 
   struct timeval now;
@@ -902,7 +902,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   rec.d_name = DNSName("www.powerdns.org");
   rec.d_type = QType::NSEC3;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3");
+  rec.d_content = getRecordContent(QType::NSEC3, "1 0 50 ab HASG==== A RRSIG NSEC3");
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
@@ -932,6 +932,128 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
      then reallocates it when needed, but we need to free the
      last allocation if any. */
   free(line);
+}
+
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
+{
+  /* test that we don't compare a hash using the wrong (former) salt or iterations count in case of a rollover,
+     or when different servers use different parameters */
+  auto cache = make_unique<AggressiveNSECCache>(10000);
+  g_recCache = std::make_unique<MemRecursorCache>();
+
+  const DNSName zone("powerdns.com");
+  time_t now = time(nullptr);
+
+  /* first we need a SOA */
+  std::vector<DNSRecord> records;
+  time_t ttd = now + 30;
+  DNSRecord drSOA;
+  drSOA.d_name = zone;
+  drSOA.d_type = QType::SOA;
+  drSOA.d_class = QClass::IN;
+  drSOA.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  drSOA.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(drSOA);
+
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, boost::none, boost::none, vState::Secure);
+  BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
+
+  std::string oldSalt = "ab";
+  std::string newSalt = "cd";
+  unsigned int oldIterationsCount = 2;
+  unsigned int newIterationsCount = 1;
+  DNSName name("www.powerdns.com");
+  std::string hashed = hashQNameWithSalt(oldSalt, oldIterationsCount, name);
+
+  DNSRecord rec;
+  rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now + 10;
+
+  NSEC3RecordContent nrc;
+  nrc.d_algorithm = 1;
+  nrc.d_flags = 0;
+  nrc.d_iterations = oldIterationsCount;
+  nrc.d_salt = oldSalt;
+  nrc.d_nexthash = hashed;
+  incrementHash(nrc.d_nexthash);
+  for (const auto& type : { QType::A }) {
+    nrc.set(type);
+  }
+
+  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+
+  int res;
+  std::vector<DNSRecord> results;
+
+  /* we can use the NSEC3s we have */
+  /* direct match */
+  BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+
+  DNSName other("other.powerdns.com");
+  /* now we insert a new NSEC3, with a different salt, changing that value for the zone */
+  hashed = hashQNameWithSalt(newSalt, oldIterationsCount, other);
+  rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now + 10;
+  nrc.d_algorithm = 1;
+  nrc.d_flags = 0;
+  nrc.d_iterations = oldIterationsCount;
+  nrc.d_salt = newSalt;
+  nrc.d_nexthash = hashed;
+  incrementHash(nrc.d_nexthash);
+  for (const auto& type : { QType::A }) {
+    nrc.set(type);
+  }
+
+  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+  /* the existing entries should have been cleared */
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+
+  /* we should be able to find a direct match for that name */
+  /* direct match */
+  BOOST_CHECK_EQUAL(cache->getDenial(now, other, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+
+  /* but we should not be able to use the other NSEC3s */
+  BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+
+  /* and the same thing but this time updating the iterations count instead of the salt */
+  DNSName other2("other2.powerdns.com");
+  hashed = hashQNameWithSalt(newSalt, newIterationsCount, other2);
+  rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+  rec.d_type = QType::NSEC3;
+  rec.d_ttl = now + 10;
+  nrc.d_algorithm = 1;
+  nrc.d_flags = 0;
+  nrc.d_iterations = newIterationsCount;
+  nrc.d_salt = newSalt;
+  nrc.d_nexthash = hashed;
+  incrementHash(nrc.d_nexthash);
+  for (const auto& type : { QType::A }) {
+    nrc.set(type);
+  }
+
+  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+
+  /* the existing entries should have been cleared */
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+
+  /* we should be able to find a direct match for that name */
+  /* direct match */
+  BOOST_CHECK_EQUAL(cache->getDenial(now, other2, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+
+  /* but we should not be able to use the other NSEC3s */
+  BOOST_CHECK_EQUAL(cache->getDenial(now, other, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
