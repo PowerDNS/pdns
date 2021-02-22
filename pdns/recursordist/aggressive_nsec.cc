@@ -101,10 +101,16 @@ void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
       return;
     }
 
-    std::lock_guard<std::mutex> lock((*got)->d_lock);
-    auto removed = (*got)->d_entries.size();
-    d_zones.remove(zone, false);
-    d_entriesCount -= removed;
+    /* let's increase the ref count of the shared pointer
+       so we get the lock, remove the zone from the tree,
+       then release the lock before the entry is deleted */
+    auto entry = *got;
+    {
+      std::lock_guard<std::mutex> lock(entry->d_lock);
+      auto removed = entry->d_entries.size();
+      d_zones.remove(zone, false);
+      d_entriesCount -= removed;
+    }
   }
 }
 
