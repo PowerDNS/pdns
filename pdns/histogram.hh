@@ -35,12 +35,6 @@ struct Bucket
   uint64_t d_count{0};
 };
 
-inline bool operator<(uint64_t b, const Bucket& bu)
-{
-  // we are using less-or-equal
-  return b <= bu.d_boundary;
-}
-
 struct AtomicBucket
 {
   // We need the constructors in this case, since atomics have a disabled copy constructor.
@@ -52,12 +46,6 @@ struct AtomicBucket
   uint64_t d_boundary{0};
   std::atomic<uint64_t> d_count{0};
 };
-
-inline bool operator<(uint64_t b, const AtomicBucket& bu)
-{
-  // we are using less-or-equal
-  return b <= bu.d_boundary;
-}
 
 template<class B>
 class BaseHistogram
@@ -75,12 +63,17 @@ public:
       throw std::invalid_argument("boundary array's first element should not be zero");
     }
     d_buckets.reserve(boundaries.size() + 1);
+    uint64_t prev = 0;
     for (auto b: boundaries) {
+      if (prev == b) {
+        throw std::invalid_argument("boundary array's elements should be distinct");
+      }
       std::string str = prefix + "le-" + std::to_string(b);
-      d_buckets.push_back(B{str, b, 0});
+      d_buckets.emplace_back(B{str, b, 0});
+      prev = b;
     }
     // everything above last boundary
-    d_buckets.push_back(B{prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0});
+    d_buckets.emplace_back(B{prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0});
   }
 
   const std::vector<B>& getRawData() const
@@ -100,7 +93,7 @@ public:
     uint64_t c{0};
     for (const auto& b : d_buckets) {
       c += b.d_count;
-      ret.push_back(B{b.d_name, b.d_boundary, c});
+      ret.emplace_back(B{b.d_name, b.d_boundary, c});
     }
     return ret;
   }
@@ -112,14 +105,19 @@ public:
     uint64_t c = 0;
     for (const auto& b : d_buckets) {
       c += b.d_count;
-      ret.push_back(c);
+      ret.emplace_back(c);
     }
     return ret;
   }
 
+  static bool lessOrEqual(uint64_t b, const B& bu)
+  {
+    return b <= bu.d_boundary;
+  }
+
   inline void operator()(uint64_t d)
   {
-    auto index = std::upper_bound(d_buckets.begin(), d_buckets.end(), d);
+    auto index = std::upper_bound(d_buckets.begin(), d_buckets.end(), d, lessOrEqual);
     // out index is always valid
     ++index->d_count;
   }

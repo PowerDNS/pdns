@@ -2143,7 +2143,7 @@ static void startDoResolve(void *p)
     }
 
     // Originally this code used a mix of floats, doubles, uint64_t with different units.
-    // Now it always uses an integral number of microseconds, expect for avarages, which are using doubles
+    // Now it always uses an integral number of microseconds, except for averages, which use doubles
     uint64_t spentUsec = uSec(sr.getNow() - dc->d_now);
     if (!g_quiet) {
       g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
