@@ -120,6 +120,7 @@ pdns_recursor_SOURCES = \
 	filterpo.cc filterpo.hh \
 	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
+	histogram.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
@@ -284,6 +285,7 @@ testrunner_SOURCES = \
 	test-dnsrecords_cc.cc \
 	test-ednsoptions_cc.cc \
 	test-filterpo_cc.cc \
+	test-histogram_hh.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-luawrapper.cc \

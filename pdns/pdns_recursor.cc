@@ -2149,11 +2149,13 @@ static void startDoResolve(void *p)
       finishTCPReply(dc, hadError, true);
     }
 
-    float spent=makeFloat(sr.getNow()-dc->d_now);
+    // Originally this code used a mix of floats, doubles, uint64_t with different units.
+    // Now it always uses an integral number of microseconds, except for averages, which use doubles
+    uint64_t spentUsec = uSec(sr.getNow() - dc->d_now);
     if (!g_quiet) {
       g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       g_log<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-	sr.d_totUsec/1000.0<<" netw ms, "<< spent*1000.0<<" tot ms, "<<
+	sr.d_totUsec/1000.0<<" netw ms, "<< spentUsec/1000.0<<" tot ms, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<< res;
 
       if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
@@ -2169,42 +2171,18 @@ static void startDoResolve(void *p)
       g_recCache->cacheHits++;
     }
 
-    if(spent < 0.001)
-      g_stats.answers0_1++;
-    else if(spent < 0.010)
-      g_stats.answers1_10++;
-    else if(spent < 0.1)
-      g_stats.answers10_100++;
-    else if(spent < 1.0)
-      g_stats.answers100_1000++;
-    else
-      g_stats.answersSlow++;
+    g_stats.answers(spentUsec);
 
-    uint64_t newLat=(uint64_t)(spent*static_cast<uint64_t>(1000000));
-    newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
-    g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
+    double newLat = spentUsec;
+    newLat = min(newLat, g_networkTimeoutMsec * 1000.0); // outliers of several minutes exist..
+    g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + newLat / g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
 
-    auto ourtime = 1000.0*spent-sr.d_totUsec/1000.0; // in msec
-    if(ourtime < 1)
-      g_stats.ourtime0_1++;
-    else if(ourtime < 2)
-      g_stats.ourtime1_2++;
-    else if(ourtime < 4)
-      g_stats.ourtime2_4++;
-    else if(ourtime < 8)
-      g_stats.ourtime4_8++;
-    else if(ourtime < 16)
-      g_stats.ourtime8_16++;
-    else if(ourtime < 32)
-      g_stats.ourtime16_32++;
-    else {
-      //      cerr<<"SLOW: "<<ourtime<<"ms -> "<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<endl;
-      g_stats.ourtimeSlow++;
-    }
-    if(ourtime >= 0.0) {
-      newLat=ourtime*1000; // usec
-      g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
+    if (spentUsec >= sr.d_totUsec) {
+      uint64_t ourtime = spentUsec - sr.d_totUsec; 
+      g_stats.ourtime(ourtime);
+      newLat = ourtime; // usec
+      g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + newLat / g_latencyStatSize;
     }
 
 #ifdef NOD_ENABLED
@@ -2396,6 +2374,11 @@ static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& d
     }
     g_stats.avgLatencyUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
     g_stats.avgLatencyOursUsec = (1.0 - 1.0 / g_latencyStatSize) * g_stats.avgLatencyOursUsec + 0.0; // we assume 0 usec
+#if 0
+    // XXX changes behaviour compared to old code!
+    g_stats.answers(0);
+    g_stats.ourtime(0);
+#endif
   }
   return cacheHit;
 }
