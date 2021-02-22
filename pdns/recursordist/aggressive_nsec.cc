@@ -298,13 +298,18 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
     /* the TTL is already a TTD by now */
     if (!nsec3 && isWildcardExpanded(owner.countLabels(), signatures.at(0))) {
       DNSName realOwner = getNSECOwnerName(owner, signatures);
-      entry->d_entries.insert({record.d_content, signatures, std::move(realOwner), std::move(next), record.d_ttl});
+      auto pair = entry->d_entries.insert({record.d_content, signatures, std::move(realOwner), std::move(next), record.d_ttl});
+      if (pair.second) {
+        ++d_entriesCount;
+      }
     }
     else {
-      entry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
+      auto pair = entry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
+      if (pair.second) {
+        ++d_entriesCount;
+      }
     }
   }
-  ++d_entriesCount;
 }
 
 bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry)
