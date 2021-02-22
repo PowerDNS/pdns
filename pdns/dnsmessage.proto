@@ -37,6 +37,14 @@ message PBDNSMessage {
     NSDNAME = 5;                                // Policy matched on the name of one nameserver involved
     NSIP = 6;                                   // Policy matched on the IP of one nameserver involved
   }
+  enum PolicyKind {
+    NoAction = 1;                               // No action taken
+    Drop = 2;                                   // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.4
+    NXDOMAIN = 3;                               // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.1
+    NODATA = 4;                                 // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.2
+    Truncate= 5;                                // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.5
+    Custom = 6;                                 // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.6
+  }
   required Type type = 1;
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
   optional bytes serverIdentity = 3;            // ID of the server emitting the protobuf message
@@ -74,6 +82,7 @@ message PBDNSMessage {
     optional PolicyType appliedPolicyType = 7;  // Type of the filtering policy (RPZ or Lua) applied
     optional string appliedPolicyTrigger = 8;   // The RPZ trigger
     optional string appliedPolicyHit = 9;       // The value (qname or IP) that caused the hit
+    optional PolicyKind appliedPolicyKind = 10; // The Kind (RPZ action) applied by the hit
   }
 
   optional DNSResponse response = 13;
