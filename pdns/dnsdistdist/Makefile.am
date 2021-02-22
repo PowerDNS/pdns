@@ -240,8 +240,8 @@ testrunner_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
-	dnsdist-tcp.cc \
 	dnsdist-tcp-downstream.cc \
+	dnsdist-tcp.cc \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \
