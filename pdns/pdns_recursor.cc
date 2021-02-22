@@ -1847,10 +1847,6 @@ static void startDoResolve(void *p)
             }
           }
 
-          if(sr.doLog()) {
-            g_log<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<endl;
-          }
-
           if(state == vState::Secure) {
             if(sr.doLog()) {
               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
