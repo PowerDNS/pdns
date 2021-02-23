@@ -57,7 +57,7 @@ template <class B>
 class BaseHistogram
 {
 public:
-  BaseHistogram(const std::string& prefix, const std::vector<uint64_t>& boundaries)
+  BaseHistogram(const std::string& prefix, const std::vector<uint64_t>& boundaries) : d_name(prefix)
   {
     if (!std::is_sorted(boundaries.cbegin(), boundaries.cend())) {
       throw std::invalid_argument("boundary array must be sorted");
@@ -130,6 +130,7 @@ public:
 
 private:
   std::vector<B> d_buckets;
+  std::string d_name;
 };
 
 template <class T>

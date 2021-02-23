@@ -107,8 +107,10 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 {
   if (family == AF_INET) {
     g_stats.auth4Answers(usec);
+    g_stats.cumulativeAuth4Answers(usec);
   } else  {
     g_stats.auth6Answers(usec);
+    g_stats.cumulativeAuth6Answers(usec);
   }
 }
 

@@ -2317,6 +2317,7 @@ static void startDoResolve(void *p)
     }
 
     g_stats.answers(spentUsec);
+    g_stats.cumulativeAnswers(spentUsec);
 
     double newLat = spentUsec;
     newLat = min(newLat, g_networkTimeoutMsec * 1000.0); // outliers of several minutes exist..
