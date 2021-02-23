@@ -185,56 +185,50 @@ namespace ProtoZero
       case vState::Secure:
         s = 3;
         break;
-      case vState::NTA:
+      case vState::BogusNoValidDNSKEY:
         s = 4;
         break;
-      case vState::TA:
+      case vState::BogusInvalidDenial:
         s = 5;
         break;
-      case vState::BogusNoValidDNSKEY:
+      case vState::BogusUnableToGetDSs:
         s = 6;
         break;
-      case vState::BogusInvalidDenial:
+      case vState::BogusUnableToGetDNSKEYs:
         s = 7;
         break;
-      case vState::BogusUnableToGetDSs:
+      case vState::BogusSelfSignedDS:
         s = 8;
         break;
-      case vState::BogusUnableToGetDNSKEYs:
+      case vState::BogusNoRRSIG:
         s = 9;
         break;
-      case vState::BogusSelfSignedDS:
+      case vState::BogusNoValidRRSIG:
         s = 10;
         break;
-      case vState::BogusNoRRSIG:
+      case vState::BogusMissingNegativeIndication:
         s = 11;
         break;
-      case vState::BogusNoValidRRSIG:
+      case vState::BogusSignatureNotYetValid:
         s = 12;
         break;
-      case vState::BogusMissingNegativeIndication:
+      case vState::BogusSignatureExpired:
         s = 13;
         break;
-      case vState::BogusSignatureNotYetValid:
+      case vState::BogusUnsupportedDNSKEYAlgo:
         s = 14;
         break;
-      case vState::BogusSignatureExpired:
+      case vState::BogusUnsupportedDSDigestType:
         s = 15;
         break;
-      case vState::BogusUnsupportedDNSKEYAlgo:
+      case vState::BogusNoZoneKeyBitSet:
         s = 16;
         break;
-      case vState::BogusUnsupportedDSDigestType:
+      case vState::BogusRevokedDNSKEY:
         s = 17;
         break;
-      case vState::BogusNoZoneKeyBitSet:
-        s = 18;
-        break;
-      case vState::BogusRevokedDNSKEY:
-        s = 19;
-        break;
       case vState::BogusInvalidDNSKEYProtocol:
-        s = 20;
+        s = 18;
         break;
       default:
         throw std::runtime_error("Unsupported protobuf validation state");
