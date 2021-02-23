@@ -283,6 +283,16 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
   return false;
 }
 
+DNSName getClosestEncloserFromNSEC(const DNSName& name, const DNSName& owner, const DNSName& next)
+{
+  DNSName commonWithOwner(name.getCommonLabels(owner));
+  DNSName commonWithNext(name.getCommonLabels(next));
+  if (commonWithOwner.countLabels() >= commonWithNext.countLabels()) {
+    return commonWithOwner;
+  }
+  return commonWithNext;
+}
+
 /*
   This function checks whether the non-existence of a wildcard covering qname|qtype
   is proven by the NSEC records in validrrsets.
@@ -301,25 +311,16 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
         }
 
         const DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
-        /*
-          A NSEC can only prove the non-existence of a wildcard with at least the same
-          number of labels than the intersection of its owner name and next name.
-        */
-        const DNSName commonLabels = owner.getCommonLabels(nsec->d_next);
-        const unsigned int commonLabelsCount = commonLabels.countLabels();
+        DNSName closestEncloser = getClosestEncloserFromNSEC(qname, owner, nsec->d_next);
+        if (closestEncloser.countLabels() >= qname.countLabels()) {
+          continue;
+        }
+        DNSName wildcard = g_wildcarddnsname + closestEncloser;
+        LOG("Comparing owner: "<<owner<<" with target: "<<wildcard<<endl);
 
-        DNSName wildcard(qname);
-        unsigned int wildcardLabelsCount = wildcard.countLabels();
-        while (wildcard.chopOff() && wildcardLabelsCount >= commonLabelsCount) {
-          DNSName target = g_wildcarddnsname + wildcard;
-          --wildcardLabelsCount;
-
-          LOG("Comparing owner: "<<owner<<" with target: "<<target<<endl);
-
-          if (isCoveredByNSEC(target, owner, nsec->d_next)) {
-            LOG("\tWildcard is covered"<<endl);
-            return true;
-          }
+        if (wildcard != owner && isCoveredByNSEC(wildcard, owner, nsec->d_next)) {
+          LOG("\tWildcard is covered"<<endl);
+          return true;
         }
       }
     }
@@ -828,13 +829,13 @@ static const vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& en
 
 bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent>& sig)
 {
-  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5 
+  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5
   return sig->d_sigexpire >= now;
 }
 
 bool isRRSIGIncepted(const time_t now, const shared_ptr<RRSIGRecordContent>& sig)
 {
-  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5 
+  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5
   return sig->d_siginception - g_signatureInceptionSkew <= now;
 }
 
@@ -954,7 +955,7 @@ cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
   for(const auto& rec : recs) {
     //        cerr<<"res "<<rec.d_name<<"/"<<rec.d_type<<endl;
     if(rec.d_type == QType::OPT) continue;
-    
+
     if(rec.d_type == QType::RRSIG) {
       auto rrc = getRR<RRSIGRecordContent>(rec);
       if (rrc) {

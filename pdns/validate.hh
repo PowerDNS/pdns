@@ -97,6 +97,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
 
 bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3);
 DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
+DNSName getClosestEncloserFromNSEC(const DNSName& name, const DNSName& owner, const DNSName& next);
 
 template <typename NSEC> bool isTypeDenied(const NSEC& nsec, const QType& type)
 {
