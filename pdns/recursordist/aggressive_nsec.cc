@@ -191,6 +191,14 @@ void AggressiveNSECCache::prune(time_t now)
   }
 
   d_entriesCount -= erased;
+
+  if (!emptyEntries.empty())
+  {
+    WriteLock rl(d_lock);
+    for (const auto& entry : emptyEntries) {
+      d_zones.remove(entry);
+    }
+  }
 }
 
 static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
