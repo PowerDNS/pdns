@@ -1036,10 +1036,6 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
 
   LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<state<<endl);
 
-  // XXX: We could move aggressive NSEC check here? We know more about the zone and its status by now,
-  // but on the other hand it means we have already done the zone cut determination which is not good
-  // Perhaps delay that change until after the DNSSEC zone cut refactoring?
-
   res = doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation);
 
   /* Apply Post filtering policies */
@@ -3356,7 +3352,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       if (doCache) {
         g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP);
 
-        if (needWildcardProof && recordState == vState::Secure && i->first.place == DNSResourceRecord::ANSWER && g_aggressiveNSECCache && i->first.name == qname && !i->second.signatures.empty() && !d_routingTag && !ednsmask) {
+        if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && i->first.place == DNSResourceRecord::ANSWER && i->first.name == qname && !i->second.signatures.empty() && !d_routingTag && !ednsmask) {
           /* we have an answer synthesized from a wildcard and aggressive NSEC is enabled, we need to store the
              wildcard in its non-expanded form in the cache to be able to synthesize wildcard answers later */
           const auto& rrsig = i->second.signatures.at(0);
@@ -3376,7 +3372,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
     }
 
-    if ((i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty() && g_aggressiveNSECCache) {
+    if (g_aggressiveNSECCache && (i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty()) {
       // Good candidate for NSEC{,3} caching
       g_aggressiveNSECCache->insertNSEC(seenAuth, i->first.name, i->second.records.at(0), i->second.signatures, i->first.type == QType::NSEC3);
     }
