@@ -289,7 +289,8 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         return;
       }
 
-#warning Ponder storing everything in raw form, without the zone instead. It still needs to be a DNSName for NSEC, though
+      // XXX: Ponder storing everything in raw form, without the zone instead. It still needs to be a DNSName for NSEC, though,
+      // but doing the conversion on cache hits only might be faster
       next = DNSName(toBase32Hex(content->d_nexthash)) + zone;
 
       if (entry->d_iterations != content->d_iterations || entry->d_salt != content->d_salt) {
