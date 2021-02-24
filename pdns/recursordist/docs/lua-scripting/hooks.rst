@@ -25,7 +25,7 @@ Once a script is loaded, PowerDNS looks for the interception functions in the lo
 All of these functions are optional.
 
 If ``ipfilter`` returns ``true``, the query is dropped.
-If ``preresolve`` returns ``true``, it will indicate it handled a query, and the recursor will send to result as constructed in the functions to the client.
+If ``preresolve`` returns ``true``, it will indicate it handled a query, and the recursor will send the result as constructed in the function to the client.
 If it returns ``false``, the Recursor will continue processing.
 For the other functions, the return value will indicate that an alteration has been made. In that case DNSSEC validation will be automatically disabled since the content might not be genuine anymore.
 At specific points the Recursor will check if policy handling should take place.
