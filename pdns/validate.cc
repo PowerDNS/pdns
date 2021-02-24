@@ -308,6 +308,20 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const D
         const DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
         LOG("Comparing owner: "<<owner<<" with target: "<<wildcard<<endl);
 
+        if (qname.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
+          /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
+
+             In any negative response, the NSEC or NSEC3 [RFC5155] record type
+             bitmap SHOULD be checked to see that there was no DNAME that could
+             have been applied.  If the DNAME bit in the type bitmap is set and
+             the query name is a subdomain of the closest encloser that is
+             asserted, then DNAME substitution should have been done, but the
+             substitution has not been done as specified.
+          */
+          LOG("\tThe qname is a subdomain of the NSEC and the DNAME bit is set"<<endl);
+          return false;
+        }
+
         if (wildcard != owner && isCoveredByNSEC(wildcard, owner, nsec->d_next)) {
           LOG("\tWildcard is covered"<<endl);
           return true;
@@ -325,9 +339,9 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const D
   If `wildcardExists` is not NULL, if will be set to true if a wildcard exists
   for this qname but doesn't have this qtype.
 */
-static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const cspmap_t& validrrsets, bool* wildcardExists, nsec3HashesCache& cache)
+static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const qtype, const cspmap_t& validrrsets, bool* wildcardExists, nsec3HashesCache& cache)
 {
-  wildcard = g_wildcarddnsname + wildcard;
+  auto wildcard = g_wildcarddnsname + closestEncloser;
   LOG("Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype).getName()<<endl);
 
   for (const auto& v : validrrsets) {
@@ -341,8 +355,9 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
         }
 
         const DNSName signer = getSigner(v.second.signatures);
-        if (!v.first.first.isPartOf(signer))
+        if (!v.first.first.isPartOf(signer)) {
           continue;
+        }
 
         string h = getHashFromNSEC3(wildcard, nsec3, cache);
         if (h.empty()) {
@@ -420,6 +435,20 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
 
     LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
     return dState::NXQTYPE;
+  }
+
+  if (name.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
+    /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
+
+       In any negative response, the NSEC or NSEC3 [RFC5155] record type
+       bitmap SHOULD be checked to see that there was no DNAME that could
+       have been applied.  If the DNAME bit in the type bitmap is set and
+       the query name is a subdomain of the closest encloser that is
+       asserted, then DNAME substitution should have been done, but the
+       substitution has not been done as specified.
+    */
+    LOG("The DNAME bit is set and the query name is a subdomain of that NSEC");
+    return dState::NODENIAL;
   }
 
   if (isCoveredByNSEC(name, owner, nsec->d_next)) {
@@ -525,6 +554,20 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           }
 
           LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<endl);
+          return dState::NODENIAL;
+        }
+
+        if (qname.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
+          /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
+
+             In any negative response, the NSEC or NSEC3 [RFC5155] record type
+             bitmap SHOULD be checked to see that there was no DNAME that could
+             have been applied.  If the DNAME bit in the type bitmap is set and
+             the query name is a subdomain of the closest encloser that is
+             asserted, then DNAME substitution should have been done, but the
+             substitution has not been done as specified.
+          */
+          LOG("The DNAME bit is set and the query name is a subdomain of that NSEC");
           return dState::NODENIAL;
         }
 
@@ -658,8 +701,9 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           for(const auto& r : v.second.records) {
             LOG("\t"<<r->getZoneRepresentation()<<endl);
             auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
-            if(!nsec3)
+            if (!nsec3) {
               continue;
+            }
 
             const DNSName signer = getSigner(v.second.signatures);
             if (!v.first.first.isPartOf(signer)) {
@@ -675,7 +719,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
             LOG("Comparing "<<toBase32Hex(h)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
-            if(beginHash == h) {
+            if (beginHash == h) {
               if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
                 LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
                 continue;
@@ -683,6 +727,21 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
               LOG("Closest encloser for "<<qname<<" is "<<closestEncloser<<endl);
               found = true;
+
+              if (nsec3->isSet(QType::DNAME)) {
+                /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
+
+                   In any negative response, the NSEC or NSEC3 [RFC5155] record type
+                   bitmap SHOULD be checked to see that there was no DNAME that could
+                   have been applied.  If the DNAME bit in the type bitmap is set and
+                   the query name is a subdomain of the closest encloser that is
+                   asserted, then DNAME substitution should have been done, but the
+                   substitution has not been done as specified.
+                */
+                LOG("\tThe closest encloser NSEC3 has the DNAME bit is set"<<endl);
+                return dState::NODENIAL;
+              }
+
               break;
             }
           }
