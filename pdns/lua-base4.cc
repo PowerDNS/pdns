@@ -199,9 +199,6 @@ void BaseLua4::prepareContext() {
   d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
 
   // certain constants
-  d_pd.push_back({"PASS", (int)PolicyDecision::PASS});
-  d_pd.push_back({"DROP", (int)PolicyDecision::DROP});
-  d_pd.push_back({"TRUNCATE", (int)PolicyDecision::TRUNCATE});
 
   vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
                                        {"FORMERR",  RCode::FormErr  },
