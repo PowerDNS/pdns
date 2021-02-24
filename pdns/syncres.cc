@@ -1944,7 +1944,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   }
 
   /* let's check if we have a NSEC covering that record */
-  if (g_aggressiveNSECCache) {
+  if (g_aggressiveNSECCache && !wasForwardedOrAuthZone) {
     if (g_aggressiveNSECCache->getDenial(d_now.tv_sec, qname, qtype, ret, res, d_cacheRemote, d_routingTag, d_doDNSSEC)) {
       state = vState::Secure;
       return true;
