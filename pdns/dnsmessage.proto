@@ -45,6 +45,26 @@ message PBDNSMessage {
     Truncate= 5;                                // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.5
     Custom = 6;                                 // https://tools.ietf.org/html/draft-vixie-dns-rpz-04 3.6
   }
+  enum VState {
+    Indeterminate = 1;
+    Insecure = 2;
+    Secure = 3;
+    BogusNoValidDNSKEY = 4;
+    BogusInvalidDenial = 5;
+    BogusUnableToGetDSs = 6;
+    BogusUnableToGetDNSKEYs = 7;
+    BogusSelfSignedDS = 8;
+    BogusNoRRSIG = 9;
+    BogusNoValidRRSIG = 10;
+    BogusMissingNegativeIndication = 11;
+    BogusSignatureNotYetValid = 12;
+    BogusSignatureExpired = 13;
+    BogusUnsupportedDNSKEYAlgo = 14;
+    BogusUnsupportedDSDigestType = 15;
+    BogusNoZoneKeyBitSet = 16;
+    BogusRevokedDNSKEY = 17;
+    BogusInvalidDNSKEYProtocol = 18;
+  }
   required Type type = 1;
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
   optional bytes serverIdentity = 3;            // ID of the server emitting the protobuf message
@@ -83,6 +103,7 @@ message PBDNSMessage {
     optional string appliedPolicyTrigger = 8;   // The RPZ trigger
     optional string appliedPolicyHit = 9;       // The value (qname or IP) that caused the hit
     optional PolicyKind appliedPolicyKind = 10; // The Kind (RPZ action) applied by the hit
+    optional VState validationState = 11;      // The DNSSEC Validation State
   }
 
   optional DNSResponse response = 13;
