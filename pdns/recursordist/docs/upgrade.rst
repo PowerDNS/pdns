@@ -36,6 +36,7 @@ Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-minimum-ttl-override` and :ref:`setting-ecs-minimum-ttl-override` defaults have ben changed from 0 to 1.
 - The :ref:`setting-spoof-nearmiss-max` default has been changed from 20 to 1.
+- The :ref:`setting-dnssec` default has changed from ``process-no-validate`` to ``process``.
 
 Removed settings
 ^^^^^^^^^^^^^^^^
