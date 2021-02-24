@@ -39,7 +39,7 @@ static void usage()
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] "
-          "[tcp] [dot] [insecure] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
+          "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
        << endl;
@@ -260,6 +260,8 @@ try {
         dot = true;
       else if (strcmp(argv[i], "insecure") == 0)
         insecureDoT = true;
+      else if (strcmp(argv[i], "fastOpen") == 0)
+        fastOpen = true;
       else if (strcmp(argv[i], "ednssubnet") == 0) {
         if (argc < i + 2) {
           cerr << "ednssubnet needs an argument" << endl;
@@ -409,6 +411,7 @@ try {
     }
     uint16_t counter = 0;
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
+    setTCPNoDelay(sock.getHandle()); // disable NAGLE, which does not play nicely with delayed ACKs
     TCPIOHandler handler(subjectName, sock.releaseHandle(), timeout, tlsCtx, time(nullptr));
     handler.connect(fastOpen, dest, timeout);
     // we are writing the proxyheader inside the TLS connection. Is that right?

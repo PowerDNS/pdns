@@ -1,6 +1,8 @@
 
 #pragma once
 #include <memory>
+/* needed for proper TCP_FASTOPEN_CONNECT detection */
+#include <netinet/tcp.h>
 
 #include "libssl.hh"
 #include "misc.hh"
@@ -250,7 +252,7 @@ public:
       SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ 0);
     }
 #else
-    SConnectWithTimeout(d_socket, d_ds->remote, /* no timeout, we will handle it ourselves */ 0);
+    SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ 0);
 #endif /* MSG_FASTOPEN */
 
     if (d_conn) {
@@ -282,7 +284,7 @@ public:
       SConnectWithTimeout(d_socket, remote, timeout);
     }
 #else
-    SConnectWithTimeout(d_socket, d_ds->remote, timeout);
+    SConnectWithTimeout(d_socket, remote, timeout);
 #endif /* MSG_FASTOPEN */
 
     if (d_conn) {
@@ -359,6 +361,7 @@ public:
       return d_conn->tryWrite(buffer, pos, toWrite);
     }
 
+#ifdef MSG_FASTOPEN
     if (d_fastOpen) {
       int socketFlags = MSG_FASTOPEN;
       size_t sent = sendMsgWithOptions(d_socket, reinterpret_cast<const char *>(&buffer.at(pos)), toWrite - pos, &d_remote, nullptr, 0, socketFlags);
@@ -373,6 +376,7 @@ public:
 
       return IOState::Done;
     }
+#endif /* MSG_FASTOPEN */
 
     do {
       ssize_t res = ::write(d_socket, reinterpret_cast<const char*>(&buffer.at(pos)), toWrite - pos);
@@ -401,9 +405,20 @@ public:
     if (d_conn) {
       return d_conn->write(buffer, bufferSize, writeTimeout);
     }
-    else {
-      return writen2WithTimeout(d_socket, buffer, bufferSize, writeTimeout);
+
+#ifdef MSG_FASTOPEN
+    if (d_fastOpen) {
+      int socketFlags = MSG_FASTOPEN;
+      size_t sent = sendMsgWithOptions(d_socket, reinterpret_cast<const char *>(buffer), bufferSize, &d_remote, nullptr, 0, socketFlags);
+      if (sent > 0) {
+        d_fastOpen = false;
+      }
+
+      return sent;
     }
+#endif /* MSG_FASTOPEN */
+
+    return writen2WithTimeout(d_socket, buffer, bufferSize, writeTimeout);
   }
 
   bool hasBufferedData() const
@@ -454,7 +469,9 @@ private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
   ComboAddress d_remote;
   int d_socket{-1};
+#ifdef MSG_FASTOPEN
   bool d_fastOpen{false};
+#endif
 };
 
 struct TLSContextParameters

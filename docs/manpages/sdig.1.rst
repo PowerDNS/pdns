@@ -43,6 +43,8 @@ dot
     use DoT instead of UDP to send a query. Implies tcp.
 insecure
     when using DoT, do not validate the server certificate.
+fastOpen
+    when using TCP or, DoT, enable TCP Fast Open
 subjectName *name*
     when using DoT, verify the server certificate is issued for *name*. The `openssl` provider will accept an empty name and still
     make sure the certificate is issued by a trusted CA, `gnutls` will only do the validation if a name is given.
