@@ -244,8 +244,9 @@ bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, cons
     signer.countLabels() < owner.countLabels();
 }
 
-static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t& validrrsets)
+static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, const DNSName& closestEncloser, const cspmap_t& validrrsets)
 {
+  const DNSName wildcard = g_wildcarddnsname + closestEncloser;
   LOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
   for (const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -257,25 +258,18 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
           continue;
         }
 
-        if (!v.first.first.isWildcard()) {
-          continue;
-        }
-        DNSName wildcard = getNSECOwnerName(v.first.first, v.second.signatures);
-        if (qname.countLabels() < wildcard.countLabels()) {
+        DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
+        if (owner != wildcard) {
           continue;
         }
 
-        wildcard.chopOff();
-
-        if (qname.isPartOf(wildcard)) {
-          LOG("\tWildcard matches");
-          if (qtype == 0 || isTypeDenied(nsec, QType(qtype))) {
-            LOG(" and proves that the type did not exist"<<endl);
-            return true;
-          }
-          LOG(" BUT the type did exist!"<<endl);
-          return false;
+        LOG("\tWildcard matches");
+        if (qtype == 0 || isTypeDenied(nsec, QType(qtype))) {
+          LOG(" and proves that the type did not exist"<<endl);
+          return true;
         }
+        LOG(" BUT the type did exist!"<<endl);
+        return false;
       }
     }
   }
@@ -297,9 +291,10 @@ DNSName getClosestEncloserFromNSEC(const DNSName& name, const DNSName& owner, co
   This function checks whether the non-existence of a wildcard covering qname|qtype
   is proven by the NSEC records in validrrsets.
 */
-static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t & validrrsets)
+static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const DNSName& closestEncloser, const cspmap_t & validrrsets)
 {
   LOG("Trying to prove that there is no wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+  const DNSName wildcard = g_wildcarddnsname + closestEncloser;
   for (const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
     if (v.first.second == QType::NSEC) {
@@ -311,11 +306,6 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
         }
 
         const DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
-        DNSName closestEncloser = getClosestEncloserFromNSEC(qname, owner, nsec->d_next);
-        if (closestEncloser.countLabels() >= qname.countLabels()) {
-          continue;
-        }
-        DNSName wildcard = g_wildcarddnsname + closestEncloser;
         LOG("Comparing owner: "<<owner<<" with target: "<<wildcard<<endl);
 
         if (wildcard != owner && isCoveredByNSEC(wildcard, owner, nsec->d_next)) {
@@ -525,7 +515,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             needWildcardProof = false;
           }
 
-          if (!needWildcardProof || provesNoWildCard(qname, qtype, validrrsets)) {
+          if (!needWildcardProof) {
+            return dState::NXQTYPE;
+          }
+
+          DNSName closestEncloser = getClosestEncloserFromNSEC(qname, owner, nsec->d_next);
+          if (provesNoWildCard(qname, qtype, closestEncloser, validrrsets)) {
             return dState::NXQTYPE;
           }
 
@@ -557,15 +552,16 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           }
 
           LOG("but we do need a wildcard proof so ");
+          DNSName closestEncloser = getClosestEncloserFromNSEC(qname, owner, nsec->d_next);
           if (wantsNoDataProof) {
             LOG("looking for NODATA proof"<<endl);
-            if (provesNoDataWildCard(qname, qtype, validrrsets)) {
+            if (provesNoDataWildCard(qname, qtype, closestEncloser, validrrsets)) {
               return dState::NXQTYPE;
             }
           }
           else {
             LOG("looking for NO wildcard proof"<<endl);
-            if (provesNoWildCard(qname, qtype, validrrsets)) {
+            if (provesNoWildCard(qname, qtype, closestEncloser, validrrsets)) {
               return dState::NXDOMAIN;
             }
           }
