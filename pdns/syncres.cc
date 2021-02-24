@@ -2595,7 +2595,7 @@ vState SyncRes::getValidationStatus(const DNSName& name, bool hasSignatures, boo
 
   /* by now we have the best match, it's likely Secure (otherwise we would not be there)
      but we don't know if we missed a cut (or several).
-     We could see see if we have DS (or denial of) in cache but let's not worry for now,
+     We could see if we have DS (or denial of) in cache but let's not worry for now,
      we will if we don't have a signature, or if the signer doesn't match what we expect */
   if (!hasSignatures && best != subdomain) {
     /* no signatures, we likely missed a cut, let's try to find it */
