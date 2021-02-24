@@ -522,7 +522,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
   }
 
   {
-#if 0
+#if 1
     TEST_INIT("=> 10k self-generated pipelined on the same connection");
 
     /* 10k self-generated REFUSED pipelined on the same connection */
@@ -1548,7 +1548,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
   }
 
   {
-#if 0
+#if 1
     /* 101 queries on the same connection, check that the maximum number of queries kicks in */
     TEST_INIT("=> 101 queries on the same connection");
 
