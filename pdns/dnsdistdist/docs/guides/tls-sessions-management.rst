@@ -19,11 +19,15 @@ Knowing the STEK is all the information needed to be able to decrypt a live TLS 
 Keys management in dnsdist
 --------------------------
 
+dnsdist supports both server's side (sessions) and client's side (tickets) resumption.
+
+Since server-side sessions cannot be shared between several instances, and pretty much all clients support tickets anyway, we do recommend disabling the sessions by passing ``numberOfStoredSessions=0`` to the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
+
 By default, dnsdist will generate a new, random STEK at startup and rotate it every 12 hours. It will keep 5 keys in memory, with only the last one marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. The rotation time and the number of keys to keep in memory can be configured via the ``numberOfTicketsKeys`` and ``ticketsKeysRotationDelay`` parameters of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
 
 It is also possible to manually request a STEK rotation using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``rotateTicketsKey`` method (:meth:`DOHFrontend.rotateTicketsKey`, :meth:`TLSContext.rotateTicketsKey`).
 
-The default settings should be fine for most deployments, but generating a random key for every dnsdist instance will not allow resuming the session from a different instance in a cluster. In that case it is possible to generate the STEK outside of dnsdist, write it to a file on a non-persistent storage, distribute it to all instances using something like rsync over SSH, and load that file from dnsdist.
+The default settings should be fine for most deployments, but generating a random key for every dnsdist instance will not allow resuming the session from a different instance in a cluster. In that case it is possible to generate the STEK outside of dnsdist, write it to a file, distribute it to all instances using something like rsync over SSH, and load that file from dnsdist. Please remember that the STEK contains very sensitive data, and should be well-protected from access by unauthorized users. It means that special care should be taken to setting the right permissions on that file.
 
 For the OpenSSL provider (DoT, DoH), generating a random STEK in a file is a simple as getting 80 cryptographically secure random bytes and writing them to a file::
 
@@ -39,8 +43,6 @@ If the file contains several keys, so for example 240 random bytes, dnsdist will
 
 In order to rotate the keys at runtime, it is possible to instruct dnsdist to reload the content of the certificates, keys, and STEKs from the same file used at configuration time, for all DoH and DoH binds, by issuing the :func:`reloadAllCertificates` command.
 It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend.loadTicketsKeys`, :meth:`TLSContext.loadTicketsKeys`).
-
-Since server-side sessions cannot be shared between several instances, and pretty much all clients support tickets anyway, we do recommend disabling the sessions by passing ``numberOfStoredSessions=0`` to the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
 
 Content of the STEK file
 ------------------------
