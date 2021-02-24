@@ -833,7 +833,7 @@ class TestDynBlockAllowlist(DynBlocksTest):
     function maintenance()
         toBlock = exceedQRate(%d, %d)
         for addr, count in pairs(toBlock) do
-            if addr:toString() == "127.0.0.1" then
+            if tostring(addr) == "127.0.0.1" then
                 allowlisted = true
                 toBlock[addr] = nil
             end

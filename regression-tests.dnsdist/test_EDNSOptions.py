@@ -8,7 +8,7 @@ class EDNSOptionsBase(DNSDistTest):
     _ednsTestFunction = """
     function testEDNSOptions(dq)
       local options = dq:getEDNSOptions()
-      local qname = dq.qname:toString()
+      local qname = tostring(dq.qname)
 
       if string.match(qname, 'noedns') then
         if next(options) ~= nil then

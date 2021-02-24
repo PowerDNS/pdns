@@ -144,7 +144,7 @@ class TestProtobuf(DNSDistProtobufTest):
 
     function alterProtobufResponse(dq, protobuf)
       if luasmn:check(dq.qname) then
-        requestor = newCA(dq.remoteaddr:toString())		-- called by testLuaProtobuf()
+        requestor = newCA(tostring(dq.remoteaddr))		-- called by testLuaProtobuf()
         if requestor:isIPv4() then
           requestor:truncate(24)
         else
@@ -179,7 +179,7 @@ class TestProtobuf(DNSDistProtobufTest):
     function alterProtobufQuery(dq, protobuf)
 
       if luasmn:check(dq.qname) then
-        requestor = newCA(dq.remoteaddr:toString())		-- called by testLuaProtobuf()
+        requestor = newCA(tostring(dq.remoteaddr))		-- called by testLuaProtobuf()
         if requestor:isIPv4() then
           requestor:truncate(24)
         else
@@ -200,7 +200,7 @@ class TestProtobuf(DNSDistProtobufTest):
 
         protobuf:setResponseCode(DNSRCode.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
 
-        local strReqName = dq.qname:toString()		  	-- get request dns name
+        local strReqName = tostring(dq.qname)		  	-- get request dns name
 
         protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
 
