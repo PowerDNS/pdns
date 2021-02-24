@@ -42,3 +42,5 @@ To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add on
   addDOHLocal("127.0.0.1:8053", nil, nil, "/", { reusePort=true })
 
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
+
+More information about sessions management can also be found in :doc:`guides/tls-sessions-management`.
