@@ -4746,11 +4746,11 @@ static int serviceMain(int argc, char*argv[])
   s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
   if (::arg().asNum("aggressive-nsec-cache-size") > 0) {
-    if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog) {
+    if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog || g_dnssecmode == DNSSECMode::Process) {
       g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(::arg().asNum("aggressive-nsec-cache-size"));
     }
     else {
-      g_log<<Logger::Warning<<"Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate' or 'log-fail', ignoring"<<endl;
+      g_log<<Logger::Warning<<"Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring"<<endl;
     }
   }
 
@@ -5520,7 +5520,7 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
 
-    ::arg().setSwitch("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="0";
+    ::arg().setSwitch("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="100000";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
