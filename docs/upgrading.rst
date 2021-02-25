@@ -14,7 +14,7 @@ upgrade notes if your version is older than 3.4.2.
 Record type changes
 ^^^^^^^^^^^^^^^^^^^
 
-The in-database format of ``CSYNC`` and ``IPSECKEY`` records has changed from 'generic' format to its specialized format.
+The in-database format of ``CSYNC``, ``IPSECKEY``, ``NID``, ``L32``, ``L64``, and ``LP`` records has changed from 'generic' format to its specialized format.
 
 API users might notice that replacing records of these types leaves the old TYPExx records around, even if PowerDNS is not serving them.
 To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.

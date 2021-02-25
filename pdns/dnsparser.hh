@@ -81,6 +81,7 @@ public:
   uint16_t get16BitInt();
   uint8_t get8BitInt();
   
+  void xfrNodeOrLocatorID(NodeOrLocatorID& val);
   void xfr48BitInt(uint64_t& val);
 
   void xfr32BitInt(uint32_t& val)

@@ -27,6 +27,7 @@
 #include "namespaces.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "misc.hh"
 #include "svc-records.hh"
 
 class RecordTextException : public runtime_error
@@ -40,6 +41,7 @@ class RecordTextReader
 {
 public:
   RecordTextReader(string  str, DNSName  zone=DNSName(""));
+  void xfrNodeOrLocatorID(NodeOrLocatorID& val);
   void xfr64BitInt(uint64_t& val);
   void xfr48BitInt(uint64_t& val);
   void xfr32BitInt(uint32_t& val);
@@ -83,6 +85,7 @@ class RecordTextWriter
 {
 public:
   RecordTextWriter(string& str, bool noDot=false);
+  void xfrNodeOrLocatorID(const NodeOrLocatorID& val);
   void xfr48BitInt(const uint64_t& val);
   void xfr32BitInt(const uint32_t& val);
   void xfr16BitInt(const uint16_t& val);

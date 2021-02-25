@@ -381,6 +381,15 @@ void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
   d_pos+=len;
 }
 
+void PacketReader::xfrNodeOrLocatorID(NodeOrLocatorID& ret)
+{
+  if (d_pos + sizeof(ret) > d_content.size()) {
+    throw std::out_of_range("Attempt to read 64 bit value outside of packet");
+  }
+  memcpy(&ret, &d_content.at(d_pos), sizeof(ret));
+  d_pos += sizeof(ret);
+}
+
 void PacketReader::xfr48BitInt(uint64_t& ret)
 {
   ret=0;

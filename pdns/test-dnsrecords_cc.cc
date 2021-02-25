@@ -230,6 +230,13 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::SVCB, "16 foo.powerdns.org. alpn=h2,h3 mandatory=alpn ipv4hint=192.0.2.1", "16 foo.powerdns.org. mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1", "\0\x10\3foo\x08powerdns\x03org\x00\x00\x00\x00\x02\x00\x01\x00\x01\x00\x06\x02h2\x02h3\x00\x04\x00\x04\xc0\x00\x02\x01"))
 
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all"))
+
+     (CASE_S(QType::NID, "15 0123:4567:89AB:CDEF", "\x00\x0F\x01\x23\x45\x67\x89\xab\xcd\xef"))
+     (CASE_S(QType::NID, "15 2001:0DB8:1234:ABCD", "\x00\x0F\x20\x01\x0d\xb8\x12\x34\xab\xcd"))
+     (CASE_S(QType::L32, "513 192.0.2.1", "\x02\x01\xc0\x00\x02\x01"))
+     (CASE_S(QType::L64, "255 2001:0DB8:1234:ABCD", "\x00\xFF\x20\x01\x0d\xb8\x12\x34\xab\xcd"))
+     (CASE_S(QType::LP, "512 foo.powerdns.org.", "\x02\x00\3foo\x08powerdns\x03org\x00"))
+
      (CASE_S(QType::EUI48, "00-11-22-33-44-55", "\x00\x11\x22\x33\x44\x55"))
      (CASE_S(QType::EUI64, "00-11-22-33-44-55-66-77", "\x00\x11\x22\x33\x44\x55\x66\x77"))
      (CASE_S(QType::TKEY, "gss-tsig. 12345 12345 3 21 4 dGVzdA== 4 dGVzdA==", "\x08gss-tsig\x00\x00\x00\x30\x39\x00\x00\x30\x39\x00\x03\x00\x15\x00\x04test\x00\x04test"))
