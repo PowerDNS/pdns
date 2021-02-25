@@ -79,6 +79,10 @@ class TestRecursorProtobuf(RecursorTest):
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']}
+    }
 
     def getFirstProtobufMessage(self, retries=1, waitTime=1):
         msg = None
@@ -249,25 +253,13 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEquals(msg.deviceId, deviceId)
         self.assertEquals(msg.deviceName, deviceName)
 
-    @classmethod
-    def setUpClass(cls):
-
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
     def setUp(self):
-      # Make sure the queue is empty, in case
-      # a previous test failed
-      for param in protobufServersParameters:
-        while not param.queue.empty():
-          param.queue.get(False)
+        super(TestRecursorProtobuf, self).setUp()
+        # Make sure the queue is empty, in case
+        # a previous test failed
+        for param in protobufServersParameters:
+            while not param.queue.empty():
+                param.queue.get(False)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -290,9 +282,6 @@ cname 3600 IN CNAME a.example.
 """.format(soa=cls._SOA))
         super(TestRecursorProtobuf, cls).generateRecursorConfig(confdir)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
 class ProtobufDefaultTest(TestRecursorProtobuf):
     """

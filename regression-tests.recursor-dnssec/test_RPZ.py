@@ -221,6 +221,12 @@ class RPZRecursorTest(RecursorTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
     _confdir = 'RPZ'
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']},
+        '10': {'threads': 1,
+               'zones': ['example']},
+    }
     _lua_dns_script_file = """
 
     function prerpz(dq)
@@ -241,22 +247,6 @@ webserver-password=%s
 api-key=%s
 log-rpz-changes=yes
 """ % (_confdir, _wsPort, _wsPassword, _apiKey)
-
-    @classmethod
-    def setUpClass(cls):
-
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     def checkBlocked(self, name, shouldBeBlocked=True, adQuery=False, singleCheck=False):
         query = dns.message.make_query(name, 'A', want_dnssec=True)
@@ -937,27 +927,6 @@ class RPZCNameChainCustomTest(RPZRecursorTest):
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz."})
     """ % (_confdir)
     _config_template = ""
-
-    @classmethod
-    def setUpClass(cls):
-
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateAllAuthConfig(confdir)
-        cls.startAuth(os.path.join(confdir, "auth-8"), cls._PREFIX + '.8')
-        cls.startAuth(os.path.join(confdir, "auth-10"), cls._PREFIX + '.10')
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownAuth()
-        cls.tearDownRecursor()
 
     @classmethod
     def generateRecursorConfig(cls, confdir):

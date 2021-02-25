@@ -8,6 +8,11 @@ from recursortests import RecursorTest
 
 class PacketCacheRecursorTest(RecursorTest):
 
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']}
+    }
+
     _confdir = 'PacketCache'
     _wsPort = 8042
     _wsTimeout = 2
@@ -36,23 +41,6 @@ d 3600 IN A 192.0.2.42
 e 3600 IN A 192.0.2.42
 """.format(soa=cls._SOA))
         super(PacketCacheRecursorTest, cls).generateRecursorConfig(confdir)
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     def checkPacketCacheMetrics(self, expectedHits, expectedMisses):
         headers = {'x-api-key': self._apiKey}
