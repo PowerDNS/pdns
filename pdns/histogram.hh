@@ -57,6 +57,7 @@ template <class B>
 class BaseHistogram
 {
 public:
+
   BaseHistogram(const std::string& prefix, const std::vector<uint64_t>& boundaries) : d_name(prefix)
   {
     if (!std::is_sorted(boundaries.cbegin(), boundaries.cend())) {
@@ -78,8 +79,19 @@ public:
       d_buckets.emplace_back(str, b, 0);
       prev = b;
     }
+
     // everything above last boundary
     d_buckets.emplace_back(prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0);
+  }
+
+  BaseHistogram(const std::string& prefix, uint64_t start, int num) :
+    BaseHistogram(prefix, to125(start, num))
+  {
+  }
+
+  std::string getName() const
+  {
+    return d_name;
   }
 
   const std::vector<B>& getRawData() const
@@ -131,6 +143,31 @@ public:
 private:
   std::vector<B> d_buckets;
   std::string d_name;
+
+
+  std::vector<uint64_t> to125(uint64_t start, int num)
+  {
+    std::vector<uint64_t> boundaries;
+    boundaries.reserve(num);
+    boundaries.emplace_back(start);
+    int i = 0;
+    while (true) {
+      if (++i >= num) {
+        break;
+      }
+      boundaries.push_back(2 * start);
+      if (++i >= num) {
+        break;
+      }
+      boundaries.push_back(5 * start);
+      if (++i >= num) {
+        break;
+      }
+      boundaries.push_back(10 * start);
+      start *= 10;
+    }
+    return boundaries;
+  }
 };
 
 template <class T>
