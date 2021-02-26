@@ -2679,6 +2679,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       /* we can't move this if we want to be able to access the values in
          all queries sent over this connection */
       dc->d_proxyProtocolValues = conn->proxyProtocolValues;
+
+      struct timeval start;
+      Utility::gettimeofday(&start, nullptr);
+ 
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
@@ -2814,9 +2818,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source);
 
         if (cacheHit) {
+          struct timeval now;
+          Utility::gettimeofday(&now, nullptr);
           if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-            struct timeval tv{0, 0};
-            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
+            protobufLogResponse(dh, luaconfsLocal, pbData, now, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
           }
 
           if (!g_quiet) {
@@ -2825,6 +2830,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           bool hadError = sendResponseOverTCP(dc, response);
           finishTCPReply(dc, hadError, false);
+          Utility::gettimeofday(&now, nullptr);
+          uint64_t spentUsec = uSec(now - start);
+          g_stats.cumulativeAnswers(spentUsec);
         } else {
           // No cache hit, setup for startDoResolve() in an mthread
           ++conn->d_requestsInFlight;
@@ -2913,7 +2921,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     }
 
     struct timeval ttd;
-    Utility::gettimeofday(&ttd, 0);
+    Utility::gettimeofday(&ttd, nullptr);
     ttd.tv_sec += g_tcpTimeout;
 
     t_fdm->addReadFD(tc->getFD(), handleRunningTCPQuestion, tc, &ttd);
@@ -2922,7 +2930,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues)
 {
-  gettimeofday(&g_now, 0);
+  gettimeofday(&g_now, nullptr);
   if (tv.tv_sec) {
     struct timeval diff = g_now - tv;
     double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
@@ -3069,6 +3077,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
               << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
               << strerror(sendErr) << endl;
       }
+      struct timeval now;
+      Utility::gettimeofday(&now, nullptr);
+      uint64_t spentUsec = uSec(now - tv);
+      g_stats.cumulativeAnswers(spentUsec);
       return 0;
     }
   }
@@ -5526,7 +5538,7 @@ try
         last_stat = g_now.tv_sec;
       }
 
-      Utility::gettimeofday(&g_now, 0);
+      Utility::gettimeofday(&g_now, nullptr);
 
       if((g_now.tv_sec - last_carbon) >= carbonInterval) {
         MT->makeThread(doCarbonDump, 0);

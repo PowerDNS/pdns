@@ -1058,9 +1058,9 @@ struct RecursorStats
     auth4Answers("auth4answers", { 1000, 10000, 100000, 1000000 }),
     auth6Answers("auth6answers", { 1000, 10000, 100000, 1000000 }),
     ourtime("ourtime", { 1000, 2000, 4000, 8000, 16000, 32000 }),
-    cumulativeAnswers("cumulAnswers-us", { 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 102400, 204800, 409600, 819200, 1638400, 3276800, 6553600 }),
-    cumulativeAuth4Answers("cumulAuth4Answers-us", { 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 102400, 204800, 409600, 819200, 1638400, 3276800, 6553600 }),
-    cumulativeAuth6Answers("cumulAuth6Answers-us", { 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 102400, 204800, 409600, 819200, 1638400, 3276800, 6553600 })
+    cumulativeAnswers("cumulAnswers-us", 10, 19),
+    cumulativeAuth4Answers("cumulAuth4Answers-us", 1000, 13),
+    cumulativeAuth6Answers("cumulAuth6Answers-us", 1000, 13)
   {
   }
 };
