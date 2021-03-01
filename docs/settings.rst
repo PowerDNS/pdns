@@ -541,8 +541,11 @@ See :doc:`performance`.
 -  Boolean
 -  Default: no
 
-Synthesise CNAME records from DNAME records as required. This
-approximately doubles query load. **Do not combine with DNSSEC!**
+Turn on DNAME processing (DNAME substitution, CNAME synthesis). This
+approximately doubles query load.
+
+If this is turned off, DNAME records are treated as any other and served
+only when queried explicitly.
 
 .. _setting-dnssec-key-cache-ttl:
 
