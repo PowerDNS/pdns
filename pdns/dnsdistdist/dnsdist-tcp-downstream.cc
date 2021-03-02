@@ -52,7 +52,6 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
 {
   DEBUGLOG("sending query to backend "<<conn->getDS()->getName()<<" over FD "<<conn->d_handler->getDescriptor());
 
-#warning FIXME: TODO: this drops 1/ source selection other than SO_BINDTODEVICE, perhaps we should look into IP_SENDIF?
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_buffer.size());
 
   if (state != IOState::Done) {
