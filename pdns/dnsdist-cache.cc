@@ -336,34 +336,39 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 }
 
 /* Remove all entries, keeping only upTo
-   entries in the cache */
+   entries in the cache.
+   If the cache has more than one shard, we will try hard
+   to make sure that every shard has free space remaining.
+*/
 size_t DNSDistPacketCache::expunge(size_t upTo)
 {
+  const size_t maxPerShard = upTo / d_shardCount;
+
   size_t removed = 0;
-  const uint64_t size = getSize();
 
-  if (upTo >= size) {
-    return removed;
-  }
+  for (auto& shard : d_shards) {
+    WriteLock w(&shard.d_lock);
+    auto& map = shard.d_map;
 
-  size_t toRemove = size - upTo;
+    if (map.size() <= maxPerShard) {
+      continue;
+    }
 
-  for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
-    WriteLock w(&d_shards.at(shardIndex).d_lock);
-    auto& map = d_shards[shardIndex].d_map;
+    size_t toRemove = map.size() - maxPerShard;
+
     auto beginIt = map.begin();
     auto endIt = beginIt;
-    size_t removeFromThisShard = (toRemove - removed) / (d_shardCount - shardIndex);
-    if (map.size() >= removeFromThisShard) {
-      std::advance(endIt, removeFromThisShard);
+
+    if (map.size() >= toRemove) {
+      std::advance(endIt, toRemove);
       map.erase(beginIt, endIt);
-      d_shards[shardIndex].d_entriesCount -= removeFromThisShard;
-      removed += removeFromThisShard;
+      shard.d_entriesCount -= toRemove;
+      removed += toRemove;
     }
     else {
       removed += map.size();
       map.clear();
-      d_shards[shardIndex].d_entriesCount = 0;
+      shard.d_entriesCount = 0;
     }
   }
 
