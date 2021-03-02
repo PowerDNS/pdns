@@ -105,7 +105,6 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, CacheValu
   tie(it, result) = map.insert({key, newValue});
 
   if (result) {
-    shard.d_entriesCount++;
     return;
   }
 
@@ -165,7 +164,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
 
   uint32_t shardIndex = getShardIndex(key);
 
-  if (d_shards.at(shardIndex).d_entriesCount >= (d_maxEntries / d_shardCount)) {
+  if (d_shards.at(shardIndex).d_map.size() >= (d_maxEntries / d_shardCount)) {
     return;
   }
 
@@ -308,12 +307,12 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
     uint32_t shardIndex = (d_expungeIndex++ % d_shardCount);
 
     WriteLock w(&d_shards.at(shardIndex).d_lock);
-    if (d_shards.at(shardIndex).d_entriesCount <= maxPerShard) {
+    auto& map = d_shards.at(shardIndex).d_map;
+    if (map.size() <= maxPerShard) {
       continue;
     }
 
-    size_t toRemove = d_shards.at(shardIndex).d_entriesCount - maxPerShard;
-    auto& map = d_shards.at(shardIndex).d_map;
+    size_t toRemove = map.size() - maxPerShard;
 
     for (auto it = map.begin(); toRemove > 0 && it != map.end(); ) {
       const CacheValue& value = it->second;
@@ -321,7 +320,6 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
       if (value.validity <= now) {
         it = map.erase(it);
         --toRemove;
-        d_shards[shardIndex].d_entriesCount--;
         ++removed;
       } else {
         ++it;
@@ -362,13 +360,11 @@ size_t DNSDistPacketCache::expunge(size_t upTo)
     if (map.size() >= toRemove) {
       std::advance(endIt, toRemove);
       map.erase(beginIt, endIt);
-      shard.d_entriesCount -= toRemove;
       removed += toRemove;
     }
     else {
       removed += map.size();
       map.clear();
-      shard.d_entriesCount = 0;
     }
   }
 
@@ -388,7 +384,6 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
 
       if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
         it = map.erase(it);
-        d_shards[shardIndex].d_entriesCount--;
         ++removed;
       } else {
         ++it;
@@ -409,7 +404,7 @@ uint64_t DNSDistPacketCache::getSize()
   uint64_t count = 0;
 
   for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
-    count += d_shards.at(shardIndex).d_entriesCount;
+    count += d_shards.at(shardIndex).d_map.size();
   }
 
   return count;
