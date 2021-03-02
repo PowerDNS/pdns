@@ -425,10 +425,15 @@ try {
       fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, xpfcode,
                  xpfversion, xpfproto, xpfsrc, xpfdst, qclass, counter);
       counter++;
-      uint16_t len = htons(packet.size());
-      if (handler.write(&len, sizeof(len), timeout) != sizeof(len))
-        throw PDNSException("tcp write failed");
-      if (handler.write(packet.data(), packet.size(), timeout) != packet.size()) {
+
+      // Prefer to do a single write, so that fastopen can send all the data on SYN
+      uint16_t len = packet.size();
+      string question;
+      question.reserve(sizeof(len) + packet.size());
+      question.push_back(static_cast<char>(len >> 8));
+      question.push_back(static_cast<char>(len & 0xff));
+      question.append(packet.begin(), packet.end());
+      if (handler.write(question.data(), question.size(), timeout) != question.size()) {
         throw PDNSException("tcp write failed");
       }
     }
