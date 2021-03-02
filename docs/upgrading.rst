@@ -83,6 +83,8 @@ Removed features
 SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API set-ptr feature, that both were deprecated in earlier releases, have now been removed.
 Please run ``pdnsutil check-all-zones`` to check for incomplete SOAs.
 
+The :ref:`setting-do-ipv6-additional-processing` setting was removed. IPv6 additional processing now always happens when IPv4 additional processing happens.
+
 4.3.1 to 4.3.2
 --------------
 
