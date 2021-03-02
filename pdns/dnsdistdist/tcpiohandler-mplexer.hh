@@ -85,6 +85,10 @@ public:
     }
     else if (iostate == IOState::NeedWrite) {
       if (d_currentState == IOState::NeedWrite) {
+        if (ttd) {
+          /* let's update the TTD ! */
+          d_mplexer->setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
+        }
         return;
       }
 

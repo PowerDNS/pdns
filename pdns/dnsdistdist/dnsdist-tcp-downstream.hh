@@ -18,6 +18,8 @@ struct TCPQuery
 
   IDState d_idstate;
   PacketBuffer d_buffer;
+  std::string d_proxyProtocolPayload;
+  bool d_proxyProtocolPayloadAdded{false};
 };
 
 class TCPConnectionToBackend;
@@ -52,7 +54,7 @@ public:
 
   ~TCPConnectionToBackend()
   {
-    if (d_ds && d_socket) {
+    if (d_ds && d_handler) {
       --d_ds->tcpCurrentConnections;
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -66,11 +68,11 @@ public:
 
   int getHandle() const
   {
-    if (!d_socket) {
+    if (!d_handler) {
       throw std::runtime_error("Attempt to get the socket handle from a non-established TCP connection");
     }
 
-    return d_socket->getHandle();
+    return d_handler->getDescriptor();
   }
 
   const std::shared_ptr<DownstreamState>& getDS() const
@@ -165,9 +167,14 @@ public:
   void handleTimeout(const struct timeval& now, bool write);
   void release();
 
-  void setProxyProtocolPayload(std::string&& payload);
-  void setProxyProtocolPayloadAdded(bool added);
   void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
+
+  std::string toString() const
+  {
+    ostringstream o;
+    o << "TCP connection to backend "<<(d_ds ? d_ds->getName() : "empty")<<" over FD "<<(d_handler ? std::to_string(d_handler->getDescriptor()) : "no socket")<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queries<<", pending queries count is "<<d_pendingQueries.size()<<", "<<d_pendingResponses.size()<<" pending responses, linked to "<<(d_clientConn ? " a client" : "no client");
+    return o.str();
+  }
 
 private:
   /* waitingForResponseFromBackend is a state where we have not yet started reading the size,
@@ -184,6 +191,10 @@ private:
   uint16_t getQueryIdFromResponse();
   bool reconnect();
   void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
+  bool needProxyProtocolPayload() const
+  {
+    return !d_proxyProtocolPayloadSent && (d_ds && d_ds->useProxyProtocol);
+  }
 
   boost::optional<struct timeval> getBackendReadTTD(const struct timeval& now) const
   {
@@ -221,11 +232,10 @@ private:
   std::deque<TCPQuery> d_pendingQueries;
   std::unordered_map<uint16_t, TCPQuery> d_pendingResponses;
   std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValuesSent{nullptr};
-  std::unique_ptr<Socket> d_socket{nullptr};
+  std::unique_ptr<TCPIOHandler> d_handler{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
   std::shared_ptr<IncomingTCPConnectionState> d_clientConn;
-  std::string d_proxyProtocolPayload;
   TCPQuery d_currentQuery;
   struct timeval d_connectionStartTime;
   size_t d_currentPos{0};
@@ -237,5 +247,5 @@ private:
   bool d_enableFastOpen{false};
   bool d_connectionDied{false};
   bool d_usedForXFR{false};
-  bool d_proxyProtocolPayloadAdded{false};
+  bool d_proxyProtocolPayloadSent{false};
 };

@@ -831,30 +831,7 @@ class TCPClientCollection {
   const bool d_useSinglePipe;
 public:
 
-  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
-
-  {
-    if (d_useSinglePipe) {
-      if (pipe(d_singlePipe) < 0) {
-        int err = errno;
-        throw std::runtime_error("Error creating the TCP single communication pipe: " + stringerror(err));
-      }
-
-      if (!setNonBlocking(d_singlePipe[0])) {
-        int err = errno;
-        close(d_singlePipe[0]);
-        close(d_singlePipe[1]);
-        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
-      }
-
-      if (!setNonBlocking(d_singlePipe[1])) {
-        int err = errno;
-        close(d_singlePipe[0]);
-        close(d_singlePipe[1]);
-        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
-      }
-    }
-  }
+  TCPClientCollection(size_t maxThreads, bool useSinglePipe=false);
   int getThread()
   {
     if (d_numthreads == 0) {
@@ -902,6 +879,7 @@ struct DownstreamState
   std::mutex socketsLock;
   std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+  std::shared_ptr<TLSCtx> d_tlsCtx{nullptr};
   std::thread tid;
   const ComboAddress remote;
   QPSLimiter qps;
@@ -1206,6 +1184,7 @@ extern uint64_t g_maxTCPQueuedConnections;
 extern size_t g_maxTCPQueriesPerConn;
 extern size_t g_maxTCPConnectionDuration;
 extern size_t g_maxTCPConnectionsPerClient;
+extern size_t g_tcpInternalPipeBufferSize;
 extern pdns::stat16_t g_cacheCleaningDelay;
 extern pdns::stat16_t g_cacheCleaningPercentage;
 extern uint32_t g_staleCacheEntriesTTL;

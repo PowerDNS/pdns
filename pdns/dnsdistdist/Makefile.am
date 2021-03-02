@@ -229,6 +229,7 @@ testrunner_SOURCES = \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-idstate.cc \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-bindings-dnsquestion.cc \
@@ -237,7 +238,10 @@ testrunner_SOURCES = \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-vars.cc \
+	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
+	dnsdist-tcp-downstream.cc \
+	dnsdist-tcp.cc \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \
@@ -275,6 +279,7 @@ testrunner_SOURCES = \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \
+	test-dnsdisttcp_cc.cc \
 	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
 	test-luawrapper.cc \

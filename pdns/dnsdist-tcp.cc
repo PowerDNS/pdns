@@ -55,14 +55,17 @@
    Let's start naively.
 */
 
-static std::mutex tcpClientsCountMutex;
-static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClientsCount;
+static std::mutex s_tcpClientsCountMutex;
+static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_tcpClientsCount;
 
 uint64_t g_maxTCPQueuedConnections{1000};
 size_t g_maxTCPQueriesPerConn{0};
 size_t g_maxTCPConnectionDuration{0};
 size_t g_maxTCPConnectionsPerClient{0};
+size_t g_tcpInternalPipeBufferSize{0};
 uint16_t g_downstreamTCPCleanupInterval{60};
+int g_tcpRecvTimeout{2};
+int g_tcpSendTimeout{2};
 bool g_useTCPSinglePipe{false};
 
 class DownstreamConnectionsManager
@@ -99,25 +102,19 @@ public:
     }
 
     const auto& ds = conn->getDS();
-    const auto& it = t_downstreamConnections.find(ds);
-    if (it != t_downstreamConnections.end()) {
-      auto& list = it->second;
-      if (list.size() >= s_maxCachedConnectionsPerDownstream) {
-        /* too many connections queued already */
-        conn.reset();
-        return;
-      }
-
-      list.push_back(std::move(conn));
+    auto& list = t_downstreamConnections[ds];
+    if (list.size() >= s_maxCachedConnectionsPerDownstream) {
+      /* too many connections queued already */
+      conn.reset();
     }
     else {
-      t_downstreamConnections[ds].push_back(std::move(conn));
+      list.push_back(std::move(conn));
     }
   }
 
   static void cleanupClosedTCPConnections()
   {
-    for(auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
+    for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
       for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
         if (*connIt && isTCPSocketUsable((*connIt)->getHandle())) {
           ++connIt;
@@ -136,6 +133,18 @@ public:
     }
   }
 
+  static size_t clear()
+  {
+    size_t count = 0;
+    for (const auto downstream : t_downstreamConnections) {
+      count += downstream.second.size();
+    }
+
+    t_downstreamConnections.clear();
+
+    return count;
+  }
+
 private:
   static thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
   static const size_t s_maxCachedConnectionsPerDownstream;
@@ -147,10 +156,10 @@ const size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{2
 static void decrementTCPClientCount(const ComboAddress& client)
 {
   if (g_maxTCPConnectionsPerClient) {
-    std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
-    tcpClientsCount.at(client)--;
-    if (tcpClientsCount[client] == 0) {
-      tcpClientsCount.erase(client);
+    std::lock_guard<std::mutex> lock(s_tcpClientsCountMutex);
+    s_tcpClientsCount.at(client)--;
+    if (s_tcpClientsCount[client] == 0) {
+      s_tcpClientsCount.erase(client);
     }
   }
 }
@@ -166,6 +175,16 @@ IncomingTCPConnectionState::~IncomingTCPConnectionState()
     auto diff = now - d_connectionStartTime;
     d_ci.cs->updateTCPMetrics(d_queriesCount, diff.tv_sec * 1000.0 + diff.tv_usec / 1000.0);
   }
+
+  // would have been done when the object is destroyed anyway,
+  // but that way we make sure it's done before the ConnectionInfo is destroyed,
+  // closing the descriptor, instead of relying on the declaration order of the objects in the class
+  d_handler.close();
+}
+
+size_t IncomingTCPConnectionState::clearAllDownstreamConnections()
+{
+  return DownstreamConnectionsManager::clear();
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
@@ -175,7 +194,7 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
   downstream = getActiveDownstreamConnection(ds, tlvs);
 
   if (!downstream) {
-    /* we don't have a connection to this backend active yet, let's ask one (it might not be a fresh one, though) */
+    /* we don't have a connection to this backend active yet, let's get one (it might not be a fresh one, though) */
     downstream = DownstreamConnectionsManager::getConnectionToDownstream(d_threadData.mplexer, ds, now);
     registerActiveDownstreamConnection(downstream);
   }
@@ -184,6 +203,34 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
 }
 
 static void tcpClientThread(int pipefd);
+
+TCPClientCollection::TCPClientCollection(size_t maxThreads, bool useSinglePipe): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
+{
+  if (d_useSinglePipe) {
+    if (pipe(d_singlePipe) < 0) {
+      int err = errno;
+      throw std::runtime_error("Error creating the TCP single communication pipe: " + stringerror(err));
+    }
+
+    if (!setNonBlocking(d_singlePipe[0])) {
+      int err = errno;
+      close(d_singlePipe[0]);
+      close(d_singlePipe[1]);
+      throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
+    }
+
+    if (!setNonBlocking(d_singlePipe[1])) {
+      int err = errno;
+      close(d_singlePipe[0]);
+      close(d_singlePipe[1]);
+      throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
+    }
+
+    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(d_singlePipe[0]) < g_tcpInternalPipeBufferSize) {
+      setPipeBufferSize(d_singlePipe[0], g_tcpInternalPipeBufferSize);
+    }
+  }
+}
 
 void TCPClientCollection::addTCPClientThread()
 {
@@ -216,6 +263,10 @@ void TCPClientCollection::addTCPClientThread()
       errlog("Error setting the TCP thread communication pipe non-blocking: %s", stringerror(err));
       return;
     }
+
+    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(pipefds[0]) < g_tcpInternalPipeBufferSize) {
+      setPipeBufferSize(pipefds[0], g_tcpInternalPipeBufferSize);
+    }
   }
 
   {
@@ -234,7 +285,7 @@ void TCPClientCollection::addTCPClientThread()
       std::thread t1(tcpClientThread, pipefds[0]);
       t1.detach();
     }
-    catch(const std::runtime_error& e) {
+    catch (const std::runtime_error& e) {
       /* the thread creation failed, don't leak */
       errlog("Error creating a TCP thread: %s", e.what());
       if (!d_useSinglePipe) {
@@ -255,7 +306,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 {
   IOState result = IOState::Done;
 
-  while (!state->d_queuedResponses.empty()) {
+  while (state->active() && !state->d_queuedResponses.empty()) {
     DEBUGLOG("queue size is "<<state->d_queuedResponses.size()<<", sending the next one");
     TCPResponse resp = std::move(state->d_queuedResponses.front());
     state->d_queuedResponses.pop_front();
@@ -266,71 +317,49 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
     }
   }
 
+  state->d_state = IncomingTCPConnectionState::State::idle;
+  return IOState::Done;
+}
+
+static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
+{
   if (state->d_isXFR) {
-    /* we should still be reading from the backend, and we don't want to read from the client */
-    state->d_state = IncomingTCPConnectionState::State::idle;
-    state->d_currentPos = 0;
-    DEBUGLOG("idling for XFR completion");
-    return IOState::Done;
-  } else {
-    if (state->canAcceptNewQueries()) {
-      DEBUGLOG("waiting for new queries");
-      state->resetForNewQuery();
-      return IOState::NeedRead;
-    }
-    else {
-      DEBUGLOG("idling");
-      state->d_state = IncomingTCPConnectionState::State::idle;
-      return IOState::Done;
-    }
+    return;
+  }
+
+  --state->d_currentQueriesCount;
+
+  if (currentResponse.d_selfGenerated == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
+    const auto& ds = currentResponse.d_connection->getDS();
+    struct timespec answertime;
+    gettime(&answertime);
+    const auto& ids = currentResponse.d_idstate;
+    double udiff = ids.sentTime.udiff();
+    g_rings.insertResponse(answertime, state->d_ci.remote, ids.qname, ids.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ds->remote);
+    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f usec", ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), currentResponse.d_buffer.size(), udiff);
+  }
+
+  switch (currentResponse.d_cleartextDH.rcode) {
+  case RCode::NXDomain:
+    ++g_stats.frontendNXDomain;
+    break;
+  case RCode::ServFail:
+    ++g_stats.servfailResponses;
+    ++g_stats.frontendServFail;
+    break;
+  case RCode::NoError:
+    ++g_stats.frontendNoError;
+    break;
   }
 }
 
-static bool handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now)
+bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
 {
-  if (!state->d_isXFR) {
-    --state->d_currentQueriesCount;
-
-    const auto& currentResponse = state->d_currentResponse;
-    if (currentResponse.d_selfGenerated == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
-      const auto& ds = currentResponse.d_connection->getDS();
-      struct timespec answertime;
-      gettime(&answertime);
-      const auto& ids = currentResponse.d_idstate;
-      double udiff = ids.sentTime.udiff();
-      g_rings.insertResponse(answertime, state->d_ci.remote, ids.qname, ids.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ds->remote);
-      vinfolog("Got answer from %s, relayed to %s (%s), took %f usec", ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), udiff);
-    }
-
-    switch (currentResponse.d_cleartextDH.rcode) {
-    case RCode::NXDomain:
-      ++g_stats.frontendNXDomain;
-      break;
-    case RCode::ServFail:
-      ++g_stats.servfailResponses;
-      ++g_stats.frontendServFail;
-      break;
-    case RCode::NoError:
-      ++g_stats.frontendNoError;
-      break;
-    }
-
-    if (g_maxTCPQueriesPerConn && state->d_queriesCount > g_maxTCPQueriesPerConn) {
-      vinfolog("Terminating TCP connection from %s because it reached the maximum number of queries per conn (%d / %d)", state->d_ci.remote.toStringWithPort(), state->d_queriesCount, g_maxTCPQueriesPerConn);
-      return false;
-    }
-
-    if (state->maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
-      vinfolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", state->d_ci.remote.toStringWithPort());
-      return false;
-    }
+  if (d_hadErrors) {
+    DEBUGLOG("not accepting new queries because we encountered some error during the processing already");
+    return false;
   }
 
-  return true;
-}
-
-bool IncomingTCPConnectionState::canAcceptNewQueries() const
-{
   if (d_isXFR) {
     DEBUGLOG("not accepting new queries because used for XFR");
     return false;
@@ -338,6 +367,16 @@ bool IncomingTCPConnectionState::canAcceptNewQueries() const
 
   if (d_currentQueriesCount >= d_ci.cs->d_maxInFlightQueriesPerConn) {
     DEBUGLOG("not accepting new queries because we already have "<<d_currentQueriesCount<<" out of "<<d_ci.cs->d_maxInFlightQueriesPerConn);
+    return false;
+  }
+
+  if (g_maxTCPQueriesPerConn && d_queriesCount > g_maxTCPQueriesPerConn) {
+    vinfolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, g_maxTCPQueriesPerConn);
+    return false;
+  }
+
+  if (maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
+    vinfolog("not accepting new queries from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
     return false;
   }
 
@@ -349,7 +388,7 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_buffer.resize(sizeof(uint16_t));
   d_currentPos = 0;
   d_querySize = 0;
-  d_state = State::readingQuerySize;
+  d_state = State::waitingForQuery;
 }
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getActiveDownstreamConnection(const std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
@@ -391,50 +430,91 @@ IOState IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConn
   state->d_currentPos = 0;
   state->d_currentResponse = std::move(response);
 
-  auto iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
-  if (iostate == IOState::Done) {
-    DEBUGLOG("response sent");
-    if (!handleResponseSent(state, now)) {
-      return IOState::Done;
+  try {
+    auto iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
+    if (iostate == IOState::Done) {
+      DEBUGLOG("response sent from "<<__PRETTY_FUNCTION__);
+      handleResponseSent(state, state->d_currentResponse);
+      return iostate;
+    } else {
+      state->d_lastIOBlocked = true;
+     return IOState::NeedWrite;
+      DEBUGLOG("partial write");
     }
-    return sendQueuedResponses(state, now);
-  } else {
-    return IOState::NeedWrite;
-    DEBUGLOG("partial write");
+  }
+  catch (const std::exception& e) {
+    vinfolog("Closing TCP client connection with %s: %s", state->d_ci.remote.toStringWithPort(), e.what());
+    DEBUGLOG("Closing TCP client connection: "<<e.what());
+    ++state->d_ci.cs->tcpDiedSendingResponse;
+
+    state->terminateClientConnection();
+
+    return IOState::Done;
   }
 }
 
-/* called when handling a response or error coming from a backend */
-void IncomingTCPConnectionState::sendOrQueueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
+void IncomingTCPConnectionState::terminateClientConnection()
 {
-  // if we were already reading a query (not the query size, mind you), or sending a response we need to queue the response
-  // otherwise we can start sending it right away
-  if (state->d_state == IncomingTCPConnectionState::State::idle ||
-      state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
-      state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
+  DEBUGLOG("terminating client connection");
+  d_queuedResponses.clear();
+  /* we have already released idle connections that could be reused,
+     we don't care about the ones still waiting for responses */
+  d_activeConnectionsToBackend.clear();
+  /* meaning we will no longer be 'active' when the backend
+     response or timeout comes in */
+  d_ioState.reset();
+  d_handler.close();
+}
 
-    auto iostate = sendResponse(state, now, std::move(response));
-    state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
-  }
-  else {
-    // queue response
-    state->d_queuedResponses.push_back(std::move(response));
-    DEBUGLOG("queueing response because state is "<<(int)state->d_state<<", queue size is now "<<state->d_queuedResponses.size());
+void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
+{
+  // queue response
+  state->d_queuedResponses.push_back(std::move(response));
+  DEBUGLOG("queueing response, state is "<<(int)state->d_state<<", queue size is now "<<state->d_queuedResponses.size());
+
+  // when the response comes from a backend, there is a real possibility that we are currently
+  // idle, and thus not trying to send the response right away would make our ref count go to 0.
+  // Even if we are waiting for a query, we will not wake up before the new query arrives or a
+  // timeout occurs
+  if (state->d_state == IncomingTCPConnectionState::State::idle ||
+      state->d_state == IncomingTCPConnectionState::State::waitingForQuery) {
+    auto iostate = sendQueuedResponses(state, now);
+
+    if (iostate == IOState::Done && state->active()) {
+      if (state->canAcceptNewQueries(now)) {
+        state->resetForNewQuery();
+        state->d_state = IncomingTCPConnectionState::State::waitingForQuery;
+        iostate = IOState::NeedRead;
+      }
+      else {
+        state->d_state = IncomingTCPConnectionState::State::idle;
+      }
+    }
+
+    // for the same reason we need to update the state right away, nobody will do that for us
+    if (state->active()) {
+      state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+    }
   }
 }
 
 /* called from the backend code when a new response has been received */
 void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response)
 {
-  if (!state->d_isXFR && response.d_connection && response.d_connection->isIdle()) {
+  if (response.d_connection && response.d_connection->isIdle()) {
     // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool yet, no one else will be able to use it anyway
     if (response.d_connection->canBeReused()) {
       auto& list = state->d_activeConnectionsToBackend.at(response.d_connection->getDS());
 
       for (auto it = list.begin(); it != list.end(); ++it) {
         if (*it == response.d_connection) {
-          response.d_connection->release();
-          DownstreamConnectionsManager::releaseDownstreamConnection(std::move(*it));
+          try {
+            response.d_connection->release();
+            DownstreamConnectionsManager::releaseDownstreamConnection(std::move(*it));
+          }
+          catch (const std::exception& e) {
+            vinfolog("Error releasing connection: %s", e.what());
+          }
           list.erase(it);
           break;
         }
@@ -443,49 +523,48 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
   }
 
   if (response.d_buffer.size() < sizeof(dnsheader)) {
+    state->terminateClientConnection();
     return;
   }
 
-  auto& ids = response.d_idstate;
-  unsigned int qnameWireLength;
-  if (!responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
-    return;
-  }
+  try {
+    auto& ids = response.d_idstate;
+    unsigned int qnameWireLength;
+    if (!responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, response.d_connection->getRemote(), qnameWireLength)) {
+      state->terminateClientConnection();
+      return;
+    }
 
-  DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer, true);
+    DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer, true);
 
-  memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
+    memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
-  if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
-    return;
-  }
-
-  if (state->d_isXFR && !state->d_xfrStarted) {
-    /* don't bother parsing the content of the response for now */
-    state->d_xfrStarted = true;
-    ++g_stats.responses;
-    ++state->d_ci.cs->responses;
-    if (response.d_connection->getDS()) {
-      ++response.d_connection->getDS()->responses;
+    if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
+      state->terminateClientConnection();
+      return;
     }
   }
-
-  if (!state->d_isXFR) {
-    ++g_stats.responses;
-    ++state->d_ci.cs->responses;
-    if (response.d_connection->getDS()) {
-      ++response.d_connection->getDS()->responses;
-    }
+  catch (const std::exception& e) {
+    vinfolog("Unxpected exception while handling response from backend: %s", e.what());
+    state->terminateClientConnection();
+    return;
   }
 
-  sendOrQueueResponse(state, now, std::move(response));
+  ++g_stats.responses;
+  ++state->d_ci.cs->responses;
+  if (response.d_connection->getDS()) {
+    ++response.d_connection->getDS()->responses;
+  }
+
+  queueResponse(state, now, std::move(response));
 }
 
-static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now)
+static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now)
 {
   if (state->d_querySize < sizeof(dnsheader)) {
     ++g_stats.nonCompliantQueries;
-    return IOState::NeedRead;
+    state->terminateClientConnection();
+    return;
   }
 
   state->d_readingFirstQuery = false;
@@ -525,14 +604,16 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
     TCPResponse response;
     state->d_state = IncomingTCPConnectionState::State::idle;
     ++state->d_currentQueriesCount;
-    return state->sendResponse(state, now, std::move(response));
+    state->queueResponse(state, now, std::move(response));
+    return;
   }
 
   {
     /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
     auto* dh = reinterpret_cast<dnsheader*>(state->d_buffer.data());
     if (!checkQueryHeaders(dh)) {
-      return IOState::NeedRead;
+      state->terminateClientConnection();
+      return;
     }
 
     if (dh->qdcount == 0) {
@@ -543,7 +624,8 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
       response.d_buffer = std::move(state->d_buffer);
       state->d_state = IncomingTCPConnectionState::State::idle;
       ++state->d_currentQueriesCount;
-      return state->sendResponse(state, now, std::move(response));
+      state->queueResponse(state, now, std::move(response));
+      return;
     }
   }
 
@@ -568,7 +650,8 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
   auto result = processQuery(dq, *state->d_ci.cs, state->d_threadData.holders, ds);
 
   if (result == ProcessQueryResult::Drop) {
-    return IOState::Done;
+    state->terminateClientConnection();
+    return;
   }
 
   // the buffer might have been invalidated by now
@@ -579,11 +662,13 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
     response.d_buffer = std::move(state->d_buffer);
     state->d_state = IncomingTCPConnectionState::State::idle;
     ++state->d_currentQueriesCount;
-    return state->sendResponse(state, now, std::move(response));
+    state->queueResponse(state, now, std::move(response));
+    return;
   }
 
   if (result != ProcessQueryResult::PassToBackend || ds == nullptr) {
-    return IOState::Done;
+    state->terminateClientConnection();
+    return;
   }
 
   IDState ids;
@@ -621,29 +706,28 @@ static IOState handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, c
     downstreamConnection->setProxyProtocolValuesSent(std::move(dq.proxyProtocolValues));
   }
 
+  TCPQuery query(std::move(state->d_buffer), std::move(ids));
   if (proxyProtocolPayloadAdded) {
-    downstreamConnection->setProxyProtocolPayloadAdded(true);
+    query.d_proxyProtocolPayloadAdded = true;
   }
   else {
-    downstreamConnection->setProxyProtocolPayload(std::move(proxyProtocolPayload));
+    query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
   }
 
   ++state->d_currentQueriesCount;
-  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", ids.qname.toLogString(), QType(ids.qtype).getName(), state->d_proxiedRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), state->d_buffer.size(), ds->getName());
-  downstreamConnection->queueQuery(TCPQuery(std::move(state->d_buffer), std::move(ids)), downstreamConnection);
-
-  return IOState::NeedRead;
+  vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).getName(), state->d_proxiedRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), query.d_buffer.size(), ds->getName());
+  downstreamConnection->queueQuery(std::move(query), downstreamConnection);
 }
 
 void IncomingTCPConnectionState::handleIOCallback(int fd, FDMultiplexer::funcparam_t& param)
 {
   auto conn = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
-  if (fd != conn->d_ci.fd) {
-    throw std::runtime_error("Unexpected socket descriptor " + std::to_string(fd) + " received in " + std::string(__PRETTY_FUNCTION__) + ", expected " + std::to_string(conn->d_ci.fd));
+  if (fd != conn->d_handler.getDescriptor()) {
+    throw std::runtime_error("Unexpected socket descriptor " + std::to_string(fd) + " received in " + std::string(__PRETTY_FUNCTION__) + ", expected " + std::to_string(conn->d_handler.getDescriptor()));
   }
 
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   handleIO(conn, now);
 }
 
@@ -651,7 +735,6 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
 {
   // why do we loop? Because the TLS layer does buffering, and thus can have data ready to read
   // even though the underlying socket is not ready, so we need to actually ask for the data first
-  bool wouldBlock = false;
   IOState iostate = IOState::Done;
   do {
     iostate = IOState::Done;
@@ -663,6 +746,8 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
       //handleNewIOState(state, IOState::Done, fd, handleIOCallback);
       return;
     }
+
+    state->d_lastIOBlocked = false;
 
     try {
       if (state->d_state == IncomingTCPConnectionState::State::doingHandshake) {
@@ -696,13 +781,13 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           }
         }
         else {
-          wouldBlock = true;
+          state->d_lastIOBlocked = true;
         }
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
-        DEBUGLOG("reading proxy protocol header");
+      if (!state->d_lastIOBlocked && state->d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
         do {
+          DEBUGLOG("reading proxy protocol header");
           iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_proxyProtocolNeed);
           if (iostate == IOState::Done) {
             state->d_buffer.resize(state->d_currentPos);
@@ -738,15 +823,21 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
             }
           }
           else {
-            wouldBlock = true;
+            state->d_lastIOBlocked = true;
           }
         }
-        while (!wouldBlock);
+        while (state->active() && !state->d_lastIOBlocked);
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
+      if (!state->d_lastIOBlocked && (state->d_state == IncomingTCPConnectionState::State::waitingForQuery ||
+                                      state->d_state == IncomingTCPConnectionState::State::readingQuerySize)) {
         DEBUGLOG("reading query size");
         iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t));
+        if (state->d_currentPos > 0) {
+          /* if we got at least one byte, we can't go around sending responses */
+          state->d_state = IncomingTCPConnectionState::State::readingQuerySize;
+        }
+
         if (iostate == IOState::Done) {
           DEBUGLOG("query size received");
           state->d_state = IncomingTCPConnectionState::State::readingQuery;
@@ -757,6 +848,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           state->d_querySize = state->d_buffer.at(0) * 256 + state->d_buffer.at(1);
           if (state->d_querySize < sizeof(dnsheader)) {
             /* go away */
+            state->terminateClientConnection();
             return;
           }
 
@@ -766,71 +858,78 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           state->d_currentPos = 0;
         }
         else {
-          wouldBlock = true;
+          state->d_lastIOBlocked = true;
         }
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::readingQuery) {
+      if (!state->d_lastIOBlocked && state->d_state == IncomingTCPConnectionState::State::readingQuery) {
         DEBUGLOG("reading query");
         iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, state->d_querySize);
         if (iostate == IOState::Done) {
           DEBUGLOG("query received");
           state->d_buffer.resize(state->d_querySize);
 
-          iostate = handleQuery(state, now);
-          // if the query has been passed to a backend, or dropped, we can start
-          // reading again, or sending queued responses
-          if (iostate == IOState::NeedRead) {
-            if (state->d_queuedResponses.empty()) {
-              if (state->canAcceptNewQueries()) {
-                state->resetForNewQuery();
-              }
-              else {
-                state->d_state = IncomingTCPConnectionState::State::idle;
-                iostate = IOState::Done;
-              }
-            }
-            else {
-              TCPResponse resp = std::move(state->d_queuedResponses.front());
-              state->d_queuedResponses.pop_front();
-              ioGuard.release();
-              state->d_state = IncomingTCPConnectionState::State::idle;
-              iostate = sendResponse(state, now, std::move(resp));
-            }
+          state->d_state = IncomingTCPConnectionState::State::idle;
+          handleQuery(state, now);
+          /* the state might have been updated in the meantime, we don't want to override it
+             in that case */
+          if (state->active() && state->d_state != IncomingTCPConnectionState::State::idle) {
+            iostate = state->d_ioState->getState();
           }
         }
         else {
-          wouldBlock = true;
+          state->d_lastIOBlocked = true;
         }
       }
 
-      if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
+      if (!state->d_lastIOBlocked && state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
         DEBUGLOG("sending response");
         iostate = state->d_handler.tryWrite(state->d_currentResponse.d_buffer, state->d_currentPos, state->d_currentResponse.d_buffer.size());
         if (iostate == IOState::Done) {
-          DEBUGLOG("response sent");
-          if (!handleResponseSent(state, now)) {
-            iostate = IOState::Done;
+          DEBUGLOG("response sent from "<<__PRETTY_FUNCTION__);
+          handleResponseSent(state, state->d_currentResponse);
+          state->d_state = IncomingTCPConnectionState::State::idle;
+        }
+        else {
+          state->d_lastIOBlocked = true;
+        }
+      }
+
+      if (state->active() &&
+          !state->d_lastIOBlocked &&
+          iostate == IOState::Done &&
+          (state->d_state == IncomingTCPConnectionState::State::idle ||
+           state->d_state == IncomingTCPConnectionState::State::waitingForQuery))
+      {
+        // try sending querued responses
+        DEBUGLOG("send responses, if any");
+        iostate = sendQueuedResponses(state, now);
+
+        if (!state->d_lastIOBlocked && state->active() && iostate == IOState::Done) {
+          // if the query has been passed to a backend, or dropped, and the responses have been sent,
+          // we can start reading again
+          if (state->canAcceptNewQueries(now)) {
+            state->resetForNewQuery();
+            iostate = IOState::NeedRead;
           }
           else {
-            iostate = sendQueuedResponses(state, now);
+            state->d_state = IncomingTCPConnectionState::State::idle;
+            iostate = IOState::Done;
           }
-        } else {
-          wouldBlock = true;
-          DEBUGLOG("partial write");
         }
       }
 
       if (state->d_state != IncomingTCPConnectionState::State::idle &&
           state->d_state != IncomingTCPConnectionState::State::doingHandshake &&
           state->d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader &&
+          state->d_state != IncomingTCPConnectionState::State::waitingForQuery &&
           state->d_state != IncomingTCPConnectionState::State::readingQuerySize &&
           state->d_state != IncomingTCPConnectionState::State::readingQuery &&
           state->d_state != IncomingTCPConnectionState::State::sendingResponse) {
         vinfolog("Unexpected state %d in handleIOCallback", static_cast<int>(state->d_state));
       }
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       /* most likely an EOF because the other end closed the connection,
          but it might also be a real IO error or something else.
          Let's just drop the connection
@@ -838,11 +937,13 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
       if (state->d_state == IncomingTCPConnectionState::State::idle ||
           state->d_state == IncomingTCPConnectionState::State::doingHandshake ||
           state->d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
+          state->d_state == IncomingTCPConnectionState::State::waitingForQuery ||
           state->d_state == IncomingTCPConnectionState::State::readingQuerySize ||
           state->d_state == IncomingTCPConnectionState::State::readingQuery) {
         ++state->d_ci.cs->tcpDiedReadingQuery;
       }
       else if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
+        /* unlikely to happen here, the exception should be handled in sendResponse() */
         ++state->d_ci.cs->tcpDiedSendingResponse;
       }
 
@@ -855,7 +956,12 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         DEBUGLOG("Closing TCP client connection: "<<e.what());
       }
       /* remove this FD from the IO multiplexer */
-      iostate = IOState::Done;
+      state->terminateClientConnection();
+    }
+
+    if (!state->active()) {
+      DEBUGLOG("state is no longer active");
+      return;
     }
 
     if (iostate == IOState::Done) {
@@ -866,42 +972,51 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
     }
     ioGuard.release();
   }
-  while ((iostate == IOState::NeedRead || iostate == IOState::NeedWrite) && !wouldBlock);
+  while ((iostate == IOState::NeedRead || iostate == IOState::NeedWrite) && !state->d_lastIOBlocked);
 }
 
 void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now)
 {
   --state->d_currentQueriesCount;
+  state->d_hadErrors = true;
 
   if (state->d_state == State::sendingResponse) {
     /* if we have responses to send, let's do that first */
   }
   else if (!state->d_queuedResponses.empty()) {
     /* stop reading and send what we have */
-    TCPResponse resp = std::move(state->d_queuedResponses.front());
-    state->d_queuedResponses.pop_front();
-    state->d_state = IncomingTCPConnectionState::State::idle;
-    sendOrQueueResponse(state, now, std::move(resp));
+    try {
+      auto iostate = sendQueuedResponses(state, now);
+
+      if (state->active() && iostate != IOState::Done) {
+        // we need to update the state right away, nobody will do that for us
+        state->d_ioState->update(iostate, handleIOCallback, state, iostate == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
+      }
+    }
+    catch (const std::exception& e) {
+      vinfolog("Exception in notifyIOError: %s", e.what());
+    }
   }
   else {
     // the backend code already tried to reconnect if it was possible
-    state->d_ioState->reset();
+    state->terminateClientConnection();
   }
 }
 
 void IncomingTCPConnectionState::handleXFRResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
 {
-  sendOrQueueResponse(state, now, std::move(response));
+  queueResponse(state, now, std::move(response));
 }
 
 void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write)
 {
+  vinfolog("Timeout while %s TCP client %s", (write ? "writing to" : "reading from"), state->d_ci.remote.toStringWithPort());
   DEBUGLOG("client timeout");
   DEBUGLOG("Processed "<<state->d_queriesCount<<" queries, current count is "<<state->d_currentQueriesCount<<", "<<state->d_activeConnectionsToBackend.size()<<" active connections, "<<state->d_queuedResponses.size()<<" response queued");
 
   if (write || state->d_currentQueriesCount == 0) {
     ++state->d_ci.cs->tcpClientTimeouts;
-    state->d_ioState->reset();
+    state->d_ioState.reset();
   }
   else {
     DEBUGLOG("Going idle");
@@ -943,7 +1058,7 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
     g_tcpclientthreads->decrementQueuedCount();
 
     struct timeval now;
-    gettimeofday(&now, 0);
+    gettimeofday(&now, nullptr);
     auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*citmp), *threadData, now);
     delete citmp;
     citmp = nullptr;
@@ -971,7 +1086,7 @@ static void tcpClientThread(int pipefd)
 
   data.mplexer->addReadFD(pipefd, handleIncomingTCPQuery, &data);
   struct timeval now;
-  gettimeofday(&now, 0);
+  gettimeofday(&now, nullptr);
   time_t lastTCPCleanup = now.tv_sec;
   time_t lastTimeoutScan = now.tv_sec;
 
@@ -982,12 +1097,25 @@ static void tcpClientThread(int pipefd)
       DownstreamConnectionsManager::cleanupClosedTCPConnections();
       lastTCPCleanup = now.tv_sec;
 
-      /*
+#if 0
+      /* just to keep things clean in the output, debug only */
+      static std::mutex s_lock;
+      std::lock_guard<decltype(s_lock)> lck(s_lock);
       data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
       {
-        cerr<<"- "<<isRead<<" "<<fd<<": "<<param.type().name()<<" "<<ttd.tv_sec<<endl;
+        struct timeval lnow;
+        gettimeofday(&lnow, nullptr);
+        cerr<<"- "<<isRead<<" "<<fd<<": "<<" "<<(ttd.tv_sec-lnow.tv_sec)<<endl;
+        if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+          auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
+          cerr<<" - "<<state->toString()<<endl;
+        }
+        else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
+          auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
+          cerr<<" - "<<conn->toString()<<endl;
+        }
       });
-      */
+#endif
     }
 
     if (now.tv_sec > lastTimeoutScan) {
@@ -996,7 +1124,7 @@ static void tcpClientThread(int pipefd)
       for (const auto& cbData : expiredReadConns) {
         if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
           auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
-          if (cbData.first == state->d_ci.fd) {
+          if (cbData.first == state->d_handler.getDescriptor()) {
             vinfolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
             state->handleTimeout(state, false);
           }
@@ -1012,7 +1140,7 @@ static void tcpClientThread(int pipefd)
       for (const auto& cbData : expiredWriteConns) {
         if (cbData.second.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
           auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(cbData.second);
-          if (cbData.first == state->d_ci.fd) {
+          if (cbData.first == state->d_handler.getDescriptor()) {
             vinfolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
             state->handleTimeout(state, true);
           }
@@ -1045,19 +1173,20 @@ void tcpAcceptorThread(ClientState* cs)
     tcpClientCountIncremented = false;
     try {
       socklen_t remlen = remote.getSocklen();
-      ci = std::unique_ptr<ConnectionInfo>(new ConnectionInfo(cs));
+      ci = std::make_unique<ConnectionInfo>(cs);
 #ifdef HAVE_ACCEPT4
       ci->fd = accept4(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
 #else
       ci->fd = accept(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
 #endif
+      // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
       ++cs->tcpCurrentConnections;
 
-      if(ci->fd < 0) {
+      if (ci->fd < 0) {
         throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
       }
 
-      if(!acl->match(remote)) {
+      if (!acl->match(remote)) {
 	++g_stats.aclDrops;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
@@ -1069,19 +1198,19 @@ void tcpAcceptorThread(ClientState* cs)
       }
 #endif
       setTCPNoDelay(ci->fd);  // disable NAGLE
-      if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
+      if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
         continue;
       }
 
       if (g_maxTCPConnectionsPerClient) {
-        std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
+        std::lock_guard<std::mutex> lock(s_tcpClientsCountMutex);
 
-        if (tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
+        if (s_tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
           vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
           continue;
         }
-        tcpClientsCount[remote]++;
+        s_tcpClientsCount[remote]++;
         tcpClientCountIncremented = true;
       }
 
@@ -1093,9 +1222,10 @@ void tcpAcceptorThread(ClientState* cs)
         queuedCounterIncremented = true;
         auto tmp = ci.release();
         try {
+          // throws on failure
           writen2WithTimeout(pipe, &tmp, sizeof(tmp), 0);
         }
-        catch(...) {
+        catch (...) {
           delete tmp;
           tmp = nullptr;
           throw;
@@ -1104,20 +1234,20 @@ void tcpAcceptorThread(ClientState* cs)
       else {
         g_tcpclientthreads->decrementQueuedCount();
         queuedCounterIncremented = false;
-        if(tcpClientCountIncremented) {
+        if (tcpClientCountIncremented) {
           decrementTCPClientCount(remote);
         }
       }
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       errlog("While reading a TCP question: %s", e.what());
-      if(tcpClientCountIncremented) {
+      if (tcpClientCountIncremented) {
         decrementTCPClientCount(remote);
       }
       if (queuedCounterIncremented) {
         g_tcpclientthreads->decrementQueuedCount();
       }
     }
-    catch(...){}
+    catch (...){}
   }
 }

@@ -30,7 +30,7 @@
 #include "dnswriter.hh"
 #include <unistd.h>
 
-bool g_verbose{true};
+bool g_verbose{false};
 bool g_syslog{true};
 
 BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)

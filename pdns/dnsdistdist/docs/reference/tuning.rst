@@ -63,6 +63,14 @@ Tuning related functions
 
   :param int num:
 
+.. function:: setTCPInternalPipeBufferSize(size)
+
+  .. versionadded:: 1.6.0
+
+  Set the size in bytes of the internal buffer of the pipes used internally to distribute connections to TCP (and DoT) workers threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used.
+
+  :param int size: The size in bytes.
+
 .. function:: setTCPUseSinglePipe(val)
 
   Whether the incoming TCP connections should be put into a single queue instead of using per-thread queues. Defaults to false

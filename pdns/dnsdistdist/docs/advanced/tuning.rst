@@ -21,7 +21,7 @@ If all the TCP threads are busy, new TCP connections are queued while they wait 
 Before 1.4.0, a TCP thread could only handle a single incoming connection at a time. Starting with 1.4.0 the handling of TCP connections is now event-based, so a single TCP worker can handle a large number of TCP incoming connections simultaneously.
 Note that before 1.6.0 the TCP worker threads were created at runtime, adding a new thread when the existing ones seemed to struggle with the load, until the maximum number of threads had been reached. Starting with 1.6.0 the configured number of worker threads are immediately created at startup.
 
-The maximum number of queued connections can be configured with :func:`setMaxTCPQueuedConnections` and defaults to 1000.
+The maximum number of queued connections can be configured with :func:`setMaxTCPQueuedConnections` and defaults to 1000. Note that the size of the internal pipe used to distribute queries might need to be increased as well, using :func:`setTCPInternalPipeBufferSize`.
 Any value larger than 0 will cause new connections to be dropped if there are already too many queued.
 By default, every TCP worker thread has its own queue, and the incoming TCP connections are dispatched to TCP workers on a round-robin basis.
 This might cause issues if some connections are taking a very long time, since incoming ones will be waiting until the TCP worker they have been assigned to has finished handling its current query, while other TCP workers might be available.

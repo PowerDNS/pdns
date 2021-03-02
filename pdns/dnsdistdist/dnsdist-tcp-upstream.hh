@@ -44,6 +44,7 @@ struct ConnectionInfo
       close(fd);
       fd = -1;
     }
+
     if (cs) {
       --cs->tcpCurrentConnections;
     }
@@ -65,6 +66,8 @@ public:
     if (getsockname(d_ci.fd, reinterpret_cast<sockaddr*>(&d_origDest), &socklen)) {
       d_origDest = d_ci.cs->local;
     }
+    /* belongs to the handler now */
+    d_ci.fd = -1;
     d_proxiedDestination = d_origDest;
     d_proxiedRemote = d_ci.remote;
   }
@@ -148,27 +151,37 @@ public:
     return d_threadData.mplexer;
   }
 
+  static size_t clearAllDownstreamConnections();
+
   static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& conn, const struct timeval& now);
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static void notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now);
   static IOState sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
-  static void sendOrQueueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
+  static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
 
   /* we take a copy of a shared pointer, not a reference, because the initial shared pointer might be released during the handling of the response */
   static void handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response);
   static void handleXFRResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
   static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
 
+  void terminateClientConnection();
   void queueQuery(TCPQuery&& query);
 
-  bool canAcceptNewQueries() const;
+  bool canAcceptNewQueries(const struct timeval& now);
 
   bool active() const
   {
     return d_ioState != nullptr;
   }
 
-  enum class State { doingHandshake, readingProxyProtocolHeader, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
+  std::string toString() const
+  {
+    ostringstream o;
+    o << "Incoming TCP connection from "<<d_ci.remote.toStringWithPort()<<" over FD "<<d_handler.getDescriptor()<<", state is "<<(int)d_state<<", io state is "<<(d_ioState ? std::to_string((int)d_ioState->getState()) : "empty")<<", queries count is "<<d_queriesCount<<", current queries count is "<<d_currentQueriesCount<<", "<<d_queuedResponses.size()<<" queued responses, "<<d_activeConnectionsToBackend.size()<<" active connections to a backend";
+    return o.str();
+  }
+
+  enum class State { doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
   std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_activeConnectionsToBackend;
   PacketBuffer d_buffer;
@@ -196,7 +209,7 @@ public:
   State d_state{State::doingHandshake};
   bool d_readingFirstQuery{true};
   bool d_isXFR{false};
-  bool d_xfrStarted{false};
   bool d_proxyProtocolPayloadHasTLV{false};
+  bool d_lastIOBlocked{false};
+  bool d_hadErrors{false};
 };
-
