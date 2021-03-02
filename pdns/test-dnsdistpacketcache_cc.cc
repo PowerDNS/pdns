@@ -26,8 +26,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   size_t skipped=0;
   ComboAddress remote;
   bool dnssecOK = false;
+  const time_t now = time(nullptr);
   try {
-    for(counter = 0; counter < 100000; ++counter) {
+    for (counter = 0; counter < 100000; ++counter) {
       DNSName a=DNSName(std::to_string(counter))+DNSName(" hello");
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
@@ -71,7 +72,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
     size_t deleted=0;
     size_t delcounter=0;
-    for(delcounter=0; delcounter < counter/1000; ++delcounter) {
+    for (delcounter=0; delcounter < counter/1000; ++delcounter) {
       DNSName a=DNSName(std::to_string(delcounter))+DNSName(" hello");
       PacketBuffer query;
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
@@ -89,9 +90,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped - deleted);
 
     size_t matches=0;
-    vector<DNSResourceRecord> entry;
     size_t expected=counter-skipped-deleted;
-    for(; delcounter < counter; ++delcounter) {
+    for (; delcounter < counter; ++delcounter) {
       DNSName a(DNSName(std::to_string(delcounter))+DNSName(" hello"));
       PacketBuffer query;
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::A, QClass::IN, 0);
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     }
 
     /* in the unlikely event that the test took so long that the entries did expire.. */
-    auto expired = PC.purgeExpired();
+    auto expired = PC.purgeExpired(0, now);
     BOOST_CHECK_EQUAL(matches + expired, expected);
 
     auto remaining = PC.getSize();
@@ -113,7 +113,104 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(PC.getSize(), 0U);
     BOOST_CHECK_EQUAL(removed, remaining);
   }
-  catch(PDNSException& e) {
+  catch (const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
+  const size_t maxEntries = 150000;
+  const size_t numberOfShards = 10;
+  DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, numberOfShards);
+  BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  size_t counter = 0;
+  size_t skipped = 0;
+  ComboAddress remote;
+  bool dnssecOK = false;
+  const time_t now = time(nullptr);
+
+  try {
+    for (counter = 0; counter < 100000; ++counter) {
+      DNSName a(std::to_string(counter) + ".powerdns.com.");
+
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
+      pwQ.getHeader()->rd = 1;
+
+      PacketBuffer response;
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::AAAA, QClass::IN, 0);
+      pwR.getHeader()->rd = 1;
+      pwR.getHeader()->ra = 1;
+      pwR.getHeader()->qr = 1;
+      pwR.getHeader()->id = pwQ.getHeader()->id;
+      pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      ComboAddress v6("2001:db8::1");
+      pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
+      pwR.xfr32BitInt(0x01020304);
+      pwR.commit();
+
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::AAAA, QClass::IN, &remote, &remote, query, false, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::AAAA, QClass::IN, response, false, 0, boost::none);
+
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, 0, true);
+      if (found == true) {
+        BOOST_CHECK_EQUAL(dq.getData().size(), response.size());
+        int match = memcmp(dq.getData().data(), response.data(), dq.getData().size());
+        BOOST_CHECK_EQUAL(match, 0);
+        BOOST_CHECK(!subnet);
+      }
+      else {
+        skipped++;
+      }
+    }
+
+    BOOST_CHECK_EQUAL(skipped, PC.getInsertCollisions());
+    BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped);
+
+    size_t matches = 0;
+    for (counter = 0; counter < 100000; ++counter) {
+      DNSName a(std::to_string(counter) + ".powerdns.com.");
+
+      PacketBuffer query;
+      GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
+      pwQ.getHeader()->rd = 1;
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::AAAA, QClass::IN, &remote, &remote, query, false, &queryTime);
+      if (PC.get(dq, pwQ.getHeader()->id, &key, subnet, dnssecOK)) {
+        matches++;
+      }
+    }
+
+    BOOST_CHECK_EQUAL(matches, counter - skipped);
+
+    auto remaining = PC.getSize();
+
+    /* no entry should have expired */
+    auto expired = PC.purgeExpired(0, now);
+    BOOST_CHECK_EQUAL(expired, 0U);
+
+    /* but after the TTL .. let's ask for at most 1k entries */
+    auto removed = PC.purgeExpired(1000, now + 7200 + 1);
+    BOOST_CHECK_EQUAL(removed, remaining - 1000U);
+    BOOST_CHECK_EQUAL(PC.getSize(), 1000U);
+
+    /* now remove everything */
+    removed = PC.purgeExpired(0, now + 7200 + 1);
+    BOOST_CHECK_EQUAL(removed, 1000U);
+    BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+  }
+  catch (const PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
     throw;
   }
@@ -321,7 +418,6 @@ static void threadReader(unsigned int offset)
   gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
   try
   {
-    vector<DNSResourceRecord> entry;
     ComboAddress remote;
     for(unsigned int counter=0; counter < 100000; ++counter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(counter+offset));

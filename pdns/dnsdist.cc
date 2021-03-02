@@ -1645,6 +1645,7 @@ static void maintThread()
         }
       }
 
+      const time_t now = time(nullptr);
       for (auto pair : caches) {
         /* shall we keep expired entries ? */
         if (pair.second == true) {
@@ -1652,7 +1653,7 @@ static void maintThread()
         }
         auto& packetCache = pair.first;
         size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
-        packetCache->purgeExpired(upTo);
+        packetCache->purgeExpired(upTo, now);
       }
       counter = 0;
     }

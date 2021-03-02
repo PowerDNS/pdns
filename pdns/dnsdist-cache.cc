@@ -294,27 +294,28 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
 
 /* Remove expired entries, until the cache has at most
    upTo entries in it.
+   If the cache has more than one shard, we will try hard
+   to make sure that every shard has free space remaining.
 */
-size_t DNSDistPacketCache::purgeExpired(size_t upTo)
+size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 {
+  const size_t maxPerShard = upTo / d_shardCount;
+
   size_t removed = 0;
-  uint64_t size = getSize();
-
-  if (size == 0 || upTo >= size) {
-    return removed;
-  }
-
-  size_t toRemove = size - upTo;
-
   size_t scannedMaps = 0;
 
-  const time_t now = time(nullptr);
   do {
     uint32_t shardIndex = (d_expungeIndex++ % d_shardCount);
-    WriteLock w(&d_shards.at(shardIndex).d_lock);
-    auto& map = d_shards[shardIndex].d_map;
 
-    for(auto it = map.begin(); toRemove > 0 && it != map.end(); ) {
+    WriteLock w(&d_shards.at(shardIndex).d_lock);
+    if (d_shards.at(shardIndex).d_entriesCount <= maxPerShard) {
+      continue;
+    }
+
+    size_t toRemove = d_shards.at(shardIndex).d_entriesCount - maxPerShard;
+    auto& map = d_shards.at(shardIndex).d_map;
+
+    for (auto it = map.begin(); toRemove > 0 && it != map.end(); ) {
       const CacheValue& value = it->second;
 
       if (value.validity <= now) {
@@ -329,7 +330,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo)
 
     scannedMaps++;
   }
-  while (toRemove > 0 && scannedMaps < d_shardCount);
+  while (scannedMaps < d_shardCount);
 
   return removed;
 }
