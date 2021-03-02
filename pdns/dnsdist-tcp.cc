@@ -935,11 +935,14 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
          Let's just drop the connection
       */
       if (state->d_state == IncomingTCPConnectionState::State::idle ||
-          state->d_state == IncomingTCPConnectionState::State::doingHandshake ||
-          state->d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
-          state->d_state == IncomingTCPConnectionState::State::waitingForQuery ||
-          state->d_state == IncomingTCPConnectionState::State::readingQuerySize ||
-          state->d_state == IncomingTCPConnectionState::State::readingQuery) {
+          state->d_state == IncomingTCPConnectionState::State::waitingForQuery) {
+        /* no need to increase any counters in that case, the client is simply done with us */
+      }
+      else if (state->d_state == IncomingTCPConnectionState::State::doingHandshake ||
+               state->d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
+               state->d_state == IncomingTCPConnectionState::State::waitingForQuery ||
+               state->d_state == IncomingTCPConnectionState::State::readingQuerySize ||
+               state->d_state == IncomingTCPConnectionState::State::readingQuery) {
         ++state->d_ci.cs->tcpDiedReadingQuery;
       }
       else if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
