@@ -45,8 +45,8 @@ DNSDistPacketCache::~DNSDistPacketCache()
 {
   try {
     vector<std::unique_ptr<WriteLock>> locks;
-    for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
-      locks.push_back(std::unique_ptr<WriteLock>(new WriteLock(&d_shards.at(shardIndex).d_lock)));
+    for (auto& shard : d_shards) {
+      locks.push_back(std::make_unique<WriteLock>(&shard.d_lock));
     }
   }
   catch(...) {
@@ -403,8 +403,9 @@ uint64_t DNSDistPacketCache::getSize()
 {
   uint64_t count = 0;
 
-  for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
-    count += d_shards.at(shardIndex).d_map.size();
+  for (auto& shard : d_shards) {
+    ReadLock w(&shard.d_lock);
+    count += shard.d_map.size();
   }
 
   return count;
@@ -467,9 +468,9 @@ uint64_t DNSDistPacketCache::dump(int fd)
 
   uint64_t count = 0;
   time_t now = time(nullptr);
-  for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
-    ReadLock w(&d_shards.at(shardIndex).d_lock);
-    auto& map = d_shards[shardIndex].d_map;
+  for (auto& shard : d_shards) {
+    ReadLock w(&shard.d_lock);
+    auto& map = shard.d_map;
 
     for (const auto& entry : map) {
       const CacheValue& value = entry.second;
