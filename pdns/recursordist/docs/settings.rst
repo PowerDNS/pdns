@@ -20,6 +20,19 @@ variable to act as base setting. This is mostly useful for
   forward-zones = foo.example.com=192.168.100.1;
   forward-zones += bar.example.com=[1234::abcde]:5353;
 
+
+.. _setting-aggressive-nsec-cache-size:
+
+``aggressive-nsec-cache-size``
+------------------------------
+.. versionadded:: 4.5.0
+
+-  Integer
+-  Default: 100000
+
+The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in :rfc:`8198`.
+This setting requires DNSSEC validation to be enabled via the `dnssec_` setting.
+
 .. _setting-allow-from:
 
 ``allow-from``

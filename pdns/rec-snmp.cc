@@ -125,6 +125,11 @@ static const oid nodLookupsDroppedOversizeOID[] = { RECURSOR_STATS_OID, 104 };
 static const oid taskQueuePushedOID[] = { RECURSOR_STATS_OID, 105 };
 static const oid taskQueueExpiredOID[] = { RECURSOR_STATS_OID, 106 };
 static const oid taskQueueSizeOID[] = { RECURSOR_STATS_OID, 107 };
+static const oid aggressiveNSECCacheEntriesOID[] = { RECURSOR_STATS_OID, 108 };
+static const oid aggressiveNSECCacheNSECHitsOID[] = { RECURSOR_STATS_OID, 109 };
+static const oid aggressiveNSECCacheNSEC3HitsOID[] = { RECURSOR_STATS_OID, 110 };
+static const oid aggressiveNSECCacheNSECWCHitsOID[] = { RECURSOR_STATS_OID, 111 };
+static const oid aggressiveNSECCacheNSEC3WCHitsOID[] = { RECURSOR_STATS_OID, 112 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -341,5 +346,10 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("tasqueue-pushed", taskQueuePushedOID, OID_LENGTH(taskQueuePushedOID));
   registerCounter64Stat("taskqueue-expired", taskQueueExpiredOID, OID_LENGTH(taskQueueExpiredOID));
   registerCounter64Stat("taskqueue-size", taskQueueSizeOID, OID_LENGTH(taskQueueSizeOID));
+  registerCounter64Stat("aggressive-nsec-cache-entries", aggressiveNSECCacheEntriesOID, OID_LENGTH(aggressiveNSECCacheEntriesOID));
+  registerCounter64Stat("aggressive-nsec-cache-nsec-hits", aggressiveNSECCacheNSECHitsOID, OID_LENGTH(aggressiveNSECCacheNSECHitsOID));
+  registerCounter64Stat("aggressive-nsec-cache-nsec3-hits", aggressiveNSECCacheNSEC3HitsOID, OID_LENGTH(aggressiveNSECCacheNSEC3HitsOID));
+  registerCounter64Stat("aggressive-nsec-cache-nsec-wc-hits", aggressiveNSECCacheNSECWCHitsOID, OID_LENGTH(aggressiveNSECCacheNSECWCHitsOID));
+  registerCounter64Stat("aggressive-nsec-cache-nsec-wc3-hits", aggressiveNSECCacheNSEC3WCHitsOID, OID_LENGTH(aggressiveNSECCacheNSEC3WCHitsOID));
 #endif /* HAVE_NET_SNMP */
 }

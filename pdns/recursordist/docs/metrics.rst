@@ -88,6 +88,30 @@ It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-10
 
 Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count.
 
+aggressive-nsec-cache-entries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5
+
+number of entries in the aggressive NSEC cache
+
+aggressive-nsec-cache-nsec-hits
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5
+
+number of negative answers generated from NSEC entries by the aggressive NSEC cache
+
+aggressive-nsec-cache-nsec3-wc-hits
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5
+
+number of answers synthesized from NSEC entries and wildcards by the NSEC aggressive cache
+
+aggressive-nsec-cache-nsec3-wc-hits
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.5
+
+number of answers synthesized from NSEC entries and wildcards by the NSEC3 aggressive cache
+
 all-outqueries
 ^^^^^^^^^^^^^^
 counts the number of outgoing UDP queries since starting

@@ -726,6 +726,10 @@ public:
   {
     return d_bitmap.count();
   }
+  bool isOptOut() const
+  {
+    return d_flags & 1;
+  }
 
 private:
   NSECBitmap d_bitmap;

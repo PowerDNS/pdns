@@ -68,6 +68,7 @@
 #include "malloctrace.hh"
 #endif
 #include <netinet/tcp.h>
+#include "aggressive_nsec.hh"
 #include "capabilities.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
@@ -3462,11 +3463,12 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static thread_local time_t last_rootupdate, last_secpoll, last_trustAnchorUpdate{0}, last_RC_prune;
+  static thread_local time_t last_rootupdate, last_secpoll, last_trustAnchorUpdate{0};
   static thread_local struct timeval last_prune;
 
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
+  static time_t last_RC_prune = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
 
   if (last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
@@ -3507,6 +3509,9 @@ static void houseKeeping(void *)
       if (now.tv_sec - last_RC_prune > 5) {
         g_recCache->doPrune(g_maxCacheEntries);
         g_negCache->prune(g_maxCacheEntries / 10);
+        if (g_aggressiveNSECCache) {
+          g_aggressiveNSECCache->prune(now.tv_sec);
+        }
         last_RC_prune = now.tv_sec;
       }
       // XXX !!! global
@@ -4736,6 +4741,15 @@ static int serviceMain(int argc, char*argv[])
 
   s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
 
+  if (::arg().asNum("aggressive-nsec-cache-size") > 0) {
+    if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog || g_dnssecmode == DNSSECMode::Process) {
+      g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(::arg().asNum("aggressive-nsec-cache-size"));
+    }
+    else {
+      g_log<<Logger::Warning<<"Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring"<<endl;
+    }
+  }
+
   {
     SuffixMatchNode dontThrottleNames;
     vector<string> parts;
@@ -5513,6 +5527,8 @@ int main(int argc, char **argv)
 #endif /* NOD_ENABLED */
 
     ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors")="no";
+
+    ::arg().setSwitch("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="100000";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

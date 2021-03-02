@@ -1,6 +1,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "aggressive_nsec.hh"
 #include "base32.hh"
 #include "lua-recursor4.hh"
 #include "root-dnssec.hh"
@@ -201,6 +202,8 @@ void initSR(bool debug)
   g_dnssecLOG = debug;
   g_maxNSEC3Iterations = 2500;
 
+  g_aggressiveNSECCache.reset();
+
   ::arg().set("version-string", "string reported on version.pdns or version.bind") = "PowerDNS Unit Tests";
   ::arg().set("rng") = "auto";
   ::arg().set("entropy-source") = "/dev/urandom";
@@ -285,12 +288,11 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
   const auto& rc = dpk.getKey();
 
   rrc.d_type = signQType;
-  rrc.d_labels = signQName.countLabels() - signQName.isWildcard();
+  rrc.d_labels = signQName.countLabels() - (signQName.isWildcard() ? 1 : 0);
   rrc.d_originalttl = signTTL;
   rrc.d_siginception = inception ? *inception : (*now - 10);
   rrc.d_sigexpire = *now + sigValidity;
   rrc.d_signer = signer;
-  rrc.d_tag = 0;
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = algo ? *algo : drc.d_algorithm;
 
@@ -477,7 +479,7 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
         }
 
         if (!nsec3) {
-          addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
+          addNSECRecordToLW(domain, DNSName("+") + domain, types, 600, res->d_records);
         }
         else {
           addNSEC3UnhashedRecordToLW(domain, auth, (DNSName("z") + domain).toString(), types, 600, res->d_records, 10, optOut);

@@ -31,6 +31,7 @@
 #include "responsestats.hh"
 #include "rec-lua-conf.hh"
 
+#include "aggressive_nsec.hh"
 #include "validate-recursor.hh"
 #include "filterpo.hh"
 
@@ -300,6 +301,27 @@ static uint64_t dumpNegCache(int fd)
   return g_negCache->dumpToFile(fp.get(), now);
 }
 
+static uint64_t dumpAggressiveNSECCache(int fd)
+{
+  if (!g_aggressiveNSECCache) {
+    return 0;
+  }
+
+  int newfd = dup(fd);
+  if (newfd == -1) {
+    return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    return 0;
+  }
+  fprintf(fp.get(), "; aggressive NSEC cache dump follows\n;\n");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, nullptr);
+  return g_aggressiveNSECCache->dumpToFile(fp, now);
+}
+
 static uint64_t* pleaseDump(int fd)
 {
   return new uint64_t(t_packetCache->doDump(fd));
@@ -367,7 +389,7 @@ static RecursorControlChannel::Answer doDumpCache(int s)
   uint64_t total = 0;
   try {
     int fd = fdw;
-    total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([fd]{ return pleaseDump(fd); });
+    total = g_recCache->doDump(fd) + dumpNegCache(fd) + broadcastAccFunction<uint64_t>([fd]{ return pleaseDump(fd); }) + dumpAggressiveNSECCache(fd);
   }
   catch(...){}
 
@@ -441,6 +463,9 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
       count += g_recCache->doWipeCache(wipe.first, wipe.second, qtype);
       pcount += broadcastAccFunction<uint64_t>([=]{ return pleaseWipePacketCache(wipe.first, wipe.second, qtype);});
       countNeg += g_negCache->wipe(wipe.first, wipe.second);
+      if (g_aggressiveNSECCache) {
+        g_aggressiveNSECCache->removeZoneInfo(wipe.first, wipe.second);
+      }
     }
     catch (const std::exception& e) {
       g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
@@ -549,6 +574,9 @@ static string doAddNTA(T begin, T end)
     g_recCache->doWipeCache(who, true, 0xffff);
     broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
     g_negCache->wipe(who, true);
+    if (g_aggressiveNSECCache) {
+      g_aggressiveNSECCache->removeZoneInfo(who, true);
+    }
   }
   catch (std::exception& e) {
     g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
@@ -603,6 +631,9 @@ static string doClearNTA(T begin, T end)
       g_recCache->doWipeCache(entry, true, 0xffff);
       broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
       g_negCache->wipe(entry, true);
+      if (g_aggressiveNSECCache) {
+        g_aggressiveNSECCache->removeZoneInfo(entry, true);
+      }
       if (!first) {
         first = false;
         removed += ",";
@@ -666,6 +697,9 @@ static string doAddTA(T begin, T end)
     g_recCache->doWipeCache(who, true, 0xffff);
     broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(who, true, 0xffff);});
     g_negCache->wipe(who, true);
+    if (g_aggressiveNSECCache) {
+      g_aggressiveNSECCache->removeZoneInfo(who, true);
+    }
     g_log<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
@@ -713,6 +747,9 @@ static string doClearTA(T begin, T end)
       g_recCache->doWipeCache(entry, true, 0xffff);
       broadcastAccFunction<uint64_t>([=]{return pleaseWipePacketCache(entry, true, 0xffff);});
       g_negCache->wipe(entry, true);
+      if (g_aggressiveNSECCache) {
+        g_aggressiveNSECCache->removeZoneInfo(entry, true);
+      }
       if (!first) {
         first = false;
         removed += ",";
@@ -1042,7 +1079,13 @@ static void registerAllStats1()
   addGetStat("packetcache-misses", doGetPacketCacheMisses); 
   addGetStat("packetcache-entries", doGetPacketCacheSize); 
   addGetStat("packetcache-bytes", doGetPacketCacheBytes); 
-  
+
+  addGetStat("aggressive-nsec-cache-entries", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getEntriesCount() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECHits() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec3-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSEC3Hits() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec-wc-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECWildcardHits() : 0; });
+  addGetStat("aggressive-nsec-cache-nsec3-wc-hits", [](){ return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSEC3WildcardHits() : 0; });
+
   addGetStat("malloc-bytes", doGetMallocated);
   
   addGetStat("servfail-answers", &g_stats.servFails);

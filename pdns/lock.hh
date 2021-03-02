@@ -36,7 +36,6 @@ public:
   }
 
   ~ReadWriteLock() {
-    /* might have been moved */
     pthread_rwlock_destroy(&d_lock);
   }
 
