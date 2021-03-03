@@ -986,7 +986,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
   int res;
   std::vector<DNSRecord> results;
@@ -1016,7 +1016,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
   /* the existing entries should have been cleared */
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
   /* we should be able to find a direct match for that name */
   /* direct match */
@@ -1046,7 +1046,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
   /* the existing entries should have been cleared */
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1);
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
   /* we should be able to find a direct match for that name */
   /* direct match */

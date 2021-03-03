@@ -539,8 +539,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
     s_steps.push_back({ ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 });
     s_steps.push_back({ ExpectedStep::ExpectedRequest::closeClient, IOState::Done });
 
-    size_t counter = 0;
-    s_processQuery = [&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       // Would be nicer to actually turn it into a response
       return ProcessQueryResult::SendAnswer;
     };
@@ -573,7 +572,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
-    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0U);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
     later.tv_sec += g_tcpRecvTimeout + 1;
     auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
@@ -609,7 +608,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
 
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
-    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0U);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
     later.tv_sec += g_tcpRecvTimeout + 1;
     auto expiredWriteConns = threadData.mplexer->getTimeouts(later, true);
@@ -702,7 +701,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
 
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
-    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0U);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * 2U);
   }
 
@@ -759,7 +758,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
 
     auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
     IncomingTCPConnectionState::handleIO(state, now);
-    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0U);
+    BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
     later.tv_sec += g_tcpRecvTimeout + 1;
     auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
@@ -2202,7 +2201,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(0).size() - 2 },
       /* opening a connection to the backend */
-      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&threadData,&backendDescriptor](int desc, const ExpectedStep& step) {
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [&backendDescriptor](int desc, const ExpectedStep& step) {
         backendDescriptor = desc;
       } },
       /* sending query to the backend */
@@ -2333,7 +2332,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
       /* sending response (3) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData,&timeout](int desc, const ExpectedStep& step) {
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&timeout](int desc, const ExpectedStep& step) {
         timeout = true;
       } },
       /* client times out again, this time we close the connection */
@@ -2342,7 +2341,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
 
-    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
@@ -2493,7 +2492,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0 },
     };
 
-    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
@@ -2599,7 +2598,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
 
-    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
@@ -2732,7 +2731,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
     };
 
-    s_processQuery = [proxyEnabledBackend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
@@ -2753,7 +2752,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0);
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0U);
   }
 
   {
@@ -2796,7 +2795,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0 },
     };
 
-    s_processQuery = [backend,&counter](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
@@ -2830,7 +2829,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     /* we should have nothing to clear since the connection cannot be reused due to the Proxy Protocol payload */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0);
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0U);
   }
 
   {
@@ -2992,7 +2991,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 2);
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 2U);
   }
 }
 
@@ -3168,7 +3167,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
       /* sending it to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData,&backendDescriptors](int desc, const ExpectedStep& step) {
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData](int desc, const ExpectedStep& step) {
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
       /* client closes the connection */
@@ -3203,7 +3202,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
     BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 5);
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 5U);
   }
 }
 
