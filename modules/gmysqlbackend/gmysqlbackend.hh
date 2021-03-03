@@ -31,7 +31,7 @@
 class gMySQLBackend : public GSQLBackend
 {
 public:
-  gMySQLBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
+  gMySQLBackend(const string& mode, const string& suffix); //!< Makes our connection to the database. Throws an exception if it fails.
 protected:
   void reconnect() override;
 };

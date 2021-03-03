@@ -38,7 +38,8 @@
 class AggressiveNSECCache
 {
 public:
-  AggressiveNSECCache(uint64_t entries): d_maxEntries(entries)
+  AggressiveNSECCache(uint64_t entries) :
+    d_maxEntries(entries)
   {
   }
 
@@ -73,23 +74,29 @@ public:
   }
 
   void prune(time_t now);
-  size_t dumpToFile(std::unique_ptr<FILE, int(*)(FILE*)>& fp, const struct timeval& now);
+  size_t dumpToFile(std::unique_ptr<FILE, int (*)(FILE*)>& fp, const struct timeval& now);
 
 private:
-
   struct ZoneEntry
   {
     ZoneEntry()
     {
     }
 
-    ZoneEntry(const DNSName& zone, const std::string& salt, uint16_t iterations, bool nsec3): d_zone(zone), d_salt(salt), d_iterations(iterations), d_nsec3(nsec3)
+    ZoneEntry(const DNSName& zone, const std::string& salt, uint16_t iterations, bool nsec3) :
+      d_zone(zone), d_salt(salt), d_iterations(iterations), d_nsec3(nsec3)
     {
     }
 
-    struct HashedTag {};
-    struct SequencedTag {};
-    struct OrderedTag {};
+    struct HashedTag
+    {
+    };
+    struct SequencedTag
+    {
+    };
+    struct OrderedTag
+    {
+    };
 
     struct CacheEntry
     {
@@ -103,17 +110,14 @@ private:
 
     typedef multi_index_container<
       CacheEntry,
-      indexed_by <
+      indexed_by<
         ordered_unique<tag<OrderedTag>,
-                       member<CacheEntry,DNSName,&CacheEntry::d_owner>,
-                       CanonDNSNameCompare
-                       >,
-        sequenced<tag<SequencedTag> >,
+          member<CacheEntry, DNSName, &CacheEntry::d_owner>,
+          CanonDNSNameCompare>,
+        sequenced<tag<SequencedTag>>,
         hashed_non_unique<tag<HashedTag>,
-                          member<CacheEntry,DNSName,&CacheEntry::d_owner>
-                          >
-        >
-      > cache_t;
+          member<CacheEntry, DNSName, &CacheEntry::d_owner>>>>
+      cache_t;
 
     cache_t d_entries;
     DNSName d_zone;
