@@ -212,7 +212,6 @@ try {
   bool dnssec = false;
   bool recurse = false;
   bool tcp = false;
-  bool fastopen = false;
   bool showflags = false;
   bool hidesoadetails = false;
   bool doh = false;
