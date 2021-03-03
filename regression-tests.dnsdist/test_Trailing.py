@@ -24,7 +24,10 @@ class TestTrailingDataToBackend(DNSDistTest):
     addAction("added.trailing.tests.powerdns.com.", LuaAction(replaceTrailingData))
 
     function fillBuffer(dq)
-        local available = 4096
+        local available = 4096 - dq.len
+        if dq.tcp then
+            available = 65535 - dq.len
+        end
         local tail = string.rep("A", available)
         local success = dq:setTrailingData(tail)
         if not success then
@@ -35,7 +38,10 @@ class TestTrailingDataToBackend(DNSDistTest):
     addAction("max.trailing.tests.powerdns.com.", LuaAction(fillBuffer))
 
     function exceedBuffer(dq)
-        local available = dq.size - dq.len
+        local available = 4096 - dq.len
+        if dq.tcp then
+            available = 65535 - dq.len
+        end
         local tail = string.rep("A", available + 1)
         local success = dq:setTrailingData(tail)
         if not success then

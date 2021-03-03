@@ -208,6 +208,9 @@ bool DNSQuestion::setTrailingData(const std::string& tail)
   const uint16_t messageLen = getDNSPacketLength(message, this->data.size());
   this->data.resize(messageLen);
   if (tail.size() > 0) {
+    if (!hasRoomFor(tail.size())) {
+      return false;
+    }
     this->data.insert(this->data.end(), tail.begin(), tail.end());
   }
   return true;
