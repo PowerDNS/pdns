@@ -112,6 +112,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     auto removed = PC.expungeByName(DNSName(" hello"), QType::ANY, true);
     BOOST_CHECK_EQUAL(PC.getSize(), 0U);
     BOOST_CHECK_EQUAL(removed, remaining);
+
+    /* nothing to remove */
+    BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
   }
   catch (const PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
@@ -209,6 +212,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
     removed = PC.purgeExpired(0, now + 7200 + 3600);
     BOOST_CHECK_EQUAL(removed, 1000U);
     BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+
+    /* nothing to remove */
+    BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
   }
   catch (const PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;

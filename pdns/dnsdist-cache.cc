@@ -305,6 +305,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 
   do {
     uint32_t shardIndex = (d_expungeIndex++ % d_shardCount);
+    scannedMaps++;
 
     WriteLock w(&d_shards.at(shardIndex).d_lock);
     auto& map = d_shards.at(shardIndex).d_map;
@@ -325,8 +326,6 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
         ++it;
       }
     }
-
-    scannedMaps++;
   }
   while (scannedMaps < d_shardCount);
 
