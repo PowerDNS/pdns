@@ -415,8 +415,11 @@ See :doc:`dns64` for more flexible but slower alternatives using Lua.
 ----------
 .. versionadded:: 4.0.0
 
+.. versionchanged:: 4.5.0
+   The default changed from ``process-no-validate`` to ``process``
+
 -  One of ``off``, ``process-no-validate``, ``process``, ``log-fail``, ``validate``, String
--  Default: ``process-no-validate``
+-  Default: ``process``
 
 Set the mode for DNSSEC processing, as detailed in :doc:`dnssec`.
 

@@ -5320,7 +5320,7 @@ int main(int argc, char **argv)
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
-    ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate (default)/process/log-fail/validate")="process-no-validate";
+    ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate/process (default)/log-fail/validate")="process";
     ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations")="no";
     ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds")="60";
     ::arg().set("daemon","Operate as a daemon")="no";
