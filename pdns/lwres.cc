@@ -327,8 +327,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       Socket s(ip.sin4.sin_family, SOCK_STREAM);
 
       s.setNonBlocking();
-      // v6 tcp does not seem to have fast open
-      if (ip.sin4.sin_family == AF_INET && SyncRes::s_tcp_fast_open_connect) {
+      if (SyncRes::s_tcp_fast_open_connect) {
         try {
           s.setFastOpenConnect();
         }
