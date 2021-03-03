@@ -302,12 +302,8 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
   const size_t maxPerShard = upTo / d_shardCount;
 
   size_t removed = 0;
-  uint32_t shardIndex = 0;
 
-  do {
-    auto& shard = d_shards.at(shardIndex);
-    ++shardIndex;
-
+  for (auto& shard : d_shards) {
     WriteLock w(&shard.d_lock);
     auto& map = shard.d_map;
     if (map.size() <= maxPerShard) {
@@ -329,7 +325,6 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
       }
     }
   }
-  while (shardIndex < d_shardCount);
 
   return removed;
 }
@@ -378,16 +373,16 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
 {
   size_t removed = 0;
 
-  for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
-    WriteLock w(&d_shards.at(shardIndex).d_lock);
-    auto& map = d_shards[shardIndex].d_map;
+  for (auto& shard : d_shards) {
+    WriteLock w(&shard.d_lock);
+    auto& map = shard.d_map;
 
     for(auto it = map.begin(); it != map.end(); ) {
       const CacheValue& value = it->second;
 
       if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
         it = map.erase(it);
-        --d_shards[shardIndex].d_entriesCount;
+        --shard.d_entriesCount;
         ++removed;
       } else {
         ++it;
