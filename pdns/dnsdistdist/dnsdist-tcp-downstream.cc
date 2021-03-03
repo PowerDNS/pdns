@@ -163,7 +163,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
       if (conn->d_state == State::sendingQueryToBackend) {
         ++conn->d_ds->tcpDiedSendingQuery;
       }
-      else {
+      else if (conn->d_state != State::idle) {
         ++conn->d_ds->tcpDiedReadingResponse;
       }
 
