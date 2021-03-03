@@ -201,12 +201,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
     BOOST_CHECK_EQUAL(expired, 0U);
 
     /* but after the TTL .. let's ask for at most 1k entries */
-    auto removed = PC.purgeExpired(1000, now + 7200 + 1);
+    auto removed = PC.purgeExpired(1000, now + 7200 + 3600);
     BOOST_CHECK_EQUAL(removed, remaining - 1000U);
     BOOST_CHECK_EQUAL(PC.getSize(), 1000U);
 
     /* now remove everything */
-    removed = PC.purgeExpired(0, now + 7200 + 1);
+    removed = PC.purgeExpired(0, now + 7200 + 3600);
     BOOST_CHECK_EQUAL(removed, 1000U);
     BOOST_CHECK_EQUAL(PC.getSize(), 0U);
   }
