@@ -28,5 +28,5 @@ class gSQLite3Backend : public GSQLBackend
 {
 public:
   //! Constructs the backend, throws an exception if it failed..
-  gSQLite3Backend( const std::string & mode, const std::string & suffix );
+  gSQLite3Backend(const std::string& mode, const std::string& suffix);
 };
