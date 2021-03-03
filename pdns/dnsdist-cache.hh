@@ -118,6 +118,7 @@ private:
 
     std::unordered_map<uint32_t,CacheValue> d_map;
     ReadWriteLock d_lock;
+    std::atomic<uint64_t> d_entriesCount{0};
   };
 
   bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
