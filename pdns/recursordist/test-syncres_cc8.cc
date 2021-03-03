@@ -484,7 +484,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_wildcard_with_cname)
   /* add a NSEC proving that a wildcard exists, without a CNAME type */
   recordContents.clear();
   signatureContents.clear();
-  addNSECRecordToLW(DNSName("*.example.org."), DNSName("+.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("*.example.org."), DNSName("+.example.org"), {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -504,7 +504,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_wildcard_with_cname)
   /* now we replace the wildcard by one with a CNAME */
   recordContents.clear();
   signatureContents.clear();
-  addNSECRecordToLW(DNSName("*.example.org."), DNSName("+.example.org"), {QType::CNAME, QType::RRSIG, QType::NSEC }, 600, records);
+  addNSECRecordToLW(DNSName("*.example.org."), DNSName("+.example.org"), {QType::CNAME, QType::RRSIG, QType::NSEC}, 600, records);
   recordContents.insert(records.at(0).d_content);
   addRRSIG(keys, records, DNSName("example.org."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));

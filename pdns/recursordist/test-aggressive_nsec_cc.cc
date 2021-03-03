@@ -978,7 +978,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   nrc.d_salt = oldSalt;
   nrc.d_nexthash = hashed;
   incrementHash(nrc.d_nexthash);
-  for (const auto& type : { QType::A }) {
+  for (const auto& type : {QType::A}) {
     nrc.set(type);
   }
 
@@ -1007,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   nrc.d_salt = newSalt;
   nrc.d_nexthash = hashed;
   incrementHash(nrc.d_nexthash);
-  for (const auto& type : { QType::A }) {
+  for (const auto& type : {QType::A}) {
     nrc.set(type);
   }
 
@@ -1037,7 +1037,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   nrc.d_salt = newSalt;
   nrc.d_nexthash = hashed;
   incrementHash(nrc.d_nexthash);
-  for (const auto& type : { QType::A }) {
+  for (const auto& type : {QType::A}) {
     nrc.set(type);
   }
 
