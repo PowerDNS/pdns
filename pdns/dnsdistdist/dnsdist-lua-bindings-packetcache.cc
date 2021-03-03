@@ -112,7 +112,9 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
     });
   luaCtx.registerFunction<size_t(std::shared_ptr<DNSDistPacketCache>::*)(size_t)>("purgeExpired", [](std::shared_ptr<DNSDistPacketCache>& cache, size_t upTo) {
       if (cache) {
-        return cache->purgeExpired(upTo);
+        const time_t now = time(nullptr);
+
+        return cache->purgeExpired(upTo, now);
       }
       return static_cast<size_t>(0);
     });
