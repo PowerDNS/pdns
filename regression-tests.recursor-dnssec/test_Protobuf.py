@@ -111,6 +111,7 @@ class TestRecursorProtobuf(RecursorTest):
           if oldmsg is not None:
             self.assertEquals(msg, oldmsg)
 
+        print(msg)
         return msg
 
     def checkNoRemainingMessage(self):
@@ -229,7 +230,7 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg.question.HasField('qClass'))
         self.assertEquals(msg.question.qClass, qclass)
         self.assertTrue(msg.question.HasField('qType'))
-        self.assertEquals(msg.question.qClass, qtype)
+        self.assertEquals(msg.question.qType, qtype)
         self.assertTrue(msg.question.HasField('qName'))
         self.assertEquals(msg.question.qName, qname)
 
