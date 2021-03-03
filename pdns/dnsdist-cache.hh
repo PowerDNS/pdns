@@ -136,7 +136,6 @@ private:
   pdns::stat_t d_ttlTooShorts{0};
 
   size_t d_maxEntries;
-  uint32_t d_expungeIndex{0};
   uint32_t d_shardCount;
   uint32_t d_maxTTL;
   uint32_t d_tempFailureTTL;

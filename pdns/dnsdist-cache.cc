@@ -302,14 +302,14 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
   const size_t maxPerShard = upTo / d_shardCount;
 
   size_t removed = 0;
-  size_t scannedMaps = 0;
+  uint32_t shardIndex = 0;
 
   do {
-    uint32_t shardIndex = (d_expungeIndex++ % d_shardCount);
-    scannedMaps++;
+    auto& shard = d_shards.at(shardIndex);
+    ++shardIndex;
 
-    WriteLock w(&d_shards.at(shardIndex).d_lock);
-    auto& map = d_shards.at(shardIndex).d_map;
+    WriteLock w(&shard.d_lock);
+    auto& map = shard.d_map;
     if (map.size() <= maxPerShard) {
       continue;
     }
@@ -322,14 +322,14 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
       if (value.validity <= now) {
         it = map.erase(it);
         --toRemove;
-        --d_shards[shardIndex].d_entriesCount;
+        --shard.d_entriesCount;
         ++removed;
       } else {
         ++it;
       }
     }
   }
-  while (scannedMaps < d_shardCount);
+  while (shardIndex < d_shardCount);
 
   return removed;
 }
