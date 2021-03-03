@@ -136,7 +136,7 @@ public:
   static size_t clear()
   {
     size_t count = 0;
-    for (const auto downstream : t_downstreamConnections) {
+    for (const auto& downstream : t_downstreamConnections) {
       count += downstream.second.size();
     }
 
