@@ -81,7 +81,13 @@ class TestRecursorProtobuf(RecursorTest):
 
     _auth_zones = {
         '8': {'threads': 1,
-              'zones': ['ROOT']}
+              'zones': ['ROOT']},
+        '9': {'threads': 1,
+              'zones': ['secure.example', 'islandofsecurity.example']},
+        '10': {'threads': 1,
+               'zones': ['example']},
+        '18': {'threads': 1,
+               'zones': ['example']}
     }
 
     def getFirstProtobufMessage(self, retries=1, waitTime=1):
@@ -356,24 +362,51 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     # Switch off QName Minimization, it generates much more protobuf messages
     # (or make the test much more smart!)
     qname-minimization=no
-    auth-zones=example=configs/%s/example.zone""" % _confdir
+"""
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
-        name = 'www.example.org.'
-        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        name = 'host1.secure.example.'
+        expected = list()
+        for qname, qtype, proto, size in [
+                ('example.', dns.rdatatype.DS, dnsmessage_pb2.PBDNSMessage.UDP, 167),
+                (None, None, None, None),  # Query for secure.example.|DS that returns a delegation
+                ('secure.example.', dns.rdatatype.DS, dnsmessage_pb2.PBDNSMessage.UDP, 182),
+                ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
+                (None, None, None, None),  # Query for host1.secure.example.|DS that returns a delegation
+                (None, None, None, None),  # Query for host1.secure.example.|DS that returns a NXQType
+                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
+        ]:
+            if not qname:
+                expected.append((None, None, None, None, None, None))
+                continue
+            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
+            resp = dns.message.make_response(query)
+            expected.append((
+                qname, qtype, query, resp, proto, size
+            ))
+
+        # expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
 
-        # check the protobuf messages corresponding to the UDP query and answer
-        msg = self.getFirstProtobufMessage()
-        self.checkProtobufOutgoingQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
-        # then the response
-        msg = self.getFirstProtobufMessage()
-        self.checkProtobufIncomingNetworkErrorResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        for qname, qtype, qry, ans, proto, size in expected:
+            if not qname:
+                self.getFirstProtobufMessage()
+                self.getFirstProtobufMessage()
+                continue
+
+            msg = self.getFirstProtobufMessage()
+            self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname)
+
+            # Check the answer
+            msg = self.getFirstProtobufMessage()
+            self.checkProtobufIncomingResponse(msg, proto, ans, length=size)
+
         self.checkNoRemainingMessage()
 
 class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
