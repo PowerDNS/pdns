@@ -50,14 +50,21 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ``lmdb-sync-mode``
 ^^^^^^^^^^^^^^^^^^
 
-Synchronisation mode: sync, nosync, nometasync, mapasync
-Default: mapasync
+* Synchronisation mode: sync, nosync, nometasync, mapasync
+* Default: mapasync
 
-* ``sync``: LMDB synchronous mode. Safest option, but also slightly slower. Can  also be enabled with ``lmdb-sync-mode=``
-* ``nosync``: don't flush systems buffers to disk when committing a transaction.
+``sync``
+  LMDB synchronous mode. Safest option, but also slightly slower. Can  also be enabled with ``lmdb-sync-mode=``
+
+``nosync``
+  don't flush systems buffers to disk when committing a transaction.
   This means a system crash can corrupt the database or lose the last transactions if buffers are not yet flushed to disk.
-* ``nometasync``: flush system buffers to disk only once per transaction, omit the metadata flush. This maintains database integrity, but can potentially lose the last committed transaction if the operating system crashes.
-* ``mapasync``: (default). Use asynchronous flushes to disk. As with nosync, a system crash can then corrupt the database or lose the last transactions.
+
+``nometasync``
+  flush system buffers to disk only once per transaction, omit the metadata flush. This maintains database integrity, but can potentially lose the last committed transaction if the operating system crashes.
+
+``mapasync`` (default)
+  Use asynchronous flushes to disk. As with nosync, a system crash can then corrupt the database or lose the last transactions.
 
 .. _setting-lmdb-schema-version:
 
@@ -68,14 +75,13 @@ Determines the maximum schema version LMDB is allowed to upgrade to. If the on d
 
 The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. if you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
 
-+------------------------------------------------+---------------------+
-| PowerDNS Version                               | LMDB Schema version |
-+================================================+=====================+
-| 4.2.x                                          | 1                   |
-| 4.3.x                                          | 2                   |
-| 4.4.x and up                                   | 3                   |
-+------------------------------------------------+---------------------+
-
+================  ===================
+PowerDNS Version  LMDB Schema version
+================  ===================
+4.2.x             1
+4.3.x             2
+4.4.x and up      3
+================  ===================
 
 LMDB Structure
 --------------
