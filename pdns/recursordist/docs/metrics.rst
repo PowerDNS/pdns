@@ -569,7 +569,7 @@ record-cache-contended
 ^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.0
 
-number of contented record cache lock acquisitions
+number of contended record cache lock acquisitions
 
 resource-limits
 ^^^^^^^^^^^^^^^
