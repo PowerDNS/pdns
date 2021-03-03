@@ -2,6 +2,79 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.6.0-alpha2
+  :released: 4th of March 2021
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 9361
+
+    Bind __tostring instead of toString for Lua, so that conversion to string works automatically (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10046
+    :tickets: 10035
+
+    Make NetmaskTree::fork() a bit easier to understand
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10050
+    :tickets: 10049
+
+    Remove forgotten debug line in the web server
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10063
+
+    Add option to spoofRawAction to spoof multiple answers (Sander Hoentjen)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10073
+
+    Add 'spoof' and 'spoofRaw' Lua bindings
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10088
+
+    Create TCP worker threads before acceptors ones
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10095
+    :tickets: 10090
+
+    Prevent a crash with DynBPF objects in client mode
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10108
+
+    Fix several bugs in the TCP code path, add unit tests
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10131
+
+    Do not update the TCP error counters on idle states
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10139
+
+    Fix size check during trailing data addition, regression tests
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10133
+
+    Clean up expired entries from all the packet cache's shards
+
+.. changelog::
   :version: 1.6.0-alpha1
   :released: 2nd of February 2021
 
