@@ -225,60 +225,59 @@ BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 template <>
-std::string serToString(const DNSResourceRecord& rr)
+std::string serToString(const LMDBBackend::LMDBResourceRecord& lrr)
 {
-  // only does content, ttl, auth
   std::string ret;
-  uint16_t len = rr.content.length();
-  ret.reserve(2 + len + 8);
+  uint16_t len = lrr.content.length();
+  ret.reserve(2 + len + 7);
 
   ret.assign((const char*)&len, 2);
-  ret += rr.content;
-  ret.append((const char*)&rr.ttl, 4);
-  ret.append(1, (char)rr.auth);
-  ret.append(1, (char)false);
-  ret.append(1, (char)rr.disabled);
+  ret += lrr.content;
+  ret.append((const char*)&lrr.ttl, 4);
+  ret.append(1, (char)lrr.auth);
+  ret.append(1, (char)lrr.disabled);
+  ret.append(1, (char)lrr.ordername);
   return ret;
 }
 
 template <>
-std::string serToString(const vector<DNSResourceRecord>& rrs)
+std::string serToString(const vector<LMDBBackend::LMDBResourceRecord>& lrrs)
 {
   std::string ret;
-  for (const auto& rr : rrs) {
-    ret += serToString(rr);
+  for (const auto& lrr : lrrs) {
+    ret += serToString(lrr);
   }
-
   return ret;
 }
 
-static inline size_t serOneRRFromString(const string_view& str, DNSResourceRecord& rr)
+static inline size_t serOneRRFromString(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
 {
   uint16_t len;
   memcpy(&len, &str[0], 2);
-  rr.content.assign(&str[2], len); // len bytes
-  memcpy(&rr.ttl, &str[2] + len, 4);
-  rr.auth = str[2 + len + 4];
-  rr.disabled = str[2 + len + 4 + 2];
-  rr.wildcardname.clear();
+  lrr.content.assign(&str[2], len); // len bytes
+  memcpy(&lrr.ttl, &str[2] + len, 4);
+  lrr.auth = str[2 + len + 4];
+  lrr.disabled = str[2 + len + 4 + 1];
+  lrr.ordername = str[2 + len + 4 + 2];
+  lrr.wildcardname.clear();
 
   return 2 + len + 7;
 }
 
 template <>
-void serFromString(const string_view& str, DNSResourceRecord& rr)
+void serFromString(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
 {
-  serOneRRFromString(str, rr);
+  serOneRRFromString(str, lrr);
 }
 
 template <>
-void serFromString(const string_view& str, vector<DNSResourceRecord>& rrs)
+void serFromString(const string_view& str, vector<LMDBBackend::LMDBResourceRecord>& lrrs)
 {
   auto str_copy = str;
   while (str_copy.size() >= 9) { // minimum length for a record is 10
-    DNSResourceRecord rr;
-    auto rrLength = serOneRRFromString(str_copy, rr);
-    rrs.push_back(rr);
+    LMDBBackend::LMDBResourceRecord lrr;
+    auto rrLength = serOneRRFromString(str_copy, lrr);
+    lrrs.emplace_back(lrr);
     str_copy.remove_prefix(rrLength);
   }
 }
@@ -388,13 +387,12 @@ bool LMDBBackend::abortTransaction()
 // d_rwtxn must be set here
 bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3)
 {
-  DNSResourceRecord rr(r);
-  rr.qname.makeUsRelative(d_transactiondomain);
-  rr.content = serializeContent(rr.qtype.getCode(), r.qname, rr.content);
-  rr.disabled = false;
+  LMDBResourceRecord lrr(r);
+  lrr.qname.makeUsRelative(d_transactiondomain);
+  lrr.content = serializeContent(lrr.qtype.getCode(), r.qname, lrr.content);
 
   compoundOrdername co;
-  string matchName = co(r.domain_id, rr.qname, rr.qtype.getCode());
+  string matchName = co(lrr.domain_id, lrr.qname, lrr.qtype.getCode());
 
   string rrs;
   MDBOutVal _rrs;
@@ -402,23 +400,23 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
     rrs = _rrs.get<string>();
   }
 
-  rrs += serToString(rr);
+  rrs += serToString(lrr);
 
   d_rwtxn->txn->put(d_rwtxn->db->dbi, matchName, rrs);
 
   if (ordernameIsNSEC3 && !ordername.empty()) {
     MDBOutVal val;
-    if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, QType::NSEC3), val)) {
-      rr.ttl = 0;
-      rr.content = rr.qname.toDNSStringLC();
-      rr.auth = 0;
-      string ser = serToString(rr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(r.domain_id, ordername, QType::NSEC3), ser);
+    if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), val)) {
+      lrr.ttl = 0;
+      lrr.content = lrr.qname.toDNSStringLC();
+      lrr.auth = 0;
+      string ser = serToString(lrr);
+      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, ordername, QType::NSEC3), ser);
 
-      rr.ttl = 1;
-      rr.content = ordername.toDNSString();
-      ser = serToString(rr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, QType::NSEC3), ser);
+      lrr.ttl = 1;
+      lrr.content = ordername.toDNSString();
+      ser = serToString(lrr);
+      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), ser);
     }
   }
   return true;
@@ -426,16 +424,16 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
 
 bool LMDBBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
 {
-  DNSResourceRecord rr;
-  rr.ttl = 0;
+  LMDBResourceRecord lrr;
+  lrr.ttl = 0;
   compoundOrdername co;
   for (const auto& nt : nonterm) {
-    rr.qname = nt.first.makeRelative(d_transactiondomain);
-    rr.auth = nt.second;
-    rr.disabled = true;
+    lrr.qname = nt.first.makeRelative(d_transactiondomain);
+    lrr.auth = nt.second;
+    lrr.ordername = true;
 
-    std::string ser = serToString(rr);
-    d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, rr.qname, 0), ser);
+    std::string ser = serToString(lrr);
+    d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
   }
   return true;
 }
@@ -444,29 +442,29 @@ bool LMDBBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, b
 {
   string ser;
   DNSName ordername;
-  DNSResourceRecord rr;
+  LMDBResourceRecord lrr;
   compoundOrdername co;
   for (const auto& nt : nonterm) {
-    rr.qname = nt.first.makeRelative(domain);
-    rr.ttl = 0;
-    rr.auth = nt.second;
-    rr.disabled = nt.second;
-    ser = serToString(rr);
-    d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, rr.qname, 0), ser);
+    lrr.qname = nt.first.makeRelative(domain);
+    lrr.ttl = 0;
+    lrr.auth = nt.second;
+    lrr.ordername = nt.second;
+    ser = serToString(lrr);
+    d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
-    if (!narrow && rr.auth) {
-      rr.content = rr.qname.toDNSString();
-      rr.auth = false;
-      rr.disabled = false;
-      ser = serToString(rr);
+    if (!narrow && lrr.auth) {
+      lrr.content = lrr.qname.toDNSString();
+      lrr.auth = false;
+      lrr.ordername = false;
+      ser = serToString(lrr);
 
       ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
       d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
 
-      rr.ttl = 1;
-      rr.content = ordername.toDNSString();
-      ser = serToString(rr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, rr.qname, QType::NSEC3), ser);
+      lrr.ttl = 1;
+      lrr.content = ordername.toDNSString();
+      ser = serToString(lrr);
+      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::NSEC3), ser);
     }
   }
   return true;
@@ -502,11 +500,13 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   }
 
   if (!rrset.empty()) {
-    vector<DNSResourceRecord> adjustedRRSet;
+    vector<LMDBResourceRecord> adjustedRRSet;
     for (auto rr : rrset) {
-      rr.content = serializeContent(rr.qtype.getCode(), rr.qname, rr.content);
-      rr.qname.makeUsRelative(di.zone);
-      adjustedRRSet.push_back(rr);
+      LMDBResourceRecord lrr(rr);
+      lrr.content = serializeContent(lrr.qtype.getCode(), lrr.qname, lrr.content);
+      lrr.qname.makeUsRelative(di.zone);
+
+      adjustedRRSet.emplace_back(lrr);
     }
     txn->txn->put(txn->db->dbi, match, serToString(adjustedRRSet));
   }
@@ -661,6 +661,8 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
 bool LMDBBackend::list(const DNSName& target, int id, bool include_disabled)
 {
+  d_includedisabled = include_disabled;
+
   DomainInfo di;
   {
     auto dtxn = d_tdomains->getROTransaction();
@@ -699,6 +701,8 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
     g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.getName() << " in zone " << zoneId << endl;
     d_dtime.set();
   }
+
+  d_includedisabled = false;
 
   DNSName hunt(qdomain);
   DomainInfo di;
@@ -756,7 +760,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
   d_currentrrsetpos = 0;
 }
 
-bool LMDBBackend::get(DNSZoneRecord& rr)
+bool LMDBBackend::get(DNSZoneRecord& zr)
 {
   for (;;) {
     if (!d_getcursor) {
@@ -770,9 +774,9 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
       d_getcursor->current(d_currentKey, d_currentVal);
 
       key = d_currentKey.get<string_view>();
-      rr.dr.d_type = compoundOrdername::getQType(key).getCode();
+      zr.dr.d_type = compoundOrdername::getQType(key).getCode();
 
-      if (rr.dr.d_type == QType::NSEC3) {
+      if (zr.dr.d_type == QType::NSEC3) {
         // Hit a magic NSEC3 skipping
         if (d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
           d_getcursor.reset();
@@ -786,22 +790,28 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
     else {
       key = d_currentKey.get<string_view>();
     }
-
     try {
-      const auto& drr = d_currentrrset.at(d_currentrrsetpos++);
+      const auto& lrr = d_currentrrset.at(d_currentrrsetpos++);
 
-      rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
-      rr.domain_id = compoundOrdername::getDomainID(key);
-      rr.dr.d_type = compoundOrdername::getQType(key).getCode();
-      rr.dr.d_ttl = drr.ttl;
-      rr.dr.d_content = deserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
-      rr.auth = drr.auth;
+      if (!lrr.disabled || d_includedisabled) {
+        zr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
+        zr.domain_id = compoundOrdername::getDomainID(key);
+        zr.dr.d_type = compoundOrdername::getQType(key).getCode();
+        zr.dr.d_ttl = lrr.ttl;
+        zr.dr.d_content = deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content);
+        zr.auth = lrr.auth;
+        zr.disabled = lrr.disabled;
+      }
 
       if (d_currentrrsetpos >= d_currentrrset.size()) {
         d_currentrrset.clear();
         if (d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
           d_getcursor.reset();
         }
+      }
+
+      if (lrr.disabled && !d_includedisabled) {
+        continue;
       }
     }
     catch (const std::exception& e) {
@@ -816,48 +826,54 @@ bool LMDBBackend::get(DNSZoneRecord& rr)
 
 bool LMDBBackend::get(DNSResourceRecord& rr)
 {
-  DNSZoneRecord dzr;
-  if (!get(dzr)) {
+  DNSZoneRecord zr;
+  if (!get(zr)) {
     return false;
   }
 
-  rr.qname = dzr.dr.d_name;
-  rr.ttl = dzr.dr.d_ttl;
-  rr.qtype = dzr.dr.d_type;
-  rr.content = dzr.dr.d_content->getZoneRepresentation(true);
-  rr.domain_id = dzr.domain_id;
-  rr.auth = dzr.auth;
+  rr.qname = zr.dr.d_name;
+  rr.ttl = zr.dr.d_ttl;
+  rr.qtype = zr.dr.d_type;
+  rr.content = zr.dr.d_content->getZoneRepresentation(true);
+  rr.domain_id = zr.domain_id;
+  rr.auth = zr.auth;
+  rr.disabled = zr.disabled;
 
   return true;
 }
 
-bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
+bool LMDBBackend::getSerial(DomainInfo& di)
 {
-  auto txn = d_tdomains->getROTransaction();
-
-  if (!(di.id = txn.get<0>(domain, di)))
-    return false;
-  di.backend = this;
-
-  di.serial = 0;
-
-  if (getSerial) {
-    auto txn2 = getRecordsROTransaction(di.id);
-    compoundOrdername co;
-    MDBOutVal val;
-
-    if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
-      DNSResourceRecord rr;
-      serFromString(val.get<string_view>(), rr);
-
-      if (rr.content.size() >= 5 * sizeof(uint32_t)) {
-        uint32_t serial;
-        // a SOA has five 32 bit fields, the first of which is the serial
-        // there are two variable length names before the serial, so we calculate from the back
-        memcpy(&serial, &rr.content[rr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
-        di.serial = ntohl(serial);
-      }
+  auto txn = getRecordsROTransaction(di.id);
+  compoundOrdername co;
+  MDBOutVal val;
+  if (!txn->txn->get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
+    LMDBResourceRecord lrr;
+    serFromString(val.get<string_view>(), lrr);
+    if (lrr.content.size() >= 5 * sizeof(uint32_t)) {
+      uint32_t serial;
+      // a SOA has five 32 bit fields, the first of which is the serial
+      // there are two variable length names before the serial, so we calculate from the back
+      memcpy(&serial, &lrr.content[lrr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
+      di.serial = ntohl(serial);
     }
+    return !lrr.disabled;
+  }
+  return false;
+}
+
+bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial)
+{
+  {
+    auto txn = d_tdomains->getROTransaction();
+
+    if (!(di.id = txn.get<0>(domain, di)))
+      return false;
+    di.backend = this;
+  }
+
+  if (getserial) {
+    getSerial(di);
   }
 
   return true;
@@ -951,30 +967,16 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 
 void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
 {
-  compoundOrdername co;
-  MDBOutVal val;
   domains->clear();
   auto txn = d_tdomains->getROTransaction();
   for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
     DomainInfo di = *iter;
     di.id = iter.getID();
 
-    auto txn2 = getRecordsROTransaction(iter.getID());
-    if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
-      DNSResourceRecord rr;
-      serFromString(val.get<string_view>(), rr);
-
-      if (rr.content.size() >= 5 * sizeof(uint32_t)) {
-        uint32_t serial;
-        // a SOA has five 32 bit fields, the first of which is the serial
-        // there are two variable length names before the serial, so we calculate from the back
-        memcpy(&serial, &rr.content[rr.content.size() - (5 * sizeof(uint32_t))], sizeof(serial));
-        di.serial = ntohl(serial);
-      }
-    }
-    else if (!include_disabled) {
+    if (!getSerial(di) && !include_disabled) {
       continue;
     }
+
     di.backend = this;
     domains->push_back(di);
   }
@@ -996,11 +998,11 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
     MDBOutVal val;
     uint32_t serial = 0;
     if (!txn2->txn->get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
-      DNSResourceRecord rr;
-      serFromString(val.get<string_view>(), rr);
+      LMDBResourceRecord lrr;
+      serFromString(val.get<string_view>(), lrr);
       struct soatimes st;
 
-      memcpy(&st, &rr.content[rr.content.size() - sizeof(soatimes)], sizeof(soatimes));
+      memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
 
       if ((time_t)(iter->last_check + ntohl(st.refresh)) >= now) { // still fresh
         continue; // try next domain
@@ -1177,7 +1179,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
 
-  DNSResourceRecord rr;
+  LMDBResourceRecord lrr;
 
   string matchkey = co(id, qname, QType::NSEC3);
   if (cursor.lower_bound(matchkey, key, val)) {
@@ -1193,8 +1195,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
 
       if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-        serFromString(val.get<StringView>(), rr);
-        if (!rr.ttl) // the kind of NSEC3 we need
+        serFromString(val.get<StringView>(), lrr);
+        if (!lrr.ttl) // the kind of NSEC3 we need
           break;
       }
       if (cursor.prev(key, val)) {
@@ -1203,7 +1205,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
     }
     before = co.getQName(key.get<StringView>());
-    unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
+    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone;
 
     // now to find after .. at the beginning of the zone
     if (cursor.lower_bound(co(id), key, val)) {
@@ -1212,8 +1214,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     }
     for (;;) {
       if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-        serFromString(val.get<StringView>(), rr);
-        if (!rr.ttl)
+        serFromString(val.get<StringView>(), lrr);
+        if (!lrr.ttl)
           break;
       }
 
@@ -1243,8 +1245,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
       for (;;) {
         if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-          serFromString(val.get<StringView>(), rr);
-          if (!rr.ttl)
+          serFromString(val.get<StringView>(), lrr);
+          if (!lrr.ttl)
             break;
         }
 
@@ -1266,8 +1268,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
         // cout<<"Potentially stopping traverse at "<< co.getQName(key.get<StringView>()) <<", " << (co.getQName(key.get<StringView>()).canonCompare(qname))<<endl;
         // cout<<"qname = "<<qname<<endl;
         // cout<<"here  = "<<co.getQName(key.get<StringView>())<<endl;
-        serFromString(val.get<StringView>(), rr);
-        if (!rr.ttl)
+        serFromString(val.get<StringView>(), lrr);
+        if (!lrr.ttl)
           break;
       }
 
@@ -1291,8 +1293,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
           }
 
           if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-            serFromString(val.get<StringView>(), rr);
-            if (!rr.ttl) // the kind of NSEC3 we need
+            serFromString(val.get<StringView>(), lrr);
+            if (!lrr.ttl) // the kind of NSEC3 we need
               break;
           }
           if (cursor.prev(key, val)) {
@@ -1301,7 +1303,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
           }
         }
         before = co.getQName(key.get<StringView>());
-        unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
+        unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone;
         // cout <<"Should still find 'after'!"<<endl;
         // for 'after', we need to find the first hash of this zone
 
@@ -1312,8 +1314,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
         }
         for (;;) {
           if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-            serFromString(val.get<StringView>(), rr);
-            if (!rr.ttl)
+            serFromString(val.get<StringView>(), lrr);
+            if (!lrr.ttl)
               break;
           }
 
@@ -1331,7 +1333,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       ++count;
     }
     before = co.getQName(key.get<StringView>());
-    unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
+    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone;
     // cout<<"Went backwards, found "<<before<<endl;
     // return us to starting point
     while (count--)
@@ -1348,8 +1350,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
       for (;;) {
         if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-          serFromString(val.get<StringView>(), rr);
-          if (!rr.ttl)
+          serFromString(val.get<StringView>(), lrr);
+          if (!lrr.ttl)
             break;
         }
 
@@ -1368,8 +1370,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
     // cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
     if (co.getQType(key.get<StringView>()) == QType::NSEC3) {
-      serFromString(val.get<StringView>(), rr);
-      if (!rr.ttl) {
+      serFromString(val.get<StringView>(), lrr);
+      if (!lrr.ttl) {
         break;
       }
     }
@@ -1415,9 +1417,9 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
 
       if (co.getDomainID(key.get<string_view>()) == id && key.get<StringView>().rfind(matchkey, 0) == 0)
         continue;
-      DNSResourceRecord rr;
-      serFromString(val.get<StringView>(), rr);
-      if (co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS))
+      LMDBResourceRecord lrr;
+      serFromString(val.get<StringView>(), lrr);
+      if (co.getQType(key.get<string_view>()).getCode() && (lrr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS))
         break;
     }
     if (rc || co.getDomainID(key.get<string_view>()) != id) {
@@ -1446,9 +1448,9 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
         // "this can't happen"
         return false;
       }
-      DNSResourceRecord rr;
-      serFromString(val.get<StringView>(), rr);
-      if (co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS))
+      LMDBResourceRecord lrr;
+      serFromString(val.get<StringView>(), lrr);
+      if (co.getQType(key.get<string_view>()).getCode() && (lrr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS))
         break;
     }
 
@@ -1461,15 +1463,15 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
 
   int skips = 0;
   for (;;) {
-    DNSResourceRecord rr;
-    serFromString(val.get<StringView>(), rr);
-    if (co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS)) {
+    LMDBResourceRecord lrr;
+    serFromString(val.get<StringView>(), lrr);
+    if (co.getQType(key.get<string_view>()).getCode() && (lrr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS)) {
       after = co.getQName(key.get<string_view>()) + zonename;
-      // cout <<"Found auth ("<<rr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.get<string_view>()).getName()<<", ttl = "<<rr.ttl<<endl;
+      // cout <<"Found auth ("<<lrr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.get<string_view>()).getName()<<", ttl = "<<lrr.ttl<<endl;
       // cout << makeHexDump(val.get<string>()) << endl;
       break;
     }
-    // cout <<"  oops, " << co.getQName(key.get<string_view>()) << " was not auth "<<rr.auth<< " type=" << rr.qtype.getName()<<" or NS, so need to skip ahead a bit more" << endl;
+    // cout <<"  oops, " << co.getQName(key.get<string_view>()) << " was not auth "<<lrr.auth<< " type=" << lrr.qtype.getName()<<" or NS, so need to skip ahead a bit more" << endl;
     int rc = cursor.next(key, val);
     if (!rc)
       ++skips;
@@ -1491,10 +1493,10 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
       return false;
     }
     before = co.getQName(key.get<string_view>()) + zonename;
-    DNSResourceRecord rr;
-    serFromString(val.get<string_view>(), rr);
+    LMDBResourceRecord lrr;
+    serFromString(val.get<string_view>(), lrr);
     // cout<<"And before to "<<before<<", auth = "<<rr.auth<<endl;
-    if (co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()) == QType::NS))
+    if (co.getQType(key.get<string_view>()).getCode() && (lrr.auth || co.getQType(key.get<string_view>()) == QType::NS))
       break;
     // cout << "Oops, that was wrong, go back one more"<<endl;
   }
@@ -1539,26 +1541,24 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   bool needNSEC3 = hasOrderName;
 
   for (; key.get<StringView>().rfind(matchkey, 0) == 0;) {
-    vector<DNSResourceRecord> rrs;
+    vector<LMDBResourceRecord> lrrs;
 
     if (co.getQType(key.get<StringView>()) != QType::NSEC3) {
-      serFromString(val.get<StringView>(), rrs);
+      serFromString(val.get<StringView>(), lrrs);
       bool changed = false;
-      vector<DNSResourceRecord> newRRs;
-      for (auto rr : rrs) {
-        rr.qtype = co.getQType(key.get<StringView>());
+      vector<LMDBResourceRecord> newRRs;
+      for (auto lrr : lrrs) {
+        lrr.qtype = co.getQType(key.get<StringView>());
         if (!needNSEC3 && qtype != QType::ANY) {
-          needNSEC3 = (rr.disabled && QType(qtype) != rr.qtype);
+          needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
         }
 
-        if ((qtype == QType::ANY || QType(qtype) == rr.qtype) && (rr.disabled != hasOrderName || rr.auth != auth)) {
-          rr.auth = auth;
-          rr.disabled = hasOrderName;
+        if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.ordername != hasOrderName || lrr.auth != auth)) {
+          lrr.auth = auth;
+          lrr.ordername = hasOrderName;
           changed = true;
-
-          string repl = serToString(rr);
         }
-        newRRs.push_back(rr);
+        newRRs.push_back(lrr);
       }
       if (changed) {
         cursor.put(key, serToString(newRRs));
@@ -1570,13 +1570,13 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   }
 
   bool del = false;
-  DNSResourceRecord rr;
+  LMDBResourceRecord lrr;
   matchkey = co(domain_id, rel, QType::NSEC3);
   if (!txn->txn->get(txn->db->dbi, matchkey, val)) {
-    serFromString(val.get<string_view>(), rr);
+    serFromString(val.get<string_view>(), lrr);
 
     if (needNSEC3) {
-      if (hasOrderName && rr.content != ordername.toDNSStringLC()) {
+      if (hasOrderName && lrr.content != ordername.toDNSStringLC()) {
         del = true;
       }
     }
@@ -1584,7 +1584,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       del = true;
     }
     if (del) {
-      txn->txn->del(txn->db->dbi, co(domain_id, DNSName(rr.content.c_str(), rr.content.size(), 0, false), QType::NSEC3));
+      txn->txn->del(txn->db->dbi, co(domain_id, DNSName(lrr.content.c_str(), lrr.content.size(), 0, false), QType::NSEC3));
       txn->txn->del(txn->db->dbi, matchkey);
     }
   }
@@ -1595,15 +1595,15 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   if (hasOrderName && del) {
     matchkey = co(domain_id, rel, QType::NSEC3);
 
-    rr.ttl = 0;
-    rr.auth = 0;
-    rr.content = rel.toDNSStringLC();
+    lrr.ttl = 0;
+    lrr.auth = 0;
+    lrr.content = rel.toDNSStringLC();
 
-    string str = serToString(rr);
+    string str = serToString(lrr);
     txn->txn->put(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), str);
-    rr.ttl = 1;
-    rr.content = ordername.toDNSStringLC();
-    str = serToString(rr);
+    lrr.ttl = 1;
+    lrr.content = ordername.toDNSStringLC();
+    str = serToString(lrr);
     txn->txn->put(txn->db->dbi, matchkey, str); // 2
   }
 
@@ -1641,17 +1641,14 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
     }
     compoundOrdername co;
     for (const auto& n : insert) {
-      DNSResourceRecord rr;
-      rr.qname = n.makeRelative(di.zone);
-      rr.ttl = 0;
-      rr.auth = true;
+      LMDBResourceRecord lrr;
+      lrr.qname = n.makeRelative(di.zone);
+      lrr.ttl = 0;
+      lrr.auth = true;
 
-      std::string ser = serToString(rr);
+      std::string ser = serToString(lrr);
 
-      txn->txn->put(txn->db->dbi, co(domain_id, rr.qname, 0), ser);
-
-      DNSResourceRecord rr2;
-      serFromString(ser, rr2);
+      txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, 0), ser);
 
       // cout <<" +"<<n<<endl;
     }

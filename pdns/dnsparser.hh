@@ -360,6 +360,7 @@ struct DNSZoneRecord
   int signttl{0};
   DNSName wildcardname;
   bool auth{true};
+  bool disabled{false};
   DNSRecord dr;
 };
 

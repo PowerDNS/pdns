@@ -989,7 +989,6 @@ $ORIGIN %NAME%
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
 
-    @unittest.skipIf(is_auth_lmdb(), "No disabled in LMDB")
     def test_zone_rr_update(self):
         name, payload, zone = self.create_zone()
         # do a replace (= update)
