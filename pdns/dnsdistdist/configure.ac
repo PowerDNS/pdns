@@ -9,6 +9,8 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
+PDNS_CHECK_TIME_T
+
 AC_DEFINE([DNSDIST], [1],
   [This is dnsdist]
 )
