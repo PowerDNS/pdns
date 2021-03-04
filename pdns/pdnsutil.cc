@@ -1021,7 +1021,7 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
 static int listKeys(const string &zname, DNSSECKeeper& dk){
   UeberBackend B("default");
 
-  if (zname != "all") {
+  if (!zname.empty()) {
     DomainInfo di;
     if(!B.getDomainInfo(DNSName(zname), di)) {
       cerr << "Zone "<<zname<<" not found."<<endl;
@@ -1030,7 +1030,7 @@ static int listKeys(const string &zname, DNSSECKeeper& dk){
     listKey(di, dk);
   } else {
     vector<DomainInfo> domainInfo;
-    B.getAllDomains(&domainInfo);
+    B.getAllDomains(&domainInfo, g_verbose);
     bool printHeader = true;
     for (const auto& di : domainInfo) {
       listKey(di, dk, printHeader);
@@ -1618,7 +1618,7 @@ static int listAllZones(const string &type="") {
   UeberBackend B("default");
 
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains, true);
+  B.getAllDomains(&domains, g_verbose);
 
   int count = 0;
   for (const auto& di: domains) {
@@ -2840,7 +2840,10 @@ try
       cerr<<"Syntax: pdnsutil list-keys [ZONE]"<<endl;
       return 0;
     }
-    string zname = (cmds.size() == 2) ? cmds[1] : "all";
+    string zname;
+    if (cmds.size() == 2) {
+      zname = cmds.at(1);
+    }
     return listKeys(zname, dk);
   }
   else if(cmds[0] == "load-zone") {
