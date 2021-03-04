@@ -105,7 +105,8 @@ Default: yes.
 Default schema
 --------------
 
-This is the 4.3 schema. Please find `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ and the `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ on GitHub.
+This is the 4.3 schema.
+The `4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ and the `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gpgsqlbackend/schema.pgsql.sql>`_ is available on GitHub.
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
    :language: SQL
