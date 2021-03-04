@@ -1999,25 +1999,26 @@ static const set<QType> nsecTypes = {QType::NSEC, QType::NSEC3};
  * \param ne      The NegCacheEntry to be filled out (will not be cleared, only appended to
  */
 static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCacheEntry& ne, const time_t now, uint32_t* lowestTTL) {
-  for(const auto& rec : records) {
-    if(rec.d_place != DNSResourceRecord::AUTHORITY)
+  for (const auto& rec : records) {
+    if (rec.d_place != DNSResourceRecord::AUTHORITY) {
       // RFC 4035 section 3.1.3. indicates that NSEC records MUST be placed in
       // the AUTHORITY section. Section 3.1.1 indicates that that RRSIGs for
       // records MUST be in the same section as the records they cover.
       // Hence, we ignore all records outside of the AUTHORITY section.
       continue;
+    }
 
-    if(rec.d_type == QType::RRSIG) {
+    if (rec.d_type == QType::RRSIG) {
       auto rrsig = getRR<RRSIGRecordContent>(rec);
-      if(rrsig) {
-        if(rrsig->d_type == QType::SOA) {
+      if (rrsig) {
+        if (rrsig->d_type == QType::SOA) {
           ne.authoritySOA.signatures.push_back(rec);
           if (lowestTTL && isRRSIGNotExpired(now, rrsig)) {
             *lowestTTL = min(*lowestTTL, rec.d_ttl);
             *lowestTTL = min(*lowestTTL, getRRSIGTTL(now, rrsig));
           }
         }
-        if(nsecTypes.count(rrsig->d_type)) {
+        if (nsecTypes.count(rrsig->d_type)) {
           ne.DNSSECRecords.signatures.push_back(rec);
           if (lowestTTL && isRRSIGNotExpired(now, rrsig)) {
             *lowestTTL = min(*lowestTTL, rec.d_ttl);
@@ -2027,14 +2028,14 @@ static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCach
       }
       continue;
     }
-    if(rec.d_type == QType::SOA) {
+    if (rec.d_type == QType::SOA) {
       ne.authoritySOA.records.push_back(rec);
       if (lowestTTL) {
         *lowestTTL = min(*lowestTTL, rec.d_ttl);
       }
       continue;
     }
-    if(nsecTypes.count(rec.d_type)) {
+    if (nsecTypes.count(rec.d_type)) {
       ne.DNSSECRecords.records.push_back(rec);
       if (lowestTTL) {
         *lowestTTL = min(*lowestTTL, rec.d_ttl);
@@ -3287,6 +3288,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
     }
 
+    if (seenAuth.empty() && !i->second.signatures.empty()) {
+      seenAuth = getSigner(i->second.signatures);
+    }
+
     if (g_aggressiveNSECCache && (i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty()) {
       // Good candidate for NSEC{,3} caching
       g_aggressiveNSECCache->insertNSEC(seenAuth, i->first.name, i->second.records.at(0), i->second.signatures, i->first.type == QType::NSEC3);
@@ -3342,7 +3347,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
   return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE);
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, unsigned int depth)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth)
 {
   bool done = false;
   DNSName dnameTarget, dnameOwner;
@@ -3387,7 +3392,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       else {
         /* here we need to get the validation status of the zone telling us that the domain does not
            exist, ie the owner of the SOA */
-        auto recordState = getValidationStatus(rec.d_name, !ne.authoritySOA.signatures.empty(), false, depth);
+        auto recordState = getValidationStatus(rec.d_name, !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty(), false, depth);
         if (recordState == vState::Secure) {
           dState denialState = getDenialValidationState(ne, dState::NXDOMAIN, false);
           updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, dState::NXDOMAIN);
@@ -3416,6 +3421,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         }
       }
 
+      negIndicHasSignatures = !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty();
       negindic = true;
     }
     else if (rec.d_place == DNSResourceRecord::ANSWER && s_redirectionQTypes.count(rec.d_type) > 0 && // CNAME or DNAME answer
@@ -3486,7 +3492,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           ne.d_validationState = state;
         }
         else {
-          auto recordState = getValidationStatus(qname, !ne.authoritySOA.signatures.empty(), false, depth);
+          auto recordState = getValidationStatus(qname, !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty(), false, depth);
 
           if (recordState == vState::Secure) {
             /* We have a positive answer synthesized from a wildcard, we need to check that we have
@@ -3551,7 +3557,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       harvestNXRecords(lwr.d_records, ne, d_now.tv_sec, &lowestTTL);
 
       if (!vStateIsBogus(state)) {
-        auto recordState = getValidationStatus(newauth, !ne.authoritySOA.signatures.empty(), true, depth);
+        auto recordState = getValidationStatus(newauth, !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty(), true, depth);
 
         if (recordState == vState::Secure) {
           ne.d_auth = auth;
@@ -3576,6 +3582,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
             if (qname == newauth && qtype == QType::DS) {
               /* we are actually done! */
               negindic = true;
+              negIndicHasSignatures = !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty();
               nsset.clear();
             }
           }
@@ -3603,7 +3610,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           ne.d_validationState = state;
         }
         else {
-          auto recordState = getValidationStatus(qname, ne.authoritySOA.signatures.empty(), qtype == QType::DS, depth);
+          auto recordState = getValidationStatus(qname, !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty(), qtype == QType::DS, depth);
           if (recordState == vState::Secure) {
             dState denialState = getDenialValidationState(ne, dState::NXQTYPE, false);
             updateDenialValidationState(ne.d_validationState, ne.d_name, state, denialState, dState::NXQTYPE);
@@ -3627,6 +3634,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
         ret.push_back(rec);
         negindic = true;
+        negIndicHasSignatures = !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty();
       }
     }
   }
@@ -3910,11 +3918,13 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   LOG(prefix<<qname<<": determining status after receiving this packet"<<endl);
 
   set<DNSName> nsset;
-  bool realreferral=false, negindic=false;
+  bool realreferral = false;
+  bool negindic = false;
+  bool negIndicHasSignatures = false;
   DNSName newauth;
   DNSName newtarget;
 
-  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, *rcode, depth);
+  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, *rcode, negIndicHasSignatures, depth);
 
   if (done){
     LOG(prefix<<qname<<": status=got results, this level of recursion done"<<endl);
@@ -3930,7 +3940,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if (lwr.d_rcode == RCode::NXDomain) {
     LOG(prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
 
-    auto tempState = getValidationStatus(qname, false, qtype == QType::DS, depth);
+    auto tempState = getValidationStatus(qname, negIndicHasSignatures, qtype == QType::DS, depth);
     if (tempState == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       LOG(prefix<<qname<<": NXDOMAIN without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::BogusMissingNegativeIndication);
@@ -3946,7 +3956,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if (nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 
-    auto tempState = getValidationStatus(qname, false, qtype == QType::DS, depth);
+    auto tempState = getValidationStatus(qname, negIndicHasSignatures, qtype == QType::DS, depth);
     if (tempState == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       LOG(prefix<<qname<<": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::BogusMissingNegativeIndication);
