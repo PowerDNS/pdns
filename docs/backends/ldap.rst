@@ -499,9 +499,8 @@ If "binddn" is given, the script will prompt for a password, otherwise
 an anonymous bind is executed. The updates in LDIF format are written to
 stdout and can be redirected to a file.
 
-The script requires Perl and the Perl Net::LDAP module and can be
-downloaded
-`here <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__.
+The `script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__
+requires Perl and the Perl Net::LDAP module.
 
 Updating the entries in the LDAP tree requires to make the dnsdomain2
 schema known to the LDAP server. Unfortunately, both schemas (dnsdomain2

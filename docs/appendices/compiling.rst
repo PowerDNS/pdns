@@ -26,7 +26,7 @@ There are 3 ways of getting the source.
 
 If you want the bleeding edge, you can clone the `repository at GitHub <https://github.com/PowerDNS/pdns>`__ and run ``autoreconf -vi`` in the clone.
 
-You can also download snapshot tarballs `here <https://downloads.powerdns.com/autobuilt_browser/#/auth>`__.
+You can also download `snapshot tarballs <https://downloads.powerdns.com/autobuilt_browser/#/auth>`__.
 
 You can also download releases on the `website <https://downloads.powerdns.com/releases/>`__.
 These releases are PGP-signed with one of these key-ids:

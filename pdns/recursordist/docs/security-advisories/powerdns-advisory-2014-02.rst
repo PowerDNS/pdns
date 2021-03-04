@@ -31,9 +31,8 @@ permission, we continued the 3.6.2 release process with the fix for the
 issue already in there.
 
 We recommend that all users upgrade to 3.6.2 if at all possible.
-Alternatively, if you want to apply a minimal fix to your own tree, it
-can be found `here <https://downloads.powerdns.com/patches/2014-02/>`__,
-including patches for older versions.
+Alternatively, you can apply a `minimal fix <https://downloads.powerdns.com/patches/2014-02/>`__
+(including patches for older versions) to your own tree.
 
 As for workarounds, only clients in allow-from are able to trigger the
 degraded service, so this should be limited to your userbase.

@@ -53,7 +53,7 @@ After a restart of the Recursor, it will answer queries on 192.0.2.25 and 2001:D
 
 The recursor is now ready to be used.
 For more options that can be set in ``recursor.conf`` see the :doc:`list of settings <settings>`.
-Guidance on interaction with the Recursor is documented :doc:`here <running>`
+Guidance on interaction with the Recursor is documented in :doc:`<running>`.
 If dynamic answer generation is needed or policies need to be applied to queries, the :doc:`scripting manual <lua-scripting/index>` will come in handy.
 
 Using Ansible

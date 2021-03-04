@@ -28,8 +28,8 @@ compromise or stack overflow.
 
 Upgrading to 3.6.1 solves the issue.
 
-In addition, if you want to apply a minimal fix to your own tree, it can
-be found `here <https://xs.powerdns.com/tmp/minipatch-3.6.1>`__
+In addition, you can apply a `minimal fix <https://xs.powerdns.com/tmp/minipatch-3.6.1>`__
+to your own tree.
 
 As for workarounds, only clients in allow-from are able to trigger the
 crash, so this should be limited to your userbase. Secondly,
