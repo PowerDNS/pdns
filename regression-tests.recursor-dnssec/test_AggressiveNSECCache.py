@@ -239,7 +239,15 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
 
     def testWildcard(self):
 
-        # first we query a non-existent name, but for which a wildcard matches,
+        # first let's get the SOA and wildcard NSEC in our cache by asking a name that matches the wildcard
+        # but a type that does not exist
+        res = self.sendQuery('test1.wildcard.secure.example.', 'AAAA')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnswerEmpty(res)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+
+        # we query a non-existent name, but for which a wildcard matches,
         # to get the NSEC3 in our cache
         res = self.sendQuery('test5.wildcard.secure.example.', 'A')
         expected = dns.rrset.from_text('test5.wildcard.secure.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))
