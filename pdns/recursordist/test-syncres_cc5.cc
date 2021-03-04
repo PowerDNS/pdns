@@ -932,7 +932,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -944,7 +944,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
     BOOST_CHECK_LE(rec.d_ttl, 60U);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
@@ -1054,7 +1054,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1066,7 +1066,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
     BOOST_CHECK_LE(rec.d_ttl, 60U);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
@@ -1138,7 +1138,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1146,7 +1146,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
@@ -1229,7 +1229,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1237,7 +1237,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_nsec3)
@@ -1323,7 +1323,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* because we pass along the duplicated NSEC3 */
   BOOST_REQUIRE_EQUAL(ret.size(), 9U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1332,7 +1332,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   /* because we pass along the duplicated NSEC3 */
   BOOST_REQUIRE_EQUAL(ret.size(), 9U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_iterations)
@@ -1416,7 +1416,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_ite
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1424,7 +1424,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_too_many_ite
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
@@ -1534,7 +1534,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1546,7 +1546,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
     /* check that we applied the lowest TTL, here this is from the NSEC3 proving that the exact name did not exist (next closer) */
     BOOST_CHECK_LE(rec.d_ttl, 60U);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
@@ -1653,7 +1653,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1661,7 +1661,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
