@@ -2752,6 +2752,12 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
           LOG(d_prefix<<"The DS for "<<qname<<" is signed by itself, going Bogus"<<endl);
           return vState::BogusSelfSignedDS;
         }
+        if (qtype == QType::DNSKEY && signer == qname) {
+          /* that actually does happen when a server returns NS records in authority
+             along with the DNSKEY, leading us to trying to validate the RRSIGs for
+             the NS with the DNSKEY that we are about to process. */
+          return vState::Indeterminate;
+        }
       }
       vState state = getDNSKeys(signer, keys, depth);
       if (state != vState::Secure) {
