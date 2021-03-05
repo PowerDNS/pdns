@@ -29,7 +29,7 @@ trouble.
 Special Domains
 ^^^^^^^^^^^^^^^
 Queries for all names in the ``.localhost`` domain will answer in accordance with :rfc:`6761` section 6.3 point 4.
-That means that they will be answered with ``127.0.0.1``, ``::1` or a negative` response.
+That means that they will be answered with ``127.0.0.1``, ``::1`` or a negative response.
 
 New Settings
 ^^^^^^^^^^^^

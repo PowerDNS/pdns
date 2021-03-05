@@ -38,12 +38,6 @@ Changelogs for 4.5.X
 
   .. change::
     :tags: Improvements
-    :pullreq: 9361
-
-    Bind __tostring instead of toString for Lua, so that conversion to string works automatically (Aki Tuomi).
-
-  .. change::
-    :tags: Improvements
     :pullreq: 10113
     :tickets: 8587
 
@@ -67,7 +61,7 @@ Changelogs for 4.5.X
     :tags: Improvements
     :pullreq: 10096
 
-    Remember non resolving ns.
+    Remember non-resolving nameservers.
 
   .. change::
     :tags: Improvements
