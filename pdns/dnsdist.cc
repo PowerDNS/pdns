@@ -2006,6 +2006,8 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
+static bool g_warned_ipv6_recvpktinfo = false;
+
 static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
 {
   /* skip some warnings if there is an identical UDP context */
@@ -2039,9 +2041,13 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
 
   if(!cs->tcp && IsAnyAddress(cs->local)) {
     int one=1;
-    setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+    (void)setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-    setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
+        !g_warned_ipv6_recvpktinfo) {
+        warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
+        g_warned_ipv6_recvpktinfo = true;
+    }
 #endif
   }
 
