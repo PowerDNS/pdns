@@ -26,12 +26,19 @@ The next release will start deprecating them.
 Users are advised to start using the new names to avoid future
 trouble.
 
+Special Domains
+^^^^^^^^^^^^^^^
+Queries for all names in the ``.localhost`` domain will answer in accordance with :rfc:`6761` section 6.3 point 4.
+That means that they will be answered with ``127.0.0.1``, ``::1` or a negative` response.
+
 New Settings
 ^^^^^^^^^^^^
 - The :ref:`setting-extended-resolution-errors` has been added, enabling adding EDNS Extended Errors to responses.
 - The :ref:`setting-refresh-on-ttl-perc`, enabling an automatic cache-refresh mechanism.
 - The :ref:`setting-ecs-ipv4-never-cache` and :ref:`setting-ecs-ipv6-never-cache` settings have been added, allowing an overrule of the existing decision whether to cache EDNS responses carrying subnet information.
-
+- The :ref:`setting-aggressive-nsec-cache-size` setting has been added, enabling the functionality described in :rfc:`8198`.
+- The :ref:`setting-x-dnssec-names` setting has been added, allowing DNSSEC metrics to be recorded in a different set of counter for given domains.
+  
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-minimum-ttl-override` and :ref:`setting-ecs-minimum-ttl-override` defaults have ben changed from 0 to 1.

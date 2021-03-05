@@ -2,6 +2,126 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.0-alpha2
+  :released: 8th of March 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10010
+
+    Check sizeof(time_t) to be at least 8.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10118
+
+    Change dnssec default to `process`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10047
+
+    Implement rfc 8198 - Aggressive Use of DNSSEC-Validated Cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10112
+
+    Be less verbose telling we are looking up CNAMEs or DNAMEs while tracing.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10111
+    :tickets: 10080
+
+    Handle policy (if needed) after postresolve and document the hooks better.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9361
+
+    Bind __tostring instead of toString for Lua, so that conversion to string works automatically (Aki Tuomi).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10113
+    :tickets: 8587
+
+    Add validation state to protobuf message.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10109
+    :tickets: 9654, 9653
+
+    Add Policy Kind / RPZ action to Protobuf messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10089
+    :tickets: 10058
+
+    Count DNSSEC stats for given names in a different set of counters.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10096
+
+    Remember non resolving ns.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9468
+
+    Pass an fd to dump to from rec_control to the recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10075
+
+    Introduce settings to never cache EDNS Client (v4/v6) Subnet carrying replies.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10077
+    :tickets: 9845
+
+    Change spoof-nearmiss-max default to 1.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10022
+    :tickets: 10021
+
+    Add missing entries to Prometheus metrics.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10064
+    :tickets: 9547
+
+    Return current rcode instead of 0 if there are no CNAME records to follow.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9990
+
+    Also use packetcache for tcp queries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10020
+    :tickets: 10009
+
+    Document taskqueue metrics and add them to SNMP MIB.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9996
+
+    Treat the .localhost domain as special.
+
+.. changelog::
   :version: 4.5.0-alpha1
   :released: 15th of January 2021
 
