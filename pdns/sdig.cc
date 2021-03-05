@@ -376,7 +376,7 @@ try {
     mch.insert(std::make_pair("Accept", "application/dns-message"));
     string question(packet.begin(), packet.end());
     // FIXME: how do we use proxyheader here?
-    reply = mc.postURL(argv[1], question, mch);
+    reply = mc.postURL(argv[1], question, mch, timeout, fastOpen);
     printReply(reply, showflags, hidesoadetails);
 #else
     throw PDNSException("please link sdig against libcurl for DoH support");
