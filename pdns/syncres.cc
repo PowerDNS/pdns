@@ -3951,9 +3951,15 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
       LOG(prefix<<qname<<": NXDOMAIN without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::BogusMissingNegativeIndication);
     }
+    else if (state == vState::Indeterminate) {
+      /* we might not have validated any record, because we did get a NXDOMAIN without any SOA
+         from an insecure zone, for example */
+      updateValidationState(state, tempState);
+    }
 
-    if(d_doDNSSEC)
+    if (d_doDNSSEC) {
       addNXNSECS(ret, lwr.d_records);
+    }
 
     *rcode = RCode::NXDomain;
     return true;
@@ -3967,9 +3973,15 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
       LOG(prefix<<qname<<": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
       updateValidationState(state, vState::BogusMissingNegativeIndication);
     }
+    else if (state == vState::Indeterminate) {
+      /* we might not have validated any record, because we did get a NODATA without any SOA
+         from an insecure zone, for example */
+      updateValidationState(state, tempState);
+    }
 
-    if(d_doDNSSEC)
+    if (d_doDNSSEC) {
       addNXNSECS(ret, lwr.d_records);
+    }
 
     *rcode = RCode::NoError;
     return true;
