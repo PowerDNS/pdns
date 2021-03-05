@@ -14,8 +14,9 @@ upgrade notes if your version is older than 3.4.2.
 Latency calculation changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It turned out that average latency calculations in earlier versions used integers instead of doubles, which led to the throwing away of any data points between 'the current average' and 1000ms above it, instead of having those data points affecting the average.
-In 4.4.0, we `started using doubles for this <https://github.com/PowerDNS/pdns/pull/9768/files>`__, which means the latency calculation is accurate now.
+It turned out that average latency calculations in earlier versions used integers instead of floating point variables, which led to the throwing away of any data points between 'the current average' and 1000ms above it, instead of having those data points affecting the average.
+In 4.3.2 and 4.4.0, we `started using floating point variables for this <https://github.com/PowerDNS/pdns/pull/9768/files>`__, which means the latency calculation is accurate now.
+Usually, this means you will see higher latency numbers after upgrading.
 
 MySQL character set detection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -66,6 +67,20 @@ Removed features
 
 SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API set-ptr feature, that both were deprecated in earlier releases, have now been removed.
 Please run ``pdnsutil check-all-zones`` to check for incomplete SOAs.
+
+4.3.1 to 4.3.2
+--------------
+
+Latency calculation changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It turned out that average latency calculations in earlier versions used integers instead of floating point variables, which led to the throwing away of any data points between 'the current average' and 1000ms above it, instead of having those data points affecting the average.
+In 4.3.2 and 4.4.0, we `started using floating point variables for this <https://github.com/PowerDNS/pdns/pull/9786/files>`__, which means the latency calculation is accurate now.
+Usually, this means you will see higher latency numbers after upgrading.
+
+To be very clear, there is no performance difference between 4.3.1 and 4.3.2.
+The only change is in the latency calculation, which was wrong in 4.3.1 and is correct in 4.3.2.
+This fix was backported to 4.3.2 from 4.4.0 so that users can fairly compare the performance of 4.3.2 and 4.4.0.
 
 4.3.0 to 4.3.1
 --------------
