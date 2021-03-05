@@ -112,8 +112,11 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, static_cast<long>(timeout));
+#if defined(CURL_AT_LEAST_VERSION)
+#if CURL_AT_LEAST_VERSION(7, 49, 0) && defined(__linux__)
   curl_easy_setopt(d_curl, CURLOPT_TCP_FASTOPEN, fastopen);
-
+#endif
+#endif
   clearHeaders();
   d_data.clear();
 }
