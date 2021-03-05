@@ -27,11 +27,11 @@ Client variables
 ~~~~~~~~~~~~~~~~
 ``ecswho``
   The EDNS Client Subnet, should one have been set on the query. Unset
-  otherwise. This is a :class:`ComboAddress`.
+  otherwise. This is a :class:`Netmask`.
 ``bestwho``
   In absence of ECS, this is set to the IP address of requesting resolver.
   Otherwise set to the network part of the EDNS Client Subnet supplied by the
-  resolver. A :class:`ComboAddress`
+  resolver. This is a :class:`ComboAddress`.
 ``who``
   IP address of requesting resolver as a :class:`ComboAddress`.
 
