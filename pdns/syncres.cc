@@ -3509,7 +3509,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
             dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, false, wildcardLabelsCount);
             if (res != dState::NXDOMAIN) {
               vState st = vState::BogusInvalidDenial;
-              if (res == dState::INSECURE) {
+              if (res == dState::INSECURE || res == dState::OPTOUT) {
                 /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
                    this is not enough to warrant a Bogus, but go Insecure. */
                 st = vState::Insecure;
