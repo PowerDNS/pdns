@@ -308,7 +308,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const D
         const DNSName owner = getNSECOwnerName(v.first.first, v.second.signatures);
         LOG("Comparing owner: "<<owner<<" with target: "<<wildcard<<endl);
 
-        if (qname.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
+        if (qname != owner && qname.isPartOf(owner) && nsec->isSet(QType::DNAME)) {
           /* rfc6672 section 5.3.2: DNAME Bit in NSEC Type Map
 
              In any negative response, the NSEC or NSEC3 [RFC5155] record type
