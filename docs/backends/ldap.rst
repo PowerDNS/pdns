@@ -108,9 +108,9 @@ complete.
 (default: "5") : The number of attempts to make to re-establish a lost
 connection to the LDAP server.
 
-.. _setting-ldap-authmethod:
+.. _setting-ldap-bindmethod:
 
-``ldap-authmethod``
+``ldap-bindmethod``
 ^^^^^^^^^^^^^^^^^^^
 
 (default: "simple") : How to authenticate to the LDAP server. Actually
@@ -124,7 +124,7 @@ password, or "gssapi", which requires a Kerberos keytab.
 
 (default "") : Path to the object to authenticate against. Should only
 be used, if the LDAP server doesn't support anonymous binds and with the
-"simple" authmethod.
+"simple" bindmethod.
 
 .. _setting-ldap-secret:
 
@@ -132,7 +132,7 @@ be used, if the LDAP server doesn't support anonymous binds and with the
 ^^^^^^^^^^^^^^^
 
 (default "") : Password for authentication against the object specified
-by ldap-binddn. Only used when "authmethod" is "simple".
+by ldap-binddn. Only used when "bindmethod" is "simple".
 
 .. _setting-ldap-krb5-keytab:
 
@@ -140,7 +140,7 @@ by ldap-binddn. Only used when "authmethod" is "simple".
 ^^^^^^^^^^^^^^^^^^^^
 
 (default: "") : Full path to the keytab file to use to authenticate.
-This is only used when "authmethod" is set to "gssapi". The keytab must,
+This is only used when "bindmethod" is set to "gssapi". The keytab must,
 ideally, contain only one principal (or to put it otherwise, only the
 first principal found in the keytab will be used).
 

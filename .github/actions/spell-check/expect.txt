@@ -98,7 +98,6 @@ aton
 attr
 atype
 AUTHIP
-authmethod
 Authoritativedoc
 auths
 authzone
