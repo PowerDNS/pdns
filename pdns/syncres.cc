@@ -2284,7 +2284,7 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
-vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &retrieveAddressesForNS)
+vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int &nretrieveAddressesForNS)
 {
   vector<ComboAddress> result;
 
@@ -2296,12 +2296,13 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     }
 
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
+    const unsigned int oldnretrieveAddressesForNS = nretrieveAddressesForNS;
     try {
-      result = getAddrs(tns->first, depth, beenthere, cacheOnly, retrieveAddressesForNS);
+      result = getAddrs(tns->first, depth, beenthere, cacheOnly, nretrieveAddressesForNS);
     }
     // Other exceptions should likely not throttle...
     catch (const ImmediateServFailException& ex) {
-      if (s_nonresolvingnsmaxfails > 0) {
+      if (s_nonresolvingnsmaxfails > 0 && nretrieveAddressesForNS > oldnretrieveAddressesForNS) {
         auto dontThrottleNames = g_dontThrottleNames.getLocal();
         if (!dontThrottleNames->check(tns->first)) {
           t_sstorage.nonresolving.incr(tns->first, d_now);
@@ -2309,7 +2310,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
       }
       throw ex;
     }
-    if (s_nonresolvingnsmaxfails > 0 && result.empty()) {
+    if (s_nonresolvingnsmaxfails > 0 && result.empty() && nretrieveAddressesForNS > oldnretrieveAddressesForNS) {
       auto dontThrottleNames = g_dontThrottleNames.getLocal();
       if (!dontThrottleNames->check(tns->first)) {
         t_sstorage.nonresolving.incr(tns->first, d_now);
