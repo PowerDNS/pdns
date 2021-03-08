@@ -632,7 +632,7 @@ List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP 
 
 Whether to add EDNS padding to all responses (``always``) or only to the ones for padded queries (``padded-queries-only``, the default) coming from `edns-padding-from`_ sources.
 
-.. _setting-edns-padding-mode:
+.. _setting-edns-padding-tag:
 
 ``edns-padding-tag``
 --------------------
