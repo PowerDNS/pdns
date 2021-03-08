@@ -359,6 +359,7 @@ struct DNSComboWriter {
   bool d_followCNAMERecords{false};
   bool d_logResponse{false};
   bool d_tcp{false};
+  bool d_responsePaddingDisabled{false};
 };
 
 MT_t* getMT()
@@ -1490,7 +1491,7 @@ static void startDoResolve(void *p)
     bool variableAnswer = dc->d_variable;
     bool haveEDNS=false;
     bool paddingAllowed = false;
-    bool padResponse = false;
+    bool addPaddingToResponse = false;
 #ifdef NOD_ENABLED
     bool hasUDR = false;
 #endif /* NOD_ENABLED */
@@ -1502,7 +1503,7 @@ static void startDoResolve(void *p)
         ednsExtRCode = ERCode::BADVERS;
       }
 
-      if(!dc->d_tcp) {
+      if (!dc->d_tcp) {
         /* rfc6891 6.2.3:
            "Values lower than 512 MUST be treated as equal to 512."
         */
@@ -1511,10 +1512,10 @@ static void startDoResolve(void *p)
       ednsOpts = edo.d_options;
       maxanswersize -= 11; // EDNS header size
 
-      if (g_paddingFrom.match(dc->d_remote)) {
+      if (!dc->d_responsePaddingDisabled && g_paddingFrom.match(dc->d_remote)) {
         paddingAllowed = true;
         if (g_paddingMode == PaddingMode::Always) {
-          padResponse = true;
+          addPaddingToResponse = true;
         }
       }
 
@@ -1529,13 +1530,16 @@ static void startDoResolve(void *p)
             variableAnswer = true; // Can't packetcache an answer with NSID
             maxanswersize -= EDNSOptionCodeSize + EDNSOptionLengthSize + mode_server_id.size();
           }
-        } else if (paddingAllowed && padResponse == false && g_paddingMode == PaddingMode::PaddedQueries && o.first == EDNSOptionCode::PADDING) {
-          padResponse = true;
+        } else if (paddingAllowed && !addPaddingToResponse && g_paddingMode == PaddingMode::PaddedQueries && o.first == EDNSOptionCode::PADDING) {
+          addPaddingToResponse = true;
         }
       }
     }
 
-    if (padResponse && dc->d_tag == 0) {
+    /* the lookup will be done _before_ knowing whether the query actually
+       has a padding option, so we need to use the separate tag even when the
+       query does not have padding, as long as it is from an allowed source */
+    if (paddingAllowed && dc->d_tag == 0) {
       dc->d_tag = g_paddingTag;
     }
 
@@ -1628,7 +1632,7 @@ static void startDoResolve(void *p)
     int res = RCode::NoError;
 
     DNSFilterEngine::Policy appliedPolicy;
-    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse);
+    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse, addPaddingToResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
@@ -1989,7 +1993,7 @@ static void startDoResolve(void *p)
       }
     }
 
-    if (haveEDNS && padResponse) {
+    if (haveEDNS && addPaddingToResponse) {
       size_t currentSize = pw.getSizeWithOpts(returnedEdnsOptions);
       /* we don't use maxawnswersize because it accounts for some EDNS options, but
          not all of them (for example ECS) */
@@ -2622,7 +2626,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra);
+                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra, dc->d_responsePaddingDisabled);
                 dc->d_tag = t_pdl->gettag_ffi(params);
               }
               else if (t_pdl->d_gettag) {
@@ -2644,7 +2648,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 
-      if (dc->d_tag == 0 && g_paddingFrom.match(dc->d_remote)) {
+      if (dc->d_tag == 0 && !dc->d_responsePaddingDisabled && g_paddingFrom.match(dc->d_remote)) {
         dc->d_tag = g_paddingTag;
       }
 
@@ -2880,6 +2884,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   bool followCNAMEs = false;
+  bool responsePaddingDisabled = false;
   try {
     DNSName qname;
     uint16_t qtype=0;
@@ -2914,7 +2919,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra);
+              RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled);
 
               ctag = t_pdl->gettag_ffi(params);
             }
@@ -2944,7 +2949,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
     }
 
-    if (ctag == 0 && g_paddingFrom.match(fromaddr)) {
+    if (ctag == 0 && !responsePaddingDisabled && g_paddingFrom.match(fromaddr)) {
       ctag = g_paddingTag;
     }
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
@@ -2977,16 +2982,18 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       return 0;
     }
   }
-  catch(std::exception& e) {
-    if(g_logCommonErrors)
+  catch (const std::exception& e) {
+    if (g_logCommonErrors) {
       g_log<<Logger::Error<<"Error processing or aging answer packet: "<<e.what()<<endl;
+    }
     return 0;
   }
 
-  if(t_pdl) {
-    if(t_pdl->ipfilter(source, destination, *dh)) {
-      if(!g_quiet)
+  if (t_pdl) {
+    if (t_pdl->ipfilter(source, destination, *dh)) {
+      if (!g_quiet) {
 	g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
+      }
       g_stats.policyDrops++;
       return 0;
     }
@@ -3028,6 +3035,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_routingTag = std::move(routingTag);
   dc->d_extendedErrorCode = extendedErrorCode;
   dc->d_extendedErrorExtra = std::move(extendedErrorExtra);
+  dc->d_responsePaddingDisabled = responsePaddingDisabled;
 
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;
