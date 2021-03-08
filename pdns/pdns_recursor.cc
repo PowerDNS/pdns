@@ -5388,7 +5388,7 @@ int main(int argc, char **argv)
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";
     ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix")="";
     ::arg().set("dont-throttle-netmasks", "Do not throttle nameservers with this IP netmask")="";
-    ::arg().set("non-resolving-ns-max-fails", "Number of failed address resolves of a nameserver to start throttling it, 0 is disabled")="1";
+    ::arg().set("non-resolving-ns-max-fails", "Number of failed address resolves of a nameserver to start throttling it, 0 is disabled")="5";
     ::arg().set("non-resolving-ns-throttle-time", "Number of seconds the throttle a nameserver with a name failing to resolve")="60";
 
     ::arg().set("hint-file", "If set, load root hints from this file")="";

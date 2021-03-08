@@ -1269,7 +1269,7 @@ Number of milliseconds to wait for a remote authoritative server to respond.
 .. versionadded:: 4.5.0
 
 - Integer
-- Default: 1
+- Default: 5
 
 Number of failed address resolves of a nameserver name to start throttling it, 0 is disabled.
 Nameservers matching :ref:`setting-dont-throttle-names` will not be throttled.
