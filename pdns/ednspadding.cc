@@ -25,7 +25,7 @@
 std::string makeEDNSPaddingOptString(size_t bytes)
 {
   std::string ret;
-  ret.resize(bytes, '0');
+  ret.resize(bytes, 0);
   return ret;
 }
 
