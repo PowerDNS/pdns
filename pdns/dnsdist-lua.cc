@@ -196,8 +196,9 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
     if (numberOfStoredSessions < 0) {
       errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", numberOfStoredSessions, context);
       g_outputBuffer = "Invalid value '" +  std::to_string(numberOfStoredSessions) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+    } else {
+      config.d_maxStoredSessions = numberOfStoredSessions;
     }
-    config.d_maxStoredSessions = numberOfStoredSessions;
   }
 
   LuaArray<std::string> files;
