@@ -3,7 +3,7 @@ Changelogs for 4.5.X
 
 .. changelog::
   :version: 4.5.0-alpha3
-  :released: 8th of March 2021
+  :released: 9th of March 2021
 
   .. change::
     :tags: Improvements
