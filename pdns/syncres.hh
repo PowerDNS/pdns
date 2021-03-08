@@ -548,9 +548,17 @@ public:
   {
     return t_sstorage.fails.size();
   }
+  static uint64_t getNonResolvingNSSize()
+  {
+    return t_sstorage.nonresolving.size();
+  }
   static void clearFailedServers()
   {
     t_sstorage.fails.clear();
+  }
+  static void clearNonResolvingNS()
+  {
+    t_sstorage.nonresolving.clear();
   }
   static void pruneFailedServers(time_t cutoff)
   {

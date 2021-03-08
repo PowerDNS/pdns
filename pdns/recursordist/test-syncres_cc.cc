@@ -176,6 +176,8 @@ void initSR(bool debug)
   SyncRes::clearDontQuery();
   SyncRes::setECSScopeZeroAddress(Netmask("127.0.0.1/32"));
   SyncRes::s_qnameminimization = false;
+  SyncRes::s_nonresolvingnsmaxfails = 0;
+  SyncRes::s_nonresolvingnsthrottletime = 0;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
@@ -185,6 +187,8 @@ void initSR(bool debug)
   BOOST_CHECK_EQUAL(SyncRes::getThrottledServersSize(), 0U);
   SyncRes::clearFailedServers();
   BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0U);
+  SyncRes::clearNonResolvingNS();
+  BOOST_CHECK_EQUAL(SyncRes::getNonResolvingNSSize(), 0U);
 
   SyncRes::clearECSStats();
 

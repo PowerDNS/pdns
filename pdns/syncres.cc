@@ -2288,11 +2288,14 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 {
   vector<ComboAddress> result;
 
-
+  size_t nonresolvingfails = 0;
   if (!tns->first.empty()) {
-    if (s_nonresolvingnsmaxfails > 0 && t_sstorage.nonresolving.value(tns->first) >= s_nonresolvingnsmaxfails) {
-      LOG(prefix<<qname<<": NS "<<tns->first<< " in non-resolving map, skipping"<<endl);
-      return result;
+    if (s_nonresolvingnsmaxfails > 0) {
+      nonresolvingfails = t_sstorage.nonresolving.value(tns->first);
+      if (nonresolvingfails >= s_nonresolvingnsmaxfails) {
+        LOG(prefix<<qname<<": NS "<<tns->first<< " in non-resolving map, skipping"<<endl);
+        return result;
+      }
     }
 
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
@@ -2310,10 +2313,16 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
       }
       throw ex;
     }
-    if (s_nonresolvingnsmaxfails > 0 && result.empty() && nretrieveAddressesForNS > oldnretrieveAddressesForNS) {
-      auto dontThrottleNames = g_dontThrottleNames.getLocal();
-      if (!dontThrottleNames->check(tns->first)) {
-        t_sstorage.nonresolving.incr(tns->first, d_now);
+    if (s_nonresolvingnsmaxfails > 0 && nretrieveAddressesForNS > oldnretrieveAddressesForNS) {
+      if (result.empty()) {
+        auto dontThrottleNames = g_dontThrottleNames.getLocal();
+        if (!dontThrottleNames->check(tns->first)) {
+          t_sstorage.nonresolving.incr(tns->first, d_now);
+        }
+      }
+      else if (nonresolvingfails > 0) {
+        // Succeeding resolve, clear memory of recent failures
+        t_sstorage.nonresolving.clear(tns->first);
       }
     }
     pierceDontQuery=false;
