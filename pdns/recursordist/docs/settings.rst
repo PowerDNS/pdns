@@ -614,7 +614,7 @@ Lower this if you experience timeouts.
 
 ``edns-padding-from``
 ---------------------
-.. versionadded:: 4.4.0
+.. versionadded:: 4.5.0
 
 -  Comma separated list of netmasks
 -  Default: (none)
@@ -625,7 +625,7 @@ List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP 
 
 ``edns-padding-mode``
 ---------------------
-.. versionadded:: 4.4.0
+.. versionadded:: 4.5.0
 
 -  One of ``always``, ``padded-queries-only``, String
 -  Default: ``padded-queries-only``
@@ -636,7 +636,7 @@ Whether to add EDNS padding to all responses (``always``) or only to responses f
 
 ``edns-padding-tag``
 --------------------
-.. versionadded:: 4.4.0
+.. versionadded:: 4.5.0
 
 -  Integer
 -  Default: 7830
