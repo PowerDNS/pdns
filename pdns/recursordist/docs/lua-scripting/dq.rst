@@ -11,6 +11,12 @@ The DNSQuestion object contains at least the following fields:
   An object that contains everything about the current query.
   This object has the following attributes:
 
+  .. attribute:: DNSQuestion.addPaddingToResponse
+
+      .. versionadded:: 4.5.0
+
+      Whether the response will get EDNS Padding. See :ref:`setting-edns-padding-from` and :ref:`setting-edns-padding-mode`.
+
   .. attribute:: DNSQuestion.extendedErrorCode
 
       .. versionadded:: 4.5.0
