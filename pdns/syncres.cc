@@ -2299,13 +2299,13 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     }
 
     LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
-    const unsigned int oldnretrieveAddressesForNS = nretrieveAddressesForNS;
+    const unsigned int oldOutQueries = d_outqueries;
     try {
       result = getAddrs(tns->first, depth, beenthere, cacheOnly, nretrieveAddressesForNS);
     }
     // Other exceptions should likely not throttle...
     catch (const ImmediateServFailException& ex) {
-      if (s_nonresolvingnsmaxfails > 0 && nretrieveAddressesForNS > oldnretrieveAddressesForNS) {
+      if (s_nonresolvingnsmaxfails > 0 && d_outqueries > oldOutQueries) {
         auto dontThrottleNames = g_dontThrottleNames.getLocal();
         if (!dontThrottleNames->check(tns->first)) {
           t_sstorage.nonresolving.incr(tns->first, d_now);
@@ -2313,7 +2313,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
       }
       throw ex;
     }
-    if (s_nonresolvingnsmaxfails > 0 && nretrieveAddressesForNS > oldnretrieveAddressesForNS) {
+    if (s_nonresolvingnsmaxfails > 0 && d_outqueries > oldOutQueries) {
       if (result.empty()) {
         auto dontThrottleNames = g_dontThrottleNames.getLocal();
         if (!dontThrottleNames->check(tns->first)) {
