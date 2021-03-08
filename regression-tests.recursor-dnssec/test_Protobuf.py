@@ -267,6 +267,9 @@ class TestRecursorProtobuf(RecursorTest):
         for param in protobufServersParameters:
             while not param.queue.empty():
                 param.queue.get(False)
+        # wait long enough to be sure that the housekeeping has
+        # prime the root NS
+        time.sleep(1)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -370,9 +373,11 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     def testA(self):
         name = 'host1.secure.example.'
         expected = list()
+
+        # the root DNSKEY has been learned with priming the root NS already
+        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
         for qname, qtype, proto, responseSize in [
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
-                ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
                 ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
@@ -387,7 +392,6 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
                 qname, qtype, query, resp, proto, responseSize
             ))
 
-        # expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
@@ -426,9 +430,10 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
     def testA(self):
         name = 'host1.secure.example.'
         expected = list()
+        # the root DNSKEY has been learned with priming the root NS already
+        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
         for qname, qtype, proto, size in [
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
-                ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
                 ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
