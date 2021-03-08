@@ -619,7 +619,7 @@ Lower this if you experience timeouts.
 -  Comma separated list of netmasks
 -  Default: (none)
 
-List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses. See also `edns-padding-mode`_.
+List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses to queries containing the EDNS padding option, provided that `edns-padding-mode`_ is set.
 
 .. _setting-edns-padding-mode:
 
@@ -630,7 +630,7 @@ List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP 
 -  One of ``always``, ``padded-queries-only``, String
 -  Default: ``padded-queries-only``
 
-Whether to add EDNS padding to all responses (``always``) or only to the ones for padded queries (``padded-queries-only``, the default) coming from `edns-padding-from`_ sources.
+Whether to add EDNS padding to all responses (``always``) or only to responses for queries containing the EDNS padding option and coming from `edns-padding-from`_ sources (``padded-queries-only``, the default).
 
 .. _setting-edns-padding-tag:
 

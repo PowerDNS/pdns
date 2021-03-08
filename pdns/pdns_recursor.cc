@@ -2003,7 +2003,7 @@ static void startDoResolve(void *p)
            RFC 7830) and SHOULD pad the corresponding response to a
            multiple of 468 octets (see below).
         */
-        static const size_t blockSize = 468;
+        const size_t blockSize = 468;
         size_t modulo = (currentSize + 4) % blockSize;
         size_t padSize = 0;
         if (modulo > 0) {
@@ -5594,8 +5594,8 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198")="100000";
 
-    ::arg().set("edns-padding-from", "Sources (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses")="";
-    ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to the ones to padded queries ('padded-queries-only')")="padded-queries-only";
+    ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses to queries containing the EDNS padding option, provided that 'edns-padding-mode' is set")="";
+    ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option and coming from 'edns-padding-from' sources ('padded-queries-only', the default)")="padded-queries-only";
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to non-whitelisted clients.")="7830";
 
     ::arg().setCmd("help","Provide a helpful message");
