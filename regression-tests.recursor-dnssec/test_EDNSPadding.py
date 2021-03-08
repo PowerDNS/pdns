@@ -136,6 +136,36 @@ edns-padding-mode=always
 edns-padding-tag=7830
 packetcache-ttl=60
     """
+    _lua_dns_script_file = """
+    function preresolve(dq)
+      if dq.qname == newDN("host1.secure.example.") then
+        -- check that EDNS Padding was enabled (default)
+        if dq.addPaddingToResponse ~= true then
+          -- and stop the process otherwise
+          return true
+        end
+        -- disable EDNS Padding
+        dq.addPaddingToResponse = false
+      end
+      return false
+    end
+
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+      typedef struct pdns_ffi_param pdns_ffi_param_t;
+
+      const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref);
+      void pdns_ffi_param_set_padding_disabled(pdns_ffi_param_t* ref, bool disabled);
+    ]]
+
+    function gettag_ffi(ref)
+      local qname = ffi.string(ffi.C.pdns_ffi_param_get_qname(ref))
+      if qname == 'host1.sub.secure.example' then
+        ffi.C.pdns_ffi_param_set_padding_disabled(ref, true)
+      end
+    end
+    """
 
     def testQueryWithPadding(self):
         name = 'secure.example.'
@@ -145,6 +175,27 @@ packetcache-ttl=60
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
+        self.assertRRsetInAnswer(res, expected)
+
+    def testQueryWithPaddingButDisabledViaLua(self):
+        name = 'host1.secure.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.checkNoPadding(res)
+        self.assertRRsetInAnswer(res, expected)
+
+    def testQueryWithPaddingButDisabledViaGettagFFI(self):
+        name = 'host1.sub.secure.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.11')
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, 'A', want_dnssec=True, options=[po])
+        query.flags |= dns.flags.CD
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+        self.checkNoPadding(res)
         self.assertRRsetInAnswer(res, expected)
 
     def testQueryWithoutPadding(self):

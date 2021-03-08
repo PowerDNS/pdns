@@ -60,7 +60,6 @@ log-common-errors=yes
         local extra = 'Extra text from Lua FFI!'
         ffi.C.pdns_ffi_param_set_extended_error_extra(obj, #extra, extra)
       end
-      return {}
     end
     """ % ('A'*427)
 
