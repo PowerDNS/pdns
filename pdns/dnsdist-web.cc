@@ -478,8 +478,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "tcpcurrentconnections "  << "gauge"                                                             << "\n";
   output << "# HELP " << statesbase << "tcpnewconnections "      << "The number of established TCP connections in total"                << "\n";
   output << "# TYPE " << statesbase << "tcpnewconnections "      << "counter"                                                           << "\n";
-  output << "# HELP " << statesbase << "tcpreusedsconnections "  << "The number of times a TCP connection has been reused"              << "\n";
-  output << "# TYPE " << statesbase << "tcpreusedsconnections "  << "counter"                                                           << "\n";
+  output << "# HELP " << statesbase << "tcpreusedconnections "   << "The number of times a TCP connection has been reused"              << "\n";
+  output << "# TYPE " << statesbase << "tcpreusedconnections "   << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "tcpavgqueriesperconn "   << "The average number of queries per TCP connection"                  << "\n";
   output << "# TYPE " << statesbase << "tcpavgqueriesperconn "   << "gauge"                                                             << "\n";
   output << "# HELP " << statesbase << "tcpavgconnduration "     << "The average duration of a TCP connection (ms)"                     << "\n";
