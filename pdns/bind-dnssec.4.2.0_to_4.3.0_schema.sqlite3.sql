@@ -1,3 +1,4 @@
+PRAGMA busy_timeout = 60000;
 BEGIN TRANSACTION;
   CREATE TABLE cryptokeys_temp (
     id                  INTEGER PRIMARY KEY,
