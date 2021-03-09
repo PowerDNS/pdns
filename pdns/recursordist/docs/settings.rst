@@ -619,7 +619,7 @@ Lower this if you experience timeouts.
 -  Comma separated list of netmasks
 -  Default: (none)
 
-List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ is set.
+List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
 
 .. _setting-edns-padding-mode:
 
@@ -2177,4 +2177,3 @@ List of names whose DNSSEC validation metrics will be counted in a separate set 
 with ``x-dnssec-result-``.
 The names are suffix-matched.
 This can be used to not count known failing (test) name validations in the ordinary DNSSEC metrics.
-
