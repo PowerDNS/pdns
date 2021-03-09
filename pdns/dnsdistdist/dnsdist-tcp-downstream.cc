@@ -307,6 +307,7 @@ bool TCPConnectionToBackend::reconnect()
   do {
     vinfolog("TCP connecting to downstream %s (%d)", d_ds->getNameWithAddr(), d_downstreamFailures);
     DEBUGLOG("Opening TCP connection to backend "<<d_ds->getNameWithAddr());
+    ++d_ds->tcpNewConnections;
     try {
       auto socket = std::make_unique<Socket>(d_ds->remote.sin4.sin_family, SOCK_STREAM, 0);
       DEBUGLOG("result of socket() is "<<socket->getHandle());

@@ -67,6 +67,7 @@ uint16_t g_downstreamTCPCleanupInterval{60};
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 bool g_useTCPSinglePipe{false};
+std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 
 class DownstreamConnectionsManager
 {
@@ -83,6 +84,7 @@ public:
         result = std::move(list.front());
         list.pop_front();
         result->setReused();
+        ++ds->tcpReusedConnections;
         return result;
       }
     }
@@ -1100,25 +1102,39 @@ static void tcpClientThread(int pipefd)
       DownstreamConnectionsManager::cleanupClosedTCPConnections();
       lastTCPCleanup = now.tv_sec;
 
-#if 0
-      /* just to keep things clean in the output, debug only */
-      static std::mutex s_lock;
-      std::lock_guard<decltype(s_lock)> lck(s_lock);
-      data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
-      {
-        struct timeval lnow;
-        gettimeofday(&lnow, nullptr);
-        cerr<<"- "<<isRead<<" "<<fd<<": "<<" "<<(ttd.tv_sec-lnow.tv_sec)<<endl;
-        if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
-          auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
-          cerr<<" - "<<state->toString()<<endl;
+      if (g_tcpStatesDumpRequested > 0) {
+        /* just to keep things clean in the output, debug only */
+        static std::mutex s_lock;
+        std::lock_guard<decltype(s_lock)> lck(s_lock);
+        if (g_tcpStatesDumpRequested > 0) {
+          /* no race here, we took the lock so it can only be increased in the meantime */
+          --g_tcpStatesDumpRequested;
+          errlog("Dumping the TCP states, as requested:");
+          data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
+          {
+            struct timeval lnow;
+            gettimeofday(&lnow, nullptr);
+            if (ttd.tv_sec > 0) {
+            errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec-lnow.tv_sec));
+            }
+            else {
+              errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
+            }
+
+            if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+              auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
+              errlog(" - %s", state->toString());
+            }
+            else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
+              auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
+              errlog(" - %s", conn->toString());
+            }
+            else if (param.type() == typeid(TCPClientThreadData*)) {
+              errlog(" - Worker thread pipe");
+            }
+          });
         }
-        else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
-          auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
-          cerr<<" - "<<conn->toString()<<endl;
-        }
-      });
-#endif
+      }
     }
 
     if (now.tv_sec > lastTimeoutScan) {
