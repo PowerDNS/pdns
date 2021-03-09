@@ -26,11 +26,26 @@ The next release will start deprecating them.
 Users are advised to start using the new names to avoid future
 trouble.
 
+Special Domains
+^^^^^^^^^^^^^^^
+Queries for all names in the ``.localhost`` domain will answer in accordance with :rfc:`6761` section 6.3 point 4.
+That means that they will be answered with ``127.0.0.1``, ``::1`` or a negative response.
+
+:program:`rec_control` command writing to a file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For the commands that write to a file, the file to be dumped to is now opened by the :program:`rec_control` command itself using the credentials and the current working directory of the user running :program:`rec_control`.
+A single minus *-* can be used as a filename to write the data to the standard output stream.
+Additionally, a single minus *-* can be used as a filename to write the data to the standard output stream.
+Previously the file was opened by the recursor, possibly in its chroot environment.
+
 New Settings
 ^^^^^^^^^^^^
 - The :ref:`setting-extended-resolution-errors` has been added, enabling adding EDNS Extended Errors to responses.
 - The :ref:`setting-refresh-on-ttl-perc`, enabling an automatic cache-refresh mechanism.
 - The :ref:`setting-ecs-ipv4-never-cache` and :ref:`setting-ecs-ipv6-never-cache` settings have been added, allowing an overrule of the existing decision whether to cache EDNS responses carrying subnet information.
+- The :ref:`setting-aggressive-nsec-cache-size` setting has been added, enabling the functionality described in :rfc:`8198`.
+- The :ref:`setting-x-dnssec-names` setting has been added, allowing DNSSEC metrics to be recorded in a different set of counter for given domains.
+- The :ref:`setting-non-resolving-ns-max-fails` and :ref:`setting-non-resolving-ns-throttle-time` settings have been added, allowing the control of the cache of nameservers failing to resolve.
 
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
