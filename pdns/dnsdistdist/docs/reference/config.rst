@@ -290,6 +290,14 @@ Control Socket, Console and Webserver
 Webserver configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+.. function:: hashPassword(password)
+
+  .. versionadded:: 1.7.0
+
+  Hash the supplied password using a random salt, and returns a string that can be used with :func:`setWebserverConfig`.
+
+  :param string - password: The password to hash
+
 .. function:: webserver(listen_address [, password[, apikey[, custom_headers[, acl]]]])
 
   .. versionchanged:: 1.5.0
@@ -325,13 +333,17 @@ Webserver configuration
   .. versionchanged:: 1.6.0
     ``statsRequireAuthentication``, ``maxConcurrentConnections`` optional parameters added.
 
+  .. versionchanged:: 1.7.0
+    The ``password``, optional parameter has been deprecated, ``hashedPassword`` added instead.
+
   Setup webserver configuration. See :func:`webserver`.
 
   :param table options: A table with key: value pairs with webserver options.
 
   Options:
 
-  * ``password=newPassword``: string - Changes the API password
+  * ``password=newPassword``: string - Changes the password used to access the internal webserver. Deprecated, please use ``hashedPassword`` instead
+  * ``hashedPassword=newPassword``: string - Set the password used to access the internal webserver. The new password needs to be hashed and salted via the :func:`hashPassword` command
   * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it)
   * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".

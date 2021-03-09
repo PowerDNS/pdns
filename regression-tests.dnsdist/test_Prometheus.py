@@ -11,12 +11,13 @@ class TestPrometheus(DNSDistTest):
     _webTimeout = 2.0
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$argon2id$v=19$m=65536,t=2,p=1$mTJBHtI/KyO8oVDy8wyizg$8NK4ap5ohC7ylY8Dua61iBqhQw0cbcmXUaOpotC2hC0'
     _webServerAPIKey = 'apisecret'
-    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({password="%s", apiKey="%s"})
+    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
     """
 
     def checkPrometheusContentBasic(self, content):

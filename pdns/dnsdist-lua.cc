@@ -944,7 +944,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         SListen(sock, 5);
         auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
           if (password) {
-            setWebserverPassword(*password);
+            warnlog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
+            auto hashed = hashPassword(*password);
+            setWebserverPassword(std::move(hashed));
           }
 
           if (apiKey) {
@@ -985,9 +987,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (vars->count("password")) {
-        const std::string password = boost::get<std::string>(vars->at("password"));
+        warnlog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is deprecated, please generate a hashed one using 'hashPassword()' and pass it via 'hashedPassword' instead.");
 
-        setWebserverPassword(password);
+        const std::string password = boost::get<std::string>(vars->at("password"));
+        auto hashed = hashPassword(password);
+        setWebserverPassword(std::move(hashed));
+      }
+
+      if (vars->count("hashedPassword")) {
+        std::string hashedPassword = boost::get<std::string>(vars->at("hashedPassword"));
+        sodium_mlock(hashedPassword.data(), hashedPassword.size());
+
+        setWebserverPassword(std::move(hashedPassword));
       }
 
       if (vars->count("apiKey")) {
@@ -1016,6 +1027,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         setWebserverMaxConcurrentConnections(std::stoi(boost::get<std::string>(vars->at("maxConcurrentConnections"))));
       }
     });
+
+  luaCtx.writeFunction("hashPassword", [](const std::string& password) {
+    return hashPassword(password);
+  });
 
   luaCtx.writeFunction("controlSocket", [client,configCheck](const std::string& str) {
       setLuaSideEffect();

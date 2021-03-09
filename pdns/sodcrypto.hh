@@ -76,3 +76,6 @@ std::string sodEncryptSym(const std::string& msg, const std::string& key, Sodium
 std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce&);
 std::string newKey();
 bool sodIsValidKey(const std::string& key);
+
+std::string hashPassword(const std::string& password);
+bool verifyPassword(const std::string& hash, const std::string& password);
