@@ -123,6 +123,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           conn->d_responseBuffer.reserve(conn->d_responseSize + /* we will need to prepend the size later */ 2);
           conn->d_responseBuffer.resize(conn->d_responseSize);
           conn->d_currentPos = 0;
+          conn->d_lastDataReceivedTime = now;
         }
         else if (conn->d_state == State::waitingForResponseFromBackend && conn->d_currentPos > 0) {
           conn->d_state = State::readingResponseSizeFromBackend;
@@ -135,6 +136,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
         if (iostate == IOState::Done) {
           DEBUGLOG("got response from backend");
           try {
+            conn->d_lastDataReceivedTime = now;
             iostate = conn->handleResponse(conn, now);
           }
           catch (const std::exception& e) {
