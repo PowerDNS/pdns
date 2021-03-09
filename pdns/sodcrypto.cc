@@ -352,3 +352,32 @@ std::string Base64Encode (const std::string& vby)
     };
   return retval;
 };
+
+std::string hashPassword(const std::string& password)
+{
+  std::string result;
+  result.resize(crypto_pwhash_STRBYTES);
+  sodium_mlock(result.data(), result.size());
+
+  int res = crypto_pwhash_str(const_cast<char*>(result.c_str()),
+                              password.c_str(),
+                              password.size(),
+                              crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                              crypto_pwhash_MEMLIMIT_INTERACTIVE);
+  if (res != 0) {
+    throw std::runtime_error("Error while hashing the supplied password");
+  }
+
+  return result;
+}
+
+bool verifyPassword(const std::string& hash, const std::string& password)
+{
+  if (hash.size() > crypto_pwhash_STRBYTES) {
+    throw std::runtime_error("Invalid password hash supplied for verification, size is " + std::to_string(hash.size()) + ", expected at most " + std::to_string(crypto_pwhash_STRBYTES));
+  }
+
+  return crypto_pwhash_str_verify(hash.c_str(),
+                                  password.c_str(),
+                                  password.size()) == 0;
+}

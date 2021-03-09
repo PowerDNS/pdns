@@ -40,6 +40,7 @@
 #include "gettime.hh"
 #include "htmlfiles.h"
 #include "threadname.hh"
+#include "sodcrypto.hh"
 #include "sstuff.hh"
 
 struct WebserverConfig
@@ -227,7 +228,7 @@ static bool checkWebPassword(const YaHTTP::Request& req, const string &expected_
     stringtok(cparts, plain, ":");
 
     if (cparts.size() == 2) {
-      return cparts[1] == expected_password;
+      return verifyPassword(g_webserverConfig.password, cparts.at(1));
     }
   }
 
@@ -1405,11 +1406,11 @@ void setWebserverAPIKey(const boost::optional<std::string> apiKey)
   }
 }
 
-void setWebserverPassword(const std::string& password)
+void setWebserverPassword(std::string&& password)
 {
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
 
-  g_webserverConfig.password = password;
+  g_webserverConfig.password = std::move(password);
 }
 
 void setWebserverACL(const std::string& acl)
