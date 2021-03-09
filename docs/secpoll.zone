@@ -249,8 +249,8 @@ recursor-4.4.0-rc2.security-status                      60 IN TXT "3 Unsupported
 recursor-4.4.0.security-status                          60 IN TXT "1 OK"
 recursor-4.4.1.security-status                          60 IN TXT "1 OK"
 recursor-4.4.2.security-status                          60 IN TXT "1 OK"
-recursor-4.5.0-alpha1.security-status                   60 IN TXT "1 "Unsupported pre-release"
-recursor-4.5.0-alpha2.security-status                   60 IN TXT "1 "Unsupported pre-release"
+recursor-4.5.0-alpha1.security-status                   60 IN TXT "3 Unsupported pre-release"
+recursor-4.5.0-alpha2.security-status                   60 IN TXT "3 Unsupported pre-release"
 recursor-4.5.0-alpha3.security-status                   60 IN TXT "1 OK"
 
 ; Recursor Debian
