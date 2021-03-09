@@ -305,24 +305,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        [client, configCheck](boost::variant<string, newserver_t> pvars, boost::optional<int> qps) {
                          setLuaSideEffect();
 
-                         newserver_t vars;
+                         boost::optional<newserver_t> vars = newserver_t();
                          DownstreamState::Config config;
 
                          std::string serverAddressStr;
                          if (auto addrStr = boost::get<string>(&pvars)) {
                            serverAddressStr = *addrStr;
                            if (qps) {
-                             vars["qps"] = std::to_string(*qps);
+                             (*vars)["qps"] = std::to_string(*qps);
                            }
                          }
                          else {
                            vars = boost::get<newserver_t>(pvars);
-                           serverAddressStr = boost::get<string>(vars["address"]);
+                           getOptionalValue<std::string>(vars, "address", serverAddressStr);
                          }
 
-                         // FIXME: Check vars for unknown keys, needs refactoring to move creation at the end */
-
-                         if (vars.count("source")) {
+                         std::string source;
+                         if (getOptionalValue<std::string>(vars, "source", source) > 0) {
                            /* handle source in the following forms:
                               - v4 address ("192.0.2.1")
                               - v6 address ("2001:DB8::1")
@@ -330,7 +329,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                               - v4 address and interface name ("192.0.2.1@eth0")
                               - v6 address and interface name ("2001:DB8::1@eth0")
                            */
-                           const string source = boost::get<string>(vars["source"]);
                            bool parsed = false;
                            std::string::size_type pos = source.find("@");
                            if (pos == std::string::npos) {
@@ -368,25 +366,26 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (vars.count("sockets")) {
-                           config.d_numberOfSockets = std::stoul(boost::get<string>(vars["sockets"]));
+                          std::string valueStr;
+                         if (getOptionalValue<std::string>(vars, "sockets", valueStr) > 0) {
+                           config.d_numberOfSockets = std::stoul(valueStr);
                            if (config.d_numberOfSockets == 0) {
-                             warnlog("Dismissing invalid number of sockets '%s', using 1 instead", boost::get<string>(vars["sockets"]));
+                             warnlog("Dismissing invalid number of sockets '%s', using 1 instead", valueStr);
                              config.d_numberOfSockets = 1;
                            }
                          }
 
-                         if (vars.count("qps")) {
-                           config.d_qpsLimit = std::stoi(boost::get<string>(vars["qps"]));
+                         if (getOptionalValue<std::string>(vars, "qps", valueStr) > 0) {
+                           config.d_qpsLimit = std::stoi(valueStr);
                          }
 
-                         if (vars.count("order")) {
-                           config.order = std::stoi(boost::get<string>(vars["order"]));
+                         if (getOptionalValue<std::string>(vars, "order", valueStr) > 0) {
+                           config.order = std::stoi(valueStr);
                          }
 
-                         if (vars.count("weight")) {
+                         if (getOptionalValue<std::string>(vars, "weight", valueStr) > 0) {
                            try {
-                             config.d_weight = std::stoi(boost::get<string>(vars["weight"]));
+                             config.d_weight = std::stoi(valueStr);
 
                              if (config.d_weight < 1) {
                                errlog("Error creating new server: downstream weight value must be greater than 0.");
@@ -400,55 +399,55 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (vars.count("retries")) {
-                           config.d_retries = std::stoi(boost::get<string>(vars["retries"]));
+                         if (getOptionalValue<std::string>(vars, "retries", valueStr) > 0) {
+                           config.d_retries = std::stoi(valueStr);
                          }
 
-                         if (vars.count("checkInterval")) {
-                           config.checkInterval = static_cast<unsigned int>(std::stoul(boost::get<string>(vars["checkInterval"])));
+                         if (getOptionalValue<std::string>(vars, "checkInterval", valueStr) > 0) {
+                           config.checkInterval = static_cast<unsigned int>(std::stoul(valueStr));
                          }
 
-                         if (vars.count("tcpConnectTimeout")) {
-                           config.tcpConnectTimeout = std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
+                         if (getOptionalValue<std::string>(vars, "tcpConnectTimeout", valueStr) > 0) {
+                           config.tcpConnectTimeout = std::stoi(boost::get<string>(valueStr));
                          }
 
-                         if (vars.count("tcpSendTimeout")) {
-                           config.tcpSendTimeout = std::stoi(boost::get<string>(vars["tcpSendTimeout"]));
+                         if (getOptionalValue<std::string>(vars, "tcpSendTimeout", valueStr) > 0) {
+                           config.tcpSendTimeout = std::stoi(valueStr);
                          }
 
-                         if (vars.count("tcpRecvTimeout")) {
-                           config.tcpRecvTimeout = std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
+                         if (getOptionalValue<std::string>(vars, "tcpRecvTimeout", valueStr) > 0) {
+                           config.tcpRecvTimeout = std::stoi(valueStr);
                          }
 
-                         if (vars.count("tcpFastOpen")) {
-                           bool fastOpen = boost::get<bool>(vars["tcpFastOpen"]);
+                         bool fastOpen{false};
+                         if (getOptionalValue<bool>(vars, "tcpFastOpen", fastOpen) > 0) {
                            if (fastOpen) {
 #ifdef MSG_FASTOPEN
                              config.tcpFastOpen = true;
 #else
-          warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", boost::get<string>(vars["address"]));
+          warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", serverAddressStr);
 #endif
                            }
                          }
 
-                         if (vars.count("maxInFlight")) {
-                           config.d_maxInFlightQueriesPerConn = std::stoi(boost::get<string>(vars["maxInFlight"]));
+                         if (getOptionalValue<std::string>(vars, "maxInFlight", valueStr) > 0) {
+                           config.d_maxInFlightQueriesPerConn = std::stoi(valueStr);
                          }
 
-                         if (vars.count("maxConcurrentTCPConnections")) {
-                           config.d_tcpConcurrentConnectionsLimit = std::stoi(boost::get<string>(vars.at("maxConcurrentTCPConnections")));
+                         if (getOptionalValue<std::string>(vars, "maxConcurrentTCPConnections", valueStr) > 0) {
+                           config.d_tcpConcurrentConnectionsLimit = std::stoi(valueStr);
                          }
 
-                         if (vars.count("name")) {
-                           config.name = boost::get<string>(vars["name"]);
+                         if (getOptionalValue<std::string>(vars, "name", valueStr) > 0) {
+                           config.name = valueStr;
                          }
 
-                         if (vars.count("id")) {
-                           config.id = boost::uuids::string_generator()(boost::get<string>(vars["id"]));
+                         if (getOptionalValue<std::string>(vars, "id", valueStr) > 0) {
+                           config.id = boost::uuids::string_generator()(valueStr);
                          }
 
-                         if (vars.count("healthCheckMode")) {
-                           const auto& mode = boost::get<string>(vars.at("healthCheckMode"));
+                         if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
+                           const auto& mode = valueStr;
                            if (pdns_iequals(mode, "auto")) {
                              config.availability = DownstreamState::Availability::Auto;
                            }
@@ -466,74 +465,61 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (vars.count("checkName")) {
-                           config.checkName = DNSName(boost::get<string>(vars["checkName"]));
+                         if (getOptionalValue<std::string>(vars, "checkName", valueStr) > 0) {
+                           config.checkName = DNSName(valueStr);
                          }
 
-                         if (vars.count("checkType")) {
-                           config.checkType = boost::get<string>(vars["checkType"]);
+                         getOptionalValue<std::string>(vars, "checkType", config.checkType);
+
+                         if (getOptionalValue<std::string>(vars, "checkClass", valueStr) > 0) {
+                           config.checkClass = std::stoi(valueStr);
                          }
 
-                         if (vars.count("checkClass")) {
-                           config.checkClass = std::stoi(boost::get<string>(vars["checkClass"]));
+                         getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
+
+                         if (getOptionalValue<std::string>(vars, "checkTimeout", valueStr) > 0) {
+                           config.checkTimeout = std::stoi(valueStr);
                          }
 
-                         if (vars.count("checkFunction")) {
-                           config.checkFunction = boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
-                         }
+                         getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
+                         getOptionalValue<bool>(vars, "setCD", config.setCD);
+                         getOptionalValue<bool>(vars, "mustResolve", config.mustResolve);
 
-                         if (vars.count("checkTimeout")) {
-                           config.checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
-                         }
-
-                         if (vars.count("checkTCP")) {
-                           config.d_tcpCheck = boost::get<bool>(vars.at("checkTCP"));
-                         }
-
-                         if (vars.count("setCD")) {
-                           config.setCD = boost::get<bool>(vars["setCD"]);
-                         }
-
-                         if (vars.count("mustResolve")) {
-                           config.mustResolve = boost::get<bool>(vars["mustResolve"]);
-                         }
-
-                         if (vars.count("lazyHealthCheckSampleSize")) {
-                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckSampleSize")));
+                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckSampleSize", valueStr) > 0) {
+                           const auto& value = std::stoi(valueStr);
                            checkParameterBound("lazyHealthCheckSampleSize", value);
                            config.d_lazyHealthCheckSampleSize = value;
                          }
 
-                         if (vars.count("lazyHealthCheckMinSampleCount")) {
-                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMinSampleCount")));
+                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMinSampleCount", valueStr) > 0) {
+                           const auto& value = std::stoi(valueStr);
                            checkParameterBound("lazyHealthCheckMinSampleCount", value);
                            config.d_lazyHealthCheckMinSampleCount = value;
                          }
 
-                         if (vars.count("lazyHealthCheckThreshold")) {
-                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckThreshold")));
+                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckThreshold", valueStr) > 0) {
+                           const auto& value = std::stoi(valueStr);
                            checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
                            config.d_lazyHealthCheckThreshold = value;
                          }
 
-                         if (vars.count("lazyHealthCheckFailedInterval")) {
-                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckFailedInterval")));
+                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckFailedInterval", valueStr) > 0) {
+                           const auto& value = std::stoi(valueStr);
                            checkParameterBound("lazyHealthCheckFailedInterval", value);
                            config.d_lazyHealthCheckFailedInterval = value;
                          }
 
-                         if (vars.count("lazyHealthCheckUseExponentialBackOff")) {
-                           config.d_lazyHealthCheckUseExponentialBackOff = boost::get<bool>(vars.at("lazyHealthCheckUseExponentialBackOff"));
-                         }
+                         getOptionalValue<bool>(vars, "lazyHealthCheckUseExponentialBackOff", config.d_lazyHealthCheckUseExponentialBackOff);
 
-                         if (vars.count("lazyHealthCheckMaxBackOff")) {
-                           const auto& value = std::stoi(boost::get<string>(vars.at("lazyHealthCheckMaxBackOff")));
+
+                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMaxBackOff", valueStr) > 0) {
+                           const auto& value = std::stoi(valueStr);
                            checkParameterBound("lazyHealthCheckMaxBackOff", value);
                            config.d_lazyHealthCheckMaxBackOff = value;
                          }
 
-                         if (vars.count("lazyHealthCheckMode")) {
-                           const auto& mode = boost::get<string>(vars.at("lazyHealthCheckMode"));
+                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMode", valueStr) > 0) {
+                           const auto& mode = valueStr;
                            if (pdns_iequals(mode, "TimeoutOnly")) {
                              config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
                            }
@@ -545,77 +531,60 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         if (vars.count("lazyHealthCheckWhenUpgraded")) {
-                           config.d_upgradeToLazyHealthChecks = boost::get<bool>(vars.at("lazyHealthCheckWhenUpgraded"));
+                         getOptionalValue<bool>(vars, "lazyHealthCheckWhenUpgraded", config.d_upgradeToLazyHealthChecks);
+
+                         getOptionalValue<bool>(vars, "useClientSubnet", config.useECS);
+                         getOptionalValue<bool>(vars, "useProxyProtocol", config.useProxyProtocol);
+                         getOptionalValue<bool>(vars, "disableZeroScoping", config.disableZeroScope);
+                         getOptionalValue<bool>(vars, "ipBindAddrNoPort", config.ipBindAddrNoPort);
+
+                         if (getOptionalValue<std::string>(vars, "addXPF", valueStr) > 0) {
+                           try {
+                             config.xpfRRCode = std::stoi(valueStr);
+                           } catch (std::exception& e) {
+                             warnlog("addXPF must be integer, not '%s' - ignoring", valueStr);
+                           }
                          }
 
-                         if (vars.count("useClientSubnet")) {
-                           config.useECS = boost::get<bool>(vars["useClientSubnet"]);
+                         if (getOptionalValue<std::string>(vars, "maxCheckFailures", valueStr) > 0) {
+                           try {
+                             config.maxCheckFailures = std::stoi(valueStr);
+                           } catch (std::exception& e) {
+                             warnlog("maxCheckFailures must be integer, not '%s' - ignoring", valueStr);
+                           }
                          }
 
-                         if (vars.count("useProxyProtocol")) {
-                           config.useProxyProtocol = boost::get<bool>(vars["useProxyProtocol"]);
+                         if (getOptionalValue<std::string>(vars, "rise", valueStr) > 0) {
+                           try {
+                             config.minRiseSuccesses = std::stoi(valueStr);
+                           } catch (std::exception& e) {
+                             warnlog("rise must be integer, not '%s' - ignoring", valueStr);
+                           }
                          }
 
-                         if (vars.count("disableZeroScope")) {
-                           config.disableZeroScope = boost::get<bool>(vars["disableZeroScope"]);
-                         }
+                         getOptionalValue<bool>(vars, "reconnectOnUp", config.reconnectOnUp);
 
-                         if (vars.count("ipBindAddrNoPort")) {
-                           config.ipBindAddrNoPort = boost::get<bool>(vars["ipBindAddrNoPort"]);
-                         }
-
-                         if (vars.count("addXPF")) {
-                           config.xpfRRCode = std::stoi(boost::get<string>(vars["addXPF"]));
-                         }
-
-                         if (vars.count("maxCheckFailures")) {
-                           config.maxCheckFailures = std::stoi(boost::get<string>(vars["maxCheckFailures"]));
-                         }
-
-                         if (vars.count("rise")) {
-                           config.minRiseSuccesses = std::stoi(boost::get<string>(vars["rise"]));
-                         }
-
-                         if (vars.count("reconnectOnUp")) {
-                           config.reconnectOnUp = boost::get<bool>(vars["reconnectOnUp"]);
-                         }
-
-                         if (vars.count("cpus")) {
-                           for (const auto& cpu : boost::get<LuaArray<std::string>>(vars["cpus"])) {
+                         LuaArray<string> cpuMap;
+                         if (getOptionalValue<decltype(cpuMap)>(vars, "cpus", cpuMap) > 0) {
+                           for (const auto& cpu : cpuMap) {
                              config.d_cpus.insert(std::stoi(cpu.second));
                            }
                          }
 
-                         if (vars.count("tcpOnly")) {
-                           config.d_tcpOnly = boost::get<bool>(vars.at("tcpOnly"));
-                         }
+                         getOptionalValue<bool>(vars, "tcpOnly", config.d_tcpOnly);
 
                          std::shared_ptr<TLSCtx> tlsCtx;
-                         if (vars.count("ciphers")) {
-                           config.d_tlsParams.d_ciphers = boost::get<string>(vars.at("ciphers"));
-                         }
-                         if (vars.count("ciphers13")) {
-                           config.d_tlsParams.d_ciphers13 = boost::get<string>(vars.at("ciphers13"));
-                         }
-                         if (vars.count("caStore")) {
-                           config.d_tlsParams.d_caStore = boost::get<string>(vars.at("caStore"));
-                         }
-                         if (vars.count("validateCertificates")) {
-                           config.d_tlsParams.d_validateCertificates = boost::get<bool>(vars.at("validateCertificates"));
-                         }
-                         if (vars.count("releaseBuffers")) {
-                           config.d_tlsParams.d_releaseBuffers = boost::get<bool>(vars.at("releaseBuffers"));
-                         }
-                         if (vars.count("enableRenegotiation")) {
-                           config.d_tlsParams.d_enableRenegotiation = boost::get<bool>(vars.at("enableRenegotiation"));
-                         }
-                         if (vars.count("subjectName")) {
-                           config.d_tlsSubjectName = boost::get<string>(vars.at("subjectName"));
-                         }
-                         else if (vars.count("subjectAddr")) {
+                         getOptionalValue<std::string>(vars, "ciphers", config.d_tlsParams.d_ciphers);
+                         getOptionalValue<std::string>(vars, "ciphers13", config.d_tlsParams.d_ciphers13);
+                         getOptionalValue<std::string>(vars, "caStore", config.d_tlsParams.d_caStore);
+                         getOptionalValue<bool>(vars, "validateCertificates", config.d_tlsParams.d_validateCertificates);
+                         getOptionalValue<bool>(vars, "releaseBuffers", config.d_tlsParams.d_releaseBuffers);
+                         getOptionalValue<bool>(vars, "enableRenegotiation", config.d_tlsParams.d_enableRenegotiation);
+                         getOptionalValue<std::string>(vars, "subjectName", config.d_tlsSubjectName);
+
+                         if (getOptionalValue<std::string>(vars, "subjectAddr", valueStr) > 0) {
                            try {
-                             ComboAddress ca(boost::get<string>(vars.at("subjectAddr")));
+                             ComboAddress ca(valueStr);
                              config.d_tlsSubjectName = ca.toString();
                              config.d_tlsSubjectIsAddr = true;
                            }
@@ -627,22 +596,20 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          uint16_t serverPort = 53;
 
-                         if (vars.count("tls")) {
+                         if (getOptionalValue<std::string>(vars, "tls", valueStr) > 0) {
                            serverPort = 853;
-                           config.d_tlsParams.d_provider = boost::get<string>(vars.at("tls"));
+                           config.d_tlsParams.d_provider = valueStr;
                            tlsCtx = getTLSContext(config.d_tlsParams);
 
-                           if (vars.count("dohPath")) {
+                           if (getOptionalValue<std::string>(vars, "dohPath", valueStr) > 0) {
 #ifndef HAVE_NGHTTP2
                              throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
 #endif
 
                              serverPort = 443;
-                             config.d_dohPath = boost::get<string>(vars.at("dohPath"));
+                             config.d_dohPath = valueStr;
 
-                             if (vars.count("addXForwardedHeaders")) {
-                               config.d_addXForwardedHeaders = boost::get<bool>(vars.at("addXForwardedHeaders"));
-                             }
+                             getOptionalValue<bool>(vars, "addXForwardedHeaders", config.d_addXForwardedHeaders);
                            }
                          }
 
@@ -666,15 +633,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            return std::shared_ptr<DownstreamState>();
                          }
 
-                         if (vars.count("pool")) {
-                           if (auto* pool = boost::get<string>(&vars["pool"])) {
-                             config.pools.insert(*pool);
-                           }
-                           else {
-                             auto pools = boost::get<LuaArray<std::string>>(vars["pool"]);
-                             for (auto& p : pools) {
-                               config.pools.insert(p.second);
-                             }
+                         LuaArray<std::string> pools;
+                         if (getOptionalValue<std::string>(vars, "pool", valueStr) > 0) {
+                           config.pools.insert(valueStr);
+                         }
+                         else if (getOptionalValue<decltype(pools)>(vars, "pool", pools) > 0) {
+                           for (auto& p : pools) {
+                             config.pools.insert(p.second);
                            }
                          }
 
@@ -684,26 +649,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          uint16_t upgradeDoHKey = dnsdist::ServiceDiscovery::s_defaultDoHSVCKey;
                          std::string upgradePool;
 
-                         if (vars.count("autoUpgrade") && boost::get<bool>(vars.at("autoUpgrade"))) {
-                           autoUpgrade = true;
-
-                           if (vars.count("autoUpgradeInterval")) {
+                         getOptionalValue<bool>(vars, "autoUpgrade", autoUpgrade);
+                         if (autoUpgrade) {
+                           if (getOptionalValue<std::string>(vars, "autoUpgradeInterval", valueStr) > 0) {
                              try {
-                               upgradeInterval = static_cast<uint32_t>(std::stoul(boost::get<string>(vars.at("autoUpgradeInterval"))));
+                               upgradeInterval = static_cast<uint32_t>(std::stoul(valueStr));
                              }
                              catch (const std::exception& e) {
                                warnlog("Error parsing 'autoUpgradeInterval' value: %s", e.what());
                              }
                            }
-                           if (vars.count("autoUpgradeKeep")) {
-                             keepAfterUpgrade = boost::get<bool>(vars.at("autoUpgradeKeep"));
-                           }
-                           if (vars.count("autoUpgradePool")) {
-                             upgradePool = boost::get<string>(vars.at("autoUpgradePool"));
-                           }
-                           if (vars.count("autoUpgradeDoHKey")) {
+                           getOptionalValue<bool>(vars, "autoUpgradeKeep", keepAfterUpgrade);
+                           getOptionalValue<std::string>(vars, "autoUpgradePool", upgradePool);
+                           if (getOptionalValue<std::string>(vars, "autoUpgradeDoHKey", valueStr) > 0) {
                              try {
-                               upgradeDoHKey = static_cast<uint16_t>(std::stoul(boost::get<string>(vars.at("autoUpgradeDoHKey"))));
+                               upgradeDoHKey = static_cast<uint16_t>(std::stoul(valueStr));
                              }
                              catch (const std::exception& e) {
                                warnlog("Error parsing 'autoUpgradeDoHKey' value: %s", e.what());
@@ -751,6 +711,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            return a->d_config.order < b->d_config.order;
                          });
                          g_dstates.setState(states);
+                         checkAllParametersConsumed("newServer", vars);
                          return ret;
                        });
 
