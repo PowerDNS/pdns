@@ -589,8 +589,17 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
       nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
     else
 #endif
-      if(rr.dr.d_type == QType::NS || rr.auth)
+    if(rr.dr.d_type == QType::ALIAS) {
+      // Set the A and AAAA in the NSEC bitmap so aggressive NSEC
+      // does not falsely deny the type for this name.
+      // This does NOT add the ALIAS to the bitmap, as that record cannot
+      // be requested.
+      nrc.set(QType::A);
+      nrc.set(QType::AAAA);
+    }
+    else if(rr.dr.d_type == QType::NS || rr.auth) {
       nrc.set(rr.dr.d_type);
+    }
   }
 
   rr.dr.d_name = name;
@@ -644,8 +653,18 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
         n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
       else
 #endif
-        if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) // skip empty non-terminals
-        n3rc.set(rr.dr.d_type);
+      if(rr.dr.d_type == QType::ALIAS) {
+        // Set the A and AAAA in the NSEC3 bitmap so aggressive NSEC
+        // does not falsely deny the type for this name.
+        // This does NOT add the ALIAS to the bitmap, as that record cannot
+        // be requested.
+        n3rc.set(QType::A);
+        n3rc.set(QType::AAAA);
+      }
+      else if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) {
+          // skip empty non-terminals
+          n3rc.set(rr.dr.d_type);
+      }
     }
   }
 
