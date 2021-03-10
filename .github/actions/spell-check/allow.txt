@@ -3943,7 +3943,6 @@ testringdnsname
 testschema
 testsuffix
 testsuite
-testt
 testuser
 texlive
 tf
