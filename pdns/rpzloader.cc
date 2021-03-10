@@ -5,6 +5,7 @@
 #include "syncres.hh"
 #include "axfr-retriever.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "zoneparser-tng.hh"
@@ -188,9 +189,12 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
 
 static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
-  g_log<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<primary.toStringWithPort()<<endl;
-  if(!tt.name.empty())
-    g_log<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
+
+  auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName))->withValues("primary", Logging::Loggable(primary));
+  logger->info("Loading RPZ from nameserver");
+  if(!tt.name.empty()) {
+    logger->withValues("tsig_key_name", Logging::Loggable(tt.name))->withValues("tsig_key_algorithm", Logging::Loggable(tt.algo))->info("Using TSIG key for authentication");
+  }
 
   ComboAddress local(localAddress);
   if (local == ComboAddress())
@@ -224,11 +228,11 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& primar
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
-      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far for RPZ zone '"<<zoneName<<"'"<<endl;
+      logger->withValues("nrecords", Logging::Loggable(nrecords))->info("RPZ load in progress");
       last=time(0);
     }
   }
-  g_log<<Logger::Info<<"Done: "<<nrecords<<" policy records active, SOA: "<<sr->getZoneRepresentation()<<endl;
+  logger->withValues("nrecords", Logging::Loggable(nrecords))->withValues("soa", Logging::Loggable(sr->getZoneRepresentation()))->info("RPZ load completed");
   return sr;
 }
 
@@ -304,17 +308,20 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
 
 static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
+  auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName));
+  logger->v(1)->withValues("destination_file", Logging::Loggable(dumpZoneFileName))->info("Dumping zone to disk");
   std::string temp = dumpZoneFileName + "XXXXXX";
   int fd = mkstemp(&temp.at(0));
   if (fd < 0) {
-    g_log<<Logger::Warning<<"Unable to open a file to dump the content of the RPZ zone "<<zoneName<<endl;
+    logger->error(strerror(errno), "Unable to create temporary file");
     return false;
   }
 
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w+"), fclose);
   if (!fp) {
+    int err = errno;
     close(fd);
-    g_log<<Logger::Warning<<"Unable to open a file pointer to dump the content of the RPZ zone "<<zoneName<<endl;
+    logger->error(stringerror(err), "Unable to open file pointer");
     return false;
   }
   fd = -1;
@@ -323,27 +330,29 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
     newZone->dump(fp.get());
   }
   catch(const std::exception& e) {
-    g_log<<Logger::Warning<<"Error while dumping the content of the RPZ zone "<<zoneName<<": "<<e.what()<<endl;
+    logger->error(e.what(), "Error while dumping the content of the RPZ");
     return false;
   }
 
   if (fflush(fp.get()) != 0) {
-    g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
+    logger->error(stringerror(), "Error while flushing the content of the RPZ");
     return false;
   }
 
   if (fsync(fileno(fp.get())) != 0) {
-    g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
+    logger->error(stringerror(), "Error while syncing the content of the RPZ");
     return false;
   }
 
   if (fclose(fp.release()) != 0) {
-    g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
+    logger->error(stringerror(), "Error while writing the content of the RPZ");
     return false;
   }
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
-    g_log<<Logger::Warning<<"Error while moving the content of the RPZ zone "<<zoneName<<" to the dump file: "<<stringerror()<<endl;
+    logger
+      ->withValues("destination_file", Logging::Loggable(dumpZoneFileName))
+      ->error(stringerror(), "Error while moving the content of the RPZ");
     return false;
   }
 

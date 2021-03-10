@@ -76,6 +76,7 @@
 #include "zoneparser-tng.hh"
 #include "rec_channel.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "iputils.hh"
 #include "mplexer.hh"
 #include "config.h"
@@ -5674,13 +5675,34 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    if(!::arg().file(configname.c_str()))
-      g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
+    g_slog = Logging::Logger::create([](std::unique_ptr<Logging::Entry> entry) {
+      if (entry->error) {
+        std::cout << "ERR ";
+      } else {
+        std::cout << "INFO";
+     }
+      if (entry->name) {
+        std::cout << entry->name.get() << ": ";
+      }
+      std::cout << entry->message;
+      for (auto const& v: entry->values) {
+        std::cout << " ";
+        std::cout << v.first << "=" << v.second;
+      }
+      std::cout << std::endl;
+    });
+    auto startupLog = g_slog->withName("startup");
+
+    if(!::arg().file(configname.c_str())) {
+      startupLog
+        ->withValues("config_file", Logging::Loggable(configname))
+        ->error("No such file", "Unable to parse configuration file");
+    }
 
     ::arg().parse(argc,argv);
 
     if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() ) {
-      g_log<<Logger::Error<<"Using chroot and enabling the API is not possible"<<endl;
+      startupLog->info("Cannot use chroot and enable the API at the same time");
       exit(EXIT_FAILURE);
     }
 
@@ -5693,13 +5715,13 @@ int main(int argc, char **argv)
 
     if(::arg().asNum("threads")==1) {
       if (::arg().mustDo("pdns-distributes-queries")) {
-        g_log<<Logger::Warning<<"Only one thread, no need to distribute queries ourselves"<<endl;
+        startupLog->v(1)->info("Only one thread, no need to distribute queries ourselves");
         ::arg().set("pdns-distributes-queries")="no";
       }
     }
 
     if(::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") <= 0) {
-      g_log<<Logger::Warning<<"Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"<<endl;
+      startupLog->v(1)->info("Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1");
       ::arg().set("distributor-threads")="1";
     }
 
