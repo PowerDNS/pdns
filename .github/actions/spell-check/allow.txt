@@ -3750,7 +3750,6 @@ statnumhit
 statnummiss
 Statsv
 stattid
-statuscode
 statvisitor
 stdcxx
 stddev
