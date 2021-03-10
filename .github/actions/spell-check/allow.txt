@@ -3748,7 +3748,6 @@ statnodesince
 statnumentries
 statnumhit
 statnummiss
-Statsv
 stattid
 statvisitor
 stdcxx
@@ -3766,7 +3765,6 @@ stormap
 storvect
 storvector
 stoull
-strart
 strbind
 strcasecmp
 strchr
