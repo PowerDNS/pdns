@@ -1270,7 +1270,9 @@ uint64_t getRealMemoryUsage(const std::string&)
   uint64_t size, resident, shared, text, lib, data;
   ifs >> size >> resident >> shared >> text >> lib >> data;
 
-  return data * getpagesize();
+  // We used to use "data" here, but it proves unreliable and even is marked "broken"
+  // in https://www.kernel.org/doc/html/latest/filesystems/proc.html 
+  return resident * getpagesize();
 #else
   struct rusage ru;
   if (getrusage(RUSAGE_SELF, &ru) != 0)
