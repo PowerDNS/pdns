@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(test_ixfr_invalid_no_soa_after_removals) {
   BOOST_CHECK_THROW(processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA)), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(test_ixfr_mistmatching_serial_before_and_after_additions) {
+BOOST_AUTO_TEST_CASE(test_ixfr_mismatching_serial_before_and_after_additions) {
   const ComboAddress master("[2001:DB8::1]:53");
   const DNSName zone("JAIN.AD.JP.");
 
