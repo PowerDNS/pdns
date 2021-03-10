@@ -1,3 +1,4 @@
+# want to include regression-tests.*/description
 (?:^|/)ext/
 (?:^|/)go\.mod$
 (?:^|/)go\.sum$
@@ -5,7 +6,9 @@
 (?:^|/)package-lock\.json$
 (?:^|/)requirements\.txt$
 /expected_result
+/test-base64_cc\.cc$
 /test-dnsrecords_cc\.cc$
+ignore$
 SUMS$
 \.ai$
 \.asc$
@@ -33,6 +36,7 @@ SUMS$
 \.lock$
 \.map$
 \.min\..
+\.mmdb$
 \.mp3$
 \.mp4$
 \.nsec3(?:-optout|)$
@@ -43,6 +47,7 @@ SUMS$
 \.psd$
 \.sig$
 \.so$
+\.supp$
 \.svg$
 \.svgz$
 \.tar$
@@ -54,8 +59,12 @@ SUMS$
 \.xpm$
 \.yml$
 \.zip$
+^codedocs/doxygen\.conf$
 ^modules/remotebackend/example\.rb$
+^modules/remotebackend/test-remotebackend-keys\.hh$
+^modules/tinydnsbackend/data$
 ^modules/tinydnsbackend/data\.cdb$
 ^pdns/dnsdistdist/src_js/
 ^pdns/recursordist/html/js/
+^regression-tests\.recursor-dnssec/test_ReadTrustAnchorsFromFile\.py$
 ^\.github/actions/spell-check/
