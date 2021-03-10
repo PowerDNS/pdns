@@ -431,7 +431,6 @@ checkfunc
 checkglue
 checkinterval
 checknow
-Checkof
 checkrr
 checkzone
 childstat
