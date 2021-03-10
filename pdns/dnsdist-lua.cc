@@ -717,7 +717,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_SYSTEMD */
 #if 0
       // Useful for debugging leaks, but might lead to race under load
-      // since other threads are still runing.
+      // since other threads are still running.
       for(auto& frontend : g_tlslocals) {
         frontend->cleanup();
       }
