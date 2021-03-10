@@ -71,7 +71,7 @@ static struct KqueueRegisterOurselves
   KqueueRegisterOurselves() {
     FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
   }
-} kQueuedoIt;
+} kQueueDoIt;
 
 KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxevents])
 {
