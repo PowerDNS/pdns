@@ -45,7 +45,7 @@ public:
   void setEDNSSubnet(const Netmask& nm);
 
   void addTag(const std::string& strValue);
-  void addRR(DNSName&& qame, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& data);
+  void addRR(DNSName&& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& data);
 
   void serialize(std::string& data) const;
 
