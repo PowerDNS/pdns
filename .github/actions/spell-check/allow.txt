@@ -1470,7 +1470,6 @@ headerfmt
 HEADERFUNCTION
 headersize
 headl
-headr
 healththread
 helpmap
 helpstring
