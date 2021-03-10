@@ -203,7 +203,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
     auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
     if (value < 0) {
       errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value, context);
-      g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+      g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dismissing";
     }
     config.d_maxStoredSessions = value;
   }

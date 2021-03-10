@@ -723,7 +723,6 @@ diffopts
 difft
 diffto
 digesttype
-dimissing
 dimitri
 directbackendcmd
 DIRECTORYTOK
