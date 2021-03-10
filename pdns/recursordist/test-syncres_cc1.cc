@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback)
 
 BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback_qmin)
 {
-  // DISABLED UNTIL QNAME MINIMIZATON IS THERE
+  // DISABLED UNTIL QNAME MINIMIZATION IS THERE
   return;
   test_edns_formerr_fallback_f(true);
 }

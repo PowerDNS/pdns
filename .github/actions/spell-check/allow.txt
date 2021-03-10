@@ -2207,7 +2207,6 @@ might've
 migweb
 mincleaninterval
 minicurl
-MINIMIZATON
 mintime
 minttl
 MIPSEB
