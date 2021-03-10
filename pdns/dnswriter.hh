@@ -64,7 +64,7 @@ public:
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
   GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
 
-  /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
+  /** Start a new DNS record within this packet for name, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
       ANSWER, AUTHORITY, ADDITIONAL */
   void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, bool compress=true);
 
