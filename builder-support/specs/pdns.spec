@@ -168,7 +168,7 @@ This package contains the TinyDNS backend for %{name}
 
 %package ixfrdist
 BuildRequires: yaml-cpp-devel
-Summary: A progrm to redistribute zones over AXFR and IXFR
+Summary: A program to redistribute zones over AXFR and IXFR
 Group: System Environment/Daemons
 
 %description ixfrdist
