@@ -334,7 +334,7 @@ Webserver configuration
     ``statsRequireAuthentication``, ``maxConcurrentConnections`` optional parameters added.
 
   .. versionchanged:: 1.7.0
-    The ``password``, optional parameter has been deprecated, ``hashedPassword`` added instead.
+    The optional ``password``parameter has been deprecated and replaced with ``hashedPassword``.
 
   Setup webserver configuration. See :func:`webserver`.
 
