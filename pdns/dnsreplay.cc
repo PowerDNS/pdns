@@ -579,7 +579,7 @@ static void addECSOption(char* packet, const size_t packetSize, uint16_t* len, c
 static bool g_rdSelector;
 static uint16_t g_pcapDnsPort;
 
-static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp)
+static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp, bool usePCAPSourceIP)
 {
   bool sent=false;
   if (pr.d_len <= sizeof(dnsheader)) {
@@ -613,8 +613,20 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
         addECSOption((char*)pr.d_payload, 1500, &dlen, pr.getSource(), stamp);
         pr.d_len=dlen;
       }
-
-      s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
+#ifdef IP_TRANSPARENT
+      if (usePCAPSourceIP) {
+        int s = SSocket(AF_INET, SOCK_DGRAM, 0);
+        SSetsockopt(s, IPPROTO_IP , IP_TRANSPARENT, 1);
+        SBind(s, pr.getSource());
+        sendto(s, reinterpret_cast<const char*>(pr.d_payload), dlen, 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
+        close(s);
+      }
+      else {
+#endif /* IP_TRANSPARENT */
+        s_socket->sendTo((const char*)pr.d_payload, dlen, remote);
+#ifdef IP_TRANSPARENT
+      }
+#endif /* IP_TRANSPARENT */
       sent=true;
       dh->id=tmp;
     }
@@ -702,6 +714,7 @@ try
     ("ecs-stamp", "Add original IP address to ECS in replay")
     ("ecs-mask", po::value<uint16_t>(), "Replace first octet of src IP address with this value in ECS")
     ("source-ip", po::value<string>()->default_value(""), "IP to send the replayed packet from")
+    ("source-from-pcap", po::value<bool>()->default_value(false), "Send the replayed packets from the source IP present in the PCAP (requires IP_TRANSPARENT support)")
     ("source-port", po::value<uint16_t>()->default_value(0), "Port to send the replayed packet from");
 
   po::options_description alloptions;
@@ -750,12 +763,13 @@ try
   g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
-  s_socket= make_unique<Socket>(AF_INET, SOCK_DGRAM);
+  s_socket = make_unique<Socket>(AF_INET, SOCK_DGRAM);
 
   s_socket->setNonBlocking();
 
-  if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty())
+  if(g_vm.count("source-ip") && !g_vm["source-ip"].as<string>().empty()) {
     s_socket->bind(ComboAddress(g_vm["source-ip"].as<string>(), g_vm["source-port"].as<uint16_t>()));
+  }
 
   try {
     setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
@@ -779,6 +793,7 @@ try
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 
+  bool usePCAPSourceIP = g_vm["source-from-pcap"].as<bool>();
   unsigned int once=0;
   struct timeval mental_time;
   mental_time.tv_sec=0; mental_time.tv_usec=0;
@@ -807,8 +822,9 @@ try
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
-      if(sendPacketFromPR(pr, remote, stamp))
+      if (sendPacketFromPR(pr, remote, stamp, usePCAPSourceIP)) {
         count++;
+      }
     } 
     if(packetLimit && count >= packetLimit) 
       break;
