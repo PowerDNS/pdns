@@ -534,7 +534,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
          that (original) owner name other than DS RRs, and all RRs below that
          owner name regardless of type.
       */
-      LOG(" but this is an ancetor delegation NSEC3" << endl);
+      LOG(" but this is an ancestor delegation NSEC3" << endl);
       return false;
     }
 
