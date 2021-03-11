@@ -177,8 +177,8 @@ void AuthWebServer::printvars(ostringstream &ret)
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
   vector<string>entries=S.getEntries();
-  for(const auto & entrie : entries) {
-    ret<<"<tr><td>"<<entrie<<"</td><td>"<<S.read(entrie)<<"</td><td>"<<S.getDescrip(entrie)<<"</td>"<<endl;
+  for(const auto & entry : entries) {
+    ret<<"<tr><td>"<<entry<<"</td><td>"<<S.read(entry)<<"</td><td>"<<S.getDescrip(entry)<<"</td>"<<endl;
   }
 
   ret<<"</table></div>"<<endl;
