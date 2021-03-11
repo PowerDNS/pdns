@@ -1557,7 +1557,7 @@ private:
 };
 
 template<typename T, typename ActionT>
-static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
+static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
 
   std::string name;
@@ -1566,8 +1566,8 @@ static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadn
   parseRuleParams(params, uuid, name, creationOrder);
 
   auto rule = makeRule(var);
-  someRulActions->modify([&rule, &action, &uuid, creationOrder, &name](vector<T>& rulactions){
-    rulactions.push_back({std::move(rule), std::move(action), std::move(name), std::move(uuid), creationOrder});
+  someRuleActions->modify([&rule, &action, &uuid, creationOrder, &name](vector<T>& ruleactions){
+    ruleactions.push_back({std::move(rule), std::move(action), std::move(name), std::move(uuid), creationOrder});
     });
 }
 
@@ -1628,7 +1628,7 @@ void setupLuaActions(LuaContext& luaCtx)
         throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
       }
 
-      addAction(&g_rulactions, var, boost::get<std::shared_ptr<DNSAction> >(era), params);
+      addAction(&g_ruleactions, var, boost::get<std::shared_ptr<DNSAction> >(era), params);
     });
 
   luaCtx.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
@@ -1636,7 +1636,7 @@ void setupLuaActions(LuaContext& luaCtx)
         throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
 
-      addAction(&g_resprulactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
+      addAction(&g_respruleactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
   luaCtx.writeFunction("addCacheHitResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
@@ -1644,7 +1644,7 @@ void setupLuaActions(LuaContext& luaCtx)
         throw std::runtime_error("addCacheHitResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
 
-      addAction(&g_cachehitresprulactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
+      addAction(&g_cachehitrespruleactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
   luaCtx.writeFunction("addSelfAnsweredResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
@@ -1652,7 +1652,7 @@ void setupLuaActions(LuaContext& luaCtx)
         throw std::runtime_error("addSelfAnsweredResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
 
-      addAction(&g_selfansweredresprulactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
+      addAction(&g_selfansweredrespruleactions, var, boost::get<std::shared_ptr<DNSResponseAction> >(era), params);
     });
 
   luaCtx.registerFunction<void(DNSAction::*)()const>("printStats", [](const DNSAction& ta) {
@@ -1670,9 +1670,9 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("getAction", [](unsigned int num) {
       setLuaNoSideEffect();
       boost::optional<std::shared_ptr<DNSAction>> ret;
-      auto rulactions = g_rulactions.getCopy();
-      if(num < rulactions.size())
-        ret=rulactions[num].d_action;
+      auto ruleactions = g_ruleactions.getCopy();
+      if(num < ruleactions.size())
+        ret=ruleactions[num].d_action;
       return ret;
     });
 

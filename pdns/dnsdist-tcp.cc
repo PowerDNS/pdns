@@ -539,7 +539,7 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
-    if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
+    if (!processResponse(response.d_buffer, state->d_threadData.localRespRuleActions, dr, false)) {
       state->terminateClientConnection();
       return;
     }

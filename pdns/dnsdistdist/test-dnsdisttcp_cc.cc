@@ -33,10 +33,10 @@
 
 struct DNSDistStats g_stats;
 GlobalStateHolder<NetmaskGroup> g_ACL;
-GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
+GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
 GlobalStateHolder<servers_t> g_dstates;
 
 QueryCount g_qcount;
@@ -83,12 +83,12 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   return true;
 }
 
-static std::function<bool(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted)> s_processResponse;
+static std::function<bool(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted)> s_processResponse;
 
-bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted)
+bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted)
 {
   if (s_processResponse) {
-    return s_processResponse(response, localRespRulactions, dr, muted);
+    return s_processResponse(response, localRespRuleActions, dr, muted);
   }
 
   return false;
@@ -831,7 +831,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -870,7 +870,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       throw std::runtime_error("Unexpected error while processing the response");
     };
 
@@ -908,7 +908,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return false;
     };
 
@@ -950,7 +950,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -976,7 +976,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
     s_processQuery = [](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       return ProcessQueryResult::SendAnswer;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1013,7 +1013,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1080,7 +1080,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1141,7 +1141,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1175,7 +1175,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1219,7 +1219,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1274,7 +1274,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1328,7 +1328,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1385,7 +1385,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1435,7 +1435,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1493,7 +1493,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1532,7 +1532,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1593,7 +1593,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1776,7 +1776,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -1907,7 +1907,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2075,7 +2075,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2150,7 +2150,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       }
       return ProcessQueryResult::Drop;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2232,7 +2232,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       }
       return ProcessQueryResult::Drop;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2345,7 +2345,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2496,7 +2496,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2602,7 +2602,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2735,7 +2735,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2799,7 +2799,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -2975,7 +2975,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       selectedBackend = backend1;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
@@ -3186,7 +3186,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
       return true;
     };
 
