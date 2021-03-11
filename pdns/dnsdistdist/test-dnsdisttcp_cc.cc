@@ -2443,7 +2443,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
         /* the client descriptor is NOT ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
       } },
-      /* read the response (2) from the bacend  */
+      /* read the response (2) from the backend  */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
       /* trying to send response (2) to the client but blocking */
@@ -2571,7 +2571,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
         /* the backend descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
       } },
-      /* read the response (1) from the bacend  */
+      /* read the response (1) from the backend  */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2 },
       /* sending response (1) to the client */
