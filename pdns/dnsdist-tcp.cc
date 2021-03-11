@@ -545,7 +545,7 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Unxpected exception while handling response from backend: %s", e.what());
+    vinfolog("Unexpected exception while handling response from backend: %s", e.what());
     state->terminateClientConnection();
     return;
   }
