@@ -901,7 +901,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           (state->d_state == IncomingTCPConnectionState::State::idle ||
            state->d_state == IncomingTCPConnectionState::State::waitingForQuery))
       {
-        // try sending querued responses
+        // try sending queued responses
         DEBUGLOG("send responses, if any");
         iostate = sendQueuedResponses(state, now);
 
