@@ -71,8 +71,9 @@ FROM debian:10-slim
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
-# Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management)
-RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin && apt-get clean
+# Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management),
+#   and vim (for pdnsutil edit-zone) 
+RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /
