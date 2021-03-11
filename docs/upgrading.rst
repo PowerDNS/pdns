@@ -8,6 +8,21 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
+4.4.x to 4.5.0 or master
+------------------------
+
+Record type changes
+^^^^^^^^^^^^^^^^^^^
+
+The in-database format of ``CSYNC`` and ``IPSECKEY`` records has changed from 'generic' format to its specialized format.
+
+API users might notice that replacing records of these types leaves the old TYPExx records around, even if PowerDNS is not serving them.
+To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.
+Then, disable the setting again, because it has a serious performance impact on API operations.
+
+On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 45 and 62.
+Leave the setting on until all zones have been re-transferred.
+
 4.3.x to 4.4.0
 --------------
 
@@ -46,7 +61,7 @@ API users might notice that replacing records of these types leaves the old TYPE
 To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.
 Then, disable the setting again, because it has a serious performance impact on API operations.
 
-On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 42, 45, 64, 65.
+On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 42, 64, 65.
 Leave the setting on until all zones have been re-transferred.
 
 PostgreSQL configuration escaping

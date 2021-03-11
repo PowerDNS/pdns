@@ -100,6 +100,15 @@ The CNAME record specifies the canonical name of a record. It is stored
 plainly. Like all other records, it is not terminated by a dot. A sample
 might be 'webserver-01.yourcompany.com'.
 
+.. _types-csync:
+
+CSYNC
+-----
+
+The CSYNC record is used for 'Child-to-Parent Synchronization in DNS', as described in :rfc:`7477`.
+Right now it is only supported as zone content; no special processing is implemented.
+Note that SOA-EDIT is not applied to serial numbers in CSYNC content.
+
 .. _types-dnskey:
 
 DNSKEY

@@ -735,6 +735,34 @@ private:
   NSECBitmap d_bitmap;
 };
 
+class CSYNCRecordContent : public DNSRecordContent
+{
+public:
+  static void report(void);
+  CSYNCRecordContent()
+  {}
+  CSYNCRecordContent(const string& content, const DNSName& zone=DNSName());
+
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
+  string getZoneRepresentation(bool noDot=false) const override;
+  void toPacket(DNSPacketWriter& pw) override;
+
+  uint16_t getType() const override
+  {
+    return QType::CSYNC;
+  }
+
+  void set(uint16_t type)
+  {
+    d_bitmap.set(type);
+  }
+
+private:
+  uint32_t d_serial;
+  uint16_t d_flags;
+  NSECBitmap d_bitmap;
+};
 
 class NSEC3PARAMRecordContent : public DNSRecordContent
 {

@@ -101,6 +101,7 @@ public:
     CDS = 59,
     CDNSKEY = 60,
     OPENPGPKEY = 61,
+    CSYNC = 62,
     SVCB = 64,
     HTTPS = 65,
     SPF = 99,

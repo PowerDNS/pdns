@@ -339,3 +339,59 @@ string NSEC3PARAMRecordContent::getZoneRepresentation(bool noDot) const
   return ret;
 }
 
+////// end of NSEC3
+
+////// begin of CSYNC
+
+void CSYNCRecordContent::report()
+{
+  regist(1, 62, &make, &make, "CSYNC");
+}
+
+std::shared_ptr<DNSRecordContent> CSYNCRecordContent::make(const string& content)
+{
+  return std::make_shared<CSYNCRecordContent>(content);
+}
+
+CSYNCRecordContent::CSYNCRecordContent(const string& content, const DNSName& zone)
+{
+  RecordTextReader rtr(content, zone);
+  rtr.xfr32BitInt(d_serial);
+  rtr.xfr16BitInt(d_flags);
+
+  while(!rtr.eof()) {
+    uint16_t type;
+    rtr.xfrType(type);
+    set(type);
+  }
+}
+
+void CSYNCRecordContent::toPacket(DNSPacketWriter& pw)
+{
+  pw.xfr32BitInt(d_serial);
+  pw.xfr16BitInt(d_flags);
+
+  d_bitmap.toPacket(pw);
+}
+
+std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+{
+  auto ret=std::make_shared<CSYNCRecordContent>();
+  pr.xfr32BitInt(ret->d_serial);
+  pr.xfr16BitInt(ret->d_flags);
+
+  ret->d_bitmap.fromPacket(pr);
+  return ret;
+}
+
+string CSYNCRecordContent::getZoneRepresentation(bool noDot) const
+{
+  string ret;
+  RecordTextWriter rtw(ret);
+  rtw.xfr32BitInt(d_serial);
+  rtw.xfr16BitInt(d_flags);
+
+  return ret + d_bitmap.getZoneRepresentation();
+}
+
+////// end of CSYNC
