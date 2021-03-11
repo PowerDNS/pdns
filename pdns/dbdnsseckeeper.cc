@@ -224,7 +224,7 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
 {
   if (d_metaUpdate) {
     if (d_keymetadb->inTransaction()) {
-      throw runtime_error("DNSSECKeeper::getFromMeta() called after an update from within a transactiona.");
+      throw runtime_error("DNSSECKeeper::getFromMeta() called after an update from within a transaction.");
     }
     d_metaUpdate=false;
   }
