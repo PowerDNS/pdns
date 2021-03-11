@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_loop)
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
-  // We only do v4, this avoids "beenthere" non-deterministic behavour. If we do both v4 and v6, there are multiple IPs
+  // We only do v4, this avoids "beenthere" non-deterministic behaviour. If we do both v4 and v6, there are multiple IPs
   // per (root) nameserver, and the "beenthere" loop detection is influenced by the particular address family selected.
   // To see the non-deterministic behaviour, uncomment the line below (you'll be seeing around 21-24 queries).
   // See #9565
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral_loop_with_nonresolving)
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
-  // We only do v4, this avoids "beenthere" non-deterministic behavour. If we do both v4 and v6, there are multiple IPs
+  // We only do v4, this avoids "beenthere" non-deterministic behaviour. If we do both v4 and v6, there are multiple IPs
   // per (root) nameserver, and the "beenthere" loop detection is influenced by the particular address family selected.
   // To see the non-deterministic behaviour, uncomment the line below (you'll be seeing around 21-24 queries).
   // See #9565
