@@ -1276,7 +1276,7 @@ private:
   size_type d_size;
 };
 
-/** This class represents a group of supplemental Netmask classes. An IP address matchs
+/** This class represents a group of supplemental Netmask classes. An IP address matches
     if it is matched by zero or more of the Netmask classes within.
 */
 class NetmaskGroup
