@@ -1026,7 +1026,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
 
   { "taskqueue-size",
     MetricDefinition(PrometheusMetricType::gauge,
-                     "number of tasks currenlty in the taskqueue")},
+                     "number of tasks currently in the taskqueue")},
 
 };
 
