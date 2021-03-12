@@ -759,8 +759,8 @@ public:
   }
 
 private:
-  uint32_t d_serial;
-  uint16_t d_flags;
+  uint32_t d_serial{0};
+  uint16_t d_flags{0};
   NSECBitmap d_bitmap;
 };
 
