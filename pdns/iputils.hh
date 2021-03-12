@@ -1277,7 +1277,7 @@ private:
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matches
-    if it is matched by zero or more of the Netmask classes within.
+    if it is matched by one or more of the Netmask objects within.
 */
 class NetmaskGroup
 {
