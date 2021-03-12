@@ -2145,8 +2145,6 @@ offer less than the best in spoofing protection. We urge all operators
 of resolvers without proper spoofing countermeasures to consider
 PowerDNS, as it is a Better Internet Nameserver Daemon.
 
-A good article on DNS spoofing can be found
-`here <http://www.securesphere.net/download/papers/dnsspoof.htm>`__.
 Some more information, based on a previous version of PowerDNS, can be
 found on the `PowerDNS development
 blog <http://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.

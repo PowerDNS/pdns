@@ -158,6 +158,7 @@ Only enable this if you are certain you need to. For more discussion, see https:
 Default Schema
 --------------
 
-This is the 4.3 schema. Please find `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gmysqlbackend/schema.mysql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_ on GitHub.
+This is the 4.3 schema.
+The `4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/gmysqlbackend/schema.mysql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_ are available on GitHub.
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql

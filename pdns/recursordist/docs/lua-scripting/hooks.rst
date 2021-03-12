@@ -1,8 +1,7 @@
 Intercepting queries with Lua
 =============================
 
-To get a quick start, we have supplied a sample script that showcases all functionality described below.
-Please find it `here <https://github.com/PowerDNS/pdns/blob/master/pdns/recursordist/contrib/powerdns-example-script.lua>`_.
+To get a quick start, we have supplied a `sample script <https://github.com/PowerDNS/pdns/blob/master/pdns/recursordist/contrib/powerdns-example-script.lua>`__ that showcases all functionality described below.
 
 Queries can be intercepted in many places:
 

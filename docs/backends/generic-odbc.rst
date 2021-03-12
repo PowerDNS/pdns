@@ -111,7 +111,8 @@ For convenience, a schema for MS SQL Server has been created: (Note:
 This schema can also be found in the PowerDNS source as
 ``modules/godbcbackend/schema.mssql.sql``).
 
-This is the schema for 4.3. Please find `the 4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/godbcbackend/schema.mssql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/godbcbackend/schema.mssql.sql>`_ on GitHub.
+This is the schema for 4.3.
+The `4.2 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.2.x/modules/godbcbackend/schema.mssql.sql>`_ and `the 4.1 schema <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/godbcbackend/schema.mssql.sql>`_ is available on GitHub.
 
 .. literalinclude:: ../../modules/godbcbackend/schema.mssql.sql
    :language: SQL
