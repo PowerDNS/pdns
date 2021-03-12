@@ -1579,7 +1579,6 @@ ifl
 ifndef
 IFSOCK
 ifstream
-ifupurl
 ifw
 Iga
 ignorebogus

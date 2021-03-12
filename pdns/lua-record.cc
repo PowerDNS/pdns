@@ -25,7 +25,7 @@
 
    ponder netmask tree from file for huge number of netmasks
 
-   unify ifupurl/ifportup
+   unify ifurlup/ifportup
       add attribute for certificate check
    add list of current monitors
       expire them too?
