@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
   MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, DNSName("ghost.powerdns.com."), boost::none);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
-  /* the TTL should not have been raisd */
+  /* the TTL should not have been raised */
   std::vector<DNSRecord> retrieved;
   BOOST_CHECK_EQUAL(MRC.get(now, ghost, QType(QType::NS), false, &retrieved, ComboAddress("192.0.2.2")), (ttd - now));
   BOOST_REQUIRE_EQUAL(retrieved.size(), 1U);

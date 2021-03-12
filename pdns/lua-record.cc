@@ -25,7 +25,7 @@
 
    ponder netmask tree from file for huge number of netmasks
 
-   unify ifupurl/ifupport
+   unify ifurlup/ifportup
       add attribute for certificate check
    add list of current monitors
       expire them too?
@@ -721,7 +721,7 @@ static void setupLuaRecords()
         return fmt.str();
       }
       catch(std::exception& ex) {
-        g_log<<Logger::Error<<"LUA Record xception: "<<ex.what()<<endl;
+        g_log<<Logger::Error<<"LUA Record exception: "<<ex.what()<<endl;
       }
       catch(PDNSException& ex) {
         g_log<<Logger::Error<<"LUA Record exception: "<<ex.reason<<endl;

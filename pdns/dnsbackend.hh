@@ -257,7 +257,7 @@ public:
     return false;
   }
 
-  //! aborts the transaction started by strartTransaction, should leave state unaltered
+  //! aborts the transaction started by startTransaction, should leave state unaltered
   virtual bool abortTransaction()
   {
     return false;

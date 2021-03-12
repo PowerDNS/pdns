@@ -723,10 +723,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";
   output << "# TYPE dnsdist_rule_hits " << "counter" << "\n";
-  addRulesToPrometheusOutput(output, g_rulactions);
-  addRulesToPrometheusOutput(output, g_resprulactions);
-  addRulesToPrometheusOutput(output, g_cachehitresprulactions);
-  addRulesToPrometheusOutput(output, g_selfansweredresprulactions);
+  addRulesToPrometheusOutput(output, g_ruleactions);
+  addRulesToPrometheusOutput(output, g_respruleactions);
+  addRulesToPrometheusOutput(output, g_cachehitrespruleactions);
+  addRulesToPrometheusOutput(output, g_selfansweredrespruleactions);
 
   output << "# HELP dnsdist_dynblocks_nmg_top_offenders_hits_per_second " << "Number of hits per second blocked by Dynamic Blocks (netmasks) for the top offenders, averaged over the last 60s" << "\n";
   output << "# TYPE dnsdist_dynblocks_nmg_top_offenders_hits_per_second " << "gauge" << "\n";
@@ -1022,7 +1022,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   Json::array rules;
   /* unfortunately DNSActions have getStats(),
      and DNSResponseActions do not. */
-  auto localRules = g_rulactions.getLocal();
+  auto localRules = g_ruleactions.getLocal();
   num = 0;
   for (const auto& a : *localRules) {
     Json::object rule{
@@ -1037,9 +1037,9 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     rules.push_back(rule);
   }
 
-  auto responseRules = someResponseRulesToJson(&g_resprulactions);
-  auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitresprulactions);
-  auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredresprulactions);
+  auto responseRules = someResponseRulesToJson(&g_respruleactions);
+  auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitrespruleactions);
+  auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredrespruleactions);
 
   string acl;
 

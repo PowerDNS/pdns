@@ -539,13 +539,13 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 
-    if (!processResponse(response.d_buffer, state->d_threadData.localRespRulactions, dr, false)) {
+    if (!processResponse(response.d_buffer, state->d_threadData.localRespRuleActions, dr, false)) {
       state->terminateClientConnection();
       return;
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Unxpected exception while handling response from backend: %s", e.what());
+    vinfolog("Unexpected exception while handling response from backend: %s", e.what());
     state->terminateClientConnection();
     return;
   }
@@ -901,7 +901,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
           (state->d_state == IncomingTCPConnectionState::State::idle ||
            state->d_state == IncomingTCPConnectionState::State::waitingForQuery))
       {
-        // try sending querued responses
+        // try sending queued responses
         DEBUGLOG("send responses, if any");
         iostate = sendQueuedResponses(state, now);
 

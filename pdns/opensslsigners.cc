@@ -464,7 +464,7 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   if (drc.d_algorithm != d_algorithm) {
     throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
   }
-  // Eveything OK, we're releasing ownership since the RSA_* functions want it
+  // Everything OK, we're releasing ownership since the RSA_* functions want it
   RSA_set0_key(key.get(), n.release(), e.release(), d.release());
   RSA_set0_factors(key.get(), p.release(), q.release());
   RSA_set0_crt_params(key.get(), dmp1.release(), dmq1.release(), iqmp.release());

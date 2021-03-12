@@ -74,7 +74,7 @@ protected:
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
       d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
       d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
-      d_UpdateLastCheckofZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckofZoneQuery, 2);
+      d_UpdateLastCheckOfZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckOfZoneQuery, 2);
       d_InfoOfAllMasterDomainsQuery_stmt = d_db->prepare(d_InfoOfAllMasterDomainsQuery, 0);
       d_DeleteDomainQuery_stmt = d_db->prepare(d_DeleteDomainQuery, 1);
       d_DeleteZoneQuery_stmt = d_db->prepare(d_DeleteZoneQuery, 1);
@@ -138,7 +138,7 @@ protected:
     d_UpdateKindOfZoneQuery_stmt.reset();
     d_UpdateAccountOfZoneQuery_stmt.reset();
     d_UpdateSerialOfZoneQuery_stmt.reset();
-    d_UpdateLastCheckofZoneQuery_stmt.reset();
+    d_UpdateLastCheckOfZoneQuery_stmt.reset();
     d_InfoOfAllMasterDomainsQuery_stmt.reset();
     d_DeleteDomainQuery_stmt.reset();
     d_DeleteZoneQuery_stmt.reset();
@@ -294,7 +294,7 @@ private:
   string d_UpdateKindOfZoneQuery;
   string d_UpdateAccountOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
-  string d_UpdateLastCheckofZoneQuery;
+  string d_UpdateLastCheckOfZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteDomainQuery;
   string d_DeleteZoneQuery;
@@ -365,7 +365,7 @@ private:
   unique_ptr<SSqlStatement> d_UpdateKindOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateAccountOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateSerialOfZoneQuery_stmt;
-  unique_ptr<SSqlStatement> d_UpdateLastCheckofZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_UpdateLastCheckOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfAllMasterDomainsQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteDomainQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteZoneQuery_stmt;

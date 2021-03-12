@@ -44,7 +44,7 @@ StatBag::StatBag()
 
 void StatBag::exists(const string &key)
 {
-  if(!d_keyDescrips.count(key))
+  if(!d_keyDescriptions.count(key))
     {
       throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
     }
@@ -99,7 +99,7 @@ vector<string>StatBag::getEntries()
 string StatBag::getDescrip(const string &item)
 {
   exists(item);
-  return d_keyDescrips[item];
+  return d_keyDescriptions[item];
 }
 
 StatType StatBag::getStatType(const string &item)
@@ -122,7 +122,7 @@ void StatBag::declare(const string &key, const string &descrip, StatType statTyp
 
   auto i=make_unique<AtomicCounter>(0);
   d_stats[key]=std::move(i);
-  d_keyDescrips[key]=descrip;
+  d_keyDescriptions[key]=descrip;
   d_statTypes[key]=statType;
 }
 
@@ -133,7 +133,7 @@ void StatBag::declare(const string &key, const string &descrip, StatBag::func_t 
   }
 
   d_funcstats[key]=std::move(func);
-  d_keyDescrips[key]=descrip;
+  d_keyDescriptions[key]=descrip;
   d_statTypes[key]=statType;
 }
 

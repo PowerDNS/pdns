@@ -44,7 +44,7 @@ public:
   bool getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& entry, int zoneID);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
-  void cleanup(); //!< force the cache to preen itself from expired querys
+  void cleanup(); //!< force the cache to preen itself from expired queries
   uint64_t purge();
   uint64_t purge(const std::string& match); // could be $ terminated. Is not a dnsname!
   uint64_t purgeExact(const DNSName& qname); // no wildcard matching here

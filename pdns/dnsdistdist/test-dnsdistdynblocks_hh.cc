@@ -668,7 +668,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
       BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
-      /* this hsould have been preserved */
+      /* this should have been preserved */
       BOOST_CHECK_EQUAL(block.blocks, 1U);
       BOOST_CHECK_EQUAL(block.warning, false);
       block.blocks++;
@@ -698,7 +698,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
       BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
-      /* this hsould have been preserved */
+      /* this should have been preserved */
       BOOST_CHECK_EQUAL(block.blocks, 2U);
       BOOST_CHECK_EQUAL(block.warning, false);
     }

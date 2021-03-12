@@ -76,7 +76,7 @@
       not *that* bad actually, but now that we are thread safe, might want to scale
 */
 
-/* the Rulaction plan
+/* the RuleAction plan
    Set of Rules, if one matches, it leads to an Action
    Both rules and actions could conceivably be Lua based. 
    On the C++ side, both could be inherited from a class Rule and a class Action, 
@@ -121,10 +121,10 @@ size_t g_udpVectorSize{1};
    IDs are assigned by atomic increments of the socket offset.
  */
 
-GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
+GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
+GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
 
 Rings g_rings;
 QueryCount g_qcount;
@@ -402,11 +402,11 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 }
 #endif /* HAVE_DNSCRYPT */
 
-static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr)
+static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr)
 {
   DNSResponseAction::Action action=DNSResponseAction::Action::None;
   std::string ruleresult;
-  for(const auto& lr : *localRespRulactions) {
+  for(const auto& lr : *localRespRuleActions) {
     if(lr.d_rule->matches(&dr)) {
       lr.d_rule->d_matches++;
       action=(*lr.d_action)(&dr, &ruleresult);
@@ -437,9 +437,9 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
   return true;
 }
 
-bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted)
+bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted)
 {
-  if (!applyRulesToResponse(localRespRulactions, dr)) {
+  if (!applyRulesToResponse(localRespRuleActions, dr)) {
     return false;
   }
 
@@ -547,7 +547,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   try {
   setThreadName("dnsdist/respond");
-  auto localRespRulactions = g_resprulactions.getLocal();
+  auto localRespRuleActions = g_respruleactions.getLocal();
   const size_t initialBufferSize = getInitialUDPPacketBufferSize();
   PacketBuffer response(initialBufferSize);
 
@@ -640,7 +640,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         }
         memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
-        if (!processResponse(response, localRespRulactions, dr, ids->cs && ids->cs->muted)) {
+        if (!processResponse(response, localRespRuleActions, dr, ids->cs && ids->cs->muted)) {
           continue;
         }
 
@@ -985,7 +985,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   DNSAction::Action action=DNSAction::Action::None;
   string ruleresult;
   bool drop = false;
-  for(const auto& lr : *holders.rulactions) {
+  for(const auto& lr : *holders.ruleactions) {
     if(lr.d_rule->matches(&dq)) {
       lr.d_rule->d_matches++;
       action=(*lr.d_action)(&dq, &ruleresult);
@@ -1132,7 +1132,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
   dr.qTag = dq.qTag;
   dr.delayMsec = dq.delayMsec;
 
-  if (!applyRulesToResponse(cacheHit ? holders.cacheHitRespRulactions : holders.selfAnsweredRespRulactions, dr)) {
+  if (!applyRulesToResponse(cacheHit ? holders.cacheHitRespRuleactions : holders.selfAnsweredRespRuleactions, dr)) {
     return false;
   }
 

@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP) {
   BOOST_CHECK_EQUAL(qhash, temphash);
   BOOST_CHECK_EQUAL(fpacket, r1packet);
 
-  /* and not with expliclit udp */
+  /* and not with explicit udp */
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, false), false);
   /* we should still get the same hash */
   BOOST_CHECK_EQUAL(temphash, qhash);

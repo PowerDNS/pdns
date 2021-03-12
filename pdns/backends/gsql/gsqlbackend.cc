@@ -76,7 +76,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
-  d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
+  d_UpdateLastCheckOfZoneQuery=getArg("update-lastcheck-query");
   d_UpdateAccountOfZoneQuery=getArg("update-account-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
@@ -147,7 +147,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateMasterOfZoneQuery_stmt = nullptr;
   d_UpdateKindOfZoneQuery_stmt = nullptr;
   d_UpdateSerialOfZoneQuery_stmt = nullptr;
-  d_UpdateLastCheckofZoneQuery_stmt = nullptr;
+  d_UpdateLastCheckOfZoneQuery_stmt = nullptr;
   d_UpdateAccountOfZoneQuery_stmt = nullptr;
   d_InfoOfAllMasterDomainsQuery_stmt = nullptr;
   d_DeleteDomainQuery_stmt = nullptr;
@@ -212,7 +212,7 @@ void GSQLBackend::setFresh(uint32_t domain_id)
   try {
     reconnectIfNeeded();
 
-    d_UpdateLastCheckofZoneQuery_stmt->
+    d_UpdateLastCheckOfZoneQuery_stmt->
       bind("last_check", time(nullptr))->
       bind("domain_id", domain_id)->
       execute()->

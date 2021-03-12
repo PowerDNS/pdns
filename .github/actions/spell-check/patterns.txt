@@ -1,6 +1,39 @@
-(?:0[Xx]|U\+|#)[a-f0-9A-FGgRr]{2,}[Uu]?[Ll]{0,2}\b
+# msdn
+msdn\.microsoft\.com/(?:[^/]+/|)library/\S*\.aspx?
+
+# uuid:
+\b[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\b
+# hex digits including css/html color classes:
+(?:[\\0][xX]|\\u|[uU]\+|#x?|\%23)[0-9a-fA-FgGrR_]{2,}(?:[uU]?[lL]{0,2}|u\d+)\b
+
 addNSECRecordToLW.*DNSName.*powerdnt.com.*QType::NS.*res->d_records
 data:[a-zA-Z=;,/0-9+]+
 BOOST_CHECK_EQUAL\(b64, "[a-zA-Z=;,/0-9+]+"
 \b([A-Za-z])\1{3,}\b
 C(?:XX|)FLAGS="[^"]*"
+
+nsec3param\s*=\s*'[^']*'
+g_rootDS\s*=\s*"[^"]*"
+DSRecordContent\("[^"]*"\)
+^[0-9a-z.]*example\.\s+\d+\s+IN\s+(?:DS\s+\d+|OPT)\s+\d+\s+\d+\s+[0-9a-f]+$
+# regression-tests/backends/geoip-master
+^2\s+\.\s+IN\s+(?:DS|OPT)\s+\d+\s+[a-zA-Z0-9]+$
+SimpleMatch\("[^"]*"\).match\(std::string\("[^"]*"\)
+case_t\("[^"]*", "[^"]*"
+case_t\(std::string\("[^"]*"\), std::string\("[^"]*"\)
+(?:^|\\n)\s*"?(?:Coefficient|Modulus|PrivateExponent|PrivateKey|Exponent\d|Prime\d): \S+(?:"|$)
+\b(?:[0-9a-fA-F]{0,4}:){3,}[0-9a-fA-F]{4}\b
+makeRule\("[^"]*"\)
+_root_DS = "(?:\d+\s+){3}[0-9a-f]+"
+QType::DS, "\d+(?:\s+\d+){2}(?: [0-9A-F]+){2}"
+(?:tstName|DNSName|B64Decode)\("[^"]*"
+git rev-list --count [0-9a-f]{40}\b
+# linker flag
+(?:^|\s)-l
+C0FFEE
+\%[IOFRUSEPXDMW]
+[-0-9A-Za-z.]+\.(?:example|powerdns)\.com\b
+# <word>v#
+[Vv]\d+(?:\b|(?=[a-zA-Z_]))
+# tar arguments
+\b(?:)tar(?:\s+-[a-zA-Z]+|\s[a-z]+)+

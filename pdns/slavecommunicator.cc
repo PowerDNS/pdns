@@ -998,7 +998,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         di.backend->setFresh(di.id);
       }
       else if(maxExpire >= now && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh, master " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still vallid, serial is " << ourserial << endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh, master " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {

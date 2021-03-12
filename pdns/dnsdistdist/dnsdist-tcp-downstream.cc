@@ -380,7 +380,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 
   auto& clientConn = d_clientConn;
   if (!clientConn->active()) {
-    // a client timeout occured, or something like that */
+    // a client timeout occurred, or something like that */
     d_clientConn.reset();
     return;
   }
@@ -421,7 +421,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
   auto& clientConn = d_clientConn;
   if (!clientConn || !clientConn->active()) {
-    // a client timeout occured, or something like that */
+    // a client timeout occurred, or something like that */
     d_connectionDied = true;
 
     release();

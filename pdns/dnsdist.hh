@@ -1161,10 +1161,10 @@ extern GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
-extern GlobalStateHolder<vector<DNSDistRuleAction> > g_rulactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_resprulactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitresprulactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredresprulactions;
+extern GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
+extern GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -1201,15 +1201,15 @@ extern std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 
 struct LocalHolders
 {
-  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), rulactions(g_rulactions.getLocal()), cacheHitRespRulactions(g_cachehitresprulactions.getLocal()), selfAnsweredRespRulactions(g_selfansweredresprulactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+  LocalHolders(): acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(g_ruleactions.getLocal()), cacheHitRespRuleactions(g_cachehitrespruleactions.getLocal()), selfAnsweredRespRuleactions(g_selfansweredrespruleactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
   {
   }
 
   LocalStateHolder<NetmaskGroup> acl;
   LocalStateHolder<ServerPolicy> policy;
-  LocalStateHolder<vector<DNSDistRuleAction> > rulactions;
-  LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRulactions;
-  LocalStateHolder<vector<DNSDistResponseRuleAction> > selfAnsweredRespRulactions;
+  LocalStateHolder<vector<DNSDistRuleAction> > ruleactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > cacheHitRespRuleactions;
+  LocalStateHolder<vector<DNSDistResponseRuleAction> > selfAnsweredRespRuleactions;
   LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock> > dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock> > dynSMTBlock;
@@ -1229,7 +1229,7 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength);
-bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, bool muted);
+bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh);

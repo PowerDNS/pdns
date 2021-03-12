@@ -895,7 +895,7 @@ taskQueueSize OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of tasks currenlty in the taskqueues"
+        "Number of tasks currently in the taskqueues"
     ::= { stats 107 }
 
 aggressiveNSECCacheEntries OBJECT-TYPE
