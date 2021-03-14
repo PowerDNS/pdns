@@ -616,7 +616,7 @@ Lower this if you experience timeouts.
 -------------------------
 .. deprecated:: 4.5.0
  Use :ref:`setting-edns-subnet-allow-list`.
- 
+
 .. _setting-edns-subnet-allow-list:
 
 ``edns-subnet-allow-list``
@@ -1384,7 +1384,7 @@ Whether to compute the latency of responses in protobuf messages using the times
 Ranges that are required to send a Proxy Protocol version 2 header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
 Queries that are not prefixed with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
 
-Note that once a Proxy Protocol header has been received, the source address from the proxy header instead of the address of the proxy will be checked against the `allow-from`_ ACL, 
+Note that once a Proxy Protocol header has been received, the source address from the proxy header instead of the address of the proxy will be checked against the `allow-from`_ ACL.
 
 .. _setting-proxy-protocol-maximum-size:
 
@@ -1732,7 +1732,7 @@ These statistics can still be retrieved individually by specifically asking for 
 .. versionadded:: 4.2.0
 .. deprecated:: 4.5.0
   Use :ref:`setting-stats-carbon-disabled-list`.
-  
+
 .. _setting-stats-carbon-disabled-list:
 
 ``stats-carbon-disabled-list``
@@ -2060,7 +2060,7 @@ When set to "detailed", all information about the request and response are logge
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Content-Length: 49
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Content-Type: text/html; charset=utf-8
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Server: PowerDNS/0.0.15896.0.gaba8bab3ab
-  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Full body: 
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Full body:
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   <!html><title>Not Found</title><h1>Not Found</h1>
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e 127.0.0.1:55376 "GET /api/v1/servers/localhost/bla HTTP/1.1" 404 196
 
