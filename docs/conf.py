@@ -186,7 +186,7 @@ descriptions = {
     'nsec3dig': 'Show and validate NSEC3 proofs',
     'pdns_control': 'Control the PowerDNS nameserver',
     'pdns_notify': 'A simple DNS NOTIFY sender',
-    'pdns_server': 'The PowerDNS Authoritative Namserver',
+    'pdns_server': 'The PowerDNS Authoritative Nameserver',
     'pdnsutil': 'PowerDNS record and DNSSEC command and control',
     'saxfr': 'Perform AXFRs and show information about it',
     'sdig': 'Perform a DNS query and show the results',
