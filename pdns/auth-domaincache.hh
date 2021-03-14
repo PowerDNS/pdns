@@ -79,7 +79,6 @@ private:
     return d_maps[getMapIndex(qname)];
   }
 
-  AtomicCounter d_ops{0};
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
