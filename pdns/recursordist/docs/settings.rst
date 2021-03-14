@@ -1284,7 +1284,7 @@ Nameservers matching :ref:`setting-dont-throttle-names` will not be throttled.
 - Integer
 - Default: 60
 
-Number of seconds the throttle a nameserver with a name failing to resolve.
+Number of seconds to throttle a nameserver with a name failing to resolve.
 
 .. _setting-nothing-below-nxdomain:
 
