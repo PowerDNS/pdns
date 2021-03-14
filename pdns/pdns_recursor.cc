@@ -5389,7 +5389,7 @@ int main(int argc, char **argv)
     ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix")="";
     ::arg().set("dont-throttle-netmasks", "Do not throttle nameservers with this IP netmask")="";
     ::arg().set("non-resolving-ns-max-fails", "Number of failed address resolves of a nameserver to start throttling it, 0 is disabled")="5";
-    ::arg().set("non-resolving-ns-throttle-time", "Number of seconds the throttle a nameserver with a name failing to resolve")="60";
+    ::arg().set("non-resolving-ns-throttle-time", "Number of seconds to throttle a nameserver with a name failing to resolve")="60";
 
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";

@@ -870,7 +870,7 @@ Bugfixes
    don't addSuckRequest after supermaster zone creation to avoid one
    cause of simultaneous AXFR for the same zone
 -  `commit 719f902 <https://github.com/PowerDNS/pdns/commit/719f902>`__:
-   fix dual-stack superslave when multiple namservers share a ip
+   fix dual-stack superslave when multiple nameservers share an ip
 -  `commit 33966bf <https://github.com/PowerDNS/pdns/commit/33966bf>`__:
    avoid address truncation in doNotifications
 -  `commit eac85b1 <https://github.com/PowerDNS/pdns/commit/eac85b1>`__:

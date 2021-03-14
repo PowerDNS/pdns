@@ -1165,7 +1165,6 @@ namedroppers
 nameserver
 nameserving
 namespace
-namserver
 naptr
 Nauck
 Navarrete
