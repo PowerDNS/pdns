@@ -129,6 +129,64 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_root_ns_poison_resistance)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+  const DNSName target("www.example.com.");
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+    if (domain == g_rootdnsname && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, g_rootdnsname, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+
+    if (domain == target && type == QType::A) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target, QType::A, "1.2.3.4", DNSResourceRecord::ANSWER, 3600);
+
+      addRecordToLW(res, ".", QType::NS, "poison.name.", DNSResourceRecord::AUTHORITY, 3600);
+      addRecordToLW(res, "poison.name", QType::A, "4.5.6.7", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  // Check we have 13 root servers
+  int res = sr->beginResolve(g_rootdnsname, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+
+  // Try to poison
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+
+  // Still should have 13
+  ret.clear();
+  res = sr->beginResolve(g_rootdnsname, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+}
+
 static void test_edns_formerr_fallback_f(bool sample)
 {
   std::unique_ptr<SyncRes> sr;
