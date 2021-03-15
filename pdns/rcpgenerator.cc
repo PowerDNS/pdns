@@ -760,7 +760,7 @@ void RecordTextWriter::xfrSVCBValueList(const vector<string> &val) {
       shouldQuote = true;
     }
     string tmp = txtEscape(v);
-    boost::replace_all(tmp, ",", "\\,");
+    boost::replace_all(tmp, ",", "\\\\,");
     escaped.push_back(tmp);
   }
   if (shouldQuote) {

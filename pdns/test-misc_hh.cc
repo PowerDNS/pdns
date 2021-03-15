@@ -287,12 +287,39 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharString)
   amount = parseRFC1035CharString(in, out);
   BOOST_CHECK_EQUAL(amount, in.size());
   BOOST_CHECK_EQUAL(out, expected);
+
+  // From draft-ietf-dnsop-svcb-https-03
+  expected = R"FOO(part1,part2,part3\,part4\\)FOO";
+  in = R"FOO("part1,part2,part3\\,part4\\\\)FOO";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = R"FOO(part1\,\p\a\r\t2\044part3\092,part4\092\\)FOO";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
 }
 
 BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
 {
   vector<string> out;
 
+  // From draft-ietf-dnsop-svcb-https-03
+  vector<string> expected = {"part1", "part2", "part3,part4\\"};
+  parseSVCBValueList(R"FOO("part1,part2,part3\\,part4\\\\)FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), expected.size());
+  BOOST_CHECK_EQUAL(out[0], expected[0]);
+  BOOST_CHECK_EQUAL(out[1], expected[1]);
+  BOOST_CHECK_EQUAL(out[2], expected[2]);
+
+  parseSVCBValueList(R"FOO(part1\,\p\a\r\t2\044part3\092,part4\092\\)FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), expected.size());
+  BOOST_CHECK_EQUAL(out[0], expected[0]);
+  BOOST_CHECK_EQUAL(out[1], expected[1]);
+  BOOST_CHECK_EQUAL(out[2], expected[2]);
+
+  // Our tests
   parseSVCBValueList("foobar123", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123");
@@ -314,11 +341,11 @@ BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
   BOOST_CHECK_EQUAL(out[0], "foobar123");
   BOOST_CHECK_EQUAL(out[1], "bazquux456");
 
-  parseSVCBValueList("foobar123\\,bazquux456", out);
+  parseSVCBValueList(R"FOO(foobar123\\,bazquux456)FOO", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
-  parseSVCBValueList("foobar123\\044bazquux456", out);
+  parseSVCBValueList(R"FOO(foobar123\\\044bazquux456)FOO", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
@@ -332,11 +359,11 @@ BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
   BOOST_CHECK_EQUAL(out[0], "foobar123");
   BOOST_CHECK_EQUAL(out[1], "bazquux456");
 
-  parseSVCBValueList("\"foobar123\\,bazquux456\"", out);
+  parseSVCBValueList(R"FOO("foobar123\\,bazquux456")FOO", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
-  parseSVCBValueList("\"foobar123\\044bazquux456\"", out);
+  parseSVCBValueList(R"FOO("foobar123\\\044bazquux456")FOO", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
@@ -355,11 +382,11 @@ BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
   BOOST_CHECK_EQUAL(out[0], "foobar123");
   BOOST_CHECK_EQUAL(out[1], "baz quux456");
 
-  parseSVCBValueList("\"foobar123 blabla bla\\,baz quux456\"", out);
+  parseSVCBValueList(R"FOO("foobar123 blabla bla\\,baz quux456")FOO", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
 
-  parseSVCBValueList("\"foobar123 blabla bla\\044baz quux456\"", out);
+  parseSVCBValueList(R"FOO("foobar123 blabla bla\\\044baz quux456")FOO", out);
   BOOST_CHECK_EQUAL(out.size(), 1);
   BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
 }

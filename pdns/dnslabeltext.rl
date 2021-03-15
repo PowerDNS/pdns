@@ -240,12 +240,12 @@ size_t parseRFC1035CharString(const std::string &in, std::string &val) {
   return counter;
 }
 
-size_t parseSVCBValueList(const std::string &in, std::vector<std::string> &val) {
+size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, std::vector<std::string> &val) {
   val.clear();
   const char *p = in.c_str();
   const char *pe = p + in.size();
   int cs = 0;
-  uint8_t escaped_octet = 0;
+  const char* eof = pe;
   // Keeps track of how many chars we read from the source string
   size_t counter=0;
 
@@ -254,24 +254,18 @@ size_t parseSVCBValueList(const std::string &in, std::vector<std::string> &val) 
 
 %%{
   machine dns_text_to_value_list;
-
-  action doEscapedNumber {
-    escaped_octet *= 10;
-    escaped_octet += fc-'0';
-    counter++;
-  }
-
-  action doneEscapedNumber {
-    tmp += escaped_octet;
-    escaped_octet = 0;
-  }
+  alphtype unsigned char;
 
   action addToVal {
     tmp += fc;
     counter++;
   }
 
-  action handleComma {
+  action addToValNoIncrement {
+    tmp += fc;
+  }
+
+  action addToVector {
     val.push_back(tmp);
     tmp.clear();
     counter++;
@@ -282,24 +276,13 @@ size_t parseSVCBValueList(const std::string &in, std::vector<std::string> &val) 
   }
 
   # generated rules, define required actions
-  DIGIT = 0x30..0x39;
-  DQUOTE = "\"";
-  HTAB = "\t";
-  SP = " ";
-  WSP = (SP | HTAB)@addToVal;
-  non_special = "!" | 0x23..0x27 | 0x2a..0x2b | 0x2d..0x3a | 0x3c..0x5b | 0x5d..0x7e;
-  non_digit = 0x21..0x2f | 0x3a..0x7e;
-  dec_octet = ( ( "0" | "1" ) DIGIT{2} ) | ( "2" ( ( 0x30..0x34 DIGIT ) | ( "5" 0x30..0x35 ) ) );
-  escaped = '\\'@incrementCounter ( non_digit$addToVal | dec_octet$doEscapedNumber@doneEscapedNumber );
-  contiguous = ( non_special$addToVal | escaped )+;
-  comma = ',';
-  quoted_sepped = ( contiguous | ('\\'? WSP) )* (comma@handleComma ( contiguous | ('\\'? WSP) )+ )*;
-  unquoted_sepped = (contiguous (comma@handleComma contiguous)*);
-  quoted = DQUOTE@incrementCounter quoted_sepped DQUOTE@incrementCounter;
-  char_string = (quoted | unquoted_sepped);
+  OCTET = 0x00..0xff;
+  item_allowed = 0x00..0x2b | 0x2d..0x5b | 0x5d..0xff;
+  escaped_item = ( item_allowed$addToVal | '\\,'$incrementCounter@addToValNoIncrement | '\\\\'$incrementCounter@addToValNoIncrement )+;
+  comma_separated = ( escaped_item%addToVector ( ","@incrementCounter escaped_item%addToVector )* )?;
 
   # instantiate machine rules
-  main := char_string;
+  main := comma_separated;
   write data;
   write init;
 }%%
@@ -310,9 +293,6 @@ size_t parseSVCBValueList(const std::string &in, std::vector<std::string> &val) 
   (void) dns_text_to_value_list_en_main;
   %% write exec;
 
-  // Add the last-parsed value to val
-  // ideally, we'd use a transition as well, but too many hours were wasted trying that
-  val.push_back(tmp);
   return counter;
 }
 
