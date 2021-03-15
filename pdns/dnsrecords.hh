@@ -510,6 +510,10 @@ class SVCBBaseRecordContent : public DNSRecordContent
     void removeParam(const SvcParam::SvcParamKey &key);
     // Whether or not there are any param
     bool hasParams() const;
+    // Whether or not the param of |key| exists
+    bool hasParam(const SvcParam::SvcParamKey &key) const;
+    // Get the parameter with |key|, will throw out_of_range if param isn't there
+    SvcParam getParam(const SvcParam::SvcParamKey &key) const;
 
   protected:
     uint16_t d_priority;

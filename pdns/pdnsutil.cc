@@ -422,6 +422,28 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         numwarnings++;
       }
 
+      if(svcbrc->getPriority() != 0) {
+        // Service Form
+        if (svcbrc->hasParam(SvcParam::no_default_alpn) && !svcbrc->hasParam(SvcParam::alpn)) {
+          /* draft-ietf-dnsop-svcb-https-03 section 6.1
+           *  When "no-default-alpn" is specified in an RR, "alpn" must
+           *  also be specified in order for the RR to be "self-consistent
+           *  (Section 2.4.3).
+           */
+          cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.getName()<<" is not self-consistent: 'no-default-alpn' parameter without 'alpn' parameter"<<endl;
+          numwarnings++;
+        }
+        if (svcbrc->hasParam(SvcParam::mandatory)) {
+          auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
+          for (auto const &k: keys) {
+            if (!svcbrc->hasParam(k)) {
+              cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.getName()<<" is not self-consistent: 'mandatory' parameter lists '"+ SvcParam::keyToString(k) +"', but that parameter does not exist"<<endl;
+              numwarnings++;
+            }
+          }
+        }
+      }
+
       switch (rr.qtype.getCode()) {
       case QType::SVCB:
         if (svcbrc->getPriority() == 0) {

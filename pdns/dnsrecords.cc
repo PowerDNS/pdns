@@ -764,6 +764,25 @@ bool SVCBBaseRecordContent::hasParams() const {
   return d_params.size() > 0;
 }
 
+bool SVCBBaseRecordContent::hasParam(const SvcParam::SvcParamKey &key) const {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
+      [&key](const SvcParam &param) {
+        return param.getKey() == key;
+      });
+  return p != d_params.end();
+}
+
+SvcParam SVCBBaseRecordContent::getParam(const SvcParam::SvcParamKey &key) const {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
+      [&key](const SvcParam &param) {
+        return param.getKey() == key;
+      });
+  if (p == d_params.end()) {
+    throw std::out_of_range("No param with key " + SvcParam::keyToString(key));
+  }
+  return *p;
+}
+
 /* SVCB end */
 
 boilerplate_conv(TKEY,
