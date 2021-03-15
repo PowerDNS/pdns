@@ -5,8 +5,8 @@ Priority: optional
 Standards-Version: 4.5.1
 Build-Depends: bison,
                curl,
-               debhelper-compat (= 10),
                default-libmysqlclient-dev,
+               debhelper (>= 10),
                dnsutils,
                flex,
                libboost-all-dev,
