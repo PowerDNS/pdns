@@ -2771,8 +2771,10 @@ try
     if(cmds[1]==".")
       cmds[1].clear();
 
-    for(size_t n=1; n + 2 <= cmds.size(); n+=2)
-      loadZone(DNSName(cmds[n]), cmds[n+1]);
+    for(size_t n=1; n + 2 <= cmds.size(); n+=2) {
+      auto ret = loadZone(DNSName(cmds[n]), cmds[n+1]);
+      if (ret) exit(ret);
+    }
     return 0;
   }
   else if(cmds[0] == "secure-zone") {
