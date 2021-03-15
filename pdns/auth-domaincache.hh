@@ -28,21 +28,23 @@
 class AuthDomainCache : public boost::noncopyable
 {
 public:
-  AuthDomainCache(size_t mapsCount=1024);
+  AuthDomainCache(size_t mapsCount = 1024);
   ~AuthDomainCache();
 
-  void replace(const vector<tuple<DNSName, int>> &domains);
+  void replace(const vector<tuple<DNSName, int>>& domains);
   void add(const DNSName& domain, const int zoneId);
 
-  bool getEntry(const DNSName &domain, int &zoneId);
+  bool getEntry(const DNSName& domain, int& zoneId);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
 
-  uint32_t getTTL() const {
+  uint32_t getTTL() const
+  {
     return d_ttl;
   }
 
-  void setTTL(uint32_t ttl) {
+  void setTTL(uint32_t ttl)
+  {
     d_ttl = ttl;
   }
 
@@ -60,10 +62,10 @@ private:
 
   struct MapCombo
   {
-    MapCombo() { }
-    ~MapCombo() { }
-    MapCombo(const MapCombo &) = delete;
-    MapCombo & operator=(const MapCombo &) = delete;
+    MapCombo() {}
+    ~MapCombo() {}
+    MapCombo(const MapCombo&) = delete;
+    MapCombo& operator=(const MapCombo&) = delete;
 
     ReadWriteLock d_mut;
     cmap_t d_map;
@@ -79,9 +81,9 @@ private:
     return d_maps[getMapIndex(qname)];
   }
 
-  AtomicCounter *d_statnumhit;
-  AtomicCounter *d_statnummiss;
-  AtomicCounter *d_statnumentries;
+  AtomicCounter* d_statnumhit;
+  AtomicCounter* d_statnummiss;
+  AtomicCounter* d_statnumentries;
 
   time_t d_ttl{0};
 };

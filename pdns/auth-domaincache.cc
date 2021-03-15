@@ -30,15 +30,16 @@
 #include "cachecleaner.hh"
 extern StatBag S;
 
-AuthDomainCache::AuthDomainCache(size_t mapsCount): d_maps(mapsCount)
+AuthDomainCache::AuthDomainCache(size_t mapsCount) :
+  d_maps(mapsCount)
 {
   S.declare("domain-cache-hit", "Number of hits on the domain cache");
   S.declare("domain-cache-miss", "Number of misses on the domain cache");
   S.declare("domain-cache-size", "Number of entries in the domain cache", StatType::gauge);
 
-  d_statnumhit=S.getPointer("domain-cache-hit");
-  d_statnummiss=S.getPointer("domain-cache-miss");
-  d_statnumentries=S.getPointer("domain-cache-size");
+  d_statnumhit = S.getPointer("domain-cache-hit");
+  d_statnummiss = S.getPointer("domain-cache-miss");
+  d_statnumentries = S.getPointer("domain-cache-size");
 
   d_ttl = 0;
 }
@@ -47,16 +48,16 @@ AuthDomainCache::~AuthDomainCache()
 {
   try {
     vector<WriteLock> locks;
-    for(auto& mc : d_maps) {
+    for (auto& mc : d_maps) {
       locks.push_back(WriteLock(mc.d_mut));
     }
     locks.clear();
   }
-  catch(...) {
+  catch (...) {
   }
 }
 
-bool AuthDomainCache::getEntry(const DNSName &domain, int& zoneId)
+bool AuthDomainCache::getEntry(const DNSName& domain, int& zoneId)
 {
   auto& mc = getMap(domain);
   bool found = false;
@@ -71,7 +72,8 @@ bool AuthDomainCache::getEntry(const DNSName &domain, int& zoneId)
 
   if (found) {
     (*d_statnumhit)++;
-  } else {
+  }
+  else {
     (*d_statnummiss)++;
   }
   return found;
@@ -87,16 +89,16 @@ void AuthDomainCache::clear()
   purgeLockedCollectionsVector(d_maps);
 }
 
-void AuthDomainCache::replace(const vector<tuple<DNSName, int>> &domain_indices)
+void AuthDomainCache::replace(const vector<tuple<DNSName, int>>& domain_indices)
 {
-  if(!d_ttl)
+  if (!d_ttl)
     return;
 
   size_t count = domain_indices.size();
   vector<MapCombo> newMaps(d_maps.size());
 
   // build new maps
-  for(const tuple<DNSName, int>& tup: domain_indices) {
+  for (const tuple<DNSName, int>& tup : domain_indices) {
     const DNSName& domain = tup.get<0>();
     CacheValue val;
     val.zoneId = tup.get<1>();
@@ -104,8 +106,7 @@ void AuthDomainCache::replace(const vector<tuple<DNSName, int>> &domain_indices)
     mc.d_map.emplace(domain, val);
   }
 
-  for(size_t mapIndex = 0; mapIndex < d_maps.size(); mapIndex++)
-  {
+  for (size_t mapIndex = 0; mapIndex < d_maps.size(); mapIndex++) {
     auto& mc = d_maps[mapIndex];
     WriteLock l(mc.d_mut);
     mc.d_map = std::move(newMaps[mapIndex].d_map);
@@ -116,7 +117,7 @@ void AuthDomainCache::replace(const vector<tuple<DNSName, int>> &domain_indices)
 
 void AuthDomainCache::add(const DNSName& domain, const int zoneId)
 {
-  if(!d_ttl)
+  if (!d_ttl)
     return;
 
   CacheValue val;

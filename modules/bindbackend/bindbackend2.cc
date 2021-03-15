@@ -704,7 +704,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pi
 
   safePutBBDomainInfo(bbd);
 
-  g_domainCache.add(domainname, bbd.d_id);  // make new domain visible
+  g_domainCache.add(domainname, bbd.d_id); // make new domain visible
 
   g_log << Logger::Warning << "Zone " << domainname << " loaded" << endl;
   return "Loaded zone " + domainname.toLogString() + " from " + filename;
