@@ -10,7 +10,12 @@ Reply to question for qname='google-alias.example.com.', qtype=A
 0	google-alias.example.com.	IN	AAAA	[ttl]	2001:4860:4860::8888
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='google-alias.example.com.', qtype=AAAA
+1	example.com.	IN	NSEC	[ttl]	_imap._tcp.example.com. NS SOA MX RRSIG NSEC DNSKEY
+1	example.com.	IN	RRSIG	[ttl]	NSEC 13 2 86400 [expiry] [inception] [keytag] example.com. ...
+1	example.com.	IN	RRSIG	[ttl]	SOA 13 2 100000 [expiry] [inception] [keytag] example.com. ...
 1	example.com.	IN	SOA	[ttl]	ns1.example.com. ahu.example.com. [serial] 28800 7200 604800 86400
+1	google-alias.example.com.	IN	NSEC	[ttl]	hightype.example.com. A AAAA RRSIG NSEC
+1	google-alias.example.com.	IN	RRSIG	[ttl]	NSEC 13 3 86400 [expiry] [inception] [keytag] example.com. ...
 2	.	IN	OPT	[ttl]	
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='google-alias1.example.com.', qtype=A
