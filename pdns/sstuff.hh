@@ -279,9 +279,7 @@ public:
     while(bytes) {
       ret=::write(d_socket, ptr, bytes);
       if(ret < 0) {
-        // some systems (e.g. OpenBSD) return ENOTCONN on non-blocking sockets on which connect *has been* called
-        // we have to wait for the opportunity to write after the connect is done
-        if (errno == EAGAIN || errno == ENOTCONN) {
+        if(errno == EAGAIN) {
           ret=waitForRWData(d_socket, false, timeout, 0);
           if(ret < 0)
             throw NetworkError("Waiting for data write");
