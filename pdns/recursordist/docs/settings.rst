@@ -334,8 +334,7 @@ In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
 -  Boolean
 -  Default: no
 
-Turn off the packet cache. Useful when running with Lua scripts that can
-not be cached.
+Turn off the packet cache. Useful when running with Lua scripts that can not be cached, though individual query caching can be controlled from Lua as well.
 
 .. _setting-disable-syslog:
 
@@ -970,8 +969,9 @@ Maximum number of seconds to cache an item in the DNS cache (negative or positiv
 -  Integer
 -  Default: 1000000
 
-Maximum number of DNS cache entries.
-1 million per thread will generally suffice for most installations.
+Maximum number of DNS record cache entries, shared by all threads since 4.4.0.
+Each entry associates a name and type with a record set.
+The size of the negative cache is 10% of this number.
 
 .. _setting-max-cache-ttl:
 
@@ -1032,7 +1032,7 @@ Maximum number of simultaneous MTasker threads.
 -  Default: 500000
 
 Maximum number of Packet Cache entries.
-1 million per thread will generally suffice for most installations.
+This number will be divided by the number of worker threads to compute the number of entries per thread.
 
 .. _setting-max-qperq:
 
@@ -1726,7 +1726,7 @@ If set to non-zero, PowerDNS will assume it is being spoofed after seeing this m
 -  Integer
 -  Default: 200000
 
-Size of the stack per thread.
+Size of the stack of each mthread.
 
 .. _setting-statistics-interval:
 
