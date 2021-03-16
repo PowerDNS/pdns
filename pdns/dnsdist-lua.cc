@@ -223,6 +223,10 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
     g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to " + context + "(), but this version of OpenSSL does not support it";
 #endif
   }
+
+  if (vars->count("releaseBuffers")) {
+    config.d_releaseBuffers = boost::get<bool>((*vars)["releaseBuffers"]);
+  }
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
