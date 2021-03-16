@@ -2970,18 +2970,21 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && (isNXDomain || isNXQType)) {
-      /* we don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
-         because they are somewhat easy to insert into a large, fragmented UDP response
-         for an off-path attacker by injecting spoofed UDP fragments.
-      */
+      /*
+       * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
+       * because they are somewhat easy to insert into a large, fragmented UDP response
+       * for an off-path attacker by injecting spoofed UDP fragments. So do not add these to allowedAdditionals.
+       */
       LOG(prefix<<"Removing NS record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section of a "<<(isNXDomain ? "NXD" : "NXQTYPE")<<" response received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && !d_updatingRootNS && rec->d_name == g_rootdnsname) {
-      /* we don't want to pick up NS records in AUTHORITY and their ADDITIONALs sections of random queries
-      */
+      /*
+       * We don't want to pick up root NS records in AUTHORITY and their associated ADDITIONAL sections of random queries.
+       * So don't add them to allowedAdditionals.
+       */
       LOG(prefix<<"Removing NS record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section of a response received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
