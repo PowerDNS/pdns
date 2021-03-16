@@ -138,7 +138,6 @@ BOOST_AUTO_TEST_CASE(test_root_ns_poison_resistance)
   const DNSName target("www.example.com.");
 
   sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-
     if (domain == g_rootdnsname && type == QType::NS) {
 
       setLWResult(res, 0, true, false, true);
