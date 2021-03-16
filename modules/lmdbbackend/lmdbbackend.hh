@@ -58,7 +58,7 @@ public:
 
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
   bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
 
   bool startTransaction(const DNSName& domain, int domain_id = -1) override;
@@ -216,6 +216,15 @@ public:
     bool active;
     bool published;
   };
+  class LMDBResourceRecord : public DNSResourceRecord
+  {
+  public:
+    LMDBResourceRecord() {}
+    LMDBResourceRecord(const DNSResourceRecord& rr) :
+      DNSResourceRecord(rr), ordername(false) {}
+
+    bool ordername{false};
+  };
 
 private:
   typedef TypedDBI<DomainInfo,
@@ -277,6 +286,8 @@ private:
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
 
+  bool getSerial(DomainInfo& di);
+
   bool upgradeToSchemav3();
 
   bool get_list(DNSZoneRecord& rr);
@@ -284,10 +295,11 @@ private:
   std::string d_matchkey;
   DNSName d_lookupdomain;
 
-  vector<DNSResourceRecord> d_currentrrset;
+  vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
   MDBOutVal d_currentKey;
   MDBOutVal d_currentVal;
+  bool d_includedisabled;
 
   DNSName d_transactiondomain;
   uint32_t d_transactiondomainid;
