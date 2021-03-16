@@ -7,6 +7,7 @@ TLS sessions
 One of the most costly TLS operation is the negotiation of a new session, since both the client and the server need to generate and agree on cryptographic materials. In order to reduce that cost, TLS implements what is called session resumption, where a client opening a new connection to a server can reuse the cryptographic materials negotiated for a previous TLS session.
 
 The necessary information to resume a session can either be kept on the server's side (sessions) or on the client's one (tickets). Initially only the server-side approach existed, with two drawbacks:
+
 - the server needs to keep that information at hand, for a client that might never come back;
 - sharing that information between several servers is not easy, especially in setups involving anycast or any kind of cluster without strong session affinity.
 
@@ -48,11 +49,13 @@ Content of the STEK file
 ------------------------
 
 It does not really matter for most operations, but for later reference the format of the OpenSSL STEK is:
+
 - a 16 bytes binary key identifier
 - a 32 bytes AES 256 key
 - a 32 bytes HMAC SHA-2 256 key
 
 For GnuTLS:
+
 - a 16 bytes binary key identifier
 - a 32 bytes AES 256 key
 - a 16 bytes HMAC SHA-1 key
