@@ -31,6 +31,9 @@ public:
 
   bool d_preferServerCiphers{true};
   bool d_enableTickets{true};
+  /* whether OpenSSL will release I/O buffers when the connection
+     becomes idle, saving memory */
+  bool d_releaseBuffers{true};
 };
 
 struct TLSErrorCounters

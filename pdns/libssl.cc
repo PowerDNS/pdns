@@ -697,6 +697,12 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
     SSL_CTX_sess_set_cache_size(ctx.get(), config.d_maxStoredSessions);
   }
 
+#ifdef SSL_MODE_RELEASE_BUFFERS
+  if (config.d_releaseBuffers) {
+    SSL_CTX_set_mode(ctx.get(), SSL_MODE_RELEASE_BUFFERS);
+  }
+#endif
+
   /* we need to set this callback to acknowledge the server name sent by the client,
      otherwise it will not stored in the session and will not be accessible when the
      session is resumed, causing SSL_get_servername to return nullptr */
