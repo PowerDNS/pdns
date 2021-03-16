@@ -8,8 +8,8 @@ fi
 
 case "$1" in
   configure)
-    addgroup --quiet --system pdns
-    adduser --quiet --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+    addgroup --quiet --system pdns || true
+    adduser --quiet --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns || true
     chown root:pdns /etc/powerdns/pdns.conf || true
     chmod 0640 /etc/powerdns/pdns.conf || true
   ;;
