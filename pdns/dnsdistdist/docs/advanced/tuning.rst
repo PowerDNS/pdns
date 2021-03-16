@@ -26,14 +26,14 @@ Any value larger than 0 will cause new connections to be dropped if there are al
 By default, every TCP worker thread has its own queue, and the incoming TCP connections are dispatched to TCP workers on a round-robin basis.
 This might cause issues if some connections are taking a very long time, since incoming ones will be waiting until the TCP worker they have been assigned to has finished handling its current query, while other TCP workers might be available.
 
-The experimental :func:`setTCPUseSinglePipe` directive can be used so that all the incoming TCP connections are put into a single queue and handled by the first TCP worker available.
+The experimental :func:`setTCPUseSinglePipe` directive can be used so that all the incoming TCP connections are put into a single queue and handled by the first TCP worker available. This used to be useful before 1.4.0 because a single connection could block a TCP worker, but the "one pipe per TCP worker" is preferable now that workers can handle multiple connections to prevent waking up all idle workers when a new connection arrives.
 
 Rules and Lua
 -------------
 
 Most of the query processing is done in C++ for maximum performance, but some operations are executed in Lua for maximum flexibility:
 
- * Rules added by :func:`addLuaAction`
+ * Rules added by :func:`LuaAction`, :func:`LuaResponseAction`, :func:`LuaFFIAction` or :func:`LuaFFIResponseAction`
  * Server selection policies defined via :func:`setServerPolicyLua`, :func:`setServerPolicyLuaFFI`, :func:`setServerPolicyLuaFFIPerThread` or :func:`newServerPolicy`
 
 While Lua is fast, its use should be restricted to the strict necessary in order to achieve maximum performance, it might be worth considering using LuaJIT instead of Lua.
@@ -81,4 +81,4 @@ Lock contention and sharding
 
 Adding more threads makes it possible to use more CPU cores to deal with the load, but at the cost of possibly increasing lock contention between threads. This is especially true for Lua-intensive setups, because Lua processing in dnsdist is serialized by a unique lock for all threads.
 For other components, like the packet cache and the in-memory ring buffers, it is possible to reduce the amount of contention by using sharding. Sharding divides the memory into several pieces, every one of these having its own separate lock, reducing the amount of times two threads or more will need to access the same data.
-Sharding is disabled by default and can be enabled via the `newPacketCache` option to :func:`newPacketCache` and :func:`setRingBuffersSize`.
+Sharding is disabled by default and can be enabled via the `numberOfShards` option to :func:`newPacketCache` and :func:`setRingBuffersSize`.
