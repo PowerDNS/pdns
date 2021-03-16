@@ -114,13 +114,13 @@ bool primeHints(time_t ignored)
     for (auto const& r: seenA) {
       if (seenNS.count(r)) {
         reachableA = true;
-	break;
+        break;
       }
     }
     for (auto const& r: seenAAAA) {
       if (seenNS.count(r)) {
         reachableAAAA = true;
-	break;
+        break;
       }
     }
     if (SyncRes::s_doIPv4 && !SyncRes::s_doIPv6 && !reachableA) {
