@@ -131,13 +131,12 @@ BOOST_AUTO_TEST_CASE(test_ageDNSPacket) {
 
   BOOST_CHECK(firstPacket == expectedAlteredPacket);
 
-  /* now remove more than the remaining TTL, not that while TTL are,
-     per rfc1035 errata, "a 32 bit unsigned integer" so we should be
-     able to expect unsigned overflow to apply, but rfc2181 specifies
-     a maximum of "2^31 - 1". */
+  /* now remove more than the remaining TTL. We expect ageDNSPacket
+     to cap this at zero and not cause an unsigned underflow into
+     the 2^32-1 neighbourhood */
   ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size(), 1801);
 
-  uint32_t ttl = std::numeric_limits<uint32_t>::max();
+  uint32_t ttl = 0;
 
   expectedAlteredPacket = generatePacket(ttl);
   BOOST_REQUIRE_EQUAL(firstPacket.size(), expectedAlteredPacket.size());

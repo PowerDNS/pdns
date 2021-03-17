@@ -2125,12 +2125,13 @@ static void startDoResolve(void *p)
       g_stats.variableResponses++;
     }
     if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
+      minTTL = min(minTTL, pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
+                   SyncRes::s_packetcachettl);
       t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
                                           dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                           string((const char*)&*packet.begin(), packet.size()),
                                           g_now.tv_sec,
-                                          pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
-                                          min(minTTL,SyncRes::s_packetcachettl),
+                                          minTTL,
                                           dq.validationState,
                                           std::move(pbDataForCache), dc->d_tcp);
     }

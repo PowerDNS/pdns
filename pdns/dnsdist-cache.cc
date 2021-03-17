@@ -285,7 +285,13 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
   }
 
   if (!d_dontAge && !skipAging) {
-    ageDNSPacket(reinterpret_cast<char *>(&response[0]), response.size(), age);
+    if (!stale) {
+      ageDNSPacket(reinterpret_cast<char *>(&response[0]), response.size(), age);
+    }
+    else {
+      editDNSPacketTTL(reinterpret_cast<char *>(&response[0]), response.size(),
+        [staleTTL = d_staleTTL](uint8_t section, uint16_t class_, uint16_t type, uint32_t ttl) { return staleTTL; });
+    }
   }
 
   d_hits++;
