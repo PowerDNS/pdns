@@ -104,12 +104,6 @@ number. e.g.:
     pdnsutil set-meta powerdns.org ALSO-NOTIFY 192.0.2.1:5300
     pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
 
-Or in SQL:
-
-.. code-block:: SQL
-
-    insert into domainmetadata (domain_id, kind, content) values (7,'ALSO-NOTIFY','192.0.2.1:5300');
-    insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8:53::1');
 
 AXFR-MASTER-TSIG
 ----------------
