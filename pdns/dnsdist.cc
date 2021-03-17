@@ -532,7 +532,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 
   {
     std::lock_guard<std::mutex> lock(state->socketsLock);
-    state->mplexer->getAvailableFDs(ready, -1);
+    state->mplexer->getAvailableFDs(ready, 1000);
   }
 }
 
@@ -552,10 +552,14 @@ try {
   std::vector<int> sockets;
   sockets.reserve(dss->sockets.size());
 
-  for(; !dss->isStopped(); ) {
+  for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
     try {
       pickBackendSocketsReadyForReceiving(dss, sockets);
+      if (dss->isStopped()) {
+        break;
+      }
+
       for (const auto& fd : sockets) {
         ssize_t got = recv(fd, packet, sizeof(packet), 0);
         char * response = packet;
@@ -1253,10 +1257,10 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toLogString(), QType(dq.qtype).getName(), dq.remote->toStringWithPort());
       if (g_servFailOnNoPolicy) {
-        restoreFlags(dq.dh, dq.origFlags);
-
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr = true;
+
+        fixUpQueryTurnedResponse(dq, dq.origFlags);
 
         if (!prepareOutgoingResponse(holders, cs, dq, false)) {
           return ProcessQueryResult::Drop;
