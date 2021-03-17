@@ -3514,8 +3514,8 @@ static void houseKeeping(void *)
         }
         last_RC_prune = now.tv_sec;
       }
-      // XXX !!! global
-      if (now.tv_sec - last_rootupdate > 7200) {
+      // Divide by 12 to get the original 2 hour cycle if s_maxcachettl is default (1 day)
+      if (now.tv_sec - last_rootupdate > max(SyncRes::s_maxcachettl / 12, 10U)) {
         int res = SyncRes::getRootNS(g_now, nullptr, 0);
         if (!res) {
           last_rootupdate=now.tv_sec;

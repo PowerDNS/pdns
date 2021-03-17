@@ -1259,10 +1259,10 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
     if(subdomain.isRoot() && !brokeloop) {
       // We lost the root NS records
       primeHints();
-      primeRootNSZones(g_dnssecmode != DNSSECMode::Off, depth);
       LOG(prefix<<qname<<": reprimed the root"<<endl);
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
+        primeRootNSZones(g_dnssecmode != DNSSECMode::Off, depth);
         getRootNS(d_now, d_asyncResolve, depth);
       }
     }
@@ -4370,7 +4370,6 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
         throw PDNSException("Got Bogus validation result for .|NS");
       }
     }
-    return res;
   }
   catch(const PDNSException& e) {
     g_log<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
