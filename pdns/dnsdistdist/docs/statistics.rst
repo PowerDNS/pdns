@@ -227,6 +227,12 @@ servfail-responses
 ------------------
 Number of servfail answers received from backends.
 
+tcp-listen-overflows
+--------------------
+.. versionadded:: 1.6.0
+
+From /proc/net/netstat ListenOverflows.
+
 trunc-failures
 --------------
 Number of errors encountered while truncating an answer.
