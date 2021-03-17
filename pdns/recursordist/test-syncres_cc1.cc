@@ -107,6 +107,8 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  // We expect an error, do not log it
+  g_log.toConsole(Logger::Critical);
   std::set<ComboAddress> downServers;
 
   /* we are not primed yet, so SyncRes will have to call primeHints()
