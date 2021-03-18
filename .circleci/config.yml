@@ -759,7 +759,9 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
           ASAN_OPTIONS: detect_leaks=0
-      - image: circleci/mysql:5      # for the hybrid test
+      - image: mysql:5      # for the hybrid test
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -805,7 +807,9 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
           ASAN_OPTIONS: detect_leaks=0
-      - image: circleci/mysql:5
+      - image: mysql:5
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -848,7 +852,7 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
           ASAN_OPTIONS: detect_leaks=0
-      - image: circleci/postgres:9
+      - image: postgres:9
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1072,7 +1076,9 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
           ASAN_OPTIONS: detect_leaks=0
-      - image: circleci/mysql:5
+      - image: mysql:5
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 1
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1108,7 +1114,7 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
           ASAN_OPTIONS: detect_leaks=0
-      - image: circleci/postgres:9
+      - image: postgres:9
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
