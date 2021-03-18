@@ -166,6 +166,7 @@ BuildRequires: tinycdb-devel
 %description backend-tinydns
 This package contains the TinyDNS backend for %{name}
 
+%if 0%{?amzn} != 2
 %package ixfrdist
 BuildRequires: yaml-cpp-devel
 Summary: A progrm to redistribute zones over AXFR and IXFR
@@ -173,6 +174,7 @@ Group: System Environment/Daemons
 
 %description ixfrdist
 This package contains the ixfrdist program.
+%endif
 
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
@@ -191,11 +193,13 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --with-dynmodules='%{backends} random' \
   --enable-tools \
   --with-libsodium \
+%if 0%{?amzn} != 2
+  --enable-ixfrdist \
+%endif
   --enable-unit-tests \
   --enable-lua-records \
   --enable-experimental-pkcs11 \
-  --enable-systemd \
-  --enable-ixfrdist
+  --enable-systemd
 
 make %{?_smp_mflags}
 
@@ -367,6 +371,7 @@ systemctl daemon-reload ||:
 %files backend-tinydns
 %{_libdir}/%{name}/libtinydnsbackend.so
 
+%if 0%{?amzn} != 2
 %files ixfrdist
 %{_bindir}/ixfrdist
 %{_mandir}/man1/ixfrdist.1.gz
@@ -374,3 +379,4 @@ systemctl daemon-reload ||:
 %{_sysconfdir}/%{name}/ixfrdist.example.yml
 %{_unitdir}/ixfrdist.service
 %{_unitdir}/ixfrdist@.service
+%endif
