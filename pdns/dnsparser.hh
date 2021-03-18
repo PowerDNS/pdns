@@ -514,7 +514,11 @@ public:
     uint32_t tmp;
     memcpy(&tmp, (void*) p, sizeof(tmp));
     tmp = ntohl(tmp);
-    tmp-=decrease;
+    if (tmp > decrease) {
+      tmp -= decrease;
+    } else {
+      tmp = 0;
+    }
     tmp = htonl(tmp);
     memcpy(d_packet + d_offset-4, (const char*)&tmp, sizeof(tmp));
   }
