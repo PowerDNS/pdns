@@ -2690,12 +2690,12 @@ struct LuaContext::Reader<std::string>
         size_t len;
         const auto val = lua_tolstring(state, -1, &len);
 
-        if (val != 0)
+        if (val != nullptr)
           result.assign(val, len);
 
         lua_pop(state, 1);
 
-        return val != 0 ? boost::optional<std::string>{ std::move(result) } : boost::none;
+        return val != nullptr ? boost::optional<std::string>{ std::move(result) } : boost::none;
     }
 };
 
