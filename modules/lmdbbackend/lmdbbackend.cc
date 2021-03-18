@@ -793,24 +793,24 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
     try {
       const auto& lrr = d_currentrrset.at(d_currentrrsetpos++);
 
-      if (!lrr.disabled || d_includedisabled) {
+      zr.disabled = lrr.disabled;
+      if (!zr.disabled || d_includedisabled) {
         zr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
         zr.domain_id = compoundOrdername::getDomainID(key);
         zr.dr.d_type = compoundOrdername::getQType(key).getCode();
         zr.dr.d_ttl = lrr.ttl;
         zr.dr.d_content = deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content);
         zr.auth = lrr.auth;
-        zr.disabled = lrr.disabled;
       }
 
       if (d_currentrrsetpos >= d_currentrrset.size()) {
-        d_currentrrset.clear();
+        d_currentrrset.clear(); // will invalidate lrr
         if (d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
           d_getcursor.reset();
         }
       }
 
-      if (lrr.disabled && !d_includedisabled) {
+      if (zr.disabled && !d_includedisabled) {
         continue;
       }
     }
