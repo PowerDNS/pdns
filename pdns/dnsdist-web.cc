@@ -471,6 +471,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "tcpdiedreadingresponse " << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "tcpgaveup "              << "The number of TCP connections failing after too many attempts"     << "\n";
   output << "# TYPE " << statesbase << "tcpgaveup "              << "counter"                                                           << "\n";
+  output << "# HELP " << statesbase << "tcpconnecttimeouts "     << "The number of TCP connect timeouts"                                << "\n";
+  output << "# TYPE " << statesbase << "tcpconnecttimeouts "     << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "tcpreadtimeouts "        << "The number of TCP read timeouts"                                   << "\n";
   output << "# TYPE " << statesbase << "tcpreadtimeouts "        << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "tcpwritetimeouts "       << "The number of TCP write timeouts"                                  << "\n";
@@ -513,6 +515,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "tcpgaveup"              << label << " " << state->tcpGaveUp                  << "\n";
     output << statesbase << "tcpreadtimeouts"        << label << " " << state->tcpReadTimeouts            << "\n";
     output << statesbase << "tcpwritetimeouts"       << label << " " << state->tcpWriteTimeouts           << "\n";
+    output << statesbase << "tcpconnecttimeouts"     << label << " " << state->tcpConnectTimeouts         << "\n";
     output << statesbase << "tcpcurrentconnections"  << label << " " << state->tcpCurrentConnections      << "\n";
     output << statesbase << "tcpnewconnections"      << label << " " << state->tcpNewConnections          << "\n";
     output << statesbase << "tcpreusedconnections"   << label << " " << state->tcpReusedConnections       << "\n";
@@ -902,6 +905,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
       {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},
       {"tcpGaveUp", (double)a->tcpGaveUp},
+      {"tcpConnectTimeouts", (double)a->tcpConnectTimeouts},
       {"tcpReadTimeouts", (double)a->tcpReadTimeouts},
       {"tcpWriteTimeouts", (double)a->tcpWriteTimeouts},
       {"tcpCurrentConnections", (double)a->tcpCurrentConnections},

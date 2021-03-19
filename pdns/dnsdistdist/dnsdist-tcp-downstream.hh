@@ -219,7 +219,7 @@ private:
   boost::optional<struct timeval> getBackendWriteTTD(const struct timeval& now) const
   {
     if (d_ds == nullptr) {
-      throw std::runtime_error("getBackendReadTTD() called without any backend selected");
+      throw std::runtime_error("getBackendWriteTTD() called without any backend selected");
     }
     if (d_ds->tcpSendTimeout == 0) {
       return boost::none;
@@ -227,6 +227,21 @@ private:
 
     struct timeval res = now;
     res.tv_sec += d_ds->tcpSendTimeout;
+
+    return res;
+  }
+
+  boost::optional<struct timeval> getBackendConnectTTD(const struct timeval& now) const
+  {
+    if (d_ds == nullptr) {
+      throw std::runtime_error("getBackendConnectTTD() called without any backend selected");
+    }
+    if (d_ds->tcpConnectTimeout == 0) {
+      return boost::none;
+    }
+
+    struct timeval res = now;
+    res.tv_sec += d_ds->tcpConnectTimeout;
 
     return res;
   }
