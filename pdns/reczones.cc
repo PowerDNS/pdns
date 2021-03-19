@@ -75,13 +75,13 @@ bool primeHints(time_t ignored)
       aset.push_back(arr);
       /*
        * Originally the hint records were inserted with the auth flag set, with the consequence that data from AUTHORITY and
-       * ADDITIONAL sections (as seen in a ,. NS response) were not used. This (together with the long ttl) caused outdated
+       * ADDITIONAL sections (as seen in a . NS response) were not used. This (together with the long ttl) caused outdated
        * hint to be kept in cache. So insert as non-auth, and the extra sections in the . NS refreshing cause the cached
        * records to be updated with up-to-date information received from a real root server.
        *
        * Note that if a user query is done for one of the root-server.net names, it will be inserted into the cache with the
        * auth bit set. Further NS refreshes will not update that entry. If all root names are queried at the same time by a user,
-       * all root-server.net names will be marked auth and will expired at the same time. A re-prime is then triggered,
+       * all root-server.net names will be marked auth and will expire at the same time. A re-prime is then triggered,
        * as before, when the records were inserted with the auth bit set and the TTD comes.
        */
       g_recCache->replace(now, DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from); // auth, nuke it all
