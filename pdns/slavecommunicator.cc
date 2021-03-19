@@ -55,8 +55,8 @@ void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress
   sr.domain = domain;
   sr.master = master;
   sr.force = force;
-  sr.priority = priority;
-  sr.sortHelper = d_sorthelper++;
+  sr.priorityAndOrder.first = priority;
+  sr.priorityAndOrder.second = d_sorthelper++;
   pair<UniQueue::iterator, bool>  res;
 
   res=d_suckdomains.insert(sr);
@@ -70,10 +70,9 @@ void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress
       // bit weird, but ok
       return;
     }
-    nameindex.modify(iter, [priority = priority, sorthelper = sr.sortHelper] (SuckRequest& so) {
-      if (priority < so.priority) {
-        so.priority = priority;
-        so.sortHelper = sorthelper;
+    nameindex.modify(iter, [priorityAndOrder = sr.priorityAndOrder] (SuckRequest& so) {
+      if (priorityAndOrder.first < so.priorityAndOrder.first) {
+        so.priorityAndOrder = priorityAndOrder;
       }
     });
   }

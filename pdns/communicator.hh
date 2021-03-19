@@ -46,22 +46,11 @@ struct SuckRequest
   DNSName domain;
   ComboAddress master;
   bool force;
-  uint8_t priority;
-  uint64_t sortHelper;
+  std::pair<uint8_t, uint64_t> priorityAndOrder;
   bool operator<(const SuckRequest& b) const
   {
     return tie(domain, master) < tie(b.domain, b.master);
   }
-};
-
-struct suckQueueCmp
-{
-  bool operator()(const SuckRequest& a, const SuckRequest& b) const {
-    if (a.priority == b.priority) {
-      return a.sortHelper < b.sortHelper;
-    }
-    return a.priority < b.priority;
-  };
 };
 
 struct IDTag{};
@@ -70,7 +59,7 @@ struct QueueTag{};
 typedef multi_index_container<
   SuckRequest,
   indexed_by<
-    ordered_non_unique<tag<QueueTag>, identity<SuckRequest>, suckQueueCmp>,
+    ordered_unique<tag<QueueTag>, member<SuckRequest,std::pair<uint8_t,uint64_t>,&SuckRequest::priorityAndOrder>>,
     ordered_unique<tag<IDTag>, identity<SuckRequest> >
   >
 > UniQueue;
