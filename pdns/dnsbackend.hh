@@ -46,7 +46,7 @@ class DNSPacket;
 class DNSBackend;  
 struct DomainInfo
 {
-  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), serial(0), kind(DomainInfo::Native) {}
+  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
 
   DNSName zone;
   time_t last_check;
@@ -56,6 +56,8 @@ struct DomainInfo
 
   uint32_t id;
   uint32_t notified_serial;
+
+  bool receivedNotify;
 
   uint32_t serial;
   enum DomainKind : uint8_t { Master, Slave, Native } kind;

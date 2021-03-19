@@ -48,7 +48,7 @@
 
 #include "ixfr.hh"
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force, uint8_t priority)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master, SuckRequest::RequestPriority priority, bool force)
 {
   std::lock_guard<std::mutex> l(d_lock);
   SuckRequest sr;
@@ -63,14 +63,7 @@ void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress
   if(res.second) {
     d_suck_sem.post();
   } else {
-    // Domain is already in there, we should check the priority and whether its forced
-    domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
-    auto iter = nameindex.find(sr);
-    if (iter == nameindex.end()) {
-      // bit weird, but ok
-      return;
-    }
-    nameindex.modify(iter, [priorityAndOrder = sr.priorityAndOrder] (SuckRequest& so) {
+    d_suckdomains.modify(res.first, [priorityAndOrder = sr.priorityAndOrder] (SuckRequest& so) {
       if (priorityAndOrder.first < so.priorityAndOrder.first) {
         so.priorityAndOrder = priorityAndOrder;
       }
@@ -1003,6 +996,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
           }
         }
       }
+
+      SuckRequest::RequestPriority prio = SuckRequest::SignaturesRefresh;
+      if (di.receivedNotify) {
+        prio = SuckRequest::Notify;
+      }
+
       if(! maxInception && ! ssr.d_freshness[di.id].theirInception) {
         g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked master " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
@@ -1017,25 +1016,30 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {
         g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote);
+        addSuckRequest(di.zone, remote, prio);
       }
       else if(dk.doesDNSSEC() && ! maxInception && ssr.d_freshness[di.id].theirInception) {
         g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote);
+        addSuckRequest(di.zone, remote, prio);
       }
       else {
         g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is fresh, but RRSIGs differ on master" << remote.toStringWithPortExcept(53)<<", so DNSSEC is stale, serial is " << ourserial << endl;
-        addSuckRequest(di.zone, remote);
+        addSuckRequest(di.zone, remote, prio);
       }
     }
     else {
+      SuckRequest::RequestPriority prio = SuckRequest::SerialRefresh;
+      if (di.receivedNotify) {
+        prio = SuckRequest::Notify;
+      }
+
       if (hasSOA) {
         g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
       }
       else {
         g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is empty, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
       }
-      addSuckRequest(di.zone, remote);
+      addSuckRequest(di.zone, remote, prio);
     }
   }
 }

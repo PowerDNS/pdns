@@ -1030,6 +1030,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
 
   if(::arg().mustDo("slave")) {
     g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" - queueing check"<<endl;
+    di.receivedNotify = true;
     Communicator.addSlaveCheckRequest(di, p.d_remote);
   }
   return 0;

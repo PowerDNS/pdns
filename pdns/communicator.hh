@@ -46,7 +46,8 @@ struct SuckRequest
   DNSName domain;
   ComboAddress master;
   bool force;
-  std::pair<uint8_t, uint64_t> priorityAndOrder;
+  enum RequestPriority : uint8_t { PdnsControl, Api, Notify, SerialRefresh, SignaturesRefresh };
+  std::pair<RequestPriority, uint64_t> priorityAndOrder;
   bool operator<(const SuckRequest& b) const
   {
     return tie(domain, master) < tie(b.domain, b.master);
@@ -59,7 +60,7 @@ struct QueueTag{};
 typedef multi_index_container<
   SuckRequest,
   indexed_by<
-    ordered_unique<tag<QueueTag>, member<SuckRequest,std::pair<uint8_t,uint64_t>,&SuckRequest::priorityAndOrder>>,
+    ordered_unique<tag<QueueTag>, member<SuckRequest,std::pair<SuckRequest::RequestPriority,uint64_t>,&SuckRequest::priorityAndOrder>>,
     ordered_unique<tag<IDTag>, identity<SuckRequest> >
   >
 > UniQueue;
@@ -166,7 +167,7 @@ public:
   
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
-  void addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force=false, uint8_t priority = 0);
+  void addSuckRequest(const DNSName &domain, const ComboAddress& master, SuckRequest::RequestPriority, bool force=false);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(const DNSPacket& p);
   void notify(const DNSName &domain, const string &ip);

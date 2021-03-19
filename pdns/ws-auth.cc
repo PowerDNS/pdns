@@ -1876,7 +1876,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Domain '"+zonename.toString()+"' is not a slave domain (or has no master defined)");
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  Communicator.addSuckRequest(zonename, di.masters.front());
+  Communicator.addSuckRequest(zonename, di.masters.front(), SuckRequest::Api);
   resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front().toLogString());
 }
 
