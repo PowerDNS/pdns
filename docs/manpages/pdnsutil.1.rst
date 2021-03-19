@@ -242,6 +242,8 @@ test-schema *ZONE*
     Test database schema, this creates the zone *ZONE*
 unset-presigned *ZONE*
     Disables presigned operation for *ZONE*.
+raw-lua-from-content *TYPE* *CONTENT*  
+    Display record contents in a form suitable for dnsdist's `SpoofRawAction`.
 
 DEBUGGING TOOLS
 ---------------

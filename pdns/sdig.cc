@@ -42,6 +42,7 @@ static void usage()
           "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT]"
+          "dumpluaraw"
        << endl;
 }
 
@@ -113,7 +114,7 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
   pw.getHeader()->id = htons(qid);
 }
 
-static void printReply(const string& reply, bool showflags, bool hidesoadetails)
+static void printReply(const string& reply, bool showflags, bool hidesoadetails, bool dumpluaraw)
 {
   MOADNSParser mdp(false, reply);
   if (!s_expectedIDs.count(ntohs(mdp.d_header.id))) {
@@ -134,6 +135,10 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails)
     cout << i->first.d_place - 1 << "\t" << i->first.d_name.toString() << "\t"
          << nameForClass(i->first.d_class, i->first.d_type) << "\t"
          << DNSRecordContent::NumberToType(i->first.d_type);
+    if (dumpluaraw) {
+      cout<<"\t"<< makeLuaString(i->first.d_content->serialize(DNSName(), true))<<endl;
+      continue;
+    }
     if (i->first.d_class == QClass::IN) {
       if (i->first.d_type == QType::RRSIG) {
         string zoneRep = i->first.d_content->getZoneRepresentation();
@@ -222,6 +227,7 @@ try {
   string subjectName;
   string caStore;
   string tlsProvider = "openssl";
+  bool dumpluaraw = false;
 
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
@@ -318,6 +324,9 @@ try {
         ComboAddress dest(argv[++i]);
         proxyheader = makeProxyHeader(ptcp, src, dest, {});
       }
+      else if (strcmp(argv[i], "dumpluaraw") == 0) {
+        dumpluaraw = true;
+      }
       else {
         cerr << argv[i] << ": unknown argument" << endl;
         exit(EXIT_FAILURE);
@@ -377,7 +386,7 @@ try {
     string question(packet.begin(), packet.end());
     // FIXME: how do we use proxyheader here?
     reply = mc.postURL(argv[1], question, mch, timeout, fastOpen);
-    printReply(reply, showflags, hidesoadetails);
+    printReply(reply, showflags, hidesoadetails, dumpluaraw);
 #else
     throw PDNSException("please link sdig against libcurl for DoH support");
 #endif
@@ -399,7 +408,7 @@ try {
       reply = reply.substr(2);
     }
 
-    printReply(reply, showflags, hidesoadetails);
+    printReply(reply, showflags, hidesoadetails, dumpluaraw);
   } else if (tcp) {
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (dot) {
@@ -447,7 +456,7 @@ try {
       if (handler.read(&reply[0], len, timeout) != len) {
         throw PDNSException("tcp read failed");
       }
-      printReply(reply, showflags, hidesoadetails);
+      printReply(reply, showflags, hidesoadetails, dumpluaraw);
     }
   } else // udp
   {
@@ -465,7 +474,7 @@ try {
     if (!result)
       throw std::runtime_error("Timeout waiting for data");
     sock.recvFrom(reply, dest);
-    printReply(reply, showflags, hidesoadetails);
+    printReply(reply, showflags, hidesoadetails, dumpluaraw);
   }
 
 } catch (std::exception& e) {

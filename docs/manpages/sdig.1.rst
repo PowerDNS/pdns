@@ -37,6 +37,8 @@ recurse
     Set the RD bit in the question.
 showflags
     Show the NSEC3 flags in the response (they are hidden by default).
+dumpluaraw
+    Display record contents in a form suitable for dnsdist's `SpoofRawAction`.
 tcp
     Use TCP instead of UDP to send the query.
 dot
