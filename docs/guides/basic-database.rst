@@ -64,7 +64,7 @@ Note the ``REFUSED`` status - this is the code most name servers use to indicate
 
 Now, let's add a zone and some records::
 
-    $ sudo -u pdns pdnsutil create-zone example.org ns1.example.com
+    $ sudo -u pdns pdnsutil create-zone example.com ns1.example.com
     Creating empty zone 'example.com'
     Also adding one NS record
     $ sudo -u pdns pdnsutil add-record example.com '' MX '25 mail.example.com'
