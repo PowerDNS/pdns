@@ -369,6 +369,7 @@ struct DNSDistStats
     {"udp-noport-errors", boost::bind(udpErrorStats, "udp-noport-errors")},
     {"udp-recvbuf-errors", boost::bind(udpErrorStats, "udp-recvbuf-errors")},
     {"udp-sndbuf-errors", boost::bind(udpErrorStats, "udp-sndbuf-errors")},
+    {"tcp-listen-overflows", std::bind(tcpErrorStats, "ListenOverflows")},
     {"noncompliant-queries", &nonCompliantQueries},
     {"noncompliant-responses", &nonCompliantResponses},
     {"proxy-protocol-invalid", &proxyProtocolInvalid},

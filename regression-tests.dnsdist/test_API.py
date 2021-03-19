@@ -240,7 +240,7 @@ class TestAPIBasics(DNSDistTest):
                     'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
                     'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
                     'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
-                    'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid']
+                    'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows']
 
         for key in expected:
             self.assertIn(key, values)

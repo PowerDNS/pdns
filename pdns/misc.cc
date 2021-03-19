@@ -1147,6 +1147,31 @@ uint64_t udpErrorStats(const std::string& str)
   return 0;
 }
 
+uint64_t tcpErrorStats(const std::string& str)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/net/netstat");
+  if (!ifs) {
+    return 0;
+  }
+
+  string line;
+  vector<string> parts;
+  while (getline(ifs,line)) {
+    if (line.size() > 9 && boost::starts_with(line, "TcpExt: ") && isdigit(line.at(8))) {
+      stringtok(parts, line, " \n\t\r");
+
+      if (parts.size() < 21) {
+        break;
+      }
+
+      return std::stoull(parts.at(20));
+    }
+  }
+#endif
+  return 0;
+}
+
 uint64_t getCPUIOWait(const std::string& str)
 {
 #ifdef __linux__
