@@ -477,6 +477,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "tcpwritetimeouts "       << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "tcpcurrentconnections "  << "The number of current TCP connections"                             << "\n";
   output << "# TYPE " << statesbase << "tcpcurrentconnections "  << "gauge"                                                             << "\n";
+  output << "# HELP " << statesbase << "tcpnewconnections "      << "The number of established TCP connections in total"                << "\n";
+  output << "# TYPE " << statesbase << "tcpnewconnections "      << "counter"                                                           << "\n";
+  output << "# HELP " << statesbase << "tcpreusedconnections "   << "The number of times a TCP connection has been reused"              << "\n";
+  output << "# TYPE " << statesbase << "tcpreusedconnections "   << "counter"                                                           << "\n";
   output << "# HELP " << statesbase << "tcpavgqueriesperconn "   << "The average number of queries per TCP connection"                  << "\n";
   output << "# TYPE " << statesbase << "tcpavgqueriesperconn "   << "gauge"                                                             << "\n";
   output << "# HELP " << statesbase << "tcpavgconnduration "     << "The average duration of a TCP connection (ms)"                     << "\n";
@@ -510,6 +514,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "tcpreadtimeouts"        << label << " " << state->tcpReadTimeouts            << "\n";
     output << statesbase << "tcpwritetimeouts"       << label << " " << state->tcpWriteTimeouts           << "\n";
     output << statesbase << "tcpcurrentconnections"  << label << " " << state->tcpCurrentConnections      << "\n";
+    output << statesbase << "tcpnewconnections"      << label << " " << state->tcpNewConnections          << "\n";
+    output << statesbase << "tcpreusedconnections"   << label << " " << state->tcpReusedConnections       << "\n";
     output << statesbase << "tcpavgqueriesperconn"   << label << " " << state->tcpAvgQueriesPerConnection << "\n";
     output << statesbase << "tcpavgconnduration"     << label << " " << state->tcpAvgConnectionDuration   << "\n";
   }
@@ -899,6 +905,8 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       {"tcpReadTimeouts", (double)a->tcpReadTimeouts},
       {"tcpWriteTimeouts", (double)a->tcpWriteTimeouts},
       {"tcpCurrentConnections", (double)a->tcpCurrentConnections},
+      {"tcpNewConnections", (double)a->tcpNewConnections},
+      {"tcpReusedConnections", (double)a->tcpReusedConnections},
       {"tcpAvgQueriesPerConnection", (double)a->tcpAvgQueriesPerConnection},
       {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
       {"dropRate", (double)a->dropRate}

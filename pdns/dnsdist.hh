@@ -907,6 +907,8 @@ struct DownstreamState
   stat_t tcpReadTimeouts{0};
   stat_t tcpWriteTimeouts{0};
   stat_t tcpCurrentConnections{0};
+  stat_t tcpReusedConnections{0};
+  stat_t tcpNewConnections{0};
   pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};

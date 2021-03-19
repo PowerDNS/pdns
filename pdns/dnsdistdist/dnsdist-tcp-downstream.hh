@@ -169,6 +169,11 @@ public:
 
   void setProxyProtocolValuesSent(std::unique_ptr<std::vector<ProxyProtocolValue>>&& proxyProtocolValuesSent);
 
+  struct timeval getLastDataReceivedTime() const
+  {
+    return d_lastDataReceivedTime;
+  }
+
   std::string toString() const
   {
     ostringstream o;
@@ -238,6 +243,7 @@ private:
   std::shared_ptr<IncomingTCPConnectionState> d_clientConn;
   TCPQuery d_currentQuery;
   struct timeval d_connectionStartTime;
+  struct timeval d_lastDataReceivedTime;
   size_t d_currentPos{0};
   uint64_t d_queries{0};
   uint64_t d_downstreamFailures{0};

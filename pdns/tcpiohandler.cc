@@ -124,9 +124,12 @@ public:
     else if (error == SSL_ERROR_SYSCALL) {
       throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
     }
+    else if (error == SSL_ERROR_ZERO_RETURN) {
+      throw std::runtime_error("TLS connection closed by remote end");
+    }
     else {
       if (g_verbose) {
-        throw std::runtime_error("Error while processing TLS connection: " + libssl_get_error_string());
+        throw std::runtime_error("Error while processing TLS connection: (" + std::to_string(error) + ") " + libssl_get_error_string());
       } else {
         throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
       }
@@ -875,7 +878,7 @@ public:
     do {
       ssize_t res = gnutls_record_recv(d_conn.get(), reinterpret_cast<char *>(&buffer.at(pos)), toRead - pos);
       if (res == 0) {
-        throw std::runtime_error("Error reading from TLS connection");
+        throw std::runtime_error("EOF while reading from TLS connection");
       }
       else if (res > 0) {
         pos += static_cast<size_t>(res);
@@ -906,7 +909,7 @@ public:
     do {
       ssize_t res = gnutls_record_recv(d_conn.get(), (reinterpret_cast<char *>(buffer) + got), bufferSize - got);
       if (res == 0) {
-        throw std::runtime_error("Error reading from TLS connection");
+        throw std::runtime_error("EOF while reading from TLS connection");
       }
       else if (res > 0) {
         got += static_cast<size_t>(res);
