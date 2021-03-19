@@ -50,9 +50,15 @@ void CommunicatorClass::retrievalLoopThread()
       std::lock_guard<std::mutex> l(d_lock);
       if(d_suckdomains.empty()) 
         continue;
+
+      domains_by_queuepos_t& queueindex = boost::multi_index::get<QueueTag>(d_suckdomains);
+      auto firstItem = queueindex.begin();
         
-      sr=d_suckdomains.front();
-      d_suckdomains.pop_front();
+      sr=*firstItem;
+      queueindex.erase(firstItem);
+      if (d_suckdomains.empty()) {
+        d_sorthelper = 0;
+      }
     }
     suck(sr.domain, sr.master, sr.force);
   }

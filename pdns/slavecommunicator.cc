@@ -48,20 +48,35 @@
 
 #include "ixfr.hh"
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force, uint8_t priority)
 {
   std::lock_guard<std::mutex> l(d_lock);
   SuckRequest sr;
   sr.domain = domain;
   sr.master = master;
   sr.force = force;
+  sr.priority = priority;
+  sr.sortHelper = d_sorthelper++;
   pair<UniQueue::iterator, bool>  res;
 
-  res=d_suckdomains.push_back(sr);
+  res=d_suckdomains.insert(sr);
   if(res.second) {
     d_suck_sem.post();
+  } else {
+    // Domain is already in there, we should check the priority and whether its forced
+    domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
+    auto iter = nameindex.find(sr);
+    if (iter == nameindex.end()) {
+      // bit weird, but ok
+      return;
+    }
+    nameindex.modify(iter, [priority = priority, sorthelper = sr.sortHelper] (SuckRequest& so) {
+      if (priority < so.priority) {
+        so.priority = priority;
+        so.sortHelper = sorthelper;
+      }
+    });
   }
-
 }
 
 struct ZoneStatus
