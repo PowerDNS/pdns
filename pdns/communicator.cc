@@ -51,11 +51,10 @@ void CommunicatorClass::retrievalLoopThread()
       if(d_suckdomains.empty()) 
         continue;
 
-      domains_by_queuepos_t& queueindex = boost::multi_index::get<QueueTag>(d_suckdomains);
-      auto firstItem = queueindex.begin();
+      auto firstItem = d_suckdomains.begin();
         
       sr=*firstItem;
-      queueindex.erase(firstItem);
+      d_suckdomains.erase(firstItem);
       if (d_suckdomains.empty()) {
         d_sorthelper = 0;
       }

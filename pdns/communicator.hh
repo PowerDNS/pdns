@@ -55,17 +55,15 @@ struct SuckRequest
 };
 
 struct IDTag{};
-struct QueueTag{};
 
 typedef multi_index_container<
   SuckRequest,
   indexed_by<
-    ordered_unique<tag<QueueTag>, member<SuckRequest,std::pair<SuckRequest::RequestPriority,uint64_t>,&SuckRequest::priorityAndOrder>>,
+    ordered_unique<member<SuckRequest,std::pair<SuckRequest::RequestPriority,uint64_t>,&SuckRequest::priorityAndOrder>>,
     ordered_unique<tag<IDTag>, identity<SuckRequest> >
   >
 > UniQueue;
 typedef UniQueue::index<IDTag>::type domains_by_name_t;
-typedef UniQueue::index<QueueTag>::type domains_by_queuepos_t;
 
 class NotificationQueue
 {

@@ -140,6 +140,12 @@ Slave operation can also be programmed using several
 command is especially useful as it triggers an immediate retrieval of
 the zone from the configured master.
 
+Zone transfers are added to a queue and processed according to priority
+and order of addition. Order levels are (from high to low): pdns control,
+api, notify, serial changed during refresh and signatures changed during
+refresh. High priority zone transfers are always processed first, in a 
+first in first out order.
+
 PowerDNS supports multiple masters. For the BIND backend, the native
 BIND configuration language suffices to specify multiple masters, for
 SQL based backends, list all master servers separated by commas in the
