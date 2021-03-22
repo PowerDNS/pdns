@@ -2,6 +2,24 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.7
+  :released: 22nd of March 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10193
+    :tickets: 10185
+
+    Make sure we take the right minimum for the packet cache TTL data in the SERVFAIL case.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9804
+    :tickets: 9790
+
+    Do not chase CNAME during qname minimization step 4.
+
+.. changelog::
   :version: 4.3.6
   :released: 25th of November 2020
 
@@ -866,4 +884,3 @@ Changelogs for 4.3.x
     :pullreq: 7841
 
     Recursor: log udp tc bits during trace
-
