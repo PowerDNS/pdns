@@ -1393,6 +1393,19 @@ The following actions exist.
 
   :func:`DNSName:toDNSString` is convenient for converting names to wire format for passing to ``SpoofRawAction``.
 
+  ``sdig dumpluaraw`` and ``pdnsutil raw-lua-from-content`` from PowerDNS can generate raw answers for you:
+
+  .. code-block:: Shell
+
+    $ pdnsutil raw-lua-from-content SRV '0 0 65535 srv.powerdns.com.'
+    "\000\000\000\000\255\255\003srv\008powerdns\003com\000"
+    $ sdig 127.0.0.1 53 open-xchange.com MX recurse dumpluaraw
+    Reply to question for qname='open-xchange.com.', qtype=MX
+    Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+    0 open-xchange.com. IN  MX  "\000c\004mx\049\049\012open\045xchange\003com\000"
+    0 open-xchange.com. IN  MX  "\000\010\003mx\049\012open\045xchange\003com\000"
+    0 open-xchange.com. IN  MX  "\000\020\003mx\050\012open\045xchange\003com\000"
+
   :param string rawAnswer: The raw record data
   :param {string} rawAnswers: A table of raw record data to spoof
   :param table options: A table with key: value pairs with options.

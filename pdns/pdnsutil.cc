@@ -24,6 +24,7 @@
 #include "signingpipe.hh"
 #include "dns_random.hh"
 #include "ipcipher.hh"
+#include "misc.hh"
 #include <fstream>
 #include <utility>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
@@ -2298,6 +2299,7 @@ try
     cout<<"unset-publish-cdnskey ZONE         Disable sending CDNSKEY responses for ZONE"<<endl;
     cout<<"unset-publish-cds ZONE             Disable sending CDS responses for ZONE"<<endl;
     cout<<"test-schema ZONE                   Test DB schema - will create ZONE"<<endl;
+    cout<<"raw-lua-from-content TYPE CONTENT  Display record contents in a form suitable for dnsdist's `SpoofRawAction`"<<endl;
     cout<<desc<<endl;
     return 0;
   }
@@ -2382,6 +2384,21 @@ try
     cerr<<"bind-dnssec-db requires building PowerDNS with SQLite3"<<endl;
     return 1;
 #endif
+  }
+
+  if (cmds[0] == "raw-lua-from-content") {
+    if (cmds.size() < 3) {
+      cerr<<"Usage: raw-lua-from-content TYPE CONTENT"<<endl;
+      return 1;
+    }
+
+    // DNSResourceRecord rr;
+    // rr.qtype = DNSRecordContent::TypeToNumber(cmds[1]);
+    // rr.content = cmds[2];
+    auto drc = DNSRecordContent::mastermake(DNSRecordContent::TypeToNumber(cmds[1]), QClass::IN, cmds[2]);
+    cout<<makeLuaString(drc->serialize(DNSName(), true))<<endl;
+
+    return 0;
   }
 
   DNSSECKeeper dk;

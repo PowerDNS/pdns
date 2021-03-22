@@ -1610,3 +1610,26 @@ std::string getCarbonHostName()
 
   return hostname;
 }
+
+std::string makeLuaString(const std::string& in)
+{
+  ostringstream str;
+
+  str<<'"';
+
+  char item[5];
+  for (unsigned char n : in) {
+    if (islower(n) || isupper(n)) {
+      item[0] = n;
+      item[1] = 0;
+    }
+    else {
+      snprintf(item, sizeof(item), "\\%03d", n);
+    }
+    str << item;
+  }
+
+  str<<'"';
+
+  return str.str();
+}
