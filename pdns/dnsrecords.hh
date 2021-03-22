@@ -508,7 +508,7 @@ class SVCBBaseRecordContent : public DNSRecordContent
     void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
     // Removes the parameter for |key| from d_params
     void removeParam(const SvcParam::SvcParamKey &key);
-    // Whether or not there are any param
+    // Whether or not there are any parameter
     bool hasParams() const;
     // Whether or not the param of |key| exists
     bool hasParam(const SvcParam::SvcParamKey &key) const;
@@ -519,6 +519,9 @@ class SVCBBaseRecordContent : public DNSRecordContent
     uint16_t d_priority;
     DNSName d_target;
     set<SvcParam> d_params;
+
+    // Get the iterator to parameter with |key|, return value can be d_params::end
+    set<SvcParam>::const_iterator getParamIt(const SvcParam::SvcParamKey &key) const;
 };
 
 class SVCBRecordContent : public SVCBBaseRecordContent
