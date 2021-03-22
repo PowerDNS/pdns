@@ -1188,6 +1188,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
+  luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
+    setMaxCachedTCPConnectionsPerDownstream(max);
+    });
+
   luaCtx.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
 
   luaCtx.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });

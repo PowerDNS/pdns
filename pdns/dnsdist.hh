@@ -1229,6 +1229,8 @@ struct LocalHolders
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
 void tcpAcceptorThread(ClientState* p);
+void setMaxCachedTCPConnectionsPerDownstream(size_t max);
+
 #ifdef HAVE_DNS_OVER_HTTPS
 void dohThread(ClientState* cs);
 #endif /* HAVE_DNS_OVER_HTTPS */

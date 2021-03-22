@@ -1,6 +1,14 @@
 Tuning related functions
 ========================
 
+.. function:: setMaxCachedTCPConnectionsPerDownstream(max)
+
+  .. versionadded:: 1.6.0
+
+  Set the maximum number of inactive TCP connections to a backend cached by each TCP worker thread. These connections can be reused when a new query comes in, instead of having to establish a new connection. dnsdist regularly checks whether the other end has closed any cached connection, closing them in that case.
+
+  :param int max: The maximum number of inactive connections to keep. Default is 10, so 10 connections per backend and per TCP worker thread.
+
 .. function:: setMaxTCPClientThreads(num)
 
   .. versionchanged:: 1.6.0
