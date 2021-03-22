@@ -383,7 +383,7 @@ bool LMDBBackend::abortTransaction()
 {
   // cout<<"Abort transaction"<<endl;
   if (!d_rwtxn) {
-      throw DBException("Attempt to abort a transaction while there isn't one open");
+    throw DBException("Attempt to abort a transaction while there isn't one open");
   }
 
   d_rwtxn->txn->abort();
