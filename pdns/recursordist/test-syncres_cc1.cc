@@ -13,22 +13,23 @@ BOOST_AUTO_TEST_CASE(test_root_primed)
   primeHints();
 
   const DNSName target("a.root-servers.net.");
+  try {
+    /* we are primed, but only with non-auth data so we cannot resolve A a.root-servers.net. without any query */
+    vector<DNSRecord> ret;
+    int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::ServFail);
+    BOOST_REQUIRE_EQUAL(ret.size(), 0U);
 
-  /* we are primed, we should be able to resolve A a.root-servers.net. without any query */
-  vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(ret[0].d_name, target);
-
-  ret.clear();
-  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK(ret[0].d_type == QType::AAAA);
-  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+    ret.clear();
+    res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::ServFail);
+    BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+    BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+    BOOST_CHECK(false);
+  }
+  catch (const ImmediateServFailException) {
+    // Expected
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_root_primed_ns)
@@ -107,6 +108,8 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  // We expect an error, do not log it
+  g_log.toConsole(Logger::Critical);
   std::set<ComboAddress> downServers;
 
   /* we are not primed yet, so SyncRes will have to call primeHints()
@@ -184,6 +187,66 @@ BOOST_AUTO_TEST_CASE(test_root_ns_poison_resistance)
   res = sr->beginResolve(g_rootdnsname, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+}
+
+BOOST_AUTO_TEST_CASE(test_root_primed_ns_update)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+  const DNSName target(".");
+  const DNSName aroot("a.root-servers.net.");
+  const string newA = "1.2.3.4";
+  const string newAAAA = "1::2";
+
+  /* we are primed, but we should not be able to NS . without any query
+   because the . NS entry is not stored as authoritative */
+
+  size_t queriesCount = 0;
+
+  auto asynccb = [target, &queriesCount, aroot, newA, newAAAA](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, g_rootdnsname, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRecordToLW(res, aroot.toString(), QType::A, newA, DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, aroot.toString(), QType::AAAA, newAAAA, DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+    return LWResult::Result::Timeout;
+  };
+
+  sr->setAsyncCallback(asynccb);
+
+  struct timeval now;
+  Utility::gettimeofday(&now, nullptr);
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  ret.clear();
+  time_t cached = g_recCache->get(now.tv_sec, aroot, QType::A, false, &ret, ComboAddress());
+  BOOST_CHECK(cached > 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress(newA));
+
+  ret.clear();
+  cached = g_recCache->get(now.tv_sec, aroot, QType::AAAA, false, &ret, ComboAddress());
+  BOOST_CHECK(cached > 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(getRR<AAAARecordContent>(ret[0])->getCA() == ComboAddress(newAAAA));
 }
 
 static void test_edns_formerr_fallback_f(bool sample)
