@@ -3,7 +3,7 @@ Changelogs for 4.3.x
 
 .. changelog::
   :version: 4.3.7
-  :released: 22th of March 2021
+  :released: 22nd of March 2021
 
   .. change::
     :tags: Bug Fixes
@@ -884,4 +884,3 @@ Changelogs for 4.3.x
     :pullreq: 7841
 
     Recursor: log udp tc bits during trace
-
