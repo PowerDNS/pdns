@@ -14,18 +14,18 @@ BOOST_AUTO_TEST_CASE(test_root_primed)
 
   const DNSName target("a.root-servers.net.");
   try {
-  /* we are primed, but only with non-auth data so we cannot resolve A a.root-servers.net. without any query */
-  vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+    /* we are primed, but only with non-auth data so we cannot resolve A a.root-servers.net. without any query */
+    vector<DNSRecord> ret;
+    int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::ServFail);
+    BOOST_REQUIRE_EQUAL(ret.size(), 0U);
 
-  ret.clear();
-  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
-  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
-  BOOST_CHECK(false);
+    ret.clear();
+    res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::ServFail);
+    BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+    BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+    BOOST_CHECK(false);
   }
   catch (const ImmediateServFailException) {
     // Expected
