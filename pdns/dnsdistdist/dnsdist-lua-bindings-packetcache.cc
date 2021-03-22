@@ -24,6 +24,7 @@
 #include <sys/types.h>
 
 #include "config.h"
+#include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 
@@ -89,6 +90,12 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
         if (vars->count("cookieHashing")) {
           cookieHashing = boost::get<bool>((*vars)["cookieHashing"]);
         }
+      }
+
+      if (maxEntries < numberOfShards) {
+        warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, numberOfShards, maxEntries);
+        g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(numberOfShards) + "), decreasing the number of shards to " + std::to_string(maxEntries);
+        numberOfShards = maxEntries;
       }
 
       auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
