@@ -528,13 +528,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     auto rrc = getRR<SVCBBaseRecordContent>(rec->dr);
     DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
     if (rrc->autoHint(SvcParam::ipv4hint)) {
-      B.lookup(QType::A, target, d_sd.domain_id);
-      vector<ComboAddress> hints;
-      DNSZoneRecord rr;
-      while (B.get(rr)) {
-        auto arrc = getRR<ARecordContent>(rr.dr);
-        hints.push_back(arrc->getCA());
-      }
+      auto hints = getIPAddressFor(target, QType::A);
       if (hints.size() == 0) {
         rrc->removeParam(SvcParam::ipv4hint);
       } else {
@@ -543,13 +537,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     }
 
     if (rrc->autoHint(SvcParam::ipv6hint)) {
-      B.lookup(QType::AAAA, target, d_sd.domain_id);
-      vector<ComboAddress> hints;
-      DNSZoneRecord rr;
-      while (B.get(rr)) {
-        auto arrc = getRR<AAAARecordContent>(rr.dr);
-        hints.push_back(arrc->getCA());
-      }
+      auto hints = getIPAddressFor(target, QType::AAAA);
       if (hints.size() == 0) {
         rrc->removeParam(SvcParam::ipv6hint);
       } else {
@@ -570,6 +558,24 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
   }
 }
 
+vector<ComboAddress> PacketHandler::getIPAddressFor(const DNSName &target, const uint16_t qtype) {
+  vector<ComboAddress> ret;
+  if (qtype != QType::A && qtype != QType::AAAA) {
+    return ret;
+  }
+  B.lookup(qtype, target, d_sd.domain_id);
+  DNSZoneRecord rr;
+  while (B.get(rr)) {
+    if (qtype == QType::AAAA) {
+      auto aaaarrc = getRR<AAAARecordContent>(rr.dr);
+      ret.push_back(aaaarrc->getCA());
+    } else if (qtype == QType::A) {
+      auto arrc = getRR<ARecordContent>(rr.dr);
+      ret.push_back(arrc->getCA());
+    }
+  }
+  return ret;
+}
 
 void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode)
 {
