@@ -103,7 +103,13 @@ struct DOHFrontend
 
   HTTPVersionStats d_http1Stats;
   HTTPVersionStats d_http2Stats;
+#ifdef __linux__
+  // On Linux this gives us 128k pending queries (default is 8192 queries),
+  // which should be enough to deal with huge spikes
+  uint32_t d_internalPipeBufferSize{1024*1024};
+#else
   uint32_t d_internalPipeBufferSize{0};
+#endif
   bool d_sendCacheControlHeaders{true};
   bool d_trustForwardedForHeader{false};
   /* whether we require tue query path to exactly match one of configured ones,

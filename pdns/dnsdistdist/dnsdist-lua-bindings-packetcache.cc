@@ -38,7 +38,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
       size_t tempFailTTL = 60;
       size_t maxNegativeTTL = 3600;
       size_t staleTTL = 60;
-      size_t numberOfShards = 1;
+      size_t numberOfShards = 20;
       bool dontAge = false;
       bool deferrableInsertLock = true;
       bool ecsParsing = false;

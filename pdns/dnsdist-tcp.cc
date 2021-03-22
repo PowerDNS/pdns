@@ -58,11 +58,18 @@
 static std::mutex s_tcpClientsCountMutex;
 static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_tcpClientsCount;
 
-uint64_t g_maxTCPQueuedConnections{1000};
 size_t g_maxTCPQueriesPerConn{0};
 size_t g_maxTCPConnectionDuration{0};
 size_t g_maxTCPConnectionsPerClient{0};
+#ifdef __linux__
+// On Linux this gives us 128k pending queries (default is 8192 queries),
+// which should be enough to deal with huge spikes
+size_t g_tcpInternalPipeBufferSize{1024*1024};
+uint64_t g_maxTCPQueuedConnections{10000};
+#else
 size_t g_tcpInternalPipeBufferSize{0};
+uint64_t g_maxTCPQueuedConnections{1000};
+#endif
 uint16_t g_downstreamTCPCleanupInterval{60};
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
