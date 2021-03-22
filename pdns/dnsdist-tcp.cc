@@ -1231,7 +1231,10 @@ void tcpAcceptorThread(ClientState* cs)
       ci->fd = accept(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
 #endif
       // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
-      ++cs->tcpCurrentConnections;
+      auto concurrentConnections = ++cs->tcpCurrentConnections;
+      if (concurrentConnections > cs->tcpMaxConcurrentConnections) {
+        cs->tcpMaxConcurrentConnections = concurrentConnections;
+      }
 
       if (ci->fd < 0) {
         throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());

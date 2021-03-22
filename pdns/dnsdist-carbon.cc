@@ -104,6 +104,7 @@ void carbonDumpThread()
             str<<base<<"tcpwritetimeouts" << ' '<< state->tcpWriteTimeouts.load() << " " << now << "\r\n";
             str<<base<<"tcpconnecttimeouts" << ' '<< state->tcpConnectTimeouts.load() << " " << now << "\r\n";
             str<<base<<"tcpcurrentconnections" << ' '<< state->tcpCurrentConnections.load() << " " << now << "\r\n";
+            str<<base<<"tcpmaxconcurrentconnections" << ' '<< state->tcpMaxConcurrentConnections.load() << " " << now << "\r\n";
             str<<base<<"tcpnewconnections" << ' '<< state->tcpNewConnections.load() << " " << now << "\r\n";
             str<<base<<"tcpreusedconnections" << ' '<< state->tcpReusedConnections.load() << " " << now << "\r\n";
             str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
@@ -132,6 +133,7 @@ void carbonDumpThread()
             str<<base<<"tcpclientimeouts" << ' '<< front->tcpClientTimeouts.load() << " " << now << "\r\n";
             str<<base<<"tcpdownstreamtimeouts" << ' '<< front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
             str<<base<<"tcpcurrentconnections" << ' '<< front->tcpCurrentConnections.load() << " " << now << "\r\n";
+            str<<base<<"tcpmaxconcurrentconnections" << ' '<< front->tcpMaxConcurrentConnections.load() << " " << now << "\r\n";
             str<<base<<"tcpavgqueriesperconnection" << ' '<< front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
             str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
             str<<base<<"tls10-queries" << ' ' << front->tls10queries.load() << " " << now << "\r\n";

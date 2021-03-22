@@ -1194,7 +1194,11 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   sock->on_close.data = &conn;
   sock->data = dsc;
 
-  ++dsc->cs->tcpCurrentConnections;
+  auto concurrentConnections = ++dsc->cs->tcpCurrentConnections;
+  if (concurrentConnections > dsc->cs->tcpMaxConcurrentConnections) {
+    dsc->cs->tcpMaxConcurrentConnections = concurrentConnections;
+  }
+
   ++dsc->df->d_httpconnects;
 
   h2o_accept(conn.d_acceptCtx->get(), sock);
