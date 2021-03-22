@@ -65,7 +65,7 @@ seconds by default.
 PowerDNS has support for multiple masters per zone, and also port numbers for these masters::
 
    pdnsutil create-slave-zone example.com 198.51.100.6 2001:0DB8:15:4AF::4
-   pdnsutil create-slave-zone example.net 198.51.100.20:5301 [2001:0DB8:11:6E::4]:54
+   pdnsutil create-slave-zone example.net 198.51.100.20:5301 '[2001:0DB8:11:6E::4]:54'
 
 Superslave operation
 ^^^^^^^^^^^^^^^^^^^^
