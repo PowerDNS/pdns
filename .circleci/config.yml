@@ -545,7 +545,7 @@ jobs:
       - run:
           name: Check formatting
           command: |
-            ./build-scripts/format-code pdns/recursordist/*.[ch][ch] $(find modules -name '*.[ch][ch]')
+            ./build-scripts/format-code pdns/recursordist/*.[ch][ch] $(find modules -name '*.[ch][ch]') $(cat .check-formatting)
             git --no-pager diff
             exit $(git diff | wc -l)
           working_directory: ~/project
