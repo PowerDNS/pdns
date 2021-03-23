@@ -535,7 +535,7 @@ static int processDOHQuery(DOHUnit* du)
     ids->du = du;
 
     ids->cs = &cs;
-    ids->origID = queryId;
+    ids->origID = htons(queryId);
     setIDStateFromDNSQuestion(*ids, dq, std::move(qname));
 
     dq.getHeader()->id = idOffset;

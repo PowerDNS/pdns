@@ -216,6 +216,33 @@ class TestDOH(DNSDistDOHTest):
         self.assertEquals(response, receivedResponse)
         self.checkHasHeader('cache-control', 'max-age=3600')
 
+    def testDOHTransactionID(self):
+        """
+        DOH: Simple query with ID != 0
+        """
+        name = 'simple-with-non-zero-id.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 42
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        # just to be sure the ID _is_ checked
+        self.assertEquals(response.id, receivedResponse.id)
+
     def testDOHSimplePOST(self):
         """
         DOH: Simple POST query
