@@ -4,9 +4,13 @@ The PowerDNS Authoritative Server has support for the SVCB record and derived re
 This support includes doing the standards recommended following of alias-form records in-zone and adding those to the additional section.
 Apart from that, there's the PowerDNS special for "autohints".
 
+.. _svc-autohints:
+
 Automatic hints
 ---------------
 PowerDNS can automatically fill in ``ipv4hint`` and ``ipv6hint`` parameters in SVCB records based on A and AAAA records already present in the zone.
+This can be enabled by setting :ref:`setting-svc-autohint` to 'yes'.
+
 Consider the following zone content::
 
   example.com      IN HTTPS 0 www.example.com
@@ -75,3 +79,7 @@ In this case, the ipv6hint parameter is dropped when answering the query (and on
 It will emit a warning when there are no hints to be found::
 
   [warning] HTTPS record for no-ipv6.example.org has automatic IPv6 hints, but no AAAA-record for the target at no-ipv6.example.org exists.
+
+When autohints exist but are disabled
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When :ref:`setting-svc-autohint` is not enabled, the parameter is dropped when its value is ``auto``.

@@ -63,6 +63,7 @@ public:
   int trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname);
   static NetmaskGroup s_allowNotifyFrom;
   static set<string> s_forwardNotify;
+  static bool s_SVCAutohints;
   static const std::shared_ptr<CDNSKEYRecordContent> s_deleteCDNSKEYContent;
   static const std::shared_ptr<CDSRecordContent> s_deleteCDSContent;
 

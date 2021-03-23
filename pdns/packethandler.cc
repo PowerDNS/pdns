@@ -55,6 +55,7 @@
 AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
 set<string> PacketHandler::s_forwardNotify;
+bool PacketHandler::s_SVCAutohints{false};
 
 extern string s_programname;
 
@@ -527,22 +528,26 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     // Process auto hints
     auto rrc = getRR<SVCBBaseRecordContent>(rec->dr);
     DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
-    if (rrc->autoHint(SvcParam::ipv4hint)) {
+    if (rrc->autoHint(SvcParam::ipv4hint) && s_SVCAutohints) {
       auto hints = getIPAddressFor(target, QType::A);
       if (hints.size() == 0) {
         rrc->removeParam(SvcParam::ipv4hint);
       } else {
         rrc->setHints(SvcParam::ipv4hint, hints);
       }
+    } else {
+      rrc->removeParam(SvcParam::ipv4hint);
     }
 
-    if (rrc->autoHint(SvcParam::ipv6hint)) {
+    if (rrc->autoHint(SvcParam::ipv6hint) && s_SVCAutohints) {
       auto hints = getIPAddressFor(target, QType::AAAA);
       if (hints.size() == 0) {
         rrc->removeParam(SvcParam::ipv6hint);
       } else {
         rrc->setHints(SvcParam::ipv6hint, hints);
       }
+    } else {
+      rrc->removeParam(SvcParam::ipv6hint);
     }
   }
 
