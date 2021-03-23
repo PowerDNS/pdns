@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
@@ -235,7 +235,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
      2 DNSKEY (. and com., none for powerdns.com because no DS)
      1 query for A
   */
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
@@ -364,7 +364,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
@@ -487,7 +487,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
 
   /* again, to test the cache */
   ret.clear();
@@ -495,7 +495,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
@@ -613,7 +613,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -621,7 +621,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
@@ -709,7 +709,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -717,7 +717,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
@@ -805,7 +805,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -813,7 +813,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 3U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
@@ -901,7 +901,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 12U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
 
   /* again, to test the cache */
   ret.clear();
@@ -909,7 +909,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 12U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
@@ -1023,7 +1023,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   /* no RRSIG to show */
   BOOST_CHECK_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1031,7 +1031,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoRRSIG);
   BOOST_CHECK_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta)
@@ -1564,7 +1564,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1572,7 +1572,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* this time we ask for www.powerdns.com, let's make sure the CNAME does not get in the way */
   ret.clear();
@@ -1580,7 +1580,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* now we remove the denial of powerdns.com DS from the cache and ask www2 */
   BOOST_REQUIRE_EQUAL(g_negCache->wipe(target, false), 1U);
@@ -1589,7 +1589,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  BOOST_CHECK_EQUAL(queriesCount, 13U);
+  BOOST_CHECK_EQUAL(queriesCount, 10U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_cname_inside_secure_zone)
@@ -1687,7 +1687,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_cname_inside_secure_zone)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1695,7 +1695,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_cname_inside_secure_zone)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* this time we ask for www.powerdns.com, let's make sure the CNAME does not get in the way */
   ret.clear();
@@ -1703,16 +1703,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_cname_inside_secure_zone)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 10U);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 
   /* now we remove the denial of powerdns.com DS from the cache and ask www2 */
-  BOOST_REQUIRE_EQUAL(g_negCache->wipe(target, false), 1U);
+  g_negCache->wipe(target, false);
   ret.clear();
   res = sr->beginResolve(DNSName("www2.powerdns.com."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
-  BOOST_CHECK_EQUAL(queriesCount, 12U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

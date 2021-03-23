@@ -110,9 +110,5 @@ template <typename NSEC> bool isTypeDenied(const NSEC& nsec, const QType& type)
     return false;
   }
 
-  if (nsec->isSet(QType::DNAME)) {
-    return false;
-  }
-
   return true;
 }

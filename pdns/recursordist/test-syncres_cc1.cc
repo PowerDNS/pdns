@@ -1891,7 +1891,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
 
-  BOOST_CHECK_EQUAL(queries, 11U);
+  BOOST_CHECK_EQUAL(queries, 7U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1917,7 +1917,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
 
-  BOOST_CHECK_EQUAL(queries, 11U);
+  BOOST_CHECK_EQUAL(queries, 7U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -2038,7 +2038,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U); /* DNAME + RRSIG(DNAME) + CNAME + A */
 
-  BOOST_CHECK_EQUAL(queries, 9U);
+  BOOST_CHECK_EQUAL(queries, 7U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -2061,7 +2061,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U); /* DNAME + RRSIG(DNAME) + CNAME + A */
 
-  BOOST_CHECK_EQUAL(queries, 9U);
+  BOOST_CHECK_EQUAL(queries, 7U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);

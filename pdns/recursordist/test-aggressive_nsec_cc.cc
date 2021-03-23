@@ -94,14 +94,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nxdomain)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata)
@@ -180,14 +180,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata_wildcard)
@@ -271,14 +271,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_nodata_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
@@ -290,7 +290,8 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
-  /* we first ask a.powerdns.com. | A, get an answer synthesized from the wildcard,
+  /* we first ask a.powerdns.com. | A, get an answer synthesized from the wildcard.
+     We can use it yet because we need the SOA, so let's request a non-existing type
      then check that the aggressive NSEC cache will use the wildcard to synthesize an answer
      for b.powerdns.com */
   const DNSName target("a.powerdns.com.");
@@ -342,13 +343,24 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
         return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
-        setLWResult(res, RCode::NoError, true, false, true);
-        addRecordToLW(res, domain, QType::A, "192.0.2.1");
-        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
-        /* the name does not exist, a wildcard applies and has the requested type */
-        addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("z.powerdns.com."), {QType::A, QType::RRSIG}, 600, res->d_records);
-        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
-        return LWResult::Result::Success;
+        if (type == QType::A) {
+          setLWResult(res, RCode::NoError, true, false, true);
+          addRecordToLW(res, domain, QType::A, "192.0.2.1");
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
+          /* the name does not exist, a wildcard applies and has the requested type */
+          addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("z.powerdns.com."), {QType::A, QType::RRSIG}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
+          return LWResult::Result::Success;
+        }
+        else if (type == QType::TXT) {
+          setLWResult(res, RCode::NoError, true, false, true);
+          /* the name does not exist, a wildcard applies but does not have the requested type */
+          addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "powerdns.com. powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("z.powerdns.com."), {QType::A, QType::RRSIG}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
+          return LWResult::Result::Success;
+        }
       }
     }
 
@@ -362,7 +374,17 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, target);
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+
+  /* request the TXT to get the SOA */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::TXT), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("powerdns.com."));
+  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::SOA).getCode());
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   ret.clear();
   res = sr->beginResolve(DNSName("b.powerdns.com."), QType(QType::A), QClass::IN, ret);
@@ -371,7 +393,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("b.powerdns.com."));
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
@@ -470,14 +492,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nxdomain)
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata)
@@ -556,14 +578,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
@@ -659,14 +681,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_nodata_wildcard)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   ret.clear();
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 8U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
@@ -678,7 +700,8 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
   primeHints();
-  /* we first ask a.powerdns.com. | A, get an answer synthesized from the wildcard,
+  /* we first ask a.powerdns.com. | A, get an answer synthesized from the wildcard.
+     We can't use it right away because we don't have the SOA, so let's do a TXT query to get it,
      then check that the aggressive NSEC cache will use the wildcard to synthesize an answer
      for b.powerdns.com */
   const DNSName target("a.powerdns.com.");
@@ -736,15 +759,33 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
         return LWResult::Result::Success;
       }
       else if (ip == ComboAddress("192.0.2.1:53")) {
-        setLWResult(res, RCode::NoError, true, false, true);
-        addRecordToLW(res, domain, QType::A, "192.0.2.1");
-        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
-        /* no need for the closest encloser since we have a positive answer expanded from a wildcard */
-        /* the next closer */
-        addNSEC3UnhashedRecordToLW(DNSName("+.powerdns.com."), DNSName("powerdns.com."), "v", {QType::RRSIG}, 600, res->d_records);
-        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
-        /* and of course we don't deny the wildcard itself */
-        return LWResult::Result::Success;
+        if (type == QType::A) {
+          setLWResult(res, RCode::NoError, true, false, true);
+          addRecordToLW(res, domain, QType::A, "192.0.2.1");
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
+          /* no need for the closest encloser since we have a positive answer expanded from a wildcard */
+          /* the next closer */
+          addNSEC3UnhashedRecordToLW(DNSName("+.powerdns.com."), DNSName("powerdns.com."), "v", {QType::RRSIG}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          /* and of course we don't deny the wildcard itself */
+          return LWResult::Result::Success;
+        }
+        else if (type == QType::TXT) {
+          setLWResult(res, RCode::NoError, true, false, true);
+          /* the name does not exist, a wildcard applies but does not have the requested type */
+          addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "powerdns.com. powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          /* the closest encloser */
+          addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "v", {QType::SOA, QType::NS, QType::NSEC3, QType::DNSKEY, QType::RRSIG}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          /* the next closer */
+          addNSEC3UnhashedRecordToLW(DNSName("+.powerdns.com."), DNSName("powerdns.com."), "v", {QType::RRSIG}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          /* and the wildcard expanded unto itself */
+          addNSEC3UnhashedRecordToLW(DNSName("*.powerdns.com."), DNSName("powerdns.com."), "v", {QType::A}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          return LWResult::Result::Success;
+        }
       }
     }
 
@@ -758,7 +799,16 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, target);
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::TXT), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 8U);
+  BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("powerdns.com."));
+  BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::SOA).getCode());
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   ret.clear();
   res = sr->beginResolve(DNSName("b.powerdns.com."), QType(QType::A), QClass::IN, ret);
@@ -767,7 +817,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(ret.at(0).d_name, DNSName("b.powerdns.com."));
   BOOST_CHECK_EQUAL(ret.at(0).d_type, QType(QType::A).getCode());
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)

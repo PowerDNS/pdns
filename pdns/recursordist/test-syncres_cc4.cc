@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 }
 

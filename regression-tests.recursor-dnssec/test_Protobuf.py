@@ -267,6 +267,9 @@ class TestRecursorProtobuf(RecursorTest):
         for param in protobufServersParameters:
             while not param.queue.empty():
                 param.queue.get(False)
+        # wait long enough to be sure that the housekeeping has
+        # prime the root NS
+        time.sleep(1)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -370,15 +373,15 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     def testA(self):
         name = 'host1.secure.example.'
         expected = list()
-        for qname, qtype, proto, size in [
-                ('example.', dns.rdatatype.DS, dnsmessage_pb2.PBDNSMessage.UDP, 167),
-                (None, None, None, None),  # Query for secure.example.|DS that returns a delegation
-                ('secure.example.', dns.rdatatype.DS, dnsmessage_pb2.PBDNSMessage.UDP, 182),
+
+        # the root DNSKEY has been learned with priming the root NS already
+        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
+        for qname, qtype, proto, responseSize in [
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
                 ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
-                (None, None, None, None),  # Query for host1.secure.example.|DS that returns a delegation
-                (None, None, None, None),  # Query for host1.secure.example.|DS that returns a NXQType
-                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
+                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
         ]:
             if not qname:
                 expected.append((None, None, None, None, None, None))
@@ -386,15 +389,14 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
             query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
             resp = dns.message.make_response(query)
             expected.append((
-                qname, qtype, query, resp, proto, size
+                qname, qtype, query, resp, proto, responseSize
             ))
 
-        # expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
 
-        for qname, qtype, qry, ans, proto, size in expected:
+        for qname, qtype, qry, ans, proto, responseSize in expected:
             if not qname:
                 self.getFirstProtobufMessage()
                 self.getFirstProtobufMessage()
@@ -405,7 +407,7 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
 
             # Check the answer
             msg = self.getFirstProtobufMessage()
-            self.checkProtobufIncomingResponse(msg, proto, ans, length=size)
+            self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
 
         self.checkNoRemainingMessage()
 
@@ -428,15 +430,14 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
     def testA(self):
         name = 'host1.secure.example.'
         expected = list()
+        # the root DNSKEY has been learned with priming the root NS already
+        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
         for qname, qtype, proto, size in [
-                ('example.', dns.rdatatype.DS, dnsmessage_pb2.PBDNSMessage.UDP, 167),
-                (None, None, None, None),  # Query for secure.example.|DS that returns a delegation
-                ('secure.example.', dns.rdatatype.DS, dnsmessage_pb2.PBDNSMessage.UDP, 182),
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
+                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
                 ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
-                (None, None, None, None),  # Query for host1.secure.example.|DS that returns a delegation
-                (None, None, None, None),  # Query for host1.secure.example.|DS that returns a NXQType
-                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
                 ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
+                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
         ]:
             if not qname:
                 expected.append((None, None, None, None, None, None))

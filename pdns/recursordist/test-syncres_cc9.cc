@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_secure)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A || record.d_type == QType::RRSIG);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_insecure)
@@ -328,7 +328,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_additional_without_rrsig)
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::RRSIG || record.d_type == QType::A);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure)
