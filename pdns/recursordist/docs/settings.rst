@@ -610,6 +610,41 @@ found, the recursor fallbacks to sending 127.0.0.1.
 This is the value set for the EDNS0 buffer size in outgoing packets.
 Lower this if you experience timeouts.
 
+.. _setting-edns-padding-from:
+
+``edns-padding-from``
+---------------------
+.. versionadded:: 4.5.0
+
+-  Comma separated list of netmasks
+-  Default: (none)
+
+List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that `edns-padding-mode`_ applies.
+
+.. _setting-edns-padding-mode:
+
+``edns-padding-mode``
+---------------------
+.. versionadded:: 4.5.0
+
+-  One of ``always``, ``padded-queries-only``, String
+-  Default: ``padded-queries-only``
+
+Whether to add EDNS padding to all responses (``always``) or only to responses for queries containing the EDNS padding option (``padded-queries-only``, the default).
+In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources.
+
+.. _setting-edns-padding-tag:
+
+``edns-padding-tag``
+--------------------
+.. versionadded:: 4.5.0
+
+-  Integer
+-  Default: 7830
+
+The packetcache tag to use for padded responses, to prevent a client not allowed by the `edns-padding-from`_ list to be served a cached answer generated for an allowed one. This
+effectively divides the packet cache in two when `edns-padding-from`_ is used. Note that this will not override a tag set from one of the ``Lua`` hooks.
+
 .. _setting-edns-subnet-whitelist:
 
 ``edns-subnet-whitelist``
@@ -2142,4 +2177,3 @@ List of names whose DNSSEC validation metrics will be counted in a separate set 
 with ``x-dnssec-result-``.
 The names are suffix-matched.
 This can be used to not count known failing (test) name validations in the ordinary DNSSEC metrics.
-

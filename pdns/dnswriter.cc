@@ -451,7 +451,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::getRecordP
   records.assign(d_content.begin() + d_sor, d_content.end());
 }
 
-template <typename Container> uint32_t GenericDNSPacketWriter<Container>::size()
+template <typename Container> uint32_t GenericDNSPacketWriter<Container>::size() const
 {
   return d_content.size();
 }
@@ -495,8 +495,18 @@ template <typename Container> void GenericDNSPacketWriter<Container>::commit()
 
 }
 
+template <typename Container> size_t GenericDNSPacketWriter<Container>::getSizeWithOpts(const optvect_t& options) const
+{
+  size_t result = size() + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + DNS_TTL_SIZE + DNS_RDLENGTH_SIZE;
+
+  for(auto const &option : options) {
+    result += 4;
+    result += option.second.size();
+  }
+
+  return result;
+}
+
 template class GenericDNSPacketWriter<std::vector<uint8_t>>;
 #include "noinitvector.hh"
 template class GenericDNSPacketWriter<PacketBuffer>;
-
-

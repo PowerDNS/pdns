@@ -164,6 +164,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember<bool (DNSQuestion::*)>("variable", [](const DNSQuestion& dq) -> bool { return dq.variable; }, [](DNSQuestion& dq, bool newVariable) { dq.variable = newVariable; });
   d_lw->registerMember<bool (DNSQuestion::*)>("wantsRPZ", [](const DNSQuestion& dq) -> bool { return dq.wantsRPZ; }, [](DNSQuestion& dq, bool newWantsRPZ) { dq.wantsRPZ = newWantsRPZ; });
   d_lw->registerMember<bool (DNSQuestion::*)>("logResponse", [](const DNSQuestion& dq) -> bool { return dq.logResponse; }, [](DNSQuestion& dq, bool newLogResponse) { dq.logResponse = newLogResponse; });
+  d_lw->registerMember<bool (DNSQuestion::*)>("addPaddingToResponse", [](const DNSQuestion& dq) -> bool { return dq.addPaddingToResponse; }, [](DNSQuestion& dq, bool add) { dq.addPaddingToResponse = add; });
 
   d_lw->registerMember("rcode", &DNSQuestion::rcode);
   d_lw->registerMember("tag", &DNSQuestion::tag);
@@ -525,7 +526,8 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   bool variableAnswer = false;
   bool wantsRPZ = false;
   bool logQuery = false;
-  RecursorLua4::DNSQuestion dq(ns, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery);
+  bool addPaddingToResponse = false;
+  RecursorLua4::DNSQuestion dq(ns, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse);
   dq.currentRecords = &res;
 
   return genhook(d_preoutquery, dq, ret);
@@ -967,4 +969,9 @@ bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t
     g_log<<Logger::Error<<"Error attempting to add a record from Lua via pdns_ffi_param_add_record(): "<<e.what()<<endl;
     return false;
   }
+}
+
+void pdns_ffi_param_set_padding_disabled(pdns_ffi_param_t* ref, bool disabled)
+{
+  ref->params.disablePadding = disabled;
 }
