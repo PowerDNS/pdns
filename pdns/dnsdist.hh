@@ -738,7 +738,7 @@ struct ClientState
   stat_t tcpDownstreamTimeouts{0};
   /* current number of connections to this frontend */
   stat_t tcpCurrentConnections{0};
-  /* maximum number of concurrent connections to this frontend */
+  /* maximum number of concurrent connections to this frontend seen */
   stat_t tcpMaxConcurrentConnections{0};
   stat_t tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
   stat_t tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
@@ -753,6 +753,7 @@ struct ClientState
   /* in ms */
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   size_t d_maxInFlightQueriesPerConn{1};
+  size_t d_tcpConcurrentConnectionsLimit{0};
   int udpFD{-1};
   int tcpFD{-1};
   int tcpListenQueueSize{SOMAXCONN};
@@ -921,6 +922,7 @@ struct DownstreamState
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   size_t socketsOffset{0};
   size_t d_maxInFlightQueriesPerConn{1};
+  size_t d_tcpConcurrentConnectionsLimit{0};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};

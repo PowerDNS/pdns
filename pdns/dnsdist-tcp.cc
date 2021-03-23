@@ -1241,6 +1241,10 @@ void tcpAcceptorThread(ClientState* cs)
 #endif
       // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
       auto concurrentConnections = ++cs->tcpCurrentConnections;
+      if (cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs->d_tcpConcurrentConnectionsLimit) {
+        continue;
+      }
+
       if (concurrentConnections > cs->tcpMaxConcurrentConnections) {
         cs->tcpMaxConcurrentConnections = concurrentConnections;
       }
