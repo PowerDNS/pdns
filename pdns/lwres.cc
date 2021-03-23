@@ -332,7 +332,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
           s.setFastOpenConnect();
         }
         catch (const NetworkError& e) {
-          g_log << Logger::Error << "tcp-fast-connect enabled but returned error: " << e.what() << endl;
+          // Ignore error, we did a pre-check in pdns_recursor.cc:checkTFOconnect()
         }
       }
 

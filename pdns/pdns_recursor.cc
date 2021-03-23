@@ -3236,11 +3236,23 @@ static void checkFastOpenSysctl(bool active)
     }
   }
   else {
-    g_log << Logger::Error << "Cannot determine if kernel setting allow fast-open" << endl;
+    g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
  }
 #else
-  g_log << Logger::Error << "Cannot determine if kernel setting allow fast-open" << endl;
+  g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
 #endif
+}
+
+static void checkTFOconnect()
+{
+  try {
+    Socket s(AF_INET, SOCK_STREAM);
+    s.setNonBlocking();
+    s.setFastOpenConnect();
+  }
+  catch (const NetworkError& e) {
+    g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl;
+  }
 }
 
 static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets)
@@ -4698,6 +4710,7 @@ static int serviceMain(int argc, char*argv[])
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
+    checkTFOconnect();
   }
 
   if(SyncRes::s_serverID.empty()) {

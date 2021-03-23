@@ -1849,7 +1849,7 @@ The numerical value supplied is used as the queue size, 0 meaning disabled. See 
 -  Boolean
 -  Default: no (disabled)
 
-Enable TCP Fast Open Connect support, if available, on the outgoing connections to authoritatively servers. See :ref:`tcp-fast-open-support`.
+Enable TCP Fast Open Connect support, if available, on the outgoing connections to authoritative servers. See :ref:`tcp-fast-open-support`.
 
 .. _setting-threads:
 

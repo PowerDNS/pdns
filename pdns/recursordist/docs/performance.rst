@@ -115,7 +115,7 @@ On Linux systems, the recursor can use TCP Fast Open for passive (incoming, sinc
 TCP Fast Open allows the initial SYN packet to carry data, saving one network round-trip.
 For details, consult `:rfc:7413`.
 
-To enable TCP Fast Open, it might be need change the value of the ``net.ipv4.tcp_fastopen`` sysctl.
+To enable TCP Fast Open, it might be needed to change the value of the ``net.ipv4.tcp_fastopen`` sysctl.
 Value 0 means Fast Open is disabled, 1 is only use Fast Open for active connections, 2 is only for passive connections and 3 is for both.
 
 The operation of TCP Fast Open can be monitored by looking at these kernel metrics::
@@ -129,7 +129,7 @@ While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fasto
 At the moment of writing, the Google operated nameservers (both recursive and authoritative) indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
 We can only hope Google will fix this issue soon.
 
-If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you wil create a similar issue the Google servers have.
+If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you will create a similar issue the Google servers have.
 
 To determine a good value for the :ref:`setting-tcp-fast-open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
 If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.
