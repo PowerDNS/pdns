@@ -509,7 +509,8 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   registerAllStats();
 
-  d_ws = std::unique_ptr<AsyncWebServer>(new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port")));
+  d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
+
   d_ws->setApiKey(arg()["api-key"]);
   d_ws->setPassword(arg()["webserver-password"]);
   d_ws->setLogLevel(arg()["webserver-loglevel"]);
@@ -534,8 +535,10 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
   d_ws->registerApiHandler("/api", &apiDiscovery);
 
-  for(const auto& u : g_urlmap) 
+  for (const auto& u : g_urlmap) {
     d_ws->registerWebHandler("/"+u.first, serveStuff);
+  }
+
   d_ws->registerWebHandler("/", serveStuff);
   d_ws->registerWebHandler("/metrics", prometheusMetrics);
   d_ws->go();
