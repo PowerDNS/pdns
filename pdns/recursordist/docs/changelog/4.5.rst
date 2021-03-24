@@ -1,5 +1,54 @@
 Changelogs for 4.5.X
 ====================
+.. changelog::
+  :version: 4.5.0-beta1
+  :released: 26th of March 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9995
+    :tickets: 7982
+
+    Support tcp fastopen connect.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8918
+
+    Implement EDNS0 padding (rfc7830) for outgoing responses.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10057
+
+    Get rid of early zone cut computation.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10182
+    :tickets: 10177
+
+    Insert hints as non-auth into cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10185
+
+    Make sure we take the right minimum for the packet cache TTL data.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10178
+    :tickets: 10125
+
+    Don't pick up random root NS records from AUTHORITY sections.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10161
+    :tickets: 7591
+
+    DATA size is unreliable, start using RES, as it seems reliable and relevant.
 
 .. changelog::
   :version: 4.5.0-alpha3
