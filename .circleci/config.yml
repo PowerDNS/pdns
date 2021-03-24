@@ -1275,7 +1275,6 @@ jobs:
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
           ASAN_OPTIONS: detect_leaks=0
-          SKIP_IPV6_TESTS: y
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc python3-venv protobuf-compiler
@@ -1298,6 +1297,7 @@ jobs:
           command: |
             PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
             RECCONTROL=/opt/pdns-recursor/bin/rec_control \
+            SKIP_IPV6_TESTS=y \
             ./build-scripts/test-recursor
 
   test-recursor-bulk:
