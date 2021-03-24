@@ -194,6 +194,12 @@ Context
 
     Print all the certificates.
 
+  .. method:: DNSCryptContext:reloadCertificates()
+
+    .. versionadded:: 1.6.0
+
+    Reload the current TLS certificate and key pairs.
+
   .. method:: DNSCryptContext:removeInactiveCertificate(serial)
 
     Remove the certificate with serial `serial`. It will not be possible to answer queries tied

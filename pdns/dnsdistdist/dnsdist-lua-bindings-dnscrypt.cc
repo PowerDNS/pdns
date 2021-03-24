@@ -33,6 +33,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx)
     luaCtx.registerFunction<std::string(DNSCryptContext::*)()const>("getProviderName", [](const DNSCryptContext& ctx) { return ctx.getProviderName().toStringNoDot(); });
     luaCtx.registerFunction("markActive", &DNSCryptContext::markActive);
     luaCtx.registerFunction("markInactive", &DNSCryptContext::markInactive);
+    luaCtx.registerFunction("reloadCertificates", &DNSCryptContext::reloadCertificates);
     luaCtx.registerFunction("removeInactiveCertificate", &DNSCryptContext::removeInactiveCertificate);
     luaCtx.registerFunction<void(std::shared_ptr<DNSCryptContext>::*)(const std::string& certFile, const std::string& keyFile, boost::optional<bool> active)>("loadNewCertificate", [](std::shared_ptr<DNSCryptContext> ctx, const std::string& certFile, const std::string& keyFile, boost::optional<bool> active) {
 
