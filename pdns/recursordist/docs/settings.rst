@@ -1838,7 +1838,18 @@ A list of comma-separated statistic names, that are prevented from being exporte
 -  Default: 0 (Disabled)
 
 Enable TCP Fast Open support, if available, on the listening sockets.
-The numerical value supplied is used as the queue size, 0 meaning disabled.
+The numerical value supplied is used as the queue size, 0 meaning disabled. See :ref:`tcp-fast-open-support`.
+
+.. _setting-tcp-fast-open-connect:
+
+``tcp-fast-open-connect``
+-------------------------
+.. versionadded:: 4.5.0
+
+-  Boolean
+-  Default: no (disabled)
+
+Enable TCP Fast Open Connect support, if available, on the outgoing connections to authoritative servers. See :ref:`tcp-fast-open-support`.
 
 .. _setting-threads:
 

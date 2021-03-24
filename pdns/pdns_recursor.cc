@@ -3222,6 +3222,39 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
+static void checkFastOpenSysctl(bool active)
+{
+#ifdef __linux__
+  string line;
+  if (readFileIfThere("/proc/sys/net/ipv4/tcp_fastopen", &line)) {
+    int flag = std::stoi(line);
+    if (active && !(flag & 1)) {
+      g_log << Logger::Error << "tcp-fast-open-connect enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+    }
+    if (!active && !(flag & 2)) {
+      g_log << Logger::Error << "tcp-fast-open enabled but net.ipv4.tcp_fastopen does not allow it" << endl;
+    }
+  }
+  else {
+    g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
+ }
+#else
+  g_log << Logger::Notice << "Cannot determine if kernel settings allow fast-open" << endl;
+#endif
+}
+
+static void checkTFOconnect()
+{
+  try {
+    Socket s(AF_INET, SOCK_STREAM);
+    s.setNonBlocking();
+    s.setFastOpenConnect();
+  }
+  catch (const NetworkError& e) {
+    g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl;
+  }
+}
+
 static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets)
 {
   int fd;
@@ -3290,10 +3323,10 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
 #endif
     }
 
-    if (::arg().asNum("tcp-fast-open") > 0) {
+    if (SyncRes::s_tcp_fast_open > 0) {
+      checkFastOpenSysctl(false);
 #ifdef TCP_FASTOPEN
-      int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
-      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
+      if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
         g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(err)<<endl;
       }
@@ -4013,11 +4046,11 @@ static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID* pid=boost::any_cast<PacketID>(&var);
-  ssize_t ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
-  if(ret > 0) {
-    pid->outPos+=(ssize_t)ret;
-    if(pid->outPos==pid->outMSG.size()) {
+  PacketID* pid = boost::any_cast<PacketID>(&var);
+  ssize_t ret = send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
+  if (ret > 0) {
+    pid->outPos += (ssize_t)ret;
+    if (pid->outPos == pid->outMSG.size()) {
       PacketID tmp=*pid;
       t_fdm->removeWriteFD(fd);
       MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
@@ -4672,6 +4705,13 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
   RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
+  SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
+  SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
+
+  if (SyncRes::s_tcp_fast_open_connect) {
+    checkFastOpenSysctl(true);
+    checkTFOconnect();
+  }
 
   if(SyncRes::s_serverID.empty()) {
     SyncRes::s_serverID = myHostname;
@@ -5554,6 +5594,7 @@ int main(int argc, char **argv)
     ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
+    ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets")="no";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
 
     ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs")="";

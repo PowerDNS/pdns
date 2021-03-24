@@ -107,6 +107,34 @@ The settings can be made permanent by using the ``--permanent`` flag::
 
 Following the instructions above, you should be able to attain very high query rates.
 
+.. _tcp-fast-open-support:
+
+TCP Fast Open Support
+---------------------
+On Linux systems, the recursor can use TCP Fast Open for passive (incoming, since 4.1) and active (outgoing, since 4.5) TCP connections.
+TCP Fast Open allows the initial SYN packet to carry data, saving one network round-trip.
+For details, consult `:rfc:7413`.
+
+To enable TCP Fast Open, it might be needed to change the value of the ``net.ipv4.tcp_fastopen`` sysctl.
+Value 0 means Fast Open is disabled, 1 is only use Fast Open for active connections, 2 is only for passive connections and 3 is for both.
+
+The operation of TCP Fast Open can be monitored by looking at these kernel metrics::
+
+    netstat -s | grep TCPFastOpen
+
+Please note that if active TCP Fast Open attempts fail in particular ways, the Linux kernel stops using active TCP Fast Open for a while for all connections, even connection to servers that previously worked.
+This behaviour can be monitored by watching the ``TCPFastOpenBlackHole`` kernel metric and influenced by setting the ``net.ipv4.tcp_fastopen_blackhole_timeout_sec`` sysctl.
+While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fastopen_blackhole_timeout_sec`` to zero to circumvent the issue, since it was triggered regularly while forcing TCP connections to nameservers for popular domains.
+
+At the moment of writing, the Google operated nameservers (both recursive and authoritative) indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
+We can only hope Google will fix this issue soon.
+
+If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you will create a similar issue the Google servers have.
+
+To determine a good value for the :ref:`setting-tcp-fast-open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
+If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.
+
+
 Recursor Caches
 ---------------
 
