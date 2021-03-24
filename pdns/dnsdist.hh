@@ -738,7 +738,7 @@ struct ClientState
   stat_t tcpDownstreamTimeouts{0};
   /* current number of connections to this frontend */
   stat_t tcpCurrentConnections{0};
-  /* maximum number of concurrent connections to this frontend seen */
+  /* maximum number of concurrent connections to this frontend reached */
   stat_t tcpMaxConcurrentConnections{0};
   stat_t tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
   stat_t tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
@@ -913,7 +913,7 @@ struct DownstreamState
   stat_t tcpConnectTimeouts{0};
   /* current number of connections to this backend */
   stat_t tcpCurrentConnections{0};
-  /* maximum number of concurrent connections to this backend */
+  /* maximum number of concurrent connections to this backend reached */
   stat_t tcpMaxConcurrentConnections{0};
   stat_t tcpReusedConnections{0};
   stat_t tcpNewConnections{0};
