@@ -8,18 +8,42 @@ Regular Statistics Log
 Every half hour or so (configurable with :ref:`setting-statistics-interval`, the recursor outputs a line with statistics.
 To force the output of statistics, send the process a SIGUSR1. A line of statistics looks like this::
 
-    Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entries, 84% cache hits, outpacket/query ratio 37%, 12% throttled
+  stats: 346362 questions, 7388 cache entries, 1773 negative entries, 18% cache hits
+  stats: cache contended/acquired 1583/56041728 = 0.00282468%
+  stats: throttle map: 3, ns speeds: 1487, failed ns: 15, ednsmap: 1363
+  stats: outpacket/query ratio 54%, 0% throttled, 0 no-delegation drops
+  stats: 217 outgoing tcp connections, 0 queries running, 9155 outgoing timeouts
+  stats: 4536 packet cache entries, 82% packet cache hits
+  stats: thread 0 has been distributed 175728 queries
+  stats: thread 1 has been distributed 169484 queries
+  stats: 1 qps (average over 1800 seconds)
 
-This means that there are 13791 different names cached, which each may have multiple records attached to them.
-There are 309 items in the negative cache, items of which it is known that don't exist and won't do so for the near future.
-84% of incoming questions could be answered without any additional queries going out to the net.
+This means that in total 346362 queries were received and there are 7388 different name/type combinations in the record cache, each entry may have multiple records attached to it.
 
-The outpacket/query ratio means that on average, 0.37 packets were needed to answer a question.
-Initially this ratio may be well over 100% as additional queries may be needed to actually recurse the DNS and figure out the addresses of nameservers.
+There are 1773 items in the negative cache, items of which it is known that don't exist and won't do so for the near future.
+18% of incoming questions not handled by the packets cache could be answered without any additional queries going out to the net.
+The record cache was consulted or modified 56041728 times, and 1583 of those accesses caused lock contention.
 
-Finally, 12% of queries were not performed because identical queries had gone out previously and failed, saving load on servers worldwide.
+Next a line with the sizes of maps that can be consulted by :program:`rec_control` is printed.
+
+The outpacket/query ratio means that on average, 0.54 packets were needed to answer a question.
+This ratio can be greater than 100% since additional queries could be needed to actually recurse the DNS and figure out the addresses of nameservers.
+
+0% of queries were not performed because identical queries had gone out previously and failed, saving load on servers worldwide.
+217 outgoing tcp connections were done, there were 0 queries running at the moment and 9155 queries to authoritative servers saw timeouts.
+
+The packets cache had 4536 entries and 82% of queries were served from it.
+The workload of the the worker queries was 175728 and 169484 respectively.
+Finally, measured in the last half hour, an average of 1 qps was performed.
+
+Multi-threading and metrics
+---------------------------
+Some metrics are collected in thread-local variables, and an aggregate values is computed to report.
+Other statistics are recorded in global memory and each thread updates the one instance, taking proper precautions to make sure consistency is maintained.
+The only exception are the `cpu-msec-thread-N`_ metrics, which report per-thread data.
 
 .. _metricscarbon:
+
 
 Sending metrics to Graphite/Metronome over Carbon
 -------------------------------------------------
@@ -41,28 +65,18 @@ To enable sending metrics, set :ref:`setting-carbon-server`, possibly :ref:`sett
   If you include dots in :ref:`setting-carbon-ourname`, they will **not** be replaced by underscores.
   As PowerDNS assumes you know what you are doing if you override your hostname.
 
-Sending metrics over SNMP
--------------------------
-.. versionadded:: 4.1.0
-
-The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
-
-MIB
-^^^
-
-.. literalinclude:: ../RECURSOR-MIB.txt
 
 Getting Metrics from the Recursor
 ---------------------------------
 
-Should Carbon not be the preferred way of receiving metric, several other techniques can be employed to retrieve metrics.
+Should Carbon not be the preferred way of receiving metrics, several other techniques can be employed to retrieve them.
 
 Using the Webserver
 ^^^^^^^^^^^^^^^^^^^
 The :doc:`API <http-api/index>` exposes a statistics endpoint at
 
 .. http:get:: /api/v1/servers/:server_id/statistics
-              
+
 This endpoint exports all statistics in a single JSON document.
 
 Using ``rec_control``
@@ -75,7 +89,31 @@ Single statistics can also be retrieved with the ``get`` command, e.g.::
 
   rec_control get all-outqueries
 
-External programs can use this technique to scrape metrics.
+External programs can use this technique to scrape metrics, though it is preferred to use a Prometheus export.
+
+Using Prometheus export
+^^^^^^^^^^^^^^^^^^^^^^^
+The internal web server exposes Prometheus formatted metrics at
+
+.. http:get:: /metrics
+
+The Prometheus name are the names listed in `metricnames`_, prefixed with ``pdns_recursor_`` and with hyphens substituted by underscores.
+For example::
+
+  # HELP pdns_recursor_all_outqueries Number of outgoing UDP queries since starting
+  # TYPE pdns_recursor_all_outqueries counter
+  pdns_recursor_all_outqueries 7
+
+
+Sending metrics over SNMP
+-------------------------
+
+The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
+
+MIB
+^^^
+
+.. literalinclude:: ../RECURSOR-MIB.txt
 
 .. _metricnames:
 
