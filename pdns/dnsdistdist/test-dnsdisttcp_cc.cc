@@ -2766,7 +2766,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     s_readBuffer.insert(s_readBuffer.end(), queries.at(2).begin(), queries.at(2).end());
 
     /* make sure that the backend's timeout is shorter than the client's */
-    backend->tcpSendTimeout = 1;
+    backend->tcpConnectTimeout = 1;
     g_tcpRecvTimeout = 5;
 
     bool timeout = false;
@@ -2810,7 +2810,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     }
 
     struct timeval later = now;
-    later.tv_sec += backend->tcpSendTimeout + 1;
+    later.tv_sec += backend->tcpConnectTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, true);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {

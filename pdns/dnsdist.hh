@@ -906,6 +906,7 @@ struct DownstreamState
   stat_t tcpGaveUp{0};
   stat_t tcpReadTimeouts{0};
   stat_t tcpWriteTimeouts{0};
+  stat_t tcpConnectTimeouts{0};
   stat_t tcpCurrentConnections{0};
   stat_t tcpReusedConnections{0};
   stat_t tcpNewConnections{0};

@@ -136,7 +136,6 @@ public:
       if (elapsed >= maxConnectionDuration) {
         return true;
       }
-      d_remainingTime = maxConnectionDuration - elapsed;
     }
 
     return false;
@@ -204,10 +203,8 @@ public:
   size_t d_proxyProtocolNeed{0};
   size_t d_queriesCount{0};
   size_t d_currentQueriesCount{0};
-  unsigned int d_remainingTime{0};
   uint16_t d_querySize{0};
   State d_state{State::doingHandshake};
-  bool d_readingFirstQuery{true};
   bool d_isXFR{false};
   bool d_proxyProtocolPayloadHasTLV{false};
   bool d_lastIOBlocked{false};

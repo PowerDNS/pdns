@@ -476,8 +476,8 @@ IOState IncomingTCPConnectionState::sendResponse(std::shared_ptr<IncomingTCPConn
       return iostate;
     } else {
       state->d_lastIOBlocked = true;
-     return IOState::NeedWrite;
       DEBUGLOG("partial write");
+      return iostate;
     }
   }
   catch (const std::exception& e) {
@@ -605,7 +605,6 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     return;
   }
 
-  state->d_readingFirstQuery = false;
   ++state->d_queriesCount;
   ++state->d_ci.cs->queries;
   ++g_stats.queries;
@@ -988,7 +987,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
         ++state->d_ci.cs->tcpDiedSendingResponse;
       }
 
-      if (state->d_ioState->getState() == IOState::NeedWrite || state->d_readingFirstQuery) {
+      if (state->d_ioState->getState() == IOState::NeedWrite || state->d_queriesCount == 0) {
         DEBUGLOG("Got an exception while handling TCP query: "<<e.what());
         vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (state->d_ioState->getState() == IOState::NeedRead ? "reading" : "writing"), state->d_ci.remote.toStringWithPort(), e.what());
       }
@@ -1103,9 +1102,6 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
     auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*citmp), *threadData, now);
     delete citmp;
     citmp = nullptr;
-
-    /* let's update the remaining time */
-    state->d_remainingTime = g_maxTCPConnectionDuration;
 
     IncomingTCPConnectionState::handleIO(state, now);
   }
