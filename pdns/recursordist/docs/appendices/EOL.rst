@@ -12,7 +12,7 @@ Pre-releases do not receive immediate security updates.
 
 The currently supported release train of the PowerDNS Recursor is 4.4.
 
-PowerDNS Recursor 4.3 will only receive crtical updates and will be
+PowerDNS Recursor 4.3 will only receive critical updates and will be
 end of life after PowerDNS Recursor 4.6 is released.
 
 PowerDNS Recursor 4.2 will only receive critical updates. It

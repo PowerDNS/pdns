@@ -9,7 +9,7 @@ Changelogs for 4.5.X
     :pullreq: 9995
     :tickets: 7982
 
-    Support tcp fastopen connect.
+    Support TCP FastOpen connect on outgoing connections.
 
   .. change::
     :tags: Improvements
@@ -48,7 +48,7 @@ Changelogs for 4.5.X
     :pullreq: 10161
     :tickets: 7591
 
-    DATA size is unreliable, start using RES, as it seems reliable and relevant.
+    Using DATA to report memory usage is unreliable, start using RES instead, as it seems reliable and relevant.
 
 .. changelog::
   :version: 4.5.0-alpha3
