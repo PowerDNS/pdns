@@ -56,5 +56,5 @@ for details.
      - EOL
 
 Note we did not have a very regular release schedule in the past,
-so the dates for older releases do not follow the pattern described  above.
+so the dates for older releases do not follow the pattern described above.
  

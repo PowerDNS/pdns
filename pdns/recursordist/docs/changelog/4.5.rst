@@ -21,7 +21,7 @@ Changelogs for 4.5.X
     :tags: Improvements
     :pullreq: 10057
 
-    Get rid of early zone cut computation.
+    Get rid of early zone cut computation when doing DNSSEC validation.
 
   .. change::
     :tags: Improvements
@@ -339,4 +339,3 @@ Changelogs for 4.5.X
     :pullreq: 9475
 
     Shared and sharded neg cache.
-
