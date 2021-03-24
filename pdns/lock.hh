@@ -20,35 +20,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <pthread.h>
-#include <errno.h>
-#include "misc.hh"
-#include "pdnsexception.hh"
+#include <shared_mutex>
 
 class ReadWriteLock
 {
 public:
   ReadWriteLock()
   {
-    if (pthread_rwlock_init(&d_lock, nullptr) != 0) {
-      throw std::runtime_error("Error creating a read-write lock: " + stringerror());
-    }
-  }
-
-  ~ReadWriteLock() {
-    pthread_rwlock_destroy(&d_lock);
   }
 
   ReadWriteLock(const ReadWriteLock& rhs) = delete;
+  ReadWriteLock(ReadWriteLock&& rhs) = delete;
   ReadWriteLock& operator=(const ReadWriteLock& rhs) = delete;
 
-  pthread_rwlock_t* getLock()
+  std::shared_mutex& getLock()
   {
-    return &d_lock;
+    return d_lock;
   }
 
 private:
-  pthread_rwlock_t d_lock;
+  std::shared_mutex d_lock;
 };
 
 class ReadLock
@@ -62,30 +53,19 @@ public:
   {
   }
 
-  ~ReadLock()
-  {
-    if(d_lock) // may have been moved
-      pthread_rwlock_unlock(d_lock);
-  }
-
-  ReadLock(ReadLock&& rhs)
-  {
-    d_lock = rhs.d_lock;
-    rhs.d_lock = nullptr;
-  }
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;
-
-private:
-  ReadLock(pthread_rwlock_t *lock) : d_lock(lock)
+  ReadLock(ReadLock&& rhs)
   {
-    int err;
-    if((err = pthread_rwlock_rdlock(d_lock))) {
-      throw PDNSException("error acquiring rwlock readlock: "+stringerror(err));
-    }
+    d_lock = std::move(rhs.d_lock);
   }
 
- pthread_rwlock_t *d_lock;
+private:
+  ReadLock(std::shared_mutex& lock) : d_lock(lock)
+  {
+  }
+
+  std::shared_lock<std::shared_mutex> d_lock;
 };
 
 class WriteLock
@@ -99,31 +79,19 @@ public:
   {
   }
 
-  WriteLock(WriteLock&& rhs)
-  {
-    d_lock = rhs.d_lock;
-    rhs.d_lock=0;
-  }
-
-  ~WriteLock()
-  {
-    if(d_lock) // might have been moved
-      pthread_rwlock_unlock(d_lock);
-  }
-
   WriteLock(const WriteLock& rhs) = delete;
   WriteLock& operator=(const WriteLock& rhs) = delete;
-
-private:
-  WriteLock(pthread_rwlock_t *lock) : d_lock(lock)
+  WriteLock(WriteLock&& rhs)
   {
-    int err;
-    if((err = pthread_rwlock_wrlock(d_lock))) {
-      throw PDNSException("error acquiring rwlock wrlock: "+stringerror(err));
-    }
+    d_lock = std::move(rhs.d_lock);
   }
 
-  pthread_rwlock_t *d_lock;
+private:
+  WriteLock(std::shared_mutex& lock) : d_lock(lock)
+  {
+  }
+
+  std::unique_lock<std::shared_mutex> d_lock;
 };
 
 class TryReadLock
@@ -137,40 +105,20 @@ public:
   {
   }
 
-  TryReadLock(TryReadLock&& rhs)
-  {
-    d_lock = rhs.d_lock;
-    rhs.d_lock = nullptr;
-    d_havelock = rhs.d_havelock;
-    rhs.d_havelock = false;
-  }
-
-  ~TryReadLock()
-  {
-    if(d_havelock && d_lock)
-      pthread_rwlock_unlock(d_lock);
-  }
-
   TryReadLock(const TryReadLock& rhs) = delete;
   TryReadLock& operator=(const TryReadLock& rhs) = delete;
 
-  bool gotIt()
+  bool gotIt() const
   {
-    return d_havelock;
+    return d_lock.owns_lock();
   }
 
 private:
-  TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
+  TryReadLock(std::shared_mutex& lock) : d_lock(lock, std::try_to_lock)
   {
-    int err;
-    if((err = pthread_rwlock_tryrdlock(d_lock)) && err!=EBUSY) {
-      throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror(err));
-    }
-    d_havelock=(err==0);
   }
 
-  pthread_rwlock_t *d_lock;
-  bool d_havelock;
+  std::shared_lock<std::shared_mutex> d_lock;
 };
 
 class TryWriteLock
@@ -184,40 +132,18 @@ public:
   {
   }
 
-  TryWriteLock(TryWriteLock&& rhs)
-  {
-    d_lock = rhs.d_lock;
-    rhs.d_lock = nullptr;
-    d_havelock = rhs.d_havelock;
-    rhs.d_havelock = false;
-  }
-
-  ~TryWriteLock()
-  {
-    if(d_havelock && d_lock) // we might be moved
-      pthread_rwlock_unlock(d_lock);
-  }
-
   TryWriteLock(const TryWriteLock& rhs) = delete;
   TryWriteLock& operator=(const TryWriteLock& rhs) = delete;
 
-  bool gotIt()
+  bool gotIt() const
   {
-    return d_havelock;
+    return d_lock.owns_lock();
   }
 
 private:
-  TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
+  TryWriteLock(std::shared_mutex& lock) : d_lock(lock, std::try_to_lock)
   {
-    d_havelock=false;
-    int err;
-    if((err = pthread_rwlock_trywrlock(d_lock)) && err!=EBUSY) {
-      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror(err));
-    }
-    d_havelock=(err==0);
   }
 
-  pthread_rwlock_t *d_lock;
-  bool d_havelock;
+  std::unique_lock<std::shared_mutex> d_lock;
 };
-
