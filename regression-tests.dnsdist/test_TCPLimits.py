@@ -129,3 +129,55 @@ class TestTCPLimits(DNSDistTest):
         self.assertAlmostEquals(end - start, self._maxTCPConnDuration, delta=2)
 
         conn.close()
+
+class TestTCPFrontendLimits(DNSDistTest):
+
+    # this test suite uses a different responder port
+    # because it uses a different health check configuration
+    _testServerPort = 5395
+    _answerUnexpected = True
+
+    _skipListeningOnCL = True
+    _tcpIdleTimeout = 2
+    _maxTCPConnsPerFrontend = 10
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    setLocal("%s:%d", {maxConcurrentTCPConnections=%d})
+    """
+    _config_params = ['_testServerPort', '_dnsDistListeningAddr', '_dnsDistPort', '_maxTCPConnsPerFrontend']
+    _verboseMode = True
+
+    def testTCPConnsPerFrontend(self):
+        """
+        TCP Frontend Limits: Maximum number of conns per frontend
+        """
+        name = 'maxconnsperfrontend.tcp.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        conns = []
+
+        for idx in range(self._maxTCPConnsPerFrontend + 1):
+            conns.append(self.openTCPConnection())
+
+        count = 0
+        failed = 0
+        for conn in conns:
+            try:
+                self.sendTCPQueryOverConnection(conn, query)
+                response = self.recvTCPResponseOverConnection(conn)
+                if response:
+                    count = count + 1
+                else:
+                    failed = failed + 1
+            except:
+                failed = failed + 1
+
+        for conn in conns:
+            conn.close()
+
+        # wait a bit to be sure that dnsdist closed the connections
+        # and decremented the counters on its side, otherwise subsequent
+        # connections will be dropped
+        time.sleep(1)
+
+        self.assertEqual(count, self._maxTCPConnsPerFrontend)
+        self.assertEqual(failed, 1)
