@@ -32,7 +32,10 @@ Tuning related functions
 
 .. function:: setMaxTCPQueuedConnections(num)
 
-  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000. 0 means unlimited
+  .. versionchanged:: 1.6.0
+    Before 1.6.0 the default value was 1000 on all systems.
+
+  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000 (10000 on Linux since 1.6.0). 0 means unlimited
 
   :param int num:
 
@@ -67,7 +70,7 @@ Tuning related functions
 
   .. versionadded:: 1.6.0
 
-  Set the size in bytes of the internal buffer of the pipes used internally to distribute connections to TCP (and DoT) workers threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used.
+  Set the size in bytes of the internal buffer of the pipes used internally to distribute connections to TCP (and DoT) workers threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
 
   :param int size: The size in bytes.
 

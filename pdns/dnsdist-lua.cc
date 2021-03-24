@@ -1799,7 +1799,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
         return;
       }
-      g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 1);
+      g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 10);
     });
 
   luaCtx.writeFunction("setRingBuffersLockRetries", [](size_t retries) {

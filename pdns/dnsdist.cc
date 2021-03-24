@@ -1696,7 +1696,7 @@ static void healthChecksThread()
     auto mplexer = std::shared_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
-      if(++dss->lastCheck < dss->checkInterval) {
+      if (++dss->lastCheck < dss->checkInterval) {
         continue;
       }
 

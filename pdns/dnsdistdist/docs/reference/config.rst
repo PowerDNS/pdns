@@ -106,6 +106,7 @@ Listen Sockets
 
   .. versionchanged:: 1.6.0
     ``exactPathMatching`` and ``releaseBuffers`` options added.
+    ``internalPipeBufferSize`` now defaults to 1048576 on Linux.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -141,7 +142,7 @@ Listen Sockets
   * ``sendCacheControlHeaders``: bool - Whether to parse the response to find the lowest TTL and set a HTTP Cache-Control header accordingly. Default is true.
   * ``trustForwardedForHeader``: bool - Whether to parse any existing X-Forwarded-For header in the HTTP query and use the right-most value as the client source address and port, for ACL checks, rules, logging and so on. Default is false.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
-  * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used.
+  * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
   * ``exactPathMatching=true``: bool - Whether to do exact path matching of the query path against the paths configured in ``urls`` (true, the default since 1.5.0) or to accepts sub-paths (false, and was the default before 1.5.0).
   * ``releaseBuffers=true``: bool - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection.
 
@@ -457,10 +458,13 @@ Ringbuffers
 
 .. function:: setRingBuffersSize(num [, numberOfShards])
 
+  .. versionchanged:: 1.6.0
+    ``numberOfShards`` defaults to 10.
+
   Set the capacity of the ringbuffers used for live traffic inspection to ``num``, and the number of shards to ``numberOfShards`` if specified.
 
   :param int num: The maximum amount of queries to keep in the ringbuffer. Defaults to 10000
-  :param int numberOfShards: the number of shards to use to limit lock contention. Defaults to 1
+  :param int numberOfShards: the number of shards to use to limit lock contention. Default is 10, used to be 1 before 1.6.0
 
 Servers
 -------
@@ -743,6 +747,7 @@ See :doc:`../guides/cache` for a how to.
 
   .. versionchanged:: 1.6.0
     ``cookieHashing`` parameter added.
+    ``numberOfShards`` now defaults to 20.
 
   Creates a new :class:`PacketCache` with the settings specified.
 
@@ -756,7 +761,7 @@ See :doc:`../guides/cache` for a how to.
   * ``maxNegativeTTL=3600``: int - Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher.
   * ``maxTTL=86400``: int - Cap the TTL for records to his number.
   * ``minTTL=0``: int - Don't cache entries with a TTL lower than this.
-  * ``numberOfShards=1``: int - Number of shards to divide the cache into, to reduce lock contention.
+  * ``numberOfShards=20``: int - Number of shards to divide the cache into, to reduce lock contention. Used to be 1 (no shards) before 1.6.0, and is now 20.
   * ``parseECS=false``: bool - Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default. Enabling this option is required for the 'zero scope' option to work
   * ``staleTTL=60``: int - When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned.
   * ``temporaryFailureTTL=60``: int - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds..

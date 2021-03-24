@@ -855,7 +855,7 @@ class TestTempFailureCacheTTLAction(DNSDistTest):
 class TestCachingWithExistingEDNS(DNSDistTest):
 
     _config_template = """
-    pc = newPacketCache(5, {maxTTL=86400, minTTL=1})
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     newServer{address="127.0.0.1:%d"}
     """
@@ -912,7 +912,7 @@ class TestCachingWithExistingEDNS(DNSDistTest):
 class TestCachingCacheFull(DNSDistTest):
 
     _config_template = """
-    pc = newPacketCache(1, {maxTTL=86400, minTTL=1})
+    pc = newPacketCache(1, {maxTTL=86400, minTTL=1, numberOfShards=1})
     getPool(""):setCache(pc)
     newServer{address="127.0.0.1:%d"}
     """
