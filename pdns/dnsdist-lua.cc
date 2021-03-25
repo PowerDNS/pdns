@@ -2444,16 +2444,43 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         return g_tlslocals.size();
       });
 
-    luaCtx.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx> ctx) {
+    luaCtx.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx>& ctx) {
         if (ctx != nullptr) {
           ctx->rotateTicketsKey(time(nullptr));
         }
       });
 
-    luaCtx.registerFunction<void(std::shared_ptr<TLSCtx>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSCtx> ctx, const std::string& file) {
+    luaCtx.registerFunction<void(std::shared_ptr<TLSCtx>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSCtx>& ctx, const std::string& file) {
         if (ctx != nullptr) {
           ctx->loadTicketsKeys(file);
         }
+      });
+
+    luaCtx.registerFunction<void(std::shared_ptr<TLSFrontend>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSFrontend>& frontend) {
+        if (frontend == nullptr) {
+          return;
+        }
+        auto ctx = frontend->getContext();
+        if (ctx) {
+          ctx->rotateTicketsKey(time(nullptr));
+        }
+      });
+
+    luaCtx.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSFrontend>& frontend, const std::string& file) {
+        if (frontend == nullptr) {
+          return;
+        }
+        auto ctx = frontend->getContext();
+        if (ctx) {
+          ctx->loadTicketsKeys(file);
+        }
+      });
+
+    luaCtx.registerFunction<void(std::shared_ptr<TLSFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<TLSFrontend>& frontend) {
+        if (frontend == nullptr) {
+          return;
+        }
+        frontend->setupTLS();
       });
 
     luaCtx.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {

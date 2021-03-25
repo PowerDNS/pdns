@@ -1536,16 +1536,16 @@ TLSContext
 
   This object represents an address and port dnsdist is listening on for DNS over TLS queries.
 
-  .. method:: TLSContext:rotateTicketsKey()
-
-     Replace the current TLS tickets key by a new random one.
-
   .. method:: TLSContext:loadTicketsKeys(ticketsKeysFile)
 
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
      See :doc:`guides/tls-sessions-management` for more information.
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+
+  .. method:: TLSContext:rotateTicketsKey()
+
+     Replace the current TLS tickets key by a new random one.
 
 TLSFrontend
 ~~~~~~~~~~~
@@ -1554,12 +1554,33 @@ TLSFrontend
 
   This object represents the configuration of a listening frontend for DNS over TLS queries. To each frontend is associated a TLSContext.
 
-  .. method:: TLSContext:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
+  .. method:: TLSFrontend:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
 
      Create and switch to a new TLS context using the same options than were passed to the corresponding `addTLSLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
 
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+
+  .. method:: TLSFrontend:loadTicketsKeys(ticketsKeysFile)
+
+  .. versionadded:: 1.6.0
+
+     Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
+     See :doc:`guides/tls-sessions-management` for more information.
+
+    :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+
+  .. method:: TLSFrontend:reloadCertificates()
+
+  .. versionadded:: 1.6.0
+
+     Reload the current TLS certificate and key pairs.
+
+  .. method:: TLSFrontend:rotateTicketsKey()
+
+  .. versionadded:: 1.6.0
+
+     Replace the current TLS tickets key by a new random one.
 
 EDNS on Self-generated answers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
