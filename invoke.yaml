@@ -1,0 +1,3 @@
+run:
+    echo: true
+    echo_format: "::endgroup::\n::group::{command}"
