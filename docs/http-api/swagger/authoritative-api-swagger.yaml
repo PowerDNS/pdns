@@ -1262,6 +1262,11 @@ definitions:
         items:
           type: string
         description: 'An array of DS records for this key'
+      cds:
+        type: array
+        items:
+          type: string
+        description: 'An array of DS records for this key, filtered by CDS publication settings'
       privatekey:
         type: string
         description: 'The private key in ISC format'
