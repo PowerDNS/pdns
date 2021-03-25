@@ -34,6 +34,8 @@ public:
   /* whether OpenSSL will release I/O buffers when the connection
      becomes idle, saving memory */
   bool d_releaseBuffers{true};
+  /* whether so-called secure renegotiation should be allowed for TLS < 1.3 */
+  bool d_enableRenegotiation{false};
 };
 
 struct TLSErrorCounters

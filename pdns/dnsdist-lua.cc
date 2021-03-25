@@ -227,6 +227,10 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   if (vars->count("releaseBuffers")) {
     config.d_releaseBuffers = boost::get<bool>((*vars)["releaseBuffers"]);
   }
+
+  if (vars->count("enableRenegotiation")) {
+    config.d_enableRenegotiation = boost::get<bool>((*vars)["enableRenegotiation"]);
+  }
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
