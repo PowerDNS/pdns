@@ -681,6 +681,8 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
   if (!config.d_enableRenegotiation) {
 #ifdef SSL_OP_NO_RENEGOTIATION
     sslOptions |= SSL_OP_NO_RENEGOTIATION;
+#elif defined(SSL_OP_NO_CLIENT_RENEGOTIATION)
+    sslOptions |= SSL_OP_NO_CLIENT_RENEGOTIATION;
 #endif
   }
 
