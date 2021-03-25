@@ -967,6 +967,8 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
       throw ApiException("Could not update metadata entries for domain '" +
         zonename.toString() + "'");
 
+    DNSSECKeeper::clearMetaCache(zonename);
+
     Json::array respMetadata;
     for (const string& s : vecMetadata)
       respMetadata.push_back(s);
@@ -1032,6 +1034,8 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     if (!B.setDomainMetadata(zonename, kind, vecMetadata))
       throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
 
+    DNSSECKeeper::clearMetaCache(zonename);
+
     Json::object key {
       { "type", "Metadata" },
       { "kind", kind },
@@ -1046,6 +1050,8 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     vector<string> md;  // an empty vector will do it
     if (!B.setDomainMetadata(zonename, kind, md))
       throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+
+    DNSSECKeeper::clearMetaCache(zonename);
   } else
     throw HttpMethodNotAllowedException();
 }
