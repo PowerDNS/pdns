@@ -2211,3 +2211,41 @@ class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
 
         keydata = keys[0]['dnskey'].split()
         self.assertEqual(len(keydata), 4)
+
+    def test_get_keys_with_cds(self):
+        payload_metadata = {"type": "Metadata", "kind": "PUBLISH-CDS", "metadata": ["4"]}
+        r = self.session.post(self.url("/api/v1/servers/localhost/zones/powerdnssec.org./metadata"),
+                              data=json.dumps(payload_metadata))
+        rdata = r.json()
+        self.assertEquals(r.status_code, 201)
+        self.assertEquals(rdata["metadata"], payload_metadata["metadata"])
+
+        r = self.session.get(
+            self.url("/api/v1/servers/localhost/zones/powerdnssec.org./cryptokeys"))
+        self.assert_success_json(r)
+        keys = r.json()
+        self.assertGreater(len(keys), 0)
+
+        key0 = deepcopy(keys[0])
+        self.assertEquals(len(key0['cds']), 1)
+        self.assertIn(key0['cds'][0], key0['ds'])
+        self.assertEquals(key0['cds'][0].split()[2], '4')
+        del key0['dnskey']
+        del key0['ds']
+        del key0['cds']
+        expected = {
+            u'algorithm': u'ECDSAP256SHA256',
+            u'bits': 256,
+            u'active': True,
+            u'type': u'Cryptokey',
+            u'keytype': u'csk',
+            u'flags': 257,
+            u'published': True,
+            u'id': 1}
+        self.assertEquals(key0, expected)
+
+        keydata = keys[0]['dnskey'].split()
+        self.assertEqual(len(keydata), 4)
+
+        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/powerdnssec.org./metadata/PUBLISH-CDS"))
+        self.assertEquals(r.status_code, 200)
