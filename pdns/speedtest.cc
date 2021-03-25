@@ -10,6 +10,7 @@
 #include <fstream>
 #include "uuid-utils.hh"
 #include "dnssecinfra.hh"
+#include "lock.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -862,6 +863,100 @@ struct NSEC3HashTest
   DNSName d_name = DNSName("www.example.com");
 };
 
+struct ReadWriteLockSharedTest
+{
+  explicit ReadWriteLockSharedTest(ReadWriteLock& lock): d_lock(lock)
+  {
+  }
+
+  string getName() const { return "RW lock shared"; }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; ) {
+      ReadLock wl(d_lock);
+      ++idx;
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+};
+
+struct ReadWriteLockExclusiveTest
+{
+  explicit ReadWriteLockExclusiveTest(ReadWriteLock& lock): d_lock(lock)
+  {
+  }
+
+  string getName() const { return "RW lock exclusive"; }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; ) {
+      WriteLock wl(d_lock);
+      ++idx;
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+};
+
+struct ReadWriteLockExclusiveTryTest
+{
+  explicit ReadWriteLockExclusiveTryTest(ReadWriteLock& lock, bool contended): d_lock(lock), d_contended(contended)
+  {
+  }
+
+  string getName() const { return "RW lock try exclusive - " + std::string(d_contended ? "contended" : "non-contended"); }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; ) {
+      TryWriteLock wl(d_lock);
+      if (!wl.gotIt() && !d_contended) {
+        cerr<<"Error getting the lock"<<endl;
+        _exit(0);
+      }
+      else if (wl.gotIt() && d_contended) {
+        cerr<<"Got a contended lock"<<endl;
+        _exit(0);
+      }
+      ++idx;
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+  bool d_contended;
+};
+
+struct ReadWriteLockSharedTryTest
+{
+  explicit ReadWriteLockSharedTryTest(ReadWriteLock& lock, bool contended): d_lock(lock), d_contended(contended)
+  {
+  }
+
+  string getName() const { return "RW lock try shared - " + std::string(d_contended ? "contended" : "non-contended"); }
+
+  void operator()() const {
+    for (size_t idx = 0; idx < 1000; ) {
+      TryReadLock wl(d_lock);
+      if (!wl.gotIt() && !d_contended) {
+        cerr<<"Error getting the lock"<<endl;
+        _exit(0);
+      }
+      else if (wl.gotIt() && d_contended) {
+        cerr<<"Got a contended lock"<<endl;
+        _exit(0);
+      }
+      ++idx;
+    }
+  }
+
+private:
+  ReadWriteLock& d_lock;
+  bool d_contended;
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -899,6 +994,22 @@ try
   doRun(GetTimeTest());
   
   doRun(GetLockUncontendedTest());
+  {
+    ReadWriteLock rwlock;
+    doRun(ReadWriteLockSharedTest(rwlock));
+    doRun(ReadWriteLockExclusiveTest(rwlock));
+    doRun(ReadWriteLockExclusiveTryTest(rwlock, false));
+    {
+      ReadLock rl(rwlock);
+      doRun(ReadWriteLockExclusiveTryTest(rwlock, true));
+      doRun(ReadWriteLockSharedTryTest(rwlock, false));
+    }
+    {
+      WriteLock wl(rwlock);
+      doRun(ReadWriteLockSharedTryTest(rwlock, true));
+    }
+  }
+
   doRun(StaticMemberTest());
   
   doRun(ARecordTest(1));
@@ -929,8 +1040,6 @@ try
   doRun(GenericRecordTest(2, QType::NS, "powerdnssec1.ds9a.nl"));
   doRun(GenericRecordTest(4, QType::NS, "powerdnssec1.ds9a.nl"));
   doRun(GenericRecordTest(64, QType::NS, "powerdnssec1.ds9a.nl"));
-
-  
 
   doRun(SOARecordTest(1));
   doRun(SOARecordTest(2));
