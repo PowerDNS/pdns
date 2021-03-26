@@ -678,6 +678,14 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 #endif /* SSL_OP_PRIORITIZE_CHACHA */
   }
 
+  if (!config.d_enableRenegotiation) {
+#ifdef SSL_OP_NO_RENEGOTIATION
+    sslOptions |= SSL_OP_NO_RENEGOTIATION;
+#elif defined(SSL_OP_NO_CLIENT_RENEGOTIATION)
+    sslOptions |= SSL_OP_NO_CLIENT_RENEGOTIATION;
+#endif
+  }
+
   SSL_CTX_set_options(ctx.get(), sslOptions);
   if (!libssl_set_min_tls_version(ctx, config.d_minTLSVersion)) {
     throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(config.d_minTLSVersion));
