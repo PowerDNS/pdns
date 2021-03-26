@@ -736,7 +736,10 @@ struct ClientState
   stat_t tcpGaveUp{0};
   stat_t tcpClientTimeouts{0};
   stat_t tcpDownstreamTimeouts{0};
+  /* current number of connections to this frontend */
   stat_t tcpCurrentConnections{0};
+  /* maximum number of concurrent connections to this frontend reached */
+  stat_t tcpMaxConcurrentConnections{0};
   stat_t tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
   stat_t tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
   stat_t tlsUnknownTicketKey{0}; // A TLS ticket has been presented but we don't have the associated key (might have expired)
@@ -750,6 +753,7 @@ struct ClientState
   /* in ms */
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   size_t d_maxInFlightQueriesPerConn{1};
+  size_t d_tcpConcurrentConnectionsLimit{0};
   int udpFD{-1};
   int tcpFD{-1};
   int tcpListenQueueSize{SOMAXCONN};
@@ -907,7 +911,10 @@ struct DownstreamState
   stat_t tcpReadTimeouts{0};
   stat_t tcpWriteTimeouts{0};
   stat_t tcpConnectTimeouts{0};
+  /* current number of connections to this backend */
   stat_t tcpCurrentConnections{0};
+  /* maximum number of concurrent connections to this backend reached */
+  stat_t tcpMaxConcurrentConnections{0};
   stat_t tcpReusedConnections{0};
   stat_t tcpNewConnections{0};
   pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
@@ -915,6 +922,7 @@ struct DownstreamState
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
   size_t socketsOffset{0};
   size_t d_maxInFlightQueriesPerConn{1};
+  size_t d_tcpConcurrentConnectionsLimit{0};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};
@@ -1223,6 +1231,8 @@ struct LocalHolders
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 
 void tcpAcceptorThread(ClientState* p);
+void setMaxCachedTCPConnectionsPerDownstream(size_t max);
+
 #ifdef HAVE_DNS_OVER_HTTPS
 void dohThread(ClientState* cs);
 #endif /* HAVE_DNS_OVER_HTTPS */

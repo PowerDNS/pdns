@@ -4,6 +4,7 @@ import dns
 import socket
 import ssl
 import subprocess
+import time
 import unittest
 from dnsdisttests import DNSDistTest
 
@@ -348,3 +349,69 @@ class TestDOTWithCache(DNSDistTest):
             self.sendTCPQueryOverConnection(conn, query, response=None)
             receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
             self.assertEquals(receivedResponse, response)
+
+class TestTLSFrontendLimits(DNSDistTest):
+
+    # this test suite uses a different responder port
+    # because it uses a different health check configuration
+    _testServerPort = 5395
+    _answerUnexpected = True
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+
+    _skipListeningOnCL = True
+    _tcpIdleTimeout = 2
+    _maxTCPConnsPerTLSFrontend = 5
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", maxConcurrentTCPConnections=%d })
+    """
+    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerTLSFrontend']
+    _verboseMode = True
+
+    def testTCPConnsPerTLSFrontend(self):
+        """
+        TLS Frontend Limits: Maximum number of conns per TLS frontend
+        """
+        name = 'maxconnspertlsfrontend.tls.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        conns = []
+
+        for idx in range(self._maxTCPConnsPerTLSFrontend + 1):
+            try:
+                conns.append(self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert))
+            except:
+                conns.append(None)
+
+        count = 0
+        failed = 0
+        for conn in conns:
+            if not conn:
+                failed = failed + 1
+                continue
+
+            try:
+                self.sendTCPQueryOverConnection(conn, query)
+                response = self.recvTCPResponseOverConnection(conn)
+                if response:
+                    count = count + 1
+                else:
+                    failed = failed + 1
+            except:
+                failed = failed + 1
+
+        for conn in conns:
+            if conn:
+                conn.close()
+
+        # wait a bit to be sure that dnsdist closed the connections
+        # and decremented the counters on its side, otherwise subsequent
+        # connections will be dropped
+        time.sleep(1)
+
+        self.assertEqual(count, self._maxTCPConnsPerTLSFrontend)
+        self.assertEqual(failed, 1)

@@ -586,6 +586,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setECSSourcePrefixV6", true, "prefix-length", "the EDNS Client Subnet prefix-length used for IPv6 queries" },
   { "setKey", true, "key", "set access key to that key" },
   { "setLocal", true, "addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface=\"\", cpus={}}]", "reset the list of addresses we listen on to this address" },
+  { "setMaxCachedTCPConnectionsPerDownstream", true, "max", "Set the maximum number of inactive TCP connections to a backend cached by each worker TCP thread" },
   { "setMaxTCPClientThreads", true, "n", "set the maximum of TCP client threads, handling TCP connections" },
   { "setMaxTCPConnectionDuration", true, "n", "set the maximum duration of an incoming TCP connection, in seconds. 0 means unlimited" },
   { "setMaxTCPConnectionsPerClient", true, "n", "set the maximum number of TCP connections per client. 0 means unlimited" },

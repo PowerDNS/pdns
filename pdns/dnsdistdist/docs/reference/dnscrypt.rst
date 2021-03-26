@@ -7,6 +7,12 @@ DNSCrypt objects and functions
     Removed ``doTCP`` from the options. A listen socket on TCP is always created.
     ``certFile(s)`` and ``keyFile(s)`` now accept a list of files.
 
+  .. versionchanged:: 1.5.0
+    Added ``tcpListenQueueSize`` parameter.
+
+  .. versionchanged:: 1.6.0
+    Added ``maxInFlight`` and ``maxConcurrentTCPConnections`` parameters.
+
   Adds a DNSCrypt listen socket on ``address``.
 
   :param string address: The address and port to listen on
@@ -22,6 +28,9 @@ DNSCrypt objects and functions
   * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
   * ``interface=""``: str - Sets the network interface to use
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
+  * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
+  * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
+  * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
 
 .. function:: generateDNSCryptProviderKeys(publicKey, privateKey)
 

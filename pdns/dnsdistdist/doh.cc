@@ -1169,18 +1169,26 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   if (err != nullptr) {
     return;
   }
-  // do some dnsdist rules here to filter based on IP address
+
   if ((sock = h2o_evloop_socket_accept(listener)) == nullptr) {
     return;
   }
 
-  // ComboAddress remote;
-  // h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
-  //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
-
   const int descriptor = h2o_socket_get_fd(sock);
   if (descriptor == -1) {
+    h2o_socket_close(sock);
     return;
+  }
+
+  auto concurrentConnections = ++dsc->cs->tcpCurrentConnections;
+  if (dsc->cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > dsc->cs->d_tcpConcurrentConnectionsLimit) {
+    --dsc->cs->tcpCurrentConnections;
+    h2o_socket_close(sock);
+    return;
+  }
+
+  if (concurrentConnections > dsc->cs->tcpMaxConcurrentConnections) {
+    dsc->cs->tcpMaxConcurrentConnections = concurrentConnections;
   }
 
   auto& conn = t_conns[descriptor];
@@ -1194,7 +1202,6 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   sock->on_close.data = &conn;
   sock->data = dsc;
 
-  ++dsc->cs->tcpCurrentConnections;
   ++dsc->df->d_httpconnects;
 
   h2o_accept(conn.d_acceptCtx->get(), sock);

@@ -99,7 +99,7 @@ void resetLuaSideEffect()
 
 typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::vector<std::pair<int, std::string> >, std::map<std::string,std::string>  > > localbind_t;
 
-static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, size_t& maxInFlightQueriesPerConnection)
+static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, size_t& maxInFlightQueriesPerConnection, size_t& tcpMaxConcurrentConnections)
 {
   if (vars) {
     if (vars->count("reusePort")) {
@@ -110,6 +110,9 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
     }
     if (vars->count("tcpListenQueueSize")) {
       tcpListenQueueSize = boost::get<int>((*vars)["tcpListenQueueSize"]);
+    }
+    if (vars->count("maxConcurrentTCPConnections")) {
+      tcpMaxConcurrentConnections = boost::get<int>((*vars)["maxConcurrentTCPConnections"]);
     }
     if (vars->count("maxInFlight")) {
       maxInFlightQueriesPerConnection = boost::get<int>((*vars)["maxInFlight"]);
@@ -602,10 +605,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       int tcpFastOpenQueueSize = 0;
       int tcpListenQueueSize = 0;
       size_t maxInFlightQueriesPerConn = 0;
+      size_t tcpMaxConcurrentConnections = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
       try {
 	ComboAddress loc(addr, 53);
@@ -628,6 +632,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         if (maxInFlightQueriesPerConn > 0) {
           tcpCS->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
         }
+        if (tcpMaxConcurrentConnections > 0) {
+          tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
+        }
+
         g_frontends.push_back(std::move(tcpCS));
       }
       catch(const std::exception& e) {
@@ -647,10 +655,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       int tcpFastOpenQueueSize = 0;
       int tcpListenQueueSize = 0;
       size_t maxInFlightQueriesPerConn = 0;
+      size_t tcpMaxConcurrentConnections = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
       try {
 	ComboAddress loc(addr, 53);
@@ -662,6 +671,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
         if (maxInFlightQueriesPerConn > 0) {
           tcpCS->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+        }
+        if (tcpMaxConcurrentConnections > 0) {
+          tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
         }
         g_frontends.push_back(std::move(tcpCS));
       }
@@ -1188,6 +1200,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
+  luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
+    setMaxCachedTCPConnectionsPerDownstream(max);
+    });
+
   luaCtx.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
 
   luaCtx.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
@@ -1332,11 +1348,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       int tcpFastOpenQueueSize = 0;
       int tcpListenQueueSize = 0;
       size_t maxInFlightQueriesPerConn = 0;
+      size_t tcpMaxConcurrentConnections = 0;
       std::string interface;
       std::set<int> cpus;
       std::vector<DNSCryptContext::CertKeyPaths> certKeys;
 
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
       if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
         auto certFile = boost::get<std::string>(certFiles);
@@ -1377,6 +1394,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         cs->dnscryptCtx = ctx;
         if (tcpListenQueueSize > 0) {
           cs->tcpListenQueueSize = tcpListenQueueSize;
+        }
+        if (maxInFlightQueriesPerConn > 0) {
+            cs->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+        }
+        if (tcpMaxConcurrentConnections > 0) {
+          cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
         }
 
         g_frontends.push_back(std::move(cs));
@@ -2135,11 +2158,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     int tcpFastOpenQueueSize = 0;
     int tcpListenQueueSize = 0;
     size_t maxInFlightQueriesPerConn = 0;
+    size_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
       if (vars->count("idleTimeout")) {
         frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
@@ -2180,7 +2204,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (tcpListenQueueSize > 0) {
       cs->tcpListenQueueSize = tcpListenQueueSize;
     }
-
+    if (tcpMaxConcurrentConnections > 0) {
+      cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
+    }
     g_frontends.push_back(std::move(cs));
 #else
     throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
@@ -2326,11 +2352,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         int tcpFastOpenQueueSize = 0;
         int tcpListenQueueSize = 0;
         size_t maxInFlightQueriesPerConn = 0;
+        size_t tcpMaxConcurrentConns = 0;
         std::string interface;
         std::set<int> cpus;
 
         if (vars) {
-          parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn);
+          parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns);
 
           if (vars->count("provider")) {
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
@@ -2360,6 +2387,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           }
           if (maxInFlightQueriesPerConn > 0) {
             cs->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+          }
+          if (tcpMaxConcurrentConns > 0) {
+            cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConns;
           }
 
           g_tlslocals.push_back(cs->tlsFrontend);

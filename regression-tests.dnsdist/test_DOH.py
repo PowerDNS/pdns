@@ -1136,3 +1136,69 @@ class TestDOHForwardedForNoTrusted(DNSDistDOHTest):
 
         self.assertEquals(self._rcode, 403)
         self.assertEquals(receivedResponse, b'dns query not allowed because of ACL')
+
+class TestDOHFrontendLimits(DNSDistDOHTest):
+
+    # this test suite uses a different responder port
+    # because it uses a different health check configuration
+    _testServerPort = 5395
+    _answerUnexpected = True
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+
+    _skipListeningOnCL = True
+    _maxTCPConnsPerDOHFrontend = 5
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { maxConcurrentTCPConnections=%d })
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerDOHFrontend']
+    _verboseMode = True
+
+    def testTCPConnsPerDOHFrontend(self):
+        """
+        DoH Frontend Limits: Maximum number of conns per DoH frontend
+        """
+        name = 'maxconnsperfrontend.doh.tests.powerdns.com.'
+        query = b"GET / HTTP/1.0\r\n\r\n"
+        conns = []
+
+        for idx in range(self._maxTCPConnsPerDOHFrontend + 1):
+            try:
+                conns.append(self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert))
+            except:
+                conns.append(None)
+
+        count = 0
+        failed = 0
+        for conn in conns:
+            if not conn:
+                failed = failed + 1
+                continue
+
+            try:
+                conn.send(query)
+                response = conn.recv(65535)
+                if response:
+                    count = count + 1
+                else:
+                    failed = failed + 1
+            except:
+                failed = failed + 1
+
+        for conn in conns:
+            if conn:
+                conn.close()
+
+        # wait a bit to be sure that dnsdist closed the connections
+        # and decremented the counters on its side, otherwise subsequent
+        # connections will be dropped
+        time.sleep(1)
+
+        self.assertEqual(count, self._maxTCPConnsPerDOHFrontend)
+        self.assertEqual(failed, 1)

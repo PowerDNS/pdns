@@ -352,6 +352,9 @@ bool TCPConnectionToBackend::reconnect()
 
       d_handler = std::move(handler);
       ++d_ds->tcpCurrentConnections;
+      if (d_ds->tcpCurrentConnections > d_ds->tcpMaxConcurrentConnections) {
+        d_ds->tcpMaxConcurrentConnections = d_ds->tcpCurrentConnections;
+      }
       return true;
     }
     catch (const std::runtime_error& e) {

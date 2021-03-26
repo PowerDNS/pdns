@@ -127,13 +127,12 @@ public:
 
     const auto& ds = conn->getDS();
     auto& list = t_downstreamConnections[ds];
-    if (list.size() >= s_maxCachedConnectionsPerDownstream) {
+    while (list.size() >= s_maxCachedConnectionsPerDownstream) {
       /* too many connections queued already */
-      conn.reset();
+      list.pop_front();
     }
-    else {
-      list.push_back(std::move(conn));
-    }
+
+    list.push_back(std::move(conn));
   }
 
   static void cleanupClosedTCPConnections(struct timeval now)
@@ -183,13 +182,23 @@ public:
     return count;
   }
 
+  static void setMaxCachedConnectionsPerDownstream(size_t max)
+  {
+    s_maxCachedConnectionsPerDownstream = max;
+  }
+
 private:
   static thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
-  static const size_t s_maxCachedConnectionsPerDownstream;
+  static size_t s_maxCachedConnectionsPerDownstream;
 };
 
+void setMaxCachedTCPConnectionsPerDownstream(size_t max)
+{
+  DownstreamConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
+}
+
 thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
-const size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{20};
+size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
 
 static void decrementTCPClientCount(const ComboAddress& client)
 {
@@ -1231,7 +1240,14 @@ void tcpAcceptorThread(ClientState* cs)
       ci->fd = accept(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
 #endif
       // will be decremented when the ConnectionInfo object is destroyed, no matter the reason
-      ++cs->tcpCurrentConnections;
+      auto concurrentConnections = ++cs->tcpCurrentConnections;
+      if (cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > cs->d_tcpConcurrentConnectionsLimit) {
+        continue;
+      }
+
+      if (concurrentConnections > cs->tcpMaxConcurrentConnections) {
+        cs->tcpMaxConcurrentConnections = concurrentConnections;
+      }
 
       if (ci->fd < 0) {
         throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());

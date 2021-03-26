@@ -72,7 +72,7 @@ Listen Sockets
     Added ``tcpListenQueueSize`` parameter.
 
   .. versionchanged:: 1.6.0
-    Added ``maxInFlight`` parameter.
+    Added ``maxInFlight`` and ``maxConcurrentTCPConnections`` parameters.
 
   Add to the list of listen addresses.
 
@@ -89,6 +89,7 @@ Listen Sockets
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
   * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
+  * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
 
   .. code-block:: lua
 
@@ -105,7 +106,7 @@ Listen Sockets
     ``url`` now defaults to ``/dns-query`` instead of ``/``, and does exact matching instead of accepting sub-paths. Added ``tcpListenQueueSize`` parameter.
 
   .. versionchanged:: 1.6.0
-    ``exactPathMatching``, ``releaseBuffers`` and ``enableRenegotiation`` options added.
+    ``enableRenegotiation``, ``exactPathMatching``, ``maxConcurrentTCPConnections`` and ``releaseBuffers`` options added.
     ``internalPipeBufferSize`` now defaults to 1048576 on Linux.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
@@ -144,6 +145,7 @@ Listen Sockets
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
   * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
   * ``exactPathMatching=true``: bool - Whether to do exact path matching of the query path against the paths configured in ``urls`` (true, the default since 1.5.0) or to accepts sub-paths (false, and was the default before 1.5.0).
+  * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
   * ``releaseBuffers=true``: bool - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection.
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
 
@@ -154,7 +156,7 @@ Listen Sockets
   .. versionchanged:: 1.5.0
     ``sessionTimeout`` and ``tcpListenQueueSize`` options added.
   .. versionchanged:: 1.6.0
-    ``maxInFlight``, ``releaseBuffers`` and ``enableRenegotiation`` options added.
+    ``enableRenegotiation``, ``maxConcurrentTCPConnections``, ``maxInFlight`` and ``releaseBuffers`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -185,6 +187,7 @@ Listen Sockets
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1.
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
   * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
+  * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
   * ``releaseBuffers=true``: bool - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection.
   * ``enableRenegotiation=false``: bool - Whether secure TLS renegotiation should be enabled (OpenSSL only, the GnuTLS provider does not support it). Disabled by default since it increases the attack surface and is seldom used for DNS.
 
