@@ -1622,7 +1622,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_cname_inside_secure_zone)
     if (type == QType::DS) {
       if (domain.isPartOf(DNSName("powerdns.com.")) || domain.isPartOf(DNSName("power-dns.com."))) {
         /* no cut */
-        /* technically the zone is com., but we are going to chop off in genericDSAndDNSKEYHandler() */ 
+        /* technically the zone is com., but we are going to chop off in genericDSAndDNSKEYHandler() */
         return genericDSAndDNSKEYHandler(res, domain, DNSName("powerdns.com."), type, keys, false);
       }
       else {
