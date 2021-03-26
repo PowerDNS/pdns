@@ -52,6 +52,7 @@ RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     ./configure \
       --with-lua=${LUAVER} \
+      --enable-nod \
       LDFLAGS=-rdynamic \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal && \

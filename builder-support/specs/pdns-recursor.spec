@@ -51,6 +51,7 @@ package if you need a dns cache for your network.
     --disable-static \
     --enable-unit-tests \
     --enable-dnstap \
+    --enable-nod \
     --with-libcap \
     --with-lua=%{lua_implementation} \
     --enable-systemd --with-systemd=%{_unitdir}
