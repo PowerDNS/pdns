@@ -1809,6 +1809,34 @@ $ORIGIN %NAME%
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
+    @unittest.skipIf(is_auth_lmdb(), "No search or comments in LMDB")
+    def test_search_rr_comment(self):
+        name = unique_zone_name()
+        rrsets = [{
+            "name": name,
+            "type": "AAAA",
+            "ttl": 3600,
+            "records": [{
+                "content": "2001:DB8::1",
+                "disabled": False,
+            }],
+            "comments": [{
+                "account": "test AAAA",
+                "content": "blah",
+                "modified_at": 11112,
+            }],
+        }]
+        name, payload, data = self.create_zone(name=name, rrsets=rrsets)
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=blah"))
+        self.assert_success_json(r)
+        data = r.json()
+        # should return the AAAA record
+        self.assertEquals(len(data), 1)
+        self.assertEqual(data[0]['object_type'], 'comment')
+        self.assertEqual(data[0]['type'], 'AAAA')
+        self.assertEqual(data[0]['name'], name)
+        self.assertEqual(data[0]['content'], rrsets[0]['comments'][0]['content'])
+
     @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_after_rectify_with_ent(self):
         name = unique_zone_name()

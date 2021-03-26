@@ -2205,6 +2205,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       auto object = Json::object {
         { "object_type", "comment" },
         { "name", c.qname.toString() },
+        { "type", c.qtype.getName() },
         { "content", c.content }
       };
       if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {
