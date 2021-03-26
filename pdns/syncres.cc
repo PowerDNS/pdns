@@ -2546,6 +2546,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
           return state;
         }
 
+        d_cutStates[zone] = state == vState::Secure ? vState::Insecure : state;
         /* delegation with no DS, might be Secure -> Insecure */
         if (foundCut) {
           *foundCut = true;
@@ -2558,6 +2559,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
         return state == vState::Secure ? vState::Insecure : state;
       } else {
         /* we have a DS */
+        d_cutStates[zone] = state;
         if (foundCut) {
           *foundCut = true;
         }
@@ -2768,6 +2770,19 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
           /* that actually does happen when a server returns NS records in authority
              along with the DNSKEY, leading us to trying to validate the RRSIGs for
              the NS with the DNSKEY that we are about to process. */
+          if (name == signer && (type == QType::NSEC || type == QType::NSEC3)) {
+            /* if we are trying to validate the DNSKEY (should not happen here),
+               or more likely NSEC(3)s proving that it does not exist, we have a problem.
+               In that case let's see if the DS does exist, and if it does let's go Bogus
+            */
+            dsmap_t results;
+            vState dsState = getDSRecords(signer, results, false, depth, true);
+            if (dsState == vState::Insecure) {
+              return dsState;
+            }
+            return vState::BogusUnableToGetDNSKEYs;
+          }
+
           return vState::Indeterminate;
         }
       }
