@@ -1176,10 +1176,12 @@ jobs:
           name: Run API tests LMDB
           workdir: ~/project/regression-tests.api
           command: |
+            for i in {0..100} ; do \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative lmdb
+            ./runtests authoritative lmdb; \
+            done
 
   build-recursor:
     docker:
