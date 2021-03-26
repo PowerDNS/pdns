@@ -1097,7 +1097,7 @@ jobs:
           name: Run API tests gmysql
           workdir: ~/project/regression-tests.api
           command: |
-            for i in {0..100} ; do \
+            for i in {0..1000} ; do \
             MYSQL_HOST="127.0.0.1" \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
@@ -1129,7 +1129,7 @@ jobs:
           name: Run API tests gpgsql
           workdir: ~/project/regression-tests.api
           command: |
-            for i in {0..100} ; do \
+            for i in {0..1000} ; do \
             PGHOST="127.0.0.1" \
             PGPORT="5432" \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
@@ -1155,7 +1155,7 @@ jobs:
           name: Run API tests gsqlite3
           workdir: ~/project/regression-tests.api
           command: |
-            for i in {0..100} ; do \
+            for i in {0..1000} ; do \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
@@ -1179,7 +1179,7 @@ jobs:
           name: Run API tests LMDB
           workdir: ~/project/regression-tests.api
           command: |
-            for i in {0..100} ; do \
+            for i in {0..1000} ; do \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
