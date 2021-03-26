@@ -452,6 +452,8 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   ce.d_authZone = authZone;
   if (from) {
     ce.d_from = *from;
+  } else {
+    ce.d_from = ComboAddress();
   }
 
   for (const auto& i : content) {

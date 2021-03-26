@@ -69,13 +69,13 @@ bool primeHints(void)
       arr.d_content=std::make_shared<ARecordContent>(ComboAddress(rootIps4[c-'a']));
       vector<DNSRecord> aset;
       aset.push_back(arr);
-      s_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState); // auth, nuke it all
+      s_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from); // auth, nuke it all
       if (rootIps6[c-'a'] != NULL) {
         aaaarr.d_content=std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c-'a']));
 
         vector<DNSRecord> aaaaset;
         aaaaset.push_back(aaaarr);
-        s_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState);
+        s_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from);
       }
       
       nsset.push_back(nsrr);
@@ -95,12 +95,12 @@ bool primeHints(void)
         seenA.insert(rr.qname);
         vector<DNSRecord> aset;
         aset.push_back(DNSRecord(rr));
-        s_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState); // auth, etc see above
+        s_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from); // auth, etc see above
       } else if(rr.qtype.getCode()==QType::AAAA) {
         seenAAAA.insert(rr.qname);
         vector<DNSRecord> aaaaset;
         aaaaset.push_back(DNSRecord(rr));
-        s_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState);
+        s_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from);
       } else if(rr.qtype.getCode()==QType::NS) {
         seenNS.insert(DNSName(rr.content));
         rr.content=toLower(rr.content);
@@ -136,7 +136,7 @@ bool primeHints(void)
   }
 
   s_RC->doWipeCache(g_rootdnsname, false, QType::NS);
-  s_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState); // and stuff in the cache
+  s_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from); // and stuff in the cache
   return true;
 }
 
