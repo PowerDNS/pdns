@@ -530,8 +530,9 @@ static void triggerLoadOfLibraries()
 
 void mainthread()
 {
+  cerr<<1<<endl;
    Utility::srandom();
-
+  cerr<<1.1<<endl;
    gid_t newgid = 0;
    if(!::arg()["setgid"].empty())
      newgid = strToGID(::arg()["setgid"]);
@@ -551,17 +552,23 @@ void mainthread()
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
-
+cerr<<1.9<<endl;
    PC.setTTL(::arg().asNum("cache-ttl"));
+   cerr<<1.91<<endl;
    PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
+   cerr<<1.92<<endl;
    QC.setMaxEntries(::arg().asNum("max-cache-entries"));
+  cerr<<1.93<<endl;
    DNSSECKeeper::setMaxEntries(::arg().asNum("max-cache-entries"));
+  cerr<<2<<endl;
 
    if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
      g_log<<Logger::Warning<<"Packet cache disabled, logging queries without HIT/MISS"<<endl;
    }
+   cerr<<2.1<<endl;
 
    stubParseResolveConf();
+   cerr<<2.2<<endl;
 
    if(!::arg()["chroot"].empty()) {
 #ifdef HAVE_SYSTEMD
@@ -586,9 +593,11 @@ void mainthread()
      Utility::dropGroupPrivs(newuid, newgid);
    }
 
+  cerr<<2.3<<endl;
   AuthWebServer webserver;
+  cerr<<2.4<<endl;
   Utility::dropUserPrivs(newuid);
-
+  cerr<<2.5<<endl;
   if(::arg().mustDo("resolver")){
     DP=std::unique_ptr<DNSProxy>(new DNSProxy(::arg()["resolver"]));
     DP->go();
@@ -598,6 +607,8 @@ void mainthread()
     doSecPoll(true);
   }
   catch(...) {}
+
+  cerr<<3<<endl;
 
   {
     // Some sanity checking on default key settings
@@ -636,6 +647,8 @@ void mainthread()
     }
   }
 
+  cerr<<4<<endl;
+
   pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
   if (!::arg()["query-local-address6"].empty()) {
     g_log<<Logger::Error<<"NOTE: query-local-address6 is deprecated and will be removed in a future version. Please use query-local-address for IPv6 addresses as well"<<endl;
@@ -646,6 +659,8 @@ void mainthread()
 
   // NOW SAFE TO CREATE THREADS!
   dl->go();
+
+    cerr<<5<<endl;
 
   if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
