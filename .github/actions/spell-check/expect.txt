@@ -1199,6 +1199,7 @@ ourtime
 outpacket
 outputbuffer
 outqueries
+oxpedia
 PACKAGEVERSION
 packetcache
 packethandler
