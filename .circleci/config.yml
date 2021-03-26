@@ -1097,11 +1097,12 @@ jobs:
           name: Run API tests gmysql
           workdir: ~/project/regression-tests.api
           command: |
+            for i in {0..100} ; do \
             MYSQL_HOST="127.0.0.1" \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative gmysql
+            ./runtests authoritative gmysql ; done
 
   test-auth-api-gpgsql:
     resource_class: small
@@ -1128,12 +1129,13 @@ jobs:
           name: Run API tests gpgsql
           workdir: ~/project/regression-tests.api
           command: |
+            for i in {0..100} ; do \
             PGHOST="127.0.0.1" \
             PGPORT="5432" \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative gpgsql
+            ./runtests authoritative gpgsql ; done
 
   test-auth-api-gsqlite3:
     resource_class: small
@@ -1153,10 +1155,11 @@ jobs:
           name: Run API tests gsqlite3
           workdir: ~/project/regression-tests.api
           command: |
+            for i in {0..100} ; do \
             PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
-            ./runtests authoritative gsqlite3
+            ./runtests authoritative gsqlite3 ; done
 
   test-auth-api-lmdb:
     resource_class: small
