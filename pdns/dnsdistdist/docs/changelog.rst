@@ -2,6 +2,71 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.6.0-alpha3
+  :released: 29th of March 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10156
+
+    Improve TCP connection reuse, add metrics
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10161
+    :tickets: 7591
+
+    Using DATA to report memory usage is unreliable, start using RES instead, as it seems reliable and relevant
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 10179
+
+    Set OpenSSL to release buffers when idle, saves 35 kB per connection
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10184
+
+    Add a metric for TCP listen queue full events
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10201
+
+    Fix the TCP connect timeout, add metrics
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10204
+
+    Enable sharding by default, greater pipe buffer sizes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10207
+
+    Add limits for cached TCP connections, metrics
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 10208
+
+    Fix the handling of DoH queries with a non-zero ID
+
+  .. change::
+    :tags: Improvements, DNSCrypt, DNS over HTTPS, DNS over TLS
+    :pullreq: 10214
+
+    Unify certificate reloading syntaxes
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 10218
+
+    Disable TLS renegotiation by default
+
+.. changelog::
   :version: 1.6.0-alpha2
   :released: 4th of March 2021
 
