@@ -22,6 +22,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-nghttp2.hh"
+#include "dnsdist-random.hh"
 #include "dnsdist-tcp.hh"
 #include "dolog.hh"
 
@@ -211,6 +212,38 @@ void DownstreamState::incCurrentConnectionsCount()
     tcpMaxConcurrentConnections.store(currentConnectionsCount);
   }
 }
+
+int DownstreamState::pickSocketForSending()
+{
+  size_t numberOfSockets = sockets.size();
+  if (numberOfSockets == 1) {
+    return sockets[0];
+  }
+
+  size_t idx;
+  if (s_randomizeSockets) {
+    idx = dnsdist::getRandomValue(numberOfSockets);
+  }
+  else {
+    idx = socketsOffset++;
+  }
+
+  return sockets[idx % numberOfSockets];
+}
+
+void DownstreamState::pickSocketsReadyForReceiving(std::vector<int>& ready)
+{
+  ready.clear();
+
+  if (sockets.size() == 1) {
+    ready.push_back(sockets[0]);
+    return ;
+  }
+
+  (*mplexer.lock())->getAvailableFDs(ready, 1000);
+}
+
+bool DownstreamState::s_randomizeSockets{false};
 
 size_t ServerPool::countServers(bool upOnly)
 {

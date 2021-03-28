@@ -54,6 +54,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
+#include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-tcp.hh"
@@ -537,23 +538,6 @@ static bool sendUDPResponse(int origFD, const PacketBuffer& response, const int 
   return true;
 }
 
-int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state)
-{
-  return state->sockets[state->socketsOffset++ % state->sockets.size()];
-}
-
-static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<DownstreamState>& state, std::vector<int>& ready)
-{
-  ready.clear();
-
-  if (state->sockets.size() == 1) {
-    ready.push_back(state->sockets[0]);
-    return ;
-  }
-
-  (*state->mplexer.lock())->getAvailableFDs(ready, 1000);
-}
-
 void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol)
 {
   struct timespec ts;
@@ -592,7 +576,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
   for(;;) {
     try {
-      pickBackendSocketsReadyForReceiving(dss, sockets);
+      dss->pickSocketsReadyForReceiving(sockets);
       if (dss->isStopped()) {
         break;
       }
@@ -639,7 +623,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         int origFD = ids->origFD;
 
         unsigned int qnameWireLength = 0;
-        if (!responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->remote, qnameWireLength)) {
+        if (fd != ids->backendFD || !responseContentMatches(response, ids->qname, ids->qtype, ids->qclass, dss->remote, qnameWireLength)) {
           continue;
         }
 
@@ -1587,7 +1571,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       addProxyProtocol(dq);
     }
 
-    int fd = pickBackendSocketForSending(ss);
+    int fd = ss->pickSocketForSending();
+    ids->backendFD = fd;
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query);
 
     if(ret < 0) {
@@ -1753,16 +1738,6 @@ static void udpClientThread(ClientState* cs)
   {
     errlog("UDP client thread died because of an exception: %s", "unknown");
   }
-}
-
-
-uint16_t getRandomDNSID()
-{
-#ifdef HAVE_LIBSODIUM
-  return randombytes_uniform(65536);
-#else
-  return (random() % 65536);
-#endif
 }
 
 boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
@@ -2269,17 +2244,10 @@ int main(int argc, char** argv)
       cerr<<"Unable to initialize crypto library"<<endl;
       exit(EXIT_FAILURE);
     }
-    g_hashperturb=randombytes_uniform(0xffffffff);
-    srandom(randombytes_uniform(0xffffffff));
-#else
-    {
-      struct timeval tv;
-      gettimeofday(&tv, 0);
-      srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
-      g_hashperturb=random();
-    }
-
 #endif
+    dnsdist::initRandom();
+    g_hashperturb = dnsdist::getRandomValue(0xffffffff);
+
     ComboAddress clientAddress = ComboAddress();
     g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
     struct option longopts[]={

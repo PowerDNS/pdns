@@ -2779,6 +2779,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_socketUDPRecvBuffer = recv;
   });
 
+  luaCtx.writeFunction("setRandomizedOutgoingSockets", [](bool randomized) {
+    DownstreamState::s_randomizeSockets = randomized;
+  });
+
 #if defined(HAVE_LIBSSL)
   luaCtx.writeFunction("loadTLSEngine", [client](const std::string& engineName, boost::optional<std::string> defaultString) {
     if (client) {

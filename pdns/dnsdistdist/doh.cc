@@ -724,7 +724,8 @@ static void processDOHQuery(DOHUnitUniquePtr&& du)
       }
     }
 
-    int fd = pickBackendSocketForSending(du->downstream);
+    int fd = du->downstream->pickSocketForSending();
+    ids->backendFD = fd;
     try {
       /* you can't touch du after this line, unless the call returned a non-negative value,
          because it might already have been freed */

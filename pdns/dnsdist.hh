@@ -692,7 +692,7 @@ struct CrossProtocolQuery;
 
 struct DownstreamState
 {
-   typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+  typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
 
   DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName);
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string()) {}
@@ -880,6 +880,9 @@ public:
   }
 
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
+  int pickSocketForSending();
+  void pickSocketsReadyForReceiving(std::vector<int>& ready);
+
   dnsdist::Protocol getProtocol() const
   {
     if (isDoH()) {
@@ -893,6 +896,8 @@ public:
     }
     return dnsdist::Protocol::DoUDP;
   }
+
+  static bool s_randomizeSockets;
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -1054,8 +1059,6 @@ extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
-uint16_t getRandomDNSID();
-
 #include "dnsdist-snmp.hh"
 
 extern bool g_snmpEnabled;
@@ -1073,7 +1076,6 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
 
-int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
 void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol);
 
