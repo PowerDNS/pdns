@@ -882,6 +882,7 @@ public:
   bool passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq);
   int pickSocketForSending();
   void pickSocketsReadyForReceiving(std::vector<int>& ready);
+  IDState* getIDState(unsigned int& id, int64_t& generation);
 
   dnsdist::Protocol getProtocol() const
   {
@@ -898,6 +899,7 @@ public:
   }
 
   static bool s_randomizeSockets;
+  static bool s_randomizeIDs;
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 

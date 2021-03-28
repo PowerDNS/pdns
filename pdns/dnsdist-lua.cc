@@ -2783,6 +2783,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     DownstreamState::s_randomizeSockets = randomized;
   });
 
+  luaCtx.writeFunction("setRandomizedIdsOverUDP", [](bool randomized) {
+    DownstreamState::s_randomizeIDs = randomized;
+  });
+
 #if defined(HAVE_LIBSSL)
   luaCtx.writeFunction("loadTLSEngine", [client](const std::string& engineName, boost::optional<std::string> defaultString) {
     if (client) {

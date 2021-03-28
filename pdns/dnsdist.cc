@@ -1524,33 +1524,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
-    IDState* ids = &ss->idStates[idOffset];
-    ids->age = 0;
-    DOHUnitUniquePtr du(nullptr, DOHUnit::release);
-
-    /* that means that the state was in use, possibly with an allocated
-       DOHUnit that we will need to handle, but we can't touch it before
-       confirming that we now own this state */
-    if (ids->isInUse()) {
-      du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
-    }
-
-    /* we atomically replace the value, we now own this state */
-    if (!ids->markAsUsed()) {
-      /* the state was not in use.
-         we reset 'du' because it might have still been in use when we read it. */
-      du.release();
-      ++ss->outstanding;
-    }
-    else {
-      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
-         to handle it because it's about to be overwritten. */
-      ids->du = nullptr;
-      ++ss->reuseds;
-      ++g_stats.downstreamTimeouts;
-      handleDOHTimeout(std::move(du));
-    }
+    unsigned int idOffset = 0;
+    int64_t generation;
+    IDState* ids = ss->getIDState(idOffset, generation);
 
     ids->cs = &cs;
     ids->origFD = cs.udpFD;

@@ -64,6 +64,10 @@ void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const s
 }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
+void handleDOHTimeout(DOHUnitUniquePtr&& oldDU)
+{
+}
+
 std::string DNSQuestion::getTrailingData() const
 {
   return "";

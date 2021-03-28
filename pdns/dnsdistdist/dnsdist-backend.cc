@@ -244,6 +244,57 @@ void DownstreamState::pickSocketsReadyForReceiving(std::vector<int>& ready)
 }
 
 bool DownstreamState::s_randomizeSockets{false};
+bool DownstreamState::s_randomizeIDs{false};
+
+IDState* DownstreamState::getIDState(unsigned int& selectedID, int64_t& generation)
+{
+  DOHUnitUniquePtr du(nullptr, DOHUnit::release);
+  IDState* ids = nullptr;
+  if (s_randomizeIDs) {
+    /* if the state is already in use we will retry,
+       up to 5 five times. The last selected one is used
+       even if it was already in use */
+    size_t remainingAttempts = 5;
+    do {
+      selectedID = dnsdist::getRandomValue(idStates.size());
+      ids = &idStates[selectedID];
+      remainingAttempts--;
+    }
+    while (ids->isInUse() && remainingAttempts > 0);
+  }
+  else {
+    selectedID = (idOffset++) % idStates.size();
+    ids = &idStates[selectedID];
+  }
+
+  ids->age = 0;
+
+  /* that means that the state was in use, possibly with an allocated
+     DOHUnit that we will need to handle, but we can't touch it before
+     confirming that we now own this state */
+  if (ids->isInUse()) {
+    du = DOHUnitUniquePtr(ids->du, DOHUnit::release);
+  }
+
+  /* we atomically replace the value, we now own this state */
+  generation = ids->generation++;
+  if (!ids->markAsUsed(generation)) {
+    /* the state was not in use.
+       we reset 'du' because it might have still been in use when we read it. */
+    du.release();
+    ++outstanding;
+  }
+  else {
+    /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+       to handle it because it's about to be overwritten. */
+    ids->du = nullptr;
+    ++reuseds;
+    ++g_stats.downstreamTimeouts;
+    handleDOHTimeout(std::move(du));
+  }
+
+  return ids;
+}
 
 size_t ServerPool::countServers(bool upOnly)
 {
