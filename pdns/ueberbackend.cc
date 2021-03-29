@@ -286,6 +286,7 @@ void UeberBackend::updateDomainCache() {
   }
 
   vector<tuple<DNSName, int>> domain_indices;
+  g_domainCache.setReplacePending();
 
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
   {

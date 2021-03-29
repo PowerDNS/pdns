@@ -106,10 +106,27 @@ void AuthDomainCache::replace(const vector<tuple<DNSName, int>>& domain_indices)
     mc.d_map.emplace(domain, val);
   }
 
-  for (size_t mapIndex = 0; mapIndex < d_maps.size(); mapIndex++) {
-    auto& mc = d_maps[mapIndex];
-    WriteLock l(mc.d_mut);
-    mc.d_map = std::move(newMaps[mapIndex].d_map);
+  {
+    WriteLock globalLock(d_mut);
+    if (d_replacePending) {
+      // add/replace all domains created while data collection for replace() was already running.
+      for (const tuple<DNSName, int>& tup : d_pendingAdds) {
+        const DNSName& domain = tup.get<0>();
+        CacheValue val;
+        val.zoneId = tup.get<1>();
+        auto& mc = newMaps[getMapIndex(domain)];
+        mc.d_map[domain] = val;
+      }
+    }
+
+    for (size_t mapIndex = 0; mapIndex < d_maps.size(); mapIndex++) {
+      auto& mc = d_maps[mapIndex];
+      WriteLock mcLock(mc.d_mut);
+      mc.d_map = std::move(newMaps[mapIndex].d_map);
+    }
+
+    d_pendingAdds.clear();
+    d_replacePending = false;
   }
 
   d_statnumentries->store(count);
@@ -120,13 +137,30 @@ void AuthDomainCache::add(const DNSName& domain, const int zoneId)
   if (!d_ttl)
     return;
 
+  {
+    WriteLock globalLock(d_mut);
+    if (d_replacePending) {
+      d_pendingAdds.push_back({domain, zoneId});
+    }
+  }
+
   CacheValue val;
   val.zoneId = zoneId;
 
   int mapIndex = getMapIndex(domain);
   {
     auto& mc = d_maps[mapIndex];
-    WriteLock l(mc.d_mut);
+    WriteLock mcLock(mc.d_mut);
     mc.d_map.emplace(domain, val);
   }
+}
+
+void AuthDomainCache::setReplacePending()
+{
+  if (!d_ttl)
+    return;
+
+  WriteLock globalLock(d_mut);
+  d_replacePending = true;
+  d_pendingAdds.clear();
 }

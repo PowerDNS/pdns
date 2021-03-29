@@ -1353,6 +1353,7 @@ testrunner_SOURCES = \
 	stubresolver.hh stubresolver.cc \
 	svc-records.cc svc-records.hh \
 	test-arguments_cc.cc \
+	test-auth-domaincache_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \

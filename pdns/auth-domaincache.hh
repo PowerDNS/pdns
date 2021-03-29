@@ -33,6 +33,7 @@ public:
 
   void replace(const vector<tuple<DNSName, int>>& domains);
   void add(const DNSName& domain, const int zoneId);
+  void setReplacePending();  //!< call this when data collection for subsequent replace() call starts.
 
   bool getEntry(const DNSName& domain, int& zoneId);
 
@@ -86,6 +87,10 @@ private:
   AtomicCounter* d_statnumentries;
 
   time_t d_ttl{0};
+
+  ReadWriteLock d_mut;
+  std::vector<tuple<DNSName, int>> d_pendingAdds;
+  bool d_replacePending{false};
 };
 
 extern AuthDomainCache g_domainCache;
