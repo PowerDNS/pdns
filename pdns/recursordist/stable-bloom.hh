@@ -106,15 +106,32 @@ public:
     uint8_t k, p;
     uint32_t num_cells, bitstr_len;
     is.read((char*)&k, sizeof(k));
+    if (is.fail()) {
+      throw std::runtime_error("SBF: read failed (file too short?)");
+    }
     is.read((char*)&num_cells, sizeof(num_cells));
+    if (is.fail()) {
+      throw std::runtime_error("SBF: read failed (file too short?)");
+    }
     num_cells = ntohl(num_cells);
     is.read((char*)&p, sizeof(p));
+    if (is.fail()) {
+      throw std::runtime_error("SBF: read failed (file too short?)");
+    }
     is.read((char*)&bitstr_len, sizeof(bitstr_len));
+    if (is.fail()) {
+      throw std::runtime_error("SBF: read failed (file too short?)");
+    }
     bitstr_len = ntohl(bitstr_len);
-    char* bitcstr = new char[bitstr_len];
-    is.read((char*)bitcstr, bitstr_len);
-    std::string bitstr(bitcstr, bitstr_len);
-    delete[] bitcstr;
+    if (bitstr_len > 2 * 64 * 1024 * 1024U) { // twice the current size
+      throw std::runtime_error("SBF: read failed (bitstr_len too big)");
+    }
+    unique_ptr<char[]> bitcstr = unique_ptr<char[]>(new char[bitstr_len]);
+    is.read(bitcstr.get(), bitstr_len);
+    if (is.fail()) {
+      throw std::runtime_error("SBF: read failed (file too short?)");
+    }
+    std::string bitstr(bitcstr.get(), bitstr_len);
     stableBF tempbf(k, num_cells, p, bitstr);
     swap(tempbf);
   }
