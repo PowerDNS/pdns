@@ -1164,7 +1164,7 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
 }
 #endif /* NOD_ENABLED */
 
-int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
+int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype, int rcode)
 {
   vector<DNSRecord> resolved;
   DNSName target;
@@ -1179,10 +1179,10 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
   }
 
   if(target.empty()) {
-    return 0;
+    return rcode;
   }
 
-  int rcode = directResolve(target, qtype, QClass::IN, resolved);
+  rcode = directResolve(target, qtype, QClass::IN, resolved);
 
   for(DNSRecord& rr :  resolved) {
     ret.push_back(std::move(rr));
@@ -1508,7 +1508,7 @@ static void startDoResolve(void *p)
         ret = std::move(dc->d_records);
         res = *dc->d_rcode;
         if (res == RCode::NoError && dc->d_followCNAMERecords) {
-          res = followCNAMERecords(ret, QType(dc->d_mdp.d_qtype));
+          res = followCNAMERecords(ret, QType(dc->d_mdp.d_qtype), res);
         }
         goto haveAnswer;
       }
