@@ -123,6 +123,9 @@ public:
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
     bitstr_len = ntohl(bitstr_len);
+    if (bitstr_len > 2 * 64 * 1024 * 1024U) { // twice the current size
+      throw std::runtime_error("SBF: read failed (bitstr_len too big)");
+    }
     unique_ptr<char[]> bitcstr = make_unique<char[]>(bitstr_len);
     is.read(bitcstr.get(), bitstr_len);
     if (is.fail()) {

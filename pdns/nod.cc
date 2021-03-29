@@ -28,8 +28,7 @@
 #include <ctime>
 #include <thread>
 #include "threadname.hh"
-#include <unistd.h>
-#include <boost/filesystem.hpp>
+#include <stdlib.h>
 #include "logger.hh"
 #include "misc.hh"
 
@@ -40,10 +39,9 @@ namespace filesystem = boost::filesystem;
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
-void PersistentSBF::remove_tmp_files()
+void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& lock)
 {
-  filesystem::path p(d_cachedir);
-  Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\.[[:xdigit:]]{8}$");
+  Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
   for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
     if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
       filesystem::remove(*i);
@@ -65,7 +63,7 @@ bool PersistentSBF::init(bool ignore_pid) {
     filesystem::path p(d_cachedir);
     try {
       if (filesystem::exists(p) && filesystem::is_directory(p)) {
-        remove_tmp_files();
+        remove_tmp_files(p, lock);
         filesystem::path newest_file;
         std::time_t newest_time=time(nullptr);
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
@@ -138,7 +136,6 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
     std::stringstream ss;
     ss << d_prefix << "_" << tid;
     f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
-    filesystem::path ftmp(filesystem::unique_path(f.string() + ".%%%%%%%%"));
     if (filesystem::exists(p) && filesystem::is_directory(p)) {
       try {
         std::ofstream ofile;
@@ -149,15 +146,22 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           d_sbf.dump(iss);
         }
         // Now write it out to the file
-        ofile.open(ftmp.string(), std::ios::out | std::ios::binary);
-        ofile << iss.str();
-
-        if (ofile.fail()) {
-          ofile.close();
-          filesystem::remove(ftmp);
-          throw std::runtime_error("Failed to write to file:" + ftmp.string());
+        std::string ftmp = f.string() + ".XXXXXXXX";
+        int fd = mkstemp(&ftmp.at(0));
+        if (fd == -1) {
+          throw std::runtime_error("Cannot create temp file: " + stringerror());
         }
-        ofile.close();
+        std::string str = iss.str();
+        ssize_t len = write(fd,  str.data(), str.length());
+        if (len != static_cast<ssize_t>(str.length())) {
+          close(fd);
+          filesystem::remove(ftmp.c_str());
+          throw std::runtime_error("Failed to write to file:" + ftmp);
+        }
+        if (close(fd) != 0) {
+          filesystem::remove(ftmp);
+          throw std::runtime_error("Failed to write to file:" + ftmp);
+        }
         try {
           filesystem::rename(ftmp, f);
         }
