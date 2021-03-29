@@ -46,7 +46,7 @@ void PersistentSBF::remove_tmp_files()
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\.[[:xdigit:]]{8}$");
   for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
     if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
-      remove(*i);
+      filesystem::remove(*i);
     }
   }
 }
@@ -64,7 +64,7 @@ bool PersistentSBF::init(bool ignore_pid) {
   if (d_cachedir.length()) {
     filesystem::path p(d_cachedir);
     try {
-      if (exists(p) && is_directory(p)) {
+      if (filesystem::exists(p) && filesystem::is_directory(p)) {
         remove_tmp_files();
         filesystem::path newest_file;
         std::time_t newest_time=time(nullptr);
@@ -95,11 +95,11 @@ bool PersistentSBF::init(bool ignore_pid) {
             // now dump it out again with new thread id & process id
             snapshotCurrent(std::this_thread::get_id());
             // Remove the old file we just read to stop proliferation
-            remove(newest_file);
+            filesystem::remove(newest_file);
           }
           catch (const std::runtime_error& e) {
             infile.close();
-            remove(newest_file);
+            filesystem::remove(newest_file);
             g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl;
           }
         }
@@ -143,13 +143,13 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
       try {
         std::ofstream ofile;
         std::stringstream iss;
-        ofile.open(ftmp.string(), std::ios::out | std::ios::binary);
         {
           // only lock while dumping to a stringstream
           std::lock_guard<std::mutex> lock(d_sbf_mutex);
           d_sbf.dump(iss);
         }
         // Now write it out to the file
+        ofile.open(ftmp.string(), std::ios::out | std::ios::binary);
         ofile << iss.str();
 
         if (ofile.fail()) {
