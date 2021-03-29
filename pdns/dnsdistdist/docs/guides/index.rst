@@ -13,8 +13,8 @@ These chapters contain several guides and nuggets of information regarding dnsdi
    serverpools
    serverselection
    carbon
+   dns-over-https
    dns-over-tls
-   ocsp-stapling
-   tls-sessions-management
+   dnscrypt
 
 

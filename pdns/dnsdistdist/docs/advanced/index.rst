@@ -20,3 +20,5 @@ These chapters contain information on the advanced features of dnsdist
    axfr
    multiple-instance
    out-of-order
+   ocsp-stapling
+   tls-sessions-management
