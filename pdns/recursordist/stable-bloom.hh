@@ -123,13 +123,12 @@ public:
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
     bitstr_len = ntohl(bitstr_len);
-    char* bitcstr = new char[bitstr_len];
-    is.read((char*)bitcstr, bitstr_len);
+    unique_ptr<char[]> bitcstr = make_unique<char[]>(bitstr_len);
+    is.read(bitcstr.get(), bitstr_len);
     if (is.fail()) {
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
-    std::string bitstr(bitcstr, bitstr_len);
-    delete[] bitcstr;
+    std::string bitstr(bitcstr.get(), bitstr_len);
     stableBF tempbf(k, num_cells, p, bitstr);
     swap(tempbf);
   }

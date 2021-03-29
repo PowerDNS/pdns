@@ -40,6 +40,17 @@ using namespace boost::filesystem;
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
+void PersistentSBF::remove_tmp_files()
+{
+  path p(d_cachedir);
+  Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\.[[:xdigit:]]{8}$");
+  for (directory_iterator i(p); i != directory_iterator(); ++i) {
+    if (is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
+      remove(*i);
+    }
+  }
+}
+
 // This looks for an old (per-thread) snapshot. The first one it finds,
 // it restores from that. Then immediately snapshots with the current thread id,// before removing the old snapshot
 // In this way, we can have per-thread SBFs, but still snapshot and restore.
@@ -54,6 +65,7 @@ bool PersistentSBF::init(bool ignore_pid) {
     path p(d_cachedir);
     try {
       if (exists(p) && is_directory(p)) {
+        remove_tmp_files();
         path newest_file;
         std::time_t newest_time=time(nullptr);
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
@@ -126,8 +138,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
     std::stringstream ss;
     ss << d_prefix << "_" << tid;
     f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
-    path ftmp = f;
-    ftmp += ".tmp";
+    path ftmp(unique_path(f.string() + ".%%%%%%%%"));
     if (exists(p) && is_directory(p)) {
       try {
         std::ofstream ofile;
@@ -147,7 +158,14 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           throw std::runtime_error("Failed to write to file:" + ftmp.string());
         }
         ofile.close();
-        rename(ftmp, f);
+        try {
+          rename(ftmp, f);
+        }
+        catch (const std::runtime_error& e) {
+          g_log<<Logger::Warning<<"NODDB snapshot: Cannot rename file: " << e.what() << endl;
+          remove(ftmp);
+          throw;
+        }
         return true;
       }
       catch (const std::runtime_error& e) {
