@@ -28,6 +28,13 @@ A more complicated (and more realistic) example is when you want to indicate met
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
 
+A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
+
+More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
+
+Custom responses
+----------------
+
 It is also possible to set HTTP response rules to intercept HTTP queries early, before the DNS payload, if any, has been processed, to send custom responses including error pages, redirects or even serve static content. First a rule needs to be defined using :func:`newDOHResponseMapEntry`, then a set of rules can be applied to a DoH frontend via :meth:`DOHFrontend.setResponsesMap`.
 For example, to send an HTTP redirect to queries asking for ``/rfc``, the following configuration can be used::
 
@@ -35,12 +42,31 @@ For example, to send an HTTP redirect to queries asking for ``/rfc``, the follow
   dohFE = getDOHFrontend(0)
   dohFE:setResponsesMap(map)
 
+DNS over HTTP
+-------------
+
 In case you want to run DNS-over-HTTPS behind a reverse proxy you probably don't want to encrypt your traffic between reverse proxy and dnsdist.
 To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add one of the following to your config::
 
   addDOHLocal("127.0.0.1:8053")
   addDOHLocal("127.0.0.1:8053", nil, nil, "/", { reusePort=true })
 
-A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
+Internal design
+---------------
 
-More information about sessions management can also be found in :doc:`guides/tls-sessions-management`.
+The internal design used for DoH handling uses two threads per :func:`addDOHLocal` directive. The first thread will handle the HTTP/2 communication with the client and pass the received DNS queries to a second thread which will apply the rules and pass the query to a backend, over **UDP**. The response will be received by the regular UDP response handler for that backend and passed back to the first thread. That allows the first thread to be low-latency dealing with TLS and HTTP/2 only and never blocking.
+
+.. figure:: ../imgs/DNSDistDoH.png
+   :align: center
+   :alt: DNSDist DoH design
+
+The fact that the queries are forwarded over UDP means that a large UDP payload size should be configured between dnsdist and the backend to avoid most truncation issues, and dnsdist will advise a 4096-byte UDP Payload Buffer size. UDP datagrams can still be larger than the MTU as long as fragmented datagrams are not dropped on the path between dnsdist and the backend.
+
+Investigating issues
+--------------------
+
+dnsdist provides a lot of counters to investigate issues:
+
+ * :func:`showTCPStats` will display a lot of information about current and passed connections
+ * :func:`showTLSErrorCounters` some metrics about why TLS sessions failed to establish
+ * :func:`showDOHResponseCodes` returns metrics about HTTP response codes sent by dnsdist

@@ -19,4 +19,13 @@ The certificate chain presented by the server to an incoming client will then be
 
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
 
-More information about sessions management can also be found in :doc:`guides/tls-sessions-management`.
+More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
+
+Investigating issues
+--------------------
+
+dnsdist provides a lot of counters to investigate issues:
+
+ * :func:`showTCPStats` will display a lot of information about current and passed connections
+ * :func:`showTLSErrorCounters` some metrics about why TLS sessions failed to establish
+
