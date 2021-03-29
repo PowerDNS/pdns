@@ -86,7 +86,9 @@ bool PersistentSBF::init(bool ignore_pid) {
             remove(newest_file);
           }
           catch (const std::runtime_error& e) {
-            g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << endl;
+            infile.close();
+            remove(newest_file);
+            g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl;
           }
         }
       }
@@ -124,11 +126,13 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
     std::stringstream ss;
     ss << d_prefix << "_" << tid;
     f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
+    path ftmp = f;
+    ftmp += ".tmp";
     if (exists(p) && is_directory(p)) {
       try {
         std::ofstream ofile;
         std::stringstream iss;
-        ofile.open(f.string(), std::ios::out | std::ios::binary);
+        ofile.open(ftmp.string(), std::ios::out | std::ios::binary);
         {
           // only lock while dumping to a stringstream
           std::lock_guard<std::mutex> lock(d_sbf_mutex);
@@ -137,8 +141,13 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         // Now write it out to the file
         ofile << iss.str();
 
-        if (ofile.fail())
-          throw std::runtime_error("Failed to write to file:" + f.string());
+        if (ofile.fail()) {
+          ofile.close();
+          remove(ftmp);
+          throw std::runtime_error("Failed to write to file:" + ftmp.string());
+        }
+        ofile.close();
+        rename(ftmp, f);
         return true;
       }
       catch (const std::runtime_error& e) {
