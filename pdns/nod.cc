@@ -28,17 +28,26 @@
 #include <ctime>
 #include <thread>
 #include "threadname.hh"
-#include <unistd.h>
-#include <boost/filesystem.hpp>
+#include <stdlib.h>
 #include "logger.hh"
 #include "misc.hh"
 
 using namespace nod;
-using namespace boost::filesystem;
+namespace filesystem = boost::filesystem;
 
 // PersistentSBF Implementation 
 
 std::mutex PersistentSBF::d_cachedir_mutex;
+
+void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& lock)
+{
+  Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
+  for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
+    if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
+      filesystem::remove(*i);
+    }
+  }
+}
 
 // This looks for an old (per-thread) snapshot. The first one it finds,
 // it restores from that. Then immediately snapshots with the current thread id,// before removing the old snapshot
@@ -51,14 +60,15 @@ bool PersistentSBF::init(bool ignore_pid) {
 
   std::lock_guard<std::mutex> lock(d_cachedir_mutex);
   if (d_cachedir.length()) {
-    path p(d_cachedir);
+    filesystem::path p(d_cachedir);
     try {
-      if (exists(p) && is_directory(p)) {
-        path newest_file;
+      if (filesystem::exists(p) && filesystem::is_directory(p)) {
+        remove_tmp_files(p, lock);
+        filesystem::path newest_file;
         std::time_t newest_time=time(nullptr);
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
-        for (directory_iterator i(p); i!=directory_iterator(); ++i) {
-          if (is_regular_file(i->path()) &&
+        for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
+          if (filesystem::is_regular_file(i->path()) &&
               file_regex.match(i->path().filename().string())) {
             if (ignore_pid ||
                 (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
@@ -71,7 +81,7 @@ bool PersistentSBF::init(bool ignore_pid) {
             }
           }
         }
-        if (exists(newest_file)) {
+        if (filesystem::exists(newest_file)) {
           std::string filename = newest_file.string();
           std::ifstream infile;
           try {
@@ -83,15 +93,17 @@ bool PersistentSBF::init(bool ignore_pid) {
             // now dump it out again with new thread id & process id
             snapshotCurrent(std::this_thread::get_id());
             // Remove the old file we just read to stop proliferation
-            remove(newest_file);
+            filesystem::remove(newest_file);
           }
           catch (const std::runtime_error& e) {
-            g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << endl;
+            infile.close();
+            filesystem::remove(newest_file);
+            g_log<<Logger::Warning<<"NODDB init: Cannot parse file: " << filename << ": " << e.what() << "; removed" << endl;
           }
         }
       }
     }
-    catch (const filesystem_error& e) {
+    catch (const filesystem::filesystem_error& e) {
       g_log<<Logger::Warning<<"NODDB init failed:: " << e.what() << endl;
       return false;
     }
@@ -103,7 +115,7 @@ bool PersistentSBF::init(bool ignore_pid) {
 void PersistentSBF::setCacheDir(const std::string& cachedir)
 {
   if (!d_init) {
-    path p(cachedir);
+    filesystem::path p(cachedir);
     if (!exists(p))
       throw PDNSException("NODDB setCacheDir specified non-existent directory: " + cachedir);
     else if (!is_directory(p))
@@ -119,26 +131,45 @@ void PersistentSBF::setCacheDir(const std::string& cachedir)
 bool PersistentSBF::snapshotCurrent(std::thread::id tid)
 {
   if (d_cachedir.length()) {
-    path p(d_cachedir);
-    path f(d_cachedir);
+    filesystem::path p(d_cachedir);
+    filesystem::path f(d_cachedir);
     std::stringstream ss;
     ss << d_prefix << "_" << tid;
     f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
-    if (exists(p) && is_directory(p)) {
+    if (filesystem::exists(p) && filesystem::is_directory(p)) {
       try {
         std::ofstream ofile;
         std::stringstream iss;
-        ofile.open(f.string(), std::ios::out | std::ios::binary);
         {
           // only lock while dumping to a stringstream
           std::lock_guard<std::mutex> lock(d_sbf_mutex);
           d_sbf.dump(iss);
         }
         // Now write it out to the file
-        ofile << iss.str();
-
-        if (ofile.fail())
-          throw std::runtime_error("Failed to write to file:" + f.string());
+        std::string ftmp = f.string() + ".XXXXXXXX";
+        int fd = mkstemp(&ftmp.at(0));
+        if (fd == -1) {
+          throw std::runtime_error("Cannot create temp file: " + stringerror());
+        }
+        std::string str = iss.str();
+        ssize_t len = write(fd,  str.data(), str.length());
+        if (len != static_cast<ssize_t>(str.length())) {
+          close(fd);
+          filesystem::remove(ftmp.c_str());
+          throw std::runtime_error("Failed to write to file:" + ftmp);
+        }
+        if (close(fd) != 0) {
+          filesystem::remove(ftmp);
+          throw std::runtime_error("Failed to write to file:" + ftmp);
+        }
+        try {
+          filesystem::rename(ftmp, f);
+        }
+        catch (const std::runtime_error& e) {
+          g_log<<Logger::Warning<<"NODDB snapshot: Cannot rename file: " << e.what() << endl;
+          filesystem::remove(ftmp);
+          throw;
+        }
         return true;
       }
       catch (const std::runtime_error& e) {
