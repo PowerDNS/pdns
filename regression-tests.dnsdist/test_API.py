@@ -20,7 +20,7 @@ class APITestsBase(DNSDistTest):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
 
 class TestAPIBasics(APITestsBase):
@@ -311,7 +311,7 @@ class TestAPIServerDown(APITestsBase):
     newServer{address="127.0.0.1:%s"}
     getServer(0):setDown()
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
 
     def testServerDownNoLatencyLocalhost(self):
@@ -336,7 +336,7 @@ class TestAPIWritable(APITestsBase):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     setAPIWritable(true, "%s")
     """
 
@@ -412,7 +412,7 @@ class TestAPICustomHeaders(APITestsBase):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer({address="127.0.0.1:%s"})
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s", customHeaders={["X-Frame-Options"]="", ["X-Custom"]="custom"} })
+    setWebserverConfig({password="%s", apiKey="%s", customHeaders={["X-Frame-Options"]="", ["X-Custom"]="custom"} })
     """
 
     def testBasicHeaders(self):
@@ -457,7 +457,7 @@ class TestStatsWithoutAuthentication(APITestsBase):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer({address="127.0.0.1:%s"})
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s", statsRequireAuthentication=false })
+    setWebserverConfig({password="%s", apiKey="%s", statsRequireAuthentication=false })
     """
 
     def testAuth(self):
@@ -513,7 +513,7 @@ class TestAPIAuth(APITestsBase):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
 
     def testBasicAuthChange(self):
@@ -522,7 +522,7 @@ class TestAPIAuth(APITestsBase):
         """
 
         url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
-        self.sendConsoleCommand('setWebserverConfig({{hashedPassword="{}"}})'.format(self._webServerBasicAuthPasswordNewHashed))
+        self.sendConsoleCommand('setWebserverConfig({{password="{}"}})'.format(self._webServerBasicAuthPasswordNewHashed))
 
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPasswordNew), timeout=self._webTimeout)
         self.assertTrue(r)
@@ -580,7 +580,7 @@ class TestAPIACL(APITestsBase):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s", acl="192.0.2.1"})
+    setWebserverConfig({password="%s", apiKey="%s", acl="192.0.2.1"})
     """
 
     def testACLChange(self):
@@ -608,7 +608,7 @@ class TestCustomLuaEndpoint(APITestsBase):
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s"})
+    setWebserverConfig({password="%s"})
 
     function customHTTPHandler(req, resp)
       if req.path ~= '/foo' then
@@ -666,7 +666,7 @@ class TestWebConcurrentConnections(APITestsBase):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s", maxConcurrentConnections=%d})
+    setWebserverConfig({password="%s", apiKey="%s", maxConcurrentConnections=%d})
     """
 
     def testConcurrentConnections(self):

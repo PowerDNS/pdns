@@ -1,0 +1,52 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+#pragma once
+
+#include <string>
+
+std::string hashPassword(const std::string& password);
+bool verifyPassword(const std::string& hash, const std::string& password);
+bool isPasswordHashed(const std::string& password);
+
+class CredentialsHolder
+{
+public:
+  /* if the password is in cleartext and hashing is available,
+     the hashed form will be kept in memory */
+  CredentialsHolder(std::string&& password);
+  ~CredentialsHolder();
+
+  CredentialsHolder(const CredentialsHolder&) = delete;
+  CredentialsHolder& operator=(const CredentialsHolder&) = delete;
+
+  bool matches(const std::string& password) const;
+  bool isHashed() const
+  {
+    return d_hashed;
+  }
+
+  static bool isHashingAvailable();
+
+private:
+  std::string d_credentials;
+  bool d_hashed{false};
+};
