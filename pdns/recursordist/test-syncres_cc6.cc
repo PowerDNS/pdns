@@ -508,7 +508,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_unpublished)
 
 BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_unpublished_nsec3)
 {
-  /* check that we properly handle an insecure (no DS) but  signed zone whose DNSKEY is not published (so NODATA) with NSEC3 this time */
+  /* check that we properly handle an insecure (no DS) but signed zone whose DNSKEY is not published (so NODATA) with NSEC3 this time */
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
 
