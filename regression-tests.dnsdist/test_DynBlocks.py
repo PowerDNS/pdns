@@ -567,7 +567,7 @@ class TestDynBlockQPS(DynBlocksTest):
     end
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
 
@@ -592,7 +592,7 @@ class TestDynBlockGroupQPS(DynBlocksTest):
     end
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
 
@@ -1148,7 +1148,7 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
 
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
 
@@ -1212,7 +1212,7 @@ class TestDynBlockGroupWarning(DynBlocksTest):
 
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")
-    setWebserverConfig({hashedPassword="%s", apiKey="%s"})
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
 

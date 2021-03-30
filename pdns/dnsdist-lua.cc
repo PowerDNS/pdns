@@ -919,7 +919,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_carbon.setState(ours);
   });
 
-  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, const boost::optional<std::string> password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
+  luaCtx.writeFunction("webserver", [client,configCheck](const std::string& address, boost::optional<std::string> password, boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders, const boost::optional<std::string> acl) {
       setLuaSideEffect();
       ComboAddress local;
       try {
@@ -944,13 +944,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         SListen(sock, 5);
         auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
           if (password) {
-            warnlog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
-            auto hashed = hashPassword(*password);
-            setWebserverPassword(std::move(hashed));
+            auto holder = make_unique<CredentialsHolder>(std::string(*password));
+            if (!holder->isHashed() && holder->isHashingAvailable()) {
+              warnlog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
+            }
+
+            setWebserverPassword(std::move(holder));
           }
 
           if (apiKey) {
-            setWebserverAPIKey(apiKey);
+            auto holder = make_unique<CredentialsHolder>(std::string(*apiKey));
+            setWebserverAPIKey(std::move(holder));
           }
 
           if (customHeaders) {
@@ -987,24 +991,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (vars->count("password")) {
-        warnlog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is deprecated, please generate a hashed one using 'hashPassword()' and pass it via 'hashedPassword' instead.");
+        std::string password = boost::get<std::string>(vars->at("password"));
+        auto holder = make_unique<CredentialsHolder>(std::move(password));
+        if (!holder->isHashed() && holder->isHashingAvailable()) {
+          warnlog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is deprecated, please generate a hashed one using 'hashPassword()' instead.");
+        }
 
-        const std::string password = boost::get<std::string>(vars->at("password"));
-        auto hashed = hashPassword(password);
-        setWebserverPassword(std::move(hashed));
-      }
-
-      if (vars->count("hashedPassword")) {
-        std::string hashedPassword = boost::get<std::string>(vars->at("hashedPassword"));
-        sodium_mlock(hashedPassword.data(), hashedPassword.size());
-
-        setWebserverPassword(std::move(hashedPassword));
+        setWebserverPassword(std::move(holder));
       }
 
       if (vars->count("apiKey")) {
-        const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+        std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+        auto holder = make_unique<CredentialsHolder>(std::move(apiKey));
+        if (!holder->isHashed() && holder->isHashingAvailable()) {
+          warnlog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is deprecated, please generate a hashed one using 'hashPassword()' instead.");
+        }
 
-        setWebserverAPIKey(apiKey);
+        setWebserverAPIKey(std::move(holder));
       }
 
       if (vars->count("acl")) {

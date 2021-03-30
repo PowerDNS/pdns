@@ -130,6 +130,7 @@ dnsdist_SOURCES = \
 	capabilities.cc capabilities.hh \
 	circular_buffer.hh \
 	connection-management.hh \
+	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-backend.cc \
