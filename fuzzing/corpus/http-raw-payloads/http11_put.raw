@@ -1,0 +1,13 @@
+PUT /api/v1/servers/localhost/config/allow-from HTTP/1.1
+Host: 127.0.0.1:8085
+User-Agent: HTTPie/2.3.0
+Accept-Encoding: gzip, deflate
+Accept: application/json, */*;q=0.5
+Connection: keep-alive
+Content-Type: application/json
+X-API-Key: apikey
+Content-Length: 114
+
+{"name": "allow-from",
+ "type": "ConfigSetting",
+ "value": ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"]}
