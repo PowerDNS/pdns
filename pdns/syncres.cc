@@ -121,7 +121,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
-int SyncRes::beginResolve(const DNSName &qname, const QType qtype, uint16_t qclass, vector<DNSRecord>&ret, unsigned int depth)
+int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth)
 {
   vState state = vState::Indeterminate;
   s_queries++;
@@ -179,7 +179,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, uint16_t qcla
  * - trustanchor.server CH TXT
  * - negativetrustanchor.server CH TXT
  */
-bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, const uint16_t qclass, vector<DNSRecord> &ret)
+bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType qtype, const QClass qclass, vector<DNSRecord> &ret)
 {
   static const DNSName arpa("1.0.0.127.in-addr.arpa."), ip6_arpa("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."),
     localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns."), trustanchorserver("trustanchor.server."),
@@ -4313,7 +4313,7 @@ void SyncRes::parseEDNSSubnetAddFor(const std::string& subnetlist)
 }
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
-int directResolve(const DNSName& qname, const QType qtype, int qclass, vector<DNSRecord>& ret)
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret)
 {
   struct timeval now;
   gettimeofday(&now, 0);

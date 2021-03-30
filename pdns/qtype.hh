@@ -146,5 +146,19 @@ inline size_t hash_value(const QType qtype) {
 
 struct QClass
 {
-  enum QClassEnum { IN = 1, CHAOS = 3, NONE = 254, ANY = 255 };
+  enum QClassEnum : uint16_t { IN = 1, CHAOS = 3, NONE = 254, ANY = 255 };
+
+  QClass(uint16_t code = 0) : qclass(code) {}
+
+  operator uint16_t() const {
+    return qclass;
+  }
+  uint16_t getCode() const
+  {
+    return qclass;
+  }
+  const std::string toString() const;
+
+private:
+  uint16_t qclass;
 };
