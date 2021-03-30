@@ -17,5 +17,5 @@ ACLOCAL_AMFLAGS = -I m4
 dvi: # do nothing to build dvi
 
 format-code:
-	./build-scripts/format-code `find modules pdns -type f -name '*.[ch][ch]'`
+	./build-scripts/format-code `find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted`
 
