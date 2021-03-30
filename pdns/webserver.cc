@@ -52,10 +52,10 @@ json11::Json HttpRequest::json()
   return doc;
 }
 
-bool HttpRequest::compareAuthorization(const string &expected_password)
+bool HttpRequest::compareAuthorization(const CredentialsHolder& credentials) const
 {
   // validate password
-  YaHTTP::strstr_map_t::iterator header = headers.find("authorization");
+  auto header = headers.find("authorization");
   bool auth_ok = false;
   if (header != headers.end() && toLower(header->second).find("basic ") == 0) {
     string cookie = header->second.substr(6);
@@ -66,20 +66,30 @@ bool HttpRequest::compareAuthorization(const string &expected_password)
     vector<string> cparts;
     stringtok(cparts, plain, ":");
 
-    // this gets rid of terminating zeros
-    auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), expected_password.c_str())));
+    auth_ok = (cparts.size() == 2 && credentials.matches(cparts[1].c_str()));
   }
   return auth_ok;
 }
 
-bool HttpRequest::compareHeader(const string &header_name, const string &expected_value)
+bool HttpRequest::compareHeader(const string &header_name, const string &expected_value) const
 {
-  YaHTTP::strstr_map_t::iterator header = headers.find(header_name);
-  if (header == headers.end())
+  auto header = headers.find(header_name);
+  if (header == headers.end()) {
     return false;
+  }
 
   // this gets rid of terminating zeros
   return (0==strcmp(header->second.c_str(), expected_value.c_str()));
+}
+
+bool HttpRequest::compareHeader(const string &header_name, const CredentialsHolder& credentials) const
+{
+  auto header = headers.find(header_name);
+  if (header == headers.end()) {
+    return false;
+  }
+
+  return credentials.matches(header->second);
 }
 
 void HttpResponse::setPlainBody(const string& document)
@@ -153,16 +163,16 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
 
   resp->headers["access-control-allow-origin"] = "*";
 
-  if (d_apikey.empty()) {
+  if (!d_apikey) {
     g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException("X-API-Key");
   }
 
-  bool auth_ok = req->compareHeader("x-api-key", d_apikey) || req->getvars["api-key"] == d_apikey;
+  bool auth_ok = req->compareHeader("x-api-key", *d_apikey) || d_apikey->matches(req->getvars["api-key"]);
 
   if (!auth_ok && allowPassword) {
-    if (!d_webserverPassword.empty()) {
-      auth_ok = req->compareAuthorization(d_webserverPassword);
+    if (d_webserverPassword) {
+      auth_ok = req->compareAuthorization(*d_webserverPassword);
     } else {
       auth_ok = true;
     }
@@ -205,8 +215,8 @@ void WebServer::registerApiHandler(const string& url, const HandlerFunction& han
 }
 
 void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp) {
-  if (!d_webserverPassword.empty()) {
-    bool auth_ok = req->compareAuthorization(d_webserverPassword);
+  if (d_webserverPassword) {
+    bool auth_ok = req->compareAuthorization(*d_webserverPassword);
     if (!auth_ok) {
       g_log<<Logger::Debug<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
       throw HttpUnauthorizedException("Basic");
