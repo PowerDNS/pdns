@@ -872,9 +872,8 @@ struct ReadWriteLockSharedTest
   string getName() const { return "RW lock shared"; }
 
   void operator()() const {
-    for (size_t idx = 0; idx < 1000; ) {
+    for (size_t idx = 0; idx < 1000; idx++) {
       ReadLock wl(d_lock);
-      ++idx;
     }
   }
 
@@ -891,9 +890,8 @@ struct ReadWriteLockExclusiveTest
   string getName() const { return "RW lock exclusive"; }
 
   void operator()() const {
-    for (size_t idx = 0; idx < 1000; ) {
+    for (size_t idx = 0; idx < 1000; idx++) {
       WriteLock wl(d_lock);
-      ++idx;
     }
   }
 
@@ -910,7 +908,7 @@ struct ReadWriteLockExclusiveTryTest
   string getName() const { return "RW lock try exclusive - " + std::string(d_contended ? "contended" : "non-contended"); }
 
   void operator()() const {
-    for (size_t idx = 0; idx < 1000; ) {
+    for (size_t idx = 0; idx < 1000; idx++) {
       TryWriteLock wl(d_lock);
       if (!wl.gotIt() && !d_contended) {
         cerr<<"Error getting the lock"<<endl;
@@ -920,7 +918,6 @@ struct ReadWriteLockExclusiveTryTest
         cerr<<"Got a contended lock"<<endl;
         _exit(0);
       }
-      ++idx;
     }
   }
 
@@ -938,7 +935,7 @@ struct ReadWriteLockSharedTryTest
   string getName() const { return "RW lock try shared - " + std::string(d_contended ? "contended" : "non-contended"); }
 
   void operator()() const {
-    for (size_t idx = 0; idx < 1000; ) {
+    for (size_t idx = 0; idx < 1000; idx++) {
       TryReadLock wl(d_lock);
       if (!wl.gotIt() && !d_contended) {
         cerr<<"Error getting the lock"<<endl;
@@ -948,7 +945,6 @@ struct ReadWriteLockSharedTryTest
         cerr<<"Got a contended lock"<<endl;
         _exit(0);
       }
-      ++idx;
     }
   }
 
