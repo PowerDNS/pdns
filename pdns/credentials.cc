@@ -28,6 +28,7 @@
 #endif
 
 #include "credentials.hh"
+#include "misc.hh"
 
 std::string hashPassword(const std::string& password)
 {
@@ -106,6 +107,8 @@ CredentialsHolder::CredentialsHolder(std::string&& password)
     }
   }
   else {
+    d_fallbackHashPerturb = random();
+    d_fallbackHash = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
     d_credentials = std::move(password);
   }
 
@@ -122,6 +125,8 @@ CredentialsHolder::~CredentialsHolder()
 #ifdef HAVE_LIBSODIUM
   sodium_munlock(d_credentials.data(), d_credentials.size());
 #endif
+  d_fallbackHashPerturb = 0;
+  d_fallbackHash = 0;
 }
 
 bool CredentialsHolder::matches(const std::string& password) const
@@ -130,8 +135,12 @@ bool CredentialsHolder::matches(const std::string& password) const
     return verifyPassword(d_credentials, password);
   }
   else {
-#warning FIXME: would be better to do a poor-man hashing using burtle and a random seed first
-    return password == d_credentials;
+    uint32_t fallback = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
+    if (fallback != d_fallbackHash) {
+      return false;
+    }
+
+    return constantTimeStringEquals(password, d_credentials);
   }
 }
 

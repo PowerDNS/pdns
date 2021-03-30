@@ -48,5 +48,7 @@ public:
 
 private:
   std::string d_credentials;
+  uint32_t d_fallbackHashPerturb;
+  uint32_t d_fallbackHash{0};
   bool d_hashed{false};
 };

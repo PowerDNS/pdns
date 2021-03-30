@@ -633,5 +633,7 @@ size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);
 
 std::string makeLuaString(const std::string& in);
 
+bool constantTimeStringEquals(const std::string& a, const std::string& b);
+
 // Used in NID and L64 records
 struct NodeOrLocatorID { uint8_t content[8]; };

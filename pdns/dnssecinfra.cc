@@ -632,27 +632,6 @@ static string calculateHMAC(const std::string& key, const std::string& text, TSI
   return string((char*) hash, outlen);
 }
 
-static bool constantTimeStringEquals(const std::string& a, const std::string& b)
-{
-  if (a.size() != b.size()) {
-    return false;
-  }
-  const size_t size = a.size();
-#ifdef HAVE_CRYPTO_MEMCMP
-  return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
-#else
-  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
-  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
-  unsigned char res = 0;
-
-  for (size_t idx = 0; idx < size; idx++) {
-    res |= _a[idx] ^ _b[idx];
-  }
-
-  return res == 0;
-#endif
-}
-
 static string makeTSIGPayload(const string& previous, const char* packetBegin, size_t packetSize, const DNSName& tsigKeyName, const TSIGRecordContent& trc, bool timersonly)
 {
   string message;
