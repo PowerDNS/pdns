@@ -152,6 +152,11 @@ get-parameter *KEY* [*KEY*]...
 get-qtypelist
     Retrieves QType statistics. Queries from cache aren't being counted yet.
 
+hash-password
+    Hash and salt the given password, to use as a webserver password or
+    API key. This command does not contact the recursor but does the
+    hashing inside rec_control.
+
 help
     Shows a list of supported commands understood by the running
     :program:`pdns_recursor`

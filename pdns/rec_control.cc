@@ -22,13 +22,15 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "rec_channel.hh"
+
 #include <iostream>
 #include <fcntl.h>
+
 #include "pdnsexception.hh"
 #include "arguments.hh"
-
+#include "credentials.hh"
 #include "namespaces.hh"
+#include "rec_channel.hh"
 
 ArgvMap &arg()
 {
@@ -95,7 +97,6 @@ int main(int argc, char** argv)
   };
   try {
     initArguments(argc, argv);
-    RecursorControlChannel rccS;
     string sockname="pdns_recursor";
 
     if (arg()["config-name"] != "")
@@ -106,10 +107,9 @@ int main(int argc, char** argv)
 
     sockname.append(".controlsocket");
 
-    rccS.connect(arg()["socket-dir"], sockname);
-
     const vector<string>&commands=arg().getCommands();
     string command;
+    string password;
     int fd = -1;
     unsigned int i = 0;
     while (i < commands.size()) {
@@ -142,10 +142,26 @@ int main(int argc, char** argv)
           throw PDNSException("Command needs a file argument");
         }
       }
+      else if (commands.at(i) == "hash-password") {
+        if (commands.size() > (i + 1)) {
+          ++i;
+          password = commands.at(i);
+        }
+        else {
+          throw PDNSException("Command needs a password argument");
+        }
+      }
       ++i;
     }
 
+    if (!password.empty()) {
+      cout << hashPassword(password) << endl;
+      return 0;
+    }
+
     auto timeout = arg().asNum("timeout");
+    RecursorControlChannel rccS;
+    rccS.connect(arg()["socket-dir"], sockname);
     rccS.send({0, command}, nullptr, timeout, fd);
 
     auto receive = rccS.recv(0, timeout);
