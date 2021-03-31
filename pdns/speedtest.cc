@@ -1,6 +1,7 @@
 #include "config.h"
 #include <boost/format.hpp>
 #include <boost/container/string.hpp>
+#include "credentials.hh"
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -1028,6 +1029,45 @@ private:
   bool d_contended;
 };
 
+struct CredentialsHashTest
+{
+  explicit CredentialsHashTest() {}
+
+  string getName() const
+  {
+    return "Credentials hashing test";
+  }
+
+  void operator()() const
+  {
+    hashPassword(d_password);
+  }
+
+private:
+  const std::string d_password{"test password"};
+};
+
+struct CredentialsVerifyTest
+{
+  explicit CredentialsVerifyTest() {
+    d_hashed = hashPassword(d_password);
+  }
+
+  string getName() const
+  {
+    return "Credentials verification test";
+  }
+
+  void operator()() const
+  {
+    verifyPassword(d_hashed, d_password);
+  }
+
+private:
+  std::string d_hashed;
+  const std::string d_password{"test password"};
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -1145,6 +1185,11 @@ try
   doRun(NSEC3HashTest(50, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
   doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
   doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+
+#ifdef HAVE_LIBSODIUM
+  doRun(CredentialsHashTest());
+  doRun(CredentialsVerifyTest());
+#endif
 
 #ifndef RECURSOR
   S.doRings();
