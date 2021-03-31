@@ -146,19 +146,32 @@ inline size_t hash_value(const QType qtype) {
 
 struct QClass
 {
-  enum QClassEnum : uint16_t { IN = 1, CHAOS = 3, NONE = 254, ANY = 255 };
+  constexpr QClass(uint16_t code = 0) : qclass(code) {}
 
-  QClass(uint16_t code = 0) : qclass(code) {}
-
-  operator uint16_t() const {
+  constexpr operator uint16_t() const {
     return qclass;
   }
-  uint16_t getCode() const
+  constexpr uint16_t getCode() const
   {
     return qclass;
   }
   const std::string toString() const;
 
+  static const QClass IN;
+  static const QClass CHAOS;
+  static const QClass NONE;
+  static const QClass ANY;
+
 private:
   uint16_t qclass;
 };
+
+constexpr QClass QClass::IN(1);
+constexpr QClass QClass::CHAOS(3);
+constexpr QClass QClass::NONE(254);
+constexpr QClass QClass::ANY(255);
+
+inline std::ostream& operator<<(std::ostream& s, QClass qclass)
+{
+  return s << qclass.toString();
+}
