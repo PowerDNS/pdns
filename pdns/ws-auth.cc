@@ -967,6 +967,8 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
       throw ApiException("Could not update metadata entries for domain '" +
         zonename.toString() + "'");
 
+    DNSSECKeeper::clearMetaCache(zonename);
+
     Json::array respMetadata;
     for (const string& s : vecMetadata)
       respMetadata.push_back(s);
@@ -1032,6 +1034,8 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     if (!B.setDomainMetadata(zonename, kind, vecMetadata))
       throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
 
+    DNSSECKeeper::clearMetaCache(zonename);
+
     Json::object key {
       { "type", "Metadata" },
       { "kind", kind },
@@ -1046,6 +1050,8 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     vector<string> md;  // an empty vector will do it
     if (!B.setDomainMetadata(zonename, kind, md))
       throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+
+    DNSSECKeeper::clearMetaCache(zonename);
   } else
     throw HttpMethodNotAllowedException();
 }
@@ -1095,13 +1101,34 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
         { "bits", value.first.getKey()->getBits() }
     };
 
+    string publishCDS;
+    dk->getPublishCDS(zonename, publishCDS);
+
+    vector<string> digestAlgos;
+    stringtok(digestAlgos, publishCDS, ", ");
+
+    std::set<unsigned int> CDSalgos;
+    for(auto const &digestAlgo : digestAlgos) {
+      CDSalgos.insert(pdns_stou(digestAlgo));
+    }
+
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
+      Json::array cdses;
       Json::array dses;
       for(const uint8_t keyid : { DNSSECKeeper::DIGEST_SHA1, DNSSECKeeper::DIGEST_SHA256, DNSSECKeeper::DIGEST_GOST, DNSSECKeeper::DIGEST_SHA384 })
         try {
-          dses.push_back(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation());
+          string ds = makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation();
+
+          dses.push_back(ds);
+
+          if (CDSalgos.count(keyid)) { cdses.push_back(ds); }
         } catch (...) {}
+
       key["ds"] = dses;
+
+      if (cdses.size()) {
+        key["cds"] = cdses;
+      }
     }
 
     if (inquireSingleKey) {
