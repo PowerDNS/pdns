@@ -4,37 +4,14 @@
 
 #include "dnsparser.hh"
 
-const uint16_t TCPConnectionToBackend::s_xfrID = 0;
-
-void TCPConnectionToBackend::assignToClientConnection(std::shared_ptr<IncomingTCPConnectionState>& clientConn, bool isXFR)
-{
-  if (d_usedForXFR == true) {
-    throw std::runtime_error("Trying to send a query over a backend connection used for XFR");
-  }
-
-  if (isXFR) {
-    d_usedForXFR = true;
-  }
-
-  if (!d_clientConn) {
-    d_clientConn = clientConn;
-    d_ioState = make_unique<IOStateHandler>(clientConn->getIOMPlexer(), d_handler->getDescriptor());
-  }
-  else if (d_clientConn != clientConn) {
-    throw std::runtime_error("Assigning a query from a different client to an existing backend connection with pending queries");
-  }
-}
-
 void TCPConnectionToBackend::release()
 {
-  if (!d_usedForXFR) {
-    d_ds->outstanding -= d_pendingResponses.size();
-  }
+  d_ds->outstanding -= d_pendingResponses.size();
 
   d_pendingResponses.clear();
   d_pendingQueries.clear();
 
-  d_clientConn.reset();
+  d_sender.reset();
   if (d_ioState) {
     d_ioState.reset();
   }
@@ -72,9 +49,7 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
   conn->d_currentQuery.d_buffer.clear();
 
-  if (!conn->d_usedForXFR) {
-    ++conn->d_ds->outstanding;
-  }
+  ++conn->d_ds->outstanding;
 
   return state;
 }
@@ -185,20 +160,34 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
       DEBUGLOG("connection died, number of failures is "<<conn->d_downstreamFailures<<", retries is "<<conn->d_ds->retries);
 
-      if ((!conn->d_usedForXFR || conn->d_queries == 0) && conn->d_downstreamFailures < conn->d_ds->retries) {
+      if (conn->d_downstreamFailures < conn->d_ds->retries) {
 
         conn->d_ioState.reset();
         ioGuard.release();
 
         try {
           if (conn->reconnect()) {
-            conn->d_ioState = make_unique<IOStateHandler>(conn->d_clientConn->getIOMPlexer(), conn->d_handler->getDescriptor());
+            conn->d_ioState = make_unique<IOStateHandler>(conn->d_mplexer, conn->d_handler->getDescriptor());
 
             /* we need to resend the queries that were in flight, if any */
             for (auto& pending : conn->d_pendingResponses) {
-              conn->d_pendingQueries.push_back(std::move(pending.second));
-              if (!conn->d_usedForXFR) {
-                --conn->d_ds->outstanding;
+              --conn->d_ds->outstanding;
+
+              if (pending.second.isXFR() && pending.second.d_xfrStarted) {
+                /* this one can't be restarted, sorry */
+                DEBUGLOG("A XFR for which a response has already been sent cannot be restarted");
+                try {
+                  conn->d_sender->notifyIOError(std::move(pending.second.d_idstate), now);
+                }
+                catch (const std::exception& e) {
+                  vinfolog("Got an exception while notifying: %s", e.what());
+                }
+                catch (...) {
+                  vinfolog("Got exception while notifying");
+                }
+              }
+              else {
+                conn->d_pendingQueries.push_back(std::move(pending.second));
               }
             }
             conn->d_pendingResponses.clear();
@@ -278,10 +267,14 @@ void TCPConnectionToBackend::handleIOCallback(int fd, FDMultiplexer::funcparam_t
   handleIO(conn, now);
 }
 
-void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPConnectionToBackend>& sharedSelf)
+void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
-  if (d_ioState == nullptr) {
-    throw std::runtime_error("Trying to queue a query to a TCP connection that has no incoming client connection assigned");
+  if (!d_sender) {
+    d_sender = sender;
+    d_ioState = make_unique<IOStateHandler>(d_mplexer, d_handler->getDescriptor());
+  }
+  else if (d_sender != sender) {
+    throw std::runtime_error("Assigning a query from a different client to an existing backend connection with pending queries");
   }
 
   // if we are not already sending a query or in the middle of reading a response (so idle or doingHandshake),
@@ -299,7 +292,8 @@ void TCPConnectionToBackend::queueQuery(TCPQuery&& query, std::shared_ptr<TCPCon
     struct timeval now;
     gettimeofday(&now, 0);
 
-    handleIO(sharedSelf, now);
+    auto shared = shared_from_this();
+    handleIO(shared, now);
   }
   else {
     DEBUGLOG("Adding new query to the queue because we are in state "<<(int)d_state);
@@ -404,31 +398,31 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 {
   d_connectionDied = true;
 
-  auto& clientConn = d_clientConn;
-  if (!clientConn->active()) {
+  auto& sender = d_sender;
+  if (!sender->active()) {
     // a client timeout occurred, or something like that */
-    d_clientConn.reset();
+    d_sender.reset();
     return;
   }
 
   if (reason == FailureReason::timeout) {
-    ++clientConn->d_ci.cs->tcpDownstreamTimeouts;
+    ++sender->getClientState().tcpDownstreamTimeouts;
   }
   else if (reason == FailureReason::gaveUp) {
-    ++clientConn->d_ci.cs->tcpGaveUp;
+    ++sender->getClientState().tcpGaveUp;
   }
 
   try {
     if (d_state == State::sendingQueryToBackend) {
-      clientConn->notifyIOError(clientConn, std::move(d_currentQuery.d_idstate), now);
+      sender->notifyIOError(std::move(d_currentQuery.d_idstate), now);
     }
 
     for (auto& query : d_pendingQueries) {
-      clientConn->notifyIOError(clientConn, std::move(query.d_idstate), now);
+      sender->notifyIOError(std::move(query.d_idstate), now);
     }
 
     for (auto& response : d_pendingResponses) {
-      clientConn->notifyIOError(clientConn, std::move(response.second.d_idstate), now);
+      sender->notifyIOError(std::move(response.second.d_idstate), now);
     }
   }
   catch (const std::exception& e) {
@@ -467,8 +461,8 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 {
   d_downstreamFailures = 0;
 
-  auto& clientConn = d_clientConn;
-  if (!clientConn || !clientConn->active()) {
+  auto& sender = d_sender;
+  if (!sender || !sender->active()) {
     // a client timeout occurred, or something like that */
     d_connectionDied = true;
 
@@ -494,11 +488,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     return IOState::Done;
   }
 
-  if (!conn->d_usedForXFR) {
-    --conn->d_ds->outstanding;
-  }
-
-  if (d_usedForXFR) {
+  if (it->second.isXFR()) {
     DEBUGLOG("XFR!");
     bool done = false;
     TCPResponse response;
@@ -509,22 +499,22 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     response.d_idstate.qname = it->second.d_idstate.qname;
     DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
 
-    done = isXFRFinished(response, clientConn);
+    it->second.d_xfrStarted = true;
+    done = isXFRFinished(response, it->second);
 
     if (done) {
       d_pendingResponses.erase(it);
+      --conn->d_ds->outstanding;
       /* marking as idle for now, so we can accept new queries if our queues are empty */
       if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
         d_state = State::idle;
       }
-      clientConn->d_isXFR = false;
-      conn->d_usedForXFR = false;
     }
 
-    clientConn->handleXFRResponse(clientConn, now, std::move(response));
+    sender->handleXFRResponse(now, std::move(response));
     if (done) {
       d_state = State::idle;
-      d_clientConn.reset();
+      d_sender.reset();
       return IOState::Done;
     }
 
@@ -533,6 +523,9 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     d_responseBuffer.resize(sizeof(uint16_t));
     // get ready to read the next packet, if any
     return IOState::NeedRead;
+  }
+  else {
+    --conn->d_ds->outstanding;
   }
 
   auto ids = std::move(it->second.d_idstate);
@@ -543,7 +536,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
 
   DEBUGLOG("passing response to client connection for "<<ids.qname);
-  clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
+  sender->handleResponse(now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
 
   if (!d_pendingQueries.empty()) {
     DEBUGLOG("still have some queries to send");
@@ -563,7 +556,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   else {
     DEBUGLOG("nothing to do, waiting for a new query");
     d_state = State::idle;
-    d_clientConn.reset();
+    d_sender.reset();
     return IOState::Done;
   }
 }
@@ -605,7 +598,7 @@ bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<Proxy
   return *tlvs == *d_proxyProtocolValuesSent;
 }
 
-bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, const shared_ptr<IncomingTCPConnectionState>& clientConn)
+bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery& query)
 {
   bool done = false;
   try {
@@ -626,20 +619,20 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, const sh
         auto raw = unknownContent->getRawContent();
         auto serial = getSerialFromRawSOAContent(raw);
 
-        ++clientConn->d_xfrSerialCount;
-        if (clientConn->d_xfrMasterSerial == 0) {
+        ++query.d_xfrSerialCount;
+        if (query.d_xfrMasterSerial == 0) {
           // store the first SOA in our client's connection metadata
-          ++clientConn->d_xfrMasterSerialCount;
-          clientConn->d_xfrMasterSerial = serial;
+          ++query.d_xfrMasterSerialCount;
+          query.d_xfrMasterSerial = serial;
         }
-        else if (clientConn->d_xfrMasterSerial == serial) {
-          ++clientConn->d_xfrMasterSerialCount;
+        else if (query.d_xfrMasterSerial == serial) {
+          ++query.d_xfrMasterSerialCount;
           // figure out if it's end when receiving master's SOA again
-          if (clientConn->d_xfrSerialCount == 2) {
+          if (query.d_xfrSerialCount == 2) {
             // if there are only two SOA records marks a finished AXFR
             done = true;
           }
-          if (clientConn->d_xfrMasterSerialCount == 3) {
+          if (query.d_xfrMasterSerialCount == 3) {
             // receiving master's SOA 3 times marks a finished IXFR
             done = true;
           }

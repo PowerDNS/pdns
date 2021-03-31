@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   ComboAddress lc("127.0.0.1:53");
   ComboAddress rem("192.0.2.1:42");
   PacketBuffer packet(sizeof(dnsheader));
-  auto proto = DNSQuestion::Protocol::DoUDP;
+  auto proto = dnsdist::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
