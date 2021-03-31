@@ -578,7 +578,7 @@ OpenSSLTLSTicketKey::OpenSSLTLSTicketKey()
 #endif /* HAVE_LIBSODIUM */
 }
 
-OpenSSLTLSTicketKey::OpenSSLTLSTicketKey(ifstream& file)
+OpenSSLTLSTicketKey::OpenSSLTLSTicketKey(std::ifstream& file)
 {
   file.read(reinterpret_cast<char*>(d_name), sizeof(d_name));
   file.read(reinterpret_cast<char*>(d_cipherKey), sizeof(d_cipherKey));

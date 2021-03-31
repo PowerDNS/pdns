@@ -4,8 +4,10 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include "lock.hh"
 #include <thread>
+
+#include "lock.hh"
+#include "pdnsexception.hh"
 
 using namespace boost;
 
@@ -16,8 +18,9 @@ static std::vector<ReadWriteLock> g_locks(1000);
 static void lthread()
 {
   std::vector<ReadLock> rlocks;
-  for(auto& pp : g_locks)
+  for(auto& pp : g_locks) {
     rlocks.emplace_back(pp);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_pdns_lock)
