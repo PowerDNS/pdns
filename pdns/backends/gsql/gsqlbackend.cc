@@ -1900,7 +1900,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
   r.domain_id=pdns_stou(row[4]);
 
-  if (row.size() > 8) {
+  if (row.size() > 8) {   // if column 8 exists, it holds an ordername
     if (!row.at(8).empty()) {
       r.ordername=DNSName(boost::replace_all_copy(row.at(8), " ", ".")).labelReverse();
     }
