@@ -134,7 +134,10 @@ Enable/disable the :doc:`http-api/index`.
 
 -  String
 
-Static pre-shared authentication key for access to the REST API.
+.. versionchanged:: 4.6.0
+  This setting now accepts a hashed and salted version.
+
+Static pre-shared authentication key for access to the REST API. Since 4.6.0 the key can be hashed and salted using ``rec_control hash-password APIKEY`` instead of being stored in the configuration in plaintext.
 
 .. _setting-autosecondary:
 
@@ -1825,10 +1828,12 @@ Maximum request/response body size in megabytes.
 
 ``webserver-password``
 ----------------------
+.. versionchanged:: 4.6.0
+  This setting now accepts a hashed and salted version.
 
 -  String
 
-The plaintext password required for accessing the webserver.
+Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``pdnsutil hash-password PASS`` instead of being in plaintext.
 
 .. _setting-webserver-port:
 
