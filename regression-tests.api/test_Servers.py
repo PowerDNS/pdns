@@ -9,11 +9,11 @@ class Servers(ApiTestCase):
         r = self.session.get(self.url("/api/v1/servers"))
         self.assert_success_json(r)
         lst = r.json()
-        self.assertEquals(len(lst), 1)  # only localhost allowed in there
+        self.assertEqual(len(lst), 1)  # only localhost allowed in there
         data = lst[0]
         for k in ('id', 'daemon_type', 'url'):
             self.assertIn(k, data)
-        self.assertEquals(data['id'], 'localhost')
+        self.assertEqual(data['id'], 'localhost')
 
     def test_servers_localhost(self):
         r = self.session.get(self.url("/api/v1/servers/localhost"))
@@ -21,8 +21,8 @@ class Servers(ApiTestCase):
         data = r.json()
         for k in ('id', 'type', 'version', 'daemon_type', 'url', 'zones_url', 'config_url'):
             self.assertIn(k, data)
-        self.assertEquals(data['id'], 'localhost')
-        self.assertEquals(data['type'], 'Server')
+        self.assertEqual(data['id'], 'localhost')
+        self.assertEqual(data['type'], 'Server')
         # or 'recursor' for recursors
         if is_auth():
             daemon_type = 'authoritative'
@@ -30,7 +30,7 @@ class Servers(ApiTestCase):
             daemon_type = 'recursor'
         else:
             raise RuntimeError('Unknown daemon type')
-        self.assertEquals(data['daemon_type'], daemon_type)
+        self.assertEqual(data['daemon_type'], daemon_type)
 
     def test_read_config(self):
         r = self.session.get(self.url("/api/v1/servers/localhost/config"))
@@ -68,7 +68,7 @@ class Servers(ApiTestCase):
 
     def test_read_one_non_existent_statistic(self):
         r = self.session.get(self.url("/api/v1/servers/localhost/statistics?statistic=uptimeAAAA"))
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("Unknown statistic name", r.json()['error'])
 
     def test_read_metrics(self):
@@ -87,5 +87,5 @@ class Servers(ApiTestCase):
     @unittest.skipIf(is_auth(), "Not applicable")
     def test_read_statistics_using_password(self):
         r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password))
-        self.assertEquals(r.status_code, requests.codes.ok)
+        self.assertEqual(r.status_code, requests.codes.ok)
         self.assert_success_json(r)

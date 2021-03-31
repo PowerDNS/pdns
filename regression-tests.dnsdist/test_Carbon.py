@@ -92,7 +92,7 @@ class TestCarbon(DNSDistTest):
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
-            self.assertEquals(len(parts), 3)
+            self.assertEqual(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
             self.assertTrue(int(parts[2]) <= int(after))
@@ -103,7 +103,7 @@ class TestCarbon(DNSDistTest):
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))
             parts = line.split(b' ')
-            self.assertEquals(len(parts), 3)
+            self.assertEqual(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
             self.assertTrue(int(parts[2]) <= int(after))
@@ -138,15 +138,15 @@ class TestCarbon(DNSDistTest):
             if expectedStart in line:
                 parts = line.split(b' ')
                 if b'servers-up' in line:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 2)
+                    self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
                 else:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 3)
+                    self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
 
@@ -161,14 +161,14 @@ class TestCarbon(DNSDistTest):
             if expectedStart in line:
                 parts = line.split(b' ')
                 if b'servers-up' in line:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 2)
+                    self.assertEqual(int(parts[1]), 2)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))
                 else:
-                    self.assertEquals(len(parts), 3)
+                    self.assertEqual(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
-                    self.assertEquals(int(parts[1]), 3)
+                    self.assertEqual(int(parts[1]), 3)
                     self.assertTrue(parts[2].isdigit())
                     self.assertTrue(int(parts[2]) <= int(after))

@@ -579,8 +579,8 @@ class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
         self.assertEqual(len(res.answer), 1)
         self.assertEqual(len(res.authority), 0)
         self.assertEqual(len(res.additional), 1)
-        self.assertEquals(res.answer, expectedAnswerRecords)
-        self.assertEquals(res.additional, expectedAdditionalRecords)
+        self.assertEqual(res.answer, expectedAnswerRecords)
+        self.assertEqual(res.additional, expectedAdditionalRecords)
 
 class PDNSValidationStatesTest(RecursorTest):
     """Tests that we have access to the validation states from Lua"""

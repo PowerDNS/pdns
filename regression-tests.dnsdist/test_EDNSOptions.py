@@ -92,8 +92,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testCookie(self):
         """
@@ -116,8 +116,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testECS4(self):
         """
@@ -140,8 +140,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testECS6(self):
         """
@@ -164,8 +164,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testECS6Cookie(self):
         """
@@ -189,8 +189,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testMultiCookiesECS6(self):
         """
@@ -215,8 +215,8 @@ class TestEDNSOptions(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
 class TestEDNSOptionsAddingECS(EDNSOptionsBase):
 
@@ -382,8 +382,8 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
 class TestEDNSOptionsLuaFFI(DNSDistTest):
 
@@ -544,8 +544,8 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testCookieFFI(self):
         """
@@ -568,8 +568,8 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testECS4FFI(self):
         """
@@ -592,8 +592,8 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testECS6FFI(self):
         """
@@ -616,8 +616,8 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testECS6CookieFFI(self):
         """
@@ -641,8 +641,8 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
 
     def testMultiCookiesECS6FFI(self):
         """
@@ -667,5 +667,5 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(receivedQuery, query)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)

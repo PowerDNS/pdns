@@ -84,13 +84,13 @@ edns-outgoing-bufsize=%d
         """
         response = dns.message.from_wire(rawResponse)
 
-        self.assertEquals(len(rawResponse), size)
+        self.assertEqual(len(rawResponse), size)
         self.assertRcodeEqual(response, dns.rcode.NOERROR)
 
         self.assertMessageHasFlags(response, ['QR', 'RD', 'RA'])
 
         for record in response.answer:
-            self.assertEquals(record.rdtype, dns.rdatatype.TXT)
+            self.assertEqual(record.rdtype, dns.rdatatype.TXT)
             for part in record:
                 for string in part.strings:
                     self.assertTrue(len(string) == 255 or

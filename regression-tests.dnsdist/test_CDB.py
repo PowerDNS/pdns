@@ -86,7 +86,7 @@ class TestCDBSimple(CDBTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testCDBQNamePlusTagLookup(self):
         """
@@ -109,7 +109,7 @@ class TestCDBSimple(CDBTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testCDBSuffixLookup(self):
         """
@@ -132,7 +132,7 @@ class TestCDBSimple(CDBTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
 class TestCDBReload(CDBTest):
 
@@ -172,7 +172,7 @@ class TestCDBReload(CDBTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
         # switch to the second DB which has no entry for 127.0.0.1
         shutil.copyfile('kvs.cdb.2', self._cdbFileName)
@@ -193,4 +193,4 @@ class TestCDBReload(CDBTest):
             (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertFalse(receivedQuery)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)

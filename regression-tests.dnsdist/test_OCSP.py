@@ -86,7 +86,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         self.assertIn('OCSP Response Status: successful (0x0)', output)
         serialNumber2 = self.getOCSPSerial(output)
         self.assertTrue(serialNumber2)
-        self.assertNotEquals(serialNumber, serialNumber2)
+        self.assertNotEqual(serialNumber, serialNumber2)
 
 class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 
@@ -128,7 +128,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         self.assertIn('OCSP Response Status: successful (0x0)', output)
         serialNumber2 = self.getOCSPSerial(output)
         self.assertTrue(serialNumber2)
-        self.assertNotEquals(serialNumber, serialNumber2)
+        self.assertNotEqual(serialNumber, serialNumber2)
 
 class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
@@ -170,4 +170,4 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         self.assertIn('OCSP Response Status: successful (0x0)', output)
         serialNumber2 = self.getOCSPSerial(output)
         self.assertTrue(serialNumber2)
-        self.assertNotEquals(serialNumber, serialNumber2)
+        self.assertNotEqual(serialNumber, serialNumber2)

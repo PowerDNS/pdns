@@ -195,7 +195,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
 
-        self.assertEquals(len(receivedResponses), 5)
+        self.assertEqual(len(receivedResponses), 5)
         for idx in range(5):
             self.assertIn('%d.simple.ooor.tests.powerdns.com.' % (idx), receivedResponses)
 
@@ -230,7 +230,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
 
-        self.assertEquals(len(receivedResponses), 100)
+        self.assertEqual(len(receivedResponses), 100)
         for idx in range(5):
             self.assertIn('%d.more-queries.ooor.tests.powerdns.com.' % (idx), receivedResponses)
 
@@ -284,11 +284,11 @@ class TestOOORWithClientAndBackend(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
 
-        self.assertEquals(len(receivedResponses), 5)
+        self.assertEqual(len(receivedResponses), 5)
         for idx in range(5):
             self.assertIn('%d.simple.reverse-ooor.tests.powerdns.com.' % (idx), receivedResponses)
 
-        self.assertEquals(ReverseOOORTCPResponder.numberOfConnections, 1)
+        self.assertEqual(ReverseOOORTCPResponder.numberOfConnections, 1)
 
     def testMoreQueriesThanAllowedInFlight(self):
         """
@@ -318,10 +318,10 @@ class TestOOORWithClientAndBackend(DNSDistTest):
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
             #print("Received a response for %s" % (receivedResponse.question[0].name))
 
-        self.assertEquals(len(receivedResponses), 100)
+        self.assertEqual(len(receivedResponses), 100)
         for idx in range(5):
             self.assertIn('%d.more-queries.reverse-ooor.tests.powerdns.com.' % (idx), receivedResponses)
 
         # in theory they could all be handled by the same backend if we get the responses
         # fast enough, but over 100 queries that's very, very unlikely
-        self.assertEquals(ReverseOOORTCPResponder.numberOfConnections, 2)
+        self.assertEqual(ReverseOOORTCPResponder.numberOfConnections, 2)

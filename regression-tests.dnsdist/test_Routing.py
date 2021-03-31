@@ -33,8 +33,8 @@ class TestRoutingPoolRouting(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testDefaultPool(self):
         """
@@ -50,7 +50,7 @@ class TestRoutingPoolRouting(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(receivedResponse, None)
 
 class TestRoutingQPSPoolRouting(DNSDistTest):
     _config_template = """
@@ -80,13 +80,13 @@ class TestRoutingQPSPoolRouting(DNSDistTest):
         for _ in range(maxQPS):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         # we should now be sent to the "abuse" pool which is empty,
         # so the queries should be dropped
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         time.sleep(1)
 
@@ -94,12 +94,12 @@ class TestRoutingQPSPoolRouting(DNSDistTest):
         for _ in range(maxQPS):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
 
 class TestRoutingRoundRobinLB(DNSDistTest):
@@ -155,18 +155,18 @@ class TestRoutingRoundRobinLB(DNSDistTest):
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
-            self.assertEquals(value, numberOfQueries / 2)
+            self.assertEqual(value, numberOfQueries / 2)
 
 class TestRoutingRoundRobinLBOneDown(DNSDistTest):
 
@@ -203,14 +203,14 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         total = 0
         for key in self._responsesCounter:
@@ -218,7 +218,7 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
             self.assertTrue(value == numberOfQueries or value == 0)
             total += value
 
-        self.assertEquals(total, numberOfQueries * 2)
+        self.assertEqual(total, numberOfQueries * 2)
 
 class TestRoutingRoundRobinLBAllDown(DNSDistTest):
 
@@ -251,7 +251,7 @@ class TestRoutingRoundRobinLBAllDown(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(receivedResponse, None)
 
 class TestRoutingLuaFFIPerThreadRoundRobinLB(DNSDistTest):
 
@@ -319,18 +319,18 @@ class TestRoutingLuaFFIPerThreadRoundRobinLB(DNSDistTest):
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
-            self.assertEquals(value, numberOfQueries / 2)
+            self.assertEqual(value, numberOfQueries / 2)
 
 class TestRoutingOrder(DNSDistTest):
 
@@ -386,16 +386,16 @@ class TestRoutingOrder(DNSDistTest):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
 
         total = 0
         if 'UDP Responder' in self._responsesCounter:
-            self.assertEquals(self._responsesCounter['UDP Responder'], 0)
-        self.assertEquals(self._responsesCounter['UDP Responder 2'], numberOfQueries)
+            self.assertEqual(self._responsesCounter['UDP Responder'], 0)
+        self.assertEqual(self._responsesCounter['UDP Responder 2'], numberOfQueries)
         if 'TCP Responder' in self._responsesCounter:
-            self.assertEquals(self._responsesCounter['TCP Responder'], 0)
-        self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries)
+            self.assertEqual(self._responsesCounter['TCP Responder'], 0)
+        self.assertEqual(self._responsesCounter['TCP Responder 2'], numberOfQueries)
 
 class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
 
@@ -455,20 +455,20 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         for _ in range(numberOfQueries):
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
-                self.assertEquals(receivedResponse, response)
+                self.assertEqual(receivedResponse, response)
 
         numberOfQueries = 10
         name = 'order-qps-cache-2.routing.tests.powerdns.com.'
@@ -486,20 +486,20 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         for _ in range(numberOfQueries):
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
-                self.assertEquals(receivedResponse, response)
+                self.assertEqual(receivedResponse, response)
 
         # 4 queries should made it through, 2 UDP and 2 TCP
         for k,v in self._responsesCounter.items():
@@ -507,11 +507,11 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
             print(v)
 
         if 'UDP Responder' in self._responsesCounter:
-            self.assertEquals(self._responsesCounter['UDP Responder'], 0)
-        self.assertEquals(self._responsesCounter['UDP Responder 2'], 2)
+            self.assertEqual(self._responsesCounter['UDP Responder'], 0)
+        self.assertEqual(self._responsesCounter['UDP Responder 2'], 2)
         if 'TCP Responder' in self._responsesCounter:
-            self.assertEquals(self._responsesCounter['TCP Responder'], 0)
-        self.assertEquals(self._responsesCounter['TCP Responder 2'], 2)
+            self.assertEqual(self._responsesCounter['TCP Responder'], 0)
+        self.assertEqual(self._responsesCounter['TCP Responder 2'], 2)
 
 class TestRoutingNoServer(DNSDistTest):
 
@@ -545,7 +545,7 @@ class TestRoutingNoServer(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
             self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
-            self.assertEquals(receivedResponse.payload, 1232)
+            self.assertEqual(receivedResponse.payload, 1232)
 
 class TestRoutingWRandom(DNSDistTest):
 
@@ -600,14 +600,14 @@ class TestRoutingWRandom(DNSDistTest):
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         # The lower weight downstream should receive less than half the queries
         self.assertLess(self._responsesCounter['UDP Responder'], numberOfQueries * 0.50)
@@ -676,14 +676,14 @@ class TestRoutingHighValueWRandom(DNSDistTest):
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         stats = self.sendConsoleCommand("dumpStats()").split()
         stats_dict = {}
@@ -694,7 +694,7 @@ class TestRoutingHighValueWRandom(DNSDistTest):
                 stats_dict[x] = stats[i+1]
 
         # There should be no queries getting "no-policy" responses
-        self.assertEquals(stats_dict['no-policy'], '0')
+        self.assertEqual(stats_dict['no-policy'], '0')
 
         # Each downstream should receive some queries, but it will be unbalanced
         # because the sum of the weights is higher than INT_MAX.
@@ -704,9 +704,9 @@ class TestRoutingHighValueWRandom(DNSDistTest):
 
         # The second downstream will receive the remainder of the queries, but it might very well be 0
         if 'UDP Responder 2' in self._responsesCounter:
-            self.assertEquals(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
+            self.assertEqual(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
         if 'TCP Responder 2' in self._responsesCounter:
-            self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
+            self.assertEqual(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
 
 class TestRoutingBadWeightWRandom(DNSDistTest):
 

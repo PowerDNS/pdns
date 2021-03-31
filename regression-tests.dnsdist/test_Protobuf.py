@@ -69,42 +69,42 @@ class DNSDistProtobufTest(DNSDistTest):
         self.assertTrue(msg)
         self.assertTrue(msg.HasField('timeSec'))
         self.assertTrue(msg.HasField('socketFamily'))
-        self.assertEquals(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
+        self.assertEqual(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
         self.assertTrue(msg.HasField('from'))
         fromvalue = getattr(msg, 'from')
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, fromvalue), initiator)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, fromvalue), initiator)
         self.assertTrue(msg.HasField('socketProtocol'))
-        self.assertEquals(msg.socketProtocol, protocol)
+        self.assertEqual(msg.socketProtocol, protocol)
         self.assertTrue(msg.HasField('messageId'))
         self.assertTrue(msg.HasField('id'))
-        self.assertEquals(msg.id, query.id)
+        self.assertEqual(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
         self.assertTrue(msg.HasField('serverIdentity'))
-        self.assertEquals(msg.serverIdentity, self._protobufServerID.encode('utf-8'))
+        self.assertEqual(msg.serverIdentity, self._protobufServerID.encode('utf-8'))
 
         if normalQueryResponse:
           # compare inBytes with length of query/response
-          self.assertEquals(msg.inBytes, len(query.to_wire()))
+          self.assertEqual(msg.inBytes, len(query.to_wire()))
         # dnsdist doesn't set the existing EDNS Subnet for now,
         # although it might be set from Lua
         # self.assertTrue(msg.HasField('originalRequestorSubnet'))
-        # self.assertEquals(len(msg.originalRequestorSubnet), 4)
-        # self.assertEquals(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
+        # self.assertEqual(len(msg.originalRequestorSubnet), 4)
+        # self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
 
     def checkProtobufQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1'):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
         self.checkProtobufBase(msg, protocol, query, initiator)
         # dnsdist doesn't fill the responder field for responses
         # because it doesn't keep the information around.
         self.assertTrue(msg.HasField('to'))
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, msg.to), '127.0.0.1')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.to), '127.0.0.1')
         self.assertTrue(msg.HasField('question'))
         self.assertTrue(msg.question.HasField('qClass'))
-        self.assertEquals(msg.question.qClass, qclass)
+        self.assertEqual(msg.question.qClass, qclass)
         self.assertTrue(msg.question.HasField('qType'))
-        self.assertEquals(msg.question.qClass, qtype)
+        self.assertEqual(msg.question.qClass, qtype)
         self.assertTrue(msg.question.HasField('qName'))
-        self.assertEquals(msg.question.qName, qname)
+        self.assertEqual(msg.question.qName, qname)
 
     def checkProtobufTags(self, tags, expectedTags):
         # only differences will be in new list
@@ -113,27 +113,27 @@ class DNSDistProtobufTest(DNSDistTest):
         self.assertEqual(len(listx), 0, "Protobuf tags don't match")
 
     def checkProtobufQueryConvertedToResponse(self, msg, protocol, response, initiator='127.0.0.0'):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         # skip comparing inBytes (size of the query) with the length of the generated response
         self.checkProtobufBase(msg, protocol, response, initiator, False)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
 
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1'):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.checkProtobufBase(msg, protocol, response, initiator)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
 
     def checkProtobufResponseRecord(self, record, rclass, rtype, rname, rttl):
         self.assertTrue(record.HasField('class'))
-        self.assertEquals(getattr(record, 'class'), rclass)
+        self.assertEqual(getattr(record, 'class'), rclass)
         self.assertTrue(record.HasField('type'))
-        self.assertEquals(record.type, rtype)
+        self.assertEqual(record.type, rtype)
         self.assertTrue(record.HasField('name'))
-        self.assertEquals(record.name, rname)
+        self.assertEqual(record.name, rname)
         self.assertTrue(record.HasField('ttl'))
-        self.assertEquals(record.ttl, rttl)
+        self.assertEqual(record.ttl, rttl)
         self.assertTrue(record.HasField('rdata'))
 
 class TestProtobuf(DNSDistProtobufTest):
@@ -273,8 +273,8 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # let the protobuf messages the time to get there
         time.sleep(1)
@@ -289,20 +289,20 @@ class TestProtobuf(DNSDistProtobufTest):
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
         self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
-        self.assertEquals(len(msg.response.rrs), 2)
+        self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata.decode('utf-8'), target)
+        self.assertEqual(rr.rdata.decode('utf-8'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # let the protobuf messages the time to get there
         time.sleep(1)
@@ -317,13 +317,13 @@ class TestProtobuf(DNSDistProtobufTest):
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response)
         self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
-        self.assertEquals(len(msg.response.rrs), 2)
+        self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata.decode('utf-8'), target)
+        self.assertEqual(rr.rdata.decode('utf-8'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
     def testLuaProtobuf(self):
 
@@ -346,8 +346,8 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
 
         # let the protobuf messages the time to get there
@@ -363,17 +363,17 @@ class TestProtobuf(DNSDistProtobufTest):
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '127.0.0.0')
         self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         for rr in msg.response.rrs:
             self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
-            self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+            self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # let the protobuf messages the time to get there
         time.sleep(1)
@@ -387,10 +387,10 @@ class TestProtobuf(DNSDistProtobufTest):
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '127.0.0.0')
         self.checkProtobufTags(msg.response.tags, [ u"TestLabel1,TestData1", u"TestLabel2,TestData2", u"TestLabel3,TestData3", u"Response,456"])
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         for rr in msg.response.rrs:
             self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
-            self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+            self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
 class TestProtobufIPCipher(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
@@ -431,8 +431,8 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # let the protobuf messages the time to get there
         time.sleep(1)
@@ -447,20 +447,20 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '108.41.239.98')
 
-        self.assertEquals(len(msg.response.rrs), 2)
+        self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata.decode('ascii'), target)
+        self.assertEqual(rr.rdata.decode('ascii'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
 
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # let the protobuf messages the time to get there
         time.sleep(1)
@@ -473,10 +473,10 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         # check the protobuf message corresponding to the TCP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '108.41.239.98')
-        self.assertEquals(len(msg.response.rrs), 2)
+        self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata.decode('ascii'), target)
+        self.assertEqual(rr.rdata.decode('ascii'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')

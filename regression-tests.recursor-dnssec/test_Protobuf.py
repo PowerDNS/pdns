@@ -115,7 +115,7 @@ class TestRecursorProtobuf(RecursorTest):
           msg = dnsmessage_pb2.PBDNSMessage()
           msg.ParseFromString(data)
           if oldmsg is not None:
-            self.assertEquals(msg, oldmsg)
+            self.assertEqual(msg, oldmsg)
 
         print(msg)
         return msg
@@ -128,16 +128,16 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg)
         self.assertTrue(msg.HasField('timeSec'))
         self.assertTrue(msg.HasField('socketFamily'))
-        self.assertEquals(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
+        self.assertEqual(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
         self.assertTrue(msg.HasField('from'))
         fromvalue = getattr(msg, 'from')
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, fromvalue), initiator)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, fromvalue), initiator)
         self.assertTrue(msg.HasField('socketProtocol'))
-        self.assertEquals(msg.socketProtocol, protocol)
+        self.assertEqual(msg.socketProtocol, protocol)
         self.assertTrue(msg.HasField('messageId'))
         self.assertTrue(msg.HasField('serverIdentity'))
         self.assertTrue(msg.HasField('id'))
-        self.assertEquals(msg.id, query.id)
+        self.assertEqual(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
         if normalQueryResponse:
             # compare inBytes with length of query/response
@@ -145,103 +145,103 @@ class TestRecursorProtobuf(RecursorTest):
             # because dnspython might compress labels differently from
             # the recursor
             if receivedSize:
-                self.assertEquals(msg.inBytes, receivedSize)
+                self.assertEqual(msg.inBytes, receivedSize)
             else:
-                self.assertEquals(msg.inBytes, len(query.to_wire()))
+                self.assertEqual(msg.inBytes, len(query.to_wire()))
         if expectedECS is not None:
             self.assertTrue(msg.HasField('originalRequestorSubnet'))
             # v4 only for now
-            self.assertEquals(len(msg.originalRequestorSubnet), 4)
-            self.assertEquals(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
+            self.assertEqual(len(msg.originalRequestorSubnet), 4)
+            self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
 
     def checkOutgoingProtobufBase(self, msg, protocol, query, initiator, length=None):
         self.assertTrue(msg)
         self.assertTrue(msg.HasField('timeSec'))
         self.assertTrue(msg.HasField('socketFamily'))
-        self.assertEquals(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
+        self.assertEqual(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
         self.assertTrue(msg.HasField('socketProtocol'))
-        self.assertEquals(msg.socketProtocol, protocol)
+        self.assertEqual(msg.socketProtocol, protocol)
         self.assertTrue(msg.HasField('messageId'))
         self.assertTrue(msg.HasField('serverIdentity'))
         self.assertTrue(msg.HasField('id'))
-        self.assertNotEquals(msg.id, query.id)
+        self.assertNotEqual(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
         if length is not None:
-          self.assertEquals(msg.inBytes, length)
+          self.assertEqual(msg.inBytes, length)
         else:
           # compare inBytes with length of query/response
-          self.assertEquals(msg.inBytes, len(query.to_wire()))
+          self.assertEqual(msg.inBytes, len(query.to_wire()))
 
     def checkProtobufQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1'):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
         self.checkProtobufBase(msg, protocol, query, initiator)
         # dnsdist doesn't fill the responder field for responses
         # because it doesn't keep the information around.
         self.assertTrue(msg.HasField('to'))
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, msg.to), '127.0.0.1')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.to), '127.0.0.1')
         self.assertTrue(msg.HasField('question'))
         self.assertTrue(msg.question.HasField('qClass'))
-        self.assertEquals(msg.question.qClass, qclass)
+        self.assertEqual(msg.question.qClass, qclass)
         self.assertTrue(msg.question.HasField('qType'))
-        self.assertEquals(msg.question.qClass, qtype)
+        self.assertEqual(msg.question.qClass, qtype)
         self.assertTrue(msg.question.HasField('qName'))
-        self.assertEquals(msg.question.qName, qname)
+        self.assertEqual(msg.question.qName, qname)
 
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None, vstate=dnsmessage_pb2.PBDNSMessage.VState.Indeterminate):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.checkProtobufBase(msg, protocol, response, initiator, receivedSize=receivedSize)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
         self.assertTrue(msg.response.HasField('validationState'))
-        self.assertEquals(msg.response.validationState, vstate)
+        self.assertEqual(msg.response.validationState, vstate)
 
     def checkProtobufResponseRecord(self, record, rclass, rtype, rname, rttl, checkTTL=True):
         self.assertTrue(record.HasField('class'))
-        self.assertEquals(getattr(record, 'class'), rclass)
+        self.assertEqual(getattr(record, 'class'), rclass)
         self.assertTrue(record.HasField('type'))
-        self.assertEquals(record.type, rtype)
+        self.assertEqual(record.type, rtype)
         self.assertTrue(record.HasField('name'))
-        self.assertEquals(record.name, rname)
+        self.assertEqual(record.name, rname)
         self.assertTrue(record.HasField('ttl'))
         if checkTTL:
-            self.assertEquals(record.ttl, rttl)
+            self.assertEqual(record.ttl, rttl)
         self.assertTrue(record.HasField('rdata'))
 
     def checkProtobufPolicy(self, msg, policyType, reason, trigger, hit, kind):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.assertTrue(msg.response.HasField('appliedPolicyType'))
         self.assertTrue(msg.response.HasField('appliedPolicy'))
         self.assertTrue(msg.response.HasField('appliedPolicyTrigger'))
         self.assertTrue(msg.response.HasField('appliedPolicyHit'))
         self.assertTrue(msg.response.HasField('appliedPolicyKind'))
-        self.assertEquals(msg.response.appliedPolicy, reason)
-        self.assertEquals(msg.response.appliedPolicyType, policyType)
-        self.assertEquals(msg.response.appliedPolicyTrigger, trigger)
-        self.assertEquals(msg.response.appliedPolicyHit, hit)
-        self.assertEquals(msg.response.appliedPolicyKind, kind)
+        self.assertEqual(msg.response.appliedPolicy, reason)
+        self.assertEqual(msg.response.appliedPolicyType, policyType)
+        self.assertEqual(msg.response.appliedPolicyTrigger, trigger)
+        self.assertEqual(msg.response.appliedPolicyHit, hit)
+        self.assertEqual(msg.response.appliedPolicyKind, kind)
 
     def checkProtobufTags(self, msg, tags):
         print(tags)
         print('---')
         print(msg.response.tags)
-        self.assertEquals(len(msg.response.tags), len(tags))
+        self.assertEqual(len(msg.response.tags), len(tags))
         for tag in msg.response.tags:
             self.assertTrue(tag in tags)
 
     def checkProtobufOutgoingQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1', length=None):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType)
         self.checkOutgoingProtobufBase(msg, protocol, query, initiator, length=length)
         self.assertTrue(msg.HasField('to'))
         self.assertTrue(msg.HasField('question'))
         self.assertTrue(msg.question.HasField('qClass'))
-        self.assertEquals(msg.question.qClass, qclass)
+        self.assertEqual(msg.question.qClass, qclass)
         self.assertTrue(msg.question.HasField('qType'))
-        self.assertEquals(msg.question.qType, qtype)
+        self.assertEqual(msg.question.qType, qtype)
         self.assertTrue(msg.question.HasField('qName'))
-        self.assertEquals(msg.question.qName, qname)
+        self.assertEqual(msg.question.qName, qname)
 
     def checkProtobufIncomingResponse(self, msg, protocol, response, initiator='127.0.0.1', length=None):
-        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType)
+        self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType)
         self.checkOutgoingProtobufBase(msg, protocol, response, initiator, length=length)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('rcode'))
@@ -249,16 +249,16 @@ class TestRecursorProtobuf(RecursorTest):
 
     def checkProtobufIncomingNetworkErrorResponse(self, msg, protocol, response, initiator='127.0.0.1'):
         self.checkProtobufIncomingResponse(msg, protocol, response, initiator, length=0)
-        self.assertEquals(msg.response.rcode, 65536)
+        self.assertEqual(msg.response.rcode, 65536)
 
     def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
         print(msg)
         self.assertTrue((requestorId == '') == (not msg.HasField('requestorId')))
         self.assertTrue((deviceId == b'') == (not msg.HasField('deviceId')))
         self.assertTrue((deviceName == '') == (not msg.HasField('deviceName')))
-        self.assertEquals(msg.requestorId, requestorId)
-        self.assertEquals(msg.deviceId, deviceId)
-        self.assertEquals(msg.deviceName, deviceName)
+        self.assertEqual(msg.requestorId, requestorId)
+        self.assertEqual(msg.deviceId, deviceId)
+        self.assertEqual(msg.deviceName, deviceName)
 
     def setUp(self):
         super(TestRecursorProtobuf, self).setUp()
@@ -317,11 +317,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
     def testCNAME(self):
@@ -342,15 +342,15 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
-        self.assertEquals(len(msg.response.rrs), 2)
+        self.assertEqual(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         # we don't want to check the TTL for the A record, it has been cached by the previous test
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15)
-        self.assertEquals(rr.rdata, b'a.example.')
+        self.assertEqual(rr.rdata, b'a.example.')
         rr = msg.response.rrs[1]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
 class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
@@ -493,11 +493,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '112.0.0.0')
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
 class ProtobufQueriesOnlyTest(TestRecursorProtobuf):
@@ -549,11 +549,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf message corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         # nothing else in the queue
         self.checkNoRemainingMessage()
 
@@ -614,11 +614,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
         tags = [ self._tag_from_gettag ] + self._tags
         self.checkProtobufTags(msg, tags)
         self.checkNoRemainingMessage()
@@ -697,11 +697,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf messages corresponding to the UDP response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
         self.checkNoRemainingMessage()
 
 class ProtobufExportTypesTest(TestRecursorProtobuf):
@@ -739,25 +739,25 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
-        self.assertEquals(len(msg.response.rrs), 5)
+        self.assertEqual(len(msg.response.rrs), 5)
         for rr in msg.response.rrs:
             self.assertTrue(rr.type in [dns.rdatatype.AAAA, dns.rdatatype.TXT, dns.rdatatype.MX, dns.rdatatype.SPF, dns.rdatatype.SRV])
 
             if rr.type == dns.rdatatype.AAAA:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.AAAA, name, 15)
-                self.assertEquals(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::1')
+                self.assertEqual(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::1')
             elif rr.type == dns.rdatatype.TXT:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.TXT, name, 15)
-                self.assertEquals(rr.rdata, b'"Lorem ipsum dolor sit amet"')
+                self.assertEqual(rr.rdata, b'"Lorem ipsum dolor sit amet"')
             elif rr.type == dns.rdatatype.MX:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.MX, name, 15)
-                self.assertEquals(rr.rdata, b'a.example.')
+                self.assertEqual(rr.rdata, b'a.example.')
             elif rr.type == dns.rdatatype.SPF:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.SPF, name, 15)
-                self.assertEquals(rr.rdata, b'"v=spf1 -all"')
+                self.assertEqual(rr.rdata, b'"v=spf1 -all"')
             elif rr.type == dns.rdatatype.SRV:
                 self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.SRV, name, 15)
-                self.assertEquals(rr.rdata, b'a.example.')
+                self.assertEqual(rr.rdata, b'a.example.')
 
         self.checkNoRemainingMessage()
 
@@ -803,11 +803,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkProtobufIdentity(msg, '', b'', '')
         self.checkNoRemainingMessage()
 
@@ -827,11 +827,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
         self.checkProtobufIdentity(msg, self._requestorId, self._deviceId.encode('ascii'), self._deviceName)
         self.checkNoRemainingMessage()
 
@@ -917,11 +917,11 @@ sub.test 3600 IN A 192.0.2.42
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.', 'sub.test.example', dnsmessage_pb2.PBDNSMessage.PolicyKind.NoAction)
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
 class ProtobufRPZTagsTest(TestRecursorProtobuf):
@@ -985,9 +985,9 @@ sub.test 3600 IN A 192.0.2.42
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.checkProtobufPolicy(msg, dnsmessage_pb2.PBDNSMessage.PolicyType.QNAME, 'zone.rpz.', '*.test.example.', 'sub.test.example', dnsmessage_pb2.PBDNSMessage.PolicyKind.NoAction)
         self.checkProtobufTags(msg, self._tags + self._tags_from_gettag + self._tags_from_rpz)
-        self.assertEquals(len(msg.response.rrs), 1)
+        self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()

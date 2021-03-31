@@ -19,8 +19,8 @@ class RecursorConfig(ApiTestCase):
         self.assert_success_json(r)
         data = r.json()
         self.assertIn("value", data)
-        self.assertEquals(len(data["value"]), 1)
-        self.assertEquals("127.0.0.1/32", data["value"][0])
+        self.assertEqual(len(data["value"]), 1)
+        self.assertEqual("127.0.0.1/32", data["value"][0])
 
     def test_config_allow_from_replace_error(self):
         """Test the error case, should return 422."""
@@ -29,6 +29,6 @@ class RecursorConfig(ApiTestCase):
             self.url("/api/v1/servers/localhost/config/allow-from"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         data = r.json()
         self.assertIn('Unable to convert', data['error'])

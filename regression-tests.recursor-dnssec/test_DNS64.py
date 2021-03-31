@@ -69,7 +69,7 @@ cname2 3600 IN CNAME www.example.dns64.
             sender = getattr(self, method)
             res = sender(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertEquals(len(res.answer), 0)
+            self.assertEqual(len(res.answer), 0)
 
     # this type (AAAA) does not exist for this name but there is an A record, we should get a DNS64-wrapped AAAA
     def testNonExistingAAAA(self):

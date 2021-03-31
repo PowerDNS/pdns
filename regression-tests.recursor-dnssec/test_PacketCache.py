@@ -47,7 +47,7 @@ e 3600 IN A 192.0.2.42
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
         content = r.json()
         foundHits = False
@@ -55,10 +55,10 @@ e 3600 IN A 192.0.2.42
         for entry in content:
             if entry['name'] == 'packetcache-hits':
                 foundHits = True
-                self.assertEquals(int(entry['value']), expectedHits)
+                self.assertEqual(int(entry['value']), expectedHits)
             elif entry['name'] == 'packetcache-misses':
                 foundMisses = True
-                self.assertEquals(int(entry['value']), expectedMisses)
+                self.assertEqual(int(entry['value']), expectedMisses)
 
         self.assertTrue(foundHits)
         self.assertTrue(foundMisses)

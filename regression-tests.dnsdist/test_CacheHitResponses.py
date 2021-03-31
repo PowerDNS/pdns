@@ -33,13 +33,13 @@ class TestCacheHitResponses(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         # now the result should be cached, and so dropped
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         print(receivedResponse)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         time.sleep(ttl + 1)
 
@@ -48,15 +48,15 @@ class TestCacheHitResponses(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         total = 0
         for key in self._responsesCounter:
             total += self._responsesCounter[key]
             TestCacheHitResponses._responsesCounter[key] = 0
 
-        self.assertEquals(total, 2)
+        self.assertEqual(total, 2)
 
         # TCP should not be cached
         # first query to fill the cache
@@ -64,12 +64,12 @@ class TestCacheHitResponses(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         # now the result should be cached, and so dropped
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         time.sleep(ttl + 1)
 
@@ -78,12 +78,12 @@ class TestCacheHitResponses(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         total = 0
         for key in self._responsesCounter:
             total += self._responsesCounter[key]
             TestCacheHitResponses._responsesCounter[key] = 0
 
-        self.assertEquals(total, 2)
+        self.assertEqual(total, 2)

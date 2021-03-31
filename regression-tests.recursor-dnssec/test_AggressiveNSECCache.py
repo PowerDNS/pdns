@@ -30,7 +30,7 @@ class AggressiveNSECCacheBase(RecursorTest):
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
         content = r.json()
 
@@ -60,8 +60,8 @@ class AggressiveNSECCacheBase(RecursorTest):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
-        self.assertEquals(self.getMetric('aggressive-nsec-cache-entries'), entries)
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(self.getMetric('aggressive-nsec-cache-entries'), entries)
 
 class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC'
@@ -80,7 +80,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
         self.assertGreater(self.getMetric('aggressive-nsec-cache-entries'), entries)
-        self.assertEquals(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
+        self.assertEqual(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
 
         # now we ask for a different name that is covered by the NSEC,
         # we should generate the answer from the NSEC and no outgoing query should be made
@@ -92,8 +92,8 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
-        self.assertEquals(self.getMetric('aggressive-nsec-cache-entries'), entries)
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(self.getMetric('aggressive-nsec-cache-entries'), entries)
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
 
     def testWildcard(self):
@@ -115,7 +115,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMatchingRRSIGInAnswer(res, expected)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-wc-hits'), hits)
 
         # now we ask for a type that does not exist at the wildcard
@@ -126,7 +126,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
 
         # we can also ask a different type, for a different name that is covered
@@ -138,7 +138,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
         self.assertGreater(self.getMetric('aggressive-nsec-cache-nsec-hits'), hits)
 
     def test_Bogus(self):
@@ -168,7 +168,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertAuthorityHasSOA(res)
         self.assertGreater(self.getMetric('all-outqueries'), nbQueries)
         # we will accept a NSEC for root, which is secure..
-        self.assertEquals(entries + 1, self.getMetric('aggressive-nsec-cache-entries'))
+        self.assertEqual(entries + 1, self.getMetric('aggressive-nsec-cache-entries'))
 
 class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC3'
@@ -235,7 +235,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
 
     def testWildcard(self):
 
@@ -263,7 +263,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMatchingRRSIGInAnswer(res, expected)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
 
         # now we ask for a type that does not exist at the wildcard
         nbQueries = self.getMetric('all-outqueries')
@@ -272,7 +272,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
 
         # we can also ask a different type, for a different name that is covered
         # by the NSEC3s and matches the wildcard (but the type does not exist)
@@ -282,7 +282,7 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         self.assertAnswerEmpty(res)
         self.assertAuthorityHasSOA(res)
         self.assertMessageIsAuthenticated(res)
-        self.assertEquals(nbQueries, self.getMetric('all-outqueries'))
+        self.assertEqual(nbQueries, self.getMetric('all-outqueries'))
 
     def test_OptOut(self):
         # query a name in an opt-out zone
