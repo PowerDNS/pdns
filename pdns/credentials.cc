@@ -61,7 +61,8 @@ bool verifyPassword(const std::string& hash, const std::string& password)
 
   return crypto_pwhash_str_verify(hash.c_str(),
                                   password.c_str(),
-                                  password.size()) == 0;
+                                  password.size())
+    == 0;
 #else
   throw std::runtime_error("Verifying a hashed password requires libsodium support, and it is not available");
 #endif
@@ -116,7 +117,6 @@ CredentialsHolder::CredentialsHolder(std::string&& password)
     sodium_mlock(d_credentials.data(), d_credentials.size());
 #endif
   }
-
 }
 
 CredentialsHolder::~CredentialsHolder()
@@ -151,4 +151,3 @@ bool CredentialsHolder::isHashingAvailable()
   return false;
 #endif
 }
-
