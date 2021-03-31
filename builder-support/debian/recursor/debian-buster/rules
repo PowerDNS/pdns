@@ -1,80 +1,59 @@
 #!/usr/bin/make -f
-include /usr/share/dpkg/architecture.mk
-include /usr/share/dpkg/pkg-info.mk
 
-# Enable hardening features for daemons
+# Turn on all hardening flags, as we're a networked daemon.
 # Note: blhc (build log hardening check) will find these false positives: CPPFLAGS 2 missing, LDFLAGS 1 missing
-export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+# see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
 DPKG_EXPORT_BUILDFLAGS = 1
-# Include buildflags.mk so we can append to the vars it sets.
-include /usr/share/dpkg/buildflags.mk
+include /usr/share/dpkg/default.mk
 
-# Only enable systemd integration on Linux operating systems
-ifeq ($(DEB_HOST_ARCH_OS),linux)
-CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
-DH_ARGS += --with systemd
-else
-CONFIGURE_ARGS += --disable-systemd
-endif
 
-# Only disable luajit on arm64
-ifneq ($(DEB_HOST_ARCH),arm64)
-CONFIGURE_ARGS += --with-lua=luajit
-else
-CONFIGURE_ARGS += --with-lua=lua5.3
-endif
-
-# Use new build system
 %:
-	dh $@ \
-	  --with autoreconf \
-	  $(DH_ARGS)
+	dh $@
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f dnslabeltext.cc
+	chmod +x mkpubsuffixcc || true
 
 override_dh_auto_configure:
-	dh_auto_configure -- \
+	PATH=debian/configure-helpers/:$$PATH dh_auto_configure -- \
 		--sysconfdir=/etc/powerdns \
+		--enable-systemd --with-systemd=/lib/systemd/system \
 		--enable-unit-tests \
-		--with-libcap \
-		--with-libsodium \
-		--enable-dns-over-tls \
-		--enable-dnstap \
-		--with-net-snmp \
 		--disable-silent-rules \
 		--with-service-user=pdns \
 		--with-service-group=pdns \
-		$(CONFIGURE_ARGS)
+		--with-libcap \
+		--with-libsodium \
+		--with-lua \
+		--with-net-snmp \
+		--enable-dns-over-tls \
+		--enable-dnstap
 
 override_dh_auto_install:
 	dh_auto_install
 	install -d debian/pdns-recursor/usr/share/pdns-recursor/lua-config
 	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/lua-config debian/lua-config/rootkeys.lua
 	install -m 644 -t debian/pdns-recursor/etc/powerdns debian/recursor.lua
+	install -d debian/pdns-recursor/usr/share/pdns-recursor/snmp
+	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/snmp RECURSOR-MIB.txt
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
-	./pdns_recursor --config=default | sed \
-		-e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
-		-e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/recursor.d!' \
-		-e 's!# local-address=.*!local-address=127.0.0.1!' \
-		-e 's!# lua-config-file=.*!lua-config-file=/etc/powerdns/recursor.lua!' \
-		-e 's!# quiet=.*!quiet=yes!' \
-		-e 's!# setgid=.*!setgid=pdns!' \
-		-e 's!# setuid=.*!setuid=pdns!' \
-		-e 's!# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
+	./pdns_recursor --no-config --config=default | sed \
+		-e 's!^# config-dir=.*!config-dir=/etc/powerdns!' \
+		-e 's!^# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
+		-e 's!^# include-dir=.*!&\ninclude-dir=/etc/powerdns/recursor.d!' \
+		-e 's!^# local-address=.*!local-address=127.0.0.1!' \
+		-e 's!^# lua-config-file=.*!lua-config-file=/etc/powerdns/recursor.lua!' \
+		-e 's!^# quiet=.*!quiet=yes!' \
 		-e '/^# version-string=.*/d' \
 		> debian/pdns-recursor/etc/powerdns/recursor.conf
 
-override_dh_strip:
-	dh_strip --ddeb-migration='pdns-recursor-dbg'
-
-override_dh_installinit:
-	dh_installinit --error-handler=initscript_error
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	dh_auto_test
+	-cat testrunner.log
+endif
 
 override_dh_gencontrol:
 	dh_gencontrol -- $(SUBSTVARS)
-
-override_dh_fixperms:
-	dh_fixperms
-# these files often contain passwords. 640 as it is chowned to root:pdns
-	chmod 0640 debian/pdns-recursor/etc/powerdns/recursor.conf
-
-override_dh_builddeb:
-	dh_builddeb -- -Zgzip

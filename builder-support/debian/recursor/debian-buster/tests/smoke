@@ -2,6 +2,12 @@
 exec 2>&1
 set -ex
 
+restart_failed() {
+    echo E: service restart failed
+    journalctl -n200 --no-pager
+    exit 1
+}
+
 cat <<EOF >>/etc/powerdns/recursor.conf
 auth-zones=example.org=/etc/powerdns/example.org.zone
 EOF
@@ -12,11 +18,11 @@ example.org.           172800  IN      NS      ns1.example.org.
 smoke.example.org.     172800  IN      A       127.0.0.123
 EOF
 
-service pdns-recursor restart
+service pdns-recursor restart || restart_failed
 
 TMPFILE=$(mktemp)
 cleanup() {
-  rm -f "$TMPFILE"
+    rm -f "$TMPFILE"
 }
 trap cleanup EXIT
 
