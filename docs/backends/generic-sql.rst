@@ -7,14 +7,12 @@ on any SQL database of your choosing. Because all database schemas will
 be different, a generic backend is needed to cover all needs.
 
 .. warning::
-  Host names and the MNAME of a SOA records are NEVER
-  terminated with a '.' in PowerDNS storage! If a trailing '.' is present
-  it will inevitably cause problems, problems that may be hard to debug.
+   It is highly recommended to not use raw SQL commands to manipulate records in the database.
+   Either use the :doc:`REST-API <../http-api/index>` or (as shown in the examples here) :doc:`../manpages/pdnsutil.1`.
 
-.. note::
-  A root zone or record should have a name of '.'
-  (no quotes). This is the only exception to the 'no terminating dot in
-  SQL storage' rule.
+   If raw SQL is used, ensure that record and zone names are **never** terminated with a trailing '.'.
+   The only exception is a root-zone, this must have the name of '.' (no quotes).
+
 
 Basic functionality
 -------------------
@@ -25,24 +23,19 @@ describes the :doc:`../modes-of-operation`.
 Native operation
 ^^^^^^^^^^^^^^^^
 
-To add a domain, issue the following:
+To add a domain, issue the following::
 
-.. code-block:: SQL
+    pdnsutil create-zone example.com
 
-    INSERT INTO domains (name, type) VALUES ('example.com', 'NATIVE');
-
-The records table can now be filled by with the domain_id set to the id
-of the domains table row just inserted.
+Records can now be added using ``pdnsutil add-record`` or ``pdnsutil edit-zone``.
 
 Slave operation
 ^^^^^^^^^^^^^^^
 
 These backends are fully slave capable. To become a slave of the
-'example.com' domain, execute this:
+'example.com' domain, using 198.51.100.6 as the master execute this::
 
-.. code-block:: SQL
-
-    INSERT INTO domains (name, master, type) VALUES ('example.com', '198.51.100.6', 'SLAVE');
+   pdnsutil create-slave-zone example.com 198.51.100.6
 
 And wait a while for PowerDNS to pick up the addition - which happens
 within one minute (this is determined by the
@@ -69,24 +62,20 @@ has been checked, it will not be checked before its SOA refresh timer
 has expired. Domains whose status is unknown get checked every 60
 seconds by default.
 
-PowerDNS has support for multiple masters per zone, separate master IP
-addresses by commas:
+PowerDNS has support for multiple masters per zone, and also port numbers for these masters::
 
-.. code-block:: SQL
-
-    INSERT INTO domains (name, master, type) VALUES ('example.com', '198.51.100.6, 2001:0DB8:15:4AF::4', 'SLAVE');
+   pdnsutil create-slave-zone example.com 198.51.100.6 2001:0DB8:15:4AF::4
+   pdnsutil create-slave-zone example.net 198.51.100.20:5301 '[2001:0DB8:11:6E::4]:54'
 
 Superslave operation
 ^^^^^^^^^^^^^^^^^^^^
 
-To configure a supermaster with IP address 203.0.113.53 which lists this
-installation as 'autoslave.example.com', issue the following:
+To configure a :ref:`supermaster <supermaster-operation>` with IP address 203.0.113.53 which lists this
+installation as 'autoslave.example.com', issue the following::
 
-.. code-block:: SQL
+    pdnsutil add-supermaster 203.0.113.53 autoslave.example.com internal
 
-    INSERT INTO supermasters VALUES ('203.0.113.53', 'autoslave.example.com', 'internal');
-
-From now on, valid notifies from 203.0.113.53 that list a NS record
+From now on, valid notifies from 203.0.113.53 for which the zone lists an NS record
 containing 'autoslave.example.com' will lead to the provisioning of a
 slave domain under the account 'internal'. See :ref:`supermaster-operation`
 for details.
@@ -97,14 +86,10 @@ Master operation
 The generic SQL backend is fully master capable with automatic discovery
 of serial changes. Raising the serial number of a domain suffices to
 trigger PowerDNS to send out notifications. To configure a domain for
-master operation instead of the default native replication, issue:
+master operation instead of the default native replication, issue::
 
-.. code-block:: SQL
-
-    INSERT INTO domains (name, type) VALUES ('example.com', 'MASTER');
-
-Make sure that the assigned id in the domains table matches the
-domain_id field in the records table!
+    pdnsutil create-zone example.com
+    pdnsutil set-kind example.com MASTER
 
 .. _generic-sql-disabled-data:
 
@@ -115,6 +100,8 @@ PowerDNS understands the notion of disabled records. They are marked by
 setting "disabled" to ``1`` (for PostgreSQL: ``true``). By extension,
 when the SOA record for a domain is disabled, the entire domain is
 considered to be disabled.
+
+This value cannot be set with ``pdnsutil``.
 
 Effects: the record (or domain, respectively) will not be visible to DNS
 clients. The REST API will still see the record (or domain). Even if a
@@ -134,6 +121,9 @@ to 'yes'.
 
 Rules for filling out DNSSEC fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+   This section is only relevant for user who use SQL to change records and zones.
 
 Two additional fields in the 'records' table are important: 'auth' and
 'ordername'. These fields are set correctly on an incoming zone
@@ -191,6 +181,8 @@ on the basis of %-placeholders.
 
 To see the default queries for a backend, run
 ``pdns_server --launch=BACKEND --config=default``.
+
+This section is useful for users who have their own database schema and wish to have PowerDNS use the existing database.
 
 Regular Queries
 ^^^^^^^^^^^^^^^

@@ -97,18 +97,11 @@ ALLOW-DNSUPDATE-FROM
 ~~~~~~~~~~~~~~~~~~~~
 
 This setting has the same function as described in the configuration
-options (See :ref:`above <dnsupdate-configuration-options>`). Only one item is
-allowed per row, but multiple rows can be added. An example:
-
-::
-
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’198.51.100.0/8’);
-    sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’203.0.113.2/32’);
-
+options (See :ref:`above <dnsupdate-configuration-options>`).
 This will allow 198.51.100.0/8 and 203.0.113.2/32 to send DNS update
-messages for the example.org domain.
+messages for the example.org domain::
+
+    pdnsutil set-meta example.org ALLOW-DNSUPDATE-FROM 198.51.100.0/8 203.0.113.2/32
 
 .. _metadata-tsig-allow-dnsupdate:
 
@@ -117,19 +110,15 @@ TSIG-ALLOW-DNSUPDATE
 
 This setting allows you to set the TSIG key required to do an DNS
 update. If you have GSS-TSIG enabled, you can use Kerberos principals
-here. An example, using :program:`pdnsutil` to create the key:
-
-.. code-block:: shell
+here. An example, using :program:`pdnsutil` to create the key::
 
     $ pdnsutil generate-tsig-key test hmac-md5
     Create new TSIG key test hmac-md5 kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
 
-::
+Then adding that key with the name `test` and add the metadata::
 
-    sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'test');
+    pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+    pdnsutil set-meta example.org TSIG-ALLOW-DNSUPDATE test
 
 An example of how to use a TSIG key with the :program:`nsupdate` command::
 
@@ -152,15 +141,11 @@ FORWARD-DNSUPDATE
 ~~~~~~~~~~~~~~~~~
 
 See :ref:`Configuration options <dnsupdate-configuration-options>` for what it does,
-but per domain.
+but per domain::
 
-::
+    pdnsutil set-meta example.org FORWARD-DNSUPDATE 'yes'
 
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-DNSUPDATE’,’’);
-
-There is no content, the existence of the entry enables the forwarding.
+The existence of the entry (even with an empty value) enables the forwarding.
 This domain-specific setting is only useful when the configuration
 option :ref:`setting-forward-dnsupdate` is set to 'no', as that will disable it
 globally. Using the domainmetadata setting than allows you to enable it
@@ -173,13 +158,9 @@ NOTIFY-DNSUPDATE
 
 Send a notification to all slave servers after every update. This will
 speed up the propagation of changes and is very useful for acme
-verification.
+verification::
 
-::
-
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘NOTIFY-DNSUPDATE’,’1’);
+    pdnsutil set-meta example.org NOTIFY-DNSUPDATE 1
 
 .. _metadata-soa-edit-dnsupdate:
 
@@ -208,13 +189,9 @@ logic to change the SOA is not executed.
   records, thus a query for the SOA record of the recently update domain,
   might have an unexpected result due to a SOA-EDIT setting.
 
-An example:
+An example::
 
-::
-
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-DNSUPDATE’,’INCREASE’);
+    pdnsutil set-meta example.org SOA-EDIT-DNSUPDATE INCREASE
 
 This will make the SOA Serial increase by one, for every successful
 update.
@@ -357,12 +334,8 @@ domainmetadata table.
 
 ::
 
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata(domain_id, kind, content) values(5, 'ALLOW-DNSUPDATE-FROM','127.0.0.1');
-    sql> select id from domains where name='1.168.192.in-addr.arpa';
-    6
-    sql> insert into domainmetadata(domain_id, kind, content) values(6, 'ALLOW-DNSUPDATE-FROM','127.0.0.1');
+    pdnsutil set-meta example.org ALLOW-DNSUPDATE-FROM 127.0.0.1
+    pdnsutil set-meta 1.168.192.in-addr.arpa ALLOW-DNSUPDATE-FROM 127.0.0.1
 
 This gives the ip '127.0.0.1' access to send update messages. Make sure
 you use the ip address of the machine that runs **dhcpd**.
@@ -372,13 +345,9 @@ via the domainmetadata table:
 
 ::
 
-    sql> insert into tsigkeys (name, algorithm, secret) values ('dhcpdupdate', 'hmac-md5', 'FYhvwsW1ZtFZqWzsMpqhbg==');
-    sql> select id from domains where name='example.org';
-    5
-    sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'dhcpdupdate');
-    sql> select id from domains where name='1.168.192.in-addr.arpa';
-    6
-    sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLOW-DNSUPDATE', 'dhcpdupdate');
+    pdnsutil import-tsig-key dhcpdupdate hmac-md5 FYhvwsW1ZtFZqWzsMpqhbg==
+    pdnsutil set-meta example.org TSIG-ALLOW-DNSUPDATE dhcpdupdate
+    pdnsutil set-meta 1.168.192.in-addr.arpa TSIG-ALLOW-DNSUPDATE dhcpdupdate
 
 This will:
 

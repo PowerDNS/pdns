@@ -242,15 +242,9 @@ on SOA - Change incoming SOA serial number to a YYYYMMDDnn format -
 Ensure consistent NS RRset - Timestamp the zone transfer with a TXT
 record
 
-To enable a Lua script for a particular slave zone, determine the
-``domain_id`` for the zone from the ``domains`` table, and add a row to
-the ``domainmetadata`` table for the domain. Supposing the domain we
-want has an ``id`` of 3, the following SQL statement will enable the Lua
-script ``my.lua`` for that domain:
+This script can be enabled like this::
 
-.. code-block:: SQL
-
-    INSERT INTO domainmetadata (domain_id, kind, content) VALUES (3, "LUA-AXFR-SCRIPT", "/lua/my.lua");
+    pdnsutil set-meta example.com LUA-AXFR-SCRIPT /path/to/lua/script.lua
 
 .. warning::
   The Lua script must both exist and be syntactically
