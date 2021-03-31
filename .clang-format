@@ -6,6 +6,7 @@ ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
 IndentWidth:     2
 ObjCBlockIndentWidth: 2
+AlignAfterOpenBracket: Align
 
 SortIncludes:    false
 

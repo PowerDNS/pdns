@@ -531,7 +531,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-      MDB_NOSUBDIR | d_asyncFlag, 0600);
+                          MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE);
   }
   auto ret = std::make_shared<RecordsRWTransaction>(shard.env->getRWTransaction());
@@ -548,7 +548,7 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
       throw DBException("attempting to start nested transaction without open parent env");
     }
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-      MDB_NOSUBDIR | d_asyncFlag, 0600);
+                          MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE);
   }
 
@@ -581,13 +581,13 @@ bool LMDBBackend::upgradeToSchemav3()
     LMDBBackend::RecordsDB oldShard, newShard;
 
     oldShard.env = getMDBEnv((filename + "-old").c_str(),
-      MDB_NOSUBDIR | d_asyncFlag, 0600);
+                             MDB_NOSUBDIR | d_asyncFlag, 0600);
     oldShard.dbi = oldShard.env->openDB("records", MDB_CREATE | MDB_DUPSORT);
     auto txn = oldShard.env->getROTransaction();
     auto cursor = txn->getROCursor(oldShard.dbi);
 
     newShard.env = getMDBEnv((filename).c_str(),
-      MDB_NOSUBDIR | d_asyncFlag, 0600);
+                             MDB_NOSUBDIR | d_asyncFlag, 0600);
     newShard.dbi = newShard.env->openDB("records", MDB_CREATE);
     auto newTxn = newShard.env->getRWTransaction();
 

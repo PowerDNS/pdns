@@ -30,10 +30,10 @@ class SMySQL : public SSql
 {
 public:
   SMySQL(string database, string host = "", uint16_t port = 0,
-    string msocket = "", string user = "",
-    string password = "", string group = "",
-    bool setIsolation = false, unsigned int timeout = 10,
-    bool threadCleanup = false, bool clientSSL = false);
+         string msocket = "", string user = "",
+         string password = "", string group = "",
+         bool setIsolation = false, unsigned int timeout = 10,
+         bool threadCleanup = false, bool clientSSL = false);
 
   ~SMySQL();
 

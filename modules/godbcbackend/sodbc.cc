@@ -52,7 +52,7 @@ static bool realTestResult(SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle,
   do {
     // cerr<<"getting sql diag record "<<i<<endl;
     ret = SQLGetDiagRec(type, handle, ++i, state, &native, text,
-      sizeof(text), &len);
+                        sizeof(text), &len);
     // cerr<<"getdiagrec said "<<ret<<endl;
     if (SQL_SUCCEEDED(ret)) { // cerr<<"got it"<<endl;
       errmsg << state << i << native << text << "/";
@@ -424,9 +424,9 @@ SODBC::SODBC(
   char* l_password = strdup(password.c_str());
 
   result = SQLConnect(m_connection,
-    reinterpret_cast<SQLTCHAR*>(l_dsn), dsn.length(),
-    reinterpret_cast<SQLTCHAR*>(l_username), username.length(),
-    reinterpret_cast<SQLTCHAR*>(l_password), password.length());
+                      reinterpret_cast<SQLTCHAR*>(l_dsn), dsn.length(),
+                      reinterpret_cast<SQLTCHAR*>(l_username), username.length(),
+                      reinterpret_cast<SQLTCHAR*>(l_password), password.length());
 
   free(l_dsn);
   free(l_username);

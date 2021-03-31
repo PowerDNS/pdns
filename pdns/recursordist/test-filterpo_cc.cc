@@ -231,14 +231,14 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_wildcard_with_enc)
   zone->setRefresh(99);
 
   zone->addQNameTrigger(DNSName("bcbsks.com.102.112.2o7.net."),
-    DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::NoAction,
-      DNSFilterEngine::PolicyType::QName));
+                        DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::NoAction,
+                                                DNSFilterEngine::PolicyType::QName));
   zone->addQNameTrigger(DNSName("2o7.net."),
-    DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop,
-      DNSFilterEngine::PolicyType::QName));
+                        DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop,
+                                                DNSFilterEngine::PolicyType::QName));
   zone->addQNameTrigger(DNSName("*.2o7.net."),
-    DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop,
-      DNSFilterEngine::PolicyType::QName));
+                        DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop,
+                                                DNSFilterEngine::PolicyType::QName));
 
   dfe.addZone(zone);
 

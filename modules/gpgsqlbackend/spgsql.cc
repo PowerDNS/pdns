@@ -317,7 +317,7 @@ static string escapeForPQparam(const string& v)
 }
 
 SPgSQL::SPgSQL(const string& database, const string& host, const string& port, const string& user,
-  const string& password, const string& extra_connection_parameters, const bool use_prepared)
+               const string& password, const string& extra_connection_parameters, const bool use_prepared)
 {
   d_db = nullptr;
   d_in_trx = false;

@@ -95,15 +95,15 @@ private:
     NegCacheEntry,
     indexed_by<
       ordered_unique<tag<CompositeKey>,
-        composite_key<
-          NegCacheEntry,
-          member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
-          member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>>,
-        composite_key_compare<
-          CanonDNSNameCompare, std::less<QType>>>,
+                     composite_key<
+                       NegCacheEntry,
+                       member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
+                       member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>>,
+                     composite_key_compare<
+                       CanonDNSNameCompare, std::less<QType>>>,
       sequenced<tag<SequenceTag>>,
       hashed_non_unique<tag<NegCacheEntry>,
-        member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
+                        member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>>>>
     negcache_t;
 
   struct MapCombo

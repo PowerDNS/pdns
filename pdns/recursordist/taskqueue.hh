@@ -58,10 +58,10 @@ typedef multi_index_container<
   ResolveTask,
   indexed_by<
     hashed_unique<tag<HashTag>,
-      composite_key<ResolveTask,
-        member<ResolveTask, DNSName, &ResolveTask::d_qname>,
-        member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
-        member<ResolveTask, bool, &ResolveTask::d_refreshMode>>>,
+                  composite_key<ResolveTask,
+                                member<ResolveTask, DNSName, &ResolveTask::d_qname>,
+                                member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
+                                member<ResolveTask, bool, &ResolveTask::d_refreshMode>>>,
     sequenced<tag<SequencedTag>>>>
   queue_t;
 

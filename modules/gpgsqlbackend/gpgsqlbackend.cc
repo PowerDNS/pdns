@@ -41,12 +41,12 @@ gPgSQLBackend::gPgSQLBackend(const string& mode, const string& suffix) :
 {
   try {
     setDB(new SPgSQL(getArg("dbname"),
-      getArg("host"),
-      getArg("port"),
-      getArg("user"),
-      getArg("password"),
-      getArg("extra-connection-parameters"),
-      mustDo("prepared-statements")));
+                     getArg("host"),
+                     getArg("port"),
+                     getArg("user"),
+                     getArg("password"),
+                     getArg("extra-connection-parameters"),
+                     mustDo("prepared-statements")));
   }
 
   catch (SSqlException& e) {

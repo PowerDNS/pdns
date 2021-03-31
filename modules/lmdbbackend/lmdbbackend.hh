@@ -228,19 +228,19 @@ public:
 
 private:
   typedef TypedDBI<DomainInfo,
-    index_on<DomainInfo, DNSName, &DomainInfo::zone>>
+                   index_on<DomainInfo, DNSName, &DomainInfo::zone>>
     tdomains_t;
 
   typedef TypedDBI<DomainMeta,
-    index_on<DomainMeta, DNSName, &DomainMeta::domain>>
+                   index_on<DomainMeta, DNSName, &DomainMeta::domain>>
     tmeta_t;
 
   typedef TypedDBI<KeyDataDB,
-    index_on<KeyDataDB, DNSName, &KeyDataDB::domain>>
+                   index_on<KeyDataDB, DNSName, &KeyDataDB::domain>>
     tkdb_t;
 
   typedef TypedDBI<TSIGKey,
-    index_on<TSIGKey, DNSName, &TSIGKey::name>>
+                   index_on<TSIGKey, DNSName, &TSIGKey::name>>
     ttsig_t;
 
   int d_asyncFlag;

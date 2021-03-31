@@ -166,8 +166,8 @@ int LdapGssapiAuthenticator::attemptAuth(LDAP* conn)
 
   // And now try to bind
   int rc = ldap_sasl_interactive_bind_s(conn, "", defaults.mech.c_str(),
-    NULL, NULL, LDAP_SASL_QUIET,
-    ldapGssapiAuthenticatorSaslInteractCallback, &defaults);
+                                        NULL, NULL, LDAP_SASL_QUIET,
+                                        ldapGssapiAuthenticatorSaslInteractCallback, &defaults);
   g_log << Logger::Debug << d_logPrefix << "ldap_sasl_interactive_bind_s returned " << rc << std::endl;
 
   if (rc == LDAP_LOCAL_ERROR) {
