@@ -10,7 +10,8 @@
 BOOST_AUTO_TEST_SUITE(credentials_cc)
 
 #ifdef HAVE_LIBSODIUM
-BOOST_AUTO_TEST_CASE(test_CredentialsUtils) {
+BOOST_AUTO_TEST_CASE(test_CredentialsUtils)
+{
   const std::string plaintext("test");
   /* generated with hashPassword("test") */
   const std::string sampleHash("$argon2id$v=19$m=65536,t=2,p=1$ndQKu3+ZsWedqRrlNFUaNw$tnb0MJVe5C2hlqkDt0Ln3R6VKCYkfMYdxDy+puXes3s");
@@ -30,7 +31,8 @@ BOOST_AUTO_TEST_CASE(test_CredentialsUtils) {
 }
 #endif
 
-BOOST_AUTO_TEST_CASE(test_CredentialsHolder) {
+BOOST_AUTO_TEST_CASE(test_CredentialsHolder)
+{
   const std::string plaintext("test");
 
   auto holder = CredentialsHolder(std::string(plaintext));
@@ -43,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_CredentialsHolder) {
   BOOST_CHECK(CredentialsHolder::isHashingAvailable());
   const std::string sampleHash("$argon2id$v=19$m=65536,t=2,p=1$ndQKu3+ZsWedqRrlNFUaNw$tnb0MJVe5C2hlqkDt0Ln3R6VKCYkfMYdxDy+puXes3s");
 
-  auto fromHashedHolder= CredentialsHolder(std::string(sampleHash));
+  auto fromHashedHolder = CredentialsHolder(std::string(sampleHash));
   BOOST_CHECK(fromHashedHolder.wasHashed());
   BOOST_CHECK(fromHashedHolder.matches(plaintext));
   BOOST_CHECK(!fromHashedHolder.matches("not test"));
