@@ -96,13 +96,12 @@ CredentialsHolder::CredentialsHolder(std::string&& password)
   bool locked = false;
 
   if (isHashingAvailable()) {
-    d_hashed = true;
-
     if (!isPasswordHashed(password)) {
       d_credentials = hashPassword(password);
       locked = true;
     }
     else {
+      d_wasHashed = true;
       d_credentials = std::move(password);
     }
   }
@@ -131,7 +130,7 @@ CredentialsHolder::~CredentialsHolder()
 
 bool CredentialsHolder::matches(const std::string& password) const
 {
-  if (d_hashed) {
+  if (isHashingAvailable()) {
     return verifyPassword(d_credentials, password);
   }
   else {

@@ -39,9 +39,10 @@ public:
   CredentialsHolder& operator=(const CredentialsHolder&) = delete;
 
   bool matches(const std::string& password) const;
-  bool isHashed() const
+  /* whether it was constructed from a hashed and salted string */
+  bool wasHashed() const
   {
-    return d_hashed;
+    return d_wasHashed;
   }
 
   static bool isHashingAvailable();
@@ -50,5 +51,6 @@ private:
   std::string d_credentials;
   uint32_t d_fallbackHashPerturb;
   uint32_t d_fallbackHash{0};
-  bool d_hashed{false};
+  /* whether it was constructed from a hashed and salted string */
+  bool d_wasHashed{false};
 };
