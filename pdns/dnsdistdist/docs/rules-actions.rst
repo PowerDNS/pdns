@@ -699,7 +699,7 @@ These ``DNSRule``\ s be one of the following items:
 
   To match domain names exactly, see :func:`QNameSetRule`.
 
-  :param SuffixMatchNode smb: The SuffixMatchNode to match on
+  :param SuffixMatchNode smn: The SuffixMatchNode to match on
   :param bool quiet: Do not display the list of matched domains in Rules. Default is false.
 
 .. function:: TagRule(name [, value])
