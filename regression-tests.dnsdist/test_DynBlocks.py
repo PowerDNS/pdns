@@ -17,6 +17,7 @@ class DynBlocksTest(DNSDistTest):
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$argon2id$v=19$m=65536,t=2,p=1$mTJBHtI/KyO8oVDy8wyizg$8NK4ap5ohC7ylY8Dua61iBqhQw0cbcmXUaOpotC2hC0'
     _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$argon2id$v=19$m=65536,t=2,p=1$gw/ygc0SC6RID13ifimJhQ$nOBy+Tu+JYiQ4hRBhLpTNyaff7rlFPogYUAGGfy5134'
 
     def doTestDynBlockViaAPI(self, range, reason, minSeconds, maxSeconds, minBlocks, maxBlocks):
         headers = {'x-api-key': self._webServerAPIKey}
@@ -569,7 +570,7 @@ class TestDynBlockQPS(DynBlocksTest):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 
     def testDynBlocksQRate(self):
         """
@@ -594,7 +595,7 @@ class TestDynBlockGroupQPS(DynBlocksTest):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 
     def testDynBlocksQRate(self):
         """
@@ -1150,7 +1151,7 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 
     def testNoOp(self):
         """
@@ -1214,7 +1215,7 @@ class TestDynBlockGroupWarning(DynBlocksTest):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_dynBlockWarningQPS', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 
     def testWarning(self):
         """
