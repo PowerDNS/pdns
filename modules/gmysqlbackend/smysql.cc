@@ -504,12 +504,12 @@ void SMySQL::connect()
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
     if (!mysql_real_connect(&d_db, d_host.empty() ? nullptr : d_host.c_str(),
-          d_user.empty() ? nullptr : d_user.c_str(),
-          d_password.empty() ? nullptr : d_password.c_str(),
-          d_database.empty() ? nullptr : d_database.c_str(),
-          d_port,
-          d_msocket.empty() ? nullptr : d_msocket.c_str(),
-          (d_clientSSL ? CLIENT_SSL : 0) | CLIENT_MULTI_RESULTS)) {
+                            d_user.empty() ? nullptr : d_user.c_str(),
+                            d_password.empty() ? nullptr : d_password.c_str(),
+                            d_database.empty() ? nullptr : d_database.c_str(),
+                            d_port,
+                            d_msocket.empty() ? nullptr : d_msocket.c_str(),
+                            (d_clientSSL ? CLIENT_SSL : 0) | CLIENT_MULTI_RESULTS)) {
 
       if (retry == 0)
         throw sPerrorException("Unable to connect to database");
@@ -526,7 +526,7 @@ void SMySQL::connect()
 }
 
 SMySQL::SMySQL(string database, string host, uint16_t port, string msocket, string user,
-  string password, string group, bool setIsolation, unsigned int timeout, bool threadCleanup, bool clientSSL) :
+               string password, string group, bool setIsolation, unsigned int timeout, bool threadCleanup, bool clientSSL) :
   d_database(std::move(database)), d_host(std::move(host)), d_msocket(std::move(msocket)), d_user(std::move(user)), d_password(std::move(password)), d_group(std::move(group)), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup), d_clientSSL(clientSSL)
 {
   connect();

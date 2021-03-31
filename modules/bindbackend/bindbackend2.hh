@@ -227,8 +227,8 @@ public:
   // end of DNSSEC
 
   typedef multi_index_container<BB2DomainInfo,
-    indexed_by<ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id>>,
-      ordered_unique<tag<NameTag>, member<BB2DomainInfo, DNSName, &BB2DomainInfo::d_name>>>>
+                                indexed_by<ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id>>,
+                                           ordered_unique<tag<NameTag>, member<BB2DomainInfo, DNSName, &BB2DomainInfo::d_name>>>>
     state_t;
   static state_t s_state;
   static ReadWriteLock s_state_lock;

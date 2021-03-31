@@ -112,11 +112,11 @@ private:
       CacheEntry,
       indexed_by<
         ordered_unique<tag<OrderedTag>,
-          member<CacheEntry, DNSName, &CacheEntry::d_owner>,
-          CanonDNSNameCompare>,
+                       member<CacheEntry, DNSName, &CacheEntry::d_owner>,
+                       CanonDNSNameCompare>,
         sequenced<tag<SequencedTag>>,
         hashed_non_unique<tag<HashedTag>,
-          member<CacheEntry, DNSName, &CacheEntry::d_owner>>>>
+                          member<CacheEntry, DNSName, &CacheEntry::d_owner>>>>
       cache_t;
 
     cache_t d_entries;
