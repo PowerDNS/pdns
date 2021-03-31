@@ -2,6 +2,79 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.3
+  :released: 31st of March 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10240
+    :tickets: 10238
+
+    More fail-safe handling of Newly Discovered Domain files.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10227
+    :tickets: 10111
+
+    Handle policy (if needed) after postresolve.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10226
+    :tickets: 10064
+
+    Return current rcode instead of 0 if there are no CNAME records to follow.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10224
+    :tickets: 9883
+
+    Lookup DS entries before CNAME entries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10221
+    :tickets: 9856
+
+    Use a short-lived NSEC3 hashes cache for denial validation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10199
+    :tickets: 9812
+
+    Handle failure to start the web server more gracefully.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10197
+    :tickets: 9970
+
+    Test that we correctly cap the answer's TTL in expanded wildcard cases.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10194
+    :tickets: 9793
+
+    Fix the gathering of denial proof for wildcard-expanded answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10192
+    :tickets: 10185
+
+    Make sure we take the right minimum for the packet cache TTL data in the SERVFAIL case.
+
+  .. change::
+    :tags: Enhancement
+    :pullreq: 10062
+
+    Pull in libfstrm for el8 build.
+
+.. changelog::
   :version: 4.4.2
   :released: 14th of December 2020
 
