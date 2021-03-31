@@ -2647,6 +2647,11 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
         /* the backend descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
       } },
+      /* no more query from the client for now */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor becomes NOT ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
+      } },
       /* read the response (1) from the backend  */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(0).size() - 2 },

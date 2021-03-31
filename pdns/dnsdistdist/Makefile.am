@@ -140,7 +140,7 @@ dnsdist_SOURCES = \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
-	dnsdist-idstate.cc \
+	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
@@ -160,6 +160,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua.cc dnsdist-lua.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
+	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
@@ -168,7 +169,7 @@ dnsdist_SOURCES = \
 	dnsdist-systemd.cc dnsdist-systemd.hh \
 	dnsdist-tcp-downstream.cc dnsdist-tcp-downstream.hh \
 	dnsdist-tcp-upstream.hh \
-	dnsdist-tcp.cc \
+	dnsdist-tcp.cc dnsdist-tcp.hh \
 	dnsdist-web.cc dnsdist-web.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.cc dnsdist.hh \
@@ -229,7 +230,7 @@ testrunner_SOURCES = \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-idstate.cc \
+	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-bindings-dnsquestion.cc \
@@ -238,11 +239,12 @@ testrunner_SOURCES = \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-vars.cc \
+	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-tcp-downstream.cc \
-	dnsdist-tcp.cc \
+	dnsdist-tcp.cc dnsdist-tcp.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \

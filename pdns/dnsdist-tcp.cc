@@ -28,6 +28,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-xpf.hh"
@@ -72,7 +73,6 @@ uint64_t g_maxTCPQueuedConnections{1000};
 uint16_t g_downstreamTCPCleanupInterval{60};
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
-bool g_useTCPSinglePipe{false};
 std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 
 class DownstreamConnectionsManager
@@ -110,7 +110,7 @@ public:
       }
     }
 
-    return std::make_shared<TCPConnectionToBackend>(ds, now);
+    return std::make_shared<TCPConnectionToBackend>(ds, mplexer, now);
   }
 
   static void releaseDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>&& conn)
@@ -248,100 +248,80 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
   return downstream;
 }
 
-static void tcpClientThread(int pipefd);
+static void tcpClientThread(int pipefd, int crossProtocolPipeFD);
 
-TCPClientCollection::TCPClientCollection(size_t maxThreads, bool useSinglePipe): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
+TCPClientCollection::TCPClientCollection(size_t maxThreads): d_tcpclientthreads(maxThreads), d_maxthreads(maxThreads)
 {
-  if (d_useSinglePipe) {
-    if (pipe(d_singlePipe) < 0) {
-      int err = errno;
-      throw std::runtime_error("Error creating the TCP single communication pipe: " + stringerror(err));
-    }
-
-    if (!setNonBlocking(d_singlePipe[0])) {
-      int err = errno;
-      close(d_singlePipe[0]);
-      close(d_singlePipe[1]);
-      throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
-    }
-
-    if (!setNonBlocking(d_singlePipe[1])) {
-      int err = errno;
-      close(d_singlePipe[0]);
-      close(d_singlePipe[1]);
-      throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
-    }
-
-    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(d_singlePipe[0]) < g_tcpInternalPipeBufferSize) {
-      setPipeBufferSize(d_singlePipe[0], g_tcpInternalPipeBufferSize);
-    }
-  }
 }
 
 void TCPClientCollection::addTCPClientThread()
 {
+  auto preparePipe = [](int fds[2], const std::string& type) -> bool {
+    if (pipe(fds) < 0) {
+      errlog("Error creating the TCP thread %s pipe: %s", type, stringerror());
+      return false;
+    }
+
+    if (!setNonBlocking(fds[0])) {
+      int err = errno;
+      close(fds[0]);
+      close(fds[1]);
+      errlog("Error setting the TCP thread %s pipe non-blocking: %s", type, stringerror(err));
+      return false;
+    }
+
+    if (!setNonBlocking(fds[1])) {
+      int err = errno;
+      close(fds[0]);
+      close(fds[1]);
+      errlog("Error setting the TCP thread %s pipe non-blocking: %s", type, stringerror(err));
+      return false;
+    }
+
+    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(fds[0]) < g_tcpInternalPipeBufferSize) {
+      setPipeBufferSize(fds[0], g_tcpInternalPipeBufferSize);
+    }
+
+    return true;
+  };
+
   int pipefds[2] = { -1, -1};
+  if (!preparePipe(pipefds, "communication")) {
+    return;
+  }
+
+  int crossProtocolFDs[2] = { -1, -1};
+  if (!preparePipe(crossProtocolFDs, "cross-protocol")) {
+    return;
+  }
 
   vinfolog("Adding TCP Client thread");
-
-  if (d_useSinglePipe) {
-    pipefds[0] = d_singlePipe[0];
-    pipefds[1] = d_singlePipe[1];
-  }
-  else {
-    if (pipe(pipefds) < 0) {
-      errlog("Error creating the TCP thread communication pipe: %s", stringerror());
-      return;
-    }
-
-    if (!setNonBlocking(pipefds[0])) {
-      int err = errno;
-      close(pipefds[0]);
-      close(pipefds[1]);
-      errlog("Error setting the TCP thread communication pipe non-blocking: %s", stringerror(err));
-      return;
-    }
-
-    if (!setNonBlocking(pipefds[1])) {
-      int err = errno;
-      close(pipefds[0]);
-      close(pipefds[1]);
-      errlog("Error setting the TCP thread communication pipe non-blocking: %s", stringerror(err));
-      return;
-    }
-
-    if (g_tcpInternalPipeBufferSize > 0 && getPipeBufferSize(pipefds[0]) < g_tcpInternalPipeBufferSize) {
-      setPipeBufferSize(pipefds[0], g_tcpInternalPipeBufferSize);
-    }
-  }
 
   {
     std::lock_guard<std::mutex> lock(d_mutex);
 
     if (d_numthreads >= d_tcpclientthreads.size()) {
       vinfolog("Adding a new TCP client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of TCP client threads with setMaxTCPClientThreads() in the configuration.", d_numthreads.load(), d_tcpclientthreads.size());
-      if (!d_useSinglePipe) {
-        close(pipefds[0]);
-        close(pipefds[1]);
-      }
+      close(pipefds[0]);
+      close(pipefds[1]);
       return;
     }
 
+    /* from now on this side of the pipe will be managed by that object,
+       no need to worry about it */
+    TCPWorkerThread worker(pipefds[1], crossProtocolFDs[1]);
     try {
-      std::thread t1(tcpClientThread, pipefds[0]);
+      std::thread t1(tcpClientThread, pipefds[0], crossProtocolFDs[0]);
       t1.detach();
     }
     catch (const std::runtime_error& e) {
       /* the thread creation failed, don't leak */
       errlog("Error creating a TCP thread: %s", e.what());
-      if (!d_useSinglePipe) {
-        close(pipefds[0]);
-        close(pipefds[1]);
-      }
+      close(pipefds[0]);
       return;
     }
 
-    d_tcpclientthreads.at(d_numthreads) = pipefds[1];
+    d_tcpclientthreads.at(d_numthreads) = std::move(worker);
     ++d_numthreads;
   }
 }
@@ -369,7 +349,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 
 static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
 {
-  if (state->d_isXFR || currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
+  if (currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
     return;
   }
 
@@ -399,15 +379,20 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
   }
 }
 
+static void prependSizeToTCPQuery(PacketBuffer& buffer)
+{
+  uint16_t queryLen = buffer.size();
+  const uint8_t sizeBytes[] = { static_cast<uint8_t>(queryLen / 256), static_cast<uint8_t>(queryLen % 256) };
+  /* prepend the size. Yes, this is not the most efficient way but it prevents mistakes
+     that could occur if we had to deal with the size during the processing,
+     especially alignment issues */
+  buffer.insert(buffer.begin(), sizeBytes, sizeBytes + 2);
+}
+
 bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
 {
   if (d_hadErrors) {
     DEBUGLOG("not accepting new queries because we encountered some error during the processing already");
-    return false;
-  }
-
-  if (d_isXFR) {
-    DEBUGLOG("not accepting new queries because used for XFR");
     return false;
   }
 
@@ -434,9 +419,6 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_buffer.resize(sizeof(uint16_t));
   d_currentPos = 0;
   d_querySize = 0;
-  d_xfrMasterSerial = 0;
-  d_xfrSerialCount = 0;
-  d_xfrMasterSerialCount = 0;
   d_state = State::waitingForQuery;
 }
 
@@ -548,8 +530,10 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
 }
 
 /* called from the backend code when a new response has been received */
-void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConnectionState> state, const struct timeval& now, TCPResponse&& response)
+void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPResponse&& response)
 {
+  std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
+
   if (response.d_connection && response.d_connection->isIdle()) {
     // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool yet, no one else will be able to use it anyway
     if (response.d_connection->canBeReused()) {
@@ -680,12 +664,12 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   uint16_t qtype, qclass;
   unsigned int qnameWireLength = 0;
   DNSName qname(reinterpret_cast<const char*>(state->d_buffer.data()), state->d_buffer.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
-  DNSQuestion::Protocol protocol = DNSQuestion::Protocol::DoTCP;
+  dnsdist::Protocol protocol = dnsdist::Protocol::DoTCP;
   if (dnsCryptQuery) {
-    protocol = DNSQuestion::Protocol::DNSCryptTCP;
+    protocol = dnsdist::Protocol::DNSCryptTCP;
   }
   else if (state->d_handler.isTLS()) {
-    protocol = DNSQuestion::Protocol::DoT;
+    protocol = dnsdist::Protocol::DoT;
   }
 
   DNSQuestion dq(&qname, qtype, qclass, &state->d_proxiedDestination, &state->d_proxiedRemote, state->d_buffer, protocol, &queryRealTime);
@@ -697,8 +681,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
     dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(*state->d_proxyProtocolValues);
   }
 
-  state->d_isXFR = (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR);
-  if (state->d_isXFR) {
+  if (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR) {
     dq.skipCache = true;
   }
 
@@ -731,15 +714,9 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   setIDStateFromDNSQuestion(ids, dq, std::move(qname));
   ids.origID = ntohs(dh->id);
 
-  uint16_t queryLen = state->d_buffer.size();
-  const uint8_t sizeBytes[] = { static_cast<uint8_t>(queryLen / 256), static_cast<uint8_t>(queryLen % 256) };
-  /* prepend the size. Yes, this is not the most efficient way but it prevents mistakes
-     that could occur if we had to deal with the size during the processing,
-     especially alignment issues */
-  state->d_buffer.insert(state->d_buffer.begin(), sizeBytes, sizeBytes + 2);
+  prependSizeToTCPQuery(state->d_buffer);
 
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
-  downstreamConnection->assignToClientConnection(state, state->d_isXFR);
 
   bool proxyProtocolPayloadAdded = false;
   std::string proxyProtocolPayload;
@@ -772,7 +749,8 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   ++state->d_currentQueriesCount;
   vinfolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), state->d_proxiedRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), query.d_buffer.size(), ds->getName());
-  downstreamConnection->queueQuery(std::move(query), downstreamConnection);
+  std::shared_ptr<TCPQuerySender> incoming = state;
+  downstreamConnection->queueQuery(incoming, std::move(query));
 }
 
 void IncomingTCPConnectionState::handleIOCallback(int fd, FDMultiplexer::funcparam_t& param)
@@ -1034,8 +1012,10 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
   while ((iostate == IOState::NeedRead || iostate == IOState::NeedWrite) && !state->d_lastIOBlocked);
 }
 
-void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnectionState>& state, IDState&& query, const struct timeval& now)
+void IncomingTCPConnectionState::notifyIOError(IDState&& query, const struct timeval& now)
 {
+  std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
+
   --state->d_currentQueriesCount;
   state->d_hadErrors = true;
 
@@ -1062,8 +1042,9 @@ void IncomingTCPConnectionState::notifyIOError(std::shared_ptr<IncomingTCPConnec
   }
 }
 
-void IncomingTCPConnectionState::handleXFRResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
+void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TCPResponse&& response)
 {
+  std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
   queueResponse(state, now, std::move(response));
 }
 
@@ -1124,14 +1105,56 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
 
     IncomingTCPConnectionState::handleIO(state, now);
   }
-  catch(...) {
+  catch (...) {
     delete citmp;
     citmp = nullptr;
     throw;
   }
 }
 
-static void tcpClientThread(int pipefd)
+static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
+{
+  auto threadData = boost::any_cast<TCPClientThreadData*>(param);
+  CrossProtocolQuery* tmp{nullptr};
+
+  ssize_t got = read(pipefd, &tmp, sizeof(tmp));
+  if (got == 0) {
+    throw std::runtime_error("EOF while reading from the TCP cross-protocol pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode");
+  }
+  else if (got == -1) {
+    if (errno == EAGAIN || errno == EINTR) {
+      return;
+    }
+    throw std::runtime_error("Error while reading from the TCP cross-protocol pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode:" + stringerror());
+  }
+  else if (got != sizeof(tmp)) {
+    throw std::runtime_error("Partial read while reading from the TCP cross-protocol pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode");
+  }
+
+  try {
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+
+    auto query = std::move(tmp->query);
+    auto downstreamServer = std::move(tmp->downstream);
+    std::shared_ptr<TCPQuerySender> tqs = tmp->getTCPQuerySender();
+    delete tmp;
+    tmp = nullptr;
+
+    auto downstream = DownstreamConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now);
+
+#warning FIXME: what if a proxy protocol payload was inserted?
+    prependSizeToTCPQuery(query.d_buffer);
+    downstream->queueQuery(tqs, std::move(query));
+  }
+  catch (...) {
+    delete tmp;
+    tmp = nullptr;
+    throw;
+  }
+}
+
+static void tcpClientThread(int pipefd, int crossProtocolPipeFD)
 {
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
@@ -1141,6 +1164,8 @@ static void tcpClientThread(int pipefd)
   TCPClientThreadData data;
 
   data.mplexer->addReadFD(pipefd, handleIncomingTCPQuery, &data);
+  data.mplexer->addReadFD(crossProtocolPipeFD, handleCrossProtocolQuery, &data);
+
   struct timeval now;
   gettimeofday(&now, nullptr);
   time_t lastTCPCleanup = now.tv_sec;
@@ -1238,7 +1263,6 @@ void tcpAcceptorThread(ClientState* cs)
 
   auto acl = g_ACL.getLocal();
   for(;;) {
-    bool queuedCounterIncremented = false;
     std::unique_ptr<ConnectionInfo> ci;
     tcpClientCountIncremented = false;
     try {
@@ -1294,23 +1318,7 @@ void tcpAcceptorThread(ClientState* cs)
       vinfolog("Got TCP connection from %s", remote.toStringWithPort());
 
       ci->remote = remote;
-      int pipe = g_tcpclientthreads->getThread();
-      if (pipe >= 0) {
-        queuedCounterIncremented = true;
-        auto tmp = ci.release();
-        try {
-          // throws on failure
-          writen2WithTimeout(pipe, &tmp, sizeof(tmp), timeval{0,0});
-        }
-        catch (...) {
-          delete tmp;
-          tmp = nullptr;
-          throw;
-        }
-      }
-      else {
-        g_tcpclientthreads->decrementQueuedCount();
-        queuedCounterIncremented = false;
+      if (!g_tcpclientthreads->passConnectionToThread(std::move(ci))) {
         if (tcpClientCountIncremented) {
           decrementTCPClientCount(remote);
         }
@@ -1320,9 +1328,6 @@ void tcpAcceptorThread(ClientState* cs)
       errlog("While reading a TCP question: %s", e.what());
       if (tcpClientCountIncremented) {
         decrementTCPClientCount(remote);
-      }
-      if (queuedCounterIncremented) {
-        g_tcpclientthreads->decrementQueuedCount();
       }
     }
     catch (...){}

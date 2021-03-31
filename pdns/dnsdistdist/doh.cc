@@ -20,6 +20,7 @@
 #include "dnsname.hh"
 #undef CERT
 #include "dnsdist.hh"
+#include "dnsdist-tcp.hh"
 #include "misc.hh"
 #include "dns.hh"
 #include "dolog.hh"
@@ -177,6 +178,11 @@ struct DOHServerConfig
     dohquerypair[0] = fd[1];
     dohquerypair[1] = fd[0];
 
+    setNonBlocking(dohquerypair[0]);
+    if (internalPipeBufferSize > 0) {
+      setPipeBufferSize(dohquerypair[0], internalPipeBufferSize);
+    }
+
     if (pipe(fd) < 0) {
       close(dohquerypair[0]);
       close(dohquerypair[1]);
@@ -186,17 +192,20 @@ struct DOHServerConfig
     dohresponsepair[0] = fd[1];
     dohresponsepair[1] = fd[0];
 
-    setNonBlocking(dohquerypair[0]);
-    if (internalPipeBufferSize > 0) {
-      setPipeBufferSize(dohquerypair[0], internalPipeBufferSize);
-    }
-
     setNonBlocking(dohresponsepair[0]);
     if (internalPipeBufferSize > 0) {
       setPipeBufferSize(dohresponsepair[0], internalPipeBufferSize);
     }
 
     setNonBlocking(dohresponsepair[1]);
+
+    if (pipe(fd) < 0) {
+      close(dohquerypair[0]);
+      close(dohquerypair[1]);
+      close(dohresponsepair[0]);
+      close(dohresponsepair[1]);
+      unixDie("Creating a pipe for DNS over HTTPS");
+    }
 
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
@@ -465,13 +474,12 @@ static int processDOHQuery(DOHUnit* du)
     uint16_t qtype, qclass;
     unsigned int qnameWireLength = 0;
     DNSName qname(reinterpret_cast<const char*>(du->query.data()), du->query.size(), sizeof(dnsheader), false, &qtype, &qclass, &qnameWireLength);
-    DNSQuestion dq(&qname, qtype, qclass, &du->dest, &du->remote, du->query, DNSQuestion::Protocol::DoH, &queryRealTime);
+    DNSQuestion dq(&qname, qtype, qclass, &du->dest, &du->remote, du->query, dnsdist::Protocol::DoH, &queryRealTime);
     dq.ednsAdded = du->ednsAdded;
     dq.du = du;
     dq.sni = std::move(du->sni);
 
-    std::shared_ptr<DownstreamState> ss{nullptr};
-    auto result = processQuery(dq, cs, holders, ss);
+    auto result = processQuery(dq, cs, holders, du->downstream);
 
     if (result == ProcessQueryResult::Drop) {
       du->status_code = 403;
@@ -493,14 +501,14 @@ static int processDOHQuery(DOHUnit* du)
       return -1;
     }
 
-    if (ss == nullptr) {
+    if (du->downstream == nullptr) {
       du->status_code = 502;
       return -1;
     }
 
     ComboAddress dest = du->dest;
-    unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
-    IDState* ids = &ss->idStates[idOffset];
+    unsigned int idOffset = (du->downstream->idOffset++) % du->downstream->idStates.size();
+    IDState* ids = &du->downstream->idStates[idOffset];
     ids->age = 0;
     DOHUnit* oldDU = nullptr;
     if (ids->isInUse()) {
@@ -516,13 +524,13 @@ static int processDOHQuery(DOHUnit* du)
       /* the state was not in use.
          we reset 'oldDU' because it might have still been in use when we read it. */
       oldDU = nullptr;
-      ++ss->outstanding;
+      ++du->downstream->outstanding;
     }
     else {
       ids->du = nullptr;
       /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
          to handle it because it's about to be overwritten. */
-      ++ss->reuseds;
+      ++du->downstream->reuseds;
       ++g_stats.downstreamTimeouts;
       handleDOHTimeout(oldDU);
     }
@@ -554,16 +562,16 @@ static int processDOHQuery(DOHUnit* du)
       ids->destHarvested = false;
     }
 
-    if (ss->useProxyProtocol) {
+    if (du->downstream->useProxyProtocol) {
       addProxyProtocol(dq);
     }
 
-    int fd = pickBackendSocketForSending(ss);
+    int fd = pickBackendSocketForSending(du->downstream);
     try {
       /* you can't touch du after this line, because it might already have been freed */
-      ssize_t ret = udpClientSendRequestToBackend(ss, fd, du->query);
+      ssize_t ret = udpClientSendRequestToBackend(du->downstream, fd, du->query);
 
-      if(ret < 0) {
+      if (ret < 0) {
         /* we are about to handle the error, make sure that
            this pointer is not accessed when the state is cleaned,
            but first check that it still belongs to us */
@@ -571,9 +579,9 @@ static int processDOHQuery(DOHUnit* du)
           ids->du = nullptr;
           du->release();
           duRefCountIncremented = false;
-          --ss->outstanding;
+          --du->downstream->outstanding;
         }
-        ++ss->sendErrors;
+        ++du->downstream->sendErrors;
         ++g_stats.downstreamSendErrors;
         du->status_code = 502;
         return -1;
@@ -586,7 +594,7 @@ static int processDOHQuery(DOHUnit* du)
       throw;
     }
 
-    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).toString(), remote.toStringWithPort(), ss->getName());
+    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).toString(), remote.toStringWithPort(), du->downstream->getName());
   }
   catch(const std::exception& e) {
     vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
@@ -1120,6 +1128,94 @@ static void dnsdistclient(int qsock)
   }
 }
 
+class DoHTCPCrossQuerySender : public TCPQuerySender
+{
+public:
+  DoHTCPCrossQuerySender(DOHUnit* du_): du(du_)
+  {
+  }
+
+  ~DoHTCPCrossQuerySender()
+  {
+    if (du != nullptr) {
+      du->release();
+    }
+  }
+
+  bool active() const override
+  {
+    return true;
+  }
+
+  const ClientState& getClientState() override
+  {
+    if (!du || !du->dsc || !du->dsc->cs) {
+      throw std::runtime_error("No query associated to this DoHTCPCrossQuerySender");
+    }
+
+    return *du->dsc->cs;
+  }
+
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    if (!du) {
+      return;
+    }
+
+    if (du->rsock == -1) {
+      return;
+    }
+
+    du->response = std::move(response.d_buffer);
+
+    auto sent = write(du->rsock, &du, sizeof(du));
+    if (sent != sizeof(du)) {
+      du->release();
+      du = nullptr;
+   }
+  }
+
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    throw std::runtime_error("Oops");
+  }
+
+  void notifyIOError(IDState&& query, const struct timeval& now) override
+  {
+    throw std::runtime_error("Oops");
+  }
+
+private:
+  DOHUnit* du{nullptr};
+};
+
+class DoHCrossProtocolQuery : public CrossProtocolQuery
+{
+public:
+  DoHCrossProtocolQuery(DOHUnit* du_): du(du_)
+  {
+    query = InternalQuery(std::move(du->query), std::move(du->ids));
+    downstream = du->downstream;
+  }
+
+  ~DoHCrossProtocolQuery()
+  {
+    if (du != nullptr) {
+      du->release();
+    }
+  }
+
+  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
+  {
+    auto sender = std::make_shared<DoHTCPCrossQuerySender>(du);
+    du = nullptr;
+    return sender;
+  }
+
+private:
+  DOHUnit* du{nullptr};
+};
+
 /* Called in the main DoH thread if h2o finds that dnsdist gave us an answer by writing into
    the dohresponsepair[0] side of the pipe so from:
    - handleDOHTimeout() when we did not get a response fast enough (called
@@ -1145,6 +1241,28 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     du->self = nullptr;
     du->release();
     return;
+  }
+
+  if (!du->response.empty() && !du->tcp) {
+    const dnsheader* dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
+
+    if (dh->tc) {
+      /* restoring the original ID */
+      dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(du->query.data());
+      queryDH->id = htons(du->ids.origID);
+
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+
+      du->get();
+      du->tcp = true;
+
+      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+        return;
+      }
+      else {
+        du->release();
+      }
+    }
   }
 
   if (du->self) {
@@ -1449,6 +1567,32 @@ void dohThread(ClientState* cs)
   }
   catch (...) {
     throw runtime_error("DOH thread failed to launch");
+  }
+}
+
+void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, IDState&& state)
+{
+  static_assert(sizeof(*this) <= PIPE_BUF, "Writes up to PIPE_BUF are guaranteed not to be interleaved and to either fully succeed or fail");
+
+  response = std::move(udpResponse);
+  ids = std::move(state);
+
+  auto du = this;
+  ssize_t sent = write(rsock, &du, sizeof(du));
+  if (sent != sizeof(this)) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      ++g_stats.dohResponsePipeFull;
+      vinfolog("Unable to pass a DoH response to the DoH worker thread because the pipe is full");
+    }
+    else {
+      vinfolog("Unable to pass a DoH response to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+    }
+
+    /* at this point we have the only remaining pointer on this
+       DOHUnit object since we did set ids->du to nullptr earlier,
+       except if we got the response before the pointer could be
+       released by the frontend */
+    release();
   }
 }
 

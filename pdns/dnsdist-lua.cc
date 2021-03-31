@@ -1843,15 +1843,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_hashperturb = pertub;
     });
 
-  luaCtx.writeFunction("setTCPUseSinglePipe", [](bool flag) {
-      if (g_configurationDone) {
-        g_outputBuffer="setTCPUseSinglePipe() cannot be used at runtime!\n";
-        return;
-      }
-      setLuaSideEffect();
-      g_useTCPSinglePipe = flag;
-    });
-
   luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](size_t size) { g_tcpInternalPipeBufferSize = size; });
 
   luaCtx.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> daemonSocket) {

@@ -23,6 +23,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-tcp.hh"
 
 #include "statnode.hh"
 
@@ -595,9 +596,6 @@ void setupLuaInspection(LuaContext& luaCtx)
       boost::format fmt("%-12d %-12d %-12d %-12d");
       ret << (fmt % "Workers" % "Max Workers" % "Queued" % "Max Queued") << endl;
       ret << (fmt % g_tcpclientthreads->getThreadsCount() % (g_maxTCPClientThreads ? *g_maxTCPClientThreads : 0) % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
-      ret << endl;
-
-      ret << "Query distribution mode is: " << std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") << endl;
       ret << endl;
 
       ret << "Frontends:" << endl;
