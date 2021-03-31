@@ -80,16 +80,10 @@ struct ServiceTuple
 };
 void parseService(const string &descr, ServiceTuple &st);
 
-template<typename Container, class Enable = void>
+template<typename Container>
 void
 stringtok (Container &container, string const &in,
-           const char * const delimiters = " \t\n");
-
-template<typename Container,
-         typename std::enable_if<std::is_function<typename Container::push_back>::value>::type = true>
-void
-stringtok (Container &container, string const &in,
-           const char * const delimiters)
+           const char * const delimiters = " \t\n")
 {
   const string::size_type len = in.length();
   string::size_type i = 0;
@@ -109,36 +103,6 @@ stringtok (Container &container, string const &in,
       return;
     } else
       container.push_back (in.substr(i, j-i));
-
-    // set up for next loop
-    i = j + 1;
-  }
-}
-
-template<typename Container,
-         typename std::enable_if<std::is_function<typename Container::insert>::value>::type = true>
-void
-stringtok (Container &container, string const &in,
-           const char * const delimiters)
-{
-  const string::size_type len = in.length();
-  string::size_type i = 0;
-
-  while (i<len) {
-    // eat leading whitespace
-    i = in.find_first_not_of (delimiters, i);
-    if (i == string::npos)
-      return;   // nothing left but white space
-
-    // find the end of the token
-    string::size_type j = in.find_first_of (delimiters, i);
-
-    // push token
-    if (j == string::npos) {
-      container.insert (in.substr(i));
-      return;
-    } else
-      container.insert (in.substr(i, j-i));
 
     // set up for next loop
     i = j + 1;
