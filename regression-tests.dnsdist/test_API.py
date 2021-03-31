@@ -15,7 +15,8 @@ class APITestsBase(DNSDistTest):
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$argon2id$v=19$m=65536,t=2,p=1$mTJBHtI/KyO8oVDy8wyizg$8NK4ap5ohC7ylY8Dua61iBqhQw0cbcmXUaOpotC2hC0'
     _webServerAPIKey = 'apisecret'
-    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _webServerAPIKeyHashed = '$argon2id$v=19$m=65536,t=2,p=1$gw/ygc0SC6RID13ifimJhQ$nOBy+Tu+JYiQ4hRBhLpTNyaff7rlFPogYUAGGfy5134'
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s", pool={'', 'mypool'}}
@@ -369,7 +370,7 @@ class TestAPIServerDown(APITestsBase):
 class TestAPIWritable(APITestsBase):
     __test__ = True
     _APIWriteDir = '/tmp'
-    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey', '_APIWriteDir']
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed', '_APIWriteDir']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
     newServer{address="127.0.0.1:%s"}
@@ -443,7 +444,7 @@ class TestAPICustomHeaders(APITestsBase):
     _basicOnlyPath = '/'
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
@@ -488,7 +489,7 @@ class TestStatsWithoutAuthentication(APITestsBase):
     _noAuthenticationPaths = [ '/metrics', '/jsonstat?command=dynblocklist' ]
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
@@ -538,13 +539,14 @@ class TestAPIAuth(APITestsBase):
     _webServerBasicAuthPasswordNew = 'password'
     _webServerBasicAuthPasswordNewHashed = '$argon2id$v=19$m=65536,t=2,p=1$AYiZGEPogz3849qG//YsjA$ZG39i+yK8Pet8yNU8lJ9ktMbDyF2TuxC32TR74/Mx68'
     _webServerAPIKeyNew = 'apipassword'
+    _webServerAPIKeyNewHashed = '$argon2id$v=19$m=65536,t=2,p=1$hNE0zlMnk+9QNKLbQGZjyA$9y0rlN+asmT3p3uyCPTcSeeMGHcwgrrNwbRlDmmLSAA'
     # paths accessible using the API key only
     _apiOnlyPath = '/api/v1/servers/localhost/config'
     # paths accessible using basic auth only (list not exhaustive)
     _basicOnlyPath = '/'
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
@@ -576,7 +578,7 @@ class TestAPIAuth(APITestsBase):
         """
 
         url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
-        self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNew))
+        self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNewHashed))
 
         headers = {'x-api-key': self._webServerAPIKeyNew}
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
@@ -594,7 +596,7 @@ class TestAPIAuth(APITestsBase):
         """
 
         url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
-        self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNew))
+        self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNewHashed))
 
         headers = {'x-api-key': self._webServerAPIKeyNew}
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
@@ -611,7 +613,7 @@ class TestAPIACL(APITestsBase):
     __test__ = True
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
@@ -700,7 +702,7 @@ class TestWebConcurrentConnections(APITestsBase):
     __test__ = True
     _maxConns = 2
 
-    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey', '_maxConns']
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed', '_maxConns']
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     webserver("127.0.0.1:%s")

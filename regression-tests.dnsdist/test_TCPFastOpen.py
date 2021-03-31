@@ -20,7 +20,8 @@ class TestBrokenTCPFastOpen(DNSDistTest):
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$argon2id$v=19$m=65536,t=2,p=1$mTJBHtI/KyO8oVDy8wyizg$8NK4ap5ohC7ylY8Dua61iBqhQw0cbcmXUaOpotC2hC0'
     _webServerAPIKey = 'apisecret'
-    _config_params = ['_testServerPort', '_testServerRetries', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKey']
+    _webServerAPIKeyHashed = '$argon2id$v=19$m=65536,t=2,p=1$gw/ygc0SC6RID13ifimJhQ$nOBy+Tu+JYiQ4hRBhLpTNyaff7rlFPogYUAGGfy5134'
+    _config_params = ['_testServerPort', '_testServerRetries', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     newServer{address="127.0.0.1:%s", useClientSubnet=true, tcpFastOpen=true, retries=%d }
     webserver("127.0.0.1:%s")
