@@ -240,6 +240,61 @@ size_t parseRFC1035CharString(const std::string &in, std::string &val) {
   return counter;
 }
 
+size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, std::vector<std::string> &val) {
+  val.clear();
+  const char *p = in.c_str();
+  const char *pe = p + in.size();
+  int cs = 0;
+  const char* eof = pe;
+  // Keeps track of how many chars we read from the source string
+  size_t counter=0;
+
+  // Here we store the parsed value until we hit a comma or are done
+  std::string tmp;
+
+%%{
+  machine dns_text_to_value_list;
+  alphtype unsigned char;
+
+  action addToVal {
+    tmp += fc;
+    counter++;
+  }
+
+  action addToValNoIncrement {
+    tmp += fc;
+  }
+
+  action addToVector {
+    val.push_back(tmp);
+    tmp.clear();
+    counter++;
+  }
+
+  action incrementCounter {
+    counter++;
+  }
+
+  # generated rules, define required actions
+  OCTET = 0x00..0xff;
+  item_allowed = 0x00..0x2b | 0x2d..0x5b | 0x5d..0xff;
+  escaped_item = ( item_allowed$addToVal | '\\,'$incrementCounter@addToValNoIncrement | '\\\\'$incrementCounter@addToValNoIncrement )+;
+  comma_separated = ( escaped_item%addToVector ( ","@incrementCounter escaped_item%addToVector )* )?;
+
+  # instantiate machine rules
+  main := comma_separated;
+  write data;
+  write init;
+}%%
+
+  // silence warnings
+  (void) dns_text_to_value_list_first_final;
+  (void) dns_text_to_value_list_error;
+  (void) dns_text_to_value_list_en_main;
+  %% write exec;
+
+  return counter;
+}
 
 
 #if 0

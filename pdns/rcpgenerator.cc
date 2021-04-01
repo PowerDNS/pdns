@@ -29,6 +29,7 @@
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include <iostream>
 #include "base32.hh"
@@ -322,6 +323,11 @@ void RecordTextReader::xfrRFC1035CharString(string &val) {
   d_pos += ctr;
 }
 
+void RecordTextReader::xfrSVCBValueList(vector<string> &val) {
+  auto ctr = parseSVCBValueList(d_string.substr(d_pos, d_end - d_pos), val);
+  d_pos += ctr;
+}
+
 void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
 {
   while (d_pos != d_end) {
@@ -366,17 +372,22 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       break;
     case SvcParam::ipv4hint: /* fall-through */
     case SvcParam::ipv6hint: {
+      vector<string> value;
+      xfrSVCBValueList(value);
       vector<ComboAddress> hints;
-      do {
-        ComboAddress address;
-        xfrCAWithoutPort(key, address); // The SVBC authors chose 4 and 6 to represent v4hint and v6hint :)
-        hints.push_back(address);
-        if (d_pos < d_end && d_string.at(d_pos) == ',') {
-          d_pos++; // Go to the next address
-        }
-      } while (d_pos != d_end && d_string.at(d_pos) != ' ');
+      bool doAuto{false};
       try {
-        val.insert(SvcParam(key, std::move(hints)));
+        for (auto const &v: value) {
+          if (v == "auto") {
+            doAuto = true;
+            hints.clear();
+            break;
+          }
+          hints.push_back(ComboAddress(v));
+        }
+        auto p = SvcParam(key, std::move(hints));
+        p.setAutoHint(doAuto);
+        val.insert(p);
       }
       catch (const std::invalid_argument& e) {
         throw RecordTextException(e.what());
@@ -384,18 +395,14 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       break;
     }
     case SvcParam::alpn: {
-      string value;
-      xfrUnquotedText(value, false);
-      vector<string> parts;
-      stringtok(parts, value, ",");
-      val.insert(SvcParam(key, std::move(parts)));
+      vector<string> value;
+      xfrSVCBValueList(value);
+      val.insert(SvcParam(key, std::move(value)));
       break;
     }
     case SvcParam::mandatory: {
-      string value;
-      xfrUnquotedText(value, false);
       vector<string> parts;
-      stringtok(parts, value, ",");
+      xfrSVCBValueList(parts);
       set<string> values(parts.begin(), parts.end());
       val.insert(SvcParam(key, std::move(values)));
       break;
@@ -414,6 +421,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       string value;
       xfrBlobNoSpaces(value);
       if (haveQuote) {
+        if (d_string.at(d_pos) != '"') {
+          throw RecordTextException("echconfig value starts, but does not end with a '\"' symbol");
+        }
         d_pos++;
       }
       val.insert(SvcParam(key, value));
@@ -778,6 +788,39 @@ static string txtEscape(const string &name)
   return ret;
 }
 
+void RecordTextWriter::xfrSVCBValueList(const vector<string> &val) {
+  bool shouldQuote{false};
+  vector<string> escaped;
+  escaped.reserve(val.size());
+  for (auto const &v : val) {
+    if (v.find_first_of(' ') != string::npos) {
+      shouldQuote = true;
+    }
+    string tmp = txtEscape(v);
+    string unescaped;
+    unescaped.reserve(tmp.size() + 4);
+    for (auto const &ch : tmp) {
+      if (ch == '\\') {
+        unescaped += R"F(\\)F";
+        continue;
+      }
+      if (ch == ',') {
+        unescaped += R"F(\\,)F";
+        continue;
+      }
+      unescaped += ch;
+    }
+    escaped.push_back(unescaped);
+  }
+  if (shouldQuote) {
+    d_string.append(1, '"');
+  }
+  d_string.append(boost::join(escaped, ","));
+  if (shouldQuote) {
+    d_string.append(1, '"');
+  }
+}
+
 void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
   for (auto const &param : val) {
     if (!d_string.empty())
@@ -795,11 +838,14 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
     case SvcParam::ipv4hint: /* fall-through */
     case SvcParam::ipv6hint:
       // TODO use xfrCA and put commas in between?
+      if (param.getAutoHint()) {
+        d_string.append("auto");
+        break;
+      }
       d_string.append(ComboAddress::caContainerToString(param.getIPHints(), false));
       break;
     case SvcParam::alpn:
-      // This is safe, as this value needs no quotes
-      d_string.append(boost::join(param.getALPN(), ","));
+      xfrSVCBValueList(param.getALPN());
       break;
     case SvcParam::mandatory:
     {

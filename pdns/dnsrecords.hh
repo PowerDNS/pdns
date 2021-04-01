@@ -497,30 +497,43 @@ private:
   string d_keyring;
 };
 
-class SVCBRecordContent : public DNSRecordContent
+class SVCBBaseRecordContent : public DNSRecordContent
+{
+  public:
+    const DNSName& getTarget() const {return d_target;}
+    uint16_t getPriority() const {return d_priority;}
+    // Returns true if a value for |key| was set to 'auto'
+    bool autoHint(const SvcParam::SvcParamKey &key) const;
+    // Sets the |addresses| to the existing hints for |key|
+    void setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses);
+    // Removes the parameter for |key| from d_params
+    void removeParam(const SvcParam::SvcParamKey &key);
+    // Whether or not there are any parameter
+    bool hasParams() const;
+    // Whether or not the param of |key| exists
+    bool hasParam(const SvcParam::SvcParamKey &key) const;
+    // Get the parameter with |key|, will throw out_of_range if param isn't there
+    SvcParam getParam(const SvcParam::SvcParamKey &key) const;
+
+  protected:
+    uint16_t d_priority;
+    DNSName d_target;
+    set<SvcParam> d_params;
+
+    // Get the iterator to parameter with |key|, return value can be d_params::end
+    set<SvcParam>::const_iterator getParamIt(const SvcParam::SvcParamKey &key) const;
+};
+
+class SVCBRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(SVCB)
-  const DNSName& getTarget() const {return d_target;}
-  uint16_t getPriority() const {return d_priority;}
-
-private:
-  uint16_t d_priority;
-  DNSName d_target;
-  set<SvcParam> d_params;
 };
 
-class HTTPSRecordContent : public DNSRecordContent
+class HTTPSRecordContent : public SVCBBaseRecordContent
 {
 public:
   includeboilerplate(HTTPS)
-  const DNSName& getTarget() const {return d_target;}
-  uint16_t getPriority() const {return d_priority;}
-
-private:
-  uint16_t d_priority;
-  DNSName d_target;
-  set<SvcParam> d_params;
 };
 
 class RRSIGRecordContent : public DNSRecordContent

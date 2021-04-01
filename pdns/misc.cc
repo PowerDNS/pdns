@@ -1633,3 +1633,10 @@ std::string makeLuaString(const std::string& in)
 
   return str.str();
 }
+
+size_t parseSVCBValueList(const std::string &in, vector<std::string> &val) {
+  std::string parsed;
+  auto ret = parseRFC1035CharString(in, parsed);
+  parseSVCBValueListFromParsedRFC1035CharString(parsed, val);
+  return ret;
+};

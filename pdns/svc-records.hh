@@ -84,6 +84,9 @@ class SvcParam {
   const std::string& getEchConfig() const;
   const std::string& getValue() const;
 
+  bool getAutoHint() const { return d_autohint; };
+  void setAutoHint(const bool value) { d_autohint = value; };
+
   private:
     SvcParamKey d_key;
     std::string d_value; // For keyNNNNN vals
@@ -93,6 +96,10 @@ class SvcParam {
     std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
     std::string d_echconfig; // For echconfig
     uint16_t d_port{0}; // For port
+
+    // Set to true if we encountered an "auto" field in hints
+    // Can only be true when we read SVCParams from text
+    bool d_autohint{false};
 
     static const std::map<std::string, SvcParamKey> SvcParams;
 };

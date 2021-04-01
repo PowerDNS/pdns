@@ -229,6 +229,14 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SVCB, "16 foo.powerdns.org. mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1", "\0\x10\3foo\x08powerdns\x03org\x00\x00\x00\x00\x02\x00\x01\x00\x01\x00\x06\x02h2\x02h3\x00\x04\x00\x04\xc0\x00\x02\x01"))
      (CASE_L(QType::SVCB, "16 foo.powerdns.org. alpn=h2,h3 mandatory=alpn ipv4hint=192.0.2.1", "16 foo.powerdns.org. mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1", "\0\x10\3foo\x08powerdns\x03org\x00\x00\x00\x00\x02\x00\x01\x00\x01\x00\x06\x02h2\x02h3\x00\x04\x00\x04\xc0\x00\x02\x01"))
 
+     // IPv4hint is quoted
+     (CASE_L(QType::SVCB, "16 foo.powerdns.org. alpn=h2,h3 mandatory=alpn ipv4hint=\"192.0.2.1\"", "16 foo.powerdns.org. mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1", "\0\x10\3foo\x08powerdns\x03org\x00\x00\x00\x00\x02\x00\x01\x00\x01\x00\x06\x02h2\x02h3\x00\x04\x00\x04\xc0\x00\x02\x01"))
+     // Escaped ALPN value
+     (CASE_S(QType::SVCB, R"FOO(1 foo.powerdns.org. alpn=h3\\,cool,h2)FOO", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x0b\x07h3,cool\x02h2"))
+     (CASE_S(QType::SVCB, R"FOO(1 foo.powerdns.org. alpn=h\\\\3\\,cool,h2)FOO", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x0c\x08h\\3,cool\x02h2"))
+     // Escaped _and_ spaced ALPN value
+     (CASE_S(QType::SVCB, R"FOO(1 foo.powerdns.org. alpn="h3\\,co ol,h2")FOO", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x0c\x08h3,co ol\x02h2"))
+
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all"))
 
      (CASE_S(QType::NID, "15 0123:4567:89AB:CDEF", "\x00\x0F\x01\x23\x45\x67\x89\xab\xcd\xef"))

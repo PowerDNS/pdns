@@ -1504,6 +1504,16 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
 Turn on supermaster support. See :ref:`supermaster-operation`.
 
+.. _setting-svc-autohints:
+
+``svc-autohints``
+-----------------
+
+- Boolean
+- Default: no
+
+Whether or not to enable IPv4 and IPv6 :ref:`autohints <svc-autohints>`.
+
 .. _setting-tcp-control-address:
 
 ``tcp-control-address``

@@ -63,6 +63,7 @@ public:
   int trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname);
   static NetmaskGroup s_allowNotifyFrom;
   static set<string> s_forwardNotify;
+  static bool s_SVCAutohints;
   static const std::shared_ptr<CDNSKEYRecordContent> s_deleteCDNSKEYContent;
   static const std::shared_ptr<CDSRecordContent> s_deleteCDSContent;
 
@@ -77,6 +78,8 @@ private:
   bool addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   void doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   DNSName doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, std::unique_ptr<DNSPacket>& r);
+  //! Get all IPv4 or IPv6 addresses (based on |qtype|) for |target|.
+  vector<ComboAddress> getIPAddressFor(const DNSName &target, const uint16_t qtype);
   void addNSECX(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, int mode);
   void addNSEC(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, int mode);
   bool getNSEC3Hashes(bool narrow, const std::string& hashed, bool decrement, DNSName& unhashed, std::string& before, std::string& after, int mode=0);

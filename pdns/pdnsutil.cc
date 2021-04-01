@@ -324,12 +324,13 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
 
   bool hasNsAtApex = false;
-  set<DNSName> tlsas, cnames, noncnames, glue, checkglue, addresses, svcbAliases, httpsAliases, svcbRecords, httpsRecords;
+  set<DNSName> tlsas, cnames, noncnames, glue, checkglue, addresses, svcbAliases, httpsAliases, svcbRecords, httpsRecords, arecords, aaaarecords;
   vector<DNSResourceRecord> checkCNAME;
   set<pair<DNSName, QType> > checkOcclusion;
   set<string> recordcontents;
   map<string, unsigned int> ttl;
-  set<std::tuple<DNSName, uint16_t, DNSName> > svcbTargets, httpsTargets;
+  // Record name, prio, target name, ipv4hint=auto, ipv6hint=auto
+  set<std::tuple<DNSName, uint16_t, DNSName, bool, bool> > svcbTargets, httpsTargets;
 
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
@@ -350,6 +351,12 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       tlsas.insert(rr.qname);
     if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
       addresses.insert(rr.qname);
+    }
+    if(rr.qtype.getCode() == QType::A) {
+      arecords.insert(rr.qname);
+    }
+    if(rr.qtype.getCode() == QType::AAAA) {
+      aaaarecords.insert(rr.qname);
     }
     if(rr.qtype.getCode() == QType::SOA) {
       vector<string>parts;
@@ -407,33 +414,57 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
 
     if (rr.qtype.getCode() == QType::SVCB || rr.qtype.getCode() == QType::HTTPS) {
-      vector<string> parts;
-      stringtok(parts, rr.content);
-      if (std::atoi(parts.at(0).c_str()) == 0 && parts.size() > 2) {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+      // I, too, like to live dangerously
+      auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
+      if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
         cout<<"[Warning] Aliasform "<<rr.qtype.getName()<<" record "<<rr.qname<<" has service parameters."<<endl;
         numwarnings++;
       }
+
+      if(svcbrc->getPriority() != 0) {
+        // Service Form
+        if (svcbrc->hasParam(SvcParam::no_default_alpn) && !svcbrc->hasParam(SvcParam::alpn)) {
+          /* draft-ietf-dnsop-svcb-https-03 section 6.1
+           *  When "no-default-alpn" is specified in an RR, "alpn" must
+           *  also be specified in order for the RR to be "self-consistent
+           *  (Section 2.4.3).
+           */
+          cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.getName()<<" is not self-consistent: 'no-default-alpn' parameter without 'alpn' parameter"<<endl;
+          numwarnings++;
+        }
+        if (svcbrc->hasParam(SvcParam::mandatory)) {
+          auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
+          for (auto const &k: keys) {
+            if (!svcbrc->hasParam(k)) {
+              cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.getName()<<" is not self-consistent: 'mandatory' parameter lists '"+ SvcParam::keyToString(k) +"', but that parameter does not exist"<<endl;
+              numwarnings++;
+            }
+          }
+        }
+      }
+
       switch (rr.qtype.getCode()) {
       case QType::SVCB:
-        if (std::atoi(parts.at(0).c_str()) == 0) {
+        if (svcbrc->getPriority() == 0) {
           if (svcbAliases.find(rr.qname) != svcbAliases.end()) {
             cout << "[Warning] More than one Alias form SVCB record for " << rr.qname << " exists." << endl;
             numwarnings++;
           }
           svcbAliases.insert(rr.qname);
         }
-        svcbTargets.emplace(std::make_tuple(rr.qname, std::atoi(parts.at(0).c_str()), DNSName(parts.at(1))));
+        svcbTargets.emplace(std::make_tuple(rr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint)));
         svcbRecords.insert(rr.qname);
         break;
       case QType::HTTPS:
-        if (std::atoi(parts.at(0).c_str()) == 0) {
+        if (svcbrc->getPriority() == 0) {
           if (httpsAliases.find(rr.qname) != httpsAliases.end()) {
             cout << "[Warning] More than one Alias form HTTPS record for " << rr.qname << " exists." << endl;
             numwarnings++;
           }
           httpsAliases.insert(rr.qname);
         }
-        httpsTargets.emplace(std::make_tuple(rr.qname, std::atoi(parts.at(0).c_str()), DNSName(parts.at(1))));
+        httpsTargets.emplace(std::make_tuple(rr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint)));
         httpsRecords.insert(rr.qname);
         break;
       }
@@ -593,6 +624,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     const auto& name = std::get<0>(svcb);
     const auto& target = std::get<2>(svcb);
     auto prio = std::get<1>(svcb);
+    auto v4hintsAuto = std::get<3>(svcb);
+    auto v6hintsAuto = std::get<4>(svcb);
 
     if (name == target) {
       cout<<"[Error] SVCB record "<<name<<" has itself as target."<<endl;
@@ -611,12 +644,26 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         }
       }
     }
+
+    auto trueTarget = target.isRoot() ? name : target;
+    if (prio > 0) {
+      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
+        cout << "[warning] SVCB record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
+        cout << "[warning] SVCB record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+    }
   }
 
   for (const auto &httpsRecord : httpsTargets) {
     const auto& name = std::get<0>(httpsRecord);
     const auto& target = std::get<2>(httpsRecord);
     auto prio = std::get<1>(httpsRecord);
+    auto v4hintsAuto = std::get<3>(httpsRecord);
+    auto v6hintsAuto = std::get<4>(httpsRecord);
 
     if (name == target) {
       cout<<"[Error] HTTPS record "<<name<<" has itself as target."<<endl;
@@ -633,6 +680,18 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
           cout<<"[Error] HTTPS record "<<name<<" has a target "<<target<<" that has neither address nor HTTPS records."<<endl;
           numerrors++;
         }
+      }
+    }
+
+    auto trueTarget = target.isRoot() ? name : target;
+    if (prio > 0) {
+      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
+        cout << "[warning] HTTPS record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
+        cout << "[warning] HTTPS record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
       }
     }
   }

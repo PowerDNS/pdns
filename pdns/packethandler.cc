@@ -55,6 +55,7 @@
 AtomicCounter PacketHandler::s_count;
 NetmaskGroup PacketHandler::s_allowNotifyFrom;
 set<string> PacketHandler::s_forwardNotify;
+bool PacketHandler::s_SVCAutohints{false};
 
 extern string s_programname;
 
@@ -463,17 +464,9 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
     while (B.get(rr)) {
       rr.dr.d_place = DNSResourceRecord::ADDITIONAL;
       switch (qtype) {
-        case QType::SVCB: {
-          auto rrc = getRR<SVCBRecordContent>(rr.dr);
-          r->addRecord(std::move(rr));
-          ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
-          if (rrc->getPriority() == 0) {
-            done = false;
-          }
-          break;
-        }
+        case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
-          auto rrc = getRR<HTTPSRecordContent>(rr.dr);
+          auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
           r->addRecord(std::move(rr));
           ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
           if (rrc->getPriority() == 0) {
@@ -512,17 +505,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         case QType::SRV:
           content=getRR<SRVRecordContent>(rr.dr)->d_target;
           break;
-        case QType::SVCB: {
-          auto rrc = getRR<SVCBRecordContent>(rr.dr);
-          content = rrc->getTarget();
-          if (content.isRoot()) {
-            content = rr.dr.d_name;
-          }
-          content = doAdditionalServiceProcessing(content, rr.dr.d_type, r);
-          break;
-        }
+        case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
-          auto rrc = getRR<HTTPSRecordContent>(rr.dr);
+          auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
           content = rrc->getTarget();
           if (content.isRoot()) {
             content = rr.dr.d_name;
@@ -538,6 +523,33 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
       }
     }
   }
+  // TODO should we have a setting to do this?
+  for (auto &rec : r->getServiceRecords()) {
+    // Process auto hints
+    auto rrc = getRR<SVCBBaseRecordContent>(rec->dr);
+    DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
+    if (rrc->autoHint(SvcParam::ipv4hint) && s_SVCAutohints) {
+      auto hints = getIPAddressFor(target, QType::A);
+      if (hints.size() == 0) {
+        rrc->removeParam(SvcParam::ipv4hint);
+      } else {
+        rrc->setHints(SvcParam::ipv4hint, hints);
+      }
+    } else {
+      rrc->removeParam(SvcParam::ipv4hint);
+    }
+
+    if (rrc->autoHint(SvcParam::ipv6hint) && s_SVCAutohints) {
+      auto hints = getIPAddressFor(target, QType::AAAA);
+      if (hints.size() == 0) {
+        rrc->removeParam(SvcParam::ipv6hint);
+      } else {
+        rrc->setHints(SvcParam::ipv6hint, hints);
+      }
+    } else {
+      rrc->removeParam(SvcParam::ipv6hint);
+    }
+  }
 
   DNSZoneRecord dzr;
   for(const auto& name : lookup) {
@@ -551,6 +563,24 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
   }
 }
 
+vector<ComboAddress> PacketHandler::getIPAddressFor(const DNSName &target, const uint16_t qtype) {
+  vector<ComboAddress> ret;
+  if (qtype != QType::A && qtype != QType::AAAA) {
+    return ret;
+  }
+  B.lookup(qtype, target, d_sd.domain_id);
+  DNSZoneRecord rr;
+  while (B.get(rr)) {
+    if (qtype == QType::AAAA) {
+      auto aaaarrc = getRR<AAAARecordContent>(rr.dr);
+      ret.push_back(aaaarrc->getCA());
+    } else if (qtype == QType::A) {
+      auto arrc = getRR<ARecordContent>(rr.dr);
+      ret.push_back(arrc->getCA());
+    }
+  }
+  return ret;
+}
 
 void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode)
 {

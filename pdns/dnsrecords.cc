@@ -732,6 +732,67 @@ string APLRecordContent::getZoneRepresentation(bool noDot) const {
 
 /* APL end */
 
+/* SVCB start */
+bool SVCBBaseRecordContent::autoHint(const SvcParam::SvcParamKey &key) const {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
+    return false;
+  }
+  return p->getAutoHint();
+}
+
+void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std::vector<ComboAddress> &addresses) {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
+    return;
+  }
+  std::vector<ComboAddress> h;
+  h.reserve(h.size() + addresses.size());
+  h.insert(h.end(), addresses.begin(), addresses.end());
+  try {
+    auto newParam = SvcParam(key, std::move(h));
+    d_params.erase(p);
+    d_params.insert(newParam);
+  } catch(...) {
+    // XXX maybe we should SERVFAIL instead?
+    return;
+  }
+}
+
+void SVCBBaseRecordContent::removeParam(const SvcParam::SvcParamKey &key) {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
+    return;
+  }
+  d_params.erase(p);
+}
+
+bool SVCBBaseRecordContent::hasParams() const {
+  return d_params.size() > 0;
+}
+
+bool SVCBBaseRecordContent::hasParam(const SvcParam::SvcParamKey &key) const {
+  return getParamIt(key) != d_params.end();
+}
+
+SvcParam SVCBBaseRecordContent::getParam(const SvcParam::SvcParamKey &key) const {
+  auto p = getParamIt(key);
+  if (p == d_params.end()) {
+    throw std::out_of_range("No param with key " + SvcParam::keyToString(key));
+  }
+  return *p;
+}
+
+set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::SvcParamKey &key) const {
+  auto p = std::find_if(d_params.begin(), d_params.end(),
+      [&key](const SvcParam &param) {
+        return param.getKey() == key;
+      });
+  return p;
+}
+
+/* SVCB end */
+
 boilerplate_conv(TKEY,
                  conv.xfrName(d_algo);
                  conv.xfr32BitInt(d_inception);

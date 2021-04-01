@@ -129,6 +129,7 @@ apowerdnscom
 appliedpolicy
 appliedpolicytype
 appname
+autohints
 APTR
 APublic
 AQEX

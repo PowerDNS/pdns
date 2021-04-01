@@ -227,4 +227,168 @@ BOOST_AUTO_TEST_CASE(test_getCarbonHostName)
   BOOST_CHECK_EQUAL(my_hostname.size(), hostname.size());
 }
 
+BOOST_AUTO_TEST_CASE(test_parseRFC1035CharString)
+{
+  string in;
+  string out;
+  string expected;
+  size_t amount;
+
+  in = "foobar123";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, "foobar123");
+
+  in = "foobar123\\,bazquux456";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, "foobar123,bazquux456");
+
+  in = string("\"")+string(16262, 'A')+string("\"");
+  expected = string(16262, 'A');
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "hello\\044world\\002";
+  expected = "hello,world\x02";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "\"hello\\044world\"";
+  expected = "hello,world";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // Here we'll only read until the space
+  in = "hello world";
+  expected = "hello";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, 5);
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // \032 is a space, but it is read because it is escaped
+  in = "hello\\032world";
+  expected = "hello world";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "\"hello\\032world\"";
+  expected = "hello world";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = "\"hello\\032world XXXX\"";
+  expected = "hello world XXXX";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  // From draft-ietf-dnsop-svcb-https-03
+  expected = R"FOO(part1,part2,part3\,part4\\)FOO";
+  in = R"FOO("part1,part2,part3\\,part4\\\\)FOO";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+
+  in = R"FOO(part1\,\p\a\r\t2\044part3\092,part4\092\\)FOO";
+  amount = parseRFC1035CharString(in, out);
+  BOOST_CHECK_EQUAL(amount, in.size());
+  BOOST_CHECK_EQUAL(out, expected);
+}
+
+BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
+{
+  vector<string> out;
+
+  // From draft-ietf-dnsop-svcb-https-03
+  vector<string> expected = {"part1", "part2", "part3,part4\\"};
+  parseSVCBValueList(R"FOO("part1,part2,part3\\,part4\\\\)FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), expected.size());
+  BOOST_CHECK_EQUAL(out[0], expected[0]);
+  BOOST_CHECK_EQUAL(out[1], expected[1]);
+  BOOST_CHECK_EQUAL(out[2], expected[2]);
+
+  parseSVCBValueList(R"FOO(part1\,\p\a\r\t2\044part3\092,part4\092\\)FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), expected.size());
+  BOOST_CHECK_EQUAL(out[0], expected[0]);
+  BOOST_CHECK_EQUAL(out[1], expected[1]);
+  BOOST_CHECK_EQUAL(out[2], expected[2]);
+
+  // Our tests
+  parseSVCBValueList("foobar123", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+
+  parseSVCBValueList("h2,h3", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "h2");
+  BOOST_CHECK_EQUAL(out[1], "h3");
+
+  parseSVCBValueList("h2,h3-19,h3-20,h3-22", out);
+  BOOST_CHECK_EQUAL(out.size(), 4);
+  BOOST_CHECK_EQUAL(out[0], "h2");
+  BOOST_CHECK_EQUAL(out[1], "h3-19");
+  BOOST_CHECK_EQUAL(out[2], "h3-20");
+  BOOST_CHECK_EQUAL(out[3], "h3-22");
+
+  parseSVCBValueList("foobar123,bazquux456", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+  BOOST_CHECK_EQUAL(out[1], "bazquux456");
+
+  parseSVCBValueList(R"FOO(foobar123\\,bazquux456)FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  parseSVCBValueList(R"FOO(foobar123\\\044bazquux456)FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  // Again, but quoted
+  parseSVCBValueList("\"foobar123\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+
+  parseSVCBValueList("\"foobar123,bazquux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+  BOOST_CHECK_EQUAL(out[1], "bazquux456");
+
+  parseSVCBValueList(R"FOO("foobar123\\,bazquux456")FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  parseSVCBValueList(R"FOO("foobar123\\\044bazquux456")FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
+
+  // Quoted, with some whitespace
+  parseSVCBValueList("\"foobar123 \"", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 ");
+
+  parseSVCBValueList("\"foobar123 blabla bla,baz quux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla");
+  BOOST_CHECK_EQUAL(out[1], "baz quux456");
+
+  parseSVCBValueList("\"foobar123,baz quux456\"", out);
+  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out[0], "foobar123");
+  BOOST_CHECK_EQUAL(out[1], "baz quux456");
+
+  parseSVCBValueList(R"FOO("foobar123 blabla bla\\,baz quux456")FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
+
+  parseSVCBValueList(R"FOO("foobar123 blabla bla\\\044baz quux456")FOO", out);
+  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

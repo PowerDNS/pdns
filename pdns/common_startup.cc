@@ -33,6 +33,7 @@
 #include "misc.hh"
 #include "query-local-address.hh"
 #include "trusted-notification-proxy.hh"
+#include "packethandler.hh"
 
 #include <thread>
 
@@ -238,6 +239,7 @@ void declareArguments()
 
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
+  ::arg().setSwitch("svc-autohints", "Transparently fill ipv6hint=auto ipv4hint=auto SVC params with AAAA/A records for the target name of the record (if within the same zone)")="no";
 
   ::arg().setSwitch("consistent-backends", "Assume individual domains are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups")="no";
 
@@ -549,6 +551,7 @@ void mainthread()
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+   PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
 
    PC.setTTL(::arg().asNum("cache-ttl"));
    PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
