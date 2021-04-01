@@ -718,6 +718,15 @@ bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error, string& info
   return true;
 }
 
+
+struct RecordStatus
+{
+  DNSName ordername;
+  bool auth{false};
+  bool update{false};
+};
+
+
 /* Rectifies the zone
  *
  * \param zone The zone to rectify
@@ -757,23 +766,9 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   ostringstream infostream;
   DNSResourceRecord rr;
   set<DNSName> qnames, nsset, dsnames, insnonterm, delnonterm;
-  map<DNSName,bool> nonterm;
+  std::unordered_map<DNSName,bool> nonterm;
   vector<DNSResourceRecord> rrs;
-
-  while(sd.db->get(rr)) {
-    rr.qname.makeUsLowerCase();
-    if (rr.qtype.getCode())
-    {
-      rrs.push_back(rr);
-      qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
-        nsset.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::DS)
-        dsnames.insert(rr.qname);
-    }
-    else
-      delnonterm.insert(rr.qname);
-  }
+  std::unordered_map<DNSName,RecordStatus> rss;
 
   NSEC3PARAMRecordContent ns3pr;
   bool securedZone = isSecuredZone(zone, doTransaction);
@@ -782,23 +777,49 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   if(securedZone) {
     haveNSEC3 = getNSEC3PARAM(zone, &ns3pr, &narrow, doTransaction);
     isOptOut = (haveNSEC3 && ns3pr.d_flags);
+  }
 
+  while(sd.db->get(rr)) {
+    rr.qname.makeUsLowerCase();
+
+    auto res=rss.insert({rr.qname,{rr.ordername, rr.auth, rr.ordername.empty() != (!securedZone || narrow)}}); // only a set ordername is reliable
+    if (!res.second && !res.first->second.update) {
+      res.first->second.update = res.first->second.auth != rr.auth || res.first->second.ordername != rr.ordername;
+    }
+    else if ((!securedZone || narrow) && rr.qname == zone) {
+      res.first->second.update = true;
+    }
+
+    if (rr.qtype.getCode())
+    {
+      qnames.insert(rr.qname);
+      if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
+        nsset.insert(rr.qname);
+      if(rr.qtype.getCode() == QType::DS)
+        dsnames.insert(rr.qname);
+      rrs.emplace_back(rr);
+    }
+    else
+      delnonterm.insert(std::move(rr.qname));
+  }
+
+  if(securedZone) {
     if(!haveNSEC3) {
-      infostream<<"Adding NSEC ordering information ";
+      infostream<<"Adding NSEC ordering information for zone '"<<zone<<"'";
     }
     else if(!narrow) {
       if(!isOptOut) {
-        infostream<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'";
+        infostream<<"Adding NSEC3 hashed ordering information for zone '"<<zone<<"'";
       }
       else {
-        infostream<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'";
+        infostream<<"Adding NSEC3 opt-out hashed ordering information for zone '"<<zone<<"'";
       }
     } else {
-      infostream<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields";
+      infostream<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields for zone '"<<zone<<"'";
     }
   }
   else {
-    infostream<<"Adding empty non-terminals for non-DNSSEC zone";
+    infostream<<"Adding empty non-terminals for non-DNSSEC zone '"<<zone<<"'";
   }
 
   set<DNSName> nsec3set;
@@ -831,9 +852,11 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
 
   bool realrr=true;
   bool doent=true;
+  int updates=0;
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   dononterm:;
+  std::unordered_map<DNSName,RecordStatus>::const_iterator it;
   for (const auto& qname: qnames)
   {
     bool auth=true;
@@ -861,20 +884,32 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
       }
     }
     else if (realrr && securedZone) // NSEC
+    {
       ordername=qname.makeRelative(zone);
+    }
 
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
+    it = rss.find(qname);
+    if(it == rss.end() || it->second.update || it->second.auth != auth || it->second.ordername != ordername) {
+      sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
+      ++updates;
+    }
 
     if(realrr)
     {
-      if (dsnames.count(qname))
+      if (dsnames.count(qname)) {
         sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
+        ++updates;
+      }
       if (!auth || nsset.count(qname)) {
         ordername.clear();
-        if(isOptOut && !dsnames.count(qname))
+        if(isOptOut && !dsnames.count(qname)){
           sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
+          ++updates;
+        }
         sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
+        ++updates;
         sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
+        ++updates;
       }
 
       if(doent)
@@ -930,6 +965,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   if (doTransaction)
     sd.db->commitTransaction();
 
+  infostream<<", "<<updates<<" updates";
   info = infostream.str();
   return true;
 }

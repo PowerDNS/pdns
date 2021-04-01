@@ -264,6 +264,7 @@ protected:
     return d_inTransaction;
   }
 
+  bool d_list{false};
   string d_query_name;
   DNSName d_qname;
   SSqlStatement::result_t d_result;

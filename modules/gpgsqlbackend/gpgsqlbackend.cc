@@ -102,7 +102,7 @@ public:
     declare(suffix, "any-query", "Any query", record_query + " disabled=false and name=$1");
     declare(suffix, "any-id-query", "Any with ID query", record_query + " disabled=false and name=$1 and domain_id=$2");
 
-    declare(suffix, "list-query", "AXFR query", record_query + " (disabled=false OR $1) and domain_id=$2 order by name, type");
+    declare(suffix, "list-query", "AXFR query", "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int,ordername FROM records WHERE (disabled=false OR $1) and domain_id=$2 order by name, type");
     declare(suffix, "list-subzone-query", "Subzone listing", record_query + " disabled=false and (name=$1 OR name like $2) and domain_id=$3");
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=$1 and type is null");

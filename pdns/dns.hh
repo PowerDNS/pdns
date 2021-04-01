@@ -90,6 +90,7 @@ public:
 
   // data
   DNSName qname; //!< the name of this record, for example: www.powerdns.com
+  DNSName ordername;
   DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
 

@@ -1144,6 +1144,7 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, int domain_id,
     throw PDNSException("GSQLBackend unable to lookup '" + qname.toLogString() + "|" + qtype.getName() + "':"+e.txtReason());
   }
 
+  d_list=false;
   d_qname=qname;
 }
 
@@ -1165,7 +1166,9 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
     throw PDNSException("GSQLBackend unable to list domain '" + target.toLogString() + "': "+e.txtReason());
   }
 
+  d_list=true;
   d_qname.clear();
+
   return true;
 }
 
@@ -1187,7 +1190,10 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
   }
+
+  d_list=false;
   d_qname.clear();
+
   return true;
 }
 
@@ -1200,7 +1206,12 @@ skiprow:
   if((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(row);
-      ASSERT_ROW_COLUMNS(d_query_name, row, 8);
+      if (!d_list) {
+        ASSERT_ROW_COLUMNS(d_query_name, row, 8); // lookup(), listSubZone()
+      }
+      else {
+        ASSERT_ROW_COLUMNS(d_query_name, row, 9); // list()
+      }
     } catch (SSqlException &e) {
       throw PDNSException("GSQLBackend get: "+e.txtReason());
     }
@@ -1888,6 +1899,18 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   r.disabled = !row[5].empty() && row[5][0]=='1';
 
   r.domain_id=pdns_stou(row[4]);
+
+  if (row.size() > 8) {   // if column 8 exists, it holds an ordername
+    if (!row.at(8).empty()) {
+      r.ordername=DNSName(boost::replace_all_copy(row.at(8), " ", ".")).labelReverse();
+    }
+    else {
+      r.ordername.clear();
+    }
+  }
+  else {
+    r.ordername.clear();
+  }
 }
 
 void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
