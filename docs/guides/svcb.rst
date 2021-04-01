@@ -13,15 +13,15 @@ This can be enabled by setting :ref:`setting-svc-autohint` to 'yes'.
 
 Consider the following zone content::
 
-  example.com      IN HTTPS 0 www.example.com
+  example.org      IN HTTPS 0 www.example.org
 
-  www.example.com  IN HTTPS 1 . ipv4hint=auto
-  www.example.com  IN A     192.0.2.1
-  www.example.com  IN AAAA  2001:db8::1
+  www.example.org  IN HTTPS 1 . ipv4hint=auto
+  www.example.org  IN A     192.0.2.1
+  www.example.org  IN AAAA  2001:db8::1
 
-  ipv6.example.com IN HTTPS 1 . ipv6hint=auto
-  ipv6.example.com IN AAAA  2001:db8::2
-  ipv6.example.com IN AAAA  2001:db8::3
+  ipv6.example.org IN HTTPS 1 . ipv6hint=auto
+  ipv6.example.org IN AAAA  2001:db8::2
+  ipv6.example.org IN AAAA  2001:db8::3
 
 A query for ``example.org|HTTPS`` will be responded to like this::
 
@@ -29,7 +29,7 @@ A query for ``example.org|HTTPS`` will be responded to like this::
   ;example.org.			IN	HTTPS
 
   ;; ANSWER SECTION:
-  example.org.		3600	IN	HTTPS	0 www.example.com
+  example.org.		3600	IN	HTTPS	0 www.example.org
 
   ;; ADDITIONAL SECTION:
   www.example.org.	3600	IN	A	192.0.2.1
@@ -39,7 +39,7 @@ A query for ``example.org|HTTPS`` will be responded to like this::
 Notice that PowerDNS did additional processing and added the target HTTPS record, and the address records to the additional section.
 Also notice that the ipv4hint in the ``www.example.org|HTTPS`` records is set to the value of the A record.
 
-PowerDNS takes all the corresponding address records, e.g. when asking for ipv6.example.com::
+PowerDNS takes all the corresponding address records, e.g. when asking for ipv6.example.org::
 
   ;; QUESTION SECTION:
   ;ipv6.example.org.		IN	HTTPS
@@ -60,10 +60,10 @@ When no address records exist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Consider the following zone content::
 
-  no-ipv6.example.com  IN HTTPS 1 . ipv4hint=auto ipv6hint=auto
-  no-ipv6.example.com  IN A     192.0.2.2
+  no-ipv6.example.org  IN HTTPS 1 . ipv4hint=auto ipv6hint=auto
+  no-ipv6.example.org  IN A     192.0.2.2
 
-Here, no AAAA record exists for www.example.com, so PowerDNS can not put any data in the ipv6hint.
+Here, no AAAA record exists for www.example.org, so PowerDNS can not put any data in the ipv6hint.
 In this case, the ipv6hint parameter is dropped when answering the query (and on AXFR)::
 
   ;; QUESTION SECTION:
