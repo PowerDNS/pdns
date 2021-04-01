@@ -794,6 +794,21 @@ If set, EDNS options in incoming queries are extracted and passed to the :func:`
 
 If set, the root-hints are read from this file. If unset, default root hints are used.
 
+.. _setting-ignore-unknown-settings:
+
+``ignore-unknown-settings``
+---------------------------
+
+.. versionadded:: 4.6.0
+
+-  Setting names, separated by commas
+-  Default: empty
+
+Names of settings to be ignored while parsing configuration files, if the setting
+name is unknown to PowerDNS.
+
+Useful during upgrade testing.
+
 .. _setting-include-dir:
 
 ``include-dir``

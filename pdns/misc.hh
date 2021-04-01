@@ -80,7 +80,7 @@ struct ServiceTuple
 };
 void parseService(const string &descr, ServiceTuple &st);
 
-template <typename Container>
+template<typename Container>
 void
 stringtok (Container &container, string const &in,
            const char * const delimiters = " \t\n")

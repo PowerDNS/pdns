@@ -705,6 +705,21 @@ or slave settings.
 
 Run within a guardian process. See :ref:`running-guardian`.
 
+.. _setting-ignore-unknown-settings:
+
+``ignore-unknown-settings``
+---------------------------
+
+.. versionadded:: 4.5.0
+
+-  Setting names, separated by commas
+-  Default: empty
+
+Names of settings to be ignored while parsing configuration files, if the setting
+name is unknown to PowerDNS.
+
+Useful during upgrade testing.
+
 .. _setting-include-dir:
 
 ``include-dir``

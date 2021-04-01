@@ -120,8 +120,9 @@ public:
   void gatherIncludes(std::vector<std::string> &extraConfigs);
 private:
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
-  typedef map<string,string> params_t;
-  params_t params;
+  const string formatOne(bool running, bool full, const string &var, const string &help, const string& theDefault, const string& value);
+  map<string,string> d_params;
+  map<string,string> d_unknownParams;
   map<string,string> helpmap;
   map<string,string> defaultmap;
   map<string,string> d_typeMap;
