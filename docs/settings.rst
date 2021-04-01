@@ -1012,10 +1012,13 @@ means unlimited.
 ------------------------
 
 -  Integer
--  Default: 500
+-  Default: 100
 
 Limit the number of NSEC3 hash iterations for zone configurations.
 For more information see :ref:`dnssec-operational-nsec-modes-params`.
+
+.. note::
+  Pre 4.5.0 the default was 500.
 
 .. _setting-max-packet-cache-entries:
 
