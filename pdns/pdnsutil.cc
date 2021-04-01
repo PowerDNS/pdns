@@ -3330,14 +3330,14 @@ try
   } else if (cmds[0]=="activate-tsig-key") {
      string metaKey;
      if (cmds.size() < 4) {
-        cerr << "Syntax: " << cmds[0] << " ZONE NAME {master|slave}" << endl;
+        cerr << "Syntax: " << cmds[0] << " ZONE NAME {primary|secondary|master|slave}" << endl;
         return 0;
      }
      DNSName zname(cmds[1]);
      string name = cmds[2];
-     if (cmds[3] == "master")
+     if (cmds[3] == "master" || cmds[3] == "primary")
         metaKey = "TSIG-ALLOW-AXFR";
-     else if (cmds[3] == "slave")
+     else if (cmds[3] == "slave" || cmds[3] == "secondary")
         metaKey = "AXFR-MASTER-TSIG";
      else {
         cerr << "Invalid parameter '" << cmds[3] << "', expected master or slave" << endl;
@@ -3374,9 +3374,9 @@ try
      }
      DNSName zname(cmds[1]);
      string name = cmds[2];
-     if (cmds[3] == "master")
+     if (cmds[3] == "master" || cmds[3] == "primary")
         metaKey = "TSIG-ALLOW-AXFR";
-     else if (cmds[3] == "slave")
+     else if (cmds[3] == "slave" || cmds[3] == "secondary")
         metaKey = "AXFR-MASTER-TSIG";
      else {
         cerr << "Invalid parameter '" << cmds[3] << "', expected master or slave" << endl;

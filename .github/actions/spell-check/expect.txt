@@ -95,8 +95,10 @@ autohint
 automagically
 automake
 Automattic
+autoprimary
 autoptr
 autoreconf
+autosecondary
 autoserial
 autotools
 AXF

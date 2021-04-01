@@ -58,7 +58,7 @@ Simple read-only native backends
 --------------------------------
 
 Implementing a backend consists of inheriting from the DNSBackend class.
-For read-only backends, which do not support slave operation, only the
+For read-only backends, which do not support secondary operation, only the
 following methods are relevant:
 
 .. code-block:: cpp
@@ -316,7 +316,7 @@ Classes
 
 .. cpp:member:: string SOAData::nameserver
 
-  Name of the master nameserver of this zone
+  Name of the primary nameserver of this zone
 
 .. cpp:member:: string SOAData::hostmaster
 
@@ -348,7 +348,7 @@ Classes
 
 .. cpp:member:: DNSBackend* SOAData::db
 
-  Pointer to the backend that feels authoritative for a domain and can act as a slave
+  Pointer to the backend that feels authoritative for a domain and can act as a secondary
 
 Methods
 ~~~~~~~
@@ -517,23 +517,24 @@ available. The exact definitions:
 
 
 .. _rw-slave:
+.. _rw-secondary:
 
-Read/write slave-capable backends
----------------------------------
+Read/write secondary-capable backends
+-------------------------------------
 
 The backends above are 'natively capable' in that they contain all data
 relevant for a domain and do not pull in data from other nameservers. To
 enable storage of information, a backend must be able to do more.
 
 Before diving into the details of the implementation some theory is in
-order. Slave domains are pulled from the master. PowerDNS needs to know
-for which domains it is to be a slave, and for each slave domain, what
-the IP address of the master is.
+order. Secondary domains are pulled from the primary. PowerDNS needs to know
+for which domains it is to be a secondary, and for each secondary domain, what
+the IP address of the primary is.
 
-A slave zone is pulled from a master, after which it is 'fresh', but
+A secondary zone is pulled from a primary, after which it is 'fresh', but
 this is only temporary. In the SOA record of a zone there is a field
 which specifies the 'refresh' interval. After that interval has elapsed,
-the slave nameserver needs to check at the master if the serial number
+the secondary nameserver needs to check at the primary if the serial number
 there is higher than what is stored in the backend locally.
 
 If this is the case, PowerDNS dubs the domain 'stale', and schedules a
@@ -579,7 +580,7 @@ The mentioned DomainInfo struct looks like this:
 
 .. cpp:member:: string DomainInfo::master
 
-  IP address of the master of this domain, if any
+  IP address of the primary of this domain, if any
 
 .. cpp:member:: uint32_t DomainInfo::serial
 
@@ -587,11 +588,11 @@ The mentioned DomainInfo struct looks like this:
 
 .. cpp:member:: uint32_t DomainInfo::notified_serial
 
-  Last serial number of this zone that slaves have seen
+  Last serial number of this zone that secondaries have seen
 
 .. cpp:member:: time_t DomainInfo::last_check
 
-  Last time this zone was checked over at the master for changes
+  Last time this zone was checked over at the primary for changes
 
 .. cpp:member:: enum DomainKind DomainInfo::kind
 
@@ -599,7 +600,7 @@ The mentioned DomainInfo struct looks like this:
 
 .. cpp:member:: DNSBackend* DomainInfo::backend
 
-  Pointer to the backend that feels authoritative for a domain and can act as a slave
+  Pointer to the backend that feels authoritative for a domain and can act as a secondary
 
 .. cpp:enum:: DomainKind
 
@@ -607,21 +608,21 @@ The mentioned DomainInfo struct looks like this:
 
 These functions all have a default implementation that returns false -
 which explains that these methods can be omitted in simple backends.
-Furthermore, unlike with simple backends, a slave capable backend must
+Furthermore, unlike with simple backends, a secondary capable backend must
 make sure that the 'DNSBackend \*db' field of the SOAData record is
 filled out correctly - it is used to determine which backend will house
 this zone.
 
 .. cpp:function:: bool DomainInfo::isMaster(const string &name, const string &ip)
 
-  If a backend considers itself a slave for the domain **name** and if the
-  IP address in **ip** is indeed a master, it should return true. False
+  If a backend considers itself a secondary for the domain **name** and if the
+  IP address in **ip** is indeed a primary, it should return true. False
   otherwise. This is a first line of checks to guard against reloading a
   domain unnecessarily.
 
 .. cpp:function:: void DomainInfo::getUnfreshSlaveInfos(vector\<DomainInfo\>* domains)
 
-  When called, the backend should examine its list of slave domains and
+  When called, the backend should examine its list of secondary domains and
   add any unfresh ones to the domains vector.
 
 .. cpp:function:: bool DomainInfo::getDomainInfo(const string &name, DomainInfo & di)
@@ -679,10 +680,10 @@ The actual code in PowerDNS is currently:
         db->setFresh(domain_id);
         g_log<<Logger::Error<<"AXFR done for '"<<domain<<"'"<<endl;
 
-Supermaster/Superslave capability
----------------------------------
+Autoprimary/autosecondary capability
+------------------------------------
 
-A backend that wants to act as a 'superslave' for a master should
+A backend that wants to act as an 'autosecondary' (formerly 'superslave') for a primary should
 implement the following method:
 
 .. code-block:: cpp
@@ -693,25 +694,25 @@ implement the following method:
                 };
 
 This function gets called with the IP address of the potential
-supermaster, the domain it is sending a notification for and the set of
+autoprimary, the domain it is sending a notification for and the set of
 NS records for this domain at that IP address.
 
 Using the supplied data, the backend needs to determine if this is a
 bonafide 'supernotification' which should be honoured. If it decides
 that it should, the supplied pointer to 'account' needs to be filled
-with the configured name of the supermaster (if accounting is desired),
+with the configured name of the autoprimary (if accounting is desired),
 and the db needs to be filled with a pointer to your backend.
 
-Supermaster/superslave is a complicated concept, if this is all unclear
-see the :ref:`Supermaster and Superslave <supermaster-operation>`
+Autoprimary/autosecondary is a complicated concept, if this is all unclear
+see the :ref:`autoprimary-operation`
 documentation.
 
-Read/write master-capable backends
-----------------------------------
+Read/write primary-capable backends
+-----------------------------------
 
-In order to be a useful master for a domain, notifies must be sent out
+In order to be a useful primary for a domain, notifies must be sent out
 whenever a domain is changed. Periodically, PowerDNS queries backends
-for domains that may have changed, and sends out notifications for slave
+for domains that may have changed, and sends out notifications to secondary
 nameservers.
 
 In order to do so, PowerDNS calls the ``getUpdatedMasters()`` method.
@@ -732,7 +733,7 @@ The following excerpt from the DNSBackend shows the relevant functions:
 
 These functions all have a default implementation that returns false -
 which explains that these methods can be omitted in simple backends.
-Furthermore, unlike with simple backends, a slave capable backend must
+Furthermore, unlike with simple backends, a secondary capable backend must
 make sure that the 'DNSBackend \*db' field of the SOAData record is
 filled out correctly - it is used to determine which backend will house
 this zone.
@@ -751,7 +752,7 @@ DNS update support
 ------------------
 
 To make your backend DNS update compatible, it needs to implement a
-number of new functions and functions already used for slave-operation.
+number of new functions and functions already used for secondary operation.
 The new functions are not DNS update specific and might be used for
 other update/remove functionality at a later stage.
 

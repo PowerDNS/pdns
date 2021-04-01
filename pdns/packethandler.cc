@@ -950,7 +950,7 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& 
   string nameserver, account;
   DNSBackend *db;
 
-  if (!::arg().mustDo("allow-unsigned-supermaster") && tsigkeyname.empty()) {
+  if (!::arg().mustDo("allow-unsigned-autoprimary") && tsigkeyname.empty()) {
     g_log<<Logger::Error<<"Received unsigned NOTIFY for "<<p.qdomain<<" from potential supermaster "<<remote<<". Refusing."<<endl;
     return RCode::Refused;
   }
@@ -991,7 +991,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
 
   g_log<<Logger::Debug<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<endl;
 
-  if(!::arg().mustDo("slave") && s_forwardNotify.empty()) {
+  if(!::arg().mustDo("secondary") && s_forwardNotify.empty()) {
     g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::Refused;
   }
@@ -1026,7 +1026,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
   //
   DomainInfo di;
   if(!B.getDomainInfo(p.qdomain, di, false) || !di.backend) {
-    if(::arg().mustDo("superslave")) {
+    if(::arg().mustDo("autosecondary")) {
       g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
       return trySuperMaster(p, p.getTSIGKeyname());
     }
@@ -1041,7 +1041,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
     }
     g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from trusted-notification-proxy "<<p.getRemote()<<endl;
   }
-  else if(::arg().mustDo("master") && di.kind == DomainInfo::Master) {
+  else if(::arg().mustDo("primary") && di.kind == DomainInfo::Master) {
     g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" but we are master (Refused)"<<endl;
     return RCode::Refused;
   }
@@ -1058,7 +1058,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
     }
   }
 
-  if(::arg().mustDo("slave")) {
+  if(::arg().mustDo("secondary")) {
     g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemote()<<" - queueing check"<<endl;
     Communicator.addSlaveCheckRequest(di, p.d_remote);
   }
