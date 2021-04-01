@@ -81,9 +81,9 @@ public:
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=? and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=? and name=? and type is null");
 
-    declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,account from domains where name=?");
+    declare(suffix, "info-zone-query", "", "select domains.id,domains.name,domains.master,domains.last_check,domains.notified_serial,domains.type,domains.account,records.content FROM domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name AND records.disabled=0 WHERE domains.name=?");
 
-    declare(suffix, "info-all-slaves-query", "", "select id,name,master,last_check from domains where type='SLAVE'");
+    declare(suffix, "info-all-slaves-query", "", "select domains.id,domains.name,domains.master,domains.last_check,records.content FROM domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name AND records.disabled=0 WHERE domains.type='SLAVE'");
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=? and nameserver=?");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
     declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values (?,?,?)");

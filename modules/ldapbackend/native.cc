@@ -370,6 +370,7 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getS
 
     di.serial = sd.serial;
     di.zone = DNSName(domain);
+    di.zoneContentAvailable = true;
 
     if (result.count("PdnsDomainLastCheck") && !result["PdnsDomainLastCheck"].empty())
       di.last_check = pdns_stou(result["PdnsDomainLastCheck"][0]);
