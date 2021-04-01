@@ -417,6 +417,22 @@ boilerplate_conv(RKEY,
                  )
 RKEYRecordContent::RKEYRecordContent() {}
 
+boilerplate_conv(NID,
+                 conv.xfr16BitInt(d_preference);
+                 conv.xfrNodeOrLocatorID(d_node_id);)
+
+boilerplate_conv(L32,
+                 conv.xfr16BitInt(d_preference);
+                 conv.xfrIP(d_locator);)
+
+boilerplate_conv(L64,
+                 conv.xfr16BitInt(d_preference);
+                 conv.xfrNodeOrLocatorID(d_locator);)
+
+boilerplate_conv(LP,
+                 conv.xfr16BitInt(d_preference);
+                 conv.xfrName(d_fqdn, false);)
+
 /* EUI48 start */
 void EUI48RecordContent::report()
 {
@@ -882,6 +898,10 @@ void reportOtherTypes()
    APLRecordContent::report();
    IPSECKEYRecordContent::report();
    CSYNCRecordContent::report();
+   NIDRecordContent::report();
+   L32RecordContent::report();
+   L64RecordContent::report();
+   LPRecordContent::report();
 }
 
 void reportAllTypes()

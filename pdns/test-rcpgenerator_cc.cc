@@ -380,4 +380,24 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
         BOOST_CHECK_EQUAL(source, target);
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrNodeOrLocatorID) {
+  string source("0000:0000:0000:0001");
+  RecordTextReader rtr(source);
+  NodeOrLocatorID v;
+  rtr.xfrNodeOrLocatorID(v);
+  BOOST_CHECK_EQUAL(v[0], 0);
+  BOOST_CHECK_EQUAL(v[1], 0);
+  BOOST_CHECK_EQUAL(v[2], 0);
+  BOOST_CHECK_EQUAL(v[3], 0);
+  BOOST_CHECK_EQUAL(v[4], 0);
+  BOOST_CHECK_EQUAL(v[5], 0);
+  BOOST_CHECK_EQUAL(v[6], 0);
+  BOOST_CHECK_EQUAL(v[7], 1);
+
+  string target;
+  RecordTextWriter rtw(target);
+  rtw.xfrNodeOrLocatorID(v);
+  BOOST_CHECK_EQUAL(source, target);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

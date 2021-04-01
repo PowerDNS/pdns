@@ -812,6 +812,47 @@ public:
 private:
 };
 
+
+class NIDRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(NID);
+
+private:
+  uint16_t d_preference;
+  NodeOrLocatorID d_node_id;
+};
+
+class L32RecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(L32);
+
+private:
+  uint16_t d_preference;
+  uint32_t d_locator;
+};
+
+class L64RecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(L64);
+
+private:
+  uint16_t d_preference;
+  NodeOrLocatorID d_locator;
+};
+
+class LPRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(LP);
+
+private:
+  uint16_t d_preference;
+  DNSName d_fqdn;
+};
+
 class EUI48RecordContent : public DNSRecordContent 
 {
 public:

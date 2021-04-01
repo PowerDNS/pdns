@@ -50,6 +50,25 @@ void RecordTextReader::xfr48BitInt(uint64_t &val)
     throw RecordTextException("Overflow reading 48 bit integer from record content"); // fixme improve
 }
 
+void RecordTextReader::xfrNodeOrLocatorID(NodeOrLocatorID& val) {
+  skipSpaces();
+  size_t len;
+  for(len=0;
+      d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');
+      len++) ;   // find length of ID
+
+  // Parse as v6, and then strip the final 64 zero bytes
+  struct in6_addr tmpbuf;
+  string to_parse = d_string.substr(d_pos, len) + ":0:0:0:0";
+
+  if (inet_pton(AF_INET6, to_parse.c_str(), &tmpbuf) != 1) {
+    throw RecordTextException("while parsing colon-delimited 64-bit field: '" + d_string.substr(d_pos, len) + "' is invalid");
+  }
+
+  std::memcpy(&val, tmpbuf.s6_addr, sizeof(val));
+  d_pos += len;
+}
+
 void RecordTextReader::xfr64BitInt(uint64_t &val)
 {
   skipSpaces();
@@ -562,6 +581,24 @@ RecordTextWriter::RecordTextWriter(string& str, bool noDot) : d_string(str)
 {
   d_string.clear();
   d_nodot=noDot;
+}
+
+void RecordTextWriter::xfrNodeOrLocatorID(const NodeOrLocatorID& val)
+{
+  if(!d_string.empty()) {
+    d_string.append(1,' ');
+  }
+
+  size_t ctr = 0;
+  char tmp[5];
+  for (auto const &c : val) {
+    snprintf(tmp, sizeof(tmp), "%02X", c);
+    d_string+=tmp;
+    ctr++;
+    if (ctr % 2 == 0 && ctr != 8) {
+      d_string+=':';
+    }
+  }
 }
 
 void RecordTextWriter::xfr48BitInt(const uint64_t& val)
