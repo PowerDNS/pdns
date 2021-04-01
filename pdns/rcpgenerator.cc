@@ -601,7 +601,7 @@ void RecordTextWriter::xfrNodeOrLocatorID(const NodeOrLocatorID& val)
 
   size_t ctr = 0;
   char tmp[5];
-  for (auto const &c : val) {
+  for (auto const &c : val.content) {
     snprintf(tmp, sizeof(tmp), "%02X", c);
     d_string+=tmp;
     ctr++;
