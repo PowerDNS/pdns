@@ -881,6 +881,8 @@ jobs:
           context: gpgsql-nsec3-optout-both
       - auth-regress:
           context: gpgsql-nsec3-narrow
+      - auth-regress:
+          context: gpgsql_sp-both
 
   test-auth-regress-ldap:
     resource_class: small
