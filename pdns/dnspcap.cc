@@ -59,6 +59,13 @@ PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
   else throw runtime_error((boost::format("Unsupported link type %d") % d_pfh.linktype).str());
 
   d_runts = d_oversized = d_correctpackets = d_nonetheripudp = 0;
+
+  size_t alignmentCorrection = d_skipMediaHeader % alignof(struct ip);
+
+  d_buffer = d_readbuffer + alignmentCorrection;
+  d_bufsize = sizeof(d_readbuffer) - alignmentCorrection;
+
+  if (d_skipMediaHeader > d_bufsize) throw runtime_error("media header is too big");
 }
 
 void PcapPacketReader::checkedFreadSize(void* ptr, size_t size) 
@@ -85,9 +92,9 @@ try
       continue;
     }
 
-    if(d_pheader.caplen > sizeof(d_buffer)) {
+    if(d_pheader.caplen > d_bufsize) {
       d_oversized++;
-      throw runtime_error((boost::format("Can't handle a %d byte packet, have space for %d")  % d_pheader.caplen % sizeof(d_buffer)).str());
+      throw runtime_error((boost::format("Can't handle a %d byte packet, have space for %d")  % d_pheader.caplen % d_bufsize).str());
     }
 
     checkedFreadSize(d_buffer, d_pheader.caplen);
