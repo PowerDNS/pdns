@@ -82,10 +82,10 @@ class TestBrokenTCPFastOpen(DNSDistTest):
         url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
         content = r.json()
         self.assertTrue(len(content['servers']), 1)
         server = content['servers'][0]
         self.assertIn('tcpDiedReadingResponse', server)
-        self.assertEquals(server['tcpDiedReadingResponse'], self._testServerRetries)
+        self.assertEqual(server['tcpDiedReadingResponse'], self._testServerRetries)

@@ -21,11 +21,11 @@ class XPFTest(DNSDistTest):
         for add in msg.additional:
             if add.rdtype == self._xpfCode:
                 found = True
-                self.assertEquals(add.rdclass, dns.rdataclass.IN)
-                self.assertEquals(add.ttl, 0)
+                self.assertEqual(add.rdclass, dns.rdataclass.IN)
+                self.assertEqual(add.ttl, 0)
                 xpfData = add.to_rdataset()[0].to_text()
                 # skip the ports
-                self.assertEquals(xpfData[:26], expectedValue[:26])
+                self.assertEqual(xpfData[:26], expectedValue[:26])
 
         self.assertTrue(found)
 
@@ -53,7 +53,7 @@ class XPFTest(DNSDistTest):
         receivedResponse.id = response.id
 
         self.checkMessageHasXPF(receivedQuery, xpfData)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(response, receivedResponse)
 
         expectedQuery = dns.message.make_query(name, 'A', 'IN')
         # 0x04 is IPv4, 0x06 (6) is TCP then 127.0.0.1 as source and destination
@@ -72,4 +72,4 @@ class XPFTest(DNSDistTest):
         receivedResponse.id = response.id
 
         self.checkMessageHasXPF(receivedQuery, xpfData)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(response, receivedResponse)

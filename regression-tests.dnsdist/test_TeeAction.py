@@ -60,8 +60,8 @@ class TestTeeAction(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
             # retrieve the query from the Tee server
             teedQuery = self._fromTeeQueue.get(True, 2.0)
@@ -72,7 +72,7 @@ class TestTeeAction(DNSDistTest):
 
         # check the TeeAction stats
         stats = self.sendConsoleCommand("getAction(0):printStats()")
-        self.assertEquals(stats, """noerrors\t%d
+        self.assertEqual(stats, """noerrors\t%d
 nxdomains\t0
 other-rcode\t0
 queries\t%d
@@ -108,8 +108,8 @@ tcp-drops\t0
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
             # retrieve the query from the Tee server
             teedQuery = self._fromTeeQueue.get(True, 2.0)
@@ -120,7 +120,7 @@ tcp-drops\t0
 
         # check the TeeAction stats
         stats = self.sendConsoleCommand("getAction(0):printStats()")
-        self.assertEquals(stats, """noerrors\t%d
+        self.assertEqual(stats, """noerrors\t%d
 nxdomains\t0
 other-rcode\t0
 queries\t%d

@@ -42,8 +42,8 @@ class DNSCryptTest(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
 
 class TestDNSCrypt(DNSCryptTest):
@@ -104,8 +104,8 @@ class TestDNSCrypt(DNSCryptTest):
 
         self.assertTrue(receivedQuery)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse.question, response.question)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse.question, response.question)
         self.assertTrue(receivedResponse.flags & ~dns.flags.TC)
         self.assertTrue(len(receivedResponse.answer) == 0)
         self.assertTrue(len(receivedResponse.authority) == 0)
@@ -120,7 +120,7 @@ class TestDNSCrypt(DNSCryptTest):
 
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial)
 
         name = 'rotation.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -141,31 +141,31 @@ class TestDNSCrypt(DNSCryptTest):
         self.sendConsoleCommand("getDNSCryptBind(0):loadNewCertificate('DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2')")
 
         oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(0):getSerial()")
-        self.assertEquals(int(oldSerial), self._resolverCertificateSerial)
+        self.assertEqual(int(oldSerial), self._resolverCertificateSerial)
         effectiveSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getSerial()")
-        self.assertEquals(int(effectiveSerial), self._resolverCertificateSerial + 1)
+        self.assertEqual(int(effectiveSerial), self._resolverCertificateSerial + 1)
         tsStart = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getTSStart()")
-        self.assertEquals(int(tsStart), self._resolverCertificateValidFrom)
+        self.assertEqual(int(tsStart), self._resolverCertificateValidFrom)
         tsEnd = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getTSEnd()")
-        self.assertEquals(int(tsEnd), self._resolverCertificateValidUntil)
+        self.assertEqual(int(tsEnd), self._resolverCertificateValidUntil)
 
         # we should still be able to send queries with the previous certificate
         self.doDNSCryptQuery(client, query, response, False)
         self.doDNSCryptQuery(client, query, response, True)
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial)
 
         # but refreshing should get us the new one
         client.refreshResolverCertificates()
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial + 1)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial + 1)
         # we should still get the old ones
         certs = client.getAllResolverCertificates(True)
-        self.assertEquals(len(certs), 2)
-        self.assertEquals(certs[0].serial, self._resolverCertificateSerial)
-        self.assertEquals(certs[1].serial, self._resolverCertificateSerial + 1)
+        self.assertEqual(len(certs), 2)
+        self.assertEqual(certs[0].serial, self._resolverCertificateSerial)
+        self.assertEqual(certs[1].serial, self._resolverCertificateSerial + 1)
 
         # generate a third certificate, this time in memory
         self.sendConsoleCommand("getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 2, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
@@ -175,19 +175,19 @@ class TestDNSCrypt(DNSCryptTest):
         self.doDNSCryptQuery(client, query, response, True)
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial + 1)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial + 1)
 
         # but refreshing should get us the new one
         client.refreshResolverCertificates()
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial + 2)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial + 2)
         # we should still get the old ones
         certs = client.getAllResolverCertificates(True)
-        self.assertEquals(len(certs), 3)
-        self.assertEquals(certs[0].serial, self._resolverCertificateSerial)
-        self.assertEquals(certs[1].serial, self._resolverCertificateSerial + 1)
-        self.assertEquals(certs[2].serial, self._resolverCertificateSerial + 2)
+        self.assertEqual(len(certs), 3)
+        self.assertEqual(certs[0].serial, self._resolverCertificateSerial)
+        self.assertEqual(certs[1].serial, self._resolverCertificateSerial + 1)
+        self.assertEqual(certs[2].serial, self._resolverCertificateSerial + 2)
 
         # generate a fourth certificate, still in memory
         self.sendConsoleCommand("getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 3, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
@@ -201,7 +201,7 @@ class TestDNSCrypt(DNSCryptTest):
         self.doDNSCryptQuery(client, query, response, True)
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial + 2)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial + 2)
         # now remove them
         self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial))
         self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 1))
@@ -212,22 +212,22 @@ class TestDNSCrypt(DNSCryptTest):
             data = client.query(query.to_wire())
         except socket.timeout:
             data = None
-        self.assertEquals(data, None)
+        self.assertEqual(data, None)
 
         # refreshing should get us the fourth one
         client.refreshResolverCertificates()
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial + 3)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial + 3)
         # and only that one
         certs = client.getAllResolverCertificates(True)
-        self.assertEquals(len(certs), 1)
+        self.assertEqual(len(certs), 1)
         # and we should be able to query with it
         self.doDNSCryptQuery(client, query, response, False)
         self.doDNSCryptQuery(client, query, response, True)
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
-        self.assertEquals(cert.serial, self._resolverCertificateSerial + 3)
+        self.assertEqual(cert.serial, self._resolverCertificateSerial + 3)
 
 class TestDNSCryptWithCache(DNSCryptTest):
 
@@ -267,8 +267,8 @@ class TestDNSCryptWithCache(DNSCryptTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         misses += 1
 
         # second query should get a cached response
@@ -278,13 +278,13 @@ class TestDNSCryptWithCache(DNSCryptTest):
         if not self._fromResponderQueue.empty():
             receivedQuery = self._fromResponderQueue.get(query)
 
-        self.assertEquals(receivedQuery, None)
+        self.assertEqual(receivedQuery, None)
         self.assertTrue(receivedResponse)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(response, receivedResponse)
         total = 0
         for key in self._responsesCounter:
             total += self._responsesCounter[key]
-        self.assertEquals(total, misses)
+        self.assertEqual(total, misses)
 
 class TestDNSCryptAutomaticRotation(DNSCryptTest):
     _config_template = """

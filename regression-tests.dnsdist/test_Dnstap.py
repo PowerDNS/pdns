@@ -29,17 +29,17 @@ def checkDnstapBase(testinstance, dnstap, protocol, initiator):
     testinstance.assertTrue(dnstap.message.HasField('socket_protocol'))
     testinstance.assertEqual(dnstap.message.socket_protocol, protocol)
     testinstance.assertTrue(dnstap.message.HasField('socket_family'))
-    testinstance.assertEquals(dnstap.message.socket_family, dnstap_pb2.INET)
+    testinstance.assertEqual(dnstap.message.socket_family, dnstap_pb2.INET)
     testinstance.assertTrue(dnstap.message.HasField('query_address'))
-    testinstance.assertEquals(socket.inet_ntop(socket.AF_INET, dnstap.message.query_address), initiator)
+    testinstance.assertEqual(socket.inet_ntop(socket.AF_INET, dnstap.message.query_address), initiator)
     testinstance.assertTrue(dnstap.message.HasField('response_address'))
-    testinstance.assertEquals(socket.inet_ntop(socket.AF_INET, dnstap.message.response_address), initiator)
+    testinstance.assertEqual(socket.inet_ntop(socket.AF_INET, dnstap.message.response_address), initiator)
     testinstance.assertTrue(dnstap.message.HasField('response_port'))
-    testinstance.assertEquals(dnstap.message.response_port, testinstance._dnsDistPort)
+    testinstance.assertEqual(dnstap.message.response_port, testinstance._dnsDistPort)
   
 
 def checkDnstapQuery(testinstance, dnstap, protocol, query, initiator='127.0.0.1'):
-    testinstance.assertEquals(dnstap.message.type, dnstap_pb2.Message.CLIENT_QUERY)
+    testinstance.assertEqual(dnstap.message.type, dnstap_pb2.Message.CLIENT_QUERY)
     checkDnstapBase(testinstance, dnstap, protocol, initiator)
 
     testinstance.assertTrue(dnstap.message.HasField('query_time_sec'))
@@ -60,7 +60,7 @@ def checkDnstapNoExtra(testinstance, dnstap):
 
 
 def checkDnstapResponse(testinstance, dnstap, protocol, response, initiator='127.0.0.1'):
-    testinstance.assertEquals(dnstap.message.type, dnstap_pb2.Message.CLIENT_RESPONSE)
+    testinstance.assertEqual(dnstap.message.type, dnstap_pb2.Message.CLIENT_RESPONSE)
     checkDnstapBase(testinstance, dnstap, protocol, initiator)
 
     testinstance.assertTrue(dnstap.message.HasField('query_time_sec'))
@@ -190,8 +190,8 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # give the dnstap messages time to get here
         time.sleep(1)
@@ -211,8 +211,8 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # give the dnstap messages time to get here
         time.sleep(1)
@@ -256,8 +256,8 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # give the dnstap messages time to get here
         time.sleep(1)
@@ -276,8 +276,8 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # give the dnstap messages time to get here
         time.sleep(1)
@@ -422,8 +422,8 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # check the dnstap message corresponding to the UDP query
         dnstap = self.getFirstDnstap()
@@ -504,8 +504,8 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # check the dnstap message corresponding to the UDP query
         dnstap = self.getFirstDnstap()

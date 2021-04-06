@@ -26,11 +26,11 @@ class TestPrometheus(DNSDistTest):
                 self.assertGreaterEqual(len(tokens), 4)
             elif line.startswith('# TYPE'):
                 tokens = line.split(' ')
-                self.assertEquals(len(tokens), 4)
+                self.assertEqual(len(tokens), 4)
                 self.assertIn(tokens[3], ['counter', 'gauge', 'histogram'])
             elif not line.startswith('#'):
                 tokens = line.split(' ')
-                self.assertEquals(len(tokens), 2)
+                self.assertEqual(len(tokens), 2)
                 if not line.startswith('dnsdist_'):
                     raise AssertionError('Expecting prometheus metric to be prefixed by \'dnsdist_\', got: "%s"' % (line))
 
@@ -59,6 +59,6 @@ class TestPrometheus(DNSDistTest):
         url = 'http://127.0.0.1:' + str(self._webServerPort) + '/metrics'
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.checkPrometheusContentBasic(r.text)
         self.checkPrometheusContentPromtool(r.content)

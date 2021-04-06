@@ -954,7 +954,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         expectedResponse.answer = expectedRRs
         print(expectedResponse)
         print(response)
-        self.assertEquals(response, expectedResponse)
+        self.assertEqual(response, expectedResponse)
 
     @classmethod
     def sendQuery(cls, name, rdtype, useTCP=False):

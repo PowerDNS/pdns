@@ -39,12 +39,12 @@ class TestSNMP(DNSDistTest):
         # check that the queries, responses and rdQueries counters are now at queriesCountersValue
         for i in [1, 2, 28]:
             oid = self._snmpOID + '.1.' + str(i) + '.0'
-            self.assertEquals(results[oid], queriesCountersValue)
+            self.assertEqual(results[oid], queriesCountersValue)
 
         # the others counters (except for latency ones) should still be at 0
         for i in [3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 26, 27, 29, 30, 31, 35, 36]:
             oid = self._snmpOID + '.1.' + str(i) + '.0'
-            self.assertEquals(results[oid], 0)
+            self.assertEqual(results[oid], 0)
 
         # check the backend stats
         print(results)
@@ -58,25 +58,25 @@ class TestSNMP(DNSDistTest):
             self.assertTrue(isinstance(results[oid], OctetString))
 
         ## name
-        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.2.0']), "servername")
+        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.2.0']), "servername")
         ## weight
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.4.0'], 1)
+        self.assertEqual(results['1.3.6.1.4.1.43315.3.2.1.4.0'], 1)
         ## outstanding
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.5.0'], 0)
+        self.assertEqual(results['1.3.6.1.4.1.43315.3.2.1.5.0'], 0)
         ## qpslimit
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.6.0'], 0)
+        self.assertEqual(results['1.3.6.1.4.1.43315.3.2.1.6.0'], 0)
         ## reused
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.7.0'], 0)
+        self.assertEqual(results['1.3.6.1.4.1.43315.3.2.1.7.0'], 0)
         ## state
-        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.8.0']), "up")
+        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.8.0']), "up")
         ## address
-        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.9.0']), ("127.0.0.1:%s" % (self._testServerPort)))
+        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.9.0']), ("127.0.0.1:%s" % (self._testServerPort)))
         ## pools
-        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.10.0']), "")
+        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.10.0']), "")
         ## queries
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.12.0'], queriesCountersValue)
+        self.assertEqual(results['1.3.6.1.4.1.43315.3.2.1.12.0'], queriesCountersValue)
         ## order
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.13.0'], 1)
+        self.assertEqual(results['1.3.6.1.4.1.43315.3.2.1.13.0'], 1)
 
     def _getSNMPStats(self, auth):
         results = {}
@@ -118,8 +118,8 @@ class TestSNMP(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.__class__._queriesSent = self.__class__._queriesSent + 1
 
         results = self._getSNMPStats(auth)

@@ -32,7 +32,7 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(receivedResponse, None)
 
     def testAWithECS(self):
         """
@@ -54,8 +54,8 @@ class TestBasics(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testSimpleA(self):
         """
@@ -77,8 +77,8 @@ class TestBasics(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testAnyIsTruncated(self):
         """
@@ -96,7 +96,7 @@ class TestBasics(DNSDistTest):
         expectedResponse.flags |= dns.flags.TC
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(receivedResponse, expectedResponse)
 
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -111,8 +111,8 @@ class TestBasics(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
     def testTruncateTC(self):
         """
@@ -139,13 +139,13 @@ class TestBasics(DNSDistTest):
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(expectedResponse.flags, receivedResponse.flags)
-        self.assertEquals(expectedResponse.question, receivedResponse.question)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(expectedResponse.flags, receivedResponse.flags)
+        self.assertEqual(expectedResponse.question, receivedResponse.question)
         self.assertFalse(response.answer == receivedResponse.answer)
-        self.assertEquals(len(receivedResponse.answer), 0)
-        self.assertEquals(len(receivedResponse.authority), 0)
-        self.assertEquals(len(receivedResponse.additional), 0)
+        self.assertEqual(len(receivedResponse.answer), 0)
+        self.assertEqual(len(receivedResponse.authority), 0)
+        self.assertEqual(len(receivedResponse.additional), 0)
         self.checkMessageNoEDNS(expectedResponse, receivedResponse)
 
     def testTruncateTCEDNS(self):
@@ -177,18 +177,18 @@ class TestBasics(DNSDistTest):
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response.flags, receivedResponse.flags)
-        self.assertEquals(response.question, receivedResponse.question)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response.flags, receivedResponse.flags)
+        self.assertEqual(response.question, receivedResponse.question)
         self.assertFalse(response.answer == receivedResponse.answer)
-        self.assertEquals(len(receivedResponse.answer), 0)
-        self.assertEquals(len(receivedResponse.authority), 0)
-        self.assertEquals(len(receivedResponse.additional), 0)
+        self.assertEqual(len(receivedResponse.answer), 0)
+        self.assertEqual(len(receivedResponse.authority), 0)
+        self.assertEqual(len(receivedResponse.additional), 0)
         print(expectedResponse)
         print(receivedResponse)
         self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
         self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
-        self.assertEquals(receivedResponse.payload, 4242)
+        self.assertEqual(receivedResponse.payload, 4242)
 
     def testRegexReturnsRefused(self):
         """
@@ -208,7 +208,7 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testQNameReturnsSpoofed(self):
         """
@@ -231,7 +231,7 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testDomainAndQTypeReturnsNotImplemented(self):
         """
@@ -251,7 +251,7 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testDomainWithoutQTypeIsNotAffected(self):
         """
@@ -278,8 +278,8 @@ class TestBasics(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testOtherDomainANDQTypeIsNotAffected(self):
         """
@@ -306,8 +306,8 @@ class TestBasics(DNSDistTest):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testWrongResponse(self):
         """
@@ -335,9 +335,9 @@ class TestBasics(DNSDistTest):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, unrelatedResponse)
             self.assertTrue(receivedQuery)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(receivedResponse, None)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
+            self.assertEqual(query, receivedQuery)
 
     def testHeaderOnlyRefused(self):
         """
@@ -354,8 +354,8 @@ class TestBasics(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
 
     def testHeaderOnlyNoErrorResponse(self):
         """
@@ -371,8 +371,8 @@ class TestBasics(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, None)
 
     def testHeaderOnlyNXDResponse(self):
         """
@@ -389,8 +389,8 @@ class TestBasics(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, None)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, None)
 
     def testAddActionDNSName(self):
         """
@@ -405,7 +405,7 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, expectedResponse)
+            self.assertEqual(receivedResponse, expectedResponse)
 
     def testAddActionDNSNames(self):
         """
@@ -420,7 +420,7 @@ class TestBasics(DNSDistTest):
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
-                self.assertEquals(receivedResponse, expectedResponse)
+                self.assertEqual(receivedResponse, expectedResponse)
 
     def testEmptyQueries(self):
         """
@@ -435,4 +435,4 @@ class TestBasics(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedResponse, response)

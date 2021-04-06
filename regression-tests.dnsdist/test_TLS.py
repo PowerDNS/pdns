@@ -35,8 +35,8 @@ class TLSTests(object):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # check the certificate
         cert = self.getServerCertificate()
@@ -45,12 +45,12 @@ class TLSTests(object):
         self.assertIn('subjectAltName', cert)
         subject = cert['subject']
         altNames = cert['subjectAltName']
-        self.assertEquals(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
-        self.assertEquals(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
+        self.assertEqual(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
+        self.assertEqual(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
         names = []
         for entry in altNames:
             names.append(entry[1])
-        self.assertEquals(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
         serialNumber = cert['serialNumber']
 
         self.generateNewCertificateAndKey()
@@ -64,8 +64,8 @@ class TLSTests(object):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # check that the certificate is OK
         cert = self.getServerCertificate()
@@ -74,15 +74,15 @@ class TLSTests(object):
         self.assertIn('subjectAltName', cert)
         subject = cert['subject']
         altNames = cert['subjectAltName']
-        self.assertEquals(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
-        self.assertEquals(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
+        self.assertEqual(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
+        self.assertEqual(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
         names = []
         for entry in altNames:
             names.append(entry[1])
-        self.assertEquals(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
+        self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com'])
 
         # and that the serial is different
-        self.assertNotEquals(serialNumber, cert['serialNumber'])
+        self.assertNotEqual(serialNumber, cert['serialNumber'])
 
     def testTLKA(self):
         """
@@ -106,8 +106,8 @@ class TLSTests(object):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testTLSPipelining(self):
         """
@@ -133,8 +133,8 @@ class TLSTests(object):
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
     def testTLSSNIRouting(self):
         """
@@ -164,7 +164,7 @@ class TLSTests(object):
         self.sendTCPQueryOverConnection(conn, query, response=None)
         receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(expectedResponse, receivedResponse)
+        self.assertEqual(expectedResponse, receivedResponse)
 
         # this one should not
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
@@ -174,8 +174,8 @@ class TLSTests(object):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
     def testTLSSNIRoutingAfterResumption(self):
         # we have more complicated tests about session resumption itself,
@@ -216,7 +216,7 @@ class TLSTests(object):
         self.sendTCPQueryOverConnection(sslsock, query, response=None)
         receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(expectedResponse, receivedResponse)
+        self.assertEqual(expectedResponse, receivedResponse)
         self.assertFalse(sslsock.session_reused)
         session = sslsock.session
 
@@ -232,8 +232,8 @@ class TLSTests(object):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
         self.assertFalse(sslsock.session_reused)
 
         # and now we should be able to resume the session
@@ -247,7 +247,7 @@ class TLSTests(object):
         self.sendTCPQueryOverConnection(sslsock, query, response=None)
         receivedResponse = self.recvTCPResponseOverConnection(sslsock, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(expectedResponse, receivedResponse)
+        self.assertEqual(expectedResponse, receivedResponse)
         self.assertTrue(sslsock.session_reused)
 
 class TestOpenSSL(DNSDistTest, TLSTests):
@@ -330,7 +330,7 @@ class TestDOTWithCache(DNSDistTest):
                                     dns.rdatatype.TXT,
                                     content)
         response.answer.append(rrset)
-        self.assertEquals(len(response.to_wire()), 4096)
+        self.assertEqual(len(response.to_wire()), 4096)
 
         # first query to fill the cache
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
@@ -340,15 +340,15 @@ class TestDOTWithCache(DNSDistTest):
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
-        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEqual(expectedQuery, receivedQuery)
         self.checkQueryNoEDNS(expectedQuery, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(response, receivedResponse)
 
         for _ in range(numberOfQueries):
             conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
             self.sendTCPQueryOverConnection(conn, query, response=None)
             receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(receivedResponse, response)
 
 class TestTLSFrontendLimits(DNSDistTest):
 

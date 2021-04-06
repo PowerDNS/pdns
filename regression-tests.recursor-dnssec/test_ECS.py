@@ -42,7 +42,7 @@ disable-syslog=yes
             self.assertEqual(res.answer[0].ttl, expectedFirstTTL)
         else:
             expectedFirstTTL = res.answer[0].ttl
-        self.assertEquals(res.edns, query.edns)
+        self.assertEqual(res.edns, query.edns)
 
         if scopeZeroResponse is not None:
             self.assertEqual(res.edns, 0)
@@ -64,7 +64,7 @@ disable-syslog=yes
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
         self.assertLess(res.answer[0].ttl, expectedFirstTTL)
-        self.assertEquals(res.edns, query.edns)
+        self.assertEqual(res.edns, query.edns)
 
     def checkECSQueryHit(self, query, expected):
         res = self.sendUDPQuery(query)
@@ -571,13 +571,13 @@ log-common-errors=yes
         # should not have an ECS Option since the packet is too large already
         res = self.sendUDPQuery(query, timeout=5.0)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEquals(len(res.answer), 1)
+        self.assertEqual(len(res.answer), 1)
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 0)
 
         res = self.sendTCPQuery(query, timeout=5.0)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEquals(len(res.answer), 1)
+        self.assertEqual(len(res.answer), 1)
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 1)
         self.assertEqual(res.options[0].otype, 8)

@@ -145,32 +145,32 @@ class ProxyProtocolTest(DNSDistTest):
     def checkMessageProxyProtocol(self, receivedProxyPayload, source, destination, isTCP, values=[], v6=False, sourcePort=None, destinationPort=None):
       proxy = ProxyProtocol()
       self.assertTrue(proxy.parseHeader(receivedProxyPayload))
-      self.assertEquals(proxy.version, 0x02)
-      self.assertEquals(proxy.command, 0x01)
+      self.assertEqual(proxy.version, 0x02)
+      self.assertEqual(proxy.command, 0x01)
       if v6:
-        self.assertEquals(proxy.family, 0x02)
+        self.assertEqual(proxy.family, 0x02)
       else:
-        self.assertEquals(proxy.family, 0x01)
+        self.assertEqual(proxy.family, 0x01)
       if not isTCP:
-        self.assertEquals(proxy.protocol, 0x02)
+        self.assertEqual(proxy.protocol, 0x02)
       else:
-        self.assertEquals(proxy.protocol, 0x01)
+        self.assertEqual(proxy.protocol, 0x01)
       self.assertGreater(proxy.contentLen, 0)
 
       self.assertTrue(proxy.parseAddressesAndPorts(receivedProxyPayload))
-      self.assertEquals(proxy.source, source)
-      self.assertEquals(proxy.destination, destination)
+      self.assertEqual(proxy.source, source)
+      self.assertEqual(proxy.destination, destination)
       if sourcePort:
-        self.assertEquals(proxy.sourcePort, sourcePort)
+        self.assertEqual(proxy.sourcePort, sourcePort)
       if destinationPort:
-        self.assertEquals(proxy.destinationPort, destinationPort)
+        self.assertEqual(proxy.destinationPort, destinationPort)
       else:
-        self.assertEquals(proxy.destinationPort, self._dnsDistPort)
+        self.assertEqual(proxy.destinationPort, self._dnsDistPort)
 
       self.assertTrue(proxy.parseAdditionalValues(receivedProxyPayload))
       proxy.values.sort()
       values.sort()
-      self.assertEquals(proxy.values, values)
+      self.assertEqual(proxy.values, values)
 
 class TestProxyProtocol(ProxyProtocolTest):
     """
@@ -221,8 +221,8 @@ class TestProxyProtocol(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', False)
 
     def testProxyTCP(self):
@@ -252,8 +252,8 @@ class TestProxyProtocol(ProxyProtocolTest):
       receivedQuery = dns.message.from_wire(receivedDNSData)
       receivedQuery.id = query.id
       receivedResponse.id = response.id
-      self.assertEquals(receivedQuery, query)
-      self.assertEquals(receivedResponse, response)
+      self.assertEqual(receivedQuery, query)
+      self.assertEqual(receivedResponse, response)
       self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True)
 
     def testProxyUDPWithValuesFromLua(self):
@@ -286,8 +286,8 @@ class TestProxyProtocol(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', False, [ [0, b'foo'] , [ 42, b'bar'] ])
 
     def testProxyTCPWithValuesFromLua(self):
@@ -317,8 +317,8 @@ class TestProxyProtocol(ProxyProtocolTest):
       receivedQuery = dns.message.from_wire(receivedDNSData)
       receivedQuery.id = query.id
       receivedResponse.id = response.id
-      self.assertEquals(receivedQuery, query)
-      self.assertEquals(receivedResponse, response)
+      self.assertEqual(receivedQuery, query)
+      self.assertEqual(receivedResponse, response)
       self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'] , [ 42, b'bar'] ])
 
     def testProxyUDPWithValuesFromAction(self):
@@ -351,8 +351,8 @@ class TestProxyProtocol(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', False, [ [1, b'dnsdist'] , [ 255, b'proxy-protocol'] ])
 
     def testProxyTCPWithValuesFromAction(self):
@@ -382,8 +382,8 @@ class TestProxyProtocol(ProxyProtocolTest):
       receivedQuery = dns.message.from_wire(receivedDNSData)
       receivedQuery.id = query.id
       receivedResponse.id = response.id
-      self.assertEquals(receivedQuery, query)
-      self.assertEquals(receivedResponse, response)
+      self.assertEqual(receivedQuery, query)
+      self.assertEqual(receivedResponse, response)
       self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [1, b'dnsdist'] , [ 255, b'proxy-protocol'] ])
 
     def testProxyTCPSeveralQueriesOnSameConnection(self):
@@ -414,8 +414,8 @@ class TestProxyProtocol(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [])
 
 class TestProxyProtocolIncoming(ProxyProtocolTest):
@@ -474,7 +474,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
           sender = getattr(self, method)
           (_, receivedResponse) = sender(query, response=None)
-          self.assertEquals(receivedResponse, None)
+          self.assertEqual(receivedResponse, None)
 
     def testIncomingProxyDest(self):
         """
@@ -499,7 +499,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
         udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
         (_, receivedResponse) = self.sendUDPQuery(udpPayload + query.to_wire(), response=None, useQueue=False, rawQuery=True)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         tcpPayload = ProxyProtocol.getPayload(False, True, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
         wire = query.to_wire()
@@ -513,7 +513,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           receivedResponse = self.recvTCPResponseOverConnection(conn)
         except socket.timeout:
           print('timeout')
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
     def testProxyUDPWithValuesFromLua(self):
         """
@@ -541,8 +541,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, False, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
 
     def testProxyTCPWithValuesFromLua(self):
@@ -574,7 +574,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           receivedResponse = self.recvTCPResponseOverConnection(conn)
         except socket.timeout:
           print('timeout')
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
         self.assertTrue(receivedProxyPayload)
@@ -584,8 +584,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
 
     def testProxyUDPWithValueOverride(self):
@@ -614,8 +614,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, False, [ [50, b'overridden'] ], True, srcPort, destPort)
 
     def testProxyTCPSeveralQueriesOverConnection(self):
@@ -647,7 +647,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           receivedResponse = self.recvTCPResponseOverConnection(conn)
         except socket.timeout:
           print('timeout')
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
         self.assertTrue(receivedProxyPayload)
@@ -657,8 +657,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         receivedQuery = dns.message.from_wire(receivedDNSData)
         receivedQuery.id = query.id
         receivedResponse.id = response.id
-        self.assertEquals(receivedQuery, query)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
 
         for idx in range(5):
@@ -671,7 +671,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           except socket.timeout:
             print('timeout')
 
-          self.assertEquals(receivedResponse, response)
+          self.assertEqual(receivedResponse, response)
 
           (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
           self.assertTrue(receivedProxyPayload)
@@ -681,8 +681,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           receivedQuery = dns.message.from_wire(receivedDNSData)
           receivedQuery.id = query.id
           receivedResponse.id = response.id
-          self.assertEquals(receivedQuery, query)
-          self.assertEquals(receivedResponse, response)
+          self.assertEqual(receivedQuery, query)
+          self.assertEqual(receivedResponse, response)
           self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
 
 class TestProxyProtocolNotExpected(DNSDistTest):
@@ -718,8 +718,8 @@ class TestProxyProtocolNotExpected(DNSDistTest):
           sender = getattr(self, method)
           (receivedQuery, receivedResponse) = sender(query, response)
           receivedQuery.id = query.id
-          self.assertEquals(query, receivedQuery)
-          self.assertEquals(response, receivedResponse)
+          self.assertEqual(query, receivedQuery)
+          self.assertEqual(response, receivedResponse)
 
     def testIncomingProxyDest(self):
         """
@@ -736,7 +736,7 @@ class TestProxyProtocolNotExpected(DNSDistTest):
 
         udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
         (_, receivedResponse) = self.sendUDPQuery(udpPayload + query.to_wire(), response=None, useQueue=False, rawQuery=True)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         tcpPayload = ProxyProtocol.getPayload(False, True, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
         wire = query.to_wire()
@@ -750,4 +750,4 @@ class TestProxyProtocolNotExpected(DNSDistTest):
           receivedResponse = self.recvTCPResponseOverConnection(conn)
         except socket.timeout:
           print('timeout')
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)

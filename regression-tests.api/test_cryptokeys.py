@@ -23,7 +23,7 @@ class Cryptokeys(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
-        self.assertEquals(r.status_code, 201)
+        self.assertEqual(r.status_code, 201)
 
     def tearDown(self):
         super(Cryptokeys, self).tearDown()
@@ -43,8 +43,8 @@ class Cryptokeys(ApiTestCase):
 
         #checks the status code. I don't know how to test explicit that the backend fail removing a key.
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # Check that the key is actually deleted
         out = pdnsutil("list-keys", self.zone)
@@ -53,25 +53,25 @@ class Cryptokeys(ApiTestCase):
     def test_get_wrong_zone(self):
         self.keyid = self.add_zone_key()
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 404)
+        self.assertEqual(r.status_code, 404)
 
     def test_delete_wrong_id(self):
         self.keyid = self.add_zone_key()
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/1234567"))
-        self.assertEquals(r.status_code, 404)
+        self.assertEqual(r.status_code, 404)
 
     def test_delete_wrong_zone(self):
         self.keyid = self.add_zone_key()
         #checks for not covered zonename
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 404)
+        self.assertEqual(r.status_code, 404)
 
     def test_delete_key_is_gone(self):
         self.keyid = self.add_zone_key()
         self.remove_zone_key(self.keyid)
         #checks for key is gone. Its ok even if no key had to be deleted. Or something went wrong with the backend.
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 404)
+        self.assertEqual(r.status_code, 404)
 
     # Prepares the json object for Post and sends it to the server
     def add_key(self, content='', type='ksk', active='true', algo='', bits=None):
@@ -97,10 +97,10 @@ class Cryptokeys(ApiTestCase):
     def post_helper(self, content='', algo='', bits=None):
         r = self.add_key(content=content, algo=algo, bits=bits)
         self.assert_success_json(r)
-        self.assertEquals(r.status_code, 201)
+        self.assertEqual(r.status_code, 201)
         response = r.json()
         # Only a ksk added, so expected type is csk
-        self.assertEquals(response['keytype'], 'csk')
+        self.assertEqual(response['keytype'], 'csk')
         self.keyid = response['id']
         # Check if the key is actually added
         out = pdnsutil("list-keys", self.zone_nodot)
@@ -138,53 +138,53 @@ class Cryptokeys(ApiTestCase):
     def test_post_wrong_key_format(self):
         r = self.add_key(content="trollololoooolll")
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("Key could not be parsed. Make sure your key format is correct.",r.json()['error'])
 
     def test_post_wrong_keytype(self):
         r = self.add_key(type='sdfdhhgj')
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("Invalid keytype",r.json()['error'])
 
     def test_post_wrong_bits_format(self):
         r = self.add_key(bits='sdfdhhgj')
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("'bits' must be a positive integer value",r.json()['error'])
 
         r = self.add_key(bits='5.5')
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("'bits' must be a positive integer value",r.json()['error'])
 
         r = self.add_key(bits='-6')
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("'bits' must be a positive integer value",r.json()['error'])
 
     def test_post_unsupported_algorithm(self):
         r = self.add_key(algo='lkjhgf')
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("Unknown algorithm:",r.json()['error'])
 
     def test_post_forgot_bits(self):
         r = self.add_key(algo="rsasha256")
         self.assert_error_json(r)
-        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.status_code, 422)
         self.assertIn("key requires the size (in bits) to be passed", r.json()['error'])
 
     def test_post_wrong_bit_size(self):
         r = self.add_key(algo=10, bits=30)
         self.assert_error_json(r)
-        self.assertEquals(r.status_code,422)
+        self.assertEqual(r.status_code,422)
         self.assertIn("The algorithm does not support the given bit size.", r.json()['error'])
 
     def test_post_can_not_guess_key_size(self):
         r = self.add_key(algo=17)
         self.assert_error_json(r)
-        self.assertEquals(r.status_code,422)
+        self.assertEqual(r.status_code,422)
         self.assertIn("Can not guess key size for algorithm", r.json()['error'])
 
     def test_put_activate_key(self):
@@ -198,8 +198,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is activated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -217,8 +217,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is deactivated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -237,8 +237,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is still deactivated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -256,8 +256,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is activated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -274,8 +274,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is activated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -293,8 +293,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is deactivated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -313,8 +313,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is still deactivated
         out = pdnsutil("show-zone", self.zone_nodot)
@@ -332,8 +332,8 @@ class Cryptokeys(ApiTestCase):
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, b"")
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
 
         # check if key is activated
         out = pdnsutil("show-zone", self.zone_nodot)

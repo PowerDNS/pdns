@@ -44,7 +44,7 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testSpoofActionAAAA(self):
         """
@@ -69,7 +69,7 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testSpoofActionCNAME(self):
         """
@@ -94,7 +94,7 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testSpoofActionMultiA(self):
         """
@@ -119,7 +119,7 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testSpoofActionMultiAAAA(self):
         """
@@ -144,7 +144,7 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testSpoofActionMultiANY(self):
         """
@@ -177,7 +177,7 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testSpoofActionSetAA(self):
         """
@@ -200,8 +200,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
     def testSpoofActionSetAD(self):
         """
@@ -224,8 +224,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
     def testSpoofActionSetRA(self):
         """
@@ -248,8 +248,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
     def testSpoofActionSetNoRA(self):
         """
@@ -270,8 +270,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
     def testSpoofActionSetTTL(self):
         """
@@ -292,8 +292,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 1500)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 1500)
 
     def testSpoofRawAction(self):
         """
@@ -317,8 +317,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # TXT
         query = dns.message.make_query(name, 'TXT', 'IN')
@@ -336,8 +336,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # SRV
         query = dns.message.make_query(name, 'SRV', 'IN')
@@ -356,8 +356,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 3600)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 3600)
 
     def testSpoofRawActionMulti(self):
         """
@@ -381,8 +381,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # TXT
         query = dns.message.make_query(name, 'TXT', 'IN')
@@ -400,8 +400,8 @@ class TestSpoofingSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
 class TestSpoofingLuaSpoof(DNSDistTest):
 
@@ -466,7 +466,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLuaSpoofAAAA(self):
         """
@@ -491,7 +491,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLuaSpoofAWithCNAME(self):
         """
@@ -516,7 +516,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLuaSpoofAAAAWithCNAME(self):
         """
@@ -541,7 +541,7 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLuaSpoofRawAction(self):
         """
@@ -565,8 +565,8 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # TXT
         query = dns.message.make_query(name, 'TXT', 'IN')
@@ -584,8 +584,8 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # SRV
         query = dns.message.make_query(name, 'SRV', 'IN')
@@ -604,9 +604,9 @@ class TestSpoofingLuaSpoof(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
             # sorry, we can't set the TTL from the Lua API right now
-            #self.assertEquals(receivedResponse.answer[0].ttl, 3600)
+            #self.assertEqual(receivedResponse.answer[0].ttl, 3600)
 
 class TestSpoofingLuaSpoofMulti(DNSDistTest):
 
@@ -668,7 +668,7 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLuaSpoofMultiAAAA(self):
         """
@@ -693,7 +693,7 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
 
     def testLuaSpoofMultiRawAction(self):
         """
@@ -717,8 +717,8 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # TXT
         query = dns.message.make_query(name, 'TXT', 'IN')
@@ -736,8 +736,8 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
-            self.assertEquals(receivedResponse.answer[0].ttl, 60)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
         # SRV
         query = dns.message.make_query(name, 'SRV', 'IN')
@@ -756,9 +756,9 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponse, receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
             # sorry, we can't set the TTL from the Lua API right now
-            #self.assertEquals(receivedResponse.answer[0].ttl, 3600)
+            #self.assertEqual(receivedResponse.answer[0].ttl, 3600)
 
 class TestSpoofingLuaWithStatistics(DNSDistTest):
 
@@ -810,14 +810,14 @@ class TestSpoofingLuaWithStatistics(DNSDistTest):
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(expectedResponse1, receivedResponse)
+        self.assertEqual(expectedResponse1, receivedResponse)
 
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(expectedResponse2, receivedResponse)
+        self.assertEqual(expectedResponse2, receivedResponse)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
-            self.assertEquals(expectedResponseAfterwards, receivedResponse)
+            self.assertEqual(expectedResponseAfterwards, receivedResponse)

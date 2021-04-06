@@ -33,15 +33,15 @@ class RecursorEDNSPaddingTest(RecursorTest):
 
     def checkPadding(self, message, numberOfBytes=None):
         self.assertEqual(message.edns, 0)
-        self.assertEquals(len(message.options), 1)
+        self.assertEqual(len(message.options), 1)
         for option in message.options:
-            self.assertEquals(option.otype, 12)
+            self.assertEqual(option.otype, 12)
             if numberOfBytes:
-                self.assertEquals(option.olen, numberOfBytes)
+                self.assertEqual(option.olen, numberOfBytes)
 
     def checkNoPadding(self, message):
         self.assertEqual(message.edns, 0)
-        self.assertEquals(len(message.options), 0)
+        self.assertEqual(len(message.options), 0)
 
     def checkNoEDNS(self, message):
         self.assertEqual(message.edns, -1)

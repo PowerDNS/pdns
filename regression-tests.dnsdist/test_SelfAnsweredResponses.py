@@ -32,7 +32,7 @@ class TestSelfAnsweredResponses(DNSDistTest):
         # self-answered, but no SelfAnswered rule matches.
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         # self-answered, AND SelfAnswered rule matches. Should not see a reply.
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
@@ -57,7 +57,7 @@ class TestSelfAnsweredResponses(DNSDistTest):
         # self-answered, but no SelfAnswered rule matches.
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         # self-answered, AND SelfAnswered rule matches. Should not see a reply.
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)

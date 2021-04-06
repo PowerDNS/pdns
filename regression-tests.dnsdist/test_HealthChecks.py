@@ -29,39 +29,39 @@ class TestDefaultHealthCheck(HealthCheckTest):
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')
 
         self.sendConsoleCommand("getServer(0):setUp()")
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
-        self.assertEquals(TestDefaultHealthCheck._healthCheckCounter, before)
+        self.assertEqual(TestDefaultHealthCheck._healthCheckCounter, before)
 
         self.sendConsoleCommand("getServer(0):setDown()")
-        self.assertEquals(self.getBackendStatus(), 'down')
+        self.assertEqual(self.getBackendStatus(), 'down')
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
-        self.assertEquals(TestDefaultHealthCheck._healthCheckCounter, before)
+        self.assertEqual(TestDefaultHealthCheck._healthCheckCounter, before)
 
         self.sendConsoleCommand("getServer(0):setAuto()")
         # we get back the previous state, which was up
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')
 
         self.sendConsoleCommand("getServer(0):setDown()")
-        self.assertEquals(self.getBackendStatus(), 'down')
+        self.assertEqual(self.getBackendStatus(), 'down')
         self.sendConsoleCommand("getServer(0):setAuto(false)")
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')
 
 class TestHealthCheckForcedUP(HealthCheckTest):
     # this test suite uses a different responder port
@@ -81,8 +81,8 @@ class TestHealthCheckForcedUP(HealthCheckTest):
         """
         before = TestHealthCheckForcedUP._healthCheckCounter
         time.sleep(1.5)
-        self.assertEquals(TestHealthCheckForcedUP._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(TestHealthCheckForcedUP._healthCheckCounter, before)
+        self.assertEqual(self.getBackendStatus(), 'up')
 
 class TestHealthCheckForcedDown(HealthCheckTest):
     # this test suite uses a different responder port
@@ -102,7 +102,7 @@ class TestHealthCheckForcedDown(HealthCheckTest):
         """
         before = TestHealthCheckForcedDown._healthCheckCounter
         time.sleep(1.5)
-        self.assertEquals(TestHealthCheckForcedDown._healthCheckCounter, before)
+        self.assertEqual(TestHealthCheckForcedDown._healthCheckCounter, before)
 
 class TestHealthCheckCustomName(HealthCheckTest):
     # this test suite uses a different responder port
@@ -124,7 +124,7 @@ class TestHealthCheckCustomName(HealthCheckTest):
         before = TestHealthCheckCustomName._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomName._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')
 
 class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     # this test suite uses a different responder port
@@ -144,8 +144,8 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
         """
         before = TestHealthCheckCustomNameNoAnswer._healthCheckCounter
         time.sleep(1.5)
-        self.assertEquals(TestHealthCheckCustomNameNoAnswer._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'down')
+        self.assertEqual(TestHealthCheckCustomNameNoAnswer._healthCheckCounter, before)
+        self.assertEqual(self.getBackendStatus(), 'down')
 
 class TestHealthCheckCustomFunction(HealthCheckTest):
     # this test suite uses a different responder port
@@ -174,4 +174,4 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
         before = TestHealthCheckCustomFunction._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomFunction._healthCheckCounter, before)
-        self.assertEquals(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendStatus(), 'up')

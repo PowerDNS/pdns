@@ -22,7 +22,7 @@ class DynBlocksTest(DNSDistTest):
         url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=dynblocklist'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
 
         content = r.json()
         self.assertIsNotNone(content)
@@ -55,8 +55,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -73,7 +73,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         if testViaAPI:
             self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', self._dynBlockDuration - 4, self._dynBlockDuration, (sent-allowed)+1, (sent-allowed)+1)
@@ -84,8 +84,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # again, over TCP this time
         allowed = 0
@@ -95,8 +95,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -113,7 +113,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -121,8 +121,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
     def doTestQRateRCode(self, name, rcode):
         query = dns.message.make_query(name, 'A', 'IN')
@@ -143,11 +143,11 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(receivedResponse, response)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(receivedResponse, response)
                 allowed = allowed + 1
             else:
-                self.assertEquals(receivedResponse, expectedResponse)
+                self.assertEqual(receivedResponse, expectedResponse)
                 # the query has not reached the responder,
                 # let's clear the response queue
                 self.clearToResponderQueue()
@@ -162,7 +162,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be 'rcode' for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(receivedResponse, expectedResponse)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -170,8 +170,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         allowed = 0
         sent = 0
@@ -181,11 +181,11 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(receivedResponse, response)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(receivedResponse, response)
                 allowed = allowed + 1
             else:
-                self.assertEquals(receivedResponse, expectedResponse)
+                self.assertEqual(receivedResponse, expectedResponse)
                 # the query has not reached the responder,
                 # let's clear the response queue
                 self.clearToResponderQueue()
@@ -200,7 +200,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be 'rcode' for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(receivedResponse, expectedResponse)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -208,8 +208,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
     def doTestResponseByteRate(self, name):
         query = dns.message.make_query(name, 'A', 'IN')
@@ -235,8 +235,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + len(response.to_wire())
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + len(response.to_wire())
             else:
                 # the query has not reached the responder,
@@ -269,7 +269,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         print(self.sendConsoleCommand("showDynBlocks()"))
         print(self.sendConsoleCommand("grepq(\"\")"))
@@ -285,8 +285,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # again, over TCP this time
         allowed = 0
@@ -296,8 +296,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + len(response.to_wire())
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + len(response.to_wire())
             else:
                 # the query has not reached the responder,
@@ -318,7 +318,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -326,8 +326,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
     def doTestRCodeRate(self, name, rcode):
         query = dns.message.make_query(name, 'A', 'IN')
@@ -345,15 +345,15 @@ class DynBlocksTest(DNSDistTest):
         for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         # wait for the maintenance function to run
         time.sleep(2)
 
         # we should NOT be dropped!
         (_, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         # now with rcode!
         sent = 0
@@ -363,8 +363,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(expectedResponse, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -381,7 +381,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -389,23 +389,23 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # again, over TCP this time
         # start with normal responses
         for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         # wait for the maintenance function to run
         time.sleep(2)
 
         # we should NOT be dropped!
         (_, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         # now with rcode!
         sent = 0
@@ -415,8 +415,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(expectedResponse, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -433,7 +433,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -441,8 +441,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
     def doTestRCodeRatio(self, name, rcode, noerrorcount, rcodecount):
         query = dns.message.make_query(name, 'A', 'IN')
@@ -460,15 +460,15 @@ class DynBlocksTest(DNSDistTest):
         for _ in range(noerrorcount-1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         # wait for the maintenance function to run
         time.sleep(2)
 
         # we should NOT be dropped!
         (_, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         # now with rcode!
         sent = 0
@@ -478,8 +478,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(expectedResponse, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -494,7 +494,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -502,23 +502,23 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         # again, over TCP this time
         # start with normal responses
         for _ in range(noerrorcount-1):
             (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
             receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(response, receivedResponse)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
 
         # wait for the maintenance function to run
         time.sleep(2)
 
         # we should NOT be dropped!
         (_, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(receivedResponse, response)
 
         # now with rcode!
         sent = 0
@@ -528,8 +528,8 @@ class DynBlocksTest(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(expectedResponse, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(expectedResponse, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -544,7 +544,7 @@ class DynBlocksTest(DNSDistTest):
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -552,8 +552,8 @@ class DynBlocksTest(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
 class TestDynBlockQPS(DynBlocksTest):
 
@@ -753,11 +753,11 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(receivedResponse, response)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(receivedResponse, response)
                 allowed = allowed + 1
             else:
-                self.assertEquals(receivedResponse, truncatedResponse)
+                self.assertEqual(receivedResponse, truncatedResponse)
                 # the query has not reached the responder,
                 # let's clear the response queue
                 self.clearToResponderQueue()
@@ -772,13 +772,13 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
 
         # we should now be 'truncated' for up to self._dynBlockDuration + self._dynBlockPeriod
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, truncatedResponse)
+        self.assertEqual(receivedResponse, truncatedResponse)
 
         # check over TCP, which should not be truncated
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
 
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
 
         # wait until we are not blocked anymore
         time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
@@ -786,8 +786,8 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(response, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
 
         allowed = 0
         sent = 0
@@ -795,12 +795,12 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
             (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             sent = sent + 1
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, response)
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
             receivedQuery.id = query.id
             allowed = allowed + 1
 
-        self.assertEquals(allowed, sent)
+        self.assertEqual(allowed, sent)
 
 class TestDynBlockServFails(DynBlocksTest):
 
@@ -875,8 +875,8 @@ class TestDynBlockAllowlist(DynBlocksTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -892,8 +892,8 @@ class TestDynBlockAllowlist(DynBlocksTest):
         # we should still not be blocked
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, receivedResponse)
 
         # check that we would have been blocked without the allowlisting
         name = 'allowlisted-test.dynblocks.tests.powerdns.com.'
@@ -908,7 +908,7 @@ class TestDynBlockAllowlist(DynBlocksTest):
                                     '192.0.2.42')
         expectedResponse.answer.append(rrset)
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, expectedResponse)
+        self.assertEqual(receivedResponse, expectedResponse)
 
 class TestDynBlockGroupServFails(DynBlocksTest):
 
@@ -1050,8 +1050,8 @@ class TestDynBlockGroupExcluded(DynBlocksTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -1067,8 +1067,8 @@ class TestDynBlockGroupExcluded(DynBlocksTest):
         # we should still not be blocked
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, receivedResponse)
 
 class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
 
@@ -1112,8 +1112,8 @@ class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -1129,8 +1129,8 @@ class TestDynBlockGroupExcludedViaNMG(DynBlocksTest):
         # we should still not be blocked
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, receivedResponse)
 
 class TestDynBlockGroupNoOp(DynBlocksTest):
 
@@ -1172,8 +1172,8 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -1189,8 +1189,8 @@ class TestDynBlockGroupNoOp(DynBlocksTest):
         # the rule should still be present, but the queries pass through anyway
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, receivedResponse)
 
         # check that the rule has been inserted
         self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', self._dynBlockDuration - 4, self._dynBlockDuration, 0, sent)
@@ -1236,8 +1236,8 @@ class TestDynBlockGroupWarning(DynBlocksTest):
             sent = sent + 1
             if receivedQuery:
                 receivedQuery.id = query.id
-                self.assertEquals(query, receivedQuery)
-                self.assertEquals(response, receivedResponse)
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
                 allowed = allowed + 1
             else:
                 # the query has not reached the responder,
@@ -1254,8 +1254,8 @@ class TestDynBlockGroupWarning(DynBlocksTest):
         # the rule should still be present, but the queries pass through anyway
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, receivedResponse)
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, receivedResponse)
 
         # check that the rule has been inserted
         self.doTestDynBlockViaAPI('127.0.0.1/32', 'Exceeded query rate', self._dynBlockDuration - 4, self._dynBlockDuration, 0, sent)

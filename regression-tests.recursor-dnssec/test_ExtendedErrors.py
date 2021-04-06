@@ -191,13 +191,13 @@ log-common-errors=yes
         # should not have the Extended Option since the packet is too large already
         res = self.sendUDPQuery(query, timeout=5.0)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEquals(len(res.answer), 1)
+        self.assertEqual(len(res.answer), 1)
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 0)
 
         res = self.sendTCPQuery(query, timeout=5.0)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEquals(len(res.answer), 1)
+        self.assertEqual(len(res.answer), 1)
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 1)
         self.assertEqual(res.options[0].otype, 15)

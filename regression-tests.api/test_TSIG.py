@@ -22,7 +22,7 @@ class AuthTSIGHelperMixin(object):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
-        self.assertEquals(r.status_code, 201)
+        self.assertEqual(r.status_code, 201)
         reply = r.json()
         print("reply", reply)
         return name, payload, reply
@@ -38,7 +38,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         for k in ('id', 'name', 'algorithm', 'key', 'type'):
             self.assertIn(k, data)
             if k in payload:
-                self.assertEquals(data[k], payload[k])
+                self.assertEqual(data[k], payload[k])
 
     def test_create_key_with_key_data(self):
         """
