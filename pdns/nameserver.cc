@@ -132,13 +132,11 @@ void UDPNameserver::bindAddresses()
     if (!setSocketTimestamps(s))
       g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
 
-    if (locala.isIPv4()) {
-      try {
-        setSocketIgnorePMTU(s);
-      }
-      catch(const std::exception& e) {
-        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
-      }
+    try {
+      setSocketIgnorePMTU(s, locala.sin4.sin_family);
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
     }
 
     if (d_can_reuseport) {
