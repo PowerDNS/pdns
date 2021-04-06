@@ -3427,13 +3427,11 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 #endif
     }
 
-    if (sin.isIPv4()) {
-      try {
-        setSocketIgnorePMTU(fd);
-      }
-      catch(const std::exception& e) {
-        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
-      }
+    try {
+      setSocketIgnorePMTU(fd, sin.sin4.sin_family);
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
     }
 
     socklen_t socklen=sin.getSocklen();
