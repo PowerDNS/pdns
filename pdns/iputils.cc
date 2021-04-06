@@ -136,27 +136,50 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
   return ret;
 }
 
-void setSocketIgnorePMTU(int sockfd)
+void setSocketIgnorePMTU(int sockfd, int family)
 {
+  if (family == AF_INET) {
 #if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
 #ifdef IP_PMTUDISC_OMIT
   /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
      poisoning, but still allows fragmentation if the packet size exceeds the
      outgoing interface MTU, which is good.
   */
-  try {
-    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
-    return;
-  }
-  catch(const std::exception& e) {
-    /* failed, let's try IP_PMTUDISC_DONT instead */
-  }
+    try {
+      SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
+      return;
+    }
+    catch(const std::exception& e) {
+      /* failed, let's try IP_PMTUDISC_DONT instead */
+    }
 #endif /* IP_PMTUDISC_OMIT */
 
   /* IP_PMTUDISC_DONT disables Path MTU discovery */
-  SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
+    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
 #endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
+  }
+  else {
+    #if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT)
+#ifdef IPV6_PMTUDISC_OMIT
+  /* Linux 3.15+ has IPV6_PMTUDISC_OMIT, which discards PMTU information to prevent
+     poisoning, but still allows fragmentation if the packet size exceeds the
+     outgoing interface MTU, which is good.
+  */
+    try {
+      SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_OMIT);
+      return;
+    }
+    catch(const std::exception& e) {
+      /* failed, let's try IP_PMTUDISC_DONT instead */
+    }
+#endif /* IPV6_PMTUDISC_OMIT */
+
+  /* IPV6_PMTUDISC_DONT disables Path MTU discovery */
+    SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_DONT);
+#endif /* defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT) */
+  }
 }
+
 
 bool setReusePort(int sockfd)
 {
