@@ -146,6 +146,16 @@ void setupLuaBindingsDNSQuestion()
   g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
         editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
       });
+  g_lua.registerFunction<bool(DNSResponse::*)()const>("getDO", [](const DNSResponse& dq) {
+      return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
+    });
+  g_lua.registerFunction<std::map<uint16_t, EDNSOptionView>(DNSResponse::*)()>("getEDNSOptions", [](DNSResponse& dq) {
+      if (dq.ednsOptions == nullptr) {
+        parseEDNSOptions(dq);
+      }
+
+      return *dq.ednsOptions;
+    });
   g_lua.registerFunction<std::string(DNSResponse::*)(void)>("getTrailingData", [](const DNSResponse& dq) {
       return dq.getTrailingData();
     });
