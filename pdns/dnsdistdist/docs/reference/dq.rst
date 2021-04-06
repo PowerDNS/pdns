@@ -259,7 +259,27 @@ DNSResponse object
 
 .. class:: DNSResponse
 
-  This object has all the functions and members of a :ref:`DNSQuestion <DNSQuestion>` and some more
+  This object has almost all the functions and members of a :ref:`DNSQuestion <DNSQuestion>`, except for the following ones which are not available on a response:
+
+  - ``addProxyProtocolValue``
+  - ``ecsOverride``
+  - ``ecsPrefixLength``
+  - ``getProxyProtocolValues``
+  - ``getHTTPHeaders``
+  - ``getHTTPHost``
+  - ``getHTTPPath``
+  - ``getHTTPQueryString``
+  - ``setHTTPResponse``
+  - ``getHTTPScheme``
+  - ``getServerNameIndication``
+  - ``setNegativeAndAdditionalSOA``
+  - ``setProxyProtocolValues``
+  - ``spoof``
+  - ``tempFailureTTL``
+  - ``useECS``
+
+  If the value is really needed while the response is being processed, it is possible to set a tag while the query is processed, as tags will be passed to the response object.
+  It also has one additional method:
 
   .. method:: DNSResponse:editTTLs(func)
 
