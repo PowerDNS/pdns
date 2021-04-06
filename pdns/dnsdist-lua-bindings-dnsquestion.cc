@@ -193,6 +193,16 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   luaCtx.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
     editDNSPacketTTL(reinterpret_cast<char *>(dr.getMutableData().data()), dr.getData().size(), editFunc);
       });
+  luaCtx.registerFunction<bool(DNSResponse::*)()const>("getDO", [](const DNSResponse& dq) {
+      return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
+    });
+  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView>(DNSResponse::*)()const>("getEDNSOptions", [](const DNSResponse& dq) {
+      if (dq.ednsOptions == nullptr) {
+        parseEDNSOptions(dq);
+      }
+
+      return *dq.ednsOptions;
+    });
   luaCtx.registerFunction<std::string(DNSResponse::*)(void)const>("getTrailingData", [](const DNSResponse& dq) {
       return dq.getTrailingData();
     });
