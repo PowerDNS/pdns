@@ -577,6 +577,21 @@ string makeHexDump(const string& str)
   return ret;
 }
 
+string makeBytesFromHex(const string &in) {
+  if (in.size() % 2 != 0) {
+    throw std::range_error("odd number of bytes in hex string");
+  }
+  string ret;
+  unsigned int num;
+  for (size_t i = 0; i < in.size(); i+=2) {
+    string numStr = in.substr(i, 2);
+    num = 0;
+    sscanf(numStr.c_str(), "%02x", &num);
+    ret.push_back((uint8_t)num);
+  }
+  return ret;
+}
+
 void normalizeTV(struct timeval& tv)
 {
   if(tv.tv_usec > 1000000) {
