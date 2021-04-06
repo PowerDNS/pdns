@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_parseRFC1035CharString)
   in = "hello world";
   expected = "hello";
   amount = parseRFC1035CharString(in, out);
-  BOOST_CHECK_EQUAL(amount, 5);
+  BOOST_CHECK_EQUAL(amount, 5U);
   BOOST_CHECK_EQUAL(out, expected);
 
   // \032 is a space, but it is read because it is escaped
@@ -321,73 +321,73 @@ BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
 
   // Our tests
   parseSVCBValueList("foobar123", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123");
 
   parseSVCBValueList("h2,h3", out);
-  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out.size(), 2U);
   BOOST_CHECK_EQUAL(out[0], "h2");
   BOOST_CHECK_EQUAL(out[1], "h3");
 
   parseSVCBValueList("h2,h3-19,h3-20,h3-22", out);
-  BOOST_CHECK_EQUAL(out.size(), 4);
+  BOOST_CHECK_EQUAL(out.size(), 4U);
   BOOST_CHECK_EQUAL(out[0], "h2");
   BOOST_CHECK_EQUAL(out[1], "h3-19");
   BOOST_CHECK_EQUAL(out[2], "h3-20");
   BOOST_CHECK_EQUAL(out[3], "h3-22");
 
   parseSVCBValueList("foobar123,bazquux456", out);
-  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out.size(), 2U);
   BOOST_CHECK_EQUAL(out[0], "foobar123");
   BOOST_CHECK_EQUAL(out[1], "bazquux456");
 
   parseSVCBValueList(R"FOO(foobar123\\,bazquux456)FOO", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
   parseSVCBValueList(R"FOO(foobar123\\\044bazquux456)FOO", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
   // Again, but quoted
   parseSVCBValueList("\"foobar123\"", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123");
 
   parseSVCBValueList("\"foobar123,bazquux456\"", out);
-  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out.size(), 2U);
   BOOST_CHECK_EQUAL(out[0], "foobar123");
   BOOST_CHECK_EQUAL(out[1], "bazquux456");
 
   parseSVCBValueList(R"FOO("foobar123\\,bazquux456")FOO", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
   parseSVCBValueList(R"FOO("foobar123\\\044bazquux456")FOO", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123,bazquux456");
 
   // Quoted, with some whitespace
   parseSVCBValueList("\"foobar123 \"", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123 ");
 
   parseSVCBValueList("\"foobar123 blabla bla,baz quux456\"", out);
-  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out.size(), 2U);
   BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla");
   BOOST_CHECK_EQUAL(out[1], "baz quux456");
 
   parseSVCBValueList("\"foobar123,baz quux456\"", out);
-  BOOST_CHECK_EQUAL(out.size(), 2);
+  BOOST_CHECK_EQUAL(out.size(), 2U);
   BOOST_CHECK_EQUAL(out[0], "foobar123");
   BOOST_CHECK_EQUAL(out[1], "baz quux456");
 
   parseSVCBValueList(R"FOO("foobar123 blabla bla\\,baz quux456")FOO", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
 
   parseSVCBValueList(R"FOO("foobar123 blabla bla\\\044baz quux456")FOO", out);
-  BOOST_CHECK_EQUAL(out.size(), 1);
+  BOOST_CHECK_EQUAL(out.size(), 1U);
   BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
 }
 
