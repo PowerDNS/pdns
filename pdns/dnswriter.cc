@@ -140,7 +140,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfr48BitIn
   d_content.insert(d_content.end(), bytes, bytes + sizeof(bytes));
 }
 
-template <typename Container> void GenericDNSPacketWriter<Container>::xfrNodeOrLocatorID(NodeOrLocatorID val)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrNodeOrLocatorID(const NodeOrLocatorID& val)
 {
   d_content.insert(d_content.end(), val.content, val.content + sizeof(val.content));
 }
