@@ -408,6 +408,12 @@ bool SyncRes::isRecursiveForwardOrAuth(const DNSName &qname) const {
   return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || iter->second.shouldRecurse());
 }
 
+bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
+  DNSName authname(qname);
+  domainmap_t::const_iterator iter = getBestAuthZone(&authname);
+  return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || !iter->second.shouldRecurse());
+}
+
 uint64_t SyncRes::doEDNSDump(int fd)
 {
   int newfd = dup(fd);
@@ -3408,9 +3414,16 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         continue;
       }
     }
+    const bool negCacheIndiction = rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
+      lwr.d_rcode == RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth);
 
-    if (rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
-        lwr.d_rcode == RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
+    bool putInNegCache = true;
+    if (negCacheIndiction && isForwardOrAuth(qname)) {
+      // #10189, a NXDOMAIN to a DS query for a forwarded or auth domain should not NXDOMAIN the whole domain
+      putInNegCache = false;
+    }
+
+    if (negCacheIndiction) {
       LOG(prefix<<qname<<": got negative caching indication for name '"<<qname<<"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget<<"'"<<endl);
 
       rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
@@ -3456,7 +3469,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
          and do an additional query for the CNAME target.
          We have a regression test making sure we do exactly that.
       */
-      if (!wasVariable() && newtarget.empty()) {
+      if (!wasVariable() && newtarget.empty() && putInNegCache) {
         g_negCache->add(ne);
         if (s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
