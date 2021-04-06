@@ -46,6 +46,8 @@ struct SuckRequest
   DNSName domain;
   ComboAddress master;
   bool force;
+  enum RequestPriority : uint8_t { PdnsControl, Api, Notify, SerialRefresh, SignaturesRefresh };
+  std::pair<RequestPriority, uint64_t> priorityAndOrder;
   bool operator<(const SuckRequest& b) const
   {
     return tie(domain, master) < tie(b.domain, b.master);
@@ -57,7 +59,7 @@ struct IDTag{};
 typedef multi_index_container<
   SuckRequest,
   indexed_by<
-    sequenced<>,
+    ordered_unique<member<SuckRequest,std::pair<SuckRequest::RequestPriority,uint64_t>,&SuckRequest::priorityAndOrder>>,
     ordered_unique<tag<IDTag>, identity<SuckRequest> >
   >
 > UniQueue;
@@ -155,6 +157,7 @@ public:
     d_nsock4 = -1;
     d_nsock6 = -1;
     d_preventSelfNotification = false;
+    d_sorthelper = 0;
   }
   time_t doNotifications(PacketHandler *P);
   void go();
@@ -162,7 +165,7 @@ public:
   
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
-  void addSuckRequest(const DNSName &domain, const ComboAddress& master, bool force=false);
+  void addSuckRequest(const DNSName &domain, const ComboAddress& master, SuckRequest::RequestPriority, bool force=false);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(const DNSPacket& p);
   void notify(const DNSName &domain, const string &ip);
@@ -187,6 +190,7 @@ private:
   void masterUpdateCheck(PacketHandler *P);
   std::mutex d_lock;
   
+  uint64_t d_sorthelper;
   UniQueue d_suckdomains;
   set<DNSName> d_inprogress;
   

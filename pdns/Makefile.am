@@ -1352,6 +1352,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-common.hh \
+	test-communicator_hh.cc \
 	test-digests_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \

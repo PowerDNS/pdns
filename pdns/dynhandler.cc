@@ -278,7 +278,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
   const auto& master = di.masters.front();
-  Communicator.addSuckRequest(domain, master, override_master);
+  Communicator.addSuckRequest(domain, master, SuckRequest::PdnsControl, override_master);
   g_log<<Logger::Warning<<"Retrieval request for domain '"<<domain<<"' from master '"<<master<<"' received from operator"<<endl;
   return "Added retrieval request for '"+domain.toLogString()+"' from master "+master.toLogString();
 }
