@@ -546,17 +546,31 @@ private:
 
 struct ClientState;
 
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#endif
+
 struct IDState
 {
   IDState(): sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs): origRemote(rhs.origRemote), origDest(rhs.origDest), sentTime(rhs.sentTime), qname(std::move(rhs.qname)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), subnet(rhs.subnet), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), age(rhs.age), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), origFD(rhs.origFD), delayMsec(rhs.delayMsec), tempFailureTTL(rhs.tempFailureTTL), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
+  IDState(IDState&& rhs): origRemote(rhs.origRemote), origDest(rhs.origDest), sentTime(rhs.sentTime), qname(std::move(rhs.qname)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), subnet(rhs.subnet), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), origFD(rhs.origFD), delayMsec(rhs.delayMsec), tempFailureTTL(rhs.tempFailureTTL), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
   {
     if (rhs.isInUse()) {
       throw std::runtime_error("Trying to move an in-use IDState");
     }
 
     uniqueId = std::move(rhs.uniqueId);
+#ifdef __SANITIZE_THREAD__
+    age.store(rhs.age.load());
+#else
+    age = rhs.age;
+#endif
   }
 
   IDState& operator=(IDState&& rhs)
@@ -581,7 +595,6 @@ struct IDState
     du = std::move(rhs.du);
     cacheKey = rhs.cacheKey;
     cacheKeyNoECS = rhs.cacheKeyNoECS;
-    age = rhs.age;
     qtype = rhs.qtype;
     qclass = rhs.qclass;
     origID = rhs.origID;
@@ -595,7 +608,11 @@ struct IDState
     destHarvested = rhs.destHarvested;
     dnssecOK = rhs.dnssecOK;
     useZeroScope = rhs.useZeroScope;
-
+#ifdef __SANITIZE_THREAD__
+    age.store(rhs.age.load());
+#else
+    age = rhs.age;
+#endif
     uniqueId = std::move(rhs.uniqueId);
 
     return *this;
@@ -684,7 +701,11 @@ struct IDState
   DOHUnit* du{nullptr};
   uint32_t cacheKey{0};                                       // 4
   uint32_t cacheKeyNoECS{0};                                  // 4
+#ifdef __SANITIZE_THREAD__
+  std::atomic<uint16_t> age{0};
+#else
   uint16_t age{0};                                            // 4
+#endif
   uint16_t qtype{0};                                          // 2
   uint16_t qclass{0};                                         // 2
   uint16_t origID{0};                                         // 2
