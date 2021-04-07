@@ -31,19 +31,6 @@ NegCache::NegCache(size_t mapsCount) :
 {
 }
 
-NegCache::~NegCache()
-{
-  try {
-    typedef std::unique_ptr<lock> lock_t;
-    vector<lock_t> locks;
-    for (auto& map : d_maps) {
-      locks.push_back(lock_t(new lock(map)));
-    }
-  }
-  catch (...) {
-  }
-}
-
 size_t NegCache::size() const
 {
   size_t count = 0;

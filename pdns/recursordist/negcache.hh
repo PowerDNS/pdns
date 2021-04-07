@@ -51,7 +51,6 @@ class NegCache : public boost::noncopyable
 {
 public:
   NegCache(size_t mapsCount = 1024);
-  ~NegCache();
 
   struct NegCacheEntry
   {
