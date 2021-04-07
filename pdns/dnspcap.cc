@@ -94,7 +94,7 @@ try
 
     if(d_pheader.caplen > d_bufsize) {
       d_oversized++;
-      throw runtime_error((boost::format("Can't handle a %d byte packet, have space for %d")  % d_pheader.caplen % d_bufsize).str());
+      throw runtime_error((boost::format("Can't handle a %d byte packet, have space for %zu")  % d_pheader.caplen % d_bufsize).str());
     }
 
     checkedFreadSize(d_buffer, d_pheader.caplen);
