@@ -1,5 +1,5 @@
-Operating the PowerDNS Recursor
-===============================
+Operating PowerDNS Recursor
+===========================
 
 .. _logging:
 

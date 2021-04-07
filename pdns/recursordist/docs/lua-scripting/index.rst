@@ -1,6 +1,6 @@
-Scripting The Recursor
+Scripting PowerDNS Recursor
 ======================
-In the PowerDNS recursor, it is possible to modify resolving behaviour using simple scripts written in the `Lua <http://www.lua.org>`_ programming language.
+In the PowerDNS Recursor, it is possible to modify resolving behaviour using simple scripts written in the `Lua <http://www.lua.org>`_ programming language.
 
 **Note**: This describes the Lua scripts as supported by 4.x. They are very different than the ones from 3.x, but tend to be faster and more correct.
 
@@ -28,4 +28,4 @@ For extra performance, a Just In Time compiled version of Lua called `LuaJIT <ht
     hooks
     functions
     features
-    
+
