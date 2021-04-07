@@ -385,14 +385,14 @@ BOOST_AUTO_TEST_CASE(test_xfrNodeOrLocatorID) {
   RecordTextReader rtr(source);
   NodeOrLocatorID v;
   rtr.xfrNodeOrLocatorID(v);
-  BOOST_CHECK_EQUAL(v[0], 0);
-  BOOST_CHECK_EQUAL(v[1], 0);
-  BOOST_CHECK_EQUAL(v[2], 0);
-  BOOST_CHECK_EQUAL(v[3], 0);
-  BOOST_CHECK_EQUAL(v[4], 0);
-  BOOST_CHECK_EQUAL(v[5], 0);
-  BOOST_CHECK_EQUAL(v[6], 0);
-  BOOST_CHECK_EQUAL(v[7], 1);
+  BOOST_CHECK_EQUAL(v.content[0], 0);
+  BOOST_CHECK_EQUAL(v.content[1], 0);
+  BOOST_CHECK_EQUAL(v.content[2], 0);
+  BOOST_CHECK_EQUAL(v.content[3], 0);
+  BOOST_CHECK_EQUAL(v.content[4], 0);
+  BOOST_CHECK_EQUAL(v.content[5], 0);
+  BOOST_CHECK_EQUAL(v.content[6], 0);
+  BOOST_CHECK_EQUAL(v.content[7], 1);
 
   string target;
   RecordTextWriter rtw(target);

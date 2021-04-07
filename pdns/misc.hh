@@ -630,4 +630,4 @@ size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);
 std::string makeLuaString(const std::string& in);
 
 // Used in NID and L64 records
-typedef uint8_t NodeOrLocatorID[8];
+struct NodeOrLocatorID { uint8_t content[8]; };

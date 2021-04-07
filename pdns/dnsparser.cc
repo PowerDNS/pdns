@@ -386,7 +386,7 @@ void PacketReader::xfrNodeOrLocatorID(NodeOrLocatorID& ret)
   if (d_pos + sizeof(ret) > d_content.size()) {
     throw std::out_of_range("Attempt to read 64 bit value outside of packet");
   }
-  memcpy(&ret, &d_content.at(d_pos), sizeof(ret));
+  memcpy(&ret.content, &d_content.at(d_pos), sizeof(ret.content));
   d_pos += sizeof(ret);
 }
 

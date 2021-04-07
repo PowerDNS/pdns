@@ -66,7 +66,7 @@ void RecordTextReader::xfrNodeOrLocatorID(NodeOrLocatorID& val) {
     throw RecordTextException("while parsing colon-delimited 64-bit field: '" + d_string.substr(d_pos, len) + "' is invalid");
   }
 
-  std::memcpy(&val, tmpbuf.s6_addr, sizeof(val));
+  std::memcpy(&val.content, tmpbuf.s6_addr, sizeof(val.content));
   d_pos += len;
 }
 
@@ -601,7 +601,7 @@ void RecordTextWriter::xfrNodeOrLocatorID(const NodeOrLocatorID& val)
 
   size_t ctr = 0;
   char tmp[5];
-  for (auto const &c : val) {
+  for (auto const &c : val.content) {
     snprintf(tmp, sizeof(tmp), "%02X", c);
     d_string+=tmp;
     ctr++;

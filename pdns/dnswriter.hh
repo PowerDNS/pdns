@@ -86,7 +86,7 @@ public:
   void truncate();
 
   void xfr48BitInt(uint64_t val);
-  void xfrNodeOrLocatorID(NodeOrLocatorID val);
+  void xfrNodeOrLocatorID(const NodeOrLocatorID& val);
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
   void xfrType(uint16_t val)
