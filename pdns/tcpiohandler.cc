@@ -1220,29 +1220,33 @@ private:
 bool TLSFrontend::setupTLS()
 {
 #ifdef HAVE_DNS_OVER_TLS
+  std::shared_ptr<TLSCtx> newCtx{nullptr};
   /* get the "best" available provider */
   if (!d_provider.empty()) {
 #ifdef HAVE_GNUTLS
     if (d_provider == "gnutls") {
-      d_ctx = std::make_shared<GnuTLSIOCtx>(*this);
+      newCtx = std::make_shared<GnuTLSIOCtx>(*this);
+      std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
       return true;
     }
 #endif /* HAVE_GNUTLS */
 #ifdef HAVE_LIBSSL
     if (d_provider == "openssl") {
-      d_ctx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+      newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+      std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
       return true;
     }
 #endif /* HAVE_LIBSSL */
   }
 #ifdef HAVE_LIBSSL
-  d_ctx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+  newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
 #else /* HAVE_LIBSSL */
 #ifdef HAVE_GNUTLS
-  d_ctx = std::make_shared<GnuTLSIOCtx>(*this);
+  newCtx = std::make_shared<GnuTLSIOCtx>(*this);
 #endif /* HAVE_GNUTLS */
 #endif /* HAVE_LIBSSL */
 
+  std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
 #endif /* HAVE_DNS_OVER_TLS */
   return true;
 }
