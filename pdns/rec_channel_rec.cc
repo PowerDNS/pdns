@@ -1325,7 +1325,7 @@ void doExitGeneric(bool nicely)
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // we can at least try..
   if(nicely) {
-    RecursorControlChannel::stop = 1;
+    RecursorControlChannel::stop = true;
   } else {
     _exit(1);
   }

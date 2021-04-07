@@ -48,7 +48,6 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
   MemRecursorCache(size_t mapsCount = 1024);
-  ~MemRecursorCache();
 
   size_t size();
   size_t bytes();

@@ -69,7 +69,7 @@ public:
   RecursorControlChannel::Answer recv(std::string* remote = nullptr, unsigned int timeout = 5);
 
   int d_fd;
-  static volatile sig_atomic_t stop;
+  static std::atomic<bool> stop;
 
 private:
   struct sockaddr_un d_local;

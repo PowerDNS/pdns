@@ -19,19 +19,6 @@ MemRecursorCache::MemRecursorCache(size_t mapsCount) : d_maps(mapsCount)
 {
 }
 
-MemRecursorCache::~MemRecursorCache()
-{
-  try {
-    typedef std::unique_ptr<lock> lock_t;
-    vector<lock_t> locks;
-    for (auto& map : d_maps) {
-      locks.push_back(lock_t(new lock(map)));
-    }
-  }
-  catch(...) {
-  }
-}
-
 size_t MemRecursorCache::size()
 {
   size_t count = 0;
