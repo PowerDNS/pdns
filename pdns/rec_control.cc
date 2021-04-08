@@ -109,7 +109,6 @@ int main(int argc, char** argv)
 
     const vector<string>&commands=arg().getCommands();
     string command;
-    string password;
     int fd = -1;
     unsigned int i = 0;
     while (i < commands.size()) {
@@ -145,18 +144,15 @@ int main(int argc, char** argv)
       else if (commands.at(i) == "hash-password") {
         if (commands.size() > (i + 1)) {
           ++i;
-          password = commands.at(i);
+          auto password = commands.at(i);
+          cout << hashPassword(password) << endl;
+          return 0;
         }
         else {
           throw PDNSException("Command needs a password argument");
         }
       }
       ++i;
-    }
-
-    if (!password.empty()) {
-      cout << hashPassword(password) << endl;
-      return 0;
     }
 
     auto timeout = arg().asNum("timeout");
