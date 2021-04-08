@@ -1645,7 +1645,11 @@ size_t parseSVCBValueList(const std::string &in, vector<std::string> &val) {
 
 #ifdef HAVE_CRYPTO_MEMCMP
 #include <openssl/crypto.h>
-#endif
+#else /* HAVE_CRYPTO_MEMCMP */
+#ifdef HAVE_SODIUM_MEMCMP
+#include <sodium.h>
+#endif /* HAVE_SODIUM_MEMCMP */
+#endif /* HAVE_CRYPTO_MEMCMP */
 
 bool constantTimeStringEquals(const std::string& a, const std::string& b)
 {
@@ -1655,7 +1659,10 @@ bool constantTimeStringEquals(const std::string& a, const std::string& b)
   const size_t size = a.size();
 #ifdef HAVE_CRYPTO_MEMCMP
   return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
-#else
+#else /* HAVE_CRYPTO_MEMCMP */
+#ifdef HAVE_SODIUM_MEMCMP
+  return sodium_memcmp(a.c_str(), b.c_str(), size) == 0;
+#else /* HAVE_SODIUM_MEMCMP */
   const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
   const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
   unsigned char res = 0;
@@ -1665,6 +1672,6 @@ bool constantTimeStringEquals(const std::string& a, const std::string& b)
   }
 
   return res == 0;
-#endif
+#endif /* !HAVE_SODIUM_MEMCMP */
+#endif /* !HAVE_CRYPTO_MEMCMP */
 }
-
