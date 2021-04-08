@@ -9,7 +9,7 @@
 
 BOOST_AUTO_TEST_SUITE(credentials_cc)
 
-#ifdef HAVE_LIBSODIUM
+#ifdef HAVE_CRYPTO_PWHASH_STR
 BOOST_AUTO_TEST_CASE(test_CredentialsUtils)
 {
   const std::string plaintext("test");
@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_CredentialsHolder)
   BOOST_CHECK(!holder.matches("not test"));
   BOOST_CHECK(!holder.wasHashed());
 
-#ifdef HAVE_LIBSODIUM
+#ifdef HAVE_CRYPTO_PWHASH_STR
   BOOST_CHECK(CredentialsHolder::isHashingAvailable());
   const std::string sampleHash("$argon2id$v=19$m=65536,t=2,p=1$ndQKu3+ZsWedqRrlNFUaNw$tnb0MJVe5C2hlqkDt0Ln3R6VKCYkfMYdxDy+puXes3s");
 

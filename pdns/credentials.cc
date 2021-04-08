@@ -32,7 +32,7 @@
 
 std::string hashPassword(const std::string& password)
 {
-#ifdef HAVE_LIBSODIUM
+#ifdef HAVE_CRYPTO_PWHASH_STR
   std::string result;
   result.resize(crypto_pwhash_STRBYTES);
   sodium_mlock(result.data(), result.size());
@@ -54,7 +54,7 @@ std::string hashPassword(const std::string& password)
 
 bool verifyPassword(const std::string& hash, const std::string& password)
 {
-#ifdef HAVE_LIBSODIUM
+#ifdef HAVE_CRYPTO_PWHASH_STR
   if (hash.size() > crypto_pwhash_STRBYTES) {
     throw std::runtime_error("Invalid password hash supplied for verification, size is " + std::to_string(hash.size()) + ", expected at most " + std::to_string(crypto_pwhash_STRBYTES));
   }
@@ -70,7 +70,7 @@ bool verifyPassword(const std::string& hash, const std::string& password)
 
 bool isPasswordHashed(const std::string& password)
 {
-#ifdef HAVE_LIBSODIUM
+#ifdef HAVE_CRYPTO_PWHASH_STR
   if (password.size() > crypto_pwhash_STRBYTES) {
     return false;
   }
@@ -145,7 +145,7 @@ bool CredentialsHolder::matches(const std::string& password) const
 
 bool CredentialsHolder::isHashingAvailable()
 {
-#ifdef HAVE_LIBSODIUM
+#ifdef HAVE_CRYPTO_PWHASH_STR
   return true;
 #else
   return false;
