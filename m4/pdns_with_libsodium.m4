@@ -15,7 +15,7 @@ AC_DEFUN([PDNS_WITH_LIBSODIUM], [
         save_LIBS=$LIBS
         CFLAGS="$LIBSODIUM_CFLAGS $CFLAGS"
         LIBS="$LIBSODIUM_LIBS $LIBS"
-        AC_CHECK_FUNCS([crypto_box_easy_afternm crypto_box_curve25519xchacha20poly1305_easy randombytes_stir])
+        AC_CHECK_FUNCS([crypto_box_easy_afternm crypto_box_curve25519xchacha20poly1305_easy randombytes_stir sodium_memcmp crypto_pwhash_str])
         CFLAGS=$save_CFLAGS
         LIBS=$save_LIBS
       ], [ : ])
