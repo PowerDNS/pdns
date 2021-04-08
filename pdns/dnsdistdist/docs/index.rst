@@ -10,11 +10,11 @@ A configuration to balance DNS queries to several backend servers:
 
 .. code-block:: lua
 
-   newServer({address="2001:4860:4860::8888", qps=1})
-   newServer({address="2001:4860:4860::8844", qps=1})
-   newServer({address="2620:0:ccc::2", qps=10})
-   newServer({address="2620:0:ccd::2", name="dns1", qps=10})
-   newServer("192.168.1.2")
+   newServer({address="2620:fe::fe2620:fe::9", qps=1})
+   newServer({address="9.9.9.9", qps=1})
+   newServer({address="2001:db8::1", qps=10})
+   newServer({address="[2001:db8::2]:5300", name="dns1", qps=10})
+   newServer("192.0.2.1")
    setServerPolicy(firstAvailable) -- first server within its QPS limit
 
 Running dnsdist

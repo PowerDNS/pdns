@@ -2,11 +2,14 @@ eBPF Socket Filtering
 =====================
 
 :program:`dnsdist` can use `eBPF <http://www.brendangregg.com/ebpf.html>`_ socket filtering on recent Linux kernels (4.1+) built with eBPF support (``CONFIG_BPF``, ``CONFIG_BPF_SYSCALL``, ideally ``CONFIG_BPF_JIT``).
-This feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
-When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
-Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``.
 
-This feature allows dnsdist to ask the kernel to discard incoming packets in kernel-space instead of them being copied to userspace just to be dropped, thus being a lot of faster.
+This feature allows dnsdist to ask the kernel to discard incoming packets in kernel-space instead of them being copied to userspace just to be dropped, thus being a lot of faster. The current implementation supports dropping UDP and TCP queries based on the source IP and UDP datagrams on exact DNS names. We have not been able to implement suffix matching yet, due to a limit on the maximum number of EBPF instructions.
+
+The following figure show the CPU usage of dropping around 20k qps of traffic, first in userspace (34 to 36) then in kernel space with eBPF (37 to 39). The spikes are caused because the drops are triggered by dynamic rules, so the first spike is the abuse traffic before a rule is automatically inserted, and the second spike is because the rule expires automatically after 60s before being inserted again.
+
+.. figure:: ../imgs/ebpf_drops.png
+   :align: center
+   :alt: eBPF in action
 
 The BPF filter can be used to block incoming queries manually::
 
@@ -62,4 +65,6 @@ They can be unregistered at a later point using the :func:`unregisterDynBPFFilte
 
 Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a dynamic block is inserted via a :ref:`DynBlockRulesGroup`.
 
-This feature has been successfully tested on Arch Linux, Arch Linux ARM, Fedora Core 23 and Ubuntu Xenial
+That feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
+When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
+Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``.

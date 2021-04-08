@@ -6,6 +6,12 @@ TLS sessions
 
 One of the most costly TLS operation is the negotiation of a new session, since both the client and the server need to generate and agree on cryptographic materials. In order to reduce that cost, TLS implements what is called session resumption, where a client opening a new connection to a server can reuse the cryptographic materials negotiated for a previous TLS session.
 
+The following figures show that, with the same number of established connections and queries per second, the ratio of new TLS sessions and resumed sessions has a huge impact on CPU usage:
+
+.. figure:: ../imgs/tls_resumptions.png
+   :align: center
+   :alt: Resumed and new TLS sessions
+
 The necessary information to resume a session can either be kept on the server's side (sessions) or on the client's one (tickets). Initially only the server-side approach existed, with two drawbacks:
 
 - the server needs to keep that information at hand, for a client that might never come back;
