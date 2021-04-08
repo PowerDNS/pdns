@@ -888,7 +888,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           if (password) {
             auto holder = make_unique<CredentialsHolder>(std::string(*password));
             if (!holder->wasHashed() && holder->isHashingAvailable()) {
-              warnlog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' instead.");
+              warnlog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' with a hashed password instead.");
             }
 
             setWebserverPassword(std::move(holder));
