@@ -240,6 +240,7 @@ testrunner_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	circular_buffer.hh \
+	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
@@ -290,6 +291,7 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-common.hh \
+	test-credentials_cc.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_hh.cc \
