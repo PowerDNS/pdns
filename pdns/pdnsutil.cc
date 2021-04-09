@@ -2332,7 +2332,7 @@ try
     cout<<"generate-zone-key {zsk|ksk} [ALGORITHM] [BITS]"<<endl;
     cout<<"                                   Generate a ZSK or KSK to stdout with specified ALGORITHM and BITS"<<endl;
     cout<<"get-meta ZONE [KIND ...]           Get zone metadata. If no KIND given, lists all known"<<endl;
-    cout<<"hash-password PASSWORD             Take a plaintext password or api key and output a hashed and salted version"<<endl;
+    cout<<"hash-password                      Ask for a plaintext password or api key and output a hashed and salted version"<<endl;
     cout<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
 #ifdef HAVE_P11KIT1
     cout<<"hsm assign ZONE ALGORITHM {ksk|zsk} MODULE SLOT PIN LABEL"<<endl<<
@@ -2484,11 +2484,8 @@ try
     return 0;
   }
   else if (cmds[0]=="hash-password") {
-    if (cmds.size() < 2) {
-      cerr<<"Syntax: pdnsutil hash-password PASSWORD"<<endl;
-      return 0;
-    }
-    cout<<hashPassword(cmds.at(1))<<endl;
+    auto password = CredentialsHolder::readFromTerminal();
+    cout<<hashPassword(password)<<endl;
     return 0;
   }
 

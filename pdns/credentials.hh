@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <memory>
 #include <string>
 
 std::string hashPassword(const std::string& password);
@@ -51,6 +52,7 @@ public:
   }
 
   static bool isHashingAvailable();
+  static std::string readFromTerminal();
 
 private:
   std::string d_credentials;

@@ -101,7 +101,7 @@ Directory where the REST API stores its configuration and zones.
 -  String
 -  Default: unset
 
-Static pre-shared authentication key for access to the REST API. Since 4.6.0 the key can be hashed and salted using ``rec_control hash-password APIKEY`` instead of being stored in the configuration in plaintext.
+Static pre-shared authentication key for access to the REST API. Since 4.6.0 the key can be hashed and salted using ``rec_control hash-password`` instead of being stored in the configuration in plaintext.
 
 .. _setting-api-readonly:
 
@@ -2172,7 +2172,7 @@ The value between the hooks is a UUID that is generated for each request. This c
 -  String
 -  Default: unset
 
-Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``rec_control hash-password PASS`` instead of being in plaintext.
+Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``rec_control hash-password`` instead of being in plaintext.
 
 .. _setting-webserver-port:
 

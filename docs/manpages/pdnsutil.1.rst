@@ -189,10 +189,9 @@ edit-zone *ZONE*
     **EDITOR** is empty, *pdnsutil* falls back to using *editor*.
 get-meta *ZONE* [*ATTRIBUTE*]...
     Get zone metadata. If no *ATTRIBUTE* given, lists all known.
-hash-password *PASSWORD*
-    This convenience command returns a hashed and salted version of the
-    password passed in parameter, for use as a webserver password or
-    api key.
+hash-password
+    This convenience command asks for a password and returns a hashed
+    and salted version, for use as a webserver password or api key.
 hash-zone-record *ZONE* *RNAME*
     This convenience command hashes the name *RNAME* according to the
     NSEC3 settings of *ZONE*. Refuses to hash for zones with no NSEC3
