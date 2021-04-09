@@ -670,6 +670,7 @@ Pools
 
 :class:`Server`\ s can be part of any number of pools.
 Pools are automatically created when a server is added to a pool (with :func:`newServer`), or can be manually created with :func:`getPool`.
+Servers that are not assigned to a specific pool get assigned to the default pool that is always present, identified by the empty string ``''``.
 
 .. function:: getPool(name) -> ServerPool
 
