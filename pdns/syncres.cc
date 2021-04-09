@@ -1078,19 +1078,15 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
     res_t cset;
     if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
       for (const auto &i : cset) {
-        if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
-          if (auto rec = getRR<ARecordContent>(i)) {
-            ret.push_back(rec->getCA(53));
-          }
+        if (auto rec = getRR<ARecordContent>(i)) {
+          ret.push_back(rec->getCA(53));
         }
       }
     }
     if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
       for (const auto &i : cset) {
-        if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
-          if (auto rec = getRR<AAAARecordContent>(i)) {
-            ret.push_back(rec->getCA(53));
-          }
+        if (auto rec = getRR<AAAARecordContent>(i)) {
+          ret.push_back(rec->getCA(53));
         }
       }
     }
