@@ -32,7 +32,7 @@ class CredentialsHolder
 public:
   /* if the password is in cleartext and hashing is available,
      the hashed form will be kept in memory */
-  CredentialsHolder(std::string&& password);
+  CredentialsHolder(std::string&& password, bool hashPlaintext);
   ~CredentialsHolder();
 
   CredentialsHolder(const CredentialsHolder&) = delete;
@@ -44,6 +44,11 @@ public:
   {
     return d_wasHashed;
   }
+  /* whether it is hashed in memory */
+  bool isHashed() const
+  {
+    return d_isHashed;
+  }
 
   static bool isHashingAvailable();
 
@@ -53,4 +58,6 @@ private:
   uint32_t d_fallbackHash{0};
   /* whether it was constructed from a hashed and salted string */
   bool d_wasHashed{false};
+  /* whether it is hashed in memory */
+  bool d_isHashed{false};
 };

@@ -335,6 +335,7 @@ Webserver configuration
 
   .. versionchanged:: 1.7.0
     The optional ``password`` and ``apiKey`` parameters now accept hashed passwords.
+    The optional ``hashPlaintextCredentials`` parameter has been added.
 
   Setup webserver configuration. See :func:`webserver`.
 
@@ -348,6 +349,7 @@ Webserver configuration
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
   * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
+  * ``hashPlaintextCredentials``: bool - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials. Defaults to false.
 
 .. function:: registerWebHandler(path, handler)
 

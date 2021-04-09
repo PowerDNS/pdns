@@ -1774,6 +1774,17 @@ IP Address for webserver/API to listen on.
 
 Webserver/API access is only allowed from these subnets.
 
+.. _setting-webserver-hash-plaintext-credentials:
+
+``webserver-hash-plaintext-credentials``
+----------------------------------------
+..versionadded:: 4.6.0
+
+-  Boolean
+-  Default: no
+
+Whether passwords and API keys supplied as plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials.
+
 .. _setting-webserver-loglevel:
 
 ``webserver-loglevel``
