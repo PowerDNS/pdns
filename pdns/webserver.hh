@@ -163,18 +163,18 @@ public:
   WebServer(string listenaddress, int port);
   virtual ~WebServer() { };
 
-  void setApiKey(const string &apikey) {
+  void setApiKey(const string &apikey, bool hashPlaintext) {
     if (!apikey.empty()) {
-      d_apikey = make_unique<CredentialsHolder>(std::string(apikey));
+      d_apikey = make_unique<CredentialsHolder>(std::string(apikey), hashPlaintext);
     }
     else {
       d_apikey.reset();
     }
   }
 
-  void setPassword(const string &password) {
+  void setPassword(const string &password, bool hashPlaintext) {
     if (!password.empty()) {
-      d_webserverPassword = make_unique<CredentialsHolder>(std::string(password));
+      d_webserverPassword = make_unique<CredentialsHolder>(std::string(password), hashPlaintext);
     }
     else {
       d_webserverPassword.reset();

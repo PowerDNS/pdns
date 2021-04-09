@@ -92,21 +92,26 @@ bool isPasswordHashed(const std::string& password)
 
 /* if the password is in cleartext and hashing is available,
    the hashed form will be kept in memory */
-CredentialsHolder::CredentialsHolder(std::string&& password)
+CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext)
 {
   bool locked = false;
 
   if (isHashingAvailable()) {
     if (!isPasswordHashed(password)) {
-      d_credentials = hashPassword(password);
-      locked = true;
+      if (hashPlaintext) {
+        d_credentials = hashPassword(password);
+        locked = true;
+        d_isHashed = true;
+      }
     }
     else {
       d_wasHashed = true;
+      d_isHashed = true;
       d_credentials = std::move(password);
     }
   }
-  else {
+
+  if (!d_isHashed) {
     d_fallbackHashPerturb = random();
     d_fallbackHash = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
     d_credentials = std::move(password);
@@ -130,7 +135,7 @@ CredentialsHolder::~CredentialsHolder()
 
 bool CredentialsHolder::matches(const std::string& password) const
 {
-  if (isHashingAvailable()) {
+  if (d_isHashed) {
     return verifyPassword(d_credentials, password);
   }
   else {

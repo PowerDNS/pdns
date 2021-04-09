@@ -944,7 +944,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         SListen(sock, 5);
         auto launch=[sock, local, password, apiKey, customHeaders, acl]() {
           if (password) {
-            auto holder = make_unique<CredentialsHolder>(std::string(*password));
+            auto holder = make_unique<CredentialsHolder>(std::string(*password), false);
             if (!holder->wasHashed() && holder->isHashingAvailable()) {
               warnlog("Passing a plain-text password to 'webserver()' is deprecated, please use 'setWebserverConfig()' with a hashed password instead.");
             }
@@ -953,7 +953,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           }
 
           if (apiKey) {
-            auto holder = make_unique<CredentialsHolder>(std::string(*apiKey));
+            auto holder = make_unique<CredentialsHolder>(std::string(*apiKey), false);
             setWebserverAPIKey(std::move(holder));
           }
 
@@ -990,9 +990,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         return ;
       }
 
+      bool hashPlaintextCredentials = false;
+      if (vars->count("hashPlaintextCredentials")) {
+        hashPlaintextCredentials = boost::get<bool>(vars->at("hashPlaintextCredentials"));
+      }
+
       if (vars->count("password")) {
         std::string password = boost::get<std::string>(vars->at("password"));
-        auto holder = make_unique<CredentialsHolder>(std::move(password));
+        auto holder = make_unique<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
         if (!holder->wasHashed() && holder->isHashingAvailable()) {
           warnlog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is deprecated, please generate a hashed one using 'hashPassword()' instead.");
         }
@@ -1002,7 +1007,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       if (vars->count("apiKey")) {
         std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
-        auto holder = make_unique<CredentialsHolder>(std::move(apiKey));
+        auto holder = make_unique<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
         if (!holder->wasHashed() && holder->isHashingAvailable()) {
           warnlog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is deprecated, please generate a hashed one using 'hashPassword()' instead.");
         }
