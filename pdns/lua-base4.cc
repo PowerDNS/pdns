@@ -151,9 +151,9 @@ void BaseLua4::prepareContext() {
   // QType
   d_lw->writeFunction("newQType", [](const string& s) { QType q; q = s; return q; });
   d_lw->registerFunction("getCode", &QType::getCode);
-  d_lw->registerFunction("getName", &QType::getName);
+  d_lw->registerFunction("getName", &QType::toString);
   d_lw->registerEqFunction<bool(QType::*)(const QType&)>([](const QType& a, const QType& b){ return a == b;}); // operator overloading confuses LuaContext
-  d_lw->registerToStringFunction(&QType::getName);
+  d_lw->registerToStringFunction(&QType::toString);
 
   // Netmask
   d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });

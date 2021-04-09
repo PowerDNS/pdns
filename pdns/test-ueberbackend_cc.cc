@@ -400,7 +400,7 @@ static void checkRecordExists(const std::vector<DNSZoneRecord>& records, const D
       return;
     }
   }
-  BOOST_CHECK_MESSAGE(false, "Record " + name.toString() + "/" + QType(type).getName() + " - " + std::to_string(zoneId) + " not found");
+  BOOST_CHECK_MESSAGE(false, "Record " + name.toString() + "/" + QType(type).toString() + " - " + std::to_string(zoneId) + " not found");
 }
 
 BOOST_AUTO_TEST_CASE(test_simple) {

@@ -363,7 +363,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       stringtok(parts, rr.content);
 
       if(parts.size() < 7) {
-        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
       }
 
       ostringstream o;
@@ -387,28 +387,28 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
             tmp = drc->getZoneRepresentation(false);
           }
           if(!pdns_iequals(tmp, rr.content)) {
-            cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+            cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
             numwarnings++;
           }
         }
       } else {
         struct in6_addr tmpbuf;
         if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1 || rr.content.find('.') != string::npos) {
-          cout<<"[Warning] Following record is not a valid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+          cout<<"[Warning] Following record is not a valid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
           numwarnings++;
         }
       }
     }
     catch(std::exception& e)
     {
-      cout<<"[Error] Following record had a problem: \""<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"\""<<endl;
+      cout<<"[Error] Following record had a problem: \""<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"\""<<endl;
       cout<<"[Error] Error was: "<<e.what()<<endl;
       numerrors++;
       continue;
     }
 
     if(!rr.qname.isPartOf(zone)) {
-      cout<<"[Error] Record '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
+      cout<<"[Error] Record '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
       numerrors++;
       continue;
     }
@@ -418,7 +418,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       // I, too, like to live dangerously
       auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
       if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
-        cout<<"[Warning] Aliasform "<<rr.qtype.getName()<<" record "<<rr.qname<<" has service parameters."<<endl;
+        cout<<"[Warning] Aliasform "<<rr.qtype.toString()<<" record "<<rr.qname<<" has service parameters."<<endl;
         numwarnings++;
       }
 
@@ -430,14 +430,14 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
            *  also be specified in order for the RR to be "self-consistent
            *  (Section 2.4.3).
            */
-          cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.getName()<<" is not self-consistent: 'no-default-alpn' parameter without 'alpn' parameter"<<endl;
+          cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.toString()<<" is not self-consistent: 'no-default-alpn' parameter without 'alpn' parameter"<<endl;
           numwarnings++;
         }
         if (svcbrc->hasParam(SvcParam::mandatory)) {
           auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
           for (auto const &k: keys) {
             if (!svcbrc->hasParam(k)) {
-              cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.getName()<<" is not self-consistent: 'mandatory' parameter lists '"+ SvcParam::keyToString(k) +"', but that parameter does not exist"<<endl;
+              cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.toString()<<" is not self-consistent: 'mandatory' parameter lists '"+ SvcParam::keyToString(k) +"', but that parameter does not exist"<<endl;
               numwarnings++;
             }
           }
@@ -471,33 +471,33 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
 
     content.str("");
-    content<<rr.qname<<" "<<rr.qtype.getName()<<" "<<rr.content;
+    content<<rr.qname<<" "<<rr.qtype.toString()<<" "<<rr.content;
     string contentstr = content.str();
     if (rr.qtype.getCode() != QType::TXT) {
       contentstr=toLower(contentstr);
     }
     if (recordcontents.count(contentstr)) {
-      cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"'"<<endl;
+      cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"'"<<endl;
       numerrors++;
       continue;
     } else
       recordcontents.insert(contentstr);
 
     content.str("");
-    content<<rr.qname<<" "<<rr.qtype.getName();
+    content<<rr.qname<<" "<<rr.qtype.toString();
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       content<<" ("<<DNSRecordContent::NumberToType(rrc.d_type)<<")";
     }
     ret = ttl.insert(pair<string, unsigned int>(toLower(content.str()), rr.ttl));
     if (ret.second == false && ret.first->second != rr.ttl) {
-      cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
+      cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
       numerrors++;
       continue;
     }
 
     if (isSecure && isOptOut && (rr.qname.countLabels() && rr.qname.getRawLabels()[0] == "*")) {
-      cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' is insecure"<<endl;
+      cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' is insecure"<<endl;
       cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnsutil set-nsec3 "<<zone<<endl;
       numwarnings++;
     }
@@ -513,11 +513,11 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     } else {
       // non-apex checks
       if (rr.qtype.getCode() == QType::SOA) {
-        cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
+        cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
         numerrors++;
         continue;
       } else if (rr.qtype.getCode() == QType::DNSKEY) {
-        cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
+        cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
       } else if (rr.qtype.getCode() == QType::NS) {
         if (DNSName(rr.content).isPartOf(rr.qname)) {
@@ -535,13 +535,13 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
 
     if((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) && !rr.qname.isWildcard() && !rr.qname.isHostname())
-      cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.getName()<<"' is not a valid hostname."<<endl;
+      cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.toString()<<"' is not a valid hostname."<<endl;
 
     // Check if the DNSNames that should be hostnames, are hostnames
     try {
       checkHostnameCorrectness(rr);
     } catch (const std::exception& e) {
-      cout << "[Warning] " << rr.qtype.getName() << " record in zone '" << zone << ": " << e.what() << endl;
+      cout << "[Warning] " << rr.qtype.toString() << " record in zone '" << zone << ": " << e.what() << endl;
       numwarnings++;
     }
 
@@ -729,7 +729,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         // occluded by a DNAME, or
         // occluded by a delegation, and is not glue or ENTs leading towards that glue
         if( qname.second == QType::DNAME || ( rr.qtype != QType::ENT && rr.qtype.getCode() != QType::A && rr.qtype.getCode() != QType::AAAA ) ) {
-          cout << "[Warning] '" << rr.qname << "|" << rr.qtype.getName() << "' in zone '" << zone << "' is occluded by a ";
+          cout << "[Warning] '" << rr.qname << "|" << rr.qtype.toString() << "' in zone '" << zone << "' is occluded by a ";
           if( qname.second == QType::NS ) {
             cout << "delegation";
           } else {
@@ -760,7 +760,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         break;
     }
     if (target.isPartOf(zone) && cnames.count(target) != 0) {
-      cout<<"[Warning] '" << rr.qname << "|" << rr.qtype.getName() << " has a target (" << target << ") that is a CNAME." << endl;
+      cout<<"[Warning] '" << rr.qname << "|" << rr.qtype.toString() << " has a target (" << target << ") that is a CNAME." << endl;
       numwarnings++;
     }
   }
@@ -796,7 +796,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       numwarnings++;
     }
     if( ! ok && ! suppliedrecords ) {
-      cout << "[Error] Following record is auth=" << rr.auth << ", run pdnsutil rectify-zone?: " << rr.qname << " IN " << rr.qtype.getName() << " " << rr.content << endl;
+      cout << "[Error] Following record is auth=" << rr.auth << ", run pdnsutil rectify-zone?: " << rr.qname << " IN " << rr.qtype.toString() << " " << rr.content << endl;
       numerrors++;
     }
   }
@@ -1054,7 +1054,7 @@ static int listZone(const DNSName &zone) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.')
 	rr.content.append(1, '.');
 
-      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<"\n";
+      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.toString()<<"\t"<<rr.content<<"\n";
     }
   }
   cout.flush();
@@ -1370,11 +1370,11 @@ static int loadZone(const DNSName& zone, const string& fname) {
       DNSRecordContent::mastermake(rr.qtype, QClass::IN, rr.content);
     }
     catch (const PDNSException &pe) {
-      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.getName()<<": "<<pe.reason<<endl;
+      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.toString()<<": "<<pe.reason<<endl;
       return EXIT_FAILURE;
     }
     catch (const std::exception &e) {
-      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.getName()<<": "<<e.what()<<endl;
+      cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.toString()<<": "<<e.what()<<endl;
       return EXIT_FAILURE;
     }
     db->feedRecord(rr, DNSName());
@@ -1537,7 +1537,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   }
 
   if(!addOrReplace) {
-    cout<<"Current records for "<<rr.qname<<" IN "<<rr.qtype.getName()<<" will be replaced"<<endl;
+    cout<<"Current records for "<<rr.qname<<" IN "<<rr.qtype.toString()<<" will be replaced"<<endl;
   }
   for(auto i = contentStart ; i < cmds.size() ; ++i) {
     rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, cmds[i])->getZoneRepresentation(true);
@@ -1554,7 +1554,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   di.backend->lookup(rr.qtype, name, di.id);
   cout<<"New rrset:"<<endl;
   while(di.backend->get(rr)) {
-    cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<endl;
+    cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<endl;
   }
   di.backend->commitTransaction();
   return EXIT_SUCCESS;

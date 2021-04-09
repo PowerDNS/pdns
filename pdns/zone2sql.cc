@@ -304,7 +304,7 @@ try
               if(rr.qtype.getCode() == QType::SOA)
                 seenSOA=true;
 
-              emitRecord(domain.name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+              emitRecord(domain.name, rr.qname, rr.qtype.toString(), rr.content, rr.ttl, comment);
             }
             num_domainsdone++;
           }
@@ -354,7 +354,7 @@ try
           }
         }
 
-        emitRecord(zpt.getZoneName(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+        emitRecord(zpt.getZoneName(), rr.qname, rr.qtype.toString(), rr.content, rr.ttl, comment);
       }
       num_domainsdone=1;
     }

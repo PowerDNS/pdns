@@ -312,7 +312,7 @@ public:
     }
     result << "QType rules: " << std::endl;
     for (const auto& rule : d_qtypeRules) {
-      result << "- " << QType(rule.first).getName() << ": " << rule.second.toString() << std::endl;
+      result << "- " << QType(rule.first).toString() << ": " << rule.second.toString() << std::endl;
     }
     result << "Excluded Subnets: " << d_excludedSubnets.toString() << std::endl;
     result << "Excluded Domains: " << d_excludedDomains.toString() << std::endl;

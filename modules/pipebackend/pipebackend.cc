@@ -176,7 +176,7 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, D
       }
       // abi-version = 1
       // type    qname           qclass  qtype   id      remote-ip-address
-      query << "Q\t" << qname.toStringRootDot() << "\tIN\t" << qtype.getName() << "\t" << zoneId << "\t" << remoteIP;
+      query << "Q\t" << qname.toStringRootDot() << "\tIN\t" << qtype.toString() << "\t" << zoneId << "\t" << remoteIP;
 
       // add the local-ip-address if abi-version is set to 2
       if (d_abiVersion >= 2)

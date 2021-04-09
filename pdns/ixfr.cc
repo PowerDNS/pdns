@@ -212,7 +212,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
       if(!primarySOA) {
         // we have not seen the first SOA record yet
         if (r.first.d_type != QType::SOA) {
-          throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"' is not a SOA ("+QType(r.first.d_type).getName()+")");
+          throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"' is not a SOA ("+QType(r.first.d_type).toString()+")");
         }
 
         auto sr = getRR<SOARecordContent>(r.first);
@@ -245,7 +245,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
         if(r.first.d_type == QType::OPT)
           continue;
 
-        throw std::runtime_error("Unexpected record (" +QType(r.first.d_type).getName()+") in non-answer section ("+std::to_string(r.first.d_place)+")in IXFR response for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort());
+        throw std::runtime_error("Unexpected record (" +QType(r.first.d_type).toString()+") in non-answer section ("+std::to_string(r.first.d_place)+")in IXFR response for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort());
       }
 
       r.first.d_name.makeUsRelative(zone);

@@ -472,7 +472,7 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
       }
 
       rrset["name"] = current_qname.toString();
-      rrset["type"] = current_qtype.getName();
+      rrset["type"] = current_qtype.toString();
       rrset["records"] = rrset_records;
       rrset["comments"] = rrset_comments;
       rrset["ttl"] = (double)ttl;
@@ -512,7 +512,7 @@ boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 
 static void validateGatheredRRType(const DNSResourceRecord& rr) {
   if (rr.qtype.getCode() == QType::OPT || rr.qtype.getCode() == QType::TSIG) {
-    throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": invalid type given");
+    throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": invalid type given");
   }
 }
 
@@ -549,7 +549,7 @@ static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& 
     }
     catch(std::exception& e)
     {
-      throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+content+"': "+e.what());
+      throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.toString()+" '"+content+"': "+e.what());
     }
 
     new_records.push_back(rr);
@@ -1426,13 +1426,13 @@ static void checkNewRecords(vector<DNSResourceRecord>& records) {
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.getName()+" has more than one record");
+          throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString()+" has more than one record");
         }
         if (previous.content == rec.content) {
-          throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.getName() + " with content \"" + rec.content + "\"");
+          throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " with content \"" + rec.content + "\"");
         }
       } else if (exclusiveEntryTypes.count(rec.qtype.getCode()) != 0 || exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-        throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.getName()+": Conflicts with another RRset");
+        throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString()+": Conflicts with another RRset");
       }
     }
 
@@ -1440,7 +1440,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records) {
     try {
       checkHostnameCorrectness(rec);
     } catch (const std::exception& e) {
-      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.getName() + " " + e.what());
+      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString() + " " + e.what());
     }
 
     previous = rec;
@@ -1652,7 +1652,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     for(auto& rr : new_records) {
       rr.qname.makeUsLowerCase();
       if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
-        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
+        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
       apiCheckQNameAllowedCharacters(rr.qname.toString());
 
       if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
@@ -1874,7 +1874,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
       rr.qname.toString() << "\t" <<
       rr.ttl << "\t" <<
       "IN" << "\t" <<
-      rr.qtype.getName() << "\t" <<
+      rr.qtype.toString() << "\t" <<
       makeApiRecordContent(rr.qtype, rr.content) <<
       endl;
   }
@@ -1992,7 +1992,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
       if(seen.count({qname, qtype, changetype}))
       {
-        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+qtype.getName()+" with changetype: "+changetype);
+        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+qtype.toString()+" with changetype: "+changetype);
       }
       seen.insert({qname, qtype, changetype});
 
@@ -2005,13 +2005,13 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
       else if (changetype == "REPLACE") {
         // we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
         if (!qname.isPartOf(zonename) && qname != zonename)
-          throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
+          throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Name is out of zone");
 
         bool replace_records = rrset["records"].is_array();
         bool replace_comments = rrset["comments"].is_array();
 
         if (!replace_records && !replace_comments) {
-          throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.getName());
+          throw ApiException("No change for RRset " + qname.toString() + " IN " + qtype.toString());
         }
 
         new_records.clear();
@@ -2064,12 +2064,12 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
               while (di.backend->get(rr))
                 ;
 
-              throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Conflicts with pre-existing RRset");
+              throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Conflicts with pre-existing RRset");
             }
           }
 
           if (dname_seen && ns_seen && qname != zonename) {
-            throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Cannot have both NS and DNAME except in zone apex");
+            throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Cannot have both NS and DNAME except in zone apex");
           }
           if (!new_records.empty() && ent_present) {
             QType qt_ent{0};
@@ -2212,7 +2212,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       auto object = Json::object {
         { "object_type", "record" },
         { "name", rr.qname.toString() },
-        { "type", rr.qtype.getName() },
+        { "type", rr.qtype.toString() },
         { "ttl", (double)rr.ttl },
         { "disabled", rr.disabled },
         { "content", makeApiRecordContent(rr.qtype, rr.content) }
@@ -2232,7 +2232,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       auto object = Json::object {
         { "object_type", "comment" },
         { "name", c.qname.toString() },
-        { "type", c.qtype.getName() },
+        { "type", c.qtype.toString() },
         { "content", c.content }
       };
       if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {

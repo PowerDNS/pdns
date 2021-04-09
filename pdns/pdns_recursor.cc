@@ -1083,7 +1083,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
   }
 
   if (sr.doLog() &&  appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
-    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
+    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).toString() << appliedPolicy.getLogString() << endl;
   }
 
   if (appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
@@ -1350,7 +1350,7 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
     if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
       if (g_udrLog) {  
         // This should also probably log to a dedicated file. 
-        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
+        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype).toString()<< " rrtype=" << QType(record.d_type).toString() << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
       }
       ret = true;
     }
@@ -1878,7 +1878,7 @@ static void startDoResolve(void *p)
 
           if(state == vState::Secure) {
             if(sr.doLog()) {
-              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
             }
 
             // Is the query source interested in the value of the ad-bit?
@@ -1887,7 +1887,7 @@ static void startDoResolve(void *p)
           }
           else if(state == vState::Insecure) {
             if(sr.doLog()) {
-              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates as Insecure"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" for "<<dc->getRemote()<<" validates as Insecure"<<endl;
             }
 
             pw.getHeader()->ad=0;
@@ -1898,27 +1898,27 @@ static void startDoResolve(void *p)
             if(t_bogusqueryring)
               t_bogusqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
-               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates as "<<vStateToString(state)<<endl;
+               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" for "<<dc->getRemote()<<" validates as "<<vStateToString(state)<<endl;
             }
 
             // Does the query or validation mode sending out a SERVFAIL on validation errors?
             if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad || DNSSECOK)) {
               if(sr.doLog()) {
-                g_log<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" because recursor or query demands it for Bogus results"<<endl;
+                g_log<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<" because recursor or query demands it for Bogus results"<<endl;
               }
 
               pw.getHeader()->rcode=RCode::ServFail;
               goto sendit;
             } else {
               if(sr.doLog()) {
-                g_log<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" Bogus validation since neither config nor query demands this"<<endl;
+                g_log<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" Bogus validation since neither config nor query demands this"<<endl;
               }
             }
           }
         }
         catch(const ImmediateServFailException &e) {
           if(g_logCommonErrors)
-            g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<"' because: "<<e.reason<<endl;
+            g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<"' because: "<<e.reason<<endl;
           pw.getHeader()->rcode=RCode::ServFail;
           goto sendit;
         }

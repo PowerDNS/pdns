@@ -522,7 +522,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     }
 
     if (!isTypeDenied(nsec3, type)) {
-      LOG(" but the requested type (" << type.getName() << ") does exist" << endl);
+      LOG(" but the requested type (" << type.toString() << ") does exist" << endl);
       return false;
     }
 
@@ -620,7 +620,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     }
 
     if (!isTypeDenied(nsec3, type)) {
-      LOG(" but the requested type (" << type.getName() << ") does exist" << endl);
+      LOG(" but the requested type (" << type.toString() << ") does exist" << endl);
       return synthesizeFromNSEC3Wildcard(now, name, type, ret, res, doDNSSEC, nextCloserEntry, wildcard);
     }
 

@@ -111,7 +111,7 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, D
     d_results_cache.clear();
 
     if (d_qlog) {
-      g_log.log("Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error);
+      g_log.log("Query: '" + qname.toStringRootDot() + "|" + qtype.toString() + "'", Logger::Error);
     }
     (this->*d_lookup_fcnt)(qtype, qname, dnspkt, zoneid);
   }
@@ -146,7 +146,7 @@ void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPac
   filter = "associatedDomain=" + qesc;
 
   if (qtype.getCode() != QType::ANY) {
-    attr = qtype.getName() + "Record";
+    attr = qtype.toString() + "Record";
     filter = "&(" + filter + ")(" + attr + "=*)";
     attronly[0] = attr.c_str();
     attributes = attronly;
@@ -154,7 +154,7 @@ void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPac
 
   filter = strbind(":target:", filter, getArg("filter-lookup"));
 
-  g_log << Logger::Debug << d_myname << " Search = basedn: " << getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
+  g_log << Logger::Debug << d_myname << " Search = basedn: " << getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.toString() << endl;
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
@@ -188,7 +188,7 @@ void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPac
   }
 
   if (qtype.getCode() != QType::ANY) {
-    attr = qtype.getName() + "Record";
+    attr = qtype.toString() + "Record";
     filter = "&(" + filter + ")(" + attr + "=*)";
     attronly[0] = attr.c_str();
     attributes = attronly;
@@ -196,7 +196,7 @@ void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPac
 
   filter = strbind(":target:", filter, getArg("filter-lookup"));
 
-  g_log << Logger::Debug << d_myname << " Search = basedn: " << getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
+  g_log << Logger::Debug << d_myname << " Search = basedn: " << getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.toString() << endl;
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
@@ -211,7 +211,7 @@ void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacke
   filter = "associatedDomain=" + qesc;
 
   if (qtype.getCode() != QType::ANY) {
-    attr = qtype.getName() + "Record";
+    attr = qtype.toString() + "Record";
     filter = "&(" + filter + ")(" + attr + "=*)";
     attronly[0] = attr.c_str();
     attributes = attronly;
@@ -224,7 +224,7 @@ void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacke
     dn = "dc=" + *i + "," + dn;
   }
 
-  g_log << Logger::Debug << d_myname << " Search = basedn: " << dn + getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
+  g_log << Logger::Debug << d_myname << " Search = basedn: " << dn + getArg("basedn") << ", filter: " << filter << ", qtype: " << qtype.toString() << endl;
   d_search = d_pldap->search(dn + getArg("basedn"), LDAP_SCOPE_BASE, filter, attributes);
 }
 
@@ -314,7 +314,7 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   rr.content = result.value;
   rr.auth = result.auth;
 
-  g_log << Logger::Debug << d_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl;
+  g_log << Logger::Debug << d_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).toString() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl;
   return true;
 }
 

@@ -68,7 +68,7 @@ bool TaskQueue::runOnce(bool logErrors)
     vector<DNSRecord> ret;
     sr.setRefreshAlmostExpired(task.d_refreshMode);
     try {
-      g_log << Logger::Debug << "TaskQueue: resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).getName() << endl;
+      g_log << Logger::Debug << "TaskQueue: resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << endl;
       sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
     }
     catch (const std::exception& e) {
@@ -93,7 +93,7 @@ bool TaskQueue::runOnce(bool logErrors)
   }
   else {
     // Deadline passed
-    g_log << Logger::Debug << "TaskQueue: deadline for " << task.d_qname.toString() << '|' << QType(task.d_qtype).getName() << " passed" << endl;
+    g_log << Logger::Debug << "TaskQueue: deadline for " << task.d_qname.toString() << '|' << QType(task.d_qtype).toString() << " passed" << endl;
     d_expired++;
   }
   return true;

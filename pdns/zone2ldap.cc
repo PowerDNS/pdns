@@ -320,7 +320,7 @@ int main( int argc, char* argv[] )
                                                 zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
                                                 DNSResourceRecord rr;
                                                 while(zpt.get(rr)) {
-                                                        callback(g_domainid, rr.qname, rr.qtype.getName(), encode_non_ascii(rr.content), rr.ttl);
+                                                        callback(g_domainid, rr.qname, rr.qtype.toString(), encode_non_ascii(rr.content), rr.ttl);
                                                         if( rr.qtype == QType::SOA )
                                                                 ++g_domainid;
                                                 }
@@ -349,7 +349,7 @@ int main( int argc, char* argv[] )
                         zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
                         DNSResourceRecord rr;
                         while(zpt.get(rr)) {
-                                callback(g_domainid, rr.qname, rr.qtype.getName(), encode_non_ascii(rr.content), rr.ttl);
+                                callback(g_domainid, rr.qname, rr.qtype.toString(), encode_non_ascii(rr.content), rr.ttl);
                                 if ( rr.qtype == QType::SOA )
                                         ++g_domainid;
                         }

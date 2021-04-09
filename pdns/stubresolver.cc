@@ -126,7 +126,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   pw.getHeader()->id=dns_random_uint16();
   pw.getHeader()->rd=1;
 
-  string queryNameType = qname.toString() + "|" + QType(qtype).getName();
+  string queryNameType = qname.toString() + "|" + QType(qtype).toString();
   string msg ="Doing stub resolving for '" + queryNameType + "', using resolvers: ";
   for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
