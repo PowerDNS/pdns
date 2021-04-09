@@ -268,6 +268,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
+   if (q.getCode() != QType::TSIG && q.getCode() != 65226) BOOST_CHECK_MESSAGE(QType::names.find(q.getName()) != QType::names.end(), "qtype " << q.getName() << " not registered in QType::names");
    BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that qtype " << q.getCode() << " is before " << lq);
    lq = q.getCode();
    n++;

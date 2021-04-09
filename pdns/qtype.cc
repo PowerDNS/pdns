@@ -72,6 +72,7 @@ const map<const string, uint16_t> QType::names = {
   {"CDS", 59},
   {"CDNSKEY", 60},
   {"OPENPGPKEY", 61},
+  {"CSYNC", 62},
   {"SVCB", 64},
   {"HTTPS", 65},
   {"SPF", 99},
