@@ -27,6 +27,10 @@
 #include <sodium.h>
 #endif
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "credentials.hh"
 #include "misc.hh"
 
@@ -155,4 +159,90 @@ bool CredentialsHolder::isHashingAvailable()
 #else
   return false;
 #endif
+}
+
+#include <signal.h>
+#include <termios.h>
+
+std::string CredentialsHolder::readFromTerminal()
+{
+  struct termios term;
+  struct termios oterm;
+  memset(&term, 0, sizeof(term));
+  term.c_lflag |= ECHO;
+  memset(&oterm, 0, sizeof(oterm));
+  oterm.c_lflag |= ECHO;
+  bool restoreTermSettings = false;
+  int termAction = TCSAFLUSH;
+#ifdef TCSASOFT
+  termAction |= TCSASOFT
+#endif
+
+  FDWrapper input(open("/dev/tty", O_RDONLY));
+  if (int(input) != -1) {
+    if (tcgetattr(input, &oterm) == 0) {
+      memcpy(&term, &oterm, sizeof(term));
+      term.c_lflag &= ~(ECHO | ECHONL);
+      tcsetattr(input, termAction, &term);
+      restoreTermSettings = true;
+    }
+  }
+  else {
+    input = FDWrapper(dup(STDIN_FILENO));
+  }
+  FDWrapper output(open("/dev/tty", O_WRONLY));
+  if (int(output) == -1) {
+    output = FDWrapper(dup(STDERR_FILENO));
+  }
+
+  struct std::map<int, struct sigaction> signals;
+  struct sigaction sa;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sa.sa_handler = [](int s) { };
+  sigaction(SIGALRM, &sa, &signals[SIGALRM]);
+  sigaction(SIGHUP, &sa, &signals[SIGHUP]);
+  sigaction(SIGINT, &sa, &signals[SIGINT]);
+  sigaction(SIGPIPE, &sa, &signals[SIGPIPE]);
+  sigaction(SIGQUIT, &sa, &signals[SIGQUIT]);
+  sigaction(SIGTERM, &sa, &signals[SIGTERM]);
+  sigaction(SIGTSTP, &sa, &signals[SIGTSTP]);
+  sigaction(SIGTTIN, &sa, &signals[SIGTTIN]);
+  sigaction(SIGTTOU, &sa, &signals[SIGTTOU]);
+
+  std::string buffer;
+  /* let's allocate a huge buffer now to prevent reallocation,
+     which would leave parts of the buffer around */
+  buffer.reserve(512);
+
+  for (;;) {
+    char ch = '\0';
+    auto got = read(input, &ch, 1);
+    if (got == 1 && ch != '\n' && ch != '\r') {
+      buffer.push_back(ch);
+    }
+    else {
+      break;
+    }
+  }
+
+  if (!(term.c_lflag & ECHO)) {
+    if (write(output, "\n", 1) != 1) {
+      /* the compiler _really_ wants the result of write() to be checked.. */
+    }
+  }
+
+  if (restoreTermSettings) {
+    tcsetattr(input, termAction, &oterm);
+  }
+
+  for (const auto& sig : signals) {
+    sigaction(sig.first, &sig.second, nullptr);
+  }
+
+#ifdef HAVE_LIBSODIUM
+  sodium_mlock(buffer.data(), buffer.size());
+#endif
+
+  return buffer;
 }

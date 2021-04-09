@@ -142,15 +142,9 @@ int main(int argc, char** argv)
         }
       }
       else if (commands.at(i) == "hash-password") {
-        if (commands.size() > (i + 1)) {
-          ++i;
-          auto password = commands.at(i);
-          cout << hashPassword(password) << endl;
-          return 0;
-        }
-        else {
-          throw PDNSException("Command needs a password argument");
-        }
+        auto password = CredentialsHolder::readFromTerminal();
+        cout << hashPassword(password) << endl;
+        return 0;
       }
       ++i;
     }

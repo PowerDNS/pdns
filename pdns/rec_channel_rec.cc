@@ -273,28 +273,6 @@ string static doGetParameter(T begin, T end)
   return ret;
 }
 
-struct FDWrapper : public boost::noncopyable
-{
-  FDWrapper(int descr) : fd(descr) {}
-  ~FDWrapper()
-  {
-    if (fd != -1) {
-      close(fd);
-    }
-    fd = -1;
-  }
-  FDWrapper(FDWrapper&& rhs) : fd(rhs.fd)
-  {
-    rhs.fd = -1;
-  }
-  operator int() const
-  {
-    return fd;
-  }
-private:
-  int fd;
-};
-
 /* Read an (open) fd from the control channel */
 static FDWrapper
 getfd(int s)
