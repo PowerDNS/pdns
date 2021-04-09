@@ -115,7 +115,9 @@ public:
 
   pdns_pcap_file_header d_pfh;
   unsigned int d_runts, d_oversized, d_correctpackets, d_nonetheripudp;
-  char d_buffer[32768];
+  alignas (struct ip) char d_readbuffer[32768];
+  char *d_buffer;
+  size_t d_bufsize;
 private:
   std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
   string d_fname;
