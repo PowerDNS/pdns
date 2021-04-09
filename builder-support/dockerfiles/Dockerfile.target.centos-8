@@ -15,7 +15,7 @@ FROM arm64v8/centos:8 as dist-base
 
 ARG BUILDER_CACHE_BUSTER=
 
-@IF [[ $BUILDER_TARGET = *stream* ]]
+@IF [[ $BUILDER_TARGET = centos-*-stream ]]
 RUN touch /var/lib/rpm/* && dnf swap -y centos-linux-repos centos-stream-repos && dnf -y distro-sync
 @ENDIF
 
