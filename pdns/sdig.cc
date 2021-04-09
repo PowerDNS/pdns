@@ -46,23 +46,12 @@ static void usage()
        << endl;
 }
 
-static const string nameForClass(uint16_t qclass, uint16_t qtype)
+static const string nameForClass(QClass qclass, uint16_t qtype)
 {
   if (qtype == QType::OPT)
     return "IN";
 
-  switch (qclass) {
-  case QClass::IN:
-    return "IN";
-  case QClass::CHAOS:
-    return "CHAOS";
-  case QClass::NONE:
-    return "NONE";
-  case QClass::ANY:
-    return "ANY";
-  default:
-    return string("CLASS") + std::to_string(qclass);
-  }
+  return qclass.toString();
 }
 
 static std::unordered_set<uint16_t> s_expectedIDs;
@@ -71,7 +60,7 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
                        bool dnssec, const boost::optional<Netmask> ednsnm,
                        bool recurse, uint16_t xpfcode, uint16_t xpfversion,
                        uint64_t xpfproto, char* xpfsrc, char* xpfdst,
-                       uint16_t qclass, uint16_t qid)
+                       QClass qclass, uint16_t qid)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass);
 
@@ -222,7 +211,7 @@ try {
   boost::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
-  uint16_t qclass = QClass::IN;
+  QClass qclass = QClass::IN;
   string proxyheader;
   string subjectName;
   string caStore;

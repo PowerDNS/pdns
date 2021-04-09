@@ -636,7 +636,7 @@ bool RemoteBackend::superMasterBackend(const string& ip, const DNSName& domain, 
     rrset.push_back(Json::object{
       {"qtype", ns.qtype.getName()},
       {"qname", ns.qname.toString()},
-      {"qclass", QClass::IN},
+      {"qclass", QClass::IN.getCode()},
       {"content", ns.content},
       {"ttl", static_cast<int>(ns.ttl)},
       {"auth", ns.auth}});
@@ -688,7 +688,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const
     json_rrset.push_back(Json::object{
       {"qtype", rr.qtype.getName()},
       {"qname", rr.qname.toString()},
-      {"qclass", QClass::IN},
+      {"qclass", QClass::IN.getCode()},
       {"content", rr.content},
       {"ttl", static_cast<int>(rr.ttl)},
       {"auth", rr.auth}});
@@ -710,7 +710,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& order
   Json query = Json::object{
     {"method", "feedRecord"},
     {"parameters", Json::object{
-                     {"rr", Json::object{{"qtype", rr.qtype.getName()}, {"qname", rr.qname.toString()}, {"qclass", QClass::IN}, {"content", rr.content}, {"ttl", static_cast<int>(rr.ttl)}, {"auth", rr.auth}, {"ordername", (ordername.empty() ? Json() : ordername.toString())}}},
+                     {"rr", Json::object{{"qtype", rr.qtype.getName()}, {"qname", rr.qname.toString()}, {"qclass", QClass::IN.getCode()}, {"content", rr.content}, {"ttl", static_cast<int>(rr.ttl)}, {"auth", rr.auth}, {"ordername", (ordername.empty() ? Json() : ordername.toString())}}},
                      {"trxid", static_cast<double>(d_trxid)},
                    }}};
 

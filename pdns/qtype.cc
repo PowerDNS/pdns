@@ -165,3 +165,19 @@ QType &QType::operator=(const string &s)
   code = chartocode(s.c_str());
   return *this;
 }
+
+const std::string QClass::toString() const
+{
+  switch (qclass) {
+  case IN:
+    return "IN";
+  case CHAOS:
+    return "CHAOS";
+  case NONE:
+    return "NONE";
+  case ANY:
+    return "ANY";
+  default :
+    return "CLASS" + std::to_string(qclass);
+  }
+}

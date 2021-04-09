@@ -170,7 +170,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
 
     if (receivedName != sentName || receivedType != QType::TXT || receivedClass != QClass::IN) {
       if (g_verbose) {
-        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%d / %d) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).getName(), QType(QType::TXT).getName(), receivedClass, QClass::IN, dest.toString());
+        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).getName(), QType(QType::TXT).getName(), QClass(receivedClass).toString(), QClass::IN.toString(), dest.toString());
       }
       continue;
     }
