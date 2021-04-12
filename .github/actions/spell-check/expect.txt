@@ -1509,6 +1509,7 @@ sigs
 SIGUSR
 singlethreaded
 Sipek
+siphash
 sizeof
 Sjoerd
 slapd

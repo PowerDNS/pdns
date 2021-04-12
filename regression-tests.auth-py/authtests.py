@@ -547,8 +547,12 @@ options {
                 raise TypeError("rcode is neither a str nor int")
 
         if msg.rcode() != rcode:
-            msgRcode = dns.rcode.to_text(msg.rcode())
-            wantedRcode = dns.rcode.to_text(rcode)
+            try:
+                msgRcode = dns.rcode.to_text(msg.rcode())
+                wantedRcode = dns.rcode.to_text(rcode)
+            except AttributeError:
+                msgRcode = msg.rcode()
+                wantedRcode = rcode
 
             raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
 

@@ -4,6 +4,10 @@ AM_CPPFLAGS += \
 	$(LIBCRYPTO_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
+if LIBSODIUM
+AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
+endif
+
 AM_LDFLAGS = $(THREADFLAGS)
 
 JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
@@ -110,6 +114,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/dnsrecords.cc \
 	../../pdns/dnssecinfra.cc \
 	../../pdns/dnswriter.cc \
+	../../pdns/ednscookies.cc \
 	../../pdns/ednsoptions.cc ../../pdns/ednsoptions.hh \
 	../../pdns/ednssubnet.cc \
 	../../pdns/iputils.cc \
@@ -145,6 +150,10 @@ libtestremotebackend_la_LIBADD = \
 libtestremotebackend_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+
+if LIBSODIUM
+libtestremotebackend_la_LIBADD += $(LIBSODIUM_LIBS)
+endif
 
 if REMOTEBACKEND_ZEROMQ
 libtestremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
