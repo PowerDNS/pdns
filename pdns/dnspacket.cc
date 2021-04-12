@@ -38,6 +38,7 @@
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "ednsoptions.hh"
+#include "ednscookies.hh"
 #include "pdnsexception.hh"
 #include "dnspacket.hh"
 #include "logger.hh"
@@ -52,6 +53,8 @@
 #include "shuffle.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
+bool DNSPacket::s_doEDNSCookieProcessing;
+string DNSPacket::s_EDNSCookieKey;
 uint16_t DNSPacket::s_udpTruncationThreshold;
  
 DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
@@ -236,7 +239,8 @@ void DNSPacket::setCompress(bool compress)
 
 bool DNSPacket::couldBeCached() const
 {
-  return !d_wantsnsid && qclass==QClass::IN && !d_havetsig;
+  return !d_wantsnsid && qclass==QClass::IN && !d_havetsig &&
+    !(d_haveednscookie && s_doEDNSCookieProcessing);
 }
 
 unsigned int DNSPacket::getMinTTL()
@@ -326,6 +330,12 @@ void DNSPacket::wrapup()
     optsize += d_eso.source.isIPv4() ? 4 : 16;
   }
 
+  if (d_haveednscookie) {
+    if (d_eco.isWellFormed()) {
+        optsize += 24;
+    }
+  }
+
   if (d_trc.d_algoName.countLabels())
   {
     // TSIG is not OPT, but we count it in optsize anyway
@@ -335,7 +345,7 @@ void DNSPacket::wrapup()
     static_assert(EVP_MAX_MD_SIZE <= 64, "EVP_MAX_MD_SIZE is overly huge on this system, please check");
   }
 
-  if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection) {
+  if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
@@ -364,6 +374,11 @@ void DNSPacket::wrapup()
     
         string opt = makeEDNSSubnetOptsString(eso);
         opts.push_back(make_pair(8, opt)); // 'EDNS SUBNET'
+      }
+
+      if (d_haveednscookie && d_eco.isWellFormed()) {
+        d_eco.makeServerCookie(s_EDNSCookieKey, getRemote());
+        opts.push_back(make_pair(EDNSOptionCode::COOKIE, d_eco.makeOptString()));
       }
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
@@ -428,8 +443,10 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->d_wantsnsid = d_wantsnsid;
   r->d_dnssecOk = d_dnssecOk;
   r->d_eso = d_eso;
+  r->d_eco = d_eco;
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
+  r->d_haveednscookie = d_haveednscookie;
   r->d_ednsversion = 0;
   r->d_ednsrcode = 0;
 
@@ -567,6 +584,7 @@ try
   d_havetsig = mdp.getTSIGPos();
   d_haveednssubnet = false;
   d_haveednssection = false;
+  d_haveednscookie = false;
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
@@ -588,6 +606,10 @@ try
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
         } 
+      }
+      else if (s_doEDNSCookieProcessing && option.first == EDNSOptionCode::COOKIE) {
+        d_haveednscookie = true;
+        d_eco.makeFromString(option.second);
       }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
@@ -654,6 +676,27 @@ bool DNSPacket::hasEDNSSubnet() const
 bool DNSPacket::hasEDNS() const
 {
   return d_haveednssection;
+}
+
+bool DNSPacket::hasEDNSCookie() const
+{
+  return d_haveednscookie;
+}
+
+bool DNSPacket::hasWellFormedEDNSCookie() const
+{
+  if (!d_haveednscookie) {
+    return false;
+  }
+  return d_eco.isWellFormed();
+}
+
+bool DNSPacket::hasValidEDNSCookie()
+{
+  if (!hasWellFormedEDNSCookie()) {
+    return false;
+  }
+  return d_eco.isValid(s_EDNSCookieKey, d_remote);
 }
 
 Netmask DNSPacket::getRealRemote() const

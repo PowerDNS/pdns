@@ -21,13 +21,60 @@
  */
 #pragma once
 #include "namespaces.hh"
+#include "iputils.hh"
 
 struct EDNSCookiesOpt
 {
-  string client;
-  string server;
-};
+  EDNSCookiesOpt(){};
+  EDNSCookiesOpt(const std::string& option);
+  EDNSCookiesOpt(const char* option, unsigned int len);
 
-bool getEDNSCookiesOptFromString(const char* option, unsigned int len, EDNSCookiesOpt* eco);
-bool getEDNSCookiesOptFromString(const string& option, EDNSCookiesOpt* eco);
-string makeEDNSCookiesOptString(const EDNSCookiesOpt& eco);
+  bool makeFromString(const std::string& option);
+  bool makeFromString(const char* option, unsigned int len);
+
+  size_t size() const
+  {
+    return server.size() + client.size();
+  }
+
+  bool isWellFormed() const
+  {
+    // RFC7873 section 5.2.2
+    //    In summary, valid cookie lengths are 8 and 16 to 40 inclusive.
+    return (
+      client.size() == 8 && (server.size() == 0 || (server.size() >= 8 && server.size() <= 32)));
+  }
+
+  bool isValid(const string& secret, const ComboAddress& source);
+  bool makeServerCookie(const string& secret, const ComboAddress& source);
+  string makeOptString() const;
+  string getServer() const
+  {
+    return server;
+  }
+  string getClient() const
+  {
+    return client;
+  }
+
+private:
+  // Whether or not we checked this cookie
+  bool checked{false};
+  // Whether or not the cookie is valid
+  bool valid{false};
+  // Whether or not he cookie will expire within 30 minutes
+  bool should_refresh{false};
+
+  // the client cookie
+  string client;
+  // the server cookie
+  string server;
+
+  // Checks if the server cookie is correct
+  // 1. Checks the sizes of the client and server cookie
+  // 2. checks if the timestamp is still good (now - 3600 < ts < now + 300)
+  // 3. Whether or not the hash is correct
+  bool check(const string& secret, const ComboAddress& source);
+
+  void getEDNSCookiesOptFromString(const char* option, unsigned int len);
+};

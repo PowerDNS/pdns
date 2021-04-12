@@ -1290,12 +1290,26 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     return nullptr;
   }
 
-  if (p.hasEDNS() && p.getEDNSVersion() > 0) {
-    r = p.replyPacket();
+  if (p.hasEDNS()) {
+    if(p.getEDNSVersion() > 0) {
+      r = p.replyPacket();
 
-    // PacketWriter::addOpt will take care of setting this correctly in the packet
-    r->setEDNSRcode(ERCode::BADVERS);
-    return r;
+      // PacketWriter::addOpt will take care of setting this correctly in the packet
+      r->setEDNSRcode(ERCode::BADVERS);
+      return r;
+    }
+    if (p.hasEDNSCookie()) {
+      if (!p.hasWellFormedEDNSCookie()) {
+        r = p.replyPacket();
+        r->setRcode(RCode::FormErr);
+        return r;
+      }
+      if (!p.hasValidEDNSCookie()) {
+        r = p.replyPacket();
+        r->setEDNSRcode(ERCode::BADCOOKIE);
+        return r;
+      }
+    }
   }
 
   if(p.d_havetsig) {

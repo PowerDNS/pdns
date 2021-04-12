@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include "iputils.hh"
 #include "ednssubnet.hh"
+#include "ednscookies.hh"
 #include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -124,6 +125,9 @@ public:
   bool couldBeCached() const; //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet() const;
   bool hasEDNS() const;
+  bool hasEDNSCookie() const;
+  bool hasWellFormedEDNSCookie() const;
+  bool hasValidEDNSCookie(); // Not const, some cookie params might be set
   uint8_t getEDNSVersion() const { return d_ednsversion; };
   void setEDNSRcode(uint16_t extRCode)
   {
@@ -167,6 +171,8 @@ public:
 
   static uint16_t s_udpTruncationThreshold; 
   static bool s_doEDNSSubnetProcessing;
+  static bool s_doEDNSCookieProcessing;
+  static string s_EDNSCookieKey;
 
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
@@ -179,6 +185,7 @@ private:
   std::unordered_set<size_t> d_dedup;
   string d_rawpacket; // this is where everything lives 8
   EDNSSubnetOpts d_eso;
+  EDNSCookiesOpt d_eco;
 
   int d_maxreplylen{0};
   int d_socket{-1}; // 4
@@ -192,6 +199,7 @@ private:
   bool d_tsigtimersonly{false};
   bool d_wantsnsid{false};
   bool d_haveednssubnet{false};
+  bool d_haveednscookie{false};
   bool d_haveednssection{false};
   bool d_isQuery;
 };

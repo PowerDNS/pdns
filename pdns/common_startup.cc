@@ -165,6 +165,8 @@ void declareArguments()
   ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="yes";
   ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no";
 
+  ::arg().set("edns-cookie-secret", "When set, set a server cookie in a response to a query with a Client cookie (in hex)")="";
+
   ::arg().setSwitch("webserver","Start a webserver for monitoring (api=yes also enables the HTTP listener)")="no";
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no";
   ::arg().set("webserver-address","IP Address of webserver/API to listen on")="127.0.0.1";
@@ -571,6 +573,25 @@ void mainthread()
 
    g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
    g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+
+   if (::arg()["edns-cookie-secret"].size() != 0) {
+     // User wants cookie processing
+#ifdef HAVE_CRYPTO_SHORTHASH // we can do siphash-based cookies
+     DNSPacket::s_doEDNSCookieProcessing = true;
+     try {
+       if (::arg()["edns-cookie-secret"].size() != 32) {
+         throw std::range_error("wrong size (" + std::to_string(::arg()["edns-cookie-secret"].size()) + "), must be 32");
+       }
+       DNSPacket::s_EDNSCookieKey = makeBytesFromHex(::arg()["edns-cookie-secret"]);
+     } catch(const std::range_error &e) {
+       g_log<<Logger::Error<<"edns-cookie-secret invalid: "<<e.what()<<endl;
+       exit(1);
+     }
+#else
+     g_log<<Logger::Error<<"Support for EDNS Cookies is not available because of missing cryptographic functions"<<endl;
+     exit(1);
+#endif
+   }
 
    PC.setTTL(::arg().asNum("cache-ttl"));
    PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
