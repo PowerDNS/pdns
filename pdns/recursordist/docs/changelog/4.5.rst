@@ -1,5 +1,39 @@
 Changelogs for 4.5.X
 ====================
+
+.. changelog::
+  :version: 4.5.0-beta2
+  :released: 14th of April 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10280
+    :tickets: 10268
+
+    Log local IP in dnstap messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10279
+    :tickets: 10264
+
+    Also disable PMTU for IPv6.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10278
+    :tickets: 10232
+
+    Clear "from" in record cache if we don't know where the update came from.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10277
+    :tickets: 10223
+
+    Better handling of stranded DNSKeys.
+
+
 .. changelog::
   :version: 4.5.0-beta1
   :released: 26th of March 2021
