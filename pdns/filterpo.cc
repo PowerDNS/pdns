@@ -697,31 +697,58 @@ DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
   }
   else {
     DNSName temp;
-    const auto str = addr.toString();
-    const auto len = str.size();
-    std::string::size_type begin = 0;
+    static_assert(sizeof(addr.sin6.sin6_addr.s6_addr) == sizeof(uint16_t) * 8);
+    uint16_t *src = (uint16_t*) &addr.sin6.sin6_addr.s6_addr;
+    std::array<uint16_t,8> elems;
 
-    while (begin < len) {
-      std::string::size_type end = str.find(":", begin);
-      std::string sub;
-      if (end != string::npos) {
-        sub = str.substr(begin, end - begin);
-      }
-      else {
-        sub = str.substr(begin);
-      }
+    // this routine was adopted from glibc's inet_ntop6, written by Paul Vixie
+    // because the RPZ spec (https://datatracker.ietf.org/doc/html/draft-vixie-dnsop-dns-rpz-00#section-4.1.1) says:
+    //
+    //    If there exists more than one sequence of zero-valued fields of
+    //    identical length, then only the last such sequence is compressed.
+    //    Note that [RFC5952] specifies compressing the first such sequence,
+    //    but our notation here reverses the order of fields, and so must also
+    //    reverse the selection of which zero sequence to compress.
+    //
+    // 'cur.len > best.len' from the original code is replaced by 'cur.len >= best.len', so the last-longest wins.
 
-      if (sub.empty()) {
+    struct { int base, len; } best = {-1, 0}, cur = {-1, 0};
+
+    for (int i = 0; i < (int)elems.size(); i++) {
+      auto elem = ntohs(src[i]);
+      elems[i] = elem;
+      if (elems[i] == 0) {
+        if (cur.base == -1) {  // start of a run of zeroes
+          cur = { i, 1 };
+        } else {
+          cur.len++;           // continuation of a run of zeroes
+        }
+      } else {                 // not a zero
+        if (cur.base != -1) {  // end of a run of zeroes
+          if (best.base == -1 || cur.len >= best.len) { // first run of zeroes, or a better one than we found before
+            best = cur;
+          }
+          cur.base = -1;
+        }
+      }
+    }
+
+    if (cur.base != -1) {      // address ended with a zero
+      if (best.base == -1 || cur.len >= best.len) {     // first run of zeroes, or a better one than we found before
+        best = cur;
+      }
+    }
+
+    if (best.base != -1 && best.len < 2) {              // if our best run is only one zero long, we do not replace it
+      best.base = -1;
+    }
+    for (int i=0; i < (int)elems.size(); i++) {
+      if (i==best.base) {
         temp = DNSName("zz") + temp;
+        i = i + best.len - 1;
+      } else {
+        temp = DNSName((boost::format("%x") % elems.at(i)).str()) + temp;
       }
-      else {
-        temp = DNSName(sub) + temp;
-      }
-
-      if (end == string::npos) {
-        break;
-      }
-      begin = end + 1;
     }
     res += temp;
   }
