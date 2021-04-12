@@ -69,27 +69,39 @@ public:
 
   //! Log to a file.
   void toFile( const string & filename );
-  
+
   void resetFlags(){flags=0;open();} //!< zero the flags
   /** Use this to stream to your log, like this:
       \code
       g_log<<"This is an informational message"<<endl; // logged at default loglevel (Info)
-      g_log<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning 
+      g_log<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning
       g_log<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
   Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
-  Logger& operator<<(const DNSName&); 
+  Logger& operator<<(const DNSName&);
   Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(Urgency);    //!< set the urgency, << style
 
+  Logger& operator<<(const QType& qtype)
+  {
+    *this << qtype.toString();
+    return *this;
+  }
+
+  Logger& operator<<(const QClass& qclass)
+  {
+    *this << qclass.toString();
+    return *this;
+  }
+
   // Using const & since otherwise SyncRes:: values induce (illegal) copies
-  template<typename T> Logger & operator<<(const T & i) {
-	ostringstream tmp;
-	tmp<<i;
-	*this<<tmp.str();
-	return *this;
+  template<typename T> Logger & operator<<(const T& i) {
+    ostringstream tmp;
+    tmp << i;
+    *this << tmp.str();
+    return *this;
   }
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
