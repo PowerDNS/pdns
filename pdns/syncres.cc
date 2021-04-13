@@ -1094,7 +1094,6 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       // Nothing in the cache...
       vState newState = vState::Indeterminate;
       cset.clear();
-      // If IPv4 ever becomes second class, we should revisit this
       if (s_doIPv4 && doResolve(qname, QType::A, cset, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
         for (auto const &i : cset) {
           if (i.d_type == QType::A) {
@@ -1106,7 +1105,8 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       }
       if (s_doIPv6) { // s_doIPv6 **IMPLIES** pdns::isQueryLocalAddressFamilyEnabled(AF_INET6) returned true
         if (ret.empty()) {
-          // We did not find IPv4 addresses, try to get IPv6 ones
+          // We only go out to find IPv6 records if we did not find any IPv4 ones.
+          // Once IPv6 adoption matters, this needs to be revisited
           newState = vState::Indeterminate;
           cset.clear();
           if (doResolve(qname, QType::AAAA, cset, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
@@ -1119,15 +1119,12 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
           }
         } else {
           // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache, we might have
-          // encountered some v6 glue
-          // Once IPv6 adoption matters, this needs to be revisited
+          // encountered some IPv6 glue
           cset.clear();
           if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
             for (const auto &i : cset) {
-              if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
-                if (auto rec = getRR<AAAARecordContent>(i)) {
-                  ret.push_back(rec->getCA(53));
-                }
+              if (auto rec = getRR<AAAARecordContent>(i)) {
+                ret.push_back(rec->getCA(53));
               }
             }
           }
