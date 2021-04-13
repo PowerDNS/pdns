@@ -824,4 +824,6 @@ BOOST_AUTO_TEST_CASE(test_mask_to_rpz)
   BOOST_CHECK_EQUAL(DNSFilterEngine::Zone::maskToRPZ(Netmask("1:2:3:4:5:6:7::/127")).toString(), "127.0.7.6.5.4.3.2.1.");
   BOOST_CHECK_EQUAL(DNSFilterEngine::Zone::maskToRPZ(Netmask("1:2:3:4:5:6::/127")).toString(), "127.zz.6.5.4.3.2.1.");
   BOOST_CHECK_EQUAL(DNSFilterEngine::Zone::maskToRPZ(Netmask("1:0:0:0:2:0:0:0/127")).toString(), "127.zz.2.0.0.0.1.");
+  BOOST_CHECK_EQUAL(DNSFilterEngine::Zone::maskToRPZ(Netmask("1:0:0:2:0:0:0:0/127")).toString(), "127.zz.2.0.0.1.");
+  BOOST_CHECK_EQUAL(DNSFilterEngine::Zone::maskToRPZ(Netmask("1:0:0:0:0:2:0:0/127")).toString(), "127.0.0.2.zz.1.");
 }
