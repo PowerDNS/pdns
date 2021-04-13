@@ -199,14 +199,6 @@ struct DOHServerConfig
 
     setNonBlocking(dohresponsepair[1]);
 
-    if (pipe(fd) < 0) {
-      close(dohquerypair[0]);
-      close(dohquerypair[1]);
-      close(dohresponsepair[0]);
-      close(dohresponsepair[1]);
-      unixDie("Creating a pipe for DNS over HTTPS");
-    }
-
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
   }
@@ -563,7 +555,10 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (du->downstream->useProxyProtocol) {
-      addProxyProtocol(dq);
+      size_t payloadSize = 0;
+      if (addProxyProtocol(dq)) {
+        du->proxyProtocolPayloadSize = payloadSize;
+      }
     }
 
     int fd = pickBackendSocketForSending(du->downstream);
@@ -1196,6 +1191,7 @@ public:
   {
     query = InternalQuery(std::move(du->query), std::move(du->ids));
     downstream = du->downstream;
+    proxyProtocolPayloadSize = du->proxyProtocolPayloadSize;
   }
 
   ~DoHCrossProtocolQuery()

@@ -379,14 +379,18 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
   }
 }
 
-static void prependSizeToTCPQuery(PacketBuffer& buffer)
+static void prependSizeToTCPQuery(PacketBuffer& buffer, size_t proxyProtocolPayloadSize)
 {
-  uint16_t queryLen = buffer.size();
+  if (buffer.size() <= proxyProtocolPayloadSize) {
+    throw std::runtime_error("The payload size is smaller or equal to the buffer size");
+  }
+
+  uint16_t queryLen = proxyProtocolPayloadSize > 0 ? (buffer.size() - proxyProtocolPayloadSize) : buffer.size();
   const uint8_t sizeBytes[] = { static_cast<uint8_t>(queryLen / 256), static_cast<uint8_t>(queryLen % 256) };
   /* prepend the size. Yes, this is not the most efficient way but it prevents mistakes
      that could occur if we had to deal with the size during the processing,
      especially alignment issues */
-  buffer.insert(buffer.begin(), sizeBytes, sizeBytes + 2);
+  buffer.insert(buffer.begin() + proxyProtocolPayloadSize, sizeBytes, sizeBytes + 2);
 }
 
 bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
@@ -714,7 +718,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
   setIDStateFromDNSQuestion(ids, dq, std::move(qname));
   ids.origID = ntohs(dh->id);
 
-  prependSizeToTCPQuery(state->d_buffer);
+  prependSizeToTCPQuery(state->d_buffer, 0);
 
   auto downstreamConnection = state->getDownstreamConnection(ds, dq.proxyProtocolValues, now);
 
@@ -1137,14 +1141,14 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
     auto query = std::move(tmp->query);
     auto downstreamServer = std::move(tmp->downstream);
+    auto proxyProtocolPayloadSize = tmp->proxyProtocolPayloadSize;
     std::shared_ptr<TCPQuerySender> tqs = tmp->getTCPQuerySender();
     delete tmp;
     tmp = nullptr;
 
     auto downstream = DownstreamConnectionsManager::getConnectionToDownstream(threadData->mplexer, downstreamServer, now);
 
-#warning FIXME: what if a proxy protocol payload was inserted?
-    prependSizeToTCPQuery(query.d_buffer);
+    prependSizeToTCPQuery(query.d_buffer, proxyProtocolPayloadSize);
     downstream->queueQuery(tqs, std::move(query));
   }
   catch (...) {
