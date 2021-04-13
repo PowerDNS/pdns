@@ -3,7 +3,7 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
-@IF [ ${BUILDER_TARGET} = centos-8 ]
+@IF [ ${BUILDER_TARGET} = centos-8 -o ${BUILDER_TARGET} = centos-8-stream ]
 FROM centos:8 as dist-base
 @ENDIF
 @IF [ ${BUILDER_TARGET} = centos-8-amd64 ]
@@ -12,7 +12,13 @@ FROM amd64/centos:8 as dist-base
 @IF [ ${BUILDER_TARGET} = centos-8-arm64 ]
 FROM arm64v8/centos:8 as dist-base
 @ENDIF
+
 ARG BUILDER_CACHE_BUSTER=
+
+@IF [[ $BUILDER_TARGET = centos-*-stream ]]
+RUN touch /var/lib/rpm/* && dnf swap -y centos-linux-repos centos-stream-repos && dnf -y distro-sync
+@ENDIF
+
 RUN touch /var/lib/rpm/* && dnf install -y epel-release && \
     dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --set-enabled powertools
