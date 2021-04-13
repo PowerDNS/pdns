@@ -221,6 +221,7 @@ struct DOHUnit
   std::string contentType;
   std::atomic<uint64_t> d_refcnt{1};
   size_t query_at{0};
+  size_t proxyProtocolPayloadSize{0};
   int rsock{-1};
   /* the status_code is set from
      processDOHQuery() (which is executed in

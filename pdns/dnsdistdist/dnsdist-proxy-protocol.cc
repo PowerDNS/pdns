@@ -41,9 +41,13 @@ bool addProxyProtocol(DNSQuestion& dq, const std::string& payload)
   return addProxyProtocol(dq.getMutableData(), payload);
 }
 
-bool addProxyProtocol(DNSQuestion& dq)
+bool addProxyProtocol(DNSQuestion& dq, size_t* payloadSize)
 {
   auto payload = getProxyProtocolPayload(dq);
+  if (payloadSize != nullptr) {
+    *payloadSize = payload.size();
+  }
+
   return addProxyProtocol(dq, payload);
 }
 
