@@ -207,20 +207,26 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
   }
 }
 
-void GSQLBackend::setFresh(uint32_t domain_id)
+void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
 {
   try {
     reconnectIfNeeded();
 
-    d_UpdateLastCheckOfZoneQuery_stmt->
-      bind("last_check", time(nullptr))->
-      bind("domain_id", domain_id)->
-      execute()->
-      reset();
+    d_UpdateLastCheckOfZoneQuery_stmt->bind("last_check", lastcheck)->bind("domain_id", domain_id)->execute()->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to update last_check for domain_id " + itoa(domain_id) + ": " + e.txtReason());
   }
+}
+
+void GSQLBackend::setStale(uint32_t domain_id)
+{
+  setLastCheck(domain_id, 0);
+}
+
+void GSQLBackend::setFresh(uint32_t domain_id)
+{
+  setLastCheck(domain_id, time(nullptr));
 }
 
 bool GSQLBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &masters)

@@ -198,6 +198,7 @@ public:
   bool deleteDomain(const DNSName &domain) override;
   bool superMasterAdd(const string &ip, const string &nameserver, const string &account) override; 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+  void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains) override;
@@ -244,6 +245,7 @@ protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
+  void setLastCheck(uint32_t domain_id, time_t lastcheck);
   bool isConnectionUsable() {
     if (d_db) {
       return d_db->isConnectionUsable();

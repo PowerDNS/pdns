@@ -927,6 +927,18 @@ void RemoteBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   }
 }
 
+void RemoteBackend::setStale(uint32_t domain_id)
+{
+  Json query = Json::object{
+    {"method", "setStale"},
+    {"parameters", Json::object{{"id", static_cast<double>(domain_id)}}}};
+
+  Json answer;
+  if (this->send(query) == false || this->recv(answer) == false) {
+    g_log << Logger::Error << kBackendId << " Failed to execute RPC for RemoteBackend::setStale(" << domain_id << ")" << endl;
+  }
+}
+
 void RemoteBackend::setFresh(uint32_t domain_id)
 {
   Json query = Json::object{
