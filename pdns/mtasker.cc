@@ -399,7 +399,7 @@ template<class Key, class Val>int MTasker<Key,Val>::getTid() const
 }
 
 //! Returns the maximum stack usage so far of this MThread
-template<class Key, class Val>unsigned int MTasker<Key,Val>::getMaxStackUsage()
+template<class Key, class Val>uint64_t MTasker<Key,Val>::getMaxStackUsage()
 {
   return d_threads[d_tid].startOfStack - d_threads[d_tid].highestStackSeen;
 }

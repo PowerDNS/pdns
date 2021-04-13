@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <string>
 #include <vector>
 
 namespace pdns {
