@@ -3687,7 +3687,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_ttd = d_now.tv_sec + lowestTTL;
 
         if (!wasVariable()) {
-          if (qtype.getCode()) {  // prevents us from blacking out a whole domain
+          if (qtype.getCode()) {  // prevents us from NXDOMAIN'ing a whole domain
             g_negCache->add(ne);
           }
         }
@@ -4320,10 +4320,10 @@ boost::optional<Netmask> SyncRes::getEDNSSubnetMask(const DNSName& dn, const Com
   return boost::none;
 }
 
-void SyncRes::parseEDNSSubnetWhitelist(const std::string& wlist)
+void SyncRes::parseEDNSSubnetAllowlist(const std::string& alist)
 {
   vector<string> parts;
-  stringtok(parts, wlist, ",; ");
+  stringtok(parts, alist, ",; ");
   for(const auto& a : parts) {
     try {
       s_ednsremotesubnets.addMask(Netmask(a));

@@ -1308,7 +1308,7 @@ static bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLoc
 static bool nodCheckNewDomain(const DNSName& dname)
 {
   bool ret = false;
-  // First check the (sub)domain isn't whitelisted for NOD purposes
+  // First check the (sub)domain isn't ignored for NOD purposes
   if (!g_nodDomainWL.check(dname)) {
     // Now check the NODDB (note this is probabilistic so can have FNs/FPs)
     if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
@@ -4499,7 +4499,7 @@ static void setupNODThread()
   }
 }
 
-static void parseNODWhitelist(const std::string& wlist)
+static void parseNODIgnorelist(const std::string& wlist)
 {
   vector<string> parts;
   stringtok(parts, wlist, ",; ");
@@ -4514,8 +4514,8 @@ static void setupNODGlobal()
   g_nodEnabled = ::arg().mustDo("new-domain-tracking");
   g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
   g_nodLog = ::arg().mustDo("new-domain-log");
-  parseNODWhitelist(::arg()["new-domain-whitelist"]);
-  parseNODWhitelist(::arg()["new-domain-ignore-list"]);
+  parseNODIgnorelist(::arg()["new-domain-whitelist"]);
+  parseNODIgnorelist(::arg()["new-domain-ignore-list"]);
 
   // Setup Unique DNS Response subsystem
   g_udrEnabled = ::arg().mustDo("unique-response-tracking");
@@ -4767,8 +4767,8 @@ static int serviceMain(int argc, char*argv[])
     SyncRes::setECSScopeZeroAddress(nm);
   }
 
-  SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
-  SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-allow-list"]);
+  SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-whitelist"]);
+  SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
 
@@ -5057,15 +5057,15 @@ static int serviceMain(int argc, char*argv[])
 
   g_useKernelTimestamp = ::arg().mustDo("protobuf-use-kernel-timestamp");
 
-  blacklistStats(StatComponent::API, ::arg()["stats-api-blacklist"]);
-  blacklistStats(StatComponent::Carbon, ::arg()["stats-carbon-blacklist"]);
-  blacklistStats(StatComponent::RecControl, ::arg()["stats-rec-control-blacklist"]);
-  blacklistStats(StatComponent::SNMP, ::arg()["stats-snmp-blacklist"]);
+  disableStats(StatComponent::API, ::arg()["stats-api-blacklist"]);
+  disableStats(StatComponent::Carbon, ::arg()["stats-carbon-blacklist"]);
+  disableStats(StatComponent::RecControl, ::arg()["stats-rec-control-blacklist"]);
+  disableStats(StatComponent::SNMP, ::arg()["stats-snmp-blacklist"]);
 
-  blacklistStats(StatComponent::API, ::arg()["stats-api-disabled-list"]);
-  blacklistStats(StatComponent::Carbon, ::arg()["stats-carbon-disabled-list"]);
-  blacklistStats(StatComponent::RecControl, ::arg()["stats-rec-control-disabled-list"]);
-  blacklistStats(StatComponent::SNMP, ::arg()["stats-snmp-disabled-list"]);
+  disableStats(StatComponent::API, ::arg()["stats-api-disabled-list"]);
+  disableStats(StatComponent::Carbon, ::arg()["stats-carbon-disabled-list"]);
+  disableStats(StatComponent::RecControl, ::arg()["stats-rec-control-disabled-list"]);
+  disableStats(StatComponent::SNMP, ::arg()["stats-snmp-disabled-list"]);
 
   if (::arg().mustDo("snmp-agent")) {
     string setting =  ::arg()["snmp-daemon-socket"];
@@ -5572,22 +5572,22 @@ int main(int argc, char **argv)
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)")="";
     ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon")="";
 
-    std::string defaultBlacklistedStats = "cache-bytes, packetcache-bytes, special-memory-usage";
+    std::string defaultDisabledStats = "cache-bytes, packetcache-bytes, special-memory-usage";
     for (size_t idx = 0; idx < 32; idx++) {
-      defaultBlacklistedStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
+      defaultDisabledStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
     }
     for (size_t idx = 0; idx < 128; idx++) {
-      defaultBlacklistedStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
+      defaultDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultBlacklistedStats;
-    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defaultBlacklistedStats;
-    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)")=defaultBlacklistedStats;
-    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)")=defaultBlacklistedStats;
+    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultDisabledStats;
+    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defaultDisabledStats;
+    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)")=defaultDisabledStats;
+    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)")=defaultDisabledStats;
 
-    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultBlacklistedStats;
-    ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon")=defaultBlacklistedStats;
-    ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all")=defaultBlacklistedStats;
-    ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
+    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultDisabledStats;
+    ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon")=defaultDisabledStats;
+    ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all")=defaultDisabledStats;
+    ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultDisabledStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets")="no";
@@ -5642,7 +5642,7 @@ int main(int argc, char **argv)
 
     ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies")="";
     ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources")="padded-queries-only";
-    ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to non-whitelisted clients.")="7830";
+    ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these toclients for which padding is not enabled.")="7830";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

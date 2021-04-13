@@ -447,7 +447,7 @@ public:
   {
     s_dontQuery = nullptr;
   }
-  static void parseEDNSSubnetWhitelist(const std::string& wlist);
+  static void parseEDNSSubnetAllowlist(const std::string& alist);
   static void parseEDNSSubnetAddFor(const std::string& subnetlist);
   static void addEDNSLocalSubnet(const std::string& subnet)
   {

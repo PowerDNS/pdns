@@ -53,24 +53,24 @@ struct dynmetrics {
 
 static map<string, dynmetrics> d_dynmetrics;
 
-static std::map<StatComponent, std::set<std::string>> s_blacklistedStats;
+static std::map<StatComponent, std::set<std::string>> s_disabledStats;
 
-bool isStatBlacklisted(StatComponent component, const string& name)
+bool isStatDisabled(StatComponent component, const string& name)
 {
-  return s_blacklistedStats[component].count(name) != 0;
+  return s_disabledStats[component].count(name) != 0;
 }
 
-void blacklistStat(StatComponent component, const string& name)
+void disableStat(StatComponent component, const string& name)
 {
-  s_blacklistedStats[component].insert(name);
+  s_disabledStats[component].insert(name);
 }
 
-void blacklistStats(StatComponent component, const string& stats)
+void disableStats(StatComponent component, const string& stats)
 {
-  std::vector<std::string> blacklistedStats;
-  stringtok(blacklistedStats, stats, ", ");
-  auto& map = s_blacklistedStats[component];
-  for (const auto &st : blacklistedStats) {
+  std::vector<std::string> disabledStats;
+  stringtok(disabledStats, stats, ", ");
+  auto& map = s_disabledStats[component];
+  for (const auto &st : disabledStats) {
     map.insert(st);
   }
 }
@@ -144,21 +144,21 @@ boost::optional<uint64_t> getStatByName(const std::string& name)
 StatsMap getAllStatsMap(StatComponent component)
 {
   StatsMap ret;
-  const auto& blacklistMap = s_blacklistedStats.at(component);
+  const auto& disabledlistMap = s_disabledStats.at(component);
 
   for(const auto& the32bits :  d_get32bitpointers) {
-    if (blacklistMap.count(the32bits.first) == 0) {
+    if (disabledlistMap.count(the32bits.first) == 0) {
       ret.insert(make_pair(the32bits.first, StatsMapEntry{getPrometheusName(the32bits.first), std::to_string(*the32bits.second)}));
     }
   }
   for(const auto& atomic :  d_getatomics) {
-    if (blacklistMap.count(atomic.first) == 0) {
+    if (disabledlistMap.count(atomic.first) == 0) {
       ret.insert(make_pair(atomic.first, StatsMapEntry{getPrometheusName(atomic.first), std::to_string(atomic.second->load())}));
     }
   }
 
   for(const auto& the64bitmembers :  d_get64bitmembers) {
-    if (blacklistMap.count(the64bitmembers.first) == 0) {
+    if (disabledlistMap.count(the64bitmembers.first) == 0) {
       ret.insert(make_pair(the64bitmembers.first, StatsMapEntry{getPrometheusName(the64bitmembers.first), std::to_string(the64bitmembers.second())}));
     }
   }
@@ -166,7 +166,7 @@ StatsMap getAllStatsMap(StatComponent component)
   {
     std::lock_guard<std::mutex> l(d_dynmetricslock);
     for(const auto& a : d_dynmetrics) {
-      if (blacklistMap.count(a.first) == 0) {
+      if (disabledlistMap.count(a.first) == 0) {
         ret.insert(make_pair(a.first, StatsMapEntry{a.second.d_prometheusName, std::to_string(*a.second.d_ptr)}));
       }
     }
