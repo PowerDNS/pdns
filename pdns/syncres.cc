@@ -40,7 +40,6 @@
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
 
-std::unordered_set<DNSName> SyncRes::s_delegationOnly;
 std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
 NetmaskGroup SyncRes::s_ednslocalsubnets;
 NetmaskGroup SyncRes::s_ednsremotesubnets;
@@ -76,7 +75,6 @@ std::atomic<uint64_t> SyncRes::s_tcpoutqueries;
 std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_qnameminfallbacksuccess;
-std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
 std::atomic<uint64_t> SyncRes::s_ecsqueries;
 std::atomic<uint64_t> SyncRes::s_ecsresponses;
@@ -3100,11 +3098,6 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
       else if (rec.d_type == QType::DS && rec.d_name == auth) {
         LOG("NO - DS provided by child zone"<<endl);
-      }
-      else if (lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && ((rec.d_type != QType::DNSKEY && rec.d_type != QType::DS) || rec.d_name != auth) && s_delegationOnly.count(auth)) {
-        LOG("NO! Is from delegation-only zone"<<endl);
-        s_nodelegated++;
-        return RCode::NXDomain;
       }
       else {
         bool haveLogged = false;

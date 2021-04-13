@@ -590,10 +590,6 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
   {"cpu-msec-thread-0",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of milliseconds spent in thread n")},
-  {"dlg-only-drops",
-   MetricDefinition(PrometheusMetricType::counter,
-                    "Number of records dropped because of `setting-delegation-only` setting")},
-
   {"dnssec-authentic-data-queries",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of queries received with the AD bit set")},

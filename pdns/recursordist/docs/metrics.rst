@@ -266,10 +266,6 @@ cpu-steal
 
 Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ.
 
-dlg-only-drops
-^^^^^^^^^^^^^^
-number of records dropped because of :ref:`setting-delegation-only` setting
-
 dnssec-authentic-data-queries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.2

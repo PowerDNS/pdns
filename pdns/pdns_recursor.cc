@@ -3518,8 +3518,7 @@ static void doStats(void)
       << broadcastAccFunction<uint64_t>(pleaseGetFailedServersSize)<<", ednsmap: "
       <<broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)<<endl;
     g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)<<"%";
-    g_log<<Logger::Notice<<", "<<ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries+SyncRes::s_throttledqueries)<<"% throttled, "
-     <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
+    g_log<<Logger::Notice<<", "<<ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries+SyncRes::s_throttledqueries)<<"% throttled"<<endl;
     g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
@@ -4383,16 +4382,6 @@ void parseACLs()
   l_initialized = true;
 }
 
-
-static void setupDelegationOnly()
-{
-  vector<string> parts;
-  stringtok(parts, ::arg()["delegation-only"], ", \t");
-  for(const auto& p : parts) {
-    SyncRes::addDelegationOnly(DNSName(p));
-  }
-}
-
 static std::map<unsigned int, std::set<int> > parseCPUMap()
 {
   std::map<unsigned int, std::set<int> > result;
@@ -4659,7 +4648,6 @@ static int serviceMain(int argc, char*argv[])
     g_log<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
   }
 
-  setupDelegationOnly();
   g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
   if(::arg()["trace"]=="fail") {
@@ -5487,7 +5475,6 @@ int main(int argc, char **argv)
 #else
       )="";
 #endif
-    ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
@@ -5703,8 +5690,6 @@ int main(int argc, char **argv)
       else
         ::arg().set("socket-dir") = "/";
     }
-
-    ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 
     if(::arg().asNum("threads")==1) {
       if (::arg().mustDo("pdns-distributes-queries")) {
