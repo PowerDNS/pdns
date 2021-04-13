@@ -439,8 +439,8 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
 
     std::ostringstream output;
 
-    // Argument controls blacklisting of any stats. So
-    // stats-api-blacklist will be used to block returned stats.
+    // Argument controls disabling of any stats. So
+    // stats-api-disabled-list will be used to block returned stats.
     auto varmap = getAllStatsMap(StatComponent::API);
     for (const auto& tup : varmap) {
         std::string metricName = tup.first;

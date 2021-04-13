@@ -347,6 +347,25 @@ bool ArgvMap::parmIsset(const string &var)
   return d_params.find(var) != d_params.end();
 }
 
+// ATM Shared between Recursor and Auth, is that a good idea?
+static const map<string,string> deprecateList = {
+  { "stats-api-blacklist", "stats-api-disabled-list" },
+  { "stats-carbon-blacklist", "stats-carbon-disabled-list" },
+  { "stats-rec-control-blacklist", "stats-rec-control-disabled-list" },
+  { "stats-snmp-blacklist", "stats-snmp-disabled-list" },
+  { "edns-subnet-whitelist", "edns-subnet-allow-list" },
+  { "new-domain-whitelist", "new-domain-ignore-list" },
+  { "snmp-master-socket", "snmp-daemon-socket" }
+};
+
+static void warnIfDeprecated(const string& var)
+{
+  const auto msg = deprecateList.find(var);
+  if (msg != deprecateList.end()) {
+    g_log << Logger::Warning << "'" << var << "' is deprecated and will be removed in a future release, use '" << msg->second << "' instead" << endl;
+  }
+}
+
 void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
 {
   string var, val;
@@ -380,6 +399,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   boost::trim(var);
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
+    warnIfDeprecated(var);
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
     if(pos && pos!=string::npos)
       val=val.substr(pos);

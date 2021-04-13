@@ -194,7 +194,7 @@ static void registerCounter64Stat(const std::string& name, const oid statOID[], 
 
   s_statsMap[statOID[statOIDLength - 1]] = name.c_str();
   netsnmp_register_scalar(netsnmp_create_handler_registration(name.c_str(),
-                                                              isStatBlacklisted(StatComponent::SNMP, name) ?
+                                                              isStatDisabled(StatComponent::SNMP, name) ?
                                                               handleDisabledCounter64Stats : handleCounter64Stats,
                                                               statOID,
                                                               statOIDLength,
