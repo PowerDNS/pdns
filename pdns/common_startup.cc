@@ -313,6 +313,7 @@ void declareStats()
 {
   S.declare("udp-queries","Number of UDP queries received");
   S.declare("udp-do-queries","Number of UDP queries received with DO bit");
+  S.declare("udp-cookie-queries", "Number of UDP queries received with the COOKIE EDNS option");
   S.declare("udp-answers","Number of answers sent out over UDP");
   S.declare("udp-answers-bytes","Total size of answers sent out over UDP");
   S.declare("udp4-answers-bytes","Total size of answers sent out over UDPv4");
@@ -331,6 +332,7 @@ void declareStats()
   S.declare("corrupt-packets","Number of corrupt packets received");
   S.declare("signatures", "Number of DNSSEC signatures made");
   S.declare("tcp-queries","Number of TCP queries received");
+  S.declare("tcp-cookie-queries","Number of TCP queries received with the COOKIE option");
   S.declare("tcp-answers","Number of answers sent out over TCP");
   S.declare("tcp-answers-bytes","Total size of answers sent out over TCP");
   S.declare("tcp4-answers-bytes","Total size of answers sent out over TCPv4");
@@ -427,6 +429,7 @@ try
 
   AtomicCounter &numreceived=*S.getPointer("udp-queries");
   AtomicCounter &numreceiveddo=*S.getPointer("udp-do-queries");
+  AtomicCounter &numreceivedcookie=*S.getPointer("udp-cookie-queries");
 
   AtomicCounter &numreceived4=*S.getPointer("udp4-queries");
 
@@ -464,6 +467,9 @@ try
 
     if(question.d_dnssecOk)
       numreceiveddo++;
+
+    if(question.hasEDNSCookie())
+      numreceivedcookie++;
 
      if(question.d.qr)
        continue;
