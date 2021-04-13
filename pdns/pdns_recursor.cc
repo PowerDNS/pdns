@@ -5572,22 +5572,22 @@ int main(int argc, char **argv)
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)")="";
     ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon")="";
 
-    std::string defeaultDisabledStats = "cache-bytes, packetcache-bytes, special-memory-usage";
+    std::string defaultDisabledStats = "cache-bytes, packetcache-bytes, special-memory-usage";
     for (size_t idx = 0; idx < 32; idx++) {
-      defeaultDisabledStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
+      defaultDisabledStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
     }
     for (size_t idx = 0; idx < 128; idx++) {
-      defeaultDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
+      defaultDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defeaultDisabledStats;
-    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defeaultDisabledStats;
-    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)")=defeaultDisabledStats;
-    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)")=defeaultDisabledStats;
+    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultDisabledStats;
+    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defaultDisabledStats;
+    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)")=defaultDisabledStats;
+    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)")=defaultDisabledStats;
 
-    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defeaultDisabledStats;
-    ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon")=defeaultDisabledStats;
-    ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all")=defeaultDisabledStats;
-    ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defeaultDisabledStats;
+    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultDisabledStats;
+    ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon")=defaultDisabledStats;
+    ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all")=defaultDisabledStats;
+    ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultDisabledStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets")="no";
