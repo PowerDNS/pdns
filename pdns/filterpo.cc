@@ -701,7 +701,7 @@ DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
     auto src = reinterpret_cast<const uint16_t*>(&addr.sin6.sin6_addr.s6_addr);
     std::array<uint16_t,8> elems;
 
-    // this routine was adopted from glibc's inet_ntop6, written by Paul Vixie
+    // this routine was adopted from libc's inet_ntop6, written by Paul Vixie
     // because the RPZ spec (https://datatracker.ietf.org/doc/html/draft-vixie-dnsop-dns-rpz-00#section-4.1.1) says:
     //
     //    If there exists more than one sequence of zero-valued fields of
