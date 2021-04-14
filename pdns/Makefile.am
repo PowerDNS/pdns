@@ -220,6 +220,7 @@ pdns_server_SOURCES = \
 	dynmessenger.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	histogram.hh \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
@@ -1326,6 +1327,7 @@ testrunner_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
+	histogram.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
