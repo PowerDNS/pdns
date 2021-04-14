@@ -542,6 +542,26 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
   (*state->mplexer.lock())->getAvailableFDs(ready, 1000);
 }
 
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH)
+{
+  struct timespec ts;
+  gettime(&ts);
+  g_rings.insertResponse(ts, client, ids.qname, ids.qtype, static_cast<unsigned int>(udiff), size, cleartextDH, backend);
+
+  switch (cleartextDH.rcode) {
+  case RCode::NXDomain:
+    ++g_stats.frontendNXDomain;
+    break;
+  case RCode::ServFail:
+    ++g_stats.servfailResponses;
+    ++g_stats.frontendServFail;
+    break;
+  case RCode::NoError:
+    ++g_stats.frontendNoError;
+    break;
+  }
+}
+
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void responderThread(std::shared_ptr<DownstreamState> dss)
 {
@@ -611,7 +631,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           continue;
         }
 
-        bool isDoH = du != nullptr;
         /* atomically mark the state as available, but only if it has not been altered
            in the meantime */
         if (ids->tryMarkUnused(usageIndicator)) {
@@ -633,12 +652,12 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         }
 
         dh->id = ids->origID;
+        ++dss->responses;
 
-        /* don't call processResponse on a truncated answer for DoH, we will retry over TCP */
-        if (du && dh->tc) {
+        /* don't call processResponse for DOH */
+        if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
           // DoH query
-          cerr<<"truncated answer for DoH"<<endl;
           du->handleUDPResponse(std::move(response), std::move(*ids));
 #endif
           continue;
@@ -654,48 +673,22 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           continue;
         }
 
-        if (ids->cs && !ids->cs->muted) {
-          if (du) {
-#ifdef HAVE_DNS_OVER_HTTPS
-            // DoH query
-            du->handleUDPResponse(std::move(response), IDState());
-#endif
-            du = nullptr;
-          }
-
-          else {
-            ComboAddress empty;
-            empty.sin4.sin_family = 0;
-            sendUDPResponse(origFD, response, dr.delayMsec, ids->hopLocal, ids->hopRemote);
-          }
-        }
-
         ++g_stats.responses;
         if (ids->cs) {
           ++ids->cs->responses;
         }
-        ++dss->responses;
+
+        if (ids->cs && !ids->cs->muted) {
+          ComboAddress empty;
+          empty.sin4.sin_family = 0;
+          sendUDPResponse(origFD, response, dr.delayMsec, ids->hopLocal, ids->hopRemote);
+        }
 
         double udiff = ids->sentTime.udiff();
-        vinfolog("Got answer from %s, relayed to %s%s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(),
-                 isDoH ? " (https)": "", udiff);
+        vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
-        struct timespec ts;
-        gettime(&ts);
-        g_rings.insertResponse(ts, *dr.remote, *dr.qname, dr.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(got), cleartextDH, dss->remote);
+        handleResponseSent(*ids, udiff, *dr.remote, dss->remote, static_cast<unsigned int>(got), cleartextDH);
 
-        switch (cleartextDH.rcode) {
-        case RCode::NXDomain:
-          ++g_stats.frontendNXDomain;
-          break;
-        case RCode::ServFail:
-          ++g_stats.servfailResponses;
-          ++g_stats.frontendServFail;
-          break;
-        case RCode::NoError:
-          ++g_stats.frontendNoError;
-          break;
-        }
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
         doLatencyStats(udiff);

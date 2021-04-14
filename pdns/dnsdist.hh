@@ -704,6 +704,7 @@ struct DownstreamState
   pdns::stat_t_trait<double> queryLoad{0.0};
   pdns::stat_t_trait<double> dropRate{0.0};
   double latencyUsec{0.0};
+  double latencyUsecTCP{0.0};
   int order{1};
   int weight{1};
   int tcpConnectTimeout{5};
@@ -998,5 +999,6 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
 
 int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
+void handleResponseSent(const IDState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH);
 
 void carbonDumpThread();

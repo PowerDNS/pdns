@@ -357,25 +357,13 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
 
   if (currentResponse.d_selfGenerated == false && currentResponse.d_connection && currentResponse.d_connection->getDS()) {
     const auto& ds = currentResponse.d_connection->getDS();
-    struct timespec answertime;
-    gettime(&answertime);
     const auto& ids = currentResponse.d_idstate;
     double udiff = ids.sentTime.udiff();
-    g_rings.insertResponse(answertime, state->d_ci.remote, ids.qname, ids.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ds->remote);
     vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f usec", ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), (state->d_handler.isTLS() ? "DoT" : "TCP"), currentResponse.d_buffer.size(), udiff);
-  }
 
-  switch (currentResponse.d_cleartextDH.rcode) {
-  case RCode::NXDomain:
-    ++g_stats.frontendNXDomain;
-    break;
-  case RCode::ServFail:
-    ++g_stats.servfailResponses;
-    ++g_stats.frontendServFail;
-    break;
-  case RCode::NoError:
-    ++g_stats.frontendNoError;
-    break;
+    ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH);
+
+    ds->latencyUsecTCP = (127.0 * ds->latencyUsecTCP / 128.0) + udiff/128.0;
   }
 }
 
@@ -572,6 +560,10 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
       return;
     }
 
+    if (response.d_connection->getDS()) {
+      ++response.d_connection->getDS()->responses;
+    }
+
     DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
@@ -589,9 +581,6 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 
   ++g_stats.responses;
   ++state->d_ci.cs->responses;
-  if (response.d_connection->getDS()) {
-    ++response.d_connection->getDS()->responses;
-  }
 
   queueResponse(state, now, std::move(response));
 }
