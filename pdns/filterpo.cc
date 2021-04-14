@@ -715,8 +715,7 @@ DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
     struct { int base, len; } best = {-1, 0}, cur = {-1, 0};
 
     for (int i = 0; i < (int)elems.size(); i++) {
-      auto elem = ntohs(src[i]);
-      elems[i] = elem;
+      elems[i] = ntohs(src[i]);
       if (elems[i] == 0) {
         if (cur.base == -1) {  // start of a run of zeroes
           cur = { i, 1 };
@@ -743,7 +742,7 @@ DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
       best.base = -1;
     }
     for (int i=0; i < (int)elems.size(); i++) {
-      if (i==best.base) {
+      if (i == best.base) {
         temp = DNSName("zz") + temp;
         i = i + best.len - 1;
       } else {
