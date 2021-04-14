@@ -482,7 +482,6 @@ static int processDOHQuery(DOHUnit* du)
       if (du->response.empty()) {
         du->response = std::move(du->query);
       }
-
       sendDoHUnitToTheMainThread(du, "DoH self-answered response");
 
       return 0;
@@ -1162,12 +1161,30 @@ public:
     }
 
     du->response = std::move(response.d_buffer);
+    du->ids = std::move(response.d_idstate);
 
-    auto sent = write(du->rsock, &du, sizeof(du));
-    if (sent != sizeof(du)) {
+    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    DNSResponse dr = makeDNSResponseFromIDState(du->ids, du->response);
+    dnsheader cleartextDH;
+    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+
+    if (!processResponse(du->response, localRespRuleActions, dr, false, false)) {
       du->release();
-      du = nullptr;
-   }
+      return;
+    }
+
+    double udiff = du->ids.sentTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+
+    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH);
+
+    ++g_stats.responses;
+    if (du->ids.cs) {
+      ++du->ids.cs->responses;
+    }
+
+    sendDoHUnitToTheMainThread(du, "cross-protocol response");
+    du->release();
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1573,23 +1590,32 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, IDState&& state)
   response = std::move(udpResponse);
   ids = std::move(state);
 
-  auto du = this;
-  ssize_t sent = write(rsock, &du, sizeof(du));
-  if (sent != sizeof(this)) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      ++g_stats.dohResponsePipeFull;
-      vinfolog("Unable to pass a DoH response to the DoH worker thread because the pipe is full");
-    }
-    else {
-      vinfolog("Unable to pass a DoH response to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
+  const dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response.data());
+  if (!dh->tc) {
+    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    DNSResponse dr = makeDNSResponseFromIDState(ids, response);
+    dnsheader cleartextDH;
+    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+
+    if (!processResponse(response, localRespRuleActions, dr, false, true)) {
+      release();
+      return;
     }
 
-    /* at this point we have the only remaining pointer on this
-       DOHUnit object since we did set ids->du to nullptr earlier,
-       except if we got the response before the pointer could be
-       released by the frontend */
-    release();
+    double udiff = ids.sentTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", downstream->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
+
+    handleResponseSent(ids, udiff, *dr.remote, downstream->remote, response.size(), cleartextDH);
+
+    ++g_stats.responses;
+    if (ids.cs) {
+      ++ids.cs->responses;
+    }
   }
+
+  sendDoHUnitToTheMainThread(this, "DoH response");
+  /* the reference counter has been incremented in sendDoHUnitToTheMainThread */
+  release();
 }
 
 #else /* HAVE_DNS_OVER_HTTPS */
