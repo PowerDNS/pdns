@@ -698,7 +698,7 @@ DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
   else {
     DNSName temp;
     static_assert(sizeof(addr.sin6.sin6_addr.s6_addr) == sizeof(uint16_t) * 8);
-    uint16_t *src = (uint16_t*) &addr.sin6.sin6_addr.s6_addr;
+    auto src = reinterpret_cast<const uint16_t*>(&addr.sin6.sin6_addr.s6_addr);
     std::array<uint16_t,8> elems;
 
     // this routine was adopted from glibc's inet_ntop6, written by Paul Vixie
