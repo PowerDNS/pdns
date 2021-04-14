@@ -27,7 +27,8 @@
 #include <string>
 #include <vector>
 
-namespace pdns {
+namespace pdns
+{
 
 // By convention, we are using microsecond units
 struct Bucket
@@ -41,15 +42,17 @@ struct AtomicBucket
 {
   // We need the constructors in this case, since atomics have a disabled copy constructor.
   AtomicBucket() {}
-  AtomicBucket(std::string name, uint64_t boundary, uint64_t val) : d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
-  AtomicBucket(const AtomicBucket& rhs) : d_name(rhs.d_name), d_boundary(rhs.d_boundary), d_count(rhs.d_count.load()) {}
+  AtomicBucket(std::string name, uint64_t boundary, uint64_t val) :
+    d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
+  AtomicBucket(const AtomicBucket& rhs) :
+    d_name(rhs.d_name), d_boundary(rhs.d_boundary), d_count(rhs.d_count.load()) {}
 
   std::string d_name;
   uint64_t d_boundary{0};
   std::atomic<uint64_t> d_count{0};
 };
 
-template<class B>
+template <class B>
 class BaseHistogram
 {
 public:
@@ -66,7 +69,7 @@ public:
     }
     d_buckets.reserve(boundaries.size() + 1);
     uint64_t prev = 0;
-    for (auto b: boundaries) {
+    for (auto b : boundaries) {
       if (prev == b) {
         throw std::invalid_argument("boundary array's elements should be distinct");
       }
@@ -120,7 +123,7 @@ public:
   inline void operator()(uint64_t d)
   {
     auto index = std::upper_bound(d_buckets.begin(), d_buckets.end(), d, lessOrEqual);
-    // out index is always valid
+    // our index is always valid
     ++index->d_count;
   }
 
@@ -128,10 +131,10 @@ private:
   std::vector<B> d_buckets;
 };
 
-template<class T>
+template <class T>
 using Histogram = BaseHistogram<Bucket>;
 
-template<class T>
+template <class T>
 using AtomicHistogram = BaseHistogram<AtomicBucket>;
 
 } // namespace pdns

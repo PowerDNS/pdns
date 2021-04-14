@@ -175,7 +175,6 @@
 ./pdns/gettime.cc
 ./pdns/gettime.hh
 ./pdns/histog.hh
-./pdns/histogram.hh
 ./pdns/inflighter.cc
 ./pdns/ipcipher.cc
 ./pdns/iputils.cc
