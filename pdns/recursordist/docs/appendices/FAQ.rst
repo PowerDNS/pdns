@@ -8,9 +8,9 @@ EDNS bufsize in response packets
 
 You may have spotted the 512 in something like the following (after ``EDNS ... udp:``)::
 
-  $ dig example.com @9.9.9.9
+  $ dig example.com @127.0.0.1
   
-  ; <<>> DiG 9.11.5-P4-5.1+deb10u3-Debian <<>> example.com @9.9.9.9
+  ; <<>> DiG 9.11.5-P4-5.1+deb10u3-Debian <<>> example.com @127.0.0.1
   ;; global options: +cmd
   ;; Got answer:
   ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 20155
@@ -25,7 +25,7 @@ You may have spotted the 512 in something like the following (after ``EDNS ... u
   example.com.        43200   IN  A   93.184.216.34
   
   ;; Query time: 86 msec
-  ;; SERVER: 9.9.9.9#53(9.9.9.9)
+  ;; SERVER: 127.0.0.1#53(127.0.0.1)
   ;; WHEN: Thu Apr 15 13:56:34 CEST 2021
   ;; MSG SIZE  rcvd: 56
 
@@ -41,6 +41,6 @@ Similarly, the maximum size of a response from the Recursor to a client is gover
 
 To see the buffer size the Recursor is reporting to authoritatives, ask an authoritative::
 
-  $ dig txt header.lua.powerdns.org +short @9.9.9.9
+  $ dig txt header.lua.powerdns.org +short @127.0.0.1
   "id: 52938, aa: false, rd: false, ad: false, cd: false, do: true, ednsbufsiz: 1232, tcp: false"
 
