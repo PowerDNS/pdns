@@ -34,10 +34,10 @@ public:
   void submitResponse(DNSPacket& p, bool udpOrTCP, bool last = true);
   void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP);
   void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP);
-  map<uint16_t, uint64_t> getQTypeResponseCounts();
-  map<uint16_t, uint64_t> getSizeResponseCounts();
-  map<uint8_t, uint64_t> getRCodeResponseCounts();
-  string getQTypeReport();
+  map<uint16_t, uint64_t> getQTypeResponseCounts() const;
+  map<uint16_t, uint64_t> getSizeResponseCounts() const;
+  map<uint8_t, uint64_t> getRCodeResponseCounts() const;
+  string getQTypeReport() const;
 
 private:
   std::array<std::atomic<uint64_t>, 65535> d_qtypecounters;

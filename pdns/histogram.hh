@@ -33,9 +33,9 @@ namespace pdns
 // By convention, we are using microsecond units
 struct Bucket
 {
-  std::string d_name;
-  uint64_t d_boundary{0};
-  uint64_t d_count{0};
+  const std::string d_name;
+  const uint64_t d_boundary{0};
+  mutable uint64_t d_count{0};
 };
 
 struct AtomicBucket
@@ -47,9 +47,9 @@ struct AtomicBucket
   AtomicBucket(const AtomicBucket& rhs) :
     d_name(rhs.d_name), d_boundary(rhs.d_boundary), d_count(rhs.d_count.load()) {}
 
-  std::string d_name;
-  uint64_t d_boundary{0};
-  std::atomic<uint64_t> d_count{0};
+  const std::string d_name;
+  const uint64_t d_boundary{0};
+  mutable std::atomic<uint64_t> d_count{0};
 };
 
 template <class B>
@@ -120,7 +120,7 @@ public:
     return b <= bu.d_boundary;
   }
 
-  inline void operator()(uint64_t d)
+  inline void operator()(uint64_t d) const
   {
     auto index = std::upper_bound(d_buckets.begin(), d_buckets.end(), d, lessOrEqual);
     // our index is always valid
