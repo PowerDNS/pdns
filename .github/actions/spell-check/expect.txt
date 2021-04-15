@@ -477,6 +477,7 @@ ecswho
 edb
 editline
 edns
+ednsbufsiz
 ednsoptions
 ednsoptionview
 ednssubnet
