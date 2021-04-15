@@ -1366,6 +1366,7 @@ rb
 RBL
 rcode
 rcodezero
+rcvd
 rcvmmsg
 rdata
 rdqueries
