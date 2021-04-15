@@ -577,7 +577,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         /* check if the whole NAME is denied existing */
         if (isCoveredByNSEC(qname, owner, nsec->d_next)) {
-          LOG(name<<" is covered by ("<<owner<<" to "<<nsec->d_next<<") ");
+          LOG(qname<<" is covered by ("<<owner<<" to "<<nsec->d_next<<") ");
 
           if (nsecProvesENT(qname, owner, nsec->d_next)) {
             if (wantsNoDataProof) {
