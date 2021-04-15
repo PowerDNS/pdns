@@ -28,24 +28,24 @@ ResponseStats::ResponseStats() :
   d_sizecounters("SizeCounters", sizeBounds())
 {
   for (unsigned int n = 0; n < 65535; ++n) {
-    d_qtypecounters[n] = 0;
+    d_qtypecounters[n].value = 0;
   }
   for (unsigned int n = 0; n < 256; ++n) {
-    d_rcodecounters[n] = 0;
+    d_rcodecounters[n].value = 0;
   }
 }
 
 ResponseStats g_rs;
 
-void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP)
+void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP) const
 {
-  d_rcodecounters.at(rcode)++;
+  d_rcodecounters.at(rcode).value++;
   submitResponse(qtype, respsize, udpOrTCP);
 }
 
-void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP)
+void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP) const
 {
-  d_qtypecounters.at(qtype)++;
+  d_qtypecounters.at(qtype).value++;
   d_sizecounters(respsize);
 }
 
@@ -54,7 +54,7 @@ map<uint16_t, uint64_t> ResponseStats::getQTypeResponseCounts() const
   map<uint16_t, uint64_t> ret;
   uint64_t count;
   for (unsigned int i = 0; i < 65535; ++i) {
-    count = d_qtypecounters.at(i);
+    count = d_qtypecounters.at(i).value;
     if (count) {
       ret[i] = count;
     }
@@ -78,7 +78,7 @@ map<uint8_t, uint64_t> ResponseStats::getRCodeResponseCounts() const
   map<uint8_t, uint64_t> ret;
   uint64_t count;
   for (unsigned int i = 0; i < 256; ++i) {
-    count = d_rcodecounters.at(i);
+    count = d_rcodecounters.at(i).value;
     if (count) {
       ret[i] = count;
     }
