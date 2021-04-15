@@ -5,7 +5,7 @@ race:handleStats
 race:ClientState::updateTCPMetrics
 race:DownstreamState::updateTCPMetrics
 # There is a race when we update the status of a backend,
-# but we eventual consistency is fine there
+# but eventual consistency is fine there
 race:DownstreamState::setDown
 race:DownstreamState::setUp
 race:DownstreamState::setAuto
