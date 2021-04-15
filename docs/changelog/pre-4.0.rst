@@ -4583,6 +4583,7 @@ New features
 ^^^^^^^^^^^^
 
 -  ^^version command (requested by Mike Benoit)
+-  delegation-only, a Verisign special.
 -  Generic `SQLite <http://www.sqlite.org>`__ support, by Michel 'Who da
    man?' Stol. See `Generic SQLite
    backend <authoritative/backend-generic-sqlite.md>`__.
