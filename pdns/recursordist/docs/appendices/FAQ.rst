@@ -47,6 +47,7 @@ To see the buffer size the Recursor is reporting to authoritatives, ask an autho
 Or, in a diagram::
 
         udp-truncation-threshold      edns-outgoing-bufsize
+            [default is 1232]           [default is 1232]
                   |                           |
     +------+      v      +----------+         v             +------------+
     | stub | <=========> | recursor | <===================> | responders |
@@ -54,4 +55,4 @@ Or, in a diagram::
                  ^
                  |
       client bufsize (stub => recursor)
-     bufsize to client (recursor => stub)
+     bufsize reported to client (recursor => stub [always 512])
