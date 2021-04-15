@@ -44,3 +44,14 @@ To see the buffer size the Recursor is reporting to authoritatives, ask an autho
   $ dig txt header.lua.powerdns.org +short @127.0.0.1
   "id: 52938, aa: false, rd: false, ad: false, cd: false, do: true, ednsbufsiz: 1232, tcp: false"
 
+Or, in a diagram::
+
+        udp-truncation-threshold      edns-outgoing-bufsize
+                  |                           |
+    +------+      v      +----------+         v             +------------+
+    | stub | <=========> | recursor | <===================> | responders |
+    +------+             +----------+                       +------------+
+                 ^
+                 |
+      client bufsize (stub => recursor)
+     bufsize to client (recursor => stub)
