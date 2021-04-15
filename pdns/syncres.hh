@@ -421,14 +421,6 @@ public:
   static uint64_t doDumpFailedServers(int fd);
   static uint64_t doDumpNonResolvingNS(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth);
-  static void clearDelegationOnly()
-  {
-    s_delegationOnly.clear();
-  }
-  static void addDelegationOnly(const DNSName& name)
-  {
-    s_delegationOnly.insert(name);
-  }
   static void addDontQuery(const std::string& mask)
   {
     if (!s_dontQuery)
@@ -750,7 +742,6 @@ public:
   static std::atomic<uint64_t> s_authzonequeries;
   static std::atomic<uint64_t> s_outqueries;
   static std::atomic<uint64_t> s_tcpoutqueries;
-  static std::atomic<uint64_t> s_nodelegated;
   static std::atomic<uint64_t> s_unreachables;
   static std::atomic<uint64_t> s_ecsqueries;
   static std::atomic<uint64_t> s_ecsresponses;
@@ -811,7 +802,6 @@ private:
   ComboAddress d_requestor;
   ComboAddress d_cacheRemote;
 
-  static std::unordered_set<DNSName> s_delegationOnly;
   static NetmaskGroup s_ednslocalsubnets;
   static NetmaskGroup s_ednsremotesubnets;
   static SuffixMatchNode s_ednsdomains;

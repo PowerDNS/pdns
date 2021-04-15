@@ -285,14 +285,6 @@ This parameter is only available on OS that provides the `pthread_setaffinity_np
 
 Operate in the background.
 
-.. _setting-delegation-only:
-
-``delegation-only``
--------------------
--  Domains, comma separated
-
-Which domains we only accept delegations from (a Verisign special).
-
 .. _setting-dont-throttle-names:
 
 ``dont-throttle-names``

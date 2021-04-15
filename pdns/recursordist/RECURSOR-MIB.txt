@@ -407,7 +407,7 @@ dlgOnlyDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of records dropped because of they belonged to a delegation-only zone"
+        "Obsolete"
     ::= { stats 46 }
 
 ignoredPackets OBJECT-TYPE

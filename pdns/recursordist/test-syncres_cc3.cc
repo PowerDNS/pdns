@@ -42,42 +42,6 @@ BOOST_AUTO_TEST_CASE(test_cache_auth)
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 }
 
-BOOST_AUTO_TEST_CASE(test_delegation_only)
-{
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr);
-
-  primeHints();
-
-  /* Thanks, Verisign */
-  SyncRes::addDelegationOnly(DNSName("com."));
-  SyncRes::addDelegationOnly(DNSName("net."));
-
-  const DNSName target("nx-powerdns.com.");
-
-  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
-    if (isRootServer(ip)) {
-      setLWResult(res, 0, false, false, true);
-      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
-      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
-      return LWResult::Result::Success;
-    }
-    else if (ip == ComboAddress("192.0.2.1:53")) {
-
-      setLWResult(res, 0, true, false, true);
-      addRecordToLW(res, domain, QType::A, "192.0.2.42");
-      return LWResult::Result::Success;
-    }
-
-    return LWResult::Result::Timeout;
-  });
-
-  vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 0U);
-}
-
 BOOST_AUTO_TEST_CASE(test_unauth_any)
 {
   std::unique_ptr<SyncRes> sr;

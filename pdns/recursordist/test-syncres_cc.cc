@@ -172,7 +172,6 @@ void initSR(bool debug)
   SyncRes::addEDNSLocalSubnet("::/0");
   SyncRes::clearEDNSRemoteSubnets();
   SyncRes::clearEDNSDomains();
-  SyncRes::clearDelegationOnly();
   SyncRes::clearDontQuery();
   SyncRes::setECSScopeZeroAddress(Netmask("127.0.0.1/32"));
   SyncRes::s_qnameminimization = false;

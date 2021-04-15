@@ -4,5 +4,4 @@ Test suggestions:
 - export-etc-hosts and -suffix
 - lua stuff
 - auth-zones
-- delegation-only
 - forward-zones

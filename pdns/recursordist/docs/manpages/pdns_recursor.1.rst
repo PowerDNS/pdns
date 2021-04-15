@@ -53,8 +53,6 @@ at `<https://doc.powerdns.com/>`
     ``pdns_recursor --config | grep ' config-dir='``.
 --daemon
     Operate as a daemon.
---delegation-only
-    Which domains we only accept delegations from (a Verisign special).
 --entropy-source=<file>
     Read new entropy from *file*, defaults to /dev/urandom.
 --export-etc-hosts
