@@ -74,11 +74,11 @@ public:
         throw std::invalid_argument("boundary array's elements should be distinct");
       }
       std::string str = prefix + "le-" + std::to_string(b);
-      d_buckets.emplace_back(B{str, b, 0});
+      d_buckets.emplace_back(str, b, 0);
       prev = b;
     }
     // everything above last boundary
-    d_buckets.emplace_back(B{prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0});
+    d_buckets.emplace_back(prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0);
   }
 
   const std::vector<B>& getRawData() const
@@ -98,7 +98,7 @@ public:
     uint64_t c{0};
     for (const auto& b : d_buckets) {
       c += b.d_count;
-      ret.emplace_back(B{b.d_name, b.d_boundary, c});
+      ret.emplace_back(b.d_name, b.d_boundary, c);
     }
     return ret;
   }
