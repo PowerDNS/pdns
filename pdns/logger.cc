@@ -50,116 +50,113 @@ Logger& getLogger()
   return log;
 }
 
-void Logger::log(const string &msg, Urgency u) noexcept
+void Logger::log(const string& msg, Urgency u) noexcept
 {
 #ifndef RECURSOR
   bool mustAccount(false);
 #endif
-  if(u<=consoleUrgency) {
+  if (u <= consoleUrgency) {
     char buffer[50] = "";
     if (d_timestamps) {
       struct tm tm;
       time_t t;
       time(&t);
       localtime_r(&t, &tm);
-      strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
+      strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm);
     }
 
     string prefix;
     if (d_prefixed) {
-      switch(u) {
-        case All:
-          prefix = "[all] ";
-          break;
-        case Alert:
-          prefix = "[ALERT] ";
-          break;
-        case Critical:
-          prefix = "[CRITICAL] ";
-          break;
-        case Error:
-          prefix = "[ERROR] ";
-          break;
-        case Warning:
-          prefix = "[WARNING] ";
-          break;
-        case Notice:
-          prefix = "[NOTICE] ";
-          break;
-        case Info:
-          prefix = "[INFO] ";
-          break;
-        case Debug:
-          prefix = "[DEBUG] ";
-          break;
-        case None:
-          prefix = "[none] ";
-          break;
+      switch (u) {
+      case All:
+        prefix = "[all] ";
+        break;
+      case Alert:
+        prefix = "[ALERT] ";
+        break;
+      case Critical:
+        prefix = "[CRITICAL] ";
+        break;
+      case Error:
+        prefix = "[ERROR] ";
+        break;
+      case Warning:
+        prefix = "[WARNING] ";
+        break;
+      case Notice:
+        prefix = "[NOTICE] ";
+        break;
+      case Info:
+        prefix = "[INFO] ";
+        break;
+      case Debug:
+        prefix = "[DEBUG] ";
+        break;
+      case None:
+        prefix = "[none] ";
+        break;
       }
     }
 
     static std::mutex m;
     std::lock_guard<std::mutex> l(m); // the C++-2011 spec says we need this, and OSX actually does
-    clog << string(buffer) + prefix + msg <<endl;
+    clog << string(buffer) + prefix + msg << endl;
 #ifndef RECURSOR
-    mustAccount=true;
+    mustAccount = true;
 #endif
   }
-  if( u <= d_loglevel && !d_disableSyslog ) {
-    syslog(u,"%s",msg.c_str());
+  if (u <= d_loglevel && !d_disableSyslog) {
+    syslog(u, "%s", msg.c_str());
 #ifndef RECURSOR
-    mustAccount=true;
+    mustAccount = true;
 #endif
   }
 
 #ifndef RECURSOR
-  if(mustAccount) {
-      try {
-        S.ringAccount("logmessages",msg);
-      }
-      catch (const runtime_error& e) {
-        cerr << e.what() << endl;
-      }
+  if (mustAccount) {
+    try {
+      S.ringAccount("logmessages", msg);
+    }
+    catch (const runtime_error& e) {
+      cerr << e.what() << endl;
+    }
   }
 #endif
 }
 
-void Logger::setLoglevel( Urgency u )
+void Logger::setLoglevel(Urgency u)
 {
   d_loglevel = u;
 }
-  
 
 void Logger::toConsole(Urgency u)
 {
-  consoleUrgency=u;
+  consoleUrgency = u;
 }
 
 void Logger::open()
 {
-  if(opened)
+  if (opened)
     closelog();
-  openlog(name.c_str(),flags,d_facility);
-  opened=true;
+  openlog(name.c_str(), flags, d_facility);
+  opened = true;
 }
 
-void Logger::setName(const string &_name)
+void Logger::setName(const string& _name)
 {
-  name=_name;
+  name = _name;
   open();
 }
 
 Logger::Logger(string n, int facility) :
-  name(std::move(n)), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
-  consoleUrgency(Error), opened(false), d_disableSyslog(false)
+  name(std::move(n)), flags(LOG_PID | LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None), consoleUrgency(Error), opened(false), d_disableSyslog(false)
 {
   open();
-
 }
 
 Logger& Logger::operator<<(Urgency u)
 {
-  getPerThread().d_urgency=u;
+  getPerThread().d_urgency = u;
   return *this;
 }
 
@@ -168,39 +165,38 @@ Logger::PerThread& Logger::getPerThread()
   return t_perThread;
 }
 
-Logger& Logger::operator<<(const string &s)
+Logger& Logger::operator<<(const string& s)
 {
   PerThread& pt = getPerThread();
   pt.d_output.append(s);
   return *this;
 }
 
-Logger& Logger::operator<<(const char *s)
+Logger& Logger::operator<<(const char* s)
 {
-  *this<<string(s);
+  *this << string(s);
   return *this;
 }
 
-Logger& Logger::operator<<(ostream & (&)(ostream &))
+Logger& Logger::operator<<(ostream& (&)(ostream&))
 {
   PerThread& pt = getPerThread();
 
   log(pt.d_output, pt.d_urgency);
   pt.d_output.clear();
-  pt.d_urgency=Info;
+  pt.d_urgency = Info;
   return *this;
 }
 
-Logger& Logger::operator<<(const DNSName &d)
+Logger& Logger::operator<<(const DNSName& d)
 {
-  *this<<d.toLogString();
+  *this << d.toLogString();
 
   return *this;
 }
 
-Logger& Logger::operator<<(const ComboAddress &ca)
+Logger& Logger::operator<<(const ComboAddress& ca)
 {
-  *this<<ca.toLogString();
+  *this << ca.toLogString();
   return *this;
 }
-
