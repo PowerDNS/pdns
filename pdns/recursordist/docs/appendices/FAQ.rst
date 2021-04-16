@@ -37,9 +37,9 @@ But the example above is the Recursor responding to a client, and it is telling 
 Or, to say it differently, the Recursor is telling the client that *questions* must fit in 512 bytes.
 This is fine for the Recursor - unlike an Authoritative, that might need to handle big UPDATE requests, the Recursor really only answers simple questions from clients, and those always comfortably fit in 512 bytes, because the maximum length of a DNS name is 256 bytes.
 
-Similarly, the maximum size of a response from the Recursor to a client is governed by the buffer size reported by the client (in ``dig``, you can see that number by doing ``dig +qr``), and the :ref:`setting-udp-truncation-threshold` setting in the Recursor configuration.
+Similarly, the maximum size of a response from the Recursor to a client is governed by the buffer size sent by the client (in ``dig``, you can see that number by doing ``dig +qr``), and the :ref:`setting-udp-truncation-threshold` setting in the Recursor configuration.
 
-To see the buffer size the Recursor is reporting to authoritatives, ask an authoritative::
+To see the buffer size the Recursor is sending to authoritatives, you can ask the question below, which gets sent to an authoritative server reporting in a TXT answer record what it saw in the query::
 
   $ dig txt header.lua.powerdns.org +short @127.0.0.1
   "id: 52938, aa: false, rd: false, ad: false, cd: false, do: true, ednsbufsiz: 1232, tcp: false"
