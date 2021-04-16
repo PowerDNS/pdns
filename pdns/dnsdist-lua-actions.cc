@@ -88,6 +88,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
+    std::lock_guard<decltype(d_lock)> guard(d_lock);
     if (d_qps.check()) {
       return Action::None;
     }
@@ -100,6 +101,7 @@ public:
     return "qps limit to "+std::to_string(d_qps.getRate());
   }
 private:
+  mutable std::mutex d_lock;
   QPSLimiter d_qps;
 };
 
@@ -141,15 +143,15 @@ private:
   mutable std::atomic<unsigned long> d_senderrors{0};
   unsigned long d_recverrors{0};
   mutable std::atomic<unsigned long> d_queries{0};
-  unsigned long d_responses{0};
-  unsigned long d_nxdomains{0};
-  unsigned long d_servfails{0};
-  unsigned long d_refuseds{0};
-  unsigned long d_formerrs{0};
-  unsigned long d_notimps{0};
-  unsigned long d_noerrors{0};
-  mutable unsigned long d_tcpdrops{0};
-  unsigned long d_otherrcode{0};
+  stat_t d_responses{0};
+  stat_t d_nxdomains{0};
+  stat_t d_servfails{0};
+  stat_t d_refuseds{0};
+  stat_t d_formerrs{0};
+  stat_t d_notimps{0};
+  stat_t d_noerrors{0};
+  mutable stat_t d_tcpdrops{0};
+  stat_t d_otherrcode{0};
   std::atomic<bool> d_pleaseQuit{false};
   bool d_addECS{false};
 };
@@ -294,8 +296,9 @@ public:
   QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(limit, limit), d_pool(pool) {}
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
+    std::lock_guard<decltype(d_lock)> guard(d_lock);
     if (d_qps.check()) {
-      *ruleresult=d_pool;
+      *ruleresult = d_pool;
       return Action::Pool;
     }
     else {
@@ -308,6 +311,7 @@ public:
   }
 
 private:
+  mutable std::mutex d_lock;
   QPSLimiter d_qps;
   std::string d_pool;
 };

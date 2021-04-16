@@ -1195,7 +1195,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
 
   gettimeofday(&conn.d_connectionStartTime, nullptr);
   conn.d_nbQueries = 0;
-  conn.d_acceptCtx = dsc->accept_ctx;
+  conn.d_acceptCtx = std::atomic_load_explicit(&dsc->accept_ctx, std::memory_order_acquire);
   conn.d_desc = descriptor;
 
   sock->on_close.cb = on_socketclose;
@@ -1350,7 +1350,7 @@ void DOHFrontend::reloadCertificates()
 {
   auto newAcceptContext = std::make_shared<DOHAcceptContext>();
   setupAcceptContext(*newAcceptContext, *d_dsc, true);
-  d_dsc->accept_ctx = newAcceptContext;
+  std::atomic_store_explicit(&d_dsc->accept_ctx, newAcceptContext, std::memory_order_release);
 }
 
 void DOHFrontend::setup()

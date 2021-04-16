@@ -1908,6 +1908,91 @@ jobs:
           paths:
             - dnsdist
 
+  build-dnsdist-with-tsan:
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          TSAN_OPTIONS: 'halt_on_error=1:suppressions=/opt/project/pdns/dnsdistdist/dnsdist-tsan.supp'
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            autoconf \
+            automake \
+            g++ \
+            git \
+            libboost-all-dev \
+            libcap-dev \
+            libcdb-dev \
+            libedit-dev \
+            libfstrm-dev \
+            libh2o-evloop-dev \
+            liblmdb-dev \
+            libluajit-5.1-dev \
+            libre2-dev \
+            libsnmp-dev \
+            libsodium-dev \
+            libssl-dev \
+            libsystemd-dev \
+            libtool \
+            make \
+            pkg-config \
+            ragel \
+            systemd \
+            python3-venv
+      - install-clang-8
+      - restore-cache-ccache:
+          product: dnsdist-with-tsan
+      - get-workspace
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: configure
+          command: |
+            CC='clang-8' \
+            CXX='clang++-8' \
+            CFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int -Wp,-D_GLIBCXX_ASSERTIONS" \
+            ./configure \
+            --enable-option-checking=fatal \
+            --enable-unit-tests \
+            --enable-dnstap \
+            --enable-dnscrypt \
+            --enable-dns-over-tls \
+            --enable-dns-over-https \
+            --enable-systemd \
+            --prefix=/opt/dnsdist-with-tsan \
+            --with-libsodium \
+            --with-lua=luajit \
+            --with-libcap \
+            --with-re2 \
+            --enable-tsan
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: build
+          command: make -j1 -k
+          working_directory: ~/project/pdns/dnsdistdist
+      - save-ccache-cache:
+          product: dnsdist-with-tsan
+      - run:
+          name: Run unit tests
+          command: make check || (cat test-suite.log; false)
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: Install resulting binaries
+          command: make install
+          working_directory: ~/project/pdns/dnsdistdist
+      - persist_to_workspace:
+          root: /opt
+          paths:
+            - dnsdist-with-tsan
+
   test-dnsdist-regression:
     resource_class: small
 
@@ -1921,6 +2006,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0
     steps:
       - install-dnsdist-deps
+      - install-clang-8 # for the symbolizer
       - get-workspace
       - run:
           name: setup snmp
@@ -1937,6 +2023,37 @@ jobs:
           workdir: ~/project/regression-tests.dnsdist
           command: |
             DNSDISTBIN="/opt/dnsdist/bin/dnsdist" \
+            ./runtests
+
+  test-dnsdist-regression-with-tsan:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          TSAN_OPTIONS: 'halt_on_error=1:suppressions=/opt/project/pdns/dnsdistdist/dnsdist-tsan.supp'
+    steps:
+      - install-dnsdist-deps
+      - install-clang-8 # for the symbolizer
+      - get-workspace
+      - run:
+          name: setup snmp
+          command: |
+            apt-get -qq --no-install-recommends install snmpd
+            sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755/g" regression-tests.dnsdist/snmpd.conf > /etc/snmp/snmpd.conf
+            /etc/init.d/snmpd start
+      - run:
+          name: install prometheus tools
+          command: |
+            apt-get -qq --no-install-recommends install prometheus
+      - run:
+          name: Run dnsdist tests
+          workdir: ~/project/regression-tests.dnsdist
+          command: |
+            DNSDISTBIN="/opt/dnsdist-with-tsan/bin/dnsdist" \
             ./runtests
 
   test-ixfrdist-regression:
@@ -2052,9 +2169,15 @@ workflows:
       - build-dnsdist:
           requires:
             - checkout
+      - build-dnsdist-with-tsan:
+          requires:
+            - checkout
       - test-dnsdist-regression:
           requires:
             - build-dnsdist
+      - test-dnsdist-regression-with-tsan:
+          requires:
+            - build-dnsdist-with-tsan
       - test-ixfrdist-regression:
           requires:
             - build-auth

@@ -25,9 +25,9 @@ BOOST_AUTO_TEST_CASE(test_object_pipe) {
 
 };
 
-int done=0;
+std::atomic<uint64_t> done = 0;
 BOOST_AUTO_TEST_CASE(test_delay_pipe_small) {
-  done=0;
+  done = 0;
   struct Work
   {
     int i;

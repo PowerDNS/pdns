@@ -101,8 +101,8 @@ public:
 
 protected:
   std::atomic_flag d_rotatingTicketsKey;
+  std::atomic<time_t> d_ticketsKeyNextRotation{0};
   time_t d_ticketsKeyRotationDelay{0};
-  time_t d_ticketsKeyNextRotation{0};
 };
 
 class TLSFrontend
@@ -132,9 +132,9 @@ public:
     }
   }
 
-  std::shared_ptr<TLSCtx>& getContext()
+  std::shared_ptr<TLSCtx> getContext()
   {
-    return d_ctx;
+    return std::atomic_load_explicit(&d_ctx, std::memory_order_acquire);
   }
 
   void cleanup()
