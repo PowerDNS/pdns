@@ -195,7 +195,7 @@ bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared
     }
 
     if (ds->checkFunction) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       auto ret = ds->checkFunction(checkName, checkType, checkClass, &checkHeader);
       checkName = std::get<0>(ret);
       checkType = std::get<1>(ret);

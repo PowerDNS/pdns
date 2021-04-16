@@ -1161,7 +1161,7 @@ public:
   bool matches(const DNSQuestion* dq) const override
   {
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       return d_func(dq);
     } catch (const std::exception &e) {
       warnlog("LuaRule failed inside Lua: %s", e.what());
@@ -1190,7 +1190,7 @@ public:
   {
     dnsdist_ffi_dnsquestion_t dqffi(const_cast<DNSQuestion*>(dq));
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       return d_func(&dqffi);
     } catch (const std::exception &e) {
       warnlog("LuaFFIRule failed inside Lua: %s", e.what());

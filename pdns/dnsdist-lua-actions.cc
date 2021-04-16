@@ -381,7 +381,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto lock = g_lua.lock();
     try {
       auto ret = d_func(dq);
       if (ruleresult) {
@@ -418,7 +418,7 @@ public:
   {}
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
-    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto lock = g_lua.lock();
     try {
       auto ret = d_func(dr);
       if (ruleresult) {
@@ -460,8 +460,7 @@ public:
   {
     dnsdist_ffi_dnsquestion_t dqffi(dq);
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-
+      auto lock = g_lua.lock();
       auto ret = d_func(&dqffi);
       if (ruleresult) {
         if (dqffi.result) {
@@ -576,8 +575,7 @@ public:
 
     dnsdist_ffi_dnsquestion_t dqffi(dq);
     try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-
+      auto lock = g_lua.lock();
       auto ret = d_func(&dqffi);
       if (ruleresult) {
         if (dqffi.result) {
@@ -1269,7 +1267,7 @@ public:
     DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, protocol, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto lock = g_lua.lock();
         (*d_alterFunc)(dq, &message);
       }
     }
@@ -1314,7 +1312,7 @@ public:
 #endif /* HAVE_LIBCRYPTO */
 
     if (d_alterFunc) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       (*d_alterFunc)(dq, &message);
     }
 
@@ -1403,7 +1401,7 @@ public:
     DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, protocol, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto lock = g_lua.lock();
         (*d_alterFunc)(dr, &message);
       }
     }
@@ -1448,7 +1446,7 @@ public:
 #endif /* HAVE_LIBCRYPTO */
 
     if (d_alterFunc) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       (*d_alterFunc)(dr, &message);
     }
 
