@@ -290,8 +290,8 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
   }
 
   for (const auto& shard : g_rings.d_shards) {
-    std::lock_guard<std::mutex> rl(shard->queryLock);
-    for(const auto& c : shard->queryRing) {
+    auto rl = shard->queryRing.lock();
+    for(const auto& c : *rl) {
       if (now < c.when) {
         continue;
       }
@@ -349,8 +349,8 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
   }
 
   for (const auto& shard : g_rings.d_shards) {
-    std::lock_guard<std::mutex> rl(shard->respLock);
-    for(const auto& c : shard->respRing) {
+    auto rl = shard->respRing.lock();
+    for(const auto& c : *rl) {
       if (now < c.when) {
         continue;
       }
