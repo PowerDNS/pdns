@@ -5,19 +5,16 @@ Internals of the PowerDNS Recursor
 to the recursor, or to help fix bugs. It is not required reading for a
 PowerDNS operator, although it might prove interesting.
 
-The PowerDNS Recursor consists of very little code, the core DNS logic
-is less than a thousand lines.
-
-This smallness is achieved through the use of some fine infrastructure:
-MTasker, MOADNSParser, MPlexer and the C++ Standard Library/Boost. This
-page will explain the conceptual relation between these components, and
-the route of a packet through the program.
+This Recursor depends on the use of some fine infrastructure: MTasker,
+MOADNSParser, MPlexer and the C++ Standard Library/Boost. This page
+will explain the conceptual relation between these components, and the
+route of a packet through the program.
 
  The PowerDNS Recursor
 ----------------------
 
 The Recursor started out as a tiny project, mostly a technology
-demonstration. These days it consists of the core plus 9000 lines of
+demonstration. These days it is a full blown recursor with many
 features. This combined with a need for very high performance has made
 the recursor code less accessible than it was. The page you are reading
 hopes to rectify this situation.
@@ -40,9 +37,8 @@ nameserver needs. It offers cooperative multitasking, which means there
 is no forced preemption of threads. This in turn means that no two
 **MThreads** ever really run at the same time.
 
-This is both good and bad, but mostly good. It means PowerDNS does not
-have to think about locking. No two threads will ever be talking to the
-DNS cache at the same time, for example.
+This is both good and bad, but mostly good. It means the recursor does not
+have to think about locking in many cases.
 
 It also means that the recursor could block if any operation takes too
 long.
@@ -354,8 +350,9 @@ exhausted all nameservers and all their IP addresses. DNS is
 surprisingly resilient that there is often only a single non-broken
 nameserver left to answer queries, and we need to be prepared for that.
 
-This is the whole DNS algorithm in PowerDNS, all in less than 700 lines
-of code. It contains a lot of tricky bits though, related to the cache.
+This is the whole DNS algorithm in PowerDNS. It contains a lot of
+tricky bits though, related to the caches and things like RPZ handling
+and DNSSEC validation.
 
 QName Minimization
 ------------------
