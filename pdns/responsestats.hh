@@ -31,17 +31,22 @@ class ResponseStats
 public:
   ResponseStats();
 
-  void submitResponse(DNSPacket& p, bool udpOrTCP, bool last = true);
-  void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP);
-  void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP);
-  map<uint16_t, uint64_t> getQTypeResponseCounts();
-  map<uint16_t, uint64_t> getSizeResponseCounts();
-  map<uint8_t, uint64_t> getRCodeResponseCounts();
-  string getQTypeReport();
+  void submitResponse(DNSPacket& p, bool udpOrTCP, bool last = true) const;
+  void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP) const;
+  void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP) const;
+  map<uint16_t, uint64_t> getQTypeResponseCounts() const;
+  map<uint16_t, uint64_t> getSizeResponseCounts() const;
+  map<uint8_t, uint64_t> getRCodeResponseCounts() const;
+  string getQTypeReport() const;
 
 private:
-  std::array<std::atomic<uint64_t>, 65535> d_qtypecounters;
-  std::array<std::atomic<uint64_t>, 256> d_rcodecounters;
+  struct Counter
+  {
+    mutable std::atomic<uint64_t> value;
+  };
+
+  std::array<Counter, 65535> d_qtypecounters;
+  std::array<Counter, 256> d_rcodecounters;
   pdns::AtomicHistogram<uint64_t> d_sizecounters;
 };
 

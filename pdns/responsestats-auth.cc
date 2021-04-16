@@ -7,7 +7,7 @@ extern StatBag S;
  *  Function that creates all the stats
  *  when udpOrTCP is true, it is udp
  */
-void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) {
+void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const {
   const string& buf=p.getString();
   static AtomicCounter &udpnumanswered=*S.getPointer("udp-answers");
   static AtomicCounter &udpnumanswered4=*S.getPointer("udp4-answers");
