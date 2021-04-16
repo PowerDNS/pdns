@@ -21,7 +21,6 @@
  */
 #pragma once
 
-#include <mutex>
 #include <time.h>
 #include <unordered_map>
 
@@ -30,6 +29,7 @@
 #include "circular_buffer.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "lock.hh"
 #include "stat_t.hh"
 
 
@@ -57,10 +57,8 @@ struct Rings {
 
   struct Shard
   {
-    boost::circular_buffer<Query> queryRing;
-    boost::circular_buffer<Response> respRing;
-    std::mutex queryLock;
-    std::mutex respLock;
+    LockGuarded<boost::circular_buffer<Query>> queryRing{boost::circular_buffer<Query>()};
+    LockGuarded<boost::circular_buffer<Response>> respRing{boost::circular_buffer<Response>()};
   };
 
   Rings(size_t capacity=10000, size_t numberOfShards=10, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
@@ -83,14 +81,8 @@ struct Rings {
     /* resize all the rings */
     for (auto& shard : d_shards) {
       shard = std::unique_ptr<Shard>(new Shard());
-      {
-        std::lock_guard<std::mutex> wl(shard->queryLock);
-        shard->queryRing.set_capacity(newCapacity / numberOfShards);
-      }
-      {
-        std::lock_guard<std::mutex> wl(shard->respLock);
-        shard->respRing.set_capacity(newCapacity / numberOfShards);
-      }
+      shard->queryRing.lock()->set_capacity(newCapacity / numberOfShards);
+      shard->respRing.lock()->set_capacity(newCapacity / numberOfShards);
     }
 
     /* we just recreated the shards so they are now empty */
@@ -126,9 +118,9 @@ struct Rings {
   {
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
-      std::unique_lock<std::mutex> wl(shard->queryLock, std::try_to_lock);
-      if (wl.owns_lock()) {
-        insertQueryLocked(shard, when, requestor, name, qtype, size, dh);
+      auto lock = shard->queryRing.try_lock();
+      if (lock.owns_lock()) {
+        insertQueryLocked(*lock, when, requestor, name, qtype, size, dh);
         return;
       }
       if (d_keepLockingStats) {
@@ -141,17 +133,17 @@ struct Rings {
       d_blockingResponseInserts++;
     }
     auto& shard = getOneShard();
-    std::lock_guard<std::mutex> wl(shard->queryLock);
-    insertQueryLocked(shard, when, requestor, name, qtype, size, dh);
+    auto lock = shard->queryRing.lock();
+    insertQueryLocked(*lock, when, requestor, name, qtype, size, dh);
   }
 
   void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
   {
     for (size_t idx = 0; idx < d_nbLockTries; idx++) {
       auto& shard = getOneShard();
-      std::unique_lock<std::mutex> wl(shard->respLock, std::try_to_lock);
-      if (wl.owns_lock()) {
-        insertResponseLocked(shard, when, requestor, name, qtype, usec, size, dh, backend);
+      auto lock = shard->respRing.try_lock();
+      if (lock.owns_lock()) {
+        insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend);
         return;
       }
       if (d_keepLockingStats) {
@@ -164,21 +156,15 @@ struct Rings {
       d_blockingResponseInserts++;
     }
     auto& shard = getOneShard();
-    std::lock_guard<std::mutex> wl(shard->respLock);
-    insertResponseLocked(shard, when, requestor, name, qtype, usec, size, dh, backend);
+    auto lock = shard->respRing.lock();
+    insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend);
   }
 
   void clear()
   {
     for (auto& shard : d_shards) {
-      {
-        std::lock_guard<std::mutex> wl(shard->queryLock);
-        shard->queryRing.clear();
-      }
-      {
-        std::lock_guard<std::mutex> wl(shard->respLock);
-        shard->respRing.clear();
-      }
+      shard->queryRing.lock()->clear();
+      shard->respRing.lock()->clear();
     }
 
     d_nbQueryEntries.store(0);
@@ -211,20 +197,20 @@ private:
     return d_shards[getShardId()];
   }
 
-  void insertQueryLocked(std::unique_ptr<Shard>& shard, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh)
+  void insertQueryLocked(boost::circular_buffer<Query>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh)
   {
-    if (!shard->queryRing.full()) {
+    if (!ring.full()) {
       d_nbQueryEntries++;
     }
-    shard->queryRing.push_back({requestor, name, when, dh, size, qtype});
+    ring.push_back({requestor, name, when, dh, size, qtype});
   }
 
-  void insertResponseLocked(std::unique_ptr<Shard>& shard, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
+  void insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
   {
-    if (!shard->respRing.full()) {
+    if (!ring.full()) {
       d_nbResponseEntries++;
     }
-    shard->respRing.push_back({requestor, backend, name, when, dh, usec, size, qtype});
+    ring.push_back({requestor, backend, name, when, dh, usec, size, qtype});
   }
 
   std::atomic<size_t> d_nbQueryEntries;
