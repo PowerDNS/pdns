@@ -21,7 +21,7 @@ Notable features
 - Powered by a highly modern DNS packet parser that should be resistant against many forms of buffer overflows.
 - Best spoofing protection that we know about, involving both source port randomisation and spoofing detection.
 - Uses 'connected' UDP sockets which allow the recursor to react quickly to unreachable hosts or hosts for which the server is running, but the nameserver is down. This makes the recursor faster to respond in case of misconfigured domains, which are sadly very frequent.
-- Special support for *BSD, Linux and Solaris stateful multiplexing (kqueue, epoll, completion ports, /dev/poll).
+- Special support for \*BSD, Linux and Solaris stateful multiplexing (kqueue, epoll, completion ports, /dev/poll).
 - Very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
 - Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
 - Does DNSSEC validation
