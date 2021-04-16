@@ -452,7 +452,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   }
 
   if (isCoveredByNSEC(name, owner, nsec->d_next)) {
-    LOG(name<<" is covered ");
+    LOG(name<<" is covered by ("<<owner<<" to "<<nsec->d_next<<") ");
 
     if (nsecProvesENT(name, owner, nsec->d_next)) {
       LOG("Denies existence of type "<<name<<"/"<<QType(qtype).getName()<<" by proving that "<<name<<" is an ENT"<<endl);
@@ -577,7 +577,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         /* check if the whole NAME is denied existing */
         if (isCoveredByNSEC(qname, owner, nsec->d_next)) {
-          LOG(qname<<" is covered ");
+          LOG(qname<<" is covered by ("<<owner<<" to "<<nsec->d_next<<") ");
 
           if (nsecProvesENT(qname, owner, nsec->d_next)) {
             if (wantsNoDataProof) {
