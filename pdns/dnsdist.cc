@@ -728,8 +728,7 @@ catch (...)
 }
 }
 
-std::mutex g_luamutex;
-LuaContext g_lua;
+LockGuarded<LuaContext> g_lua{LuaContext()};
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 
@@ -853,7 +852,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
     string qname = (*dq.qname).toLogString();
     bool countQuery{true};
     if(g_qcount.filter) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       std::tie (countQuery, qname) = g_qcount.filter(&dq);
     }
 
@@ -1603,8 +1602,8 @@ static void maintThread()
     sleep(interval);
 
     {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-      auto f = g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
+      auto lua = g_lua.lock();
+      auto f = lua->readVariable<boost::optional<std::function<void()> > >("maintenance");
       if (f) {
         try {
           (*f)();
@@ -2217,7 +2216,7 @@ int main(int argc, char** argv)
 
     g_policy.setState(leastOutstandingPol);
     if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
-      setupLua(g_lua, true, false, g_cmdLine.config);
+      setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
       if (clientAddress != ComboAddress())
         g_serverControl = clientAddress;
       doClient(g_serverControl, g_cmdLine.command);
@@ -2243,7 +2242,7 @@ int main(int argc, char** argv)
     registerBuiltInWebHandlers();
 
     if (g_cmdLine.checkConfig) {
-      setupLua(g_lua, false, true, g_cmdLine.config);
+      setupLua(*(g_lua.lock()), false, true, g_cmdLine.config);
       // No exception was thrown
       infolog("Configuration '%s' OK!", g_cmdLine.config);
 #ifdef COVERAGE
@@ -2253,7 +2252,7 @@ int main(int argc, char** argv)
 #endif
     }
 
-    auto todo = setupLua(g_lua, false, false, g_cmdLine.config);
+    auto todo = setupLua(*(g_lua.lock()), false, false, g_cmdLine.config);
 
     auto localPools = g_pools.getCopy();
     {

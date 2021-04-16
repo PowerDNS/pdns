@@ -329,7 +329,7 @@ std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPo
 
   if (d_isLua) {
     if (!d_isFFI) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto lock = g_lua.lock();
       selectedBackend = d_policy(servers, &dq);
     }
     else {
@@ -338,7 +338,7 @@ std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPo
       unsigned int selected = 0;
 
       if (!d_isPerThread) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto lock = g_lua.lock();
         selected = d_ffipolicy(&serversList, &dnsq);
       }
       else {
