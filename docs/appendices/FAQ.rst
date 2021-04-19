@@ -79,6 +79,8 @@ This may look something like "unable to open temporary zonefile '/etc/powerdns/z
 PowerDNS systemd units enable ``ProtectSystem=full`` by default, which disallows writes to ``/etc`` and ``/usr``, among other places.
 Either move your zone files to a safer place (``/var/lib/powerdns`` is a popular choice) or change the systemd protection settings.
 
+For more background on this, please see the systemd documentation on `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ and `ReadWritePaths <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ReadWritePaths=>`_.
+
 Backends
 --------
 
