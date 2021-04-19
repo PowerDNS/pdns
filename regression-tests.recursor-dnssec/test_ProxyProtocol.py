@@ -11,6 +11,7 @@ except NameError:
     pass
 
 from recursortests import RecursorTest
+from proxyprotocol import ProxyProtocol
 
 class ProxyProtocolRecursorTest(RecursorTest):
 
