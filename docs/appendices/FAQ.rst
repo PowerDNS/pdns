@@ -76,7 +76,7 @@ I get an error about writing to /etc
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This may look something like "unable to open temporary zonefile '/etc/powerdns/zones/example.com.<random number>'".
-Our systemd units enable ``ProtectSystem=full`` by default, which disallows writes to ``/etc`` and ``/usr``, among other places.
+PowerDNS systemd units enable ``ProtectSystem=full`` by default, which disallows writes to ``/etc`` and ``/usr``, among other places.
 Either move your zone files to a safer place (``/var/lib/powerdns`` is a popular choice) or change the systemd protection settings.
 
 Backends
