@@ -11,7 +11,6 @@ except NameError:
     pass
 
 from recursortests import RecursorTest
-from proxyprotocol import ProxyProtocol
 
 class ProxyProtocolRecursorTest(RecursorTest):
 
@@ -31,62 +30,6 @@ class ProxyProtocolRecursorTest(RecursorTest):
     @classmethod
     def tearDownClass(cls):
         cls.tearDownRecursor()
-
-    @classmethod
-    def sendUDPQueryWithProxyProtocol(cls, query, v6, source, destination, sourcePort, destinationPort, values=[], timeout=2.0):
-        queryPayload = query.to_wire()
-        ppPayload = ProxyProtocol.getPayload(False, False, v6, source, destination, sourcePort, destinationPort, values)
-        payload = ppPayload + queryPayload
-
-        if timeout:
-            cls._sock.settimeout(timeout)
-
-        try:
-            cls._sock.send(payload)
-            data = cls._sock.recv(4096)
-        except socket.timeout:
-            data = None
-        finally:
-            if timeout:
-                cls._sock.settimeout(None)
-
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
-        return message
-
-    @classmethod
-    def sendTCPQueryWithProxyProtocol(cls, query, v6, source, destination, sourcePort, destinationPort, values=[], timeout=2.0):
-        queryPayload = query.to_wire()
-        ppPayload = ProxyProtocol.getPayload(False, False, v6, source, destination, sourcePort, destinationPort, values)
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if timeout:
-            sock.settimeout(timeout)
-
-        sock.connect(("127.0.0.1", cls._recursorPort))
-
-        try:
-            sock.send(ppPayload)
-            sock.send(struct.pack("!H", len(queryPayload)))
-            sock.send(queryPayload)
-            data = sock.recv(2)
-            if data:
-                (datalen,) = struct.unpack("!H", data)
-                data = sock.recv(datalen)
-        except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
-            data = None
-        except socket.error as e:
-            print("Network error: %s" % (str(e)))
-            data = None
-        finally:
-            sock.close()
-
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
-        return message
 
 class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
     _confdir = 'ProxyProtocol'
