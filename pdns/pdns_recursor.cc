@@ -3577,7 +3577,7 @@ static void houseKeeping(void *)
     past = now;
     past.tv_sec -= 5;
     if (last_prune < past) {
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
+      t_packetCache->doPruneTo(g_maxPacketCacheEntries / (g_numWorkerThreads + g_numDistributorThreads));
 
       time_t limit;
       if(!((cleanCounter++)%40)) {  // this is a full scan!
