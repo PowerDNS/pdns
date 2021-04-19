@@ -498,7 +498,7 @@ public:
         if (vi == vend) return false;
         ++vi;
       } else if (*mi == '*') {
-        while(*mi == '*') ++mi;
+        while(mi != mend && *mi == '*') ++mi;
         if (mi == d_mask.end()) return true;
         while(vi != vend) {
           if (match(mi,mend,vi,vend)) return true;
