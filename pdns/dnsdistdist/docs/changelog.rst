@@ -6,6 +6,12 @@ Changelog
   :released: 20th of April 2021
 
   .. change::
+    :tags: Bug Fixes
+    :pullreq: 10171
+
+    Lua: don't destroy keys during table iteration
+
+  .. change::
     :tags: Improvements
     :pullreq: 10216
     :tickets: 10209
