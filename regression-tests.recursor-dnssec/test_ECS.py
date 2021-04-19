@@ -499,6 +499,98 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
+class testECSWithProxyProtocoldRecursorTest(ECSTest):
+    _confdir = 'ECSWithProxyProtocol'
+    _config_template = """
+    ecs-add-for=2001:db8::1/128
+    edns-subnet-allow-list=ecs-echo.example.
+    forward-zones=ecs-echo.example=%s.21
+    proxy-protocol-from=127.0.0.1/32
+    allow-from=2001:db8::1/128
+""" % (os.environ['PREFIX'])
+
+    def testProxyProtocolPlusECS(self):
+        qname = nameECS
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'TXT', '2001:db8::/56')
+
+        query = dns.message.make_query(qname, 'TXT', use_edns=True)
+        for method in ("sendUDPQueryWithProxyProtocol", "sendTCPQueryWithProxyProtocol"):
+            sender = getattr(self, method)
+            res = sender(query, True, '2001:db8::1', '2001:db8::2', 0, 65535)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+class testTooLargeToAddZeroScope(RecursorTest):
+
+    _confdir = 'TooLargeToAddZeroScope'
+    _config_template_default = """
+use-incoming-edns-subnet=yes
+dnssec=validate
+daemon=no
+trace=yes
+packetcache-ttl=0
+packetcache-servfail-ttl=0
+max-cache-ttl=15
+threads=1
+loglevel=9
+disable-syslog=yes
+log-common-errors=yes
+"""
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+    function preresolve(dq)
+      if dq.qname == newDN('toolarge.ecs.') then
+        dq:addRecord(pdns.TXT, '%s', pdns.place.ANSWER)
+        return true
+      end
+      return false
+    end
+    """ % ('A'*447)
+
+    _roothints = None
+
+    @classmethod
+    def setUpClass(cls):
+
+        # we don't need all the auth stuff
+        cls.setUpSockets()
+        cls.startResponders()
+
+        confdir = os.path.join('configs', cls._confdir)
+        cls.createConfigDir(confdir)
+
+        cls.generateRecursorConfig(confdir)
+        cls.startRecursor(confdir, cls._recursorPort)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tearDownRecursor()
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(testTooLargeToAddZeroScope, cls).generateRecursorConfig(confdir)
+
+    def testTooLarge(self):
+        qname = 'toolarge.ecs.'
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
+        query = dns.message.make_query(qname, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+
+        # should not have an ECS Option since the packet is too large already
+        res = self.sendUDPQuery(query, timeout=5.0)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 0)
+
+        res = self.sendTCPQuery(query, timeout=5.0)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 1)
+        self.assertEqual(res.options[0].otype, 8)
+        self.assertEqual(res.options[0].scope, 0)
+
 class UDPECSResponder(DatagramProtocol):
     @staticmethod
     def ipToStr(option):
