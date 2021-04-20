@@ -3428,7 +3428,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       lwr.d_rcode == RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth);
 
     bool putInNegCache = true;
-    if (negCacheIndiction && isForwardOrAuth(qname)) {
+    if (negCacheIndiction && qtype == QType::DS && isForwardOrAuth(qname)) {
       // #10189, a NXDOMAIN to a DS query for a forwarded or auth domain should not NXDOMAIN the whole domain
       putInNegCache = false;
     }
