@@ -2,6 +2,42 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.6.0-rc1
+  :released: 20th of April 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10171
+
+    Lua: don't destroy keys during table iteration
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10216
+    :tickets: 10209
+
+    Replace pthread_rwlock with std::shared_mutex
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10264
+
+    Also disable PMTU for v6
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10267
+    :tickets: 10262
+
+    Add missing getEDNSOptions and getDO bindings for DNSResponse
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10274
+
+    Fix some issues reported by Thread Sanitizer
+
+.. changelog::
   :version: 1.6.0-alpha3
   :released: 29th of March 2021
 
