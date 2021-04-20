@@ -2,8 +2,8 @@ Checking available features
 ===========================
 .. versionadded:: 4.3.0
                   
-To check if a Lua features is available, consult the global
-``pdns_features`` table. This table contains string keys with a values
+To check if a Lua feature is available, consult the global
+``pdns_features`` table. This table contains string keys with values
 of type boolean, string or number. If a key is absent the value will
 evaluate to ``nil``, indicating the feature is not available.
 
