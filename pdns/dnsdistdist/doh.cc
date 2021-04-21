@@ -1095,6 +1095,7 @@ static void dnsdistclient(int qsock)
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data()));
 
       if (!dh->arcount) {
+        cerr<<"adding OPT RR"<<endl;
         if (generateOptRR(std::string(), du->query, 4096, 4096, 0, false)) {
           dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data())); // may have reallocated
           dh->arcount = htons(1);
@@ -1102,6 +1103,7 @@ static void dnsdistclient(int qsock)
         }
       }
       else {
+        cerr<<"leaving existing EDNS in place"<<endl;
         // we leave existing EDNS in place
       }
 
