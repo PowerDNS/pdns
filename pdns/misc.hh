@@ -489,7 +489,7 @@ public:
   {
   }
  
-  bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
+  bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend) const
   {
     for(;;++mi) {
       if (mi == mend) {
@@ -498,8 +498,8 @@ public:
         if (vi == vend) return false;
         ++vi;
       } else if (*mi == '*') {
-        while(*mi == '*') ++mi;
-        if (mi == d_mask.end()) return true;
+        while(mi != mend && *mi == '*') ++mi;
+        if (mi == mend) return true;
         while(vi != vend) {
           if (match(mi,mend,vi,vend)) return true;
           ++vi;
@@ -518,17 +518,17 @@ public:
     }
   }
 
-  bool match(const string& value) {
+  bool match(const string& value) const {
     return match(d_mask.begin(), d_mask.end(), value.begin(), value.end());
   }
 
-  bool match(const DNSName& name) {
+  bool match(const DNSName& name) const {
     return match(name.toStringNoDot());
   }
 
 private:
-  string d_mask;
-  bool d_fold;
+  const string d_mask;
+  const bool d_fold;
 };
 
 union ComboAddress;
