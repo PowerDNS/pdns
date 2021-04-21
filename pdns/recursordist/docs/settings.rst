@@ -1038,8 +1038,8 @@ Maximum number of simultaneous MTasker threads.
 -  Integer
 -  Default: 500000
 
-Maximum number of Packet Cache entries.
-This number will be divided by the number of worker threads to compute the number of entries per thread.
+Maximum number of Packet Cache entries. Each worker and each distributor thread has a packet cache instance.
+This number will be divided by the number of worker plus the number of distributor threads to compute the maximum number of entries per cache instance.
 
 .. _setting-max-qperq:
 
