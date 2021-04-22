@@ -670,6 +670,7 @@ struct DownstreamState
   checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
+  std::string d_tlsSubjectName;
   uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
   std::atomic<bool> hashesComputed{false};
