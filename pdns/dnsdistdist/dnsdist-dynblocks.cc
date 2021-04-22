@@ -209,7 +209,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock>
   db.blocks = count;
   db.warning = warning;
   if (!got || expired || wasWarning) {
-    if (g_defaultBPFFilter) {
+    if (db.action == DNSAction::Action::Drop && g_defaultBPFFilter) {
       try {
         g_defaultBPFFilter->block(requestor);
         bpf = true;
