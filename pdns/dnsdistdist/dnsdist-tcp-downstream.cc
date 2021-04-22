@@ -342,7 +342,7 @@ bool TCPConnectionToBackend::reconnect()
       socket->setNonBlocking();
 
       gettimeofday(&d_connectionStartTime, nullptr);
-      auto handler = std::make_unique<TCPIOHandler>("", socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, time(nullptr));
+      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_tlsSubjectName, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, time(nullptr));
       handler->tryConnect(d_ds->tcpFastOpen && isFastOpenEnabled(), d_ds->remote);
       d_queries = 0;
 

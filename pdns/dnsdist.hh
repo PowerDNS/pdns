@@ -657,6 +657,7 @@ struct DownstreamState
 
   boost::uuids::uuid id;
   std::vector<unsigned int> hashes;
+  // protects the hashes
   mutable ReadWriteLock d_lock;
   std::vector<int> sockets;
   const std::string sourceItfName;
@@ -672,6 +673,7 @@ struct DownstreamState
   checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
+  std::string d_tlsSubjectName;
   uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
   stat_t sendErrors{0};
