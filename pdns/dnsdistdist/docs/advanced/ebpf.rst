@@ -63,7 +63,7 @@ The dynamic eBPF blocks and the number of queries they blocked can be seen in th
 
 They can be unregistered at a later point using the :func:`unregisterDynBPFFilter` function.
 
-Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a dynamic block is inserted via a :ref:`DynBlockRulesGroup`.
+Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`.
 
 That feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
 When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
