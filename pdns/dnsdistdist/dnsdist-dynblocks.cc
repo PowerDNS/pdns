@@ -498,7 +498,7 @@ std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsDa
 std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::s_topNMGsByReason;
 std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::s_topSMTsByReason;
 size_t DynBlockMaintenance::s_topN{20};
-time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{300};
+time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{60};
 
 void DynBlockMaintenance::collectMetrics()
 {
