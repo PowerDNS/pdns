@@ -944,8 +944,8 @@ struct DownstreamState
   size_t socketsOffset{0};
   size_t d_maxInFlightQueriesPerConn{1};
   size_t d_tcpConcurrentConnectionsLimit{0};
-  double queryLoad{0.0};
-  double dropRate{0.0};
+  pdns::stat_t_trait<double> queryLoad{0.0};
+  pdns::stat_t_trait<double> dropRate{0.0};
   double latencyUsec{0.0};
   int order{1};
   int weight{1};
