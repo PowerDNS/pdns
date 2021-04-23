@@ -7,7 +7,8 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(NET_SNMP_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
-	-DSYSCONFDIR=\"${sysconfdir}\"
+	-DSYSCONFDIR=\"${sysconfdir}\" \
+	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
 
 ACLOCAL_AMFLAGS = -I m4
 
