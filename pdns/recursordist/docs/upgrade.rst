@@ -53,6 +53,9 @@ Deprecated and changed settings
 - The :ref:`setting-minimum-ttl-override` and :ref:`setting-ecs-minimum-ttl-override` defaults have ben changed from 0 to 1.
 - The :ref:`setting-spoof-nearmiss-max` default has been changed from 20 to 1.
 - The :ref:`setting-dnssec` default has changed from ``process-no-validate`` to ``process``.
+- The meaning of the :ref:`setting-max-packetcache-entries` has changed: previously there was one packet cache instance per worker thread.
+  Since queries incoming over TCP are now also using the packet cache, there is now also one packet cache instance per distributor thread.
+  Each cache instance has a size of :ref:`setting-max-packetcache-entries` divided by (:ref:`setting-threads` + :ref:`setting-distributor-threads`).
 
 Removed settings
 ^^^^^^^^^^^^^^^^
