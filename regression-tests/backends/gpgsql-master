@@ -1,7 +1,7 @@
 source ./backends/gsql-common
 
 case $context in
-	gpgsql-nodnssec | gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout | gpgsql-nsec3-narrow)
+	gpgsql-nodnssec | gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout | gpgsql-nsec3-narrow | gpgsql_sp)
 		[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 		[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
 
@@ -24,3 +24,26 @@ __EOF__
 	*)
 		nocontext=yes
 esac
+
+if [[ "$context" = "gpgsql_sp" ]]; then
+    cat >> pdns-gpgsql.conf << '__EOF__'
+gpgsql-basic-query=SELECT * FROM basic_query($1, $2)
+__EOF__
+    psql --user="$GPGSQLUSER" "$GPGSQLDB" << '__EOF__'
+CREATE FUNCTION basic_query(incoming_type varchar(10), incoming_name varchar(255))
+RETURNS TABLE
+(
+  content               VARCHAR(65535),
+  ttl                   INT,
+  prio                  INT,
+  type                  VARCHAR(10),
+  domain_id             INT,
+  disabled              BOOL,
+  name                  VARCHAR(255),
+  auth                  BOOL
+)
+AS $$
+SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=false and type=incoming_type and name=incoming_name;
+$$ LANGUAGE SQL;
+__EOF__
+fi

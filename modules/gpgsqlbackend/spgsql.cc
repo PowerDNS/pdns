@@ -116,33 +116,16 @@ public:
   void nextResult()
   {
     if (d_res_set == nullptr)
-      return; // no refcursor
+      return;
     if (d_cur_set >= PQntuples(d_res_set)) {
       PQclear(d_res_set);
       d_res_set = nullptr;
       return;
     }
-    // this code handles refcursors if they are returned
-    // by stored procedures. you can return more than one
-    // if you return SETOF refcursor.
     if (PQftype(d_res_set, 0) == 1790) { // REFCURSOR
-#if PG_VERSION_NUM > 90000
-      // PQescapeIdentifier was added to libpq in postgresql 9.0
-      char* val = PQgetvalue(d_res_set, d_cur_set++, 0);
-      char* portal = PQescapeIdentifier(d_db(), val, strlen(val));
-      string cmd = string("FETCH ALL FROM \"") + string(portal) + string("\"");
-      PQfreemem(portal);
-#else
-      string portal = string(PQgetvalue(d_res_set, d_cur_set++, 0));
-      string cmd = string("FETCH ALL FROM \"") + portal + string("\"");
-#endif
-      // execute FETCH
-      if (d_dolog) {
-        g_log << Logger::Warning << "Query: " << cmd << endl;
-      }
-      d_res = PQexec(d_db(), cmd.c_str());
-      d_resnum = PQntuples(d_res);
-      d_residx = 0;
+      g_log << Logger::Error << "Postgres query returned a REFCURSOR and we do not support those - see https://github.com/PowerDNS/pdns/pull/10259" << endl;
+      PQclear(d_res_set);
+      d_res_set = nullptr;
     }
     else {
       d_res = d_res_set;
