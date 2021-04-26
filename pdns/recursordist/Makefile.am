@@ -7,7 +7,8 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/protozero/include \
 	$(YAHTTP_CFLAGS) \
-	$(LIBCRYPTO_INCLUDES)
+	$(LIBCRYPTO_INCLUDES) \
+	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \

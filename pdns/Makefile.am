@@ -7,7 +7,8 @@ AM_CPPFLAGS += \
 	$(LIBCRYPTO_INCLUDES) \
 	$(SYSTEMD_CFLAGS) \
 	$(YAML_CFLAGS) \
-	-I$(top_srcdir)/ext/protozero/include
+	-I$(top_srcdir)/ext/protozero/include \
+	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
