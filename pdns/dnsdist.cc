@@ -1286,6 +1286,103 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
   return ProcessQueryResult::Drop;
 }
 
+class UDPTCPCrossQuerySender : public TCPQuerySender
+{
+public:
+  UDPTCPCrossQuerySender(const ClientState& cs, std::shared_ptr<DownstreamState>& ds): d_cs(cs), d_ds(ds)
+  {
+  }
+
+  ~UDPTCPCrossQuerySender()
+  {
+  }
+
+  bool active() const override
+  {
+    return true;
+  }
+
+  const ClientState& getClientState() override
+  {
+    return d_cs;
+  }
+
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    if (!d_ds) {
+      throw std::runtime_error("Passing a cross-protocol answer originated from UDP without a valid downstream");
+    }
+
+    auto& ids = response.d_idstate;
+
+    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
+    dnsheader cleartextDH;
+    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+
+    if (!processResponse(response.d_buffer, localRespRuleActions, dr, false, false)) {
+      return;
+    }
+
+    ++g_stats.responses;
+    if (ids.cs) {
+      ++ids.cs->responses;
+    }
+
+    if (ids.cs && !ids.cs->muted) {
+      ComboAddress empty;
+      empty.sin4.sin_family = 0;
+      sendUDPResponse(ids.origFD, response.d_buffer, dr.delayMsec, ids.hopLocal, ids.hopRemote);
+    }
+
+    double udiff = ids.sentTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (UDP), took %f usec", d_ds->remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
+
+    handleResponseSent(ids, udiff, *dr.remote, d_ds->remote, response.d_buffer.size(), cleartextDH);
+
+    d_ds->latencyUsec = (127.0 * d_ds->latencyUsec / 128.0) + udiff/128.0;
+
+    doLatencyStats(udiff);
+  }
+
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    return handleResponse(now, std::move(response));
+  }
+
+  void notifyIOError(IDState&& query, const struct timeval& now) override
+  {
+    // nothing to do
+  }
+private:
+  const ClientState& d_cs;
+  std::shared_ptr<DownstreamState> d_ds{nullptr};
+};
+
+class UDPCrossProtocolQuery : public CrossProtocolQuery
+{
+public:
+  UDPCrossProtocolQuery(PacketBuffer&& buffer, IDState&& ids, std::shared_ptr<DownstreamState>& ds): d_cs(*ids.cs)
+  {
+    query = InternalQuery(std::move(buffer), std::move(ids));
+    downstream = ds;
+    proxyProtocolPayloadSize = 0;
+  }
+
+  ~UDPCrossProtocolQuery()
+  {
+  }
+
+  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
+  {
+    auto sender = std::make_shared<UDPTCPCrossQuerySender>(d_cs, downstream);
+    return sender;
+  }
+
+private:
+  const ClientState& d_cs;
+};
+
 static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
@@ -1370,6 +1467,28 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     if (result != ProcessQueryResult::PassToBackend || ss == nullptr) {
       return;
+    }
+
+    if (ss->isTCPOnly()) {
+      IDState ids;
+      ids.cs = &cs;
+      ids.origFD = cs.udpFD;
+      ids.origID = dh->id;
+      setIDStateFromDNSQuestion(ids, dq, std::move(qname));
+      if (dest.sin4.sin_family != 0) {
+        ids.origDest = dest;
+      }
+      else {
+        ids.origDest = cs.local;
+      }
+      auto cpq = std::make_unique<UDPCrossProtocolQuery>(std::move(query), std::move(ids), ss);
+
+      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+        return ;
+      }
+      else {
+        return;
+      }
     }
 
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();

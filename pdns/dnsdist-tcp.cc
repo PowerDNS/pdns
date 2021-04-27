@@ -1128,10 +1128,10 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     struct timeval now;
     gettimeofday(&now, nullptr);
 
+    std::shared_ptr<TCPQuerySender> tqs = tmp->getTCPQuerySender();
     auto query = std::move(tmp->query);
     auto downstreamServer = std::move(tmp->downstream);
     auto proxyProtocolPayloadSize = tmp->proxyProtocolPayloadSize;
-    std::shared_ptr<TCPQuerySender> tqs = tmp->getTCPQuerySender();
     delete tmp;
     tmp = nullptr;
 
