@@ -187,7 +187,7 @@ struct DNSResponse : DNSQuestion
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None, NoOp, NoRecurse, SpoofRaw };
+  enum class Action : uint8_t { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None, NoOp, NoRecurse, SpoofRaw };
   static std::string typeToString(const Action& action)
   {
     switch(action) {
@@ -661,6 +661,7 @@ struct DownstreamState
   mutable ReadWriteLock d_lock;
   std::vector<int> sockets;
   const std::string sourceItfName;
+  std::string d_tlsSubjectName;
   std::mutex socketsLock;
   std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
@@ -673,7 +674,6 @@ struct DownstreamState
   checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
-  std::string d_tlsSubjectName;
   uint16_t checkClass{QClass::IN};
   std::atomic<uint64_t> idOffset{0};
   stat_t sendErrors{0};
@@ -725,7 +725,7 @@ struct DownstreamState
   uint8_t minRiseSuccesses{1};
   StopWatch sw;
   set<string> pools;
-  enum class Availability { Up, Down, Auto} availability{Availability::Auto};
+  enum class Availability : uint8_t { Up, Down, Auto} availability{Availability::Auto};
   bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
@@ -737,6 +737,7 @@ struct DownstreamState
   bool tcpFastOpen{false};
   bool ipBindAddrNoPort{true};
   bool reconnectOnUp{false};
+  bool d_tcpCheck{false};
 
   bool isUp() const
   {
@@ -805,6 +806,11 @@ struct DownstreamState
   }
 
   void incCurrentConnectionsCount();
+
+  bool doHealthcheckOverTCP() const
+  {
+    return d_tcpCheck || d_tlsCtx != nullptr;
+  }
 
 private:
   std::string name;
@@ -1059,7 +1065,7 @@ extern std::set<std::string> g_capabilitiesToRetain;
 static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses larger than this value
 
-enum class ProcessQueryResult { Drop, SendAnswer, PassToBackend };
+enum class ProcessQueryResult : uint8_t { Drop, SendAnswer, PassToBackend };
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data);

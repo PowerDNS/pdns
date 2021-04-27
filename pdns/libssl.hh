@@ -11,7 +11,7 @@
 #include "circular_buffer.hh"
 #include "lock.hh"
 
-enum class LibsslTLSVersion { Unknown, TLS10, TLS11, TLS12, TLS13 };
+enum class LibsslTLSVersion : uint8_t { Unknown, TLS10, TLS11, TLS12, TLS13 };
 
 class TLSConfig
 {
