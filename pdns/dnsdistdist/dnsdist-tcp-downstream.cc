@@ -167,7 +167,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
 
         try {
           if (conn->reconnect()) {
-            conn->d_ioState = make_unique<IOStateHandler>(conn->d_mplexer, conn->d_handler->getDescriptor());
+            conn->d_ioState = make_unique<IOStateHandler>(*conn->d_mplexer, conn->d_handler->getDescriptor());
 
             /* we need to resend the queries that were in flight, if any */
             for (auto& pending : conn->d_pendingResponses) {
@@ -271,7 +271,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 {
   if (!d_sender) {
     d_sender = sender;
-    d_ioState = make_unique<IOStateHandler>(d_mplexer, d_handler->getDescriptor());
+    d_ioState = make_unique<IOStateHandler>(*d_mplexer, d_handler->getDescriptor());
   }
   else if (d_sender != sender) {
     throw std::runtime_error("Assigning a query from a different client to an existing backend connection with pending queries");

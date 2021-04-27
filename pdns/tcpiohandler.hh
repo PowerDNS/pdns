@@ -190,7 +190,7 @@ protected:
 class TCPIOHandler
 {
 public:
-  enum class Type { Client, Server };
+  enum class Type : uint8_t { Client, Server };
 
   TCPIOHandler(const std::string& host, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {

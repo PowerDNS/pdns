@@ -441,11 +441,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if(vars.count("checkFunction")) {
-        ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
+        ret->checkFunction = boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
       }
 
       if(vars.count("checkTimeout")) {
         ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
+      }
+
+      if (vars.count("checkTCP")) {
+        ret->d_tcpCheck = boost::get<bool>(vars.at("checkTCP"));
       }
 
       if(vars.count("setCD")) {

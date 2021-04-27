@@ -14,11 +14,11 @@
 class IOStateHandler
 {
 public:
-  IOStateHandler(std::unique_ptr<FDMultiplexer>& mplexer, const int fd): d_mplexer(mplexer), d_fd(fd), d_currentState(IOState::Done)
+  IOStateHandler(FDMultiplexer& mplexer, const int fd): d_mplexer(mplexer), d_fd(fd), d_currentState(IOState::Done)
   {
   }
 
-  IOStateHandler(std::unique_ptr<FDMultiplexer>& mplexer): d_mplexer(mplexer), d_fd(-1), d_currentState(IOState::Done)
+  IOStateHandler(FDMultiplexer& mplexer): d_mplexer(mplexer), d_fd(-1), d_currentState(IOState::Done)
   {
   }
 
@@ -53,12 +53,12 @@ public:
     DEBUGLOG("in "<<__PRETTY_FUNCTION__<<" for fd "<<d_fd<<", last state was "<<(int)d_currentState<<", new state is "<<(int)iostate);
     if (d_currentState == IOState::NeedRead && iostate == IOState::Done) {
       DEBUGLOG(__PRETTY_FUNCTION__<<": remove read FD "<<d_fd);
-      d_mplexer->removeReadFD(d_fd);
+      d_mplexer.removeReadFD(d_fd);
       d_currentState = IOState::Done;
     }
     else if (d_currentState == IOState::NeedWrite && iostate == IOState::Done) {
       DEBUGLOG(__PRETTY_FUNCTION__<<": remove write FD "<<d_fd);
-      d_mplexer->removeWriteFD(d_fd);
+      d_mplexer.removeWriteFD(d_fd);
       d_currentState = IOState::Done;
     }
 
@@ -66,17 +66,17 @@ public:
       if (d_currentState == IOState::NeedRead) {
         if (ttd) {
           /* let's update the TTD ! */
-          d_mplexer->setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
+          d_mplexer.setReadTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
         }
         return;
       }
 
       if (d_currentState == IOState::NeedWrite) {
-        d_mplexer->alterFDToRead(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.alterFDToRead(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": alter from write to read FD "<<d_fd);
       }
       else {
-        d_mplexer->addReadFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.addReadFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": add read FD "<<d_fd);
       }
 
@@ -87,17 +87,17 @@ public:
       if (d_currentState == IOState::NeedWrite) {
         if (ttd) {
           /* let's update the TTD ! */
-          d_mplexer->setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
+          d_mplexer.setWriteTTD(d_fd, *ttd, /* we pass 0 here because we already have a TTD */0);
         }
         return;
       }
 
       if (d_currentState == IOState::NeedRead) {
-        d_mplexer->alterFDToWrite(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.alterFDToWrite(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": alter from read to write FD "<<d_fd);
       }
       else {
-        d_mplexer->addWriteFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.addWriteFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": add write FD "<<d_fd);
       }
 
@@ -110,7 +110,7 @@ public:
   }
 
 private:
-  std::unique_ptr<FDMultiplexer>& d_mplexer;
+  FDMultiplexer& d_mplexer;
   int d_fd;
   IOState d_currentState;
 };

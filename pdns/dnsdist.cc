@@ -1712,7 +1712,7 @@ static void healthChecksThread()
 
       if (dss->availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss)) {
-          updateHealthCheckResult(dss, false);
+          updateHealthCheckResult(dss, false, false);
         }
       }
 

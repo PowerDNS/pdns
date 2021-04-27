@@ -25,24 +25,9 @@
 #include "mplexer.hh"
 #include "sstuff.hh"
 
-struct HealthCheckData
-{
-  HealthCheckData(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, Socket&& sock, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID): d_mplexer(mplexer), d_ds(ds), d_sock(std::move(sock)), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
-  {
-  }
-
-  std::shared_ptr<FDMultiplexer> d_mplexer;
-  const std::shared_ptr<DownstreamState> d_ds;
-  Socket d_sock;
-  DNSName d_checkName;
-  uint16_t d_checkType;
-  uint16_t d_checkClass;
-  uint16_t d_queryID;
-};
-
 extern bool g_verboseHealthChecks;
 
-void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool newState);
+void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool initial, bool newState);
 bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initial=false);
 void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool initial=false);
 
