@@ -810,6 +810,11 @@ struct DownstreamState
     return d_tcpCheck || d_tlsCtx != nullptr;
   }
 
+  bool isTCPOnly() const
+  {
+    return d_tlsCtx != nullptr;
+  }
+
 private:
   std::string name;
   std::string nameWithAddr;
