@@ -404,6 +404,125 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
   }
 }
 
+class DoHTCPCrossQuerySender : public TCPQuerySender
+{
+public:
+  DoHTCPCrossQuerySender(DOHUnit* du_): du(du_)
+  {
+  }
+
+  ~DoHTCPCrossQuerySender()
+  {
+    if (du != nullptr) {
+      du->release();
+    }
+  }
+
+  bool active() const override
+  {
+    return true;
+  }
+
+  const ClientState& getClientState() override
+  {
+    if (!du || !du->dsc || !du->dsc->cs) {
+      throw std::runtime_error("No query associated to this DoHTCPCrossQuerySender");
+    }
+
+    return *du->dsc->cs;
+  }
+
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    if (!du) {
+      return;
+    }
+
+    if (du->rsock == -1) {
+      return;
+    }
+
+    du->response = std::move(response.d_buffer);
+    du->ids = std::move(response.d_idstate);
+
+    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    DNSResponse dr = makeDNSResponseFromIDState(du->ids, du->response);
+    dnsheader cleartextDH;
+    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+
+    if (!processResponse(du->response, localRespRuleActions, dr, false, false)) {
+      du->release();
+      return;
+    }
+
+    double udiff = du->ids.sentTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+
+    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH);
+
+    ++g_stats.responses;
+    if (du->ids.cs) {
+      ++du->ids.cs->responses;
+    }
+
+    sendDoHUnitToTheMainThread(du, "cross-protocol response");
+    du->release();
+    du = nullptr;
+  }
+
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    return handleResponse(now, std::move(response));
+  }
+
+  void notifyIOError(IDState&& query, const struct timeval& now) override
+  {
+    if (!du) {
+      return;
+    }
+
+    if (du->rsock == -1) {
+      return;
+    }
+
+    du->status_code = 502;
+    sendDoHUnitToTheMainThread(du, "cross-protocol error response");
+    du->release();
+    du = nullptr;
+  }
+
+private:
+  DOHUnit* du{nullptr};
+};
+
+class DoHCrossProtocolQuery : public CrossProtocolQuery
+{
+public:
+  DoHCrossProtocolQuery(DOHUnit* du_): du(du_)
+  {
+    query = InternalQuery(std::move(du->query), std::move(du->ids));
+    downstream = du->downstream;
+    proxyProtocolPayloadSize = du->proxyProtocolPayloadSize;
+  }
+
+  ~DoHCrossProtocolQuery()
+  {
+    if (du != nullptr) {
+      du->release();
+    }
+  }
+
+  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
+  {
+    auto sender = std::make_shared<DoHTCPCrossQuerySender>(du);
+    du = nullptr;
+    return sender;
+  }
+
+private:
+  DOHUnit* du{nullptr};
+};
+
 /*
    this function calls 'return -1' to drop a query without sending it
    caller should make sure HTTPS thread hears of that
@@ -495,6 +614,25 @@ static int processDOHQuery(DOHUnit* du)
     if (du->downstream == nullptr) {
       du->status_code = 502;
       return -1;
+    }
+
+    if (du->downstream->isTCPOnly()) {
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+
+      du->get();
+      du->tcp = true;
+      du->ids.origID = htons(queryId);
+      du->ids.cs = &cs;
+      setIDStateFromDNSQuestion(du->ids, dq, std::move(qname));
+
+      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+        return 0;
+      }
+      else {
+        du->release();
+        du->status_code = 502;
+        return -1;
+      }
     }
 
     ComboAddress dest = du->dest;
@@ -1095,7 +1233,6 @@ static void dnsdistclient(int qsock)
       auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data()));
 
       if (!dh->arcount) {
-        cerr<<"adding OPT RR"<<endl;
         if (generateOptRR(std::string(), du->query, 4096, 4096, 0, false)) {
           dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data())); // may have reallocated
           dh->arcount = htons(1);
@@ -1122,123 +1259,6 @@ static void dnsdistclient(int qsock)
     }
   }
 }
-
-class DoHTCPCrossQuerySender : public TCPQuerySender
-{
-public:
-  DoHTCPCrossQuerySender(DOHUnit* du_): du(du_)
-  {
-  }
-
-  ~DoHTCPCrossQuerySender()
-  {
-    if (du != nullptr) {
-      du->release();
-    }
-  }
-
-  bool active() const override
-  {
-    return true;
-  }
-
-  const ClientState& getClientState() override
-  {
-    if (!du || !du->dsc || !du->dsc->cs) {
-      throw std::runtime_error("No query associated to this DoHTCPCrossQuerySender");
-    }
-
-    return *du->dsc->cs;
-  }
-
-  void handleResponse(const struct timeval& now, TCPResponse&& response) override
-  {
-    if (!du) {
-      return;
-    }
-
-    if (du->rsock == -1) {
-      return;
-    }
-
-    du->response = std::move(response.d_buffer);
-    du->ids = std::move(response.d_idstate);
-
-    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-    DNSResponse dr = makeDNSResponseFromIDState(du->ids, du->response);
-    dnsheader cleartextDH;
-    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
-
-    if (!processResponse(du->response, localRespRuleActions, dr, false, false)) {
-      du->release();
-      return;
-    }
-
-    double udiff = du->ids.sentTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %f usec", du->downstream->remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
-
-    handleResponseSent(du->ids, udiff, *dr.remote, du->downstream->remote, du->response.size(), cleartextDH);
-
-    ++g_stats.responses;
-    if (du->ids.cs) {
-      ++du->ids.cs->responses;
-    }
-
-    sendDoHUnitToTheMainThread(du, "cross-protocol response");
-    du->release();
-  }
-
-  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
-  {
-    return handleResponse(now, std::move(response));
-  }
-
-  void notifyIOError(IDState&& query, const struct timeval& now) override
-  {
-    if (!du) {
-      return;
-    }
-
-    if (du->rsock == -1) {
-      return;
-    }
-
-    du->status_code = 502;
-    sendDoHUnitToTheMainThread(du, "cross-protocol error response");
-    du->release();
-  }
-
-private:
-  DOHUnit* du{nullptr};
-};
-
-class DoHCrossProtocolQuery : public CrossProtocolQuery
-{
-public:
-  DoHCrossProtocolQuery(DOHUnit* du_): du(du_)
-  {
-    query = InternalQuery(std::move(du->query), std::move(du->ids));
-    downstream = du->downstream;
-    proxyProtocolPayloadSize = du->proxyProtocolPayloadSize;
-  }
-
-  ~DoHCrossProtocolQuery()
-  {
-    if (du != nullptr) {
-      du->release();
-    }
-  }
-
-  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
-  {
-    auto sender = std::make_shared<DoHTCPCrossQuerySender>(du);
-    du = nullptr;
-    return sender;
-  }
-
-private:
-  DOHUnit* du{nullptr};
-};
 
 /* Called in the main DoH thread if h2o finds that dnsdist gave us an answer by writing into
    the dohresponsepair[0] side of the pipe so from:
