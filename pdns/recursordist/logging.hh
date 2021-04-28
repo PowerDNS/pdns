@@ -71,6 +71,7 @@ namespace Logging {
   public:
     virtual bool enabled();
     virtual void info(const std::string& msg);
+    virtual void error(int err, const std::string& msg);
     virtual void error(const std::string& err, const std::string& msg);
     virtual std::shared_ptr<Logr::Logger> v(size_t level);
 

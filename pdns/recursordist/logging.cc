@@ -21,6 +21,7 @@
  */
 
 #include "logging.hh"
+#include <string>
 
 namespace Logging
 {
@@ -57,6 +58,11 @@ namespace Logging
       parent = parent->_parent;
     }
     _callback(std::move(entry));
+  }
+
+  void Logger::error(int err, const std::string& msg)
+  {
+    logMessage(msg, std::string(std::strerror(err)));
   }
 
   void Logger::error(const std::string& err, const std::string& msg)

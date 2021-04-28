@@ -313,7 +313,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   std::string temp = dumpZoneFileName + "XXXXXX";
   int fd = mkstemp(&temp.at(0));
   if (fd < 0) {
-    logger->error(strerror(errno), "Unable to create temporary file");
+    logger->error(errno, "Unable to create temporary file");
     return false;
   }
 
@@ -321,7 +321,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   if (!fp) {
     int err = errno;
     close(fd);
-    logger->error(stringerror(err), "Unable to open file pointer");
+    logger->error(err, "Unable to open file pointer");
     return false;
   }
   fd = -1;
@@ -335,24 +335,24 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   }
 
   if (fflush(fp.get()) != 0) {
-    logger->error(stringerror(), "Error while flushing the content of the RPZ");
+    logger->error(errno, "Error while flushing the content of the RPZ");
     return false;
   }
 
   if (fsync(fileno(fp.get())) != 0) {
-    logger->error(stringerror(), "Error while syncing the content of the RPZ");
+    logger->error(errno, "Error while syncing the content of the RPZ");
     return false;
   }
 
   if (fclose(fp.release()) != 0) {
-    logger->error(stringerror(), "Error while writing the content of the RPZ");
+    logger->error(errno, "Error while writing the content of the RPZ");
     return false;
   }
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
     logger
       ->withValues("destination_file", Logging::Loggable(dumpZoneFileName))
-      ->error(stringerror(), "Error while moving the content of the RPZ");
+      ->error(errno, "Error while moving the content of the RPZ");
     return false;
   }
 

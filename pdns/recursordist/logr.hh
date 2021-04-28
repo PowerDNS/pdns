@@ -56,6 +56,7 @@ namespace Logr {
     // while the err field should be used to attach the actual error that
     // triggered this log line, if present.
     virtual void error(const std::string& err, const std::string& msg) = 0;
+    virtual void error(int err, const std::string& msg) = 0;
 
     // V returns an Logger value for a specific verbosity level, relative to
     // this Logger.  In other words, V values are additive.  V higher verbosity
