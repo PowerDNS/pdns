@@ -79,7 +79,7 @@ namespace Logging
 
   std::shared_ptr<Logr::Logger> Logger::withValues(const std::string& key, const Logr::Loggable& value)
   {
-    auto res = std::make_shared<Logger>(getptr(), _name.get(), _level, _callback);
+    auto res = std::make_shared<Logger>(getptr(), _name, _level, _callback);
     res->_values.insert({key, value.to_string()});
     res->setVerbosity(getVerbosity());
     return res;
@@ -135,10 +135,10 @@ namespace Logging
   Logger::Logger(EntryLogger callback) : _callback(callback)
   {
   }
-  Logger::Logger(EntryLogger callback, boost::optional<const std::string> name) : _callback(callback), _name(name)
+  Logger::Logger(EntryLogger callback, boost::optional<std::string> name) : _callback(callback), _name(name)
   {
   }
-  Logger::Logger(std::shared_ptr<Logger> parent, boost::optional<const std::string> name, size_t lvl,  EntryLogger callback) : _parent(parent), _callback(callback), _name(name), _level(lvl)
+  Logger::Logger(std::shared_ptr<Logger> parent, boost::optional<std::string> name, size_t lvl,  EntryLogger callback) : _parent(parent), _callback(callback), _name(name), _level(lvl)
   {
   }
 

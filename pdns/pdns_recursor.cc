@@ -5393,6 +5393,28 @@ catch(...) {
 }
 
 
+
+static void loggerBackend(std::unique_ptr<Logging::Entry> entry) {
+  static thread_local std::stringstream buf;
+
+  buf.str("");
+  buf << "msg=" << std::quoted(entry->message);
+  if (entry->error) {
+    buf << " oserror=" << std::quoted(entry->error.get());
+  }
+
+  if (entry->name) {
+    buf << " subsystem=" << std::quoted(entry->name.get());
+  }
+
+  for (auto const& v: entry->values) {
+    buf << " ";
+    buf << v.first << "=" << std::quoted(v.second);
+  }
+  g_log << Logger::Urgency(entry->level) << buf.str() << endl;
+}
+
+
 int main(int argc, char **argv)
 {
   g_argc = argc;
@@ -5675,22 +5697,7 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    g_slog = Logging::Logger::create([](std::unique_ptr<Logging::Entry> entry) {
-      if (entry->error) {
-        std::cout << "ERR ";
-      } else {
-        std::cout << "INFO";
-     }
-      if (entry->name) {
-        std::cout << entry->name.get() << ": ";
-      }
-      std::cout << entry->message;
-      for (auto const& v: entry->values) {
-        std::cout << " ";
-        std::cout << v.first << "=" << v.second;
-      }
-      std::cout << std::endl;
-    });
+    g_slog = Logging::Logger::create(loggerBackend);
     auto startupLog = g_slog->withName("startup");
 
     if(!::arg().file(configname.c_str())) {

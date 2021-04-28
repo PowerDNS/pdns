@@ -82,8 +82,8 @@ namespace Logging {
     static std::shared_ptr<Logger> create(EntryLogger callback, const std::string& name);
 
     Logger(EntryLogger callback);
-    Logger(EntryLogger callback, boost::optional<const std::string> name);
-    Logger(std::shared_ptr<Logger> parent, boost::optional<const std::string> name, size_t lvl,  EntryLogger callback);
+    Logger(EntryLogger callback, boost::optional<std::string> name);
+    Logger(std::shared_ptr<Logger> parent, boost::optional<std::string> name, size_t lvl,  EntryLogger callback);
     virtual ~Logger();
 
     size_t getVerbosity() const;
