@@ -83,6 +83,7 @@ namespace Logging {
     Logger(EntryLogger callback);
     Logger(EntryLogger callback, boost::optional<const std::string> name);
     Logger(std::shared_ptr<Logger> parent, boost::optional<const std::string> name, size_t lvl,  EntryLogger callback);
+    virtual ~Logger();
 
     size_t getVerbosity() const;
     void setVerbosity(size_t verbosity);

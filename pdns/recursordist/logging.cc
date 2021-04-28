@@ -135,6 +135,10 @@ namespace Logging
   Logger::Logger(std::shared_ptr<Logger> parent, boost::optional<const std::string> name, size_t lvl,  EntryLogger callback) : _parent(parent), _callback(callback), _name(name), _level(lvl)
   {
   }
+
+  Logger::~Logger()
+  {
+  }
 };
 
 std::shared_ptr<Logging::Logger> g_slog{nullptr};
