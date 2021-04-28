@@ -1289,7 +1289,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 class UDPTCPCrossQuerySender : public TCPQuerySender
 {
 public:
-  UDPTCPCrossQuerySender(const ClientState& cs, std::shared_ptr<DownstreamState>& ds): d_cs(cs), d_ds(ds)
+  UDPTCPCrossQuerySender(const ClientState& cs, std::shared_ptr<DownstreamState>& ds, uint16_t payloadSize): d_cs(cs), d_ds(ds), d_payloadSize(payloadSize)
   {
   }
 
@@ -1317,6 +1317,11 @@ public:
 
     thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
     DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
+    if (response.d_buffer.size() > d_payloadSize) {
+      truncateTC(dr.getMutableData(), dr.getMaximumSize(), dr.qname->wirelength());
+      dr.getHeader()->tc = true;
+    }
+
     dnsheader cleartextDH;
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
@@ -1357,6 +1362,7 @@ public:
 private:
   const ClientState& d_cs;
   std::shared_ptr<DownstreamState> d_ds{nullptr};
+  uint16_t d_payloadSize{0};
 };
 
 class UDPCrossProtocolQuery : public CrossProtocolQuery
@@ -1364,6 +1370,8 @@ class UDPCrossProtocolQuery : public CrossProtocolQuery
 public:
   UDPCrossProtocolQuery(PacketBuffer&& buffer, IDState&& ids, std::shared_ptr<DownstreamState>& ds): d_cs(*ids.cs)
   {
+    uint16_t z = 0;
+    getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(buffer.data()), buffer.size(), &d_payloadSize, &z);
     query = InternalQuery(std::move(buffer), std::move(ids));
     downstream = ds;
     proxyProtocolPayloadSize = 0;
@@ -1375,12 +1383,13 @@ public:
 
   std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
   {
-    auto sender = std::make_shared<UDPTCPCrossQuerySender>(d_cs, downstream);
+    auto sender = std::make_shared<UDPTCPCrossQuerySender>(d_cs, downstream, d_payloadSize);
     return sender;
   }
 
 private:
   const ClientState& d_cs;
+  uint16_t d_payloadSize{0};
 };
 
 static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
