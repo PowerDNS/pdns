@@ -2,6 +2,66 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.0-rc1
+  :released: 28th of April 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10335
+    :tickets: 10329
+
+    Boost 1.76 containers: use standard exceptions.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10334
+    :tickets: 10318
+
+    Fix wording in edns-padding-tag help.
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 10333
+    :tickets: 10312
+
+    Improve packet cache size computation now that TCP answers are also cached.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10320
+    :tickets: 10317
+
+    Do not put results of DS query for auth or forward domains in negcache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10319
+    :tickets: 10303
+
+    Use the correct ECS address when proxy-protocol is enabled.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10307
+    :tickets: 10298
+
+    Print the covering NSEC in tracing log.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10306
+    :tickets: 10291
+
+    Exception loading the RPZ seed file is not fatal.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10305
+    :tickets: 10286
+
+    RPZ dumper: stop generating double zz labels on networks that start with zeroes.
+
+.. changelog::
   :version: 4.5.0-beta2
   :released: 14th of April 2021
 
