@@ -463,8 +463,16 @@ bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResp
       */
       zeroScope = false;
     }
-    // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-    dr.packetCache->insert(zeroScope ? dr.cacheKeyNoECS : dr.cacheKey, zeroScope ? boost::none : dr.subnet, dr.cacheFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, receivedOverUDP, dr.getHeader()->rcode, dr.tempFailureTTL);
+    uint32_t cacheKey = dr.cacheKey;
+    if (dr.protocol == dnsdist::Protocol::DoH && receivedOverUDP) {
+      cacheKey = dr.cacheKeyUDP;
+    }
+    else if (zeroScope) {
+      // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
+      cacheKey = dr.cacheKeyNoECS;
+    }
+
+    dr.packetCache->insert(cacheKey, zeroScope ? boost::none : dr.subnet, dr.cacheFlags, dr.dnssecOK, *dr.qname, dr.qtype, dr.qclass, response, receivedOverUDP, dr.getHeader()->rcode, dr.tempFailureTTL);
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1232,10 +1240,9 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       }
       else if (dq.protocol == dnsdist::Protocol::DoH) {
         /* do a second-lookup for UDP responses */
-        uint32_t udpCacheKey = 0;
         /* we need to do a copy to be able to restore the query on a TC=1 cached answer */
         PacketBuffer initialQuery(dq.getData());
-        if (dq.packetCache->get(dq, dq.getHeader()->id, &udpCacheKey, dq.subnet, dq.dnssecOK, true, allowExpired)) {
+        if (dq.packetCache->get(dq, dq.getHeader()->id, &dq.cacheKeyUDP, dq.subnet, dq.dnssecOK, true, allowExpired)) {
           if (dq.getHeader()->tc == 0) {
             if (!prepareOutgoingResponse(holders, cs, dq, true)) {
               return ProcessQueryResult::Drop;

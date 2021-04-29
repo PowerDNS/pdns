@@ -14,6 +14,7 @@ DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data)
   dr.skipCache = ids.skipCache;
   dr.cacheKey = ids.cacheKey;
   dr.cacheKeyNoECS = ids.cacheKeyNoECS;
+  dr.cacheKeyUDP = ids.cacheKeyUDP;
   dr.dnssecOK = ids.dnssecOK;
   dr.tempFailureTTL = ids.tempFailureTTL;
   dr.qTag = std::move(ids.qTag);
@@ -45,6 +46,7 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.cacheFlags = dq.cacheFlags;
   ids.cacheKey = dq.cacheKey;
   ids.cacheKeyNoECS = dq.cacheKeyNoECS;
+  ids.cacheKeyUDP = dq.cacheKeyUDP;
   ids.subnet = dq.subnet;
   ids.skipCache = dq.skipCache;
   ids.packetCache = dq.packetCache;

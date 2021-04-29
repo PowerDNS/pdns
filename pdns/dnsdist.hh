@@ -149,6 +149,8 @@ public:
   boost::optional<uint32_t> tempFailureTTL;
   uint32_t cacheKeyNoECS{0};
   uint32_t cacheKey{0};
+  /* for DoH */
+  uint32_t cacheKeyUDP{0};
   const uint16_t qtype;
   const uint16_t qclass;
   uint16_t ecsPrefixLength;
