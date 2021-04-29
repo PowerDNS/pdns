@@ -237,6 +237,16 @@ public:
     return false;
   }
 
+  std::unique_ptr<TLSSession> getSession() const override
+  {
+    throw std::runtime_error("getSession() not implemented");
+  }
+
+  void setSession(std::unique_ptr<TLSSession>& session) override
+  {
+    throw std::runtime_error("setSession() not implemented");
+  }
+
   /* unused in that context, don't bother */
   void doHandshake() override
   {
