@@ -29,7 +29,6 @@
 #include "dnsdist-xpf.hh"
 #include "libssl.hh"
 #include "threadname.hh"
-#include "views.hh"
 
 /* So, how does this work. We use h2o for our http2 and TLS needs.
    If the operator has configured multiple IP addresses to listen on,
