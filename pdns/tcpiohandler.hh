@@ -10,6 +10,14 @@
 
 enum class IOState : uint8_t { Done, NeedRead, NeedWrite };
 
+class TLSSession
+{
+public:
+  virtual ~TLSSession()
+  {
+  }
+};
+
 class TLSConnection
 {
 public:
@@ -26,6 +34,8 @@ public:
   virtual std::string getServerNameIndication() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
+  virtual std::unique_ptr<TLSSession> getSession() const = 0;
+  virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   virtual void close() = 0;
 
   void setUnknownTicketKey()
@@ -465,6 +475,22 @@ public:
     return d_conn && d_conn->getUnknownTicketKey();
   }
 
+  void setTLSSession(std::unique_ptr<TLSSession>& session)
+  {
+    if (d_conn != nullptr) {
+      d_conn->setSession(session);
+    }
+  }
+
+  std::unique_ptr<TLSSession> getTLSSession()
+  {
+    if (!d_conn) {
+      throw std::runtime_error("Trying to get a TLS session from a non-TLS handler");
+    }
+
+    return d_conn->getSession();
+  }
+
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
   ComboAddress d_remote;
@@ -484,4 +510,3 @@ struct TLSContextParameters
 };
 
 std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);
-
