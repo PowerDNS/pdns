@@ -356,7 +356,7 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
       }
     }
 
-    if (df.d_sendCacheControlHeaders && !response.empty()) {
+    if (df.d_sendCacheControlHeaders && response.size() > sizeof(dnsheader)) {
       uint32_t minTTL = getDNSPacketMinTTL(reinterpret_cast<const char*>(response.data()), response.size());
       if (minTTL != std::numeric_limits<uint32_t>::max()) {
         std::string cacheControlValue = "max-age=" + std::to_string(minTTL);
@@ -501,6 +501,7 @@ public:
   DoHCrossProtocolQuery(DOHUnit* du_): du(du_)
   {
     query = InternalQuery(std::move(du->query), std::move(du->ids));
+    query.d_proxyProtocolPayloadAdded = du->proxyProtocolPayloadSize > 0;
     downstream = du->downstream;
     proxyProtocolPayloadSize = du->proxyProtocolPayloadSize;
   }
@@ -1287,25 +1288,22 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if (!du->response.empty() && !du->tcp) {
-    const dnsheader* dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
+  if (!du->tcp && du->truncated && du->response.size() > sizeof(dnsheader)) {
+    /* restoring the original ID */
+    dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(du->query.data() + du->proxyProtocolPayloadSize);
+    queryDH->id = htons(du->ids.origID);
 
-    if (dh->tc) {
-      /* restoring the original ID */
-      dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(du->query.data());
-      queryDH->id = htons(du->ids.origID);
+    auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
 
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
+    du->get();
+    du->tcp = true;
+    du->truncated = false;
 
-      du->get();
-      du->tcp = true;
-
-      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
-        return;
-      }
-      else {
-        du->release();
-      }
+    if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+      return;
+    }
+    else {
+      du->release();
     }
   }
 
@@ -1642,6 +1640,9 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, IDState&& state)
     if (ids.cs) {
       ++ids.cs->responses;
     }
+  }
+  else {
+    truncated = true;
   }
 
   sendDoHUnitToTheMainThread(this, "DoH response");

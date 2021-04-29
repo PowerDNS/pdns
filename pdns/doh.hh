@@ -235,6 +235,7 @@ struct DOHUnit
   /* whether the query was re-sent to the backend over
      TCP after receiving a truncated answer over UDP */
   bool tcp{false};
+  bool truncated{false};
 
   std::string getHTTPPath() const;
   std::string getHTTPHost() const;
