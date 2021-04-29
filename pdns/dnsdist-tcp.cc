@@ -347,6 +347,11 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
   return IOState::Done;
 }
 
+static void updateTCPLatency(const std::shared_ptr<DownstreamState>& ds, double udiff)
+{
+  ds->latencyUsecTCP = (127.0 * ds->latencyUsecTCP / 128.0) + udiff/128.0;
+}
+
 static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
 {
   if (currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
@@ -363,7 +368,7 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
 
     ::handleResponseSent(ids, udiff, state->d_ci.remote, ds->remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH);
 
-    ds->latencyUsecTCP = (127.0 * ds->latencyUsecTCP / 128.0) + udiff/128.0;
+    updateTCPLatency(ds, udiff);
   }
 }
 
