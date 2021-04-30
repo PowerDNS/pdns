@@ -35,8 +35,7 @@ bool DownstreamState::reconnect()
   for (auto& fd : sockets) {
     if (fd != -1) {
       if (sockets.size() > 1) {
-        std::lock_guard<std::mutex> lock(socketsLock);
-        mplexer->removeReadFD(fd);
+        (*mplexer.lock())->removeReadFD(fd);
       }
       /* shutdown() is needed to wake up recv() in the responderThread */
       shutdown(fd, SHUT_RDWR);
@@ -61,8 +60,7 @@ bool DownstreamState::reconnect()
       try {
         SConnect(fd, remote);
         if (sockets.size() > 1) {
-          std::lock_guard<std::mutex> lock(socketsLock);
-          mplexer->addReadFD(fd, [](int, boost::any) {});
+          (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
         }
         connected = true;
       }
@@ -80,8 +78,7 @@ bool DownstreamState::reconnect()
       if (fd != -1) {
         if (sockets.size() > 1) {
           try {
-            std::lock_guard<std::mutex> lock(socketsLock);
-            mplexer->removeReadFD(fd);
+            (*mplexer.lock())->removeReadFD(fd);
           }
           catch (const FDMultiplexerException& e) {
             /* some sockets might not have been added to the multiplexer
@@ -105,7 +102,7 @@ void DownstreamState::stop()
 
   {
     std::lock_guard<std::mutex> tl(connectLock);
-    std::lock_guard<std::mutex> slock(socketsLock);
+    auto slock = mplexer.lock();
 
     for (auto& fd : sockets) {
       if (fd != -1) {
@@ -120,23 +117,24 @@ void DownstreamState::hash()
 {
   vinfolog("Computing hashes for id=%s and weight=%d", id, weight);
   auto w = weight;
-  WriteLock wl(&d_lock);
-  hashes.clear();
-  hashes.reserve(w);
+  auto lockedHashes = hashes.lock();
+  lockedHashes->clear();
+  lockedHashes->reserve(w);
   while (w > 0) {
     std::string uuid = boost::str(boost::format("%s-%d") % id % w);
     unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), g_hashperturb);
-    hashes.push_back(wshash);
+    lockedHashes->push_back(wshash);
     --w;
   }
-  std::sort(hashes.begin(), hashes.end());
+  std::sort(lockedHashes->begin(), lockedHashes->end());
+  hashesComputed = true;
 }
 
 void DownstreamState::setId(const boost::uuids::uuid& newId)
 {
   id = newId;
   // compute hashes only if already done
-  if (!hashes.empty()) {
+  if (hashesComputed) {
     hash();
   }
 }
@@ -148,7 +146,7 @@ void DownstreamState::setWeight(int newWeight)
     return ;
   }
   weight = newWeight;
-  if (!hashes.empty()) {
+  if (hashesComputed) {
     hash();
   }
 }
@@ -158,7 +156,7 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
   id = getUniqueID();
   threadStarted.clear();
 
-  mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+  *(mplexer.lock()) = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
 
   sockets.resize(numberOfSockets);
   for (auto& fd : sockets) {
@@ -193,4 +191,71 @@ void DownstreamState::incCurrentConnectionsCount()
   if (currentConnectionsCount > tcpMaxConcurrentConnections) {
     tcpMaxConcurrentConnections.store(currentConnectionsCount);
   }
+}
+
+size_t ServerPool::countServers(bool upOnly)
+{
+  size_t count = 0;
+  auto servers = d_servers.read_lock();
+  for (const auto& server : **servers) {
+    if (!upOnly || std::get<1>(server)->isUp() ) {
+      count++;
+    }
+  }
+  return count;
+}
+
+const std::shared_ptr<ServerPolicy::NumberedServerVector> ServerPool::getServers()
+{
+  std::shared_ptr<ServerPolicy::NumberedServerVector> result;
+  {
+    result = *(d_servers.read_lock());
+  }
+  return result;
+}
+
+void ServerPool::addServer(shared_ptr<DownstreamState>& server)
+{
+  auto servers = d_servers.lock();
+  /* we can't update the content of the shared pointer directly even when holding the lock,
+     as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
+  unsigned int count = static_cast<unsigned int>((*servers)->size());
+  auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
+  newServers->push_back(make_pair(++count, server));
+  /* we need to reorder based on the server 'order' */
+  std::stable_sort(newServers->begin(), newServers->end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+      return a.second->order < b.second->order;
+    });
+  /* and now we need to renumber for Lua (custom policies) */
+  size_t idx = 1;
+  for (auto& serv : *newServers) {
+    serv.first = idx++;
+  }
+  *servers = std::move(newServers);
+}
+
+void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
+{
+  auto servers = d_servers.lock();
+  /* we can't update the content of the shared pointer directly even when holding the lock,
+     as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
+  auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
+  size_t idx = 1;
+  bool found = false;
+  for (auto it = newServers->begin(); it != newServers->end();) {
+    if (found) {
+      /* we need to renumber the servers placed
+         after the removed one, for Lua (custom policies) */
+      it->first = idx++;
+      it++;
+    }
+    else if (it->second == server) {
+      it = newServers->erase(it);
+      found = true;
+    } else {
+      idx++;
+      it++;
+    }
+  }
+  *servers = std::move(newServers);
 }

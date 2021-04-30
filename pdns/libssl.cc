@@ -493,7 +493,7 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx
 
 OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
 {
-  d_ticketKeys.set_capacity(capacity);
+  d_ticketKeys.lock()->set_capacity(capacity);
 }
 
 OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
@@ -502,22 +502,20 @@ OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
 
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey> newKey)
 {
-  WriteLock wl(&d_lock);
-  d_ticketKeys.push_front(newKey);
+  d_ticketKeys.lock()->push_front(newKey);
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
 {
-  ReadLock rl(&d_lock);
-  return d_ticketKeys.front();
+  return d_ticketKeys.read_lock()->front();
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getDecryptionKey(unsigned char name[TLS_TICKETS_KEY_NAME_SIZE], bool& activeKey)
 {
-  ReadLock rl(&d_lock);
-  for (auto& key : d_ticketKeys) {
+  auto keys = d_ticketKeys.read_lock();
+  for (auto& key : *keys) {
     if (key->nameMatches(name)) {
-      activeKey = (key == d_ticketKeys.front());
+      activeKey = (key == keys->front());
       return key;
     }
   }
@@ -526,8 +524,7 @@ std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getDecryptionKey(
 
 size_t OpenSSLTLSTicketKeysRing::getKeysCount()
 {
-  ReadLock rl(&d_lock);
-  return d_ticketKeys.size();
+  return d_ticketKeys.read_lock()->size();
 }
 
 void OpenSSLTLSTicketKeysRing::loadTicketsKeys(const std::string& keyFile)
