@@ -41,18 +41,6 @@ DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint3
   }
 }
 
-DNSDistPacketCache::~DNSDistPacketCache()
-{
-  try {
-    vector<std::unique_ptr<WriteLock>> locks;
-    for (auto& shard : d_shards) {
-      locks.push_back(std::make_unique<WriteLock>(&shard.d_lock));
-    }
-  }
-  catch(...) {
-  }
-}
-
 bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnameWireLength, boost::optional<Netmask>& subnet)
 {
   uint16_t optRDPosition;
@@ -92,9 +80,8 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint1
   return true;
 }
 
-void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, CacheValue& newValue)
+void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint32_t,CacheValue>& map, uint32_t key, CacheValue& newValue)
 {
-  auto& map = shard.d_map;
   /* check again now that we hold the lock to prevent a race */
   if (map.size() >= (d_maxEntries / d_shardCount)) {
     return;
@@ -187,18 +174,18 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   auto& shard = d_shards.at(shardIndex);
 
   if (d_deferrableInsertLock) {
-    TryWriteLock w(&shard.d_lock);
+    auto w = shard.d_map.try_lock();
 
-    if (!w.gotIt()) {
+    if (!w.owns_lock()) {
       d_deferredInserts++;
       return;
     }
-    insertLocked(shard, key, newValue);
+    insertLocked(shard, *w, key, newValue);
   }
   else {
-    WriteLock w(&shard.d_lock);
+    auto w = shard.d_map.lock();
 
-    insertLocked(shard, key, newValue);
+    insertLocked(shard, *w, key, newValue);
   }
 }
 
@@ -221,16 +208,15 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
   bool stale = false;
   auto& response = dq.getMutableData();
   auto& shard = d_shards.at(shardIndex);
-  auto& map = shard.d_map;
   {
-    TryReadLock r(&shard.d_lock);
-    if (!r.gotIt()) {
+    auto map = shard.d_map.try_read_lock();
+    if (!map.owns_lock()) {
       d_deferredLookups++;
       return false;
     }
 
-    std::unordered_map<uint32_t,CacheValue>::const_iterator it = map.find(key);
-    if (it == map.end()) {
+    std::unordered_map<uint32_t,CacheValue>::const_iterator it = map->find(key);
+    if (it == map->end()) {
       d_misses++;
       return false;
     }
@@ -310,19 +296,18 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    WriteLock w(&shard.d_lock);
-    auto& map = shard.d_map;
-    if (map.size() <= maxPerShard) {
+    auto map = shard.d_map.lock();
+    if (map->size() <= maxPerShard) {
       continue;
     }
 
-    size_t toRemove = map.size() - maxPerShard;
+    size_t toRemove = map->size() - maxPerShard;
 
-    for (auto it = map.begin(); toRemove > 0 && it != map.end(); ) {
+    for (auto it = map->begin(); toRemove > 0 && it != map->end(); ) {
       const CacheValue& value = it->second;
 
       if (value.validity <= now) {
-        it = map.erase(it);
+        it = map->erase(it);
         --toRemove;
         --shard.d_entriesCount;
         ++removed;
@@ -347,27 +332,26 @@ size_t DNSDistPacketCache::expunge(size_t upTo)
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    WriteLock w(&shard.d_lock);
-    auto& map = shard.d_map;
+    auto map = shard.d_map.lock();
 
-    if (map.size() <= maxPerShard) {
+    if (map->size() <= maxPerShard) {
       continue;
     }
 
-    size_t toRemove = map.size() - maxPerShard;
+    size_t toRemove = map->size() - maxPerShard;
 
-    auto beginIt = map.begin();
+    auto beginIt = map->begin();
     auto endIt = beginIt;
 
-    if (map.size() >= toRemove) {
+    if (map->size() >= toRemove) {
       std::advance(endIt, toRemove);
-      map.erase(beginIt, endIt);
+      map->erase(beginIt, endIt);
       shard.d_entriesCount -= toRemove;
       removed += toRemove;
     }
     else {
-      removed += map.size();
-      map.clear();
+      removed += map->size();
+      map->clear();
       shard.d_entriesCount = 0;
     }
   }
@@ -380,14 +364,13 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    WriteLock w(&shard.d_lock);
-    auto& map = shard.d_map;
+    auto map = shard.d_map.lock();
 
-    for(auto it = map.begin(); it != map.end(); ) {
+    for(auto it = map->begin(); it != map->end(); ) {
       const CacheValue& value = it->second;
 
       if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
-        it = map.erase(it);
+        it = map->erase(it);
         --shard.d_entriesCount;
         ++removed;
       } else {
@@ -473,10 +456,9 @@ uint64_t DNSDistPacketCache::dump(int fd)
   uint64_t count = 0;
   time_t now = time(nullptr);
   for (auto& shard : d_shards) {
-    ReadLock w(&shard.d_lock);
-    auto& map = shard.d_map;
+    auto map = shard.d_map.read_lock();
 
-    for (const auto& entry : map) {
+    for (const auto& entry : *map) {
       const CacheValue& value = entry.second;
       count++;
 
