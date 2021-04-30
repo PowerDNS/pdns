@@ -99,8 +99,7 @@ public:
   void rotateTicketsKey(time_t now);
 
 private:
-  boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > d_ticketKeys;
-  ReadWriteLock d_lock;
+  SharedLockGuarded<boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > > d_ticketKeys;
 };
 
 void* libssl_get_ticket_key_callback_data(SSL* s);

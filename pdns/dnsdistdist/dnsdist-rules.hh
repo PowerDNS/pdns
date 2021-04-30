@@ -40,18 +40,17 @@ public:
 
   void clear()
   {
-    std::lock_guard<std::mutex> lock(d_lock);
-    d_limits.clear();
+    d_limits.lock()->clear();
   }
 
   size_t cleanup(const struct timespec& cutOff, size_t* scannedCount=nullptr) const
   {
-    std::lock_guard<std::mutex> lock(d_lock);
-    size_t toLook = d_limits.size() / d_scanFraction + 1;
+    auto limits = d_limits.lock();
+    size_t toLook = limits->size() / d_scanFraction + 1;
     size_t lookedAt = 0;
 
     size_t removed = 0;
-    auto& sequence = d_limits.get<SequencedTag>();
+    auto& sequence = limits->get<SequencedTag>();
     for (auto entry = sequence.begin(); entry != sequence.end() && lookedAt < toLook; lookedAt++) {
       if (entry->d_limiter.seenSince(cutOff)) {
         /* entries are ordered from least recently seen to more recently
@@ -98,14 +97,14 @@ public:
     zeroport.sin4.sin_port=0;
     zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
     {
-      std::lock_guard<std::mutex> lock(d_lock);
-      auto iter = d_limits.find(zeroport);
-      if (iter == d_limits.end()) {
+      auto limits = d_limits.lock();
+      auto iter = limits->find(zeroport);
+      if (iter == limits->end()) {
         Entry e(zeroport, QPSLimiter(d_qps, d_burst));
-        iter = d_limits.insert(e).first;
+        iter = limits->insert(e).first;
       }
 
-      moveCacheItemToBack<SequencedTag>(d_limits, iter);
+      moveCacheItemToBack<SequencedTag>(*limits, iter);
       return !iter->d_limiter.check(d_qps, d_burst);
     }
   }
@@ -117,8 +116,7 @@ public:
 
   size_t getEntriesCount() const
   {
-    std::lock_guard<std::mutex> lock(d_lock);
-    return d_limits.size();
+    return d_limits.lock()->size();
   }
 
 private:
@@ -141,8 +139,7 @@ private:
       >
   > qpsContainer_t;
 
-  mutable std::mutex d_lock;
-  mutable qpsContainer_t d_limits;
+  mutable LockGuarded<qpsContainer_t> d_limits;
   mutable struct timespec d_lastCleanup;
   unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc, d_cleanupDelay, d_expiration;
   unsigned int d_scanFraction{10};
@@ -240,85 +237,80 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    if(dq->remote->sin4.sin_family == AF_INET) {
-      ReadLock rl(&d_lock4);
-      auto fnd = d_ip4s.find(dq->remote->sin4.sin_addr.s_addr);
-      if(fnd == d_ip4s.end()) {
+    if (dq->remote->sin4.sin_family == AF_INET) {
+      auto ip4s = d_ip4s.read_lock();
+      auto fnd = ip4s->find(dq->remote->sin4.sin_addr.s_addr);
+      if (fnd == ip4s->end()) {
         return false;
       }
-      return time(0) < fnd->second;
+      return time(nullptr) < fnd->second;
     } else {
-      ReadLock rl(&d_lock6);
-      auto fnd = d_ip6s.find({*dq->remote});
-      if(fnd == d_ip6s.end()) {
+      auto ip6s = d_ip6s.read_lock();
+      auto fnd = ip6s->find({*dq->remote});
+      if (fnd == ip6s->end()) {
         return false;
       }
-      return time(0) < fnd->second;
+      return time(nullptr) < fnd->second;
     }
   }
 
   void add(const ComboAddress& ca, time_t ttd)
   {
     // think twice before adding templates here
-    if(ca.sin4.sin_family == AF_INET) {
-      WriteLock rl(&d_lock4);
-      auto res=d_ip4s.insert({ca.sin4.sin_addr.s_addr, ttd});
-      if(!res.second && (time_t)res.first->second < ttd)
+    if (ca.sin4.sin_family == AF_INET) {
+      auto res = d_ip4s.lock()->insert({ca.sin4.sin_addr.s_addr, ttd});
+      if (!res.second && (time_t)res.first->second < ttd) {
         res.first->second = (uint32_t)ttd;
+      }
     }
     else {
-      WriteLock rl(&d_lock6);
-      auto res=d_ip6s.insert({{ca}, ttd});
-      if(!res.second && (time_t)res.first->second < ttd)
+      auto res = d_ip6s.lock()->insert({{ca}, ttd});
+      if (!res.second && (time_t)res.first->second < ttd) {
         res.first->second = (uint32_t)ttd;
+      }
     }
   }
 
   void remove(const ComboAddress& ca)
   {
-    if(ca.sin4.sin_family == AF_INET) {
-      WriteLock rl(&d_lock4);
-      d_ip4s.erase(ca.sin4.sin_addr.s_addr);
+    if (ca.sin4.sin_family == AF_INET) {
+      d_ip4s.lock()->erase(ca.sin4.sin_addr.s_addr);
     }
     else {
-      WriteLock rl(&d_lock6);
-      d_ip6s.erase({ca});
+      d_ip6s.lock()->erase({ca});
     }
   }
 
   void clear()
   {
-    {
-      WriteLock rl(&d_lock4);
-      d_ip4s.clear();
-    }
-    WriteLock rl(&d_lock6);
-    d_ip6s.clear();
+    d_ip4s.lock()->clear();
+    d_ip6s.lock()->clear();
   }
 
   void cleanup()
   {
     time_t now = time(nullptr);
     {
-      WriteLock rl(&d_lock4);
-
-      for(auto iter = d_ip4s.begin(); iter != d_ip4s.end(); ) {
-	if(iter->second < now)
-	  iter=d_ip4s.erase(iter);
-	else
+      auto ip4s = d_ip4s.lock();
+      for (auto iter = ip4s->begin(); iter != ip4s->end(); ) {
+	if (iter->second < now) {
+	  iter = ip4s->erase(iter);
+        }
+	else {
 	  ++iter;
+        }
       }
-
     }
 
     {
-      WriteLock rl(&d_lock6);
-
-      for(auto iter = d_ip6s.begin(); iter != d_ip6s.end(); ) {
-	if(iter->second < now)
-	  iter=d_ip6s.erase(iter);
-	else
+      auto ip6s = d_ip6s.lock();
+      for (auto iter = ip6s->begin(); iter != ip6s->end(); ) {
+	if (iter->second < now) {
+	  iter = ip6s->erase(iter);
+        }
+	else {
 	  ++iter;
+        }
       }
 
     }
@@ -327,19 +319,19 @@ public:
 
   string toString() const override
   {
-    time_t now=time(0);
+    time_t now = time(nullptr);
     uint64_t count = 0;
-    {
-      ReadLock rl(&d_lock4);
-      for(const auto& ip : d_ip4s)
-        if(now < ip.second)
-          ++count;
+
+    for (const auto& ip : *(d_ip4s.read_lock())) {
+      if (now < ip.second) {
+        ++count;
+      }
     }
-    {
-      ReadLock rl(&d_lock6);
-      for(const auto& ip : d_ip6s)
-        if(now < ip.second)
-          ++count;
+
+    for (const auto& ip : *(d_ip6s.read_lock())) {
+      if (now < ip.second) {
+        ++count;
+      }
     }
 
     return "Src: "+std::to_string(count)+" ips";
@@ -354,10 +346,8 @@ private:
       return ah & (bh<<1);
     }
   };
-  std::unordered_map<IPv6, time_t, IPv6Hash> d_ip6s;
-  std::unordered_map<uint32_t, time_t> d_ip4s;
-  mutable ReadWriteLock d_lock4;
-  mutable ReadWriteLock d_lock6;
+  mutable SharedLockGuarded<std::unordered_map<IPv6, time_t, IPv6Hash>> d_ip6s;
+  mutable SharedLockGuarded<std::unordered_map<uint32_t, time_t>> d_ip4s;
 };
 
 

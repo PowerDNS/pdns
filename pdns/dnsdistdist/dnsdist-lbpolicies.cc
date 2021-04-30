@@ -163,20 +163,20 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
   for (const auto& d: servers) {
     if (d.second->isUp() && (g_consistentHashBalancingFactor == 0 || d.second->outstanding <= (targetLoad * d.second->weight))) {
       // make sure hashes have been computed
-      if (d.second->hashes.empty()) {
+      if (!d.second->hashesComputed) {
         d.second->hash();
       }
       {
-        ReadLock rl(&(d.second->d_lock));
         const auto& server = d.second;
+        auto hashes = server->hashes.read_lock();
         // we want to keep track of the last hash
-        if (min > *(server->hashes.begin())) {
-          min = *(server->hashes.begin());
+        if (min > *(hashes->begin())) {
+          min = *(hashes->begin());
           first = server;
         }
 
-        auto hash_it = std::lower_bound(server->hashes.begin(), server->hashes.end(), qhash);
-        if (hash_it != server->hashes.end()) {
+        auto hash_it = std::lower_bound(hashes->begin(), hashes->end(), qhash);
+        if (hash_it != hashes->end()) {
           if (*hash_it < sel) {
             sel = *hash_it;
             ret = server;

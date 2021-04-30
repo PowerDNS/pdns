@@ -538,10 +538,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
     return ;
   }
 
-  {
-    std::lock_guard<std::mutex> lock(state->socketsLock);
-    state->mplexer->getAvailableFDs(ready, 1000);
-  }
+  (*state->mplexer.lock())->getAvailableFDs(ready, 1000);
 }
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
@@ -848,20 +845,20 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
 {
   g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.getData().size(), *dq.getHeader());
 
-  if(g_qcount.enabled) {
+  if (g_qcount.enabled) {
     string qname = (*dq.qname).toLogString();
     bool countQuery{true};
-    if(g_qcount.filter) {
+    if (g_qcount.filter) {
       auto lock = g_lua.lock();
       std::tie (countQuery, qname) = g_qcount.filter(&dq);
     }
 
-    if(countQuery) {
-      WriteLock wl(&g_qcount.queryLock);
-      if(!g_qcount.records.count(qname)) {
-        g_qcount.records[qname] = 0;
+    if (countQuery) {
+      auto records = g_qcount.records.lock();
+      if (!records->count(qname)) {
+        (*records)[qname] = 0;
       }
-      g_qcount.records[qname]++;
+      (*records)[qname]++;
     }
   }
 
