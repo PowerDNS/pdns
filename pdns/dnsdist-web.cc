@@ -49,7 +49,6 @@ struct WebserverConfig
     acl.toMasks("127.0.0.1, ::1");
   }
 
-  std::mutex lock;
   NetmaskGroup acl;
   std::string password;
   std::string apiKey;
@@ -58,7 +57,7 @@ struct WebserverConfig
 };
 
 bool g_apiReadWrite{false};
-WebserverConfig g_webserverConfig;
+LockGuarded<WebserverConfig> g_webserverConfig;
 std::string g_apiConfigDirectory;
 static const MetricDefinitionStorage s_metricDefinitions;
 
@@ -251,26 +250,26 @@ static bool isAStatsRequest(const YaHTTP::Request& req)
 
 static bool handleAuthorization(const YaHTTP::Request& req)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+  auto config = g_webserverConfig.lock();
 
   if (isAStatsRequest(req)) {
-    if (g_webserverConfig.statsRequireAuthentication) {
+    if (config->statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, g_webserverConfig.apiKey) || checkWebPassword(req, g_webserverConfig.password);
+      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password);
     }
     return true;
   }
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (checkAPIKey(req, g_webserverConfig.apiKey)) {
+    if (checkAPIKey(req, config->apiKey)) {
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, g_webserverConfig.password);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password);
   }
 
-  return checkWebPassword(req, g_webserverConfig.password);
+  return checkWebPassword(req, config->password);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -288,8 +287,7 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
 
 static bool isClientAllowedByACL(const ComboAddress& remote)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-  return g_webserverConfig.acl.match(remote);
+  return g_webserverConfig.lock()->acl.match(remote);
 }
 
 static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -1401,10 +1399,10 @@ static void connectionThread(WebClientConnection&& conn)
     resp.version = req.version;
 
     {
-      std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+      auto config = g_webserverConfig.lock();
 
-      addCustomHeaders(resp, g_webserverConfig.customHeaders);
-      addSecurityHeaders(resp, g_webserverConfig.customHeaders);
+      addCustomHeaders(resp, config->customHeaders);
+      addSecurityHeaders(resp, config->customHeaders);
     }
     /* indicate that the connection will be closed after completion of the response */
     resp.headers["Connection"] = "close";
@@ -1457,20 +1455,18 @@ static void connectionThread(WebClientConnection&& conn)
 
 void setWebserverAPIKey(const boost::optional<std::string> apiKey)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+  auto config = g_webserverConfig.lock();
 
   if (apiKey) {
-    g_webserverConfig.apiKey = *apiKey;
+    config->apiKey = *apiKey;
   } else {
-    g_webserverConfig.apiKey.clear();
+    config->apiKey.clear();
   }
 }
 
 void setWebserverPassword(const std::string& password)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-
-  g_webserverConfig.password = password;
+  g_webserverConfig.lock()->password = password;
 }
 
 void setWebserverACL(const std::string& acl)
@@ -1478,24 +1474,17 @@ void setWebserverACL(const std::string& acl)
   NetmaskGroup newACL;
   newACL.toMasks(acl);
 
-  {
-    std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-    g_webserverConfig.acl = std::move(newACL);
-  }
+  g_webserverConfig.lock()->acl = std::move(newACL);
 }
 
 void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-
-  g_webserverConfig.customHeaders = customHeaders;
+  g_webserverConfig.lock()->customHeaders = customHeaders;
 }
 
 void setWebserverStatsRequireAuthentication(bool require)
 {
-  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-
-  g_webserverConfig.statsRequireAuthentication = require;
+  g_webserverConfig.lock()->statsRequireAuthentication = require;
 }
 
 void setWebserverMaxConcurrentConnections(size_t max)
@@ -1508,11 +1497,8 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
   setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
 
-  {
-    std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-    if (g_webserverConfig.password.empty()) {
-      warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
-    }
+  if (g_webserverConfig.lock()->password.empty()) {
+    warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
   }
 
   for(;;) {
