@@ -64,7 +64,7 @@ namespace Logging {
 //  template <>
 //  Loggable<std::string>::Loggable(const std::string& v): _t(v) {}
 
-  typedef void(*EntryLogger)(std::unique_ptr<Entry>);
+  typedef void(*EntryLogger)(const Entry&);
 
   class Logger: public Logr::Logger, public std::enable_shared_from_this<Logger>
   {

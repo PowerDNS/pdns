@@ -46,18 +46,18 @@ namespace Logging
     if (_level > _verbosity) {
       return ;
     }
-    auto entry = std::unique_ptr<Entry>(new Entry());
-    entry->level = _level;
-    entry->name = _name;
-    entry->message = msg;
-    entry->error = err;
+    Entry entry;
+    entry.level = _level;
+    entry.name = _name;
+    entry.message = msg;
+    entry.error = err;
     auto parent = _parent;
-    entry->values.insert(_values.begin(), _values.end());
+    entry.values.insert(_values.begin(), _values.end());
     while (parent) {
-      entry->values.insert(parent->_values.begin(), parent->_values.end());
+      entry.values.insert(parent->_values.begin(), parent->_values.end());
       parent = parent->_parent;
     }
-    _callback(std::move(entry));
+    _callback(entry);
   }
 
   void Logger::error(int err, const std::string& msg)

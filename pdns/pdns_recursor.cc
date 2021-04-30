@@ -5394,24 +5394,24 @@ catch(...) {
 
 
 
-static void loggerBackend(std::unique_ptr<Logging::Entry> entry) {
+static void loggerBackend(const Logging::Entry& entry) {
   static thread_local std::stringstream buf;
 
   buf.str("");
-  buf << "msg=" << std::quoted(entry->message);
-  if (entry->error) {
-    buf << " oserror=" << std::quoted(entry->error.get());
+  buf << "msg=" << std::quoted(entry.message);
+  if (entry.error) {
+    buf << " oserror=" << std::quoted(entry.error.get());
   }
 
-  if (entry->name) {
-    buf << " subsystem=" << std::quoted(entry->name.get());
+  if (entry.name) {
+    buf << " subsystem=" << std::quoted(entry.name.get());
   }
 
-  for (auto const& v: entry->values) {
+  for (auto const& v: entry.values) {
     buf << " ";
     buf << v.first << "=" << std::quoted(v.second);
   }
-  g_log << Logger::Urgency(entry->level) << buf.str() << endl;
+  g_log << Logger::Urgency(entry.level) << buf.str() << endl;
 }
 
 
