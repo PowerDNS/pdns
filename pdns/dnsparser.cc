@@ -649,7 +649,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, std::move(addresses)));
       break;
     }
-    case SvcParam::echconfig: {
+    case SvcParam::ech: {
       std::string blob;
       blob.reserve(len);
       xfrBlobNoSpaces(blob, len);

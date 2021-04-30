@@ -217,8 +217,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. alpn=h3,h2", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x06\x02h3\x02h2"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. port=53", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x03\x00\x02\x00\x35"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. ipv4hint=192.0.2.53,192.0.2.2", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x04\x00\x08\xc0\x00\x02\x35\xc0\x00\x02\x02"))
-     (CASE_S(QType::SVCB, "1 foo.powerdns.org. echconfig=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
-     (CASE_L(QType::SVCB, "1 foo.powerdns.org. echconfig=aGVsbG8=", "1 foo.powerdns.org. echconfig=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. ech=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
+     (CASE_L(QType::SVCB, "1 foo.powerdns.org. ech=aGVsbG8=", "1 foo.powerdns.org. ech=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. ipv6hint=2001:db8::1,2001:db8::53:1", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x06\x00\x20\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x53\x00\x01"))
 
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. key666=\"hello\"", "\0\x01\3foo\x08powerdns\x03org\x00\x02\x9a\x00\x005hello"))
