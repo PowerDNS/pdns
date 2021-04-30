@@ -493,10 +493,9 @@ struct DynBlockEntryStat
   unsigned int lastSeenValue{0};
 };
 
-std::mutex DynBlockMaintenance::s_topsMutex;
 std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsData;
-std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::s_topNMGsByReason;
-std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::s_topSMTsByReason;
+
+LockGuarded<DynBlockMaintenance::Tops> DynBlockMaintenance::s_tops;
 size_t DynBlockMaintenance::s_topN{20};
 time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{60};
 
@@ -641,9 +640,9 @@ void DynBlockMaintenance::generateMetrics()
   }
 
   {
-    std::lock_guard<std::mutex> lock(s_topsMutex);
-    s_topNMGsByReason = std::move(topNMGs);
-    s_topSMTsByReason = std::move(topSMTs);
+    auto tops = s_tops.lock();
+    tops->topNMGsByReason = std::move(topNMGs);
+    tops->topSMTsByReason = std::move(topSMTs);
   }
 }
 
@@ -710,12 +709,10 @@ void DynBlockMaintenance::run()
 
 std::map<std::string, std::list<std::pair<Netmask, unsigned int>>> DynBlockMaintenance::getHitsForTopNetmasks()
 {
-  std::lock_guard<std::mutex> lock(s_topsMutex);
-  return s_topNMGsByReason;
+  return s_tops.lock()->topNMGsByReason;
 }
 
 std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaintenance::getHitsForTopSuffixes()
 {
-  std::lock_guard<std::mutex> lock(s_topsMutex);
-  return s_topSMTsByReason;
+  return s_tops.lock()->topSMTsByReason;
 }
