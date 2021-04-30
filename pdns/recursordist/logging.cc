@@ -31,17 +31,17 @@ namespace Logging
     return shared_from_this();
   }
 
-  bool Logger::enabled()
+  bool Logger::enabled() const
   {
     return true;
   }
 
-  void Logger::info(const std::string& msg)
+  void Logger::info(const std::string& msg) const
   {
     logMessage(msg, boost::none);
   }
 
-  void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err)
+  void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
   {
     if (_level > _verbosity) {
       return ;
@@ -60,12 +60,12 @@ namespace Logging
     _callback(entry);
   }
 
-  void Logger::error(int err, const std::string& msg)
+  void Logger::error(int err, const std::string& msg) const
   {
     logMessage(msg, std::string(std::strerror(err)));
   }
 
-  void Logger::error(const std::string& err, const std::string& msg)
+  void Logger::error(const std::string& err, const std::string& msg) const
   {
     logMessage(msg, err);
   }

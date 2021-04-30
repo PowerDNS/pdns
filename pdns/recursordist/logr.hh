@@ -37,7 +37,7 @@ namespace Logr {
     // Enabled tests whether this Logger is enabled.  For example, commandline
     // flags might be used to set the logging verbosity and disable some info
     // logs.
-    virtual bool enabled() = 0;
+    virtual bool enabled() const = 0;
 
     // Info logs a non-error message with the given key/value pairs as context.
     //
@@ -45,7 +45,7 @@ namespace Logr {
     // the log line.  The key/value pairs can then be used to add additional
     // variable information.  The key/value pairs should alternate string
     // keys and arbitrary values.
-    virtual void info(const std::string& msg) = 0;
+    virtual void info(const std::string& msg) const = 0;
 
     // Error logs an error, with the given message and key/value pairs as context.
     // It functions similarly to calling Info with the "error" named value, but may
@@ -55,8 +55,8 @@ namespace Logr {
     // The msg field should be used to add context to any underlying error,
     // while the err field should be used to attach the actual error that
     // triggered this log line, if present.
-    virtual void error(const std::string& err, const std::string& msg) = 0;
-    virtual void error(int err, const std::string& msg) = 0;
+    virtual void error(const std::string& err, const std::string& msg) const = 0;
+    virtual void error(int err, const std::string& msg) const = 0;
 
     // V returns an Logger value for a specific verbosity level, relative to
     // this Logger.  In other words, V values are additive.  V higher verbosity

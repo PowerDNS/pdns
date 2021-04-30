@@ -69,12 +69,12 @@ namespace Logging {
   class Logger: public Logr::Logger, public std::enable_shared_from_this<Logger>
   {
   public:
-    bool enabled() override;
-    void info(const std::string& msg) override;
-    void error(int err, const std::string& msg) override;
-    void error(const std::string& err, const std::string& msg) override;
-    std::shared_ptr<Logr::Logger> v(size_t level) override;
+    bool enabled() const override;
+    void info(const std::string& msg) const override;
+    void error(int err, const std::string& msg) const override;
+    void error(const std::string& err, const std::string& msg) const override;
 
+    std::shared_ptr<Logr::Logger> v(size_t level) override;
     std::shared_ptr<Logr::Logger> withValues(const std::string& key, const Logr::Loggable& value) override;
     virtual std::shared_ptr<Logr::Logger> withName(const std::string& name) override;
 
@@ -89,7 +89,7 @@ namespace Logging {
     size_t getVerbosity() const;
     void setVerbosity(size_t verbosity);
   private:
-    void logMessage(const std::string& msg, boost::optional<const std::string> err);
+    void logMessage(const std::string& msg, boost::optional<const std::string> err) const;
     std::shared_ptr<Logger> getptr();
 
     std::shared_ptr<Logger> _parent{nullptr};
