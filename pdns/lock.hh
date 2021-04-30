@@ -213,6 +213,10 @@ public:
   {
   }
 
+  explicit LockGuarded()
+  {
+  }
+
   LockGuardedTryHolder<T> try_lock()
   {
     return LockGuardedTryHolder<T>(d_value, d_mutex);
@@ -225,5 +229,154 @@ public:
 
 private:
   std::mutex d_mutex;
+  T d_value;
+};
+
+template <typename T>
+class SharedLockGuardedHolder
+{
+public:
+  explicit SharedLockGuardedHolder(T& value, std::shared_mutex& mutex): d_lock(mutex), d_value(value)
+  {
+  }
+
+  T& operator*() const noexcept {
+    return d_value;
+  }
+
+  T* operator->() const noexcept {
+    return &d_value;
+  }
+
+private:
+  std::lock_guard<std::shared_mutex> d_lock;
+  T& d_value;
+};
+
+template <typename T>
+class SharedLockGuardedTryHolder
+{
+public:
+  explicit SharedLockGuardedTryHolder(T& value, std::shared_mutex& mutex): d_lock(mutex, std::try_to_lock), d_value(value)
+  {
+  }
+
+  T& operator*() const {
+    if (!owns_lock()) {
+      throw std::runtime_error("Trying to access data protected by a mutex while the lock has not been acquired");
+    }
+    return d_value;
+  }
+
+  T* operator->() const {
+    if (!owns_lock()) {
+      throw std::runtime_error("Trying to access data protected by a mutex while the lock has not been acquired");
+    }
+    return &d_value;
+  }
+
+  operator bool() const noexcept {
+    return d_lock.owns_lock();
+  }
+
+  bool owns_lock() const noexcept {
+    return d_lock.owns_lock();
+  }
+
+private:
+  std::unique_lock<std::shared_mutex> d_lock;
+  T& d_value;
+};
+
+template <typename T>
+class SharedLockGuardedNonExclusiveHolder
+{
+public:
+  explicit SharedLockGuardedNonExclusiveHolder(const T& value, std::shared_mutex& mutex): d_lock(mutex), d_value(value)
+  {
+  }
+
+  const T& operator*() const noexcept {
+    return d_value;
+  }
+
+  const T* operator->() const noexcept {
+    return &d_value;
+  }
+
+private:
+  std::shared_lock<std::shared_mutex> d_lock;
+  const T& d_value;
+};
+
+template <typename T>
+class SharedLockGuardedNonExclusiveTryHolder
+{
+public:
+  explicit SharedLockGuardedNonExclusiveTryHolder(const T& value, std::shared_mutex& mutex): d_lock(mutex, std::try_to_lock), d_value(value)
+  {
+  }
+
+  const T& operator*() const {
+    if (!owns_lock()) {
+      throw std::runtime_error("Trying to access data protected by a mutex while the lock has not been acquired");
+    }
+    return d_value;
+  }
+
+  const T* operator->() const {
+    if (!owns_lock()) {
+      throw std::runtime_error("Trying to access data protected by a mutex while the lock has not been acquired");
+    }
+    return &d_value;
+  }
+
+  operator bool() const noexcept {
+    return d_lock.owns_lock();
+  }
+
+  bool owns_lock() const noexcept {
+    return d_lock.owns_lock();
+  }
+
+private:
+  std::shared_lock<std::shared_mutex> d_lock;
+  const T& d_value;
+};
+
+template <typename T>
+class SharedLockGuarded
+{
+public:
+  explicit SharedLockGuarded(T value): d_value(std::move(value))
+  {
+  }
+
+  explicit SharedLockGuarded()
+  {
+  }
+
+  SharedLockGuardedTryHolder<T> try_lock()
+  {
+    return SharedLockGuardedTryHolder<T>(d_value, d_mutex);
+  }
+
+  SharedLockGuardedHolder<T> lock()
+  {
+    return SharedLockGuardedHolder<T>(d_value, d_mutex);
+  }
+
+  SharedLockGuardedNonExclusiveTryHolder<T> try_read_lock()
+  {
+    return SharedLockGuardedNonExclusiveTryHolder<T>(d_value, d_mutex);
+  }
+
+  SharedLockGuardedNonExclusiveHolder<T> read_lock()
+  {
+    return SharedLockGuardedNonExclusiveHolder<T>(d_value, d_mutex);
+  }
+
+private:
+  std::shared_mutex d_mutex;
   T d_value;
 };
