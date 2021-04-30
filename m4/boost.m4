@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 34
+# serial 35
 ], [#
 ], [])])
 
@@ -1616,6 +1616,7 @@ if test x$boost_cv_inc_path != xno; then
   # the same defines as GCC's).
   for i in \
     "defined __clang__ && __clang_major__ == 12 && __clang_minor__ == 0 @ clang120" \
+    "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 1 @ clang111" \
     "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 0 @ clang110" \
     "defined __clang__ && __clang_major__ == 10 && __clang_minor__ == 0 @ clang100" \
     "defined __clang__ && __clang_major__ == 9 && __clang_minor__ == 0 @ clang90" \
