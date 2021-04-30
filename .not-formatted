@@ -382,7 +382,6 @@
 ./pdns/validate.hh
 ./pdns/version.cc
 ./pdns/version.hh
-./pdns/views.hh
 ./pdns/webserver.cc
 ./pdns/webserver.hh
 ./pdns/ws-api.cc

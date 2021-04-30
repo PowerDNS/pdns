@@ -268,7 +268,6 @@ pdns_server_SOURCES = \
 	utility.hh \
 	uuid-utils.hh uuid-utils.cc \
 	version.cc version.hh \
-	views.hh \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \
 	ws-auth.cc ws-auth.hh \

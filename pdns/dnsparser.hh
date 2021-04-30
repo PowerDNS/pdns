@@ -37,7 +37,6 @@
 #include "pdnsexception.hh"
 #include "iputils.hh"
 #include "svc-records.hh"
-#include "views.hh"
 
 /** DNS records have three representations:
     1) in the packet
