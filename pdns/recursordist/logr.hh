@@ -62,17 +62,17 @@ namespace Logr {
     // this Logger.  In other words, V values are additive.  V higher verbosity
     // level means a log message is less important.  It's illegal to pass a log
     // level less than zero.
-    virtual std::shared_ptr<Logger> v(size_t level) = 0;
+    virtual std::shared_ptr<Logger> v(size_t level) const = 0;
 
     // WithValues adds some key-value pairs of context to a logger.
     // See Info for documentation on how key/value pairs work.
-    virtual std::shared_ptr<Logger> withValues(const std::string& key, const Loggable& value) = 0;
+    virtual std::shared_ptr<Logger> withValues(const std::string& key, const Loggable& value) const = 0;
 
     // WithName adds a new element to the logger's name.
     // Successive calls with WithName continue to append
     // suffixes to the logger's name.  It's strongly recommended
     // that name segments contain only letters, digits, and hyphens
     // (see the package documentation for more information).
-    virtual std::shared_ptr<Logger> withName(const std::string& name) = 0;
+    virtual std::shared_ptr<Logger> withName(const std::string& name) const = 0;
   };
 }

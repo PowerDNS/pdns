@@ -26,14 +26,14 @@
 namespace Logging
 {
 
-  std::shared_ptr<Logger> Logger::getptr()
+  std::shared_ptr<const Logger> Logger::getptr() const
   {
     return shared_from_this();
   }
 
   bool Logger::enabled() const
   {
-    return true;
+    return _level <= _verbosity;
   }
 
   void Logger::info(const std::string& msg) const
@@ -43,7 +43,7 @@ namespace Logging
 
   void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
   {
-    if (_level > _verbosity) {
+    if (!enabled()) {
       return ;
     }
     Entry entry;
@@ -70,18 +70,16 @@ namespace Logging
     logMessage(msg, err);
   }
 
-  std::shared_ptr<Logr::Logger> Logger::v(size_t level)
+  std::shared_ptr<Logr::Logger> Logger::v(size_t level) const
   {
-    auto res = std::make_shared<Logger>(getptr(), boost::none, level + _level, _callback);
-    res->setVerbosity(getVerbosity());
+    auto res = std::make_shared<Logger>(getptr(), boost::none, getVerbosity(), level + _level, _callback);
     return res;
   }
 
-  std::shared_ptr<Logr::Logger> Logger::withValues(const std::string& key, const Logr::Loggable& value)
+  std::shared_ptr<Logr::Logger> Logger::withValues(const std::string& key, const Logr::Loggable& value) const
   {
-    auto res = std::make_shared<Logger>(getptr(), _name, _level, _callback);
+    auto res = std::make_shared<Logger>(getptr(), _name, getVerbosity(), _level, _callback);
     res->_values.insert({key, value.to_string()});
-    res->setVerbosity(getVerbosity());
     return res;
   }
 
@@ -102,13 +100,13 @@ namespace Logging
     return _t;
   }
 
-  std::shared_ptr<Logr::Logger> Logger::withName(const std::string& name)
+  std::shared_ptr<Logr::Logger> Logger::withName(const std::string& name) const
   {
     std::shared_ptr<Logger> res;
     if (_name) {
-      res = std::make_shared<Logger>(getptr(), _name.get() + "." + name, _level, _callback);
+      res = std::make_shared<Logger>(getptr(), _name.get() + "." + name, getVerbosity(), _level, _callback);
     } else {
-      res = std::make_shared<Logger>(getptr(), name, _level, _callback);
+      res = std::make_shared<Logger>(getptr(), name, getVerbosity(), _level, _callback);
     }
     res->setVerbosity(getVerbosity());
     return res;
@@ -138,7 +136,7 @@ namespace Logging
   Logger::Logger(EntryLogger callback, boost::optional<std::string> name) : _callback(callback), _name(name)
   {
   }
-  Logger::Logger(std::shared_ptr<Logger> parent, boost::optional<std::string> name, size_t lvl,  EntryLogger callback) : _parent(parent), _callback(callback), _name(name), _level(lvl)
+  Logger::Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string> name, size_t verbosity, size_t lvl,  EntryLogger callback) : _parent(parent), _callback(callback), _name(name), _level(lvl), _verbosity(verbosity)
   {
   }
 
