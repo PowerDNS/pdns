@@ -330,9 +330,9 @@ Response:
 
 Returns the value(s) for variable kind for zone name. You **must**
 always return something, if there are no values, you shall return empty
-set or false.
+set.
 
-*  Mandatory: No
+*  Mandatory: yes
 *  Parameters: name
 *  Reply: hash of key to array of strings
 
@@ -375,7 +375,7 @@ Response:
 Returns the value(s) for variable kind for zone name. Most commonly it's
 one of NSEC3PARAM, PRESIGNED, SOA-EDIT. Can be others, too. You **must**
 always return something, if there are no values, you shall return empty
-array or false.
+array.
 
 -  Mandatory: No
 -  Parameters: name, kind
