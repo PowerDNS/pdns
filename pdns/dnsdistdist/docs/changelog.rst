@@ -2,6 +2,29 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.6.0-rc2
+  :released: 4th of May 2021
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 10323
+
+    Make the backend queryLoad and dropRate values atomic
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10327
+    :tickets: 10324
+
+    Only use eBPF for "drop" actions, clean up more often
+
+  .. change::
+    :tags: Bug Fixes, DNSCrypt
+    :pullreq: 10346
+
+    Fix missing locks in DNSCrypt certificates management
+
+.. changelog::
   :version: 1.6.0-rc1
   :released: 20th of April 2021
 
