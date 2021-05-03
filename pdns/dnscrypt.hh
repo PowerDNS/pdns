@@ -278,7 +278,7 @@ public:
   void markActive(uint32_t serial);
   void markInactive(uint32_t serial);
   void removeInactiveCertificate(uint32_t serial);
-  std::vector<std::shared_ptr<DNSCryptCertificatePair>> getCertificates() { return d_certs; };
+  std::vector<std::shared_ptr<DNSCryptCertificatePair>> getCertificates();
   const DNSName& getProviderName() const { return providerName; }
 
   int encryptQuery(PacketBuffer& query, size_t maximumSize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, const std::shared_ptr<DNSCryptCert>& cert) const;

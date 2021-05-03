@@ -327,14 +327,22 @@ void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std:
   auto newPair = DNSCryptContext::loadCertificatePair(certFile, keyFile);
   newPair->active = active;
   addNewCertificate(newPair, reload);
-  d_certKeyPaths.push_back({certFile, keyFile});
+  {
+    WriteLock w(&d_lock);
+    d_certKeyPaths.push_back({certFile, keyFile});
+  }
 }
 
 void DNSCryptContext::reloadCertificates()
 {
   std::vector<std::shared_ptr<DNSCryptCertificatePair>> newCerts;
-  for (const auto& pair : d_certKeyPaths) {
-    newCerts.push_back(DNSCryptContext::loadCertificatePair(pair.cert, pair.key));
+
+  {
+    ReadLock rl(&d_lock);
+    newCerts.reserve(d_certKeyPaths.size());
+    for (const auto& pair : d_certKeyPaths) {
+      newCerts.push_back(DNSCryptContext::loadCertificatePair(pair.cert, pair.key));
+    }
   }
 
   {
@@ -342,6 +350,16 @@ void DNSCryptContext::reloadCertificates()
     d_certs = std::move(newCerts);
   }
 }
+
+std::vector<std::shared_ptr<DNSCryptCertificatePair>> DNSCryptContext::getCertificates() {
+  std::vector<std::shared_ptr<DNSCryptCertificatePair>> ret;
+  {
+    ReadLock w(&d_lock);
+    ret = d_certs;
+  }
+
+  return ret;
+};
 
 void DNSCryptContext::markActive(uint32_t serial)
 {
