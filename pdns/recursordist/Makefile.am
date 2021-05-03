@@ -128,6 +128,7 @@ pdns_recursor_SOURCES = \
 	ixfr.cc ixfr.hh \
 	json.cc json.hh \
 	lazy_allocator.hh \
+	libssl.cc libssl.hh \
 	lock.hh \
 	logger.hh logger.cc \
 	lua-base4.cc lua-base4.hh \
@@ -183,6 +184,7 @@ pdns_recursor_SOURCES = \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
 	taskqueue.cc taskqueue.hh \
+	tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \

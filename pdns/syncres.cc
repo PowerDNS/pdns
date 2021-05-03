@@ -4225,9 +4225,18 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
           bool truncated = false;
           bool spoofed = false;
-          bool gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                             tns->first, *remoteIP, false, truncated, spoofed);
-          if (spoofed || (gotAnswer && truncated) ) {
+          bool gotAnswer = false;
+
+// Option below is for debugging purposes ony
+#define USE_TCP_ONLY 0
+
+#if !USE_TCP_ONLY
+          gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
+                                        tns->first, *remoteIP, false, truncated, spoofed);
+          if (spoofed || (gotAnswer && truncated)) {
+#else
+          {
+#endif
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, true, truncated, spoofed);

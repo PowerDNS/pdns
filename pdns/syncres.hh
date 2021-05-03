@@ -52,6 +52,7 @@
 #include "proxy-protocol.hh"
 #include "sholder.hh"
 #include "histogram.hh"
+#include "tcpiohandler.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -920,8 +921,10 @@ private:
 
 class Socket;
 /* external functions, opaque to us */
-LWResult::Result asendtcp(const string& data, Socket* sock);
-LWResult::Result arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
+LWResult::Result asendtcp(const PacketBuffer& data, Socket* sock);
+LWResult::Result arecvtcp(PacketBuffer& data, size_t len, Socket* sock, bool incompleteOkay);
+LWResult::Result asendtcp(const PacketBuffer& data, TCPIOHandler&);
+LWResult::Result arecvtcp(PacketBuffer& data, size_t len, TCPIOHandler&, bool incompleteOkay);
 
 struct PacketID
 {
@@ -933,11 +936,12 @@ struct PacketID
   ComboAddress remote;  // this is the remote
   DNSName domain;             // this is the question
 
-  string inMSG; // they'll go here
-  string outMSG; // the outgoing message that needs to be sent
+  PacketBuffer inMSG; // they'll go here
+  PacketBuffer outMSG; // the outgoing message that needs to be sent
 
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
+  TCPIOHandler *tcphandler{nullptr};
   size_t inNeeded{0}; // if this is set, we'll read until inNeeded bytes are read
   string::size_type outPos{0};    // how far we are along in the outMSG
   mutable uint32_t nearMisses{0}; // number of near misses - host correct, id wrong
@@ -981,7 +985,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-typedef MTasker<PacketID,string> MT_t;
+typedef MTasker<PacketID,PacketBuffer> MT_t;
 MT_t* getMT();
 
 struct RecursorStats
