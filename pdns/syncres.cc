@@ -3530,8 +3530,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
     /* if we have a positive answer synthesized from a wildcard, we need to
        return the corresponding NSEC/NSEC3 records from the AUTHORITY section
-       proving that the exact name did not exist */
-    else if (gatherWildcardProof && (rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::AUTHORITY) {
+       proving that the exact name did not exist.
+       Except if this is a NODATA answer because then we will gather the NXNSEC records later */
+    else if (gatherWildcardProof && !negindic && (rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::AUTHORITY) {
       ret.push_back(rec); // enjoy your DNSSEC
     }
     // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
@@ -3596,7 +3597,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       } else if (rec.d_type == QType::RRSIG && qname.isPartOf(rec.d_name)) {
         auto rrsig = getRR<RRSIGRecordContent>(rec);
         if (rrsig != nullptr && rrsig->d_type == QType::DNAME) {
-           ret.push_back(rec);
+          ret.push_back(rec);
         }
       }
     }
