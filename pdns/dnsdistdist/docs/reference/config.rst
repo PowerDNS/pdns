@@ -1144,7 +1144,7 @@ Dynamic Blocks
   frees up the memory they use.
   Setting this value to 0 disable the purging mechanism, so entries will remain in the tree.
 
-  :param int sec: The interval between two runs of the cleaning algorithm, in seconds. Default is 300 (5 minutes), 0 means disabled.
+  :param int sec: The interval between two runs of the cleaning algorithm, in seconds. Default is 60 (1 minute), 0 means disabled.
 
 .. _exceedfuncs:
 

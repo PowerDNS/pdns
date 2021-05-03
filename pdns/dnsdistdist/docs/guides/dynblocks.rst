@@ -85,4 +85,4 @@ action is applied.
   -- If the query rate raises above 300 qps for 10 seconds, we'll block the client for 60s.
   dbr:setQueryRate(300, 10, "Exceeded query rate", 60, DNSAction.Drop, 100)
 
-Since 1.6.0, if a default eBPF filter has been set via :func:`setDefaultBPFFilter` dnsdist will automatically try to use it when a dynamic block is inserted via a :ref:`DynBlockRulesGroup`. eBPF blocks are applied in kernel space and are much more efficient than user space ones. Note that a regular block is also inserted so that any failure will result in a regular block being used instead of the eBPF one.
+Since 1.6.0, if a default eBPF filter has been set via :func:`setDefaultBPFFilter` dnsdist will automatically try to use it when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`. eBPF blocks are applied in kernel space and are much more efficient than user space ones. Note that a regular block is also inserted so that any failure will result in a regular block being used instead of the eBPF one.
