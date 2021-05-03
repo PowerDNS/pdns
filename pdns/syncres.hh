@@ -925,38 +925,39 @@ LWResult::Result arecvtcp(string& data, size_t len, Socket* sock, bool incomplet
 
 struct PacketID
 {
-  PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1), closed(false)
+  PacketID()
   {
     remote.reset();
   }
 
-  uint16_t id;  // wait for a specific id/remote pair
-  uint16_t type;             // and this is its type
   ComboAddress remote;  // this is the remote
   DNSName domain;             // this is the question
 
-  Socket* sock;  // or wait for an event on a TCP fd
   string inMSG; // they'll go here
-  size_t inNeeded; // if this is set, we'll read until inNeeded bytes are read
-  bool inIncompleteOkay;
-
   string outMSG; // the outgoing message that needs to be sent
-  string::size_type outPos;    // how far we are along in the outMSG
 
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
-  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
-  int fd;
-  mutable bool closed; // Processing already started, don't accept new chained ids
+  size_t inNeeded{0}; // if this is set, we'll read until inNeeded bytes are read
+  string::size_type outPos{0};    // how far we are along in the outMSG
+  mutable uint32_t nearMisses{0}; // number of near misses - host correct, id wrong
+  int fd{-1};
+  int tcpsock{0};  // or wait for an event on a TCP fd
+  mutable bool closed{false}; // Processing already started, don't accept new chained ids
+  bool inIncompleteOkay{false};
+  uint16_t id{0};  // wait for a specific id/remote pair
+  uint16_t type{0};             // and this is its type
 
   bool operator<(const PacketID& b) const
   {
-    int ourSock= sock ? sock->getHandle() : 0;
-    int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(remote, ourSock, type) < tie(b.remote, bSock, b.type))
+    int ourSock= tcpsock;
+    int bSock = b.tcpsock;
+    if (tie(remote, ourSock, type) < tie(b.remote, bSock, b.type)) {
       return true;
-    if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
+    }
+    if (tie(remote, ourSock, type) > tie(b.remote, bSock, b.type)) {
       return false;
+    }
 
     return tie(fd, id, domain) < tie(b.fd, b.id, b.domain);
   }
@@ -966,12 +967,14 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
 {
   bool operator()(const PacketID& a, const PacketID& b) const
   {
-    int ourSock= a.sock ? a.sock->getHandle() : 0;
-    int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(a.remote, ourSock, a.type) < tie(b.remote, bSock, b.type))
+    int ourSock= a.tcpsock;
+    int bSock = b.tcpsock;
+    if (tie(a.remote, ourSock, a.type) < tie(b.remote, bSock, b.type)) {
       return true;
-    if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
+    }
+    if (tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type)) {
       return false;
+    }
 
     return a.domain < b.domain;
   }

@@ -917,7 +917,7 @@ static string* pleaseGetCurrentQueries()
     const double spent = g_networkTimeoutMsec - (DiffTime(now, mthread.ttd) * 1000);
     ostr << (fmt 
              % pident.domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
-             % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
+             % pident.remote.toString() % (pident.tcpsock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              % (spent > 0 ? spent : '0')
              );

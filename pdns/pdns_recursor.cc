@@ -401,7 +401,7 @@ static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 LWResult::Result asendtcp(const string& data, Socket* sock)
 {
   PacketID pident;
-  pident.sock=sock;
+  pident.tcpsock=sock->getHandle();
   pident.outMSG=data;
 
   t_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
@@ -429,7 +429,7 @@ LWResult::Result arecvtcp(string& data, const size_t len, Socket* sock, const bo
 {
   data.clear();
   PacketID pident;
-  pident.sock=sock;
+  pident.tcpsock=sock->getHandle();
   pident.inNeeded=len;
   pident.inIncompleteOkay=incompleteOkay;
   t_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
@@ -485,7 +485,7 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   s.send(query);
 
   PacketID pident;
-  pident.sock=&s;
+  pident.fd=s.getHandle();
   pident.remote=dest;
   pident.type=0;
   t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
