@@ -2618,7 +2618,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   return vState::BogusUnableToGetDSs;
 }
 
-vState SyncRes::getValidationStatus(const DNSName& name, bool hasSignatures, bool typeIsDS, unsigned int depth)
+vState SyncRes::getValidationStatus(const DNSName& name, bool wouldBeValid, bool typeIsDS, unsigned int depth)
 {
   vState result = vState::Indeterminate;
 
@@ -2657,9 +2657,9 @@ vState SyncRes::getValidationStatus(const DNSName& name, bool hasSignatures, boo
      but we don't know if we missed a cut (or several).
      We could see if we have DS (or denial of) in cache but let's not worry for now,
      we will if we don't have a signature, or if the signer doesn't match what we expect */
-  if (!hasSignatures && best != subdomain) {
-    /* no signatures, we likely missed a cut, let's try to find it */
-    LOG(d_prefix<<": no signatures for "<<name<<", we likely missed a cut between "<<best<<" and "<<subdomain<<", looking for it"<<endl);
+  if (!wouldBeValid && best != subdomain) {
+    /* no signatures or Bogus, we likely missed a cut, let's try to find it */
+    LOG(d_prefix<<": no or invalid signature/proof for "<<name<<", we likely missed a cut between "<<best<<" and "<<subdomain<<", looking for it"<<endl);
     DNSName ds(best);
     std::vector<string> labelsToAdd = subdomain.makeRelative(ds).getRawLabels();
 
@@ -2809,6 +2809,10 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int 
     return state;
   }
 
+  if (state == vState::Insecure) {
+    return state;
+  }
+
   LOG(d_prefix<<"Returning Bogus state from "<<__func__<<"("<<signer<<")"<<endl);
   return vState::BogusUnableToGetDNSKEYs;
 }
@@ -2822,6 +2826,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   }
 
   const DNSName signer = getSigner(signatures);
+  bool dsFailed = false;
   if (!signer.empty() && name.isPartOf(signer)) {
     vState state = vState::Secure;
 
@@ -2833,6 +2838,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
            requesting it from the parent zone. Something is very wrong */
         LOG(d_prefix<<"The DS for "<<qname<<" is signed by itself"<<endl);
         state = vState::BogusSelfSignedDS;
+        dsFailed = true;
       }
       else if (qtype == QType::DNSKEY && signer == qname) {
         /* that actually does happen when a server returns NS records in authority
@@ -2847,10 +2853,14 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
           vState dsState = getDSRecords(signer, results, false, depth, true);
           if (vStateIsBogus(dsState) || dsState == vState::Insecure) {
             state = dsState;
+            if (vStateIsBogus(dsState)) {
+              dsFailed = true;
+            }
           }
           else {
             LOG(d_prefix<<"Unable to get the DS for "<<signer<<endl);
             state = vState::BogusUnableToGetDNSKEYs;
+            dsFailed = true;
           }
         }
         else {
@@ -2868,12 +2878,15 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     }
 
     if (state != vState::Secure) {
+      if (!vStateIsBogus(state)) {
+        return state;
+      }
       /* try again to get the missed cuts, harder this time */
-      LOG(d_prefix<<"checking whether we missed a zone cut before returning a Bogus state"<<endl);
-      auto zState = getValidationStatus(name, false, type == QType::DS, depth);
+      LOG(d_prefix<<"checking whether we missed a zone cut for "<<signer<<" before returning a Bogus state for "<<name<<"|"<<type.toString()<<endl);
+      auto zState = getValidationStatus(signer, false, dsFailed, depth);
       if (zState == vState::Secure) {
-        LOG(d_prefix<<"we are still in a Secure zone, returning "<<vStateToString(state)<<endl);
         /* too bad */
+        LOG(d_prefix<<"we are still in a Secure zone, returning "<<vStateToString(state)<<endl);
         return state;
       }
       else {
