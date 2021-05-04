@@ -4,6 +4,7 @@
 /* needed for proper TCP_FASTOPEN_CONNECT detection */
 #include <netinet/tcp.h>
 
+#include "iputils.hh"
 #include "libssl.hh"
 #include "misc.hh"
 #include "noinitvector.hh"
