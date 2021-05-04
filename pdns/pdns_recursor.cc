@@ -1762,7 +1762,7 @@ static void startDoResolve(void *p)
         else {
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           if (policyResult == PolicyResult::HaveAnswer) {
-            if (dq.qtype == QType::AAAA && answerIsNOData(dc->d_mdp.d_qtype, res, ret) && g_dns64Prefix) {
+            if (g_dns64Prefix && dq.qtype == QType::AAAA && answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
               res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
               shouldNotValidate = true;
             }
