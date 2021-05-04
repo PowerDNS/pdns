@@ -15,17 +15,7 @@ public:
     reconnect();
   }
 
-  ~TCPConnectionToBackend()
-  {
-    if (d_ds && d_handler) {
-      --d_ds->tcpCurrentConnections;
-      struct timeval now;
-      gettimeofday(&now, nullptr);
-
-      auto diff = now - d_connectionStartTime;
-      d_ds->updateTCPMetrics(d_queries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
-    }
-  }
+  ~TCPConnectionToBackend();
 
   int getHandle() const
   {

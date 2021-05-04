@@ -239,12 +239,11 @@ public:
 
   std::unique_ptr<TLSSession> getSession() const override
   {
-    throw std::runtime_error("getSession() not implemented");
+    return nullptr;
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
   {
-    throw std::runtime_error("setSession() not implemented");
   }
 
   /* unused in that context, don't bother */

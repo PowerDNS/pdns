@@ -1,8 +1,28 @@
 
+#include "dnsdist-session-cache.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 
 #include "dnsparser.hh"
+
+TCPConnectionToBackend::~TCPConnectionToBackend()
+{
+  if (d_ds && d_handler) {
+    --d_ds->tcpCurrentConnections;
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+
+    if (d_handler->isTLS()) {
+      cerr<<"Closing TLS connection, resumption was "<<d_handler->hasTLSSessionBeenResumed()<<endl;
+      auto session = d_handler->getTLSSession();
+      if (session) {
+        g_sessionCache.putSession(d_ds->remote, std::move(session));
+      }
+    }
+    auto diff = now - d_connectionStartTime;
+    d_ds->updateTCPMetrics(d_queries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
+  }
+}
 
 void TCPConnectionToBackend::release()
 {
@@ -304,8 +324,13 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 
 bool TCPConnectionToBackend::reconnect()
 {
+  std::unique_ptr<TLSSession> tlsSession{nullptr};
   if (d_handler) {
     DEBUGLOG("closing socket "<<d_handler->getDescriptor());
+    if (d_handler->isTLS()) {
+      cerr<<"is TLS, getting a session"<<endl;
+      tlsSession = d_handler->getTLSSession();
+    }
     d_handler->close();
     d_ioState.reset();
     --d_ds->tcpCurrentConnections;
@@ -342,7 +367,19 @@ bool TCPConnectionToBackend::reconnect()
       socket->setNonBlocking();
 
       gettimeofday(&d_connectionStartTime, nullptr);
-      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_tlsSubjectName, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, time(nullptr));
+      auto handler = std::make_unique<TCPIOHandler>(d_ds->d_tlsSubjectName, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, d_connectionStartTime.tv_sec);
+      if (!tlsSession && d_ds->d_tlsCtx) {
+        tlsSession = g_sessionCache.getSession(d_ds->remote, d_connectionStartTime.tv_sec);
+        if (tlsSession) {
+          cerr<<"reusing session from cache"<<endl;
+        }
+      }
+      else {
+        cerr<<"reusing session from previous connection"<<endl;
+      }
+      if (tlsSession) {
+        handler->setTLSSession(tlsSession);
+      }
       handler->tryConnect(d_ds->tcpFastOpen && isFastOpenEnabled(), d_ds->remote);
       d_queries = 0;
 
