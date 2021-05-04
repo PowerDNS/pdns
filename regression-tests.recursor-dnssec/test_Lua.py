@@ -412,10 +412,10 @@ threads=2
 quiet=no
     """ % (os.environ['PREFIX'])
 
-class DNS64Test(RecursorTest):
+class LuaDNS64Test(RecursorTest):
     """Tests the dq.followupAction("getFakeAAAARecords")"""
 
-    _confdir = 'dns64'
+    _confdir = 'lua-dns64'
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -469,6 +469,62 @@ class DNS64Test(RecursorTest):
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
 
+class GettagFFIDNS64Test(RecursorTest):
+    """Tests the interaction between gettag_ffi, RPZ and DNS64:
+       - gettag_ffi will intercept the query and return a NODATA
+       - the RPZ zone will match the name, but the only type is A
+       - DNS64 should kick in, generating an AAAA
+    """
+
+    _confdir = 'gettagffi-rpz-dns64'
+    _config_template = """
+    dns64-prefix=64:ff9b::/96
+    """
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz." })
+    """ % (_confdir)
+
+    _lua_dns_script_file = """
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+      typedef struct pdns_ffi_param pdns_ffi_param_t;
+
+      void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode);
+    ]]
+
+    function gettag_ffi(obj)
+      -- fake a NODATA (without SOA) no matter the query
+      ffi.C.pdns_ffi_param_set_rcode(obj, 0)
+      return {}
+    end
+    """
+    _auth_zones = []
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+dns64.test.powerdns.com.zone.rpz. 60 IN A 192.0.2.42
+""".format(soa=cls._SOA))
+        super(GettagFFIDNS64Test, cls).generateRecursorConfig(confdir)
+
+    def testAtoAAAA(self):
+        expected = [
+            dns.rrset.from_text('dns64.test.powerdns.com.', 15, dns.rdataclass.IN, 'AAAA', '64:ff9b::c000:22a')
+        ]
+        query = dns.message.make_query('dns64.test.powerdns.com.', 'AAAA')
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 1)
+            self.assertEqual(len(res.authority), 0)
+            self.assertResponseMatches(query, expected, res)
 
 class PDNSRandomTest(RecursorTest):
     """Tests if pdnsrandom works"""
