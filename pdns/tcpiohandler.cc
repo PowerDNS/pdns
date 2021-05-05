@@ -1134,6 +1134,11 @@ public:
 
   std::unique_ptr<TLSSession> getSession() const override
   {
+    /* with TLS 1.3, gnutls_session_get_data2() will _wait_ for a ticket is there is none yet.. */
+    if ((gnutls_session_get_flags(d_conn.get()) & GNUTLS_SFLAGS_SESSION_TICKET) == 0) {
+      return nullptr;
+    }
+
     gnutls_datum_t sess{nullptr, 0};
     auto ret = gnutls_session_get_data2(d_conn.get(), &sess);
     if (ret != GNUTLS_E_SUCCESS) {
