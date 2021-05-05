@@ -698,6 +698,7 @@ struct DownstreamState
   stat_t tcpMaxConcurrentConnections{0};
   stat_t tcpReusedConnections{0};
   stat_t tcpNewConnections{0};
+  stat_t tlsResumptions{0};
   pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};

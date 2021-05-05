@@ -13,6 +13,9 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
     gettimeofday(&now, nullptr);
 
     if (d_handler->isTLS()) {
+      if (d_handler->hasTLSSessionBeenResumed()) {
+        ++d_ds->tlsResumptions;
+      }
       cerr<<"Closing TLS connection, resumption was "<<d_handler->hasTLSSessionBeenResumed()<<endl;
       auto session = d_handler->getTLSSession();
       if (session) {
@@ -328,6 +331,9 @@ bool TCPConnectionToBackend::reconnect()
   if (d_handler) {
     DEBUGLOG("closing socket "<<d_handler->getDescriptor());
     if (d_handler->isTLS()) {
+      if (d_handler->hasTLSSessionBeenResumed()) {
+        ++d_ds->tlsResumptions;
+      }
       cerr<<"is TLS, getting a session"<<endl;
       tlsSession = d_handler->getTLSSession();
     }
