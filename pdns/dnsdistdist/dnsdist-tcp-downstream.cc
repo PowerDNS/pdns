@@ -19,7 +19,7 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
       cerr<<"Closing TLS connection, resumption was "<<d_handler->hasTLSSessionBeenResumed()<<endl;
       auto session = d_handler->getTLSSession();
       if (session) {
-        g_sessionCache.putSession(d_ds->remote, std::move(session));
+        g_sessionCache.putSession(d_ds->getID(), now.tv_sec, std::move(session));
       }
     }
     auto diff = now - d_connectionStartTime;
@@ -375,7 +375,7 @@ bool TCPConnectionToBackend::reconnect()
       gettimeofday(&d_connectionStartTime, nullptr);
       auto handler = std::make_unique<TCPIOHandler>(d_ds->d_tlsSubjectName, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, d_connectionStartTime.tv_sec);
       if (!tlsSession && d_ds->d_tlsCtx) {
-        tlsSession = g_sessionCache.getSession(d_ds->remote, d_connectionStartTime.tv_sec);
+        tlsSession = g_sessionCache.getSession(d_ds->getID(), d_connectionStartTime.tv_sec);
         if (tlsSession) {
           cerr<<"reusing session from cache"<<endl;
         }
