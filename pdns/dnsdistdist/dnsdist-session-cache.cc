@@ -23,31 +23,57 @@
 
 TLSSessionCache g_sessionCache;
 
-void TLSSessionCache::cleanup(time_t now)
+time_t const TLSSessionCache::s_cleanupDelay{60};
+time_t const TLSSessionCache::s_sessionValidity{600};
+
+
+void TLSSessionCache::cleanup(time_t now, const std::lock_guard<std::mutex>& lock)
 {
-  #warning WRITEME
+  time_t cutOff = now + s_sessionValidity;
+
+  for (auto it = d_sessions.begin(); it != d_sessions.end(); )
+  {
+    if (it->second.d_lastUsed > cutOff || it->second.d_sessions.size() == 0) {
+      it = d_sessions.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
+
+  d_nextCleanup = now + s_cleanupDelay;
 }
 
-void TLSSessionCache::putSession(const ComboAddress& remote, std::unique_ptr<TLSSession>&& session)
+void TLSSessionCache::putSession(const boost::uuids::uuid& backendID, time_t now, std::unique_ptr<TLSSession>&& session)
 {
   std::lock_guard<decltype(d_lock)> lock(d_lock);
-  auto& entry = d_sessions[remote];
-  entry.d_session = std::move(session);
+  if (d_nextCleanup == 0 || now > d_nextCleanup) {
+    cleanup(now, lock);
+  }
+
+  auto& entry = d_sessions[backendID];
+  if (entry.d_sessions.size() >= d_maxSessionsPerBackend) {
+    entry.d_sessions.pop_back();
+  }
+  entry.d_sessions.push_front(std::move(session));
 }
 
-std::unique_ptr<TLSSession> TLSSessionCache::getSession(const ComboAddress& remote, time_t now)
+std::unique_ptr<TLSSession> TLSSessionCache::getSession(const boost::uuids::uuid& backendID, time_t now)
 {
   std::lock_guard<decltype(d_lock)> lock(d_lock);
-  auto it = d_sessions.find(remote);
+  auto it = d_sessions.find(backendID);
   if (it == d_sessions.end()) {
     return nullptr;
   }
 
   auto& entry = it->second;
-  if (entry.d_session == nullptr) {
+  if (entry.d_sessions.size() == 0) {
     return nullptr;
   }
 
-  entry.d_lastUse = now;
-  return std::move(entry.d_session);
+  entry.d_lastUsed = now;
+  auto value = std::move(entry.d_sessions.front());
+  entry.d_sessions.pop_front();
+
+  return value;
 }

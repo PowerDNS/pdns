@@ -21,7 +21,11 @@
  */
 #pragma once
 
+#include <deque>
+#include <map>
+
 #include "tcpiohandler.hh"
+#include "uuid-utils.hh"
 
 class TLSSessionCache
 {
@@ -29,21 +33,26 @@ public:
   TLSSessionCache()
   {
   }
-  void cleanup(time_t now);
+  void cleanup(time_t now, const std::lock_guard<std::mutex>& lock);
 
-  void putSession(const ComboAddress& remote, std::unique_ptr<TLSSession>&& session);
-  std::unique_ptr<TLSSession> getSession(const ComboAddress& remote, time_t now);
+  void putSession(const boost::uuids::uuid& backendID, time_t now, std::unique_ptr<TLSSession>&& session);
+  std::unique_ptr<TLSSession> getSession(const boost::uuids::uuid& backendID, time_t now);
 
 private:
-  struct Entry
+  static time_t const s_cleanupDelay;
+  static time_t const s_sessionValidity;
+
+  struct BackendEntry
   {
-    // might become a FIFO at some point
-    std::unique_ptr<TLSSession> d_session{nullptr};
-    time_t d_lastUse{0};
+    std::deque<std::unique_ptr<TLSSession>> d_sessions;
+    time_t d_lastUsed{0};
   };
 
-  std::map<ComboAddress, Entry> d_sessions;
+  std::map<boost::uuids::uuid, BackendEntry> d_sessions;
+  // do we need to shard this?
   std::mutex d_lock;
+  time_t d_nextCleanup{0};
+  uint16_t d_maxSessionsPerBackend{20};
 };
 
 extern TLSSessionCache g_sessionCache;

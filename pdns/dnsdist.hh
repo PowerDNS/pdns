@@ -793,6 +793,10 @@ struct DownstreamState
   {
     return d_stopped;
   }
+  const boost::uuids::uuid& getID() const
+  {
+    return id;
+  }
 
   void updateTCPMetrics(size_t nbQueries, uint64_t durationMs)
   {
