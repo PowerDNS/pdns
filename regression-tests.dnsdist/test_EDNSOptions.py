@@ -59,6 +59,43 @@ class EDNSOptionsBase(DNSDistTest):
       return DNSAction.None, ""
 
     end
+
+    function testEDNSOptionsInResponses(dr)
+      local options = dr:getEDNSOptions()
+      local qname = tostring(dr.qname)
+
+      if string.match(qname, 'multiplecookies') then
+        return DNSAction.None, ""
+      elseif string.match(qname, 'cookie') then
+        if options[EDNSOptionCode.COOKIE] == nil then
+          return DNSAction.Spoof, "192.0.2.1"
+        end
+        if options[EDNSOptionCode.COOKIE]:count() ~= 1 or options[EDNSOptionCode.COOKIE]:getValues()[1]:len() ~= 16 then
+          return DNSAction.Spoof, "192.0.2.2"
+        end
+      end
+
+      if string.match(qname, 'ecs4') then
+        if options[EDNSOptionCode.ECS] == nil then
+          return DNSAction.Spoof, "192.0.2.51"
+        end
+        if options[EDNSOptionCode.ECS]:count() ~= 1 or options[EDNSOptionCode.ECS]:getValues()[1]:len() ~= 7 then
+          return DNSAction.Spoof, "192.0.2.52"
+        end
+      end
+
+      if string.match(qname, 'ecs6') then
+        if options[EDNSOptionCode.ECS] == nil then
+          return DNSAction.Spoof, "192.0.2.101"
+        end
+        if options[EDNSOptionCode.ECS]:count() ~= 1 or options[EDNSOptionCode.ECS]:getValues()[1]:len() ~= 11 then
+          return DNSAction.Spoof, "192.0.2.102"
+        end
+      end
+
+      return DNSAction.None, ""
+
+    end
     """
 
 class TestEDNSOptions(EDNSOptionsBase):
@@ -224,6 +261,7 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
     %s
 
     addAction(AllRule(), LuaAction(testEDNSOptions))
+    addResponseAction("ednsoptions-ecs.tests.powerdns.com.", LuaResponseAction(testEDNSOptionsInResponses))
 
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     """
