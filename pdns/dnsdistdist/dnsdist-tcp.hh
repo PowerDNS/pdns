@@ -140,6 +140,15 @@ public:
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void handleXFRResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void notifyIOError(IDState&& query, const struct timeval& now) = 0;
+
+  /* whether the connection should be automatically released to the pool after handleResponse()
+     has been called */
+  bool releaseConnection() const
+  {
+    return d_releaseConnection;
+  }
+protected:
+  bool d_releaseConnection{true};
 };
 
 struct CrossProtocolQuery

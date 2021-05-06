@@ -30,6 +30,9 @@ public:
     d_ci.fd = -1;
     d_proxiedDestination = d_origDest;
     d_proxiedRemote = d_ci.remote;
+
+    /* we manage the release of the downstream connection ourselves */
+    d_releaseConnection = false;
   }
 
   IncomingTCPConnectionState(const IncomingTCPConnectionState& rhs) = delete;

@@ -43,6 +43,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-web.hh"
 
 #include "base64.hh"
@@ -1974,7 +1975,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint16_t interval) {
       setLuaSideEffect();
-      g_downstreamTCPCleanupInterval = interval;
+      DownstreamConnectionsManager::setCleanupInterval(interval);
     });
 
   luaCtx.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {

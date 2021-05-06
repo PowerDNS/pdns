@@ -70,134 +70,10 @@ uint64_t g_maxTCPQueuedConnections{10000};
 size_t g_tcpInternalPipeBufferSize{0};
 uint64_t g_maxTCPQueuedConnections{1000};
 #endif
-uint16_t g_downstreamTCPCleanupInterval{60};
+
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
-
-class DownstreamConnectionsManager
-{
-public:
-
-  static std::shared_ptr<TCPConnectionToBackend> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<DownstreamState>& ds, const struct timeval& now)
-  {
-    std::shared_ptr<TCPConnectionToBackend> result;
-    struct timeval freshCutOff = now;
-    freshCutOff.tv_sec -= 1;
-
-    const auto& it = t_downstreamConnections.find(ds);
-    if (it != t_downstreamConnections.end()) {
-      auto& list = it->second;
-      while (!list.empty()) {
-        result = std::move(list.back());
-        list.pop_back();
-
-        result->setReused();
-        /* for connections that have not been used very recently,
-           check whether they have been closed in the meantime */
-        if (freshCutOff < result->getLastDataReceivedTime()) {
-          /* used recently enough, skip the check */
-          ++ds->tcpReusedConnections;
-          return result;
-        }
-
-        if (isTCPSocketUsable(result->getHandle())) {
-          ++ds->tcpReusedConnections;
-          return result;
-        }
-
-        /* otherwise let's try the next one, if any */
-      }
-    }
-
-    return std::make_shared<TCPConnectionToBackend>(ds, mplexer, now);
-  }
-
-  static void releaseDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>&& conn)
-  {
-    if (conn == nullptr) {
-      return;
-    }
-
-    if (!conn->canBeReused()) {
-      conn.reset();
-      return;
-    }
-
-    const auto& ds = conn->getDS();
-    auto& list = t_downstreamConnections[ds];
-    while (list.size() >= s_maxCachedConnectionsPerDownstream) {
-      /* too many connections queued already */
-      list.pop_front();
-    }
-
-    list.push_back(std::move(conn));
-  }
-
-  static void cleanupClosedTCPConnections(struct timeval now)
-  {
-    struct timeval freshCutOff = now;
-    freshCutOff.tv_sec -= 1;
-
-    for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
-      for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
-        if (!(*connIt)) {
-          ++connIt;
-          continue;
-        }
-
-        /* don't bother checking freshly used connections */
-        if (freshCutOff < (*connIt)->getLastDataReceivedTime()) {
-          ++connIt;
-          continue;
-        }
-
-        if (isTCPSocketUsable((*connIt)->getHandle())) {
-          ++connIt;
-        }
-        else {
-          connIt = dsIt->second.erase(connIt);
-        }
-      }
-
-      if (!dsIt->second.empty()) {
-        ++dsIt;
-      }
-      else {
-        dsIt = t_downstreamConnections.erase(dsIt);
-      }
-    }
-  }
-
-  static size_t clear()
-  {
-    size_t count = 0;
-    for (const auto& downstream : t_downstreamConnections) {
-      count += downstream.second.size();
-    }
-
-    t_downstreamConnections.clear();
-
-    return count;
-  }
-
-  static void setMaxCachedConnectionsPerDownstream(size_t max)
-  {
-    s_maxCachedConnectionsPerDownstream = max;
-  }
-
-private:
-  static thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
-  static size_t s_maxCachedConnectionsPerDownstream;
-};
-
-void setMaxCachedTCPConnectionsPerDownstream(size_t max)
-{
-  DownstreamConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
-}
-
-thread_local map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
-size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
 
 static void decrementTCPClientCount(const ComboAddress& client)
 {
@@ -1166,50 +1042,10 @@ static void tcpClientThread(int pipefd, int crossProtocolPipeFD)
 
   struct timeval now;
   gettimeofday(&now, nullptr);
-  time_t lastTCPCleanup = now.tv_sec;
   time_t lastTimeoutScan = now.tv_sec;
 
   for (;;) {
     data.mplexer->run(&now);
-
-    if (g_downstreamTCPCleanupInterval > 0 && (now.tv_sec > (lastTCPCleanup + g_downstreamTCPCleanupInterval))) {
-      DownstreamConnectionsManager::cleanupClosedTCPConnections(now);
-      lastTCPCleanup = now.tv_sec;
-
-      if (g_tcpStatesDumpRequested > 0) {
-        /* just to keep things clean in the output, debug only */
-        static std::mutex s_lock;
-        std::lock_guard<decltype(s_lock)> lck(s_lock);
-        if (g_tcpStatesDumpRequested > 0) {
-          /* no race here, we took the lock so it can only be increased in the meantime */
-          --g_tcpStatesDumpRequested;
-          errlog("Dumping the TCP states, as requested:");
-          data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
-          {
-            struct timeval lnow;
-            gettimeofday(&lnow, nullptr);
-            if (ttd.tv_sec > 0) {
-            errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec-lnow.tv_sec));
-            }
-            else {
-              errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
-            }
-
-            if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
-              auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
-              errlog(" - %s", state->toString());
-            }
-            else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
-              auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
-              errlog(" - %s", conn->toString());
-            }
-            else if (param.type() == typeid(TCPClientThreadData*)) {
-              errlog(" - Worker thread pipe");
-            }
-          });
-        }
-      }
-    }
 
     if (now.tv_sec > lastTimeoutScan) {
       lastTimeoutScan = now.tv_sec;
@@ -1242,6 +1078,40 @@ static void tcpClientThread(int pipefd, int crossProtocolPipeFD)
           auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
           vinfolog("Timeout (write) from remote backend %s", conn->getBackendName());
           conn->handleTimeout(now, true);
+        }
+      }
+
+      if (g_tcpStatesDumpRequested > 0) {
+        /* just to keep things clean in the output, debug only */
+        static std::mutex s_lock;
+        std::lock_guard<decltype(s_lock)> lck(s_lock);
+        if (g_tcpStatesDumpRequested > 0) {
+          /* no race here, we took the lock so it can only be increased in the meantime */
+          --g_tcpStatesDumpRequested;
+          errlog("Dumping the TCP states, as requested:");
+          data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
+          {
+            struct timeval lnow;
+            gettimeofday(&lnow, nullptr);
+            if (ttd.tv_sec > 0) {
+            errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec-lnow.tv_sec));
+            }
+            else {
+              errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
+            }
+
+            if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
+              auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
+              errlog(" - %s", state->toString());
+            }
+            else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
+              auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
+              errlog(" - %s", conn->toString());
+            }
+            else if (param.type() == typeid(TCPClientThreadData*)) {
+              errlog(" - Worker thread pipe");
+            }
+          });
         }
       }
     }

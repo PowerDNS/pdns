@@ -948,8 +948,6 @@ extern uint32_t g_staleCacheEntriesTTL;
 extern bool g_apiReadWrite;
 extern std::string g_apiConfigDirectory;
 extern bool g_servFailOnNoPolicy;
-extern bool g_useTCPSinglePipe;
-extern uint16_t g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
 extern bool g_allowEmptyResponse;
 
