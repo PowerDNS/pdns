@@ -1476,6 +1476,24 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   return rcode;
 }
 
+static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
+{
+  if (rcode != RCode::NoError) {
+    return false;
+  }
+  for (const auto& rec : records) {
+    if (rec.d_place != DNSResourceRecord::ANSWER) {
+      /* no records in the answer section */
+      return true;
+    }
+    if (rec.d_type == requestedType) {
+      /* we have a record, of the right type, in the right section */
+      return false;
+    }
+  }
+  return true;
+}
+
 static void startDoResolve(void *p)
 {
   auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1742,6 +1760,10 @@ static void startDoResolve(void *p)
         else {
           auto policyResult = handlePolicyHit(appliedPolicy, dc, sr, res, ret, pw);
           if (policyResult == PolicyResult::HaveAnswer) {
+            if (g_dns64Prefix && dq.qtype == QType::AAAA && answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
+              res = getFakeAAAARecords(dq.qname, *g_dns64Prefix, ret);
+              shouldNotValidate = true;
+            }
             goto haveAnswer;
           }
           else if (policyResult == PolicyResult::Drop) {
@@ -1807,15 +1829,7 @@ static void startDoResolve(void *p)
 
       if (t_pdl || (g_dns64Prefix && dq.qtype == QType::AAAA && !vStateIsBogus(dq.validationState))) {
         if (res == RCode::NoError) {
-          auto i = ret.cbegin();
-          for(; i!= ret.cend(); ++i) {
-            if (i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER) {
-              break;
-            }
-          }
-
-          if (i == ret.cend()) {
-            /* no record in the answer section, NODATA */
+          if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
             if (t_pdl && t_pdl->nodata(dq, res)) {
               shouldNotValidate = true;
             }
@@ -1824,9 +1838,8 @@ static void startDoResolve(void *p)
               shouldNotValidate = true;
             }
           }
-
 	}
-	else if(res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res)) {
+	else if (res == RCode::NXDomain && t_pdl && t_pdl->nxdomain(dq, res)) {
           shouldNotValidate = true;
         }
 
