@@ -218,3 +218,29 @@ private:
   bool d_connectionDied{false};
   bool d_proxyProtocolPayloadSent{false};
 };
+
+class DownstreamConnectionsManager
+{
+public:
+  static std::shared_ptr<TCPConnectionToBackend> getConnectionToDownstream(std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<DownstreamState>& ds, const struct timeval& now);
+  static void releaseDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>&& conn);
+  static void cleanupClosedTCPConnections(struct timeval now);
+  static size_t clear();
+
+  static void setMaxCachedConnectionsPerDownstream(size_t max)
+  {
+    s_maxCachedConnectionsPerDownstream = max;
+  }
+
+  static void setCleanupInterval(uint16_t interval)
+  {
+    s_cleanupInterval = interval;
+  }
+
+private:
+  static map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> s_downstreamConnections;
+  static std::mutex s_lock;
+  static size_t s_maxCachedConnectionsPerDownstream;
+  static time_t s_nextCleanup;
+  static uint16_t s_cleanupInterval;
+};
