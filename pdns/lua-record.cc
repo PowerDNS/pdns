@@ -89,7 +89,7 @@ private:
   void checkURL(const CheckDesc& cd, const bool status, const bool first = false)
   {
     try {
-      int timeout = 1;
+      int timeout = 2;
       if (cd.opts.count("timeout")) {
         timeout = std::atoi(cd.opts.at("timeout").c_str());
       }
@@ -123,7 +123,7 @@ private:
   }
   void checkTCP(const CheckDesc& cd, const bool status, const bool first = false) {
     try {
-      int timeout = 1;
+      int timeout = 2;
       if (cd.opts.count("timeout")) {
         timeout = std::atoi(cd.opts.at("timeout").c_str());
       }
