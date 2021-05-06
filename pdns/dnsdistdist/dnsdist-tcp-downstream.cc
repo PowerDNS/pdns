@@ -708,9 +708,8 @@ std::shared_ptr<TCPConnectionToBackend> DownstreamConnectionsManager::getConnect
   }
 
   {
-    std::lock_guard<decltype(s_lock)> lock(s_lock);
-    const auto& it = s_downstreamConnections.find(backendId);
-    if (it != s_downstreamConnections.end()) {
+    const auto& it = t_downstreamConnections.find(backendId);
+    if (it != t_downstreamConnections.end()) {
       auto& list = it->second;
       while (!list.empty()) {
         result = std::move(list.back());
@@ -751,8 +750,7 @@ void DownstreamConnectionsManager::releaseDownstreamConnection(std::shared_ptr<T
 
   const auto& ds = conn->getDS();
   {
-    std::lock_guard<decltype(s_lock)> lock(s_lock);
-    auto& list = s_downstreamConnections[ds->getID()];
+    auto& list = t_downstreamConnections[ds->getID()];
     while (list.size() >= s_maxCachedConnectionsPerDownstream) {
       /* too many connections queued already */
       list.pop_front();
@@ -767,8 +765,7 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
   struct timeval freshCutOff = now;
   freshCutOff.tv_sec -= 1;
 
-  std::lock_guard<decltype(s_lock)> lock(s_lock);
-  for (auto dsIt = s_downstreamConnections.begin(); dsIt != s_downstreamConnections.end(); ) {
+  for (auto dsIt = t_downstreamConnections.begin(); dsIt != t_downstreamConnections.end(); ) {
     for (auto connIt = dsIt->second.begin(); connIt != dsIt->second.end(); ) {
       if (!(*connIt)) {
         ++connIt;
@@ -793,7 +790,7 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
       ++dsIt;
     }
     else {
-      dsIt = s_downstreamConnections.erase(dsIt);
+      dsIt = t_downstreamConnections.erase(dsIt);
     }
   }
 }
@@ -801,12 +798,11 @@ void DownstreamConnectionsManager::cleanupClosedTCPConnections(struct timeval no
 size_t DownstreamConnectionsManager::clear()
 {
   size_t count = 0;
-  std::lock_guard<decltype(s_lock)> lock(s_lock);
-  for (const auto& downstream : s_downstreamConnections) {
+  for (const auto& downstream : t_downstreamConnections) {
     count += downstream.second.size();
-    }
+  }
 
-  s_downstreamConnections.clear();
+  t_downstreamConnections.clear();
 
   return count;
 }
@@ -816,8 +812,7 @@ void setMaxCachedTCPConnectionsPerDownstream(size_t max)
   DownstreamConnectionsManager::setMaxCachedConnectionsPerDownstream(max);
 }
 
-map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::s_downstreamConnections;
-std::mutex DownstreamConnectionsManager::s_lock;
+thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> DownstreamConnectionsManager::t_downstreamConnections;
 size_t DownstreamConnectionsManager::s_maxCachedConnectionsPerDownstream{10};
 time_t DownstreamConnectionsManager::s_nextCleanup{0};
 uint16_t DownstreamConnectionsManager::s_cleanupInterval{60};
