@@ -130,7 +130,7 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEY
           }
         }
         catch (const std::exception& e) {
-          throw std::runtime_error("Error while trying to pase the value of the '" + key + "' key from the ISC map: " + e.what());
+          throw std::runtime_error("Error while trying to parse the numeric value of the '" + key + "' key from the ISC map: " + e.what());
         }
       }
     }
