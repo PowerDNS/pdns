@@ -238,8 +238,7 @@ public:
   }
 
 private:
-  static map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> s_downstreamConnections;
-  static std::mutex s_lock;
+  static thread_local map<boost::uuids::uuid, std::deque<std::shared_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
   static size_t s_maxCachedConnectionsPerDownstream;
   static time_t s_nextCleanup;
   static uint16_t s_cleanupInterval;
