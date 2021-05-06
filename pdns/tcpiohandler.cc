@@ -1134,9 +1134,17 @@ public:
 
   std::unique_ptr<TLSSession> getSession() const override
   {
-    /* with TLS 1.3, gnutls_session_get_data2() will _wait_ for a ticket is there is none yet.. */
-    if ((gnutls_session_get_flags(d_conn.get()) & GNUTLS_SFLAGS_SESSION_TICKET) == 0) {
+    if (getTLSVersion() == LibsslTLSVersion::TLS13) {
+#if GNUTLS_VERSION_NUMBER >= 0x030603
+      /* with TLS 1.3, gnutls_session_get_data2() will _wait_ for a ticket is there is none yet.. */
+      if ((gnutls_session_get_flags(d_conn.get()) & GNUTLS_SFLAGS_SESSION_TICKET) == 0) {
+        return nullptr;
+      }
+#else /* GNUTLS_VERSION_NUMBER >= 0x030603 */
+      /* the GNUTLS_SFLAGS_SESSION_TICKET flag does not exist before 3.6.3 (but TLS 1.3 should not either), so we can't be sure we are not
+         going to block, better give up. */
       return nullptr;
+#endif /* GNUTLS_VERSION_NUMBER >= 0x030603 */
     }
 
     gnutls_datum_t sess{nullptr, 0};
