@@ -136,7 +136,7 @@ public:
   bool noProcesses() const;
   unsigned int numProcesses() const;
   int getTid() const;
-  unsigned int getMaxStackUsage();
+  uint64_t getMaxStackUsage();
   unsigned int getUsec();
 
 private:

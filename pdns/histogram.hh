@@ -23,31 +23,36 @@
 
 #include <algorithm>
 #include <atomic>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
-namespace pdns {
+namespace pdns
+{
 
 // By convention, we are using microsecond units
 struct Bucket
 {
-  std::string d_name;
-  uint64_t d_boundary{0};
-  uint64_t d_count{0};
+  const std::string d_name;
+  const uint64_t d_boundary{0};
+  mutable uint64_t d_count{0};
 };
 
 struct AtomicBucket
 {
   // We need the constructors in this case, since atomics have a disabled copy constructor.
   AtomicBucket() {}
-  AtomicBucket(std::string name, uint64_t boundary, uint64_t val) : d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
-  AtomicBucket(const AtomicBucket& rhs) : d_name(rhs.d_name), d_boundary(rhs.d_boundary), d_count(rhs.d_count.load()) {}
+  AtomicBucket(std::string name, uint64_t boundary, uint64_t val) :
+    d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
+  AtomicBucket(const AtomicBucket& rhs) :
+    d_name(rhs.d_name), d_boundary(rhs.d_boundary), d_count(rhs.d_count.load()) {}
 
-  std::string d_name;
-  uint64_t d_boundary{0};
-  std::atomic<uint64_t> d_count{0};
+  const std::string d_name;
+  const uint64_t d_boundary{0};
+  mutable std::atomic<uint64_t> d_count{0};
 };
 
-template<class B>
+template <class B>
 class BaseHistogram
 {
 public:
@@ -64,16 +69,16 @@ public:
     }
     d_buckets.reserve(boundaries.size() + 1);
     uint64_t prev = 0;
-    for (auto b: boundaries) {
+    for (auto b : boundaries) {
       if (prev == b) {
         throw std::invalid_argument("boundary array's elements should be distinct");
       }
       std::string str = prefix + "le-" + std::to_string(b);
-      d_buckets.emplace_back(B{str, b, 0});
+      d_buckets.emplace_back(str, b, 0);
       prev = b;
     }
     // everything above last boundary
-    d_buckets.emplace_back(B{prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0});
+    d_buckets.emplace_back(prefix + "le-max", std::numeric_limits<uint64_t>::max(), 0);
   }
 
   const std::vector<B>& getRawData() const
@@ -93,7 +98,7 @@ public:
     uint64_t c{0};
     for (const auto& b : d_buckets) {
       c += b.d_count;
-      ret.emplace_back(B{b.d_name, b.d_boundary, c});
+      ret.emplace_back(b.d_name, b.d_boundary, c);
     }
     return ret;
   }
@@ -115,10 +120,10 @@ public:
     return b <= bu.d_boundary;
   }
 
-  inline void operator()(uint64_t d)
+  inline void operator()(uint64_t d) const
   {
     auto index = std::upper_bound(d_buckets.begin(), d_buckets.end(), d, lessOrEqual);
-    // out index is always valid
+    // our index is always valid
     ++index->d_count;
   }
 
@@ -126,10 +131,10 @@ private:
   std::vector<B> d_buckets;
 };
 
-template<class T>
+template <class T>
 using Histogram = BaseHistogram<Bucket>;
 
-template<class T>
+template <class T>
 using AtomicHistogram = BaseHistogram<AtomicBucket>;
 
 } // namespace pdns

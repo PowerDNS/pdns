@@ -2096,7 +2096,7 @@ static void startDoResolve(void *p)
       pw.commit();
     }
 
-    g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
+    g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), pw.getHeader()->rcode, !dc->d_tcp);
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef NOD_ENABLED
     bool nod = false;
@@ -2272,7 +2272,7 @@ static void startDoResolve(void *p)
 
   runTaskOnce(g_logCommonErrors);
 
-  g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
+  g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage.load());
 }
 
 static void makeControlChannelSocket(int processNum=-1)

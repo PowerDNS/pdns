@@ -175,7 +175,6 @@
 ./pdns/gettime.cc
 ./pdns/gettime.hh
 ./pdns/histog.hh
-./pdns/histogram.hh
 ./pdns/inflighter.cc
 ./pdns/ipcipher.cc
 ./pdns/iputils.cc
@@ -275,8 +274,6 @@
 ./pdns/resolver.cc
 ./pdns/resolver.hh
 ./pdns/responsestats-auth.cc
-./pdns/responsestats.cc
-./pdns/responsestats.hh
 ./pdns/rfc2136handler.cc
 ./pdns/root-addresses.hh
 ./pdns/root-dnssec.hh

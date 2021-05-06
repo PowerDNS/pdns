@@ -43,8 +43,8 @@ class Servers(ApiTestCase):
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('uptime', [e['name'] for e in data])
+        print(data)
         if is_auth():
-            print(data)
             qtype_stats, respsize_stats, queries_stats, rcode_stats = None, None, None, None
             for elem in data:
                 if elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-qtype':
@@ -56,8 +56,21 @@ class Servers(ApiTestCase):
                 elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-rcode':
                     rcode_stats = elem['value']
             self.assertIn('A', [e['name'] for e in qtype_stats])
-            self.assertIn('60', [e['name'] for e in respsize_stats])
+            self.assertIn('80', [e['name'] for e in respsize_stats])
             self.assertIn('example.com/A', [e['name'] for e in queries_stats])
+            self.assertIn('No Error', [e['name'] for e in rcode_stats])
+        else:
+            qtype_stats, respsize_stats, rcode_stats = None, None, None
+            for elem in data:
+                if elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-qtype':
+                    qtype_stats = elem['value']
+                elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-sizes':
+                    respsize_stats = elem['value']
+                elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-rcode':
+                    rcode_stats = elem['value']
+            self.assertIn('A', [e['name'] for e in qtype_stats])
+            self.assertIn('60', [e['name'] for e in respsize_stats])
+            self.assertIn('80', [e['name'] for e in respsize_stats])
             self.assertIn('No Error', [e['name'] for e in rcode_stats])
 
     def test_read_one_statistic(self):
@@ -83,7 +96,7 @@ class Servers(ApiTestCase):
                 if line.split(" ")[0] == "pdns_recursor_uptime":
                     found = True
             self.assertTrue(found,"pdns_recursor_uptime is missing")
-            
+
     @unittest.skipIf(is_auth(), "Not applicable")
     def test_read_statistics_using_password(self):
         r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password))

@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/algorithm/string.hpp>
+#include <boost/scoped_array.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
 #include "threadname.hh"
