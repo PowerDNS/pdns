@@ -32,16 +32,16 @@ std::unique_ptr<AggressiveNSECCache> g_aggressiveNSECCache{nullptr};
 /* this is defined in syncres.hh and we are not importing that here */
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 
-std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getBestZone(const DNSName& zone)
+std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>> AggressiveNSECCache::getBestZone(const DNSName& zone)
 {
-  std::shared_ptr<AggressiveNSECCache::ZoneEntry> entry{nullptr};
+  std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>> entry{nullptr};
   {
-    TryReadLock rl(d_lock);
-    if (!rl.gotIt()) {
+    auto zones = d_zones.try_read_lock();
+    if (!zones.owns_lock()) {
       return entry;
     }
 
-    auto got = d_zones.lookup(zone);
+    auto got = zones->lookup(zone);
     if (got) {
       return *got;
     }
@@ -49,37 +49,42 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getBestZone
   return entry;
 }
 
-std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getZone(const DNSName& zone)
+std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>> AggressiveNSECCache::getZone(const DNSName& zone)
 {
   {
-    ReadLock rl(d_lock);
-    auto got = d_zones.lookup(zone);
-    if (got && *got && (*got)->d_zone == zone) {
-      return *got;
+    auto zones = d_zones.read_lock();
+    auto got = zones->lookup(zone);
+    if (got && *got) {
+      auto locked = (*got)->lock();
+      if (locked->d_zone == zone) {
+        return *got;
+      }
     }
   }
 
-  auto entry = std::make_shared<ZoneEntry>(zone);
+  auto entry = std::make_shared<LockGuarded<ZoneEntry>>(zone);
 
   {
-    WriteLock wl(d_lock);
+    auto zones = d_zones.lock();
     /* it might have been inserted in the mean time */
-    auto got = d_zones.lookup(zone);
-    if (got && *got && (*got)->d_zone == zone) {
-      return *got;
+    auto got = zones->lookup(zone);
+    if (got && *got) {
+      auto locked = (*got)->lock();
+      if (locked->d_zone == zone) {
+        return *got;
+      }
     }
-    d_zones.add(zone, std::shared_ptr<ZoneEntry>(entry));
+    zones->add(zone, std::shared_ptr<LockGuarded<ZoneEntry>>(entry));
     return entry;
   }
 }
 
-void AggressiveNSECCache::updateEntriesCount()
+void AggressiveNSECCache::updateEntriesCount(SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& zones)
 {
-  /* need to be called while holding a write lock */
   uint64_t counter = 0;
-  d_zones.visit([&counter](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+  zones.visit([&counter](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
     if (node.d_value) {
-      counter += node.d_value->d_entries.size();
+      counter += node.d_value->lock()->d_entries.size();
     }
   });
   d_entriesCount = counter;
@@ -87,15 +92,15 @@ void AggressiveNSECCache::updateEntriesCount()
 
 void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
 {
-  WriteLock rl(d_lock);
+  auto zones = d_zones.lock();
 
   if (subzones) {
-    d_zones.remove(zone, true);
-    updateEntriesCount();
+    zones->remove(zone, true);
+    updateEntriesCount(*zones);
   }
   else {
-    auto got = d_zones.lookup(zone);
-    if (!got || !*got || (*got)->d_zone != zone) {
+    auto got = zones->lookup(zone);
+    if (!got || !*got) {
       return;
     }
 
@@ -104,9 +109,12 @@ void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
        then release the lock before the entry is deleted */
     auto entry = *got;
     {
-      std::lock_guard<std::mutex> lock(entry->d_lock);
-      auto removed = entry->d_entries.size();
-      d_zones.remove(zone, false);
+      auto locked = (*got)->lock();
+      if (locked->d_zone != zone) {
+        return;
+      }
+      auto removed = locked->d_entries.size();
+      zones->remove(zone, false);
       d_entriesCount -= removed;
     }
   }
@@ -126,64 +134,58 @@ void AggressiveNSECCache::prune(time_t now)
     toLook = toErase * 5;
     // we are full, scan at max 5 * toErase entries and stop once we have nuked enough
 
-    WriteLock rl(d_lock);
-    d_zones.visit([now, &erased, toErase, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+    auto zones = d_zones.lock();
+    zones->visit([now, &erased, toErase, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
       if (!node.d_value || erased > toErase || lookedAt > toLook) {
         return;
       }
 
-      {
-        std::lock_guard<std::mutex> lock(node.d_value->d_lock);
-        auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(node.d_value->d_entries);
-        for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
-          if (erased >= toErase || lookedAt >= toLook) {
-            break;
-          }
+      auto zoneEntry = node.d_value->lock();
+      auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
+      for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
+        if (erased >= toErase || lookedAt >= toLook) {
+          break;
+        }
 
-          if (it->d_ttd < now) {
-            it = sidx.erase(it);
-            ++erased;
-          }
-          else {
-            ++it;
-          }
+        if (it->d_ttd < now) {
+          it = sidx.erase(it);
+          ++erased;
+        }
+        else {
+          ++it;
         }
       }
 
-      if (node.d_value->d_entries.size() == 0) {
-        emptyEntries.push_back(node.d_value->d_zone);
+      if (zoneEntry->d_entries.size() == 0) {
+        emptyEntries.push_back(zoneEntry->d_zone);
       }
     });
   }
   else {
     // we are not full, just look through 10% of the cache and nuke everything that is expired
-    WriteLock rl(d_lock);
-
-    d_zones.visit([now, &erased, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+    auto zones = d_zones.lock();
+    zones->visit([now, &erased, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
       if (!node.d_value) {
         return;
       }
 
-      {
-        std::lock_guard<std::mutex> lock(node.d_value->d_lock);
-
-        auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(node.d_value->d_entries);
-        for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
-          if (lookedAt >= toLook) {
-            break;
-          }
-          if (it->d_ttd < now || lookedAt > toLook) {
-            it = sidx.erase(it);
-            ++erased;
-          }
-          else {
-            ++it;
-          }
+      auto zoneEntry = node.d_value->lock();
+      auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
+      for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
+        if (lookedAt >= toLook) {
+          break;
+        }
+        if (it->d_ttd < now || lookedAt > toLook) {
+          it = sidx.erase(it);
+          ++erased;
+        }
+        else {
+          ++it;
         }
       }
 
-      if (node.d_value->d_entries.size() == 0) {
-        emptyEntries.push_back(node.d_value->d_zone);
+      if (zoneEntry->d_entries.size() == 0) {
+        emptyEntries.push_back(zoneEntry->d_zone);
       }
     });
   }
@@ -191,9 +193,9 @@ void AggressiveNSECCache::prune(time_t now)
   d_entriesCount -= erased;
 
   if (!emptyEntries.empty()) {
-    WriteLock rl(d_lock);
+    auto zones = d_zones.lock();
     for (const auto& entry : emptyEntries) {
-      d_zones.remove(entry);
+      zones->remove(entry);
     }
   }
 }
@@ -247,13 +249,13 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
     return;
   }
 
-  std::shared_ptr<AggressiveNSECCache::ZoneEntry> entry = getZone(zone);
+  std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>> entry = getZone(zone);
   {
-    std::lock_guard<std::mutex> lock(entry->d_lock);
-    if (nsec3 && !entry->d_nsec3) {
-      d_entriesCount -= entry->d_entries.size();
-      entry->d_entries.clear();
-      entry->d_nsec3 = true;
+    auto zoneEntry = entry->lock();
+    if (nsec3 && !zoneEntry->d_nsec3) {
+      d_entriesCount -= zoneEntry->d_entries.size();
+      zoneEntry->d_entries.clear();
+      zoneEntry->d_nsec3 = true;
     }
 
     DNSName next;
@@ -300,27 +302,27 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
       // but doing the conversion on cache hits only might be faster
       next = DNSName(toBase32Hex(content->d_nexthash)) + zone;
 
-      if (entry->d_iterations != content->d_iterations || entry->d_salt != content->d_salt) {
-        entry->d_iterations = content->d_iterations;
-        entry->d_salt = content->d_salt;
+      if (zoneEntry->d_iterations != content->d_iterations || zoneEntry->d_salt != content->d_salt) {
+        zoneEntry->d_iterations = content->d_iterations;
+        zoneEntry->d_salt = content->d_salt;
 
         // Clearing the existing entries since we can't use them, and it's likely a rollover
         // If it instead is different servers using different parameters, well, too bad.
-        d_entriesCount -= entry->d_entries.size();
-        entry->d_entries.clear();
+        d_entriesCount -= zoneEntry->d_entries.size();
+        zoneEntry->d_entries.clear();
       }
     }
 
     /* the TTL is already a TTD by now */
     if (!nsec3 && isWildcardExpanded(owner.countLabels(), signatures.at(0))) {
       DNSName realOwner = getNSECOwnerName(owner, signatures);
-      auto pair = entry->d_entries.insert({record.d_content, signatures, std::move(realOwner), std::move(next), record.d_ttl});
+      auto pair = zoneEntry->d_entries.insert({record.d_content, signatures, std::move(realOwner), std::move(next), record.d_ttl});
       if (pair.second) {
         ++d_entriesCount;
       }
     }
     else {
-      auto pair = entry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
+      auto pair = zoneEntry->d_entries.insert({record.d_content, signatures, owner, std::move(next), record.d_ttl});
       if (pair.second) {
         ++d_entriesCount;
       }
@@ -328,10 +330,10 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
   }
 }
 
-bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry)
+bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zone, const DNSName& name, ZoneEntry::CacheEntry& entry)
 {
-  std::unique_lock<std::mutex> lock(zoneEntry->d_lock, std::try_to_lock);
-  if (!lock.owns_lock() || zoneEntry->d_entries.empty()) {
+  auto zoneEntry = zone->try_lock();
+  if (!zoneEntry.owns_lock() || zoneEntry->d_entries.empty()) {
     return false;
   }
 
@@ -380,10 +382,10 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<AggressiveNS
   return true;
 }
 
-bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry)
+bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zone, const DNSName& name, ZoneEntry::CacheEntry& entry)
 {
-  std::unique_lock<std::mutex> lock(zoneEntry->d_lock, std::try_to_lock);
-  if (!lock.owns_lock() || zoneEntry->d_entries.empty()) {
+  auto zoneEntry = zone->try_lock();
+  if (!zoneEntry.owns_lock() || zoneEntry->d_entries.empty()) {
     return false;
   }
 
@@ -512,20 +514,20 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   return true;
 }
 
-bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC)
+bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC)
 {
   DNSName zone;
   std::string salt;
   uint16_t iterations;
 
   {
-    std::unique_lock<std::mutex> lock(zoneEntry->d_lock, std::try_to_lock);
-    if (!lock.owns_lock()) {
+    auto entry = zoneEntry->try_lock();
+    if (!entry.owns_lock()) {
       return false;
     }
-    salt = zoneEntry->d_salt;
-    zone = zoneEntry->d_zone;
-    iterations = zoneEntry->d_iterations;
+    salt = entry->d_salt;
+    zone = entry->d_zone;
+    iterations = entry->d_iterations;
   }
 
   auto nameHash = DNSName(toBase32Hex(hashQNameWithSalt(salt, iterations, name))) + zone;
@@ -673,20 +675,34 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
 bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC)
 {
   auto zoneEntry = getBestZone(name);
-  if (!zoneEntry || zoneEntry->d_entries.empty()) {
+  if (!zoneEntry) {
     return false;
+  }
+
+  DNSName zone;
+  bool nsec3;
+  {
+    auto entry = zoneEntry->try_lock();
+    if (!entry.owns_lock()) {
+      return false;
+    }
+    if (entry->d_entries.empty()) {
+      return false;
+    }
+    zone = entry->d_zone;
+    nsec3 = entry->d_nsec3;
   }
 
   vState cachedState;
   std::vector<DNSRecord> soaSet;
   std::vector<std::shared_ptr<RRSIGRecordContent>> soaSignatures;
   /* we might not actually need the SOA if we find a matching wildcard, but let's not bother for now */
-  if (g_recCache->get(now, zoneEntry->d_zone, QType::SOA, true, &soaSet, who, false, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
-    LOG("No valid SOA found for " << zoneEntry->d_zone << ", which is the best match for " << name << endl);
+  if (g_recCache->get(now, zone, QType::SOA, true, &soaSet, who, false, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
+    LOG("No valid SOA found for " << zone << ", which is the best match for " << name << endl);
     return false;
   }
 
-  if (zoneEntry->d_nsec3) {
+  if (nsec3) {
     return getNSEC3Denial(now, zoneEntry, soaSet, soaSignatures, name, type, ret, res, doDNSSEC);
   }
 
@@ -766,7 +782,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   ret.reserve(ret.size() + soaSet.size() + soaSignatures.size() + /* NSEC */ 1 + entry.d_signatures.size() + (needWildcard ? (/* NSEC */ 1 + wcEntry.d_signatures.size()) : 0));
 
-  addToRRSet(now, soaSet, soaSignatures, zoneEntry->d_zone, doDNSSEC, ret);
+  addToRRSet(now, soaSet, soaSignatures, zone, doDNSSEC, ret);
   addRecordToRRSet(now, entry.d_owner, QType::NSEC, entry.d_ttd - now, entry.d_record, entry.d_signatures, doDNSSEC, ret);
 
   if (needWildcard) {
@@ -782,29 +798,29 @@ size_t AggressiveNSECCache::dumpToFile(std::unique_ptr<FILE, int (*)(FILE*)>& fp
 {
   size_t ret = 0;
 
-  ReadLock rl(d_lock);
-  d_zones.visit([&ret, now, &fp](const SuffixMatchTree<std::shared_ptr<ZoneEntry>>& node) {
+  auto zones = d_zones.read_lock();
+  zones->visit([&ret, now, &fp](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
     if (!node.d_value) {
       return;
     }
 
-    std::lock_guard<std::mutex> lock(node.d_value->d_lock);
-    fprintf(fp.get(), "; Zone %s\n", node.d_value->d_zone.toString().c_str());
+    auto zone = node.d_value->lock();
+    fprintf(fp.get(), "; Zone %s\n", zone->d_zone.toString().c_str());
 
-    for (const auto& entry : node.d_value->d_entries) {
+    for (const auto& entry : zone->d_entries) {
       int64_t ttl = entry.d_ttd - now.tv_sec;
       try {
-        fprintf(fp.get(), "%s %" PRId64 " IN %s %s\n", entry.d_owner.toString().c_str(), ttl, node.d_value->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s\n", entry.d_owner.toString().c_str(), ttl, zone->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str());
         for (const auto& signature : entry.d_signatures) {
           fprintf(fp.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
         }
         ++ret;
       }
       catch (const std::exception& e) {
-        fprintf(fp.get(), "; Error dumping record from zone %s: %s\n", node.d_value->d_zone.toString().c_str(), e.what());
+        fprintf(fp.get(), "; Error dumping record from zone %s: %s\n", zone->d_zone.toString().c_str(), e.what());
       }
       catch (...) {
-        fprintf(fp.get(), "; Error dumping record from zone %s\n", node.d_value->d_zone.toString().c_str());
+        fprintf(fp.get(), "; Error dumping record from zone %s\n", zone->d_zone.toString().c_str());
       }
     }
   });
