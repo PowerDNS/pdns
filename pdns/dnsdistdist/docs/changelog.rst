@@ -2,7 +2,7 @@ Changelog
 =========
 
   :version: 1.5.2
-  :released: 5th of May 2021
+  :released: 10th of May 2021
 
   .. change::
     :tags: Bug Fixes
