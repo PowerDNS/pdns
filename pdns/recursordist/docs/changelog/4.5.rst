@@ -2,6 +2,16 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.0
+  :released: 10th of May 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10353
+
+    Apply dns64 on RPZ hits generated after a gettag_ffi hit.
+
+.. changelog::
   :version: 4.5.0-rc1
   :released: 28th of April 2021
 
