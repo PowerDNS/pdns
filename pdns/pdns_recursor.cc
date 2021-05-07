@@ -5701,9 +5701,7 @@ int main(int argc, char **argv)
     auto startupLog = g_slog->withName("startup");
 
     if(!::arg().file(configname.c_str())) {
-      startupLog
-        ->withValues("config_file", Logging::Loggable(configname))
-        ->error("No such file", "Unable to parse configuration file");
+      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
     }
 
     ::arg().parse(argc,argv);

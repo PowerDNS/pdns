@@ -190,10 +190,10 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
 static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
 
-  auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName))->withValues("primary", Logging::Loggable(primary));
+  auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName), "primary", Logging::Loggable(primary));
   logger->info("Loading RPZ from nameserver");
   if(!tt.name.empty()) {
-    logger->withValues("tsig_key_name", Logging::Loggable(tt.name))->withValues("tsig_key_algorithm", Logging::Loggable(tt.algo))->info("Using TSIG key for authentication");
+    logger->info("Using TSIG key for authentication", "tsig_key_name", Logging::Loggable(tt.name), "tsig_key_algorithm", Logging::Loggable(tt.algo));
   }
 
   ComboAddress local(localAddress);
@@ -228,11 +228,11 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& primar
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
-      logger->withValues("nrecords", Logging::Loggable(nrecords))->info("RPZ load in progress");
+      logger->info("RPZ load in progress", "nrecords", Logging::Loggable(nrecords));
       last=time(0);
     }
   }
-  logger->withValues("nrecords", Logging::Loggable(nrecords))->withValues("soa", Logging::Loggable(sr->getZoneRepresentation()))->info("RPZ load completed");
+  logger->info("RPZ load completed", "nrecords", Logging::Loggable(nrecords), "soa", Logging::Loggable(sr->getZoneRepresentation()));
   return sr;
 }
 
@@ -309,7 +309,7 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
 static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
   auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName));
-  logger->v(1)->withValues("destination_file", Logging::Loggable(dumpZoneFileName))->info("Dumping zone to disk");
+  logger->v(1)->info("Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));
   std::string temp = dumpZoneFileName + "XXXXXX";
   int fd = mkstemp(&temp.at(0));
   if (fd < 0) {
@@ -351,8 +351,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
     logger
-      ->withValues("destination_file", Logging::Loggable(dumpZoneFileName))
-      ->error(errno, "Error while moving the content of the RPZ");
+      ->error(errno, "Error while moving the content of the RPZ", "destination_file", Logging::Loggable(dumpZoneFileName));
     return false;
   }
 

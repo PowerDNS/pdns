@@ -76,10 +76,10 @@ namespace Logging
     return res;
   }
 
-  std::shared_ptr<Logr::Logger> Logger::withValues(const std::string& key, const Logr::Loggable& value) const
+  std::shared_ptr<Logr::Logger> Logger::withValues(const std::map<std::string, std::string>& values) const
   {
     auto res = std::make_shared<Logger>(getptr(), _name, getVerbosity(), _level, _callback);
-    res->_values.insert({key, value.to_string()});
+    res->_values = values;
     return res;
   }
 

@@ -47,6 +47,13 @@ namespace Logr {
     // keys and arbitrary values.
     virtual void info(const std::string& msg) const = 0;
 
+    template<typename... Args>
+    void info(const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+    {
+      auto logger = this->withValues(key, value, args...);
+      logger->info(msg);
+    }
+
     // Error logs an error, with the given message and key/value pairs as context.
     // It functions similarly to calling Info with the "error" named value, but may
     // have unique behavior, and should be preferred for logging errors (see the
@@ -58,15 +65,38 @@ namespace Logr {
     virtual void error(const std::string& err, const std::string& msg) const = 0;
     virtual void error(int err, const std::string& msg) const = 0;
 
+    template<typename... Args>
+    void error(const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+    {
+      auto logger = this->withValues(key, value, args...);
+      logger->error(err, msg);
+    }
+
+    template<typename... Args>
+    void error(int err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+    {
+      auto logger = this->withValues(key, value, args...);
+      logger->error(err, msg);
+    }
+
     // V returns an Logger value for a specific verbosity level, relative to
     // this Logger.  In other words, V values are additive.  V higher verbosity
     // level means a log message is less important.  It's illegal to pass a log
     // level less than zero.
     virtual std::shared_ptr<Logger> v(size_t level) const = 0;
 
+    template<typename... Args>
+    std::shared_ptr<Logger> withValues(const std::string& key, const Loggable& value, const Args&... args) const
+    {
+      std::map<std::string, std::string> map = {};
+      this->mapArguments(map, key, value, args...);
+      return this->withValues(map);
+    }
+
     // WithValues adds some key-value pairs of context to a logger.
     // See Info for documentation on how key/value pairs work.
-    virtual std::shared_ptr<Logger> withValues(const std::string& key, const Loggable& value) const = 0;
+    virtual std::shared_ptr<Logger> withValues(const std::map<std::string, std::string>& values) const = 0;
+
 
     // WithName adds a new element to the logger's name.
     // Successive calls with WithName continue to append
@@ -74,5 +104,17 @@ namespace Logr {
     // that name segments contain only letters, digits, and hyphens
     // (see the package documentation for more information).
     virtual std::shared_ptr<Logger> withName(const std::string& name) const = 0;
+
+  private:
+
+    template<typename... Args>
+    void mapArguments(std::map<std::string, std::string>& map, const std::string& key, const Loggable& value, const Args&... args) const
+    {
+      map.emplace(key, value.to_string());
+      mapArguments(map, args...);
+    }
+    void mapArguments(std::map<std::string, std::string>& map) const {
+      return ;
+    }
   };
 }

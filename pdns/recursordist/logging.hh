@@ -70,12 +70,13 @@ namespace Logging {
   {
   public:
     bool enabled() const override;
+
     void info(const std::string& msg) const override;
     void error(int err, const std::string& msg) const override;
     void error(const std::string& err, const std::string& msg) const override;
 
     std::shared_ptr<Logr::Logger> v(size_t level) const override;
-    std::shared_ptr<Logr::Logger> withValues(const std::string& key, const Logr::Loggable& value) const override;
+    std::shared_ptr<Logr::Logger> withValues(const std::map<std::string, std::string>& values) const override;
     virtual std::shared_ptr<Logr::Logger> withName(const std::string& name) const override;
 
     static std::shared_ptr<Logger> create(EntryLogger callback);
