@@ -1441,7 +1441,7 @@ The following actions exist.
 
 .. function:: TCAction()
 
-  Create answer to query with the TC bit set, and the RD bit set to the value of RA in the query, to force the client to TCP.
+  Create answer to query with the TC bit set, and the RA bit set to the value of RD in the query, to force the client to TCP.
 
 .. function:: TeeAction(remote[, addECS])
 
