@@ -18,7 +18,7 @@ end of life after PowerDNS Recursor 4.7 is released.
 PowerDNS Recursor 4.3 will only receive critical updates and will be
 end of life after PowerDNS Recursor 4.6 is released.
 
-PowerDNS Recursor 4.2, 4.1, 4.0, 3.x, and 2.x are End of Life.
+PowerDNS Recursor 4.0 through 4.2, 3.x, and 2.x are End of Life.
 
 Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
 can receive extended support for releases which are End Of Life. If you are
@@ -61,4 +61,3 @@ for details.
 
 Note we did not have a very regular release schedule in the past,
 so the dates for older releases do not follow the pattern described above.
-
