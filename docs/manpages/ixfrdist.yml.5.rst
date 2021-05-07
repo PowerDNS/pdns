@@ -9,7 +9,7 @@ ixfrdist.yml
 Description
 -----------
 
-:program:`ixfrdist` reads its configuration for a YAML file.
+:program:`ixfrdist` reads its configuration from a YAML file.
 By default, this file is called `ixfrdist.yml` and is read from the directory configured as `SYSCONFDIR` when building the software.
 This directory is usually one of `/etc/pdns`, `/etc/powerdns`.
 Run `ixfrdist --help` to see the default.
