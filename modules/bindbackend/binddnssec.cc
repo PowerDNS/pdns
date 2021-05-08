@@ -200,6 +200,19 @@ bool Bind2Backend::doesDNSSEC()
 
 bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
 {
+  BB2DomainInfo bbd;
+  if (!safeGetBBDomainInfo(name, &bbd))
+    return false;
+
+  if (ns3p) {
+    *ns3p = bbd.d_nsec3param;
+  }
+
+  return bbd.d_nsec3zone;
+}
+
+bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
+{
   if (!d_dnssecdb || d_hybrid)
     return false;
 
