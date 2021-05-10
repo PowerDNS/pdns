@@ -79,7 +79,8 @@ public:
 private:
   struct ZoneEntry
   {
-    ZoneEntry()
+    ZoneEntry(const DNSName& zone) :
+      d_zone(zone)
     {
     }
 
@@ -120,7 +121,7 @@ private:
       cache_t;
 
     cache_t d_entries;
-    DNSName d_zone;
+    const DNSName d_zone;
     std::string d_salt;
     std::mutex d_lock;
     uint16_t d_iterations{0};
