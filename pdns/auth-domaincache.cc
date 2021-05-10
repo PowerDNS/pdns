@@ -160,7 +160,9 @@ void AuthDomainCache::setReplacePending()
   if (!d_ttl)
     return;
 
-  WriteLock globalLock(d_mut);
-  d_replacePending = true;
-  d_pendingAdds.clear();
+  {
+    WriteLock globalLock(d_mut);
+    d_replacePending = true;
+    d_pendingAdds.clear();
+  }
 }
