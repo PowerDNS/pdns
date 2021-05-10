@@ -16,7 +16,10 @@ Record type changes
 
 The in-database format of ``CSYNC``, ``IPSECKEY``, ``NID``, ``L32``, ``L64``, and ``LP`` records has changed from 'generic' format to its specialized format.
 
-API users might notice that replacing records of these types leaves the old TYPExx records around, even if PowerDNS is not serving them.
+Generation of the in-database format of ``SVCB`` and ``HTTPS`` received some important bug fixes.
+(For these two types, you can skip the :ref:`setting-upgrade-unknown-types` setting mentioned below, but we still recommend the re-transfer.)
+
+API users might notice that replacing records of the newly supported types leaves the old TYPExx records around, even if PowerDNS is not serving them.
 To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.
 Then, disable the setting again, because it has a serious performance impact on API operations.
 
