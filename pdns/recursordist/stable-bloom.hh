@@ -61,7 +61,7 @@ public:
       d_cells.set(i % d_num_cells);
     }
   }
-  bool test(const std::string& data)
+  bool test(const std::string& data) const
   {
     auto hashes = hash(data);
     for (auto& i : hashes) {
@@ -161,7 +161,7 @@ private:
   }
   // This is a double hash implementation returning an array of
   // k hashes
-  std::vector<uint32_t> hash(const std::string& data)
+  std::vector<uint32_t> hash(const std::string& data) const
   {
     uint32_t h1, h2;
     MurmurHash3_x86_32(data.c_str(), data.length(), 1, (void*)&h1);
