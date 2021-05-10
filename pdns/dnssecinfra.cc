@@ -76,50 +76,87 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRe
 
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
 {
-  bool pkcs11=false;
-  int algorithm = 0;
+  enum class KeyTypes : uint8_t { str, numeric, base64 };
+  const std::map<std::string, KeyTypes> knownKeys = {
+    { "algorithm", KeyTypes::numeric },
+    { "modulus", KeyTypes::base64 },
+    { "publicexponent", KeyTypes::base64 },
+    { "privateexponent", KeyTypes::base64 },
+    { "prime1", KeyTypes::base64 },
+    { "prime2", KeyTypes::base64 },
+    { "exponent1", KeyTypes::base64 },
+    { "exponent2", KeyTypes::base64 },
+    { "coefficient", KeyTypes::base64 },
+    { "privatekey", KeyTypes::base64 },
+    { "engine", KeyTypes::str },
+    { "slot", KeyTypes::str },
+    { "pin", KeyTypes::str },
+    { "label", KeyTypes::str },
+    { "publabel", KeyTypes::str },
+    { "private-key-format", KeyTypes::str },
+    { "flags", KeyTypes::numeric }
+  };
+  unsigned int algorithm = 0;
   string sline, key, value, raw;
   std::istringstream str(content);
   map<string, string> stormap;
 
-  while(std::getline(str, sline)) {
-    tie(key,value)=splitField(sline, ':');
+  while (std::getline(str, sline)) {
+    tie(key,value) = splitField(sline, ':');
     boost::trim(value);
-    if(pdns_iequals(key,"algorithm")) {
-      algorithm = pdns_stou(value);
-      stormap["algorithm"]=std::to_string(algorithm);
-      continue;
-    } else if (pdns_iequals(key,"pin")) {
-      stormap["pin"]=value;
-      continue;
-    } else if (pdns_iequals(key,"engine")) {
-      stormap["engine"]=value;
-      pkcs11=true;
-      continue;
-    } else if (pdns_iequals(key,"slot")) {
-      stormap["slot"]=value;
-      continue;
-    }  else if (pdns_iequals(key,"label")) {
-      stormap["label"]=value;
-      continue;
-    } else if (pdns_iequals(key,"publabel")) {
-      stormap["publabel"]=value;
-      continue;
+
+    toLowerInPlace(key);
+    const auto it = knownKeys.find(key);
+    if (it != knownKeys.cend()) {
+      if (it->second == KeyTypes::str) {
+        stormap[key] = value;
+      }
+      else if (it->second == KeyTypes::base64) {
+        try {
+          raw.clear();
+          B64Decode(value, raw);
+          stormap[key] = raw;
+        }
+        catch (const std::exception& e) {
+          throw std::runtime_error("Error while trying to base64 decode the value of the '" + key + "' key from the ISC map: " + e.what());
+        }
+      }
+      else if (it->second == KeyTypes::numeric) {
+        try {
+          unsigned int num = pdns_stou(value);
+          stormap[key] = std::to_string(num);
+          if (key == "algorithm") {
+            algorithm = num;
+          }
+        }
+        catch (const std::exception& e) {
+          throw std::runtime_error("Error while trying to parse the numeric value of the '" + key + "' key from the ISC map: " + e.what());
+        }
+      }
     }
-    else if(pdns_iequals(key, "Private-key-format"))
-      continue;
-    raw.clear();
-    B64Decode(value, raw);
-    stormap[toLower(key)]=raw;
+    else {
+      try {
+        raw.clear();
+        B64Decode(value, raw);
+        stormap[key] = raw;
+      }
+      catch (const std::exception& e) {
+        stormap[key] = value;
+      }
+    }
   }
+
   std::unique_ptr<DNSCryptoKeyEngine> dpk;
 
-  if (pkcs11) {
+  if (stormap.count("engine")) {
 #ifdef HAVE_P11KIT1
-    if (stormap.find("slot") == stormap.end())
+    if (stormap.count("slot") == 0) {
       throw PDNSException("Cannot load PKCS#11 key, no Slot specified");
+    }
     // we need PIN to be at least empty
-    if (stormap.find("pin") == stormap.end()) stormap["pin"] = "";
+    if (stormap.count("pin") == 0) {
+      stormap["pin"] = "";
+    }
     dpk = PKCS11DNSCryptoKeyEngine::maker(algorithm); 
 #else
     throw PDNSException("Cannot load PKCS#11 key without support for it");
