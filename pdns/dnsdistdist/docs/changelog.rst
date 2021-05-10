@@ -1,6 +1,82 @@
 Changelog
 =========
 
+  :version: 1.5.2
+  :released: 10th of May 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9583
+
+    Make: two fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9717
+    :tickets: 9689
+
+    Fix eBPF filtering of long qnames
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 9729
+    :tickets: 9728
+
+    Fix a typo in prometheus metrics dnsdist_frontend_tlshandshakefailures #9728 (AppliedPrivacy)
+
+  .. change::
+    :tags: Bug Fixes, Performance
+    :pullreq: 9749
+
+    Fix the DNSName move assignment operator
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9900
+
+    Fix a hang when removing a server with more than one socket
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 9922
+    :tickets: 9921
+
+    Fix SNI on resumed sessions by acknowledging the name sent by the client
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 9936
+    :tickets: 9934
+
+    Fix a crash when a DoH responses map is updated at runtime
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9980
+    :tickets: 9756
+
+    Fix Dynamic Block RCode rules messing up the queries count
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10012
+    :tickets: 10006
+
+    Fix EDNS in ServFail generated when no server is available
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10095
+    :tickets: 10090
+
+    Prevent a crash with DynBPF objects in client mode
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10355
+
+    Add missing getEDNSOptions and getDO bindings for DNSResponse
+
 .. changelog::
   :version: 1.6.0-rc2
   :released: 4th of May 2021
