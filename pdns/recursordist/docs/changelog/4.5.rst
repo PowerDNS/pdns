@@ -2,8 +2,18 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.1
+  :released: 11th of May 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10377
+
+    Prevent a race in the aggressive NSEC cache.
+
+.. changelog::
   :version: 4.5.0
-  :released: 10th of May 2021
+  :released: Never released publicly.
 
   .. change::
     :tags: Bug Fixes

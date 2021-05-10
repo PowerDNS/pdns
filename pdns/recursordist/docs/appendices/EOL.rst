@@ -35,12 +35,12 @@ for details.
      - Critical-Only updates
      - End of Life
    * - 4.5
-     - May 10 2021
+     - May 11 2021
      - ~ November 2021
      - EOL ~ November 2022
    * - 4.4
      - October 19 2020
-     - May 10 2021
+     - May 11 2021
      - EOL ~ May 2022
    * - 4.3
      - March 3 2020
@@ -49,7 +49,7 @@ for details.
    * - 4.2
      - July 16 2019
      - October 19 2020
-     - EOL May 10 2021
+     - EOL May 11 2021
    * - 4.1
      - December 4 2017
      - March 3 2020
