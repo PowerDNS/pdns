@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_replace) {
 
   int zoneId = 0;
   bool found = cache.getEntry(DNSName("example.org."), zoneId);
-  if (!found || zoneId == 0) {
+  if (!found || zoneId != 1) {
     BOOST_FAIL("domain added in replace() not found");
   }
 }
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace) {
 
   int zoneId = 0;
   bool found = cache.getEntry(DNSName("example.org."), zoneId);
-  if (!found || zoneId == 0) {
+  if (!found || zoneId != 2) {
     BOOST_FAIL("domain added while replace was pending not found");
   }
 }
