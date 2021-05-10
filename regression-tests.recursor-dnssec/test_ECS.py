@@ -104,7 +104,7 @@ disable-syslog=yes
 class testNoECS(ECSTest):
     _confdir = 'NoECS'
 
-    _config_template = """edns-subnet-allow-list=
+    _config_template = """edns-subnet-whitelist=
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
 
@@ -129,7 +129,7 @@ forward-zones=ecs-echo.example=%s.21
 class testIncomingNoECS(ECSTest):
     _confdir = 'IncomingNoECS'
 
-    _config_template = """edns-subnet-allow-list=
+    _config_template = """edns-subnet-whitelist=
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
@@ -157,7 +157,7 @@ forward-zones=ecs-echo.example=%s.21
 class testECSByName(ECSTest):
     _confdir = 'ECSByName'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
 
@@ -188,7 +188,7 @@ forward-zones=ecs-echo.example=%s.21
 class testECSByNameLarger(ECSTest):
     _confdir = 'ECSByNameLarger'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 ecs-ipv4-bits=32
 forward-zones=ecs-echo.example=%s.21
 ecs-ipv4-cache-bits=32
@@ -222,7 +222,7 @@ ecs-ipv6-cache-bits=128
 class testECSByNameSmaller(ECSTest):
     _confdir = 'ECSByNameLarger'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 ecs-ipv4-bits=16
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
@@ -249,7 +249,7 @@ forward-zones=ecs-echo.example=%s.21
 class testIncomingECSByName(ECSTest):
     _confdir = 'ECSIncomingByName'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
 ecs-scope-zero-address=2001:db8::42
@@ -289,7 +289,7 @@ ecs-ipv6-cache-bits=128
 class testIncomingECSByNameLarger(ECSTest):
     _confdir = 'ECSIncomingByNameLarger'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 use-incoming-edns-subnet=yes
 ecs-ipv4-bits=32
 forward-zones=ecs-echo.example=%s.21
@@ -321,7 +321,7 @@ ecs-ipv6-cache-bits=128
 class testIncomingECSByNameSmaller(ECSTest):
     _confdir = 'ECSIncomingByNameSmaller'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 use-incoming-edns-subnet=yes
 ecs-ipv4-bits=16
 forward-zones=ecs-echo.example=%s.21
@@ -352,7 +352,7 @@ ecs-ipv6-cache-bits=128
 class testIncomingECSByNameV6(ECSTest):
     _confdir = 'ECSIncomingByNameV6'
 
-    _config_template = """edns-subnet-allow-list=ecs-echo.example.
+    _config_template = """edns-subnet-whitelist=ecs-echo.example.
 use-incoming-edns-subnet=yes
 ecs-ipv6-bits=128
 ecs-ipv4-cache-bits=32
@@ -385,7 +385,7 @@ forward-zones=ecs-echo.example=[::1]:53000
 class testECSNameMismatch(ECSTest):
     _confdir = 'ECSNameMismatch'
 
-    _config_template = """edns-subnet-allow-list=not-the-right-name.example.
+    _config_template = """edns-subnet-whitelist=not-the-right-name.example.
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
 
@@ -410,7 +410,7 @@ forward-zones=ecs-echo.example=%s.21
 class testECSByIP(ECSTest):
     _confdir = 'ECSByIP'
 
-    _config_template = """edns-subnet-allow-list=%s.21
+    _config_template = """edns-subnet-whitelist=%s.21
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'], os.environ['PREFIX'])
 
@@ -436,7 +436,7 @@ forward-zones=ecs-echo.example=%s.21
 class testIncomingECSByIP(ECSTest):
     _confdir = 'ECSIncomingByIP'
 
-    _config_template = """edns-subnet-allow-list=%s.21
+    _config_template = """edns-subnet-whitelist=%s.21
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
 ecs-scope-zero-address=::1
@@ -476,7 +476,7 @@ ecs-ipv6-cache-bits=128
 class testECSIPMismatch(ECSTest):
     _confdir = 'ECSIPMismatch'
 
-    _config_template = """edns-subnet-allow-list=192.0.2.1
+    _config_template = """edns-subnet-whitelist=192.0.2.1
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
 
@@ -503,7 +503,7 @@ class testECSWithProxyProtocoldRecursorTest(ECSTest):
     _confdir = 'ECSWithProxyProtocol'
     _config_template = """
     ecs-add-for=2001:db8::1/128
-    edns-subnet-allow-list=ecs-echo.example.
+    edns-subnet-whitelist=ecs-echo.example.
     forward-zones=ecs-echo.example=%s.21
     proxy-protocol-from=127.0.0.1/32
     allow-from=2001:db8::1/128
