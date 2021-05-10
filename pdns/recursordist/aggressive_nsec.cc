@@ -51,7 +51,6 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getBestZone
 
 std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getZone(const DNSName& zone)
 {
-  std::shared_ptr<AggressiveNSECCache::ZoneEntry> entry{nullptr};
   {
     ReadLock rl(d_lock);
     auto got = d_zones.lookup(zone);
@@ -60,8 +59,7 @@ std::shared_ptr<AggressiveNSECCache::ZoneEntry> AggressiveNSECCache::getZone(con
     }
   }
 
-  entry = std::make_shared<ZoneEntry>();
-  entry->d_zone = zone;
+  auto entry = std::make_shared<ZoneEntry>(zone);
 
   {
     WriteLock wl(d_lock);
@@ -506,9 +504,19 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
 
 bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveNSECCache::ZoneEntry>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC)
 {
-  const auto& salt = zoneEntry->d_salt;
-  const auto iterations = zoneEntry->d_iterations;
-  const auto& zone = zoneEntry->d_zone;
+  DNSName zone;
+  std::string salt;
+  uint16_t iterations;
+
+  {
+    std::unique_lock<std::mutex> lock(zoneEntry->d_lock, std::try_to_lock);
+    if (!lock.owns_lock()) {
+      return false;
+    }
+    salt = zoneEntry->d_salt;
+    zone = zoneEntry->d_zone;
+    iterations = zoneEntry->d_iterations;
+  }
 
   auto nameHash = DNSName(toBase32Hex(hashQNameWithSalt(salt, iterations, name))) + zone;
 
@@ -541,7 +549,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     LOG(": done!" << endl);
     ++d_nsec3Hits;
     res = RCode::NoError;
-    addToRRSet(now, soaSet, soaSignatures, zoneEntry->d_zone, doDNSSEC, ret);
+    addToRRSet(now, soaSet, soaSignatures, zone, doDNSSEC, ret);
     addRecordToRRSet(now, exactNSEC3.d_owner, QType::NSEC3, exactNSEC3.d_ttd - now, exactNSEC3.d_record, exactNSEC3.d_signatures, doDNSSEC, ret);
     return true;
   }
@@ -642,7 +650,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     res = RCode::NXDomain;
   }
 
-  addToRRSet(now, soaSet, soaSignatures, zoneEntry->d_zone, doDNSSEC, ret);
+  addToRRSet(now, soaSet, soaSignatures, zone, doDNSSEC, ret);
   addRecordToRRSet(now, closestNSEC3.d_owner, QType::NSEC3, closestNSEC3.d_ttd - now, closestNSEC3.d_record, closestNSEC3.d_signatures, doDNSSEC, ret);
   addRecordToRRSet(now, nextCloserEntry.d_owner, QType::NSEC3, nextCloserEntry.d_ttd - now, nextCloserEntry.d_record, nextCloserEntry.d_signatures, doDNSSEC, ret);
   addRecordToRRSet(now, wcEntry.d_owner, QType::NSEC3, wcEntry.d_ttd - now, wcEntry.d_record, wcEntry.d_signatures, doDNSSEC, ret);
