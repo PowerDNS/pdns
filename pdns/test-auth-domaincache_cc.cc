@@ -35,7 +35,8 @@
 
 BOOST_AUTO_TEST_SUITE(test_auth_domaincache_cc)
 
-BOOST_AUTO_TEST_CASE(test_replace) {
+BOOST_AUTO_TEST_CASE(test_replace)
+{
   AuthDomainCache cache;
   cache.setTTL(3600);
 
@@ -51,13 +52,13 @@ BOOST_AUTO_TEST_CASE(test_replace) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_add_while_pending_replace) {
+BOOST_AUTO_TEST_CASE(test_add_while_pending_replace)
+{
   AuthDomainCache cache;
   cache.setTTL(3600);
 
   vector<tuple<DNSName, int>> domain_indices{
-    {DNSName("powerdns.org."), 1}
-  };
+    {DNSName("powerdns.org."), 1}};
   cache.setReplacePending();
   cache.add(DNSName("example.org."), 2);
   cache.replace(domain_indices);
@@ -70,7 +71,8 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace) {
 }
 
 // Add domain using .add(), but also in the .replace() data
-BOOST_AUTO_TEST_CASE(test_add_while_pending_replace_duplicate) {
+BOOST_AUTO_TEST_CASE(test_add_while_pending_replace_duplicate)
+{
   AuthDomainCache cache;
   cache.setTTL(3600);
 
