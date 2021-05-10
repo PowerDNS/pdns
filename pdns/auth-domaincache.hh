@@ -22,8 +22,10 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "dnsname.hh"
 #include "lock.hh"
+#include "misc.hh"
 
 class AuthDomainCache : public boost::noncopyable
 {
