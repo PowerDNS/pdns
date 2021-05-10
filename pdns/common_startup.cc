@@ -181,7 +181,7 @@ void declareArguments()
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("domain-cache-ttl","Seconds to cache list of known domains")="0";
+  ::arg().set("domain-cache-ttl", "Seconds to cache list of known domains") = "0";
   ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
@@ -682,10 +682,10 @@ void mainthread()
   uint32_t secpollSince = 0;
   uint32_t domainCacheUpdateSince = 0;
   for(;;) {
-    const uint32_t slept = g_domainCache.getTTL() == 0 ? secpollInterval : std::min(secpollInterval, g_domainCache.getTTL());
-    sleep(slept);  // if any signals arrive, we might run more often than expected.
+    const uint32_t sleeptime = g_domainCache.getTTL() == 0 ? secpollInterval : std::min(secpollInterval, g_domainCache.getTTL());
+    sleep(sleeptime);  // if any signals arrive, we might run more often than expected.
 
-    domainCacheUpdateSince += slept;
+    domainCacheUpdateSince += sleeptime;
     if (domainCacheUpdateSince >= g_domainCache.getTTL()) {
       try {
         UeberBackend B;
@@ -700,7 +700,7 @@ void mainthread()
       }
     }
 
-    secpollSince += slept;
+    secpollSince += sleeptime;
     if (secpollSince >= secpollInterval) {
       secpollSince = 0;
       try {

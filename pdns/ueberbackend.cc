@@ -357,7 +357,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
     int zoneId{-1};
     if(cachedOk && g_domainCache.isEnabled()) {
       if (g_domainCache.getEntry(shorter, zoneId)) {
-        // Zone exists in domain cache, directly lookup SOA.
+        // Zone exists in domain cache, directly look up SOA.
         // XXX: this code path and the cache lookup below should be merged; but that needs the code path below to also use ANY.
         // Or it should just also use lookup().
         DNSZoneRecord zr;

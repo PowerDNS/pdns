@@ -33,8 +33,8 @@ extern StatBag S;
 AuthDomainCache::AuthDomainCache(size_t mapsCount) :
   d_maps(mapsCount)
 {
-  S.declare("domain-cache-hit", "Number of hits on the domain cache");
-  S.declare("domain-cache-miss", "Number of misses on the domain cache");
+  S.declare("domain-cache-hit", "Number of domain cache hits");
+  S.declare("domain-cache-miss", "Number of domain cache misses");
   S.declare("domain-cache-size", "Number of entries in the domain cache", StatType::gauge);
 
   d_statnumhit = S.getPointer("domain-cache-hit");
@@ -109,7 +109,7 @@ void AuthDomainCache::replace(const vector<tuple<DNSName, int>>& domain_indices)
   {
     WriteLock globalLock(d_mut);
     if (d_replacePending) {
-      // add/replace all domains created while data collection for replace() was already running.
+      // add/replace all domains created while data collection for replace() was already in progress.
       for (const tuple<DNSName, int>& tup : d_pendingAdds) {
         const DNSName& domain = tup.get<0>();
         CacheValue val;
