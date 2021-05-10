@@ -4,6 +4,7 @@
 #include "ixfr.hh"
 #include "syncres.hh"
 #include "axfr-retriever.hh"
+#include "lock.hh"
 #include "logger.hh"
 #include "logging.hh"
 #include "rec-lua-conf.hh"
@@ -274,16 +275,18 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
   return sr;
 }
 
-static std::unordered_map<std::string, shared_ptr<rpzStats> > s_rpzStats;
-static std::mutex s_rpzStatsMutex;
+static LockGuarded<std::unordered_map<std::string, shared_ptr<rpzStats> > > s_rpzStats;
 
 shared_ptr<rpzStats> getRPZZoneStats(const std::string& zone)
 {
-  std::lock_guard<std::mutex> l(s_rpzStatsMutex);
-  if (s_rpzStats.find(zone) == s_rpzStats.end()) {
-    s_rpzStats[zone] = std::make_shared<rpzStats>();
+  auto stats = s_rpzStats.lock();
+  auto it = stats->find(zone);
+  if (it == stats->end()) {
+    auto stat = std::make_shared<rpzStats>();
+    (*stats)[zone] = stat;
+    return stat;
   }
-  return s_rpzStats[zone];
+  return it->second;
 }
 
 static void incRPZFailedTransfers(const std::string& zone)
