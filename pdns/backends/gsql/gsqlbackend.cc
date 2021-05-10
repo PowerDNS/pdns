@@ -1305,20 +1305,33 @@ bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
       bind("domain", domain)->
       bind("masters", boost::join(masters_s, ", "))->
       bind("account", account)->
-      execute()->
-      reset();
+      execute();
 
     if (zoneId != nullptr) {
-      // XXX: needs its own stmt as godbc has a table name in it
-      d_GetLastInsertedKeyIdQuery_stmt->execute();
-      if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
+      if (d_InsertZoneQuery_stmt->hasNextRow()) {
+        SSqlStatement::row_t row;
+        d_InsertZoneQuery_stmt->nextRow(row);
+        *zoneId = std::stoi(row[0]);
+        d_InsertZoneQuery_stmt->reset();
+        return true;
+      } else {
+        d_InsertZoneQuery_stmt->reset();
+      }
+
+      d_InfoOfDomainsZoneQuery_stmt->
+        bind("domain", domain)->
+        execute();
+      if (!d_InfoOfDomainsZoneQuery_stmt->hasNextRow()) {
+        d_InfoOfDomainsZoneQuery_stmt->reset();
         return false;
       }
       SSqlStatement::row_t row;
-      d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
+      d_InfoOfDomainsZoneQuery_stmt->nextRow(row);
+      ASSERT_ROW_COLUMNS("info-zone-query", row, 7);
       *zoneId = std::stoi(row[0]);
-      d_GetLastInsertedKeyIdQuery_stmt->reset();
+      d_InfoOfDomainsZoneQuery_stmt->reset();
+    } else {
+      d_InsertZoneQuery_stmt->reset();
     }
     return true;
   }
