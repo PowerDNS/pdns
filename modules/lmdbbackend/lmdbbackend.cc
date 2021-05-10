@@ -969,12 +969,12 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
     di.account = account;
 
     txn.put(di);
-    txn.commit();
-  }
 
-  if (zoneId != nullptr) {
-    auto txn = d_tdomains->getROTransaction();
-    *zoneId = txn.get<0>(domain, di);
+    if (zoneId != nullptr) {
+      *zoneId = txn.get<0>(domain, di);
+    }
+
+    txn.commit();
   }
 
   return true;
