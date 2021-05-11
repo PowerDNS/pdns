@@ -40,6 +40,7 @@ namespace Logging {
     boost::optional<std::string> name;   // name parts joined with '.'
     std::string message;                 // message as send to log call
     boost::optional<std::string> error;  // error if .Error() was called
+    struct timeval d_timestamp;
     std::map<std::string, std::string> values;
   };
 

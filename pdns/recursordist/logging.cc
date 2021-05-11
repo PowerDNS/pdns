@@ -22,6 +22,7 @@
 
 #include "logging.hh"
 #include <string>
+#include "utility.hh"
 
 namespace Logging
 {
@@ -48,6 +49,7 @@ namespace Logging
     }
     Entry entry;
     entry.level = _level;
+    Utility::gettimeofday(&entry.d_timestamp);
     entry.name = _name;
     entry.message = msg;
     entry.error = err;
