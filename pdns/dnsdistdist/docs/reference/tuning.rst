@@ -58,7 +58,7 @@ Tuning related functions
 
 .. function:: setCacheCleaningDelay(num)
 
-  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries
+  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries. Default is every 60s
 
   :param int num:
 
