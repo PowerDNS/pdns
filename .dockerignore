@@ -5,3 +5,4 @@ Dockerfile-*
 Makefile.docker
 **/venv
 **/*.1
+!.git
