@@ -1782,8 +1782,11 @@ static void startDoResolve(void *p)
       sa.reset();
       sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
       eo.scope = Netmask(sa, 0);
+      auto ecsPayload = makeEDNSSubnetOptsString(eo);
 
-      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+      if (pw.size() < maxanswersize && (maxanswersize - pw.size()) >= (2 + 2 + ecsPayload.size())) {
+        returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, std::move(ecsPayload)));
+      }
     }
 
     if (haveEDNS) {
