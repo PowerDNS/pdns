@@ -2,6 +2,10 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.6.0
+  :released: 11th of May 2021
+
+.. changelog::
   :version: 1.5.2
   :released: 10th of May 2021
 
