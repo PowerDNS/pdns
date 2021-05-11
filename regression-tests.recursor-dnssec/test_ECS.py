@@ -499,6 +499,27 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
+class testECSWithProxyProtocoldRecursorTest(ECSTest):
+    _confdir = 'ECSWithProxyProtocol'
+    _config_template = """
+    ecs-add-for=2001:db8::1/128
+    edns-subnet-whitelist=ecs-echo.example.
+    forward-zones=ecs-echo.example=%s.21
+    proxy-protocol-from=127.0.0.1/32
+    allow-from=2001:db8::1/128
+""" % (os.environ['PREFIX'])
+
+    def testProxyProtocolPlusECS(self):
+        qname = nameECS
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'TXT', '2001:db8::/56')
+
+        query = dns.message.make_query(qname, 'TXT', use_edns=True)
+        for method in ("sendUDPQueryWithProxyProtocol", "sendTCPQueryWithProxyProtocol"):
+            sender = getattr(self, method)
+            res = sender(query, True, '2001:db8::1', '2001:db8::2', 0, 65535)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
 class UDPECSResponder(DatagramProtocol):
     @staticmethod
     def ipToStr(option):
