@@ -2,6 +2,26 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.1
+  :released: 11th of May 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10377
+
+    Prevent a race in the aggressive NSEC cache.
+
+.. changelog::
+  :version: 4.5.0
+  :released: Never released publicly.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10353
+
+    Apply dns64 on RPZ hits generated after a gettag_ffi hit.
+
+.. changelog::
   :version: 4.5.0-rc1
   :released: 28th of April 2021
 
