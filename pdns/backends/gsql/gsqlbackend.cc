@@ -734,8 +734,17 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
       bind("published", key.published)->
       bind("content", key.content)->
       bind("domain", name)->
-      execute()->
-      reset();
+      execute();
+
+    if (d_AddDomainKeyQuery_stmt->hasNextRow()) {
+      SSqlStatement::row_t row;
+      d_AddDomainKeyQuery_stmt->nextRow(row);
+      id = std::stoi(row[0]);
+      d_AddDomainKeyQuery_stmt->reset();
+      return true;
+    } else {
+      d_AddDomainKeyQuery_stmt->reset();
+    }
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to store key for domain '"+ name.toLogString() + "': "+e.txtReason());

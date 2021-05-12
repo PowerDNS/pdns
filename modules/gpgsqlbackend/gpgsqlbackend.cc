@@ -141,8 +141,8 @@ public:
     declare(suffix, "delete-rrset-query", "", "delete from records where domain_id=$1 and name=$2 and type=$3");
     declare(suffix, "delete-names-query", "", "delete from records where domain_id=$1 and name=$2");
 
-    declare(suffix, "add-domain-key-query", "", "insert into cryptokeys (domain_id, flags, active, published, content) select id, $1, $2, $3, $4 from domains where name=$5");
-    declare(suffix, "get-last-inserted-key-id-query", "", "select lastval()");
+    declare(suffix, "add-domain-key-query", "", "insert into cryptokeys (domain_id, flags, active, published, content) select id, $1, $2, $3, $4 from domains where name=$5 returning id");
+    declare(suffix, "get-last-inserted-key-id-query", "", "select pdns_bug_should_not_get_here('https://github.com/PowerDNS/pdns/pull/10392'), 1/0");
     declare(suffix, "list-domain-keys-query", "", "select cryptokeys.id, flags, case when active then 1 else 0 end as active, case when published then 1 else 0 end as published, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=$1");
     declare(suffix, "get-all-domain-metadata-query", "", "select kind,content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=$1");
     declare(suffix, "get-domain-metadata-query", "", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=$1 and domainmetadata.kind=$2");
