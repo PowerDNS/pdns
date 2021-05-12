@@ -1520,7 +1520,7 @@ enlarge this value or run with fewer threads.
 
 ``refresh-on-ttl-perc``
 -----------------------
-.. versionadded: 4.5.0
+.. versionadded:: 4.5.0
 
 -  Integer
 -  Default: 0
