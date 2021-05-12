@@ -4001,7 +4001,7 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
     RecursorControlParser rcp;
     RecursorControlParser::func_t* command;
 
-    g_log << Logger::Notice << "Received rec_control command '" << msg << "' from control socket" << endl;
+    g_log << Logger::Info << "Received rec_control command '" << msg << "' from control socket" << endl;
     auto answer = rcp.getAnswer(fd, msg, &command);
 
     // If we are inside a chroot, we need to strip
@@ -4652,8 +4652,6 @@ static int serviceMain(int argc, char*argv[])
     }
     g_log<<Logger::Warning<<endl;
   }
-
-  g_quiet=::arg().mustDo("quiet");
 
   /* this needs to be done before parseACLs(), which call broadcastFunction() */
   g_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
@@ -5728,6 +5726,7 @@ int main(int argc, char **argv)
     g_recCache = std::unique_ptr<MemRecursorCache>(new MemRecursorCache(::arg().asNum("record-cache-shards")));
     g_negCache = std::unique_ptr<NegCache>(new NegCache(::arg().asNum("record-cache-shards")));
 
+    g_quiet=::arg().mustDo("quiet");
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
 
     if (logUrgency < Logger::Error)

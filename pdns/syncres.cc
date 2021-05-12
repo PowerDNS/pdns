@@ -4425,7 +4425,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     g_log<<Logger::Notice<<"Refreshed . records"<<endl;
   }
   else
-    g_log<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+    g_log<<Logger::Warning<<"Failed to update . records, RCODE="<<res<<endl;
 
   return res;
 }
