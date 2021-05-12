@@ -2724,9 +2724,9 @@ try
       if (bits)
         cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
       if (id == -1) {
-        cerr<<std::to_string(id)<<"Key was added, but backend does not support returning of key id"<<endl;
+        cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
       } else if (id < -1) {
-        cerr<<std::to_string(id)<<"Key was added, but there was a failure while returning the key id"<<endl;
+        cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
       } else {
         cout<<std::to_string(id)<<endl;
       }
