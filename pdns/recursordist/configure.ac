@@ -85,6 +85,7 @@ PDNS_CHECK_LIBCRYPTO_EDDSA
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_LIBDECAF
 PDNS_WITH_LIBCAP
+PDNS_CHECK_LIBCURL
 
 PDNS_WITH_NET_SNMP
 
@@ -253,6 +254,10 @@ AS_IF([test "x$enable_dns_over_tls" != "xno"], [
     [AC_MSG_NOTICE([OpenSSL: yes])],
     [AC_MSG_NOTICE([OpenSSL: no])]
   )]
+)
+AS_IF([test "x$HAVE_LIBCURL" != "x"],
+  [AC_MSG_NOTICE([libcurl: yes])],
+  [AC_MSG_NOTICE([libcurl: no])]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])
