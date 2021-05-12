@@ -26,7 +26,7 @@ How can I limit Zone Transfers (AXFR) per Domain?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 With the ALLOW-AXFR-FROM metadata, See :ref:`the documentation <metadata-allow-axfr-from>`.
 
-I have a working Autoprimary/Autosecondary setup but when I remove Domains from the Primary they still remain on the Secondary. Am I doing something wrong?
+I have a working Autoprimary/Autosecondary setup but when I remove Zones from the Primary they still remain on the Secondary. Am I doing something wrong?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You're not doing anything wrong.
 This is the perfectly normal and expected behavior because the AXFR (DNS Zonetransfer) Protocol does not provide for zone deletion.
