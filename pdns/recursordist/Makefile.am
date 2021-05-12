@@ -416,6 +416,14 @@ pdns_recursor_LDADD += \
 	$(FSTRM_LIBS)
 endif
 
+if HAVE_LIBCURL
+pdns_recursor_SOURCES += minicurl.cc minicurl.hh
+pdns_recursor_LDADD += $(LIBCURL)
+testrunner_SOURCES += minicurl.cc minicurl.hh
+testrunner_LDADD += $(LIBCURL)
+endif
+
+
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
 	dnslabeltext.cc \

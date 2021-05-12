@@ -36,6 +36,8 @@
 #include "syncres.hh"
 #include "dnsseckeeper.hh"
 #include "validate-recursor.hh"
+#include "minicurl.hh"
+#include "zoneparser-tng.hh"
 
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
 thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
@@ -4458,4 +4460,162 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     g_log<<Logger::Warning<<"Failed to update . records, RCODE="<<res<<endl;
 
   return res;
+}
+
+time_t SyncRes::ZonesToCache(const std::map<std::string, std::string>& map)
+{
+  // By default and max once per 24 hours
+  time_t refresh = 24*3600;
+
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  SyncRes sr(now);
+  bool dnssec = g_dnssecmode != DNSSECMode::Off;
+  sr.setDoDNSSEC(dnssec);
+  sr.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
+
+  for (const auto& [zone, url]: map) {
+    const string msg  = "zones-to-cache error while loading " + zone + " from " + url + ": ";
+    try {
+      refresh = min(refresh, sr.ZoneToCache(zone, url, dnssec));
+    }
+    catch (const PDNSException &e) {
+      g_log << Logger::Error << msg << e.reason << endl;
+    }
+    catch (const std::runtime_error &e) {
+      g_log << Logger::Error << msg << e.what() << endl;
+    }
+    catch (...) {
+      g_log << Logger::Error << msg << "unexpected exception" << endl;
+    }
+
+    // We do not want to refresh more than once per hour
+    refresh = max(refresh, 3600LL);
+  }
+
+  return refresh;
+}
+
+time_t SyncRes::ZoneToCache(const string& name, const string& url, bool dnssec)
+{
+  time_t refresh = std::numeric_limits<time_t>::max();
+
+#ifdef HAVE_LIBCURL
+
+  MiniCurl mc;
+  string reply = mc.getURL(url, nullptr, nullptr, 10, false, true);
+  vector<string> lines;
+  std::istringstream stream(reply);
+  string line;
+  while (std::getline(stream, line)) {
+    lines.push_back(line);
+  }
+
+  const DNSName zone(name);
+  DNSResourceRecord drr;
+  DNSName qname;
+  QType qtype;
+  vector<DNSRecord> v;
+  vector<DNSRecord> sigs;
+  vector<shared_ptr<RRSIGRecordContent>> sigsrr;
+  bool first = true;
+  time_t now = time(nullptr);
+  recordsAndSignatures soa;
+  uint32_t last_ttl = 0;
+
+  const string msg  = "zones-to-cache error while loading " + name + " from " + url + ": ";
+  ZoneParserTNG zpt(lines, zone);
+  zpt.setMaxGenerateSteps(0);
+
+  // The code below assumes the records for a name,type tuple are grouped together and followed by their corresponding sigs.
+  // We do not do validation, it will happen on-demand if an Indeterminate record is encountered when the caches are queried
+  while (zpt.get(drr)) {
+    DNSRecord dr(drr);
+    if (first) {
+      qname = dr.d_name;
+      qtype = dr.d_type;
+      first = false;
+    }
+    if (qname != dr.d_name || qtype != dr.d_type) {
+      // We came to a different block
+      if (qname == dr.d_name && dr.d_type == QType::RRSIG) {
+        // same name,, but now collect sigs for it
+        qtype = QType::RRSIG;
+      } else {
+        // done with the previous block of records and corresponding sigs, store them into the caches
+        if (qtype == QType::SOA) {
+          if (soa.records.size() > 0) {
+            g_log << Logger::Error << msg << "can only load zones with a single SOA record ";
+            return refresh;
+          }
+          soa.records = v;
+          if (dnssec) {
+            soa.signatures = sigs;
+          }
+        }
+        switch (qtype) {
+        case QType::NSEC:
+        case QType::NSEC3: {
+          if (soa.records.size() == 0) {
+            g_log << Logger::Error << msg << "SOA record should precede any NSEC/NSEC3 records";
+            return refresh;
+          }
+          NegCache::NegCacheEntry ne;
+          ne.authoritySOA = soa;
+          ne.DNSSECRecords.records = v;
+          ne.DNSSECRecords.signatures = sigs;
+          ne.d_name = qname;
+          ne.d_auth = zone;
+          ne.d_ttd = now + last_ttl;
+          ne.d_qtype = qtype;
+          g_negCache->add(ne);
+
+#if 0 // Do not do this yet, I'm not sure it is correct and it will get fiLled on-demand anyway
+          if (g_aggressiveNSECCache && v.size() > 0) {
+            vState state = validateRecordsWithSigs(0, qname, qtype, qname, qtype, v, sigsrr);
+            if (state == vState::Secure) {
+              g_aggressiveNSECCache->insertNSEC(zone, qname, v.at(0), sigsrr, qtype == QType::NSEC3);
+            }
+          }
+#endif
+          break;
+        }
+        default:
+          if (!dnssec) {
+            sigsrr.clear();
+          }
+          bool auth = qname == zone;
+          if (qtype == QType::DS) {
+            DNSName parent(qname);
+            parent.chopOff();
+            auth = parent.isPartOf(zone);
+          }
+          g_recCache->replace(now, qname, qtype, v, sigsrr,
+                  std::vector<std::shared_ptr<DNSRecord>>(), auth, zone);
+          break;
+        }
+        // And now we're collecting these ones
+        qname = dr.d_name;
+        qtype =  dr.d_type;
+        v.clear();
+        sigs.clear();
+        sigsrr.clear();
+        now = time(nullptr);
+      }
+    }
+    refresh = min(refresh, static_cast<time_t>(dr.d_ttl));
+    last_ttl = dr.d_ttl;
+    dr.d_ttl += now;
+    if (qtype == QType::RRSIG) {
+      auto rrsig = getRR<RRSIGRecordContent>(dr);
+      sigsrr.push_back(rrsig);
+      qtype = rrsig->d_type;
+      sigs.push_back(dr);
+    }  else {
+      v.push_back(dr);
+    }
+  }
+
+#endif
+  return refresh;
 }
