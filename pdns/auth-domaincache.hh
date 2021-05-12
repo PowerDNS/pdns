@@ -35,7 +35,7 @@ public:
 
   void replace(const vector<tuple<DNSName, int>>& domains);
   void add(const DNSName& domain, const int zoneId);
-  void setReplacePending(); //!< call this when data collection for subsequent replace() call starts.
+  void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
   bool getEntry(const DNSName& domain, int& zoneId);
 
