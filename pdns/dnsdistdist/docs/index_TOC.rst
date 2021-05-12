@@ -21,3 +21,4 @@ Table of Contents
    common/security-policy
    glossary
    common/license
+   eol
