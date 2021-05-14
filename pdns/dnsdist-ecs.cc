@@ -583,27 +583,6 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
   assert(qnameWireLength <= packet.size());
 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet.data());
-
-  if (ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || (ntohs(dh->arcount) != 0 && ntohs(dh->arcount) != 1)) {
-    PacketBuffer newContent;
-    newContent.reserve(packet.size());
-
-    if (!slowRewriteQueryWithExistingEDNS(packet, newContent, ednsAdded, ecsAdded, overrideExisting, newECSOption)) {
-      ednsAdded = false;
-      ecsAdded = false;
-      return false;
-    }
-
-    if (newContent.size() > maximumSize) {
-      ednsAdded = false;
-      ecsAdded = false;
-      return false;
-    }
-
-    packet = std::move(newContent);
-    return true;
-  }
-
   uint16_t optRDPosition = 0;
   size_t remaining = 0;
 
@@ -624,6 +603,27 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     }
 
     return addEDNSWithECS(packet, maximumSize, newECSOption, ednsAdded, ecsAdded);
+  } else {
+    /* EDNS is present check if we need to do slow rewrite */
+    if (ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || (ntohs(dh->arcount) != 0 && ntohs(dh->arcount) != 1)) {
+        PacketBuffer newContent;
+        newContent.reserve(packet.size());
+
+        if (!slowRewriteQueryWithExistingEDNS(packet, newContent, ednsAdded, ecsAdded, overrideExisting, newECSOption)) {
+        ednsAdded = false;
+        ecsAdded = false;
+        return false;
+        }
+
+        if (newContent.size() > maximumSize) {
+        ednsAdded = false;
+        ecsAdded = false;
+        return false;
+        }
+
+        packet = std::move(newContent);
+        return true;
+    }
   }
 
   size_t ecsOptionStartPosition = 0;
