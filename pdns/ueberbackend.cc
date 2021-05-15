@@ -366,6 +366,9 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
           g_log << Logger::Info << "Backend returned no SOA for domain '" << shorter.toLogString() << "', which it reported as existing " << endl;
           return false;
         }
+        if (zr.dr.d_name != shorter) {
+          throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+zr.dr.d_name.toLogString()+"' is not equal to looked up zone '"+shorter.toLogString()+"'");
+        }
         sd->qname = zr.dr.d_name;
         fillSOAData(zr, *sd);
         // leave database handle in a consistent state
