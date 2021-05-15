@@ -363,7 +363,8 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DNSZoneRecord zr;
         lookup(QType(QType::SOA), shorter, zoneId, nullptr);
         if (!get(zr)) {
-          throw PDNSException("Backend returned no SOA for existing domain '"+shorter.toLogString()+"'");
+          g_log << Logger::Info << "Backend returned no SOA for domain '" << shorter.toLogString() << "', which it reported as existing " << endl;
+          return false;
         }
         sd->qname = zr.dr.d_name;
         fillSOAData(zr, *sd);
