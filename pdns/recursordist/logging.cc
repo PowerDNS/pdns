@@ -32,23 +32,34 @@ namespace Logging
     return shared_from_this();
   }
 
-  bool Logger::enabled() const
+  bool Logger::enabled(Logr::Priority p) const
   {
-    return _level <= _verbosity;
+    return _level <= _verbosity || p != Logr::Absent;
   }
 
   void Logger::info(const std::string& msg) const
   {
-    logMessage(msg, boost::none);
+    logMessage(msg, Logr::Absent, boost::none);
+  }
+
+  void Logger::info(Logr::Priority p, const std::string& msg) const
+  {
+    logMessage(msg, p, boost::none);
   }
 
   void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
   {
-    if (!enabled()) {
+    return logMessage(msg, Logr::Absent, err);
+  }
+
+  void Logger::logMessage(const std::string& msg, Logr::Priority p, boost::optional<const std::string> err) const
+  {
+    if (!enabled(p)) {
       return ;
     }
     Entry entry;
     entry.level = _level;
+    entry.d_priority = p;
     Utility::gettimeofday(&entry.d_timestamp);
     entry.name = _name;
     entry.message = msg;
@@ -62,14 +73,24 @@ namespace Logging
     _callback(entry);
   }
 
+  void Logger::error(Logr::Priority p, int err, const std::string& msg) const
+  {
+    logMessage(msg, p, std::string(std::strerror(err)));
+  }
+
+  void Logger::error(Logr::Priority p, const std::string& err, const std::string& msg) const
+  {
+    logMessage(msg, p, err);
+  }
+
   void Logger::error(int err, const std::string& msg) const
   {
-    logMessage(msg, std::string(std::strerror(err)));
+    logMessage(msg, Logr::Absent, std::string(std::strerror(err)));
   }
 
   void Logger::error(const std::string& err, const std::string& msg) const
   {
-    logMessage(msg, err);
+    logMessage(msg, Logr::Absent, err);
   }
 
   std::shared_ptr<Logr::Logger> Logger::v(size_t level) const
@@ -88,6 +109,7 @@ namespace Logging
   template struct Loggable<DNSName>;
   template struct Loggable<ComboAddress>;
   template struct Loggable<std::string>;
+  template struct Loggable<size_t>;
 
   template <>
   std::string Loggable<DNSName>::to_string() const {

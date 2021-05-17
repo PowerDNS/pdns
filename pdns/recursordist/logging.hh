@@ -36,12 +36,13 @@ namespace Logging {
 
   struct Entry
   {
-    size_t level;                    // level at which this was logged
     boost::optional<std::string> name;   // name parts joined with '.'
     std::string message;                 // message as send to log call
     boost::optional<std::string> error;  // error if .Error() was called
-    struct timeval d_timestamp;
-    std::map<std::string, std::string> values;
+    struct timeval d_timestamp;          // time of entry generation
+    std::map<std::string, std::string> values; // key-value pairs
+    size_t level;               // level at which this was logged
+    Logr::Priority d_priority;  // (syslog) priority)
   };
 
   template <typename T>
@@ -62,19 +63,22 @@ namespace Logging {
   std::string Loggable<ComboAddress>::to_string() const;
   template <>
   std::string Loggable<std::string>::to_string() const;
-//  template <>
-//  Loggable<std::string>::Loggable(const std::string& v): _t(v) {}
+
+  // Loggable<std::string>::Loggable(const std::string& v): _t(v) {}
 
   typedef void(*EntryLogger)(const Entry&);
 
   class Logger: public Logr::Logger, public std::enable_shared_from_this<const Logger>
   {
   public:
-    bool enabled() const override;
+    bool enabled(Logr::Priority) const override;
 
     void info(const std::string& msg) const override;
+    void info(Logr::Priority, const std::string& msg) const override;
     void error(int err, const std::string& msg) const override;
     void error(const std::string& err, const std::string& msg) const override;
+    void error(Logr::Priority, int err, const std::string& msg) const override;
+    void error(Logr::Priority, const std::string& err, const std::string& msg) const override;
 
     std::shared_ptr<Logr::Logger> v(size_t level) const override;
     std::shared_ptr<Logr::Logger> withValues(const std::map<std::string, std::string>& values) const override;
@@ -92,6 +96,7 @@ namespace Logging {
     void setVerbosity(size_t verbosity);
   private:
     void logMessage(const std::string& msg, boost::optional<const std::string> err) const;
+    void logMessage(const std::string& msg, Logr::Priority p, boost::optional<const std::string> err) const;
     std::shared_ptr<const Logger> getptr() const;
 
     std::shared_ptr<const Logger> _parent{nullptr};

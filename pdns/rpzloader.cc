@@ -187,13 +187,14 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
   }
 }
 
-static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+static shared_ptr<SOARecordContent> loadRPZFromServer(const shared_ptr<Logr::Logger>& plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
 
-  auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName), "primary", Logging::Loggable(primary));
-  logger->info("Loading RPZ from nameserver");
+  auto logger = plogger->withValues("primary", Logging::Loggable(primary));
+  logger->info(Logr::Info, "Loading RPZ from nameserver");
+  logger = logger->v(1);
   if(!tt.name.empty()) {
-    logger->info("Using TSIG key for authentication", "tsig_key_name", Logging::Loggable(tt.name), "tsig_key_algorithm", Logging::Loggable(tt.algo));
+    logger->info(Logr::Info, "Using TSIG key for authentication", "tsig_key_name", Logging::Loggable(tt.name), "tsig_key_algorithm", Logging::Loggable(tt.algo));
   }
 
   ComboAddress local(localAddress);
@@ -228,11 +229,11 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& primar
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
-      logger->info("RPZ load in progress", "nrecords", Logging::Loggable(nrecords));
+      logger->info(Logr::Info, "RPZ load in progress", "nrecords", Logging::Loggable(nrecords));
       last=time(0);
     }
   }
-  logger->info("RPZ load completed", "nrecords", Logging::Loggable(nrecords), "soa", Logging::Loggable(sr->getZoneRepresentation()));
+  logger->info(Logr::Info, "RPZ load completed", "nrecords", Logging::Loggable(nrecords), "soa", Logging::Loggable(sr->getZoneRepresentation()));
   return sr;
 }
 
@@ -306,14 +307,14 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
   stats->d_numberOfRecords = numberOfRecords;
 }
 
-static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
+static bool dumpZoneToDisk(const shared_ptr<Logr::Logger>& plogger, const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
-  auto logger = g_slog->withName("rpz")->withValues("zone", Logging::Loggable(zoneName));
-  logger->v(1)->info("Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));
+  auto logger = plogger->v(1);
+  logger->info("Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));
   std::string temp = dumpZoneFileName + "XXXXXX";
   int fd = mkstemp(&temp.at(0));
   if (fd < 0) {
-    logger->error(errno, "Unable to create temporary file");
+    logger->error(Logr::Warning, errno, "Unable to create temporary file");
     return false;
   }
 
@@ -321,7 +322,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   if (!fp) {
     int err = errno;
     close(fd);
-    logger->error(err, "Unable to open file pointer");
+    logger->error(Logr::Warning, err, "Unable to open file pointer");
     return false;
   }
   fd = -1;
@@ -330,28 +331,27 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
     newZone->dump(fp.get());
   }
   catch(const std::exception& e) {
-    logger->error(e.what(), "Error while dumping the content of the RPZ");
+    logger->error(Logr::Warning, e.what(), "Error while dumping the content of the RPZ");
     return false;
   }
 
   if (fflush(fp.get()) != 0) {
-    logger->error(errno, "Error while flushing the content of the RPZ");
+    logger->error(Logr::Warning, errno, "Error while flushing the content of the RPZ");
     return false;
   }
 
   if (fsync(fileno(fp.get())) != 0) {
-    logger->error(errno, "Error while syncing the content of the RPZ");
+    logger->error(Logr::Warning, errno, "Error while syncing the content of the RPZ");
     return false;
   }
 
   if (fclose(fp.release()) != 0) {
-    logger->error(errno, "Error while writing the content of the RPZ");
+    logger->error(Logr::Warning, errno, "Error while writing the content of the RPZ");
     return false;
   }
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
-    logger
-      ->error(errno, "Error while moving the content of the RPZ", "destination_file", Logging::Loggable(dumpZoneFileName));
+    logger->error(Logr::Warning, errno, "Error while moving the content of the RPZ", "destination_file", Logging::Loggable(dumpZoneFileName));
     return false;
   }
 
@@ -364,10 +364,12 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, boost::optional<
   bool isPreloaded = sr != nullptr;
   auto luaconfsLocal = g_luaconfs.getLocal();
 
+  auto logger = g_slog->withName("rpz")->v(1);
+
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
   std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
   if (!oldZone) {
-    g_log<<Logger::Error<<"Unable to retrieve RPZ zone with index "<<zoneIdx<<" from the configuration, exiting"<<endl;
+    logger->error(Logr::Error, "Unable to retrieve RPZ zone from configuration", "index", Logging::Loggable(zoneIdx));
     return;
   }
 
@@ -376,6 +378,9 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, boost::optional<
   DNSName zoneName = oldZone->getDomain();
   std::string polName = oldZone->getName().empty() ? oldZone->getName() : zoneName.toString();
 
+  // Now that we know the name, set it in the logger
+  logger = logger->withValues("zone", Logging::Loggable(zoneName));
+
   while (!sr) {
     /* if we received an empty sr, the zone was not really preloaded */
 
@@ -383,7 +388,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, boost::optional<
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& primary : primaries) {
       try {
-        sr = loadRPZFromServer(primary, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+        sr = loadRPZFromServer(logger, primary, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
         newZone->setSerial(sr->d_st.serial);
         newZone->setRefresh(sr->d_st.refresh);
         refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 1U);
@@ -394,18 +399,18 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, boost::optional<
           });
 
         if (!dumpZoneFileName.empty()) {
-          dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
+          dumpZoneToDisk(logger, zoneName, newZone, dumpZoneFileName);
         }
 
         /* no need to try another primary */
         break;
       }
       catch(const std::exception& e) {
-        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<primary<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+        logger->info(Logr::Warning, "Unable to load RPZ zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable(e.what()), "refresh", Logging::Loggable(refresh));
         incRPZFailedTransfers(polName);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<primary<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+        logger->info(Logr::Warning, "Unable to load RPZ zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable(e.reason), "refresh", Logging::Loggable(refresh));
         incRPZFailedTransfers(polName);
       }
     }
@@ -540,7 +545,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, boost::optional<
                         });
 
       if (!dumpZoneFileName.empty()) {
-        dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
+        dumpZoneToDisk(logger, zoneName, newZone, dumpZoneFileName);
       }
       refresh = std::max(refreshFromConf ? refreshFromConf : newZone->getRefresh(), 1U);
     }

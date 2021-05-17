@@ -5419,13 +5419,18 @@ static void loggerBackend(const Logging::Entry& entry) {
   if (entry.name) {
     buf << " subsystem=" << std::quoted(entry.name.get());
   }
+  buf << " level=" << entry.level;
+  if (entry.d_priority) {
+    buf << " prio=" << static_cast<int>(entry.d_priority);
+  }
   char timebuf[64];
   buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
   for (auto const& v: entry.values) {
     buf << " ";
     buf << v.first << "=" << std::quoted(v.second);
   }
-  g_log << Logger::Urgency(entry.level) << buf.str() << endl;
+  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  g_log << u << buf.str() << endl;
 }
 
 
