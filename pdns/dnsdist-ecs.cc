@@ -149,7 +149,7 @@ static bool addOrReplaceECSOption(std::vector<std::pair<uint16_t, std::string>>&
   return true;
 }
 
-static bool slowRewriteQueryWithExistingEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
+static bool slowRewriteQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
 {
   assert(initialPacket.size() >= sizeof(dnsheader));
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
@@ -161,8 +161,8 @@ static bool slowRewriteQueryWithExistingEDNS(const PacketBuffer& initialPacket, 
     return false;
   }
 
-  if (ntohs(dh->arcount) == 0) {
-    throw std::runtime_error("slowRewriteQueryWithExistingEDNS() should not be called for queries that have no EDNS");
+  if (ntohs(dh->ancount) == 0 && ntohs(dh->nscount) == 0 && ntohs(dh->arcount) == 0) {
+    throw std::runtime_error("slowRewriteQueryWithRecords() should not be called for queries that have no records");
   }
 
   PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
@@ -588,7 +588,7 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     PacketBuffer newContent;
     newContent.reserve(packet.size());
 
-    if (!slowRewriteQueryWithExistingEDNS(packet, newContent, ednsAdded, ecsAdded, overrideExisting, newECSOption)) {
+    if (!slowRewriteQueryWithRecords(packet, newContent, ednsAdded, ecsAdded, overrideExisting, newECSOption)) {
       ednsAdded = false;
       ecsAdded = false;
       return false;
@@ -611,6 +611,7 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
 
   if (res != 0) {
     /* no EDNS but there might be another record in additional (TSIG?) */
+    /* Careful, this code assumes that ANCOUNT == 0 && NSCOUNT == 0 */
     size_t minimumPacketSize = sizeof(dnsheader) + qnameWireLength + sizeof(uint16_t) + sizeof(uint16_t);
     if (packet.size() > minimumPacketSize) {
       if (ntohs(dh->arcount) == 0) {
