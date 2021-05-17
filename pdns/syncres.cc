@@ -3095,25 +3095,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       LOG(prefix<<qname<<": OPT answer '"<<rec.d_name<<"' from '"<<auth<<"' nameservers" <<endl);
       continue;
     }
+
     LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? ttl="<<rec.d_ttl<<", place="<<(int)rec.d_place<<" ");
-    if(rec.d_type == QType::ANY) {
-      LOG("NO! - we don't accept 'ANY'-typed data"<<endl);
-      continue;
-    }
 
-    if(rec.d_class != QClass::IN) {
-      LOG("NO! - we don't accept records for any other class than 'IN'"<<endl);
-      continue;
-    }
-
-    if (!(lwr.d_aabit || wasForwardRecurse) && rec.d_place == DNSResourceRecord::ANSWER) {
-      /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
-         are sending such responses */
-      if (!(rec.d_type == QType::CNAME && rec.d_name == qname)) {
-        LOG("NO! - we don't accept records in the answers section without the AA bit set"<<endl);
-        continue;
-      }
-    }
+    // We called sanitizeRecords before, so all ANY, non-IN and non-aa/non-forwardrecurse answer records are already removed
 
     if(rec.d_name.isPartOf(auth)) {
       if (rec.d_type == QType::RRSIG) {
