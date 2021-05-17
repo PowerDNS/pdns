@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
