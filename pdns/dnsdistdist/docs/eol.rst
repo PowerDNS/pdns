@@ -14,16 +14,16 @@ End of life statements
      - 
    * - 1.5
      - July 30 2020
-     - 
+     - ~ November 2021
      - 
    * - 1.4
      - November 20 2019
-     - ~ April 2021
-     - 
+     - May 2021
+     - ~ November 2021 
    * - 1.3
      - March 30 2018
-     - 
-     - ~ April 2021
+     - EOL
+     - EOL (May 2021)
    * - 1.2
      - August 21 2017
      - EOL
