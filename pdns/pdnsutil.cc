@@ -135,7 +135,8 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("chroot","Switch to this chroot jail")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
-  ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";
+  ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
+  ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
   ::arg().set("consistent-backends", "Assume individual domains are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups")="yes";
 
   // Keep this line below all ::arg().set() statements

@@ -35,6 +35,7 @@ Their old names still work in 4.5.x, but will be removed in the release after it
 * :ref:`setting-slave-renotify` is now :ref:`setting-secondary-do-renotify`
 * :ref:`setting-slave` is now :ref:`setting-secondary`
 * :ref:`setting-superslave` is now :ref:`setting-autosecondary`
+* :ref:`setting-domain-metadata-cache-ttl` is now :ref:`setting-zone-metadata-ttl`
 
 Changed defaults
 ~~~~~~~~~~~~~~~~

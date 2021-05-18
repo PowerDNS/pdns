@@ -230,7 +230,7 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     d_metaUpdate=false;
   }
 
-  static int ttl = ::arg().asNum("domain-metadata-cache-ttl");
+  static int ttl = ::arg().asNum("zone-metadata-cache-ttl");
 
   if(!((++s_ops) % 100000)) {
     cleanup();

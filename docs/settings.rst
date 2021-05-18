@@ -613,8 +613,8 @@ ADDITIONAL section when sending a referral.
 ``domain-metadata-cache-ttl``
 -----------------------------
 
--  Integer
--  Default: 60
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-zone-metadata-cache-ttl`.
 
 Seconds to cache domain metadata from the database. A value of 0
 disables caching.
@@ -1896,3 +1896,17 @@ means no restriction.
 Seconds to cache a list of all known zones. A value of 0 will disable the cache.
 
 If your backends do not respond to unknown or dynamically generated zones, it is suggested to enable :ref:`setting-consistent-backends` and set this option to `60`.
+
+.. _setting-zone-metadata-cache-ttl:
+
+``zone-metadata-cache-ttl``
+-----------------------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-domain-metadata-cache-ttl` before 4.5.0.
+
+-  Integer
+-  Default: 60
+
+Seconds to cache zone metadata from the database. A value of 0
+disables caching.
