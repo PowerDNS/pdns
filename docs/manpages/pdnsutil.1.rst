@@ -139,11 +139,11 @@ commands require an *ALGORITHM*, the following are available:
 -  hmac-sha384
 -  hmac-sha512
 
-activate-tsig-key *ZONE* *NAME* {**master**,\ **slave**}
+activate-tsig-key *ZONE* *NAME* {**primary**,\ **secondary**}
     Enable TSIG authenticated AXFR using the key *NAME* for zone *ZONE*.
-    This sets the ``TSIG-ALLOW-AXFR`` (master) or ``AXFR-MASTER-TSIG``
-    (slave) zone metadata.
-deactivate-tsig-key *ZONE* *NAME* {**master**,\ **slave**}
+    This sets the ``TSIG-ALLOW-AXFR`` (primary) or ``AXFR-MASTER-TSIG``
+    (secondary) zone metadata.
+deactivate-tsig-key *ZONE* *NAME* {**primary**,\ **secondary**}
     Disable TSIG authenticated AXFR using the key *NAME* for zone
     *ZONE*.
 delete-tsig-key *NAME*
@@ -162,22 +162,22 @@ ZONE MANIPULATION COMMANDS
 add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
     and optional *TTL*. If *TTL* is not set, default will be used. 
-add-supermaster *IP* *NAMESERVER* [*ACCOUNT*]
-    Add a supermaster entry into the backend. This enables receiving zone updates from other servers.
+add-autoprimary *IP* *NAMESERVER* [*ACCOUNT*]
+    Add a autoprimary entry into the backend. This enables receiving zone updates from other servers.
 create-zone *ZONE*
     Create an empty zone named *ZONE*.
-create-slave-zone *ZONE* *MASTER* [*MASTER*]..
-    Create a new slave zone *ZONE* with masters *MASTER*. All *MASTER*\ s
+create-secondary-zone *ZONE* *PRIMARY* [*PRIMARY*]..
+    Create a new secondary zone *ZONE* with primaries *PRIMARY*. All *PRIMARY*\ s
     need to to be space-separated IP addresses with an optional port.
-change-slave-zone-master *ZONE* *MASTER* [*MASTER*]..
-    Change the masters for slave zone *ZONE* to new masters *MASTER*. All
-    *MASTER*\ s need to to be space-separated IP addresses with an optional port.
+change-secondary-zone-primary *ZONE* *PRIMARY* [*PRIMARY*]..
+    Change the primaries for secondary zone *ZONE* to new primaries *PRIMARY*. All
+    *PRIMARY*\ s need to to be space-separated IP addresses with an optional port.
 check-all-zones
     Check all zones for correctness.
 check-zone *ZONE*
     Check zone *ZONE* for correctness.
 clear-zone *ZONE*
-    Clear the records in zone *ZONE*, but leave actual domain and
+    Clear the records in zone *ZONE*, but leave actual zone and
     settings unchanged
 delete-rrset *ZONE* *NAME* *TYPE*
     Delete named RRSET from zone.
@@ -226,7 +226,7 @@ secure-all-zones [**increase-serial**]
     serial of those zones too. You should manually run 'pdnsutil
     rectify-all-zones' afterwards.
 set-kind *ZONE* *KIND*
-    Change the kind of *ZONE* to *KIND* (master, slave, native).
+    Change the kind of *ZONE* to *KIND* (primary, secondary, native).
 set-account *ZONE* *ACCOUNT*
     Change the account (owner) of *ZONE* to *ACCOUNT*.
 add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...
@@ -234,7 +234,7 @@ add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...
     Will return an error if *ATTRIBUTE* does not support multiple values, use
     **set-meta** for these values.
 set-meta *ZONE* *ATTRIBUTE* [*VALUE*]...
-    Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value
+    Set zonemetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value
     clears it.
 set-presigned *ZONE*
     Switches *ZONE* to presigned operation, utilizing in-zone RRSIGs.
@@ -256,7 +256,7 @@ backend-cmd *BACKEND* *CMD* [*CMD..*]
     careful!
 bench-db [*FILE*]
     Perform a benchmark of the backend-database.
-    *FILE* can be a file with a list, one per line, of domain names to use for this.
+    *FILE* can be a file with a list, one per line, of zone names to use for this.
     If *FILE* is not specified, powerdns.com is used.
 
 OTHER TOOLS

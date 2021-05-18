@@ -80,9 +80,9 @@ struct DomainInfo
 
   static DomainKind stringToKind(const string& kind)
   {
-    if(pdns_iequals(kind,"SLAVE"))
+    if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE"))
       return DomainInfo::Slave;
-    else if(pdns_iequals(kind,"MASTER"))
+    else if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER"))
       return DomainInfo::Master;
     else
       return DomainInfo::Native;
