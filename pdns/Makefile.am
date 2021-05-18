@@ -185,9 +185,9 @@ pdns_server_SOURCES = \
 	ascii.hh \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
-	auth-domaincache.cc auth-domaincache.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
+	auth-zonecache.cc auth-zonecache.hh \
 	axfr-retriever.cc axfr-retriever.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
 	backends/gsql/ssql.hh \
@@ -322,9 +322,9 @@ endif
 pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
-	auth-domaincache.cc auth-domaincache.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
+	auth-zonecache.cc auth-zonecache.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
 	backends/gsql/ssql.hh \
 	base32.cc \
@@ -1306,9 +1306,9 @@ pdns.conf-dist: pdns_server
 testrunner_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
-	auth-domaincache.cc auth-domaincache.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
+	auth-zonecache.cc auth-zonecache.hh \
 	base32.cc \
 	base64.cc \
 	bindlexer.l \
@@ -1353,7 +1353,7 @@ testrunner_SOURCES = \
 	stubresolver.hh stubresolver.cc \
 	svc-records.cc svc-records.hh \
 	test-arguments_cc.cc \
-	test-auth-domaincache_cc.cc \
+	test-auth-zonecache_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \

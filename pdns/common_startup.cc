@@ -55,7 +55,7 @@ ArgvMap theArg;
 StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
-AuthDomainCache g_domainCache;
+AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
@@ -181,7 +181,7 @@ void declareArguments()
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("domain-cache-ttl", "Seconds to cache list of known domains") = "0";
+  ::arg().set("zone-cache-refresh-interval", "Seconds to cache list of known zones") = "0";
   ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
@@ -680,23 +680,23 @@ void mainthread()
 
   const uint32_t secpollInterval = 1800;
   uint32_t secpollSince = 0;
-  uint32_t domainCacheUpdateSince = 0;
+  uint32_t zoneCacheUpdateSince = 0;
   for(;;) {
-    const uint32_t sleeptime = g_domainCache.getTTL() == 0 ? secpollInterval : std::min(secpollInterval, g_domainCache.getTTL());
+    const uint32_t sleeptime = g_zoneCache.getRefreshInterval() == 0 ? secpollInterval : std::min(secpollInterval, g_zoneCache.getRefreshInterval());
     sleep(sleeptime);  // if any signals arrive, we might run more often than expected.
 
-    domainCacheUpdateSince += sleeptime;
-    if (domainCacheUpdateSince >= g_domainCache.getTTL()) {
+    zoneCacheUpdateSince += sleeptime;
+    if (zoneCacheUpdateSince >= g_zoneCache.getRefreshInterval()) {
       try {
         UeberBackend B;
-        B.updateDomainCache();
-        domainCacheUpdateSince = 0;
+        B.updateZoneCache();
+        zoneCacheUpdateSince = 0;
       }
       catch(PDNSException &e) {
-        g_log<<Logger::Error<<"PDNSException while updating domain cache: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"PDNSException while updating zone cache: "<<e.reason<<endl;
       }
       catch(std::exception &e) {
-        g_log<<Logger::Error<<"STL Exception while updating domain cache: "<<e.what()<<endl;
+        g_log<<Logger::Error<<"STL Exception while updating zone cache: "<<e.what()<<endl;
       }
     }
 

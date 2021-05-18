@@ -132,7 +132,7 @@ public:
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 
-  void updateDomainCache();
+  void updateZoneCache();
 
   bool inTransaction();
 private:

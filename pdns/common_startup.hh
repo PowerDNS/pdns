@@ -20,9 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "auth-domaincache.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "utility.hh"
 #include "arguments.hh"
 #include "communicator.hh"

@@ -26,7 +26,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "auth-querycache.hh"
-#include "auth-domaincache.hh"
+#include "auth-zonecache.hh"
 #include "utility.hh"
 
 
@@ -130,7 +130,7 @@ bool UeberBackend::createDomain(const DNSName &domain, const DomainInfo::DomainK
     }
   }
   if (success) {
-    g_domainCache.add(domain, zoneId);  // make new domain visible
+    g_zoneCache.add(domain, zoneId);  // make new zone visible
   }
   return success;
 }
@@ -280,23 +280,23 @@ void UeberBackend::reload()
   }
 }
 
-void UeberBackend::updateDomainCache() {
-  if (!g_domainCache.isEnabled()) {
+void UeberBackend::updateZoneCache() {
+  if (!g_zoneCache.isEnabled()) {
     return;
   }
 
-  vector<tuple<DNSName, int>> domain_indices;
-  g_domainCache.setReplacePending();
+  vector<tuple<DNSName, int>> zone_indices;
+  g_zoneCache.setReplacePending();
 
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
   {
-    vector<DomainInfo> domains;
-    (*i)->getAllDomains(&domains, true);
-    for(auto& di: domains) {
-      domain_indices.push_back({std::move(di.zone), (int)di.id});  // this cast should not be necessary
+    vector<DomainInfo> zones;
+    (*i)->getAllDomains(&zones, true);
+    for(auto& di: zones) {
+      zone_indices.push_back({std::move(di.zone), (int)di.id});  // this cast should not be necessary
     }
   }
-  g_domainCache.replace(domain_indices);
+  g_zoneCache.replace(zone_indices);
 }
 
 void UeberBackend::rediscover(string *status)
@@ -309,7 +309,7 @@ void UeberBackend::rediscover(string *status)
       *status+=tmpstr + (i!=backends.begin() ? "\n" : "");
   }
 
-  updateDomainCache();
+  updateZoneCache();
 }
 
 
@@ -355,16 +355,16 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
   do {
     int zoneId{-1};
-    if(cachedOk && g_domainCache.isEnabled()) {
-      if (g_domainCache.getEntry(shorter, zoneId)) {
-        // Zone exists in domain cache, directly look up SOA.
+    if(cachedOk && g_zoneCache.isEnabled()) {
+      if (g_zoneCache.getEntry(shorter, zoneId)) {
+        // Zone exists in zone cache, directly look up SOA.
         // XXX: this code path and the cache lookup below should be merged; but that needs the code path below to also use ANY.
         // Or it should just also use lookup().
         DNSZoneRecord zr;
         lookup(QType(QType::SOA), shorter, zoneId, nullptr);
         if (!get(zr)) {
-          // domain has somehow vanished
-          DLOG(g_log << Logger::Info << "Backend returned no SOA for domain '" << shorter.toLogString() << "', which it reported as existing " << endl);
+          // zone has somehow vanished
+          DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
           continue;
         }
         if (zr.dr.d_name != shorter) {
@@ -377,7 +377,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
           ;
         goto found;
       }
-      // domain does not exist, try again with shorter name
+      // zone does not exist, try again with shorter name
       continue;
     }
 

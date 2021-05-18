@@ -53,7 +53,7 @@
 #include "pdns/misc.hh"
 #include "pdns/dynlistener.hh"
 #include "pdns/lock.hh"
-#include "pdns/auth-domaincache.hh"
+#include "pdns/auth-zonecache.hh"
 
 /* 
    All instances of this backend share one s_state, which is indexed by zone name and zone id.
@@ -704,7 +704,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pi
 
   safePutBBDomainInfo(bbd);
 
-  g_domainCache.add(domainname, bbd.d_id); // make new domain visible
+  g_zoneCache.add(domainname, bbd.d_id); // make new zone visible
 
   g_log << Logger::Warning << "Zone " << domainname << " loaded" << endl;
   return "Loaded zone " + domainname.toLogString() + " from " + filename;

@@ -27,28 +27,28 @@
 #include "lock.hh"
 #include "misc.hh"
 
-class AuthDomainCache : public boost::noncopyable
+class AuthZoneCache : public boost::noncopyable
 {
 public:
-  AuthDomainCache(size_t mapsCount = 1024);
-  ~AuthDomainCache();
+  AuthZoneCache(size_t mapsCount = 1024);
+  ~AuthZoneCache();
 
-  void replace(const vector<tuple<DNSName, int>>& domains);
-  void add(const DNSName& domain, const int zoneId);
+  void replace(const vector<tuple<DNSName, int>>& zone);
+  void add(const DNSName& zone, const int zoneId);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
-  bool getEntry(const DNSName& domain, int& zoneId);
+  bool getEntry(const DNSName& zone, int& zoneId);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
 
-  uint32_t getTTL() const
+  uint32_t getRefreshInterval() const
   {
-    return d_ttl;
+    return d_refreshinterval;
   }
 
-  void setTTL(uint32_t ttl)
+  void setRefreshInterval(uint32_t interval)
   {
-    d_ttl = ttl;
+    d_refreshinterval = interval;
   }
 
   bool isEnabled() const;
@@ -75,9 +75,9 @@ private:
   };
 
   vector<MapCombo> d_maps;
-  size_t getMapIndex(const DNSName& domain)
+  size_t getMapIndex(const DNSName& zone)
   {
-    return domain.hash() % d_maps.size();
+    return zone.hash() % d_maps.size();
   }
   MapCombo& getMap(const DNSName& qname)
   {
@@ -88,11 +88,11 @@ private:
   AtomicCounter* d_statnummiss;
   AtomicCounter* d_statnumentries;
 
-  time_t d_ttl{0};
+  time_t d_refreshinterval{0};
 
   ReadWriteLock d_mut;
   std::vector<tuple<DNSName, int>> d_pendingAdds;
   bool d_replacePending{false};
 };
 
-extern AuthDomainCache g_domainCache;
+extern AuthZoneCache g_zoneCache;

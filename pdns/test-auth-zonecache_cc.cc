@@ -30,64 +30,64 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "auth-domaincache.hh"
+#include "auth-zonecache.hh"
 #include "misc.hh"
 
-BOOST_AUTO_TEST_SUITE(test_auth_domaincache_cc)
+BOOST_AUTO_TEST_SUITE(test_auth_zonecache_cc)
 
 BOOST_AUTO_TEST_CASE(test_replace)
 {
-  AuthDomainCache cache;
-  cache.setTTL(3600);
+  AuthZoneCache cache;
+  cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> domain_indices{
+  vector<tuple<DNSName, int>> zone_indices{
     {DNSName("example.org."), 1},
   };
-  cache.replace(domain_indices);
+  cache.replace(zone_indices);
 
   int zoneId = 0;
   bool found = cache.getEntry(DNSName("example.org."), zoneId);
   if (!found || zoneId != 1) {
-    BOOST_FAIL("domain added in replace() not found");
+    BOOST_FAIL("zone added in replace() not found");
   }
 }
 
 BOOST_AUTO_TEST_CASE(test_add_while_pending_replace)
 {
-  AuthDomainCache cache;
-  cache.setTTL(3600);
+  AuthZoneCache cache;
+  cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> domain_indices{
+  vector<tuple<DNSName, int>> zone_indices{
     {DNSName("powerdns.org."), 1}};
   cache.setReplacePending();
   cache.add(DNSName("example.org."), 2);
-  cache.replace(domain_indices);
+  cache.replace(zone_indices);
 
   int zoneId = 0;
   bool found = cache.getEntry(DNSName("example.org."), zoneId);
   if (!found || zoneId != 2) {
-    BOOST_FAIL("domain added while replace was pending not found");
+    BOOST_FAIL("zone added while replace was pending not found");
   }
 }
 
-// Add domain using .add(), but also in the .replace() data
+// Add zone using .add(), but also in the .replace() data
 BOOST_AUTO_TEST_CASE(test_add_while_pending_replace_duplicate)
 {
-  AuthDomainCache cache;
-  cache.setTTL(3600);
+  AuthZoneCache cache;
+  cache.setRefreshInterval(3600);
 
-  vector<tuple<DNSName, int>> domain_indices{
+  vector<tuple<DNSName, int>> zone_indices{
     {DNSName("powerdns.org."), 1},
     {DNSName("example.org."), 2},
   };
   cache.setReplacePending();
   cache.add(DNSName("example.org."), 3);
-  cache.replace(domain_indices);
+  cache.replace(zone_indices);
 
   int zoneId = 0;
   bool found = cache.getEntry(DNSName("example.org."), zoneId);
   if (!found || zoneId == 0) {
-    BOOST_FAIL("domain added while replace was pending not found");
+    BOOST_FAIL("zone added while replace was pending not found");
   }
   if (zoneId != 3) {
     BOOST_FAIL(string("zoneId got overwritten using replace() data (zoneId=") + std::to_string(zoneId) + ")");

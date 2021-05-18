@@ -39,14 +39,14 @@
 #include "pdns/dnsrecords.hh"
 #include "pdns/json.hh"
 #include "pdns/statbag.hh"
-#include "pdns/auth-domaincache.hh"
 #include "pdns/auth-packetcache.hh"
 #include "pdns/auth-querycache.hh"
+#include "pdns/auth-zonecache.hh"
 
 StatBag S;
-AuthDomainCache g_domainCache;
 AuthPacketCache PC;
 AuthQueryCache QC;
+AuthZoneCache g_zoneCache;
 ArgvMap& arg()
 {
   static ArgvMap arg;

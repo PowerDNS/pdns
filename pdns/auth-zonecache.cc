@@ -23,28 +23,26 @@
 #include "config.h"
 #endif
 
-#include "auth-domaincache.hh"
+#include "auth-zonecache.hh"
 #include "logger.hh"
 #include "statbag.hh"
 #include "arguments.hh"
 #include "cachecleaner.hh"
 extern StatBag S;
 
-AuthDomainCache::AuthDomainCache(size_t mapsCount) :
+AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_maps(mapsCount)
 {
-  S.declare("domain-cache-hit", "Number of domain cache hits");
-  S.declare("domain-cache-miss", "Number of domain cache misses");
-  S.declare("domain-cache-size", "Number of entries in the domain cache", StatType::gauge);
+  S.declare("zone-cache-hit", "Number of zone cache hits");
+  S.declare("zone-cache-miss", "Number of zone cache misses");
+  S.declare("zone-cache-size", "Number of entries in the zone cache", StatType::gauge);
 
-  d_statnumhit = S.getPointer("domain-cache-hit");
-  d_statnummiss = S.getPointer("domain-cache-miss");
-  d_statnumentries = S.getPointer("domain-cache-size");
-
-  d_ttl = 0;
+  d_statnumhit = S.getPointer("zone-cache-hit");
+  d_statnummiss = S.getPointer("zone-cache-miss");
+  d_statnumentries = S.getPointer("zone-cache-size");
 }
 
-AuthDomainCache::~AuthDomainCache()
+AuthZoneCache::~AuthZoneCache()
 {
   try {
     vector<WriteLock> locks;
@@ -57,13 +55,13 @@ AuthDomainCache::~AuthDomainCache()
   }
 }
 
-bool AuthDomainCache::getEntry(const DNSName& domain, int& zoneId)
+bool AuthZoneCache::getEntry(const DNSName& zone, int& zoneId)
 {
-  auto& mc = getMap(domain);
+  auto& mc = getMap(zone);
   bool found = false;
   {
     ReadLock rl(mc.d_mut);
-    auto iter = mc.d_map.find(domain);
+    auto iter = mc.d_map.find(zone);
     if (iter != mc.d_map.end()) {
       found = true;
       zoneId = iter->second.zoneId;
@@ -79,43 +77,43 @@ bool AuthDomainCache::getEntry(const DNSName& domain, int& zoneId)
   return found;
 }
 
-bool AuthDomainCache::isEnabled() const
+bool AuthZoneCache::isEnabled() const
 {
-  return d_ttl > 0;
+  return d_refreshinterval > 0;
 }
 
-void AuthDomainCache::clear()
+void AuthZoneCache::clear()
 {
   purgeLockedCollectionsVector(d_maps);
 }
 
-void AuthDomainCache::replace(const vector<tuple<DNSName, int>>& domain_indices)
+void AuthZoneCache::replace(const vector<tuple<DNSName, int>>& zone_indices)
 {
-  if (!d_ttl)
+  if (!d_refreshinterval)
     return;
 
-  size_t count = domain_indices.size();
+  size_t count = zone_indices.size();
   vector<MapCombo> newMaps(d_maps.size());
 
   // build new maps
-  for (const tuple<DNSName, int>& tup : domain_indices) {
-    const DNSName& domain = tup.get<0>();
+  for (const tuple<DNSName, int>& tup : zone_indices) {
+    const DNSName& zone = tup.get<0>();
     CacheValue val;
     val.zoneId = tup.get<1>();
-    auto& mc = newMaps[getMapIndex(domain)];
-    mc.d_map.emplace(domain, val);
+    auto& mc = newMaps[getMapIndex(zone)];
+    mc.d_map.emplace(zone, val);
   }
 
   {
     WriteLock globalLock(d_mut);
     if (d_replacePending) {
-      // add/replace all domains created while data collection for replace() was already in progress.
+      // add/replace all zones created while data collection for replace() was already in progress.
       for (const tuple<DNSName, int>& tup : d_pendingAdds) {
-        const DNSName& domain = tup.get<0>();
+        const DNSName& zone = tup.get<0>();
         CacheValue val;
         val.zoneId = tup.get<1>();
-        auto& mc = newMaps[getMapIndex(domain)];
-        mc.d_map[domain] = val;
+        auto& mc = newMaps[getMapIndex(zone)];
+        mc.d_map[zone] = val;
       }
     }
 
@@ -132,32 +130,32 @@ void AuthDomainCache::replace(const vector<tuple<DNSName, int>>& domain_indices)
   d_statnumentries->store(count);
 }
 
-void AuthDomainCache::add(const DNSName& domain, const int zoneId)
+void AuthZoneCache::add(const DNSName& zone, const int zoneId)
 {
-  if (!d_ttl)
+  if (!d_refreshinterval)
     return;
 
   {
     WriteLock globalLock(d_mut);
     if (d_replacePending) {
-      d_pendingAdds.push_back({domain, zoneId});
+      d_pendingAdds.push_back({zone, zoneId});
     }
   }
 
   CacheValue val;
   val.zoneId = zoneId;
 
-  int mapIndex = getMapIndex(domain);
+  int mapIndex = getMapIndex(zone);
   {
     auto& mc = d_maps[mapIndex];
     WriteLock mcLock(mc.d_mut);
-    mc.d_map.emplace(domain, val);
+    mc.d_map.emplace(zone, val);
   }
 }
 
-void AuthDomainCache::setReplacePending()
+void AuthZoneCache::setReplacePending()
 {
-  if (!d_ttl)
+  if (!d_refreshinterval)
     return;
 
   {

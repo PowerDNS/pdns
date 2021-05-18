@@ -50,7 +50,7 @@ gsql_master()
         --config-name=$backend --socket-dir=./ --no-shuffle \
         --dnsupdate=yes --resolver=$RESOLVERIP --outgoing-axfr-expand-alias=yes \
         --expand-alias=yes \
-        --cache-ttl=$cachettl --domain-cache-ttl=$cachettl --dname-processing \
+        --cache-ttl=$cachettl --zone-cache-refresh-interval=$cachettl --dname-processing \
         --disable-axfr-rectify=yes $lua_prequery &
 
     if [ $context = ${backend}-nsec3 ]

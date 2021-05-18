@@ -16,8 +16,8 @@
 #include <boost/multi_index/key_extractors.hpp>
 
 #include "arguments.hh"
-#include "auth-domaincache.hh"
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "ueberbackend.hh"
 
 class SimpleBackend : public DNSBackend
@@ -338,8 +338,8 @@ struct UeberBackendSetupArgFixture {
     ::arg().set("negquery-cache-ttl")="0";
     ::arg().set("consistent-backends")="no";
     QC.cleanup();
-    ::arg().set("domain-cache-ttl")="0";
-    g_domainCache.clear();
+    ::arg().set("zone-cache-refresh-interval")="0";
+    g_zoneCache.clear();
     BackendMakers().clear();
     SimpleBackend::s_zones.clear();
     SimpleBackend::s_metadata.clear();
@@ -355,9 +355,9 @@ static void testWithoutThenWithAuthCache(std::function<void(UeberBackend& ub)> f
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
     QC.cleanup();
-    /* keep domain cache disabled */
-    ::arg().set("domain-cache-ttl")="0";
-    g_domainCache.clear();
+    /* keep zone cache disabled */
+    ::arg().set("zone-cache-refresh-interval")="0";
+    g_zoneCache.clear();
 
     UeberBackend ub;
     func(ub);
@@ -368,9 +368,9 @@ static void testWithoutThenWithAuthCache(std::function<void(UeberBackend& ub)> f
     ::arg().set("query-cache-ttl")="20";
     ::arg().set("negquery-cache-ttl")="60";
     QC.cleanup();
-    /* keep domain cache disabled */
-    ::arg().set("domain-cache-ttl")="0";
-    g_domainCache.clear();
+    /* keep zone cache disabled */
+    ::arg().set("zone-cache-refresh-interval")="0";
+    g_zoneCache.clear();
 
     UeberBackend ub;
     /* a first time to fill the cache */
@@ -380,14 +380,14 @@ static void testWithoutThenWithAuthCache(std::function<void(UeberBackend& ub)> f
   }
 }
 
-static void testWithoutThenWithDomainCache(std::function<void(UeberBackend& ub)> func)
+static void testWithoutThenWithZoneCache(std::function<void(UeberBackend& ub)> func)
 {
   extern AuthQueryCache QC;
 
   {
-    /* disable domain cache */
-    ::arg().set("domain-cache-ttl")="0";
-    g_domainCache.clear();
+    /* disable zone cache */
+    ::arg().set("zone-cache-refresh-interval")="0";
+    g_zoneCache.clear();
     /* keep auth caches disabled */
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
@@ -398,16 +398,16 @@ static void testWithoutThenWithDomainCache(std::function<void(UeberBackend& ub)>
   }
 
   {
-    /* enable domain cache */
-    ::arg().set("domain-cache-ttl")="0";
-    g_domainCache.clear();
+    /* enable zone cache */
+    ::arg().set("zone-cache-refresh-interval")="0";
+    g_zoneCache.clear();
     /* keep auth caches disabled */
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
     QC.cleanup();
 
     UeberBackend ub;
-    ub.updateDomainCache();
+    ub.updateZoneCache();
     /* a first time to fill the cache */
     func(ub);
     /* a second time to make sure every call has been tried with the cache filled */
@@ -535,7 +535,7 @@ BOOST_AUTO_TEST_CASE(test_simple) {
 
     };
     testWithoutThenWithAuthCache(testFunction);
-    testWithoutThenWithDomainCache(testFunction);
+    testWithoutThenWithZoneCache(testFunction);
   }
   catch(const PDNSException& e) {
     cerr<<e.reason<<endl;
@@ -682,7 +682,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_separate_zones) {
 
     };
     testWithoutThenWithAuthCache(testFunction);
-    testWithoutThenWithDomainCache(testFunction);
+    testWithoutThenWithZoneCache(testFunction);
   }
   catch(const PDNSException& e) {
     cerr<<e.reason<<endl;
@@ -808,7 +808,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_overlay) {
 
     };
     testWithoutThenWithAuthCache(testFunction);
-    testWithoutThenWithDomainCache(testFunction);
+    testWithoutThenWithZoneCache(testFunction);
   }
   catch(const PDNSException& e) {
     cerr<<e.reason<<endl;
@@ -931,7 +931,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_overlay_name) {
 
     };
     testWithoutThenWithAuthCache(testFunction);
-    testWithoutThenWithDomainCache(testFunction);
+    testWithoutThenWithZoneCache(testFunction);
   }
   catch(const PDNSException& e) {
     cerr<<e.reason<<endl;
@@ -1009,7 +1009,7 @@ BOOST_AUTO_TEST_CASE(test_child_zone) {
 
     };
     testWithoutThenWithAuthCache(testFunction);
-    testWithoutThenWithDomainCache(testFunction);
+    testWithoutThenWithZoneCache(testFunction);
   }
   catch(const PDNSException& e) {
     cerr<<e.reason<<endl;
@@ -1061,7 +1061,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_best_soa) {
 
     };
     testWithoutThenWithAuthCache(testFunction);
-    testWithoutThenWithDomainCache(testFunction);
+    testWithoutThenWithZoneCache(testFunction);
   }
   catch(const PDNSException& e) {
     cerr<<e.reason<<endl;

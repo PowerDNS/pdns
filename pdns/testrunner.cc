@@ -5,14 +5,14 @@
 #endif
 #include <boost/test/unit_test.hpp>
 #include "arguments.hh"
-#include "auth-domaincache.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "statbag.hh"
 StatBag S;
-AuthDomainCache g_domainCache;
 AuthPacketCache PC;
 AuthQueryCache QC;
+AuthZoneCache g_zoneCache;
 
 ArgvMap &arg()
 {

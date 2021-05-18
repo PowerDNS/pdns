@@ -171,18 +171,6 @@ Maximum time in seconds for inbound AXFR to start or be idle after starting.
 
 Also AXFR a zone from a master with a lower serial.
 
-.. _setting-domain-cache-ttl:
-
-``domain-cache-ttl``
---------------------
-
--  Integer
--  Default: 0
-
-Seconds to cache a list of all known domains. A value of 0 will disable the cache.
-
-If your backends do not respond to unknown domains, it is suggested to enable :ref:`setting-consistent-backends` and set this option to `60`.
-
 .. _setting-cache-ttl:
 
 ``cache-ttl``
@@ -1894,3 +1882,15 @@ checking for updates to zones.
 Specifies the maximum number of received megabytes allowed on an
 incoming AXFR/IXFR update, to prevent resource exhaustion. A value of 0
 means no restriction.
+
+.. _setting-zone-cache-refresh-interval:
+
+``zone-cache-refresh-interval``
+-------------------------------
+
+-  Integer
+-  Default: 0
+
+Seconds to cache a list of all known zones. A value of 0 will disable the cache.
+
+If your backends do not respond to unknown or dynamically generated zones, it is suggested to enable :ref:`setting-consistent-backends` and set this option to `60`.

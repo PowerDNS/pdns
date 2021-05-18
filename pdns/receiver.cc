@@ -624,10 +624,10 @@ int main(int argc, char **argv)
       }
     }
 
-    g_domainCache.setTTL(::arg().asNum("domain-cache-ttl"));
+    g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
     {
       UeberBackend B;
-      B.updateDomainCache();
+      B.updateZoneCache();
     }
 
     UeberBackend::go();
