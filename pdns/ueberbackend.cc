@@ -363,8 +363,9 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DNSZoneRecord zr;
         lookup(QType(QType::SOA), shorter, zoneId, nullptr);
         if (!get(zr)) {
-          g_log << Logger::Info << "Backend returned no SOA for domain '" << shorter.toLogString() << "', which it reported as existing " << endl;
-          return false;
+          // domain has somehow vanished
+          DLOG(g_log << Logger::Info << "Backend returned no SOA for domain '" << shorter.toLogString() << "', which it reported as existing " << endl);
+          continue;
         }
         if (zr.dr.d_name != shorter) {
           throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+zr.dr.d_name.toLogString()+"' is not equal to looked up zone '"+shorter.toLogString()+"'");
