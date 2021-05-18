@@ -1337,7 +1337,7 @@ static void sendNODLookup(const DNSName& dname)
       return;
     }
     vector<DNSRecord> dummy;
-    directResolve(qname, qt, qc, dummy);
+    directResolve(qname, qt, qc, dummy, false);
   }
 }
 
