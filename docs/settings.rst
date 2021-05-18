@@ -291,7 +291,7 @@ Name of this virtual configuration - will rename the binary image. See
 -----------------------
 
 -  Boolean
--  Default: no
+-  Default: yes
 
 .. versionadded:: 4.4.0
 
@@ -299,7 +299,9 @@ When this is set, PowerDNS assumes that any single domain lives in only one back
 This allows PowerDNS to send ANY lookups to its backends, instead of sometimes requesting the exact needed type.
 This reduces the load on backends by retrieving all the types for a given name at once, adding all of them to the cache.
 It improves performance significantly for latency-sensitive backends, like SQL ones, where a round-trip takes serious time.
-This behaviour will be enabled by default in a future release.
+
+.. note::
+  Pre 4.5.0 the default was no.
 
 .. _setting-control-console:
 
