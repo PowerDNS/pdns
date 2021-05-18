@@ -477,7 +477,7 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
         default:
           while (B.get(rr)) ;              // don't leave DB handle in bad state
 
-          throw PDNSException("Unknown type (" + QType(qtype).getName() + ") for additional service processing");
+          throw PDNSException("Unknown type (" + QType(qtype).toString() + ") for additional service processing");
       }
     }
     ctr--;
@@ -1335,7 +1335,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       return r; 
     }
 
-    // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.getName()<<" from "<<p.getRemote()<< " (tcp="<<p.d_tcp<<")"<<endl;
+    // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemote()<< " (tcp="<<p.d_tcp<<")"<<endl;
     
     if(p.qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::Refused);
@@ -1503,7 +1503,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       if (rr.dr.d_type == QType::RRSIG) // RRSIGS are added later any way.
         continue; // TODO: this actually means addRRSig should check if the RRSig is already there
 
-      // cerr<<"Auth: "<<rr.auth<<", "<<(rr.dr.d_type == p.qtype)<<", "<<rr.dr.d_type.getName()<<endl;
+      // cerr<<"Auth: "<<rr.auth<<", "<<(rr.dr.d_type == p.qtype)<<", "<<rr.dr.d_type.toString()<<endl;
       if((p.qtype.getCode() == QType::ANY || rr.dr.d_type == p.qtype.getCode()) && rr.auth) 
         weDone=true;
       // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
@@ -1688,7 +1688,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     throw; // we WANT to die at this point
   }
   catch(const std::exception &e) {
-    g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
+    g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
     r=p.replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");

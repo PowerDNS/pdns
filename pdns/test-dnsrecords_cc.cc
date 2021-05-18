@@ -268,12 +268,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
-   if (q.getCode() != QType::TSIG && q.getCode() != 65226) BOOST_CHECK_MESSAGE(QType::names.find(q.getName()) != QType::names.end(), "qtype " << q.getName() << " not registered in QType::names");
+   if (q.getCode() != QType::TSIG && q.getCode() != 65226) BOOST_CHECK_MESSAGE(QType::names.find(q.toString()) != QType::names.end(), "qtype " << q.toString() << " not registered in QType::names");
    BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that qtype " << q.getCode() << " is before " << lq);
    lq = q.getCode();
    n++;
-   BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
-   BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
+   BOOST_TEST_CHECKPOINT("Checking record type " << q.toString() << " test #" << n);
+   BOOST_TEST_MESSAGE("Checking record type " << q.toString() << " test #" << n);
    try {
       std::string recData;
       auto rec = DNSRecordContent::mastermake(q.getCode(), 1, inval);
@@ -306,10 +306,10 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = makeHexDump(recData);
       REC_CHECK_EQUAL(recData, cmpData);
    } catch (std::runtime_error &err) {
-      REC_CHECK_MESSAGE(false, q.getName() << ": " << err.what());
+      REC_CHECK_MESSAGE(false, q.toString() << ": " << err.what());
       continue;
    }
-   REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed")
+   REC_FAIL_XSUCCESS(q.toString() << " test #" << n << " has unexpectedly passed")
  }
 }
 
@@ -365,8 +365,8 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     if (lq != q.getCode()) n = 0;
     lq = q.getCode();
     n++;
-    BOOST_TEST_CHECKPOINT("Checking bad value for record type " << q.getName() << " test #" << n);
-    BOOST_TEST_MESSAGE("Checking bad value for record type " << q.getName() << " test #" << n);
+    BOOST_TEST_CHECKPOINT("Checking bad value for record type " << q.toString() << " test #" << n);
+    BOOST_TEST_MESSAGE("Checking bad value for record type " << q.toString() << " test #" << n);
 
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
         },
         std::exception, test_dnsrecords_cc_predicate
       );
-      if (success) REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
+      if (success) REC_FAIL_XSUCCESS(q.toString() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
       BOOST_CHECK_EXCEPTION(
         {

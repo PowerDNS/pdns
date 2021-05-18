@@ -304,7 +304,7 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
   } else if(d_dnsnameqtyperings.count(name)) {
     auto raw = d_dnsnameqtyperings[name].get();
     for (auto const &e : raw) {
-      ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).getName(), e.second));
+      ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).toString(), e.second));
     }
   }
   return ret;

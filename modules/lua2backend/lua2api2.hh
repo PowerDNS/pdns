@@ -169,7 +169,7 @@ public:
         else
           g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl;
       }
-      logResult(rec.qname << " IN " << rec.qtype.getName() << " " << rec.ttl << " " << rec.getZoneRepresentation());
+      logResult(rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation());
       d_result.push_back(rec);
     }
     if (d_result.empty() && d_debug_log)
@@ -208,7 +208,7 @@ public:
       ctx.emplace_back(lookup_context_t::value_type{"real_source_address", p->getRealRemote().toString()});
     }
 
-    logCall("lookup", "qtype=" << qtype.getName() << ",qname=" << qname << ",domain_id=" << domain_id);
+    logCall("lookup", "qtype=" << qtype.toString() << ",qname=" << qname << ",domain_id=" << domain_id);
     lookup_result_t result = f_lookup(qtype, qname, domain_id, ctx);
     parseLookup(result);
   }

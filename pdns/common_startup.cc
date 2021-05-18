@@ -470,7 +470,7 @@ try
         remote = question.getRemote().toString() + "<-" + question.getRealRemote().toString();
       else
         remote = question.getRemote().toString();
-      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.getName() << 
+      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.toString() << 
         "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
       if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
         g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";

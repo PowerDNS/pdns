@@ -208,7 +208,7 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
 
   Json query = Json::object{
     {"method", "lookup"},
-    {"parameters", Json::object{{"qtype", qtype.getName()}, {"qname", qdomain.toString()}, {"remote", remoteIP}, {"local", localIP}, {"real-remote", realRemote}, {"zone-id", zoneId}}}};
+    {"parameters", Json::object{{"qtype", qtype.toString()}, {"qname", qdomain.toString()}, {"remote", remoteIP}, {"local", localIP}, {"real-remote", realRemote}, {"zone-id", zoneId}}}};
 
   if (this->send(query) == false || this->recv(d_result) == false) {
     return;
@@ -634,7 +634,7 @@ bool RemoteBackend::superMasterBackend(const string& ip, const DNSName& domain, 
 
   for (const auto& ns : nsset) {
     rrset.push_back(Json::object{
-      {"qtype", ns.qtype.getName()},
+      {"qtype", ns.qtype.toString()},
       {"qname", ns.qname.toString()},
       {"qclass", QClass::IN.getCode()},
       {"content", ns.content},
@@ -686,7 +686,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const
   Json::array json_rrset;
   for (const auto& rr : rrset) {
     json_rrset.push_back(Json::object{
-      {"qtype", rr.qtype.getName()},
+      {"qtype", rr.qtype.toString()},
       {"qname", rr.qname.toString()},
       {"qclass", QClass::IN.getCode()},
       {"content", rr.content},
@@ -696,7 +696,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const
 
   Json query = Json::object{
     {"method", "replaceRRSet"},
-    {"parameters", Json::object{{"domain_id", static_cast<double>(domain_id)}, {"qname", qname.toString()}, {"qtype", qtype.getName()}, {"trxid", static_cast<double>(d_trxid)}, {"rrset", json_rrset}}}};
+    {"parameters", Json::object{{"domain_id", static_cast<double>(domain_id)}, {"qname", qname.toString()}, {"qtype", qtype.toString()}, {"trxid", static_cast<double>(d_trxid)}, {"rrset", json_rrset}}}};
 
   Json answer;
   if (this->send(query) == false || this->recv(answer) == false)
@@ -710,7 +710,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& order
   Json query = Json::object{
     {"method", "feedRecord"},
     {"parameters", Json::object{
-                     {"rr", Json::object{{"qtype", rr.qtype.getName()}, {"qname", rr.qname.toString()}, {"qclass", QClass::IN.getCode()}, {"content", rr.content}, {"ttl", static_cast<int>(rr.ttl)}, {"auth", rr.auth}, {"ordername", (ordername.empty() ? Json() : ordername.toString())}}},
+                     {"rr", Json::object{{"qtype", rr.qtype.toString()}, {"qname", rr.qname.toString()}, {"qclass", QClass::IN.getCode()}, {"content", rr.content}, {"ttl", static_cast<int>(rr.ttl)}, {"auth", rr.auth}, {"ordername", (ordername.empty() ? Json() : ordername.toString())}}},
                      {"trxid", static_cast<double>(d_trxid)},
                    }}};
 

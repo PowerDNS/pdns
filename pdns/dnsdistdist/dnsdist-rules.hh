@@ -635,7 +635,7 @@ public:
   string toString() const override
   {
     QType qt(d_qtype);
-    return "qtype=="+qt.getName();
+    return "qtype=="+qt.toString();
   }
 private:
   uint16_t d_qtype;
@@ -828,7 +828,7 @@ public:
       section = "AR";
       break;
     }
-    return std::to_string(d_minCount) + " <= " + QType(d_type).getName() + " records in " + section + " <= "+ std::to_string(d_maxCount);
+    return std::to_string(d_minCount) + " <= " + QType(d_type).toString() + " records in " + section + " <= "+ std::to_string(d_maxCount);
   }
 private:
   uint16_t d_type;

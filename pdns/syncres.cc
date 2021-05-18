@@ -705,7 +705,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType qtype, vector<DNSRecord
   // moves to three labels per iteration after three iterations.
 
   DNSName child;
-  prefix.append(string("QM ") + qname.toString() + "|" + qtype.getName());
+  prefix.append(string("QM ") + qname.toString() + "|" + qtype.toString());
 
   QLOG("doResolve");
 
@@ -850,7 +850,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     prefix.append(depth, ' ');
   }
 
-  LOG(prefix<<qname<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, "<<(d_requireAuthData ? "" : "NO ")<<"auth data in query for "<<qtype.getName()<<endl);
+  LOG(prefix<<qname<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, "<<(d_requireAuthData ? "" : "NO ")<<"auth data in query for "<<qtype.toString()<<endl);
 
   if (s_maxdepth && depth > s_maxdepth) {
     string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
@@ -863,7 +863,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
   if(!(d_updatingRootNS && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
-      LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
+      LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.toString()<<"', peeking at auth/forward zones"<<endl);
       DNSName authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
       if(iter != t_sstorage.domainmap->end()) {
@@ -1007,7 +1007,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     return 0;
   }
 
-  LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl);
+  LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.toString()<<"', trying to find an appropriate NS record"<<endl);
 
   DNSName subdomain(qname);
   if (qtype == QType::DS) subdomain.chopOff();
@@ -1456,7 +1456,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
   if (qtype == QType::DS && authZone == qname) {
     /* CNAME at APEX of the child zone, we can't use that to prove that
        there is no DS */
-    LOG(prefix<<qname<<": Found a "<<foundQT.getName()<<" cache hit of '"<< qname <<"' from "<<authZone<<", but such a record at the apex of the child zone does not prove that there is no DS in the parent zone"<<endl);
+    LOG(prefix<<qname<<": Found a "<<foundQT.toString()<<" cache hit of '"<< qname <<"' from "<<authZone<<", but such a record at the apex of the child zone does not prove that there is no DS in the parent zone"<<endl);
     return false;
   }
 
@@ -1472,10 +1472,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
 
         vState recordState = getValidationStatus(foundName, !signatures.empty(), qtype == QType::DS, depth);
         if (recordState == vState::Secure) {
-          LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.getName()<<" cache, validating.."<<endl);
+          LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.toString()<<" cache, validating.."<<endl);
           state = SyncRes::validateRecordsWithSigs(depth, qname, qtype, foundName, foundQT, cset, signatures);
           if (state != vState::Indeterminate) {
-            LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.getName()<<" cache, new validation result is "<<state<<endl);
+            LOG(prefix<<qname<<": got vState::Indeterminate state from the "<<foundQT.toString()<<" cache, new validation result is "<<state<<endl);
             if (vStateIsBogus(state)) {
               capTTL = s_maxbogusttl;
             }
@@ -1484,7 +1484,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType qtype, vector<
         }
       }
 
-      LOG(prefix<<qname<<": Found cache "<<foundQT.getName()<<" hit for '"<< foundName << "|"<<foundQT.getName()<<"' to '"<<record.d_content->getZoneRepresentation()<<"', validation state is "<<state<<endl);
+      LOG(prefix<<qname<<": Found cache "<<foundQT.toString()<<" hit for '"<< foundName << "|"<<foundQT.toString()<<"' to '"<<record.d_content->getZoneRepresentation()<<"', validation state is "<<state<<endl);
 
       DNSRecord dr = record;
       dr.d_ttl -= d_now.tv_sec;
@@ -1724,7 +1724,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   DNSName sqname(qname);
   QType sqt(qtype);
   uint32_t sttl=0;
-  //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
+  //  cout<<"Lookup for '"<<qname<<"|"<<qtype.toString()<<"' -> "<<getLastLabel(qname)<<endl;
   vState cachedState;
   NegCache::NegCacheEntry ne;
 
@@ -1748,7 +1748,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       giveNegative = true;
       cachedState = ne.d_validationState;
       if (ne.d_qtype.getCode()) {
-        LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        LOG(prefix<<qname<<": "<<qtype.toString()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
         res = RCode::NoError;
       } else {
         LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
@@ -1816,7 +1816,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
   if(g_recCache->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_refresh, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
-    LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
+    LOG(prefix<<sqname<<": Found cache hit for "<<sqt.toString()<<": ");
 
     if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == vState::Indeterminate && d_requireAuthData) {
 
@@ -2163,7 +2163,7 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
   }
 
   if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
-    LOG(prefix << qname << "|" << qtype.getName() << d_appliedPolicy.getLogString() << endl);
+    LOG(prefix << qname << "|" << qtype.toString() << d_appliedPolicy.getLogString() << endl);
   }
 
   switch (d_appliedPolicy.d_kind) {
@@ -2344,7 +2344,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     return true;
   }
   else if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()))) {
-    LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype.getName()<<endl);
+    LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype.toString()<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
   }
@@ -2821,7 +2821,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     recordcontents.insert(record.d_content);
   }
 
-  LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<"|"<<type.getName()<<endl);
+  LOG(d_prefix<<"Going to validate "<<recordcontents.size()<< " record contents with "<<signatures.size()<<" sigs and "<<keys.size()<<" keys for "<<name<<"|"<<type.toString()<<endl);
   vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, false);
   if (state == vState::Secure) {
     LOG(d_prefix<<"Secure!"<<endl);
@@ -3265,7 +3265,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
           recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
         }
         else {
-          LOG(d_prefix<<"Validating non-additional "<<QType(i->first.type).getName()<<" record for "<<i->first.name<<endl);
+          LOG(d_prefix<<"Validating non-additional "<<QType(i->first.type).toString()<<" record for "<<i->first.name<<endl);
           recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, QType(i->first.type), i->second.records, i->second.signatures);
         }
       }
@@ -3658,7 +3658,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
     else if (!done && rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
             lwr.d_rcode == RCode::NoError && qname.isPartOf(rec.d_name)) {
-      LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype.getName()<<"'"<<endl);
+      LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype.toString()<<"'"<<endl);
 
       if (!newtarget.empty()) {
         LOG(prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl);
@@ -3730,7 +3730,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   if(s_maxtotusec && d_totUsec > s_maxtotusec) {
-    throw ImmediateServFailException("Too much time waiting for "+qname.toLogString()+"|"+qtype.getName()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries) + ", queries: "+std::to_string(d_outqueries)+", "+std::to_string(d_totUsec/1000)+"msec");
+    throw ImmediateServFailException("Too much time waiting for "+qname.toLogString()+"|"+qtype.toString()+", timeouts: "+std::to_string(d_timeouts) +", throttles: "+std::to_string(d_throttledqueries) + ", queries: "+std::to_string(d_outqueries)+", "+std::to_string(d_totUsec/1000)+"msec");
   }
 
   if(doTCP) {
@@ -4218,7 +4218,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
 
         for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
-          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
+          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.toString()<<"'"<<endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
             continue;
