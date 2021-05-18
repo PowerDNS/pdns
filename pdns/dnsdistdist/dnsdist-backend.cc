@@ -186,3 +186,11 @@ DownstreamState::~DownstreamState()
     tid.detach();
   }
 }
+
+void DownstreamState::incCurrentConnectionsCount()
+{
+  auto currentConnectionsCount = ++tcpCurrentConnections;
+  if (currentConnectionsCount > tcpMaxConcurrentConnections) {
+    tcpMaxConcurrentConnections.store(currentConnectionsCount);
+  }
+}
