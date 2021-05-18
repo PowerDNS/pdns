@@ -137,7 +137,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
   ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
-  ::arg().set("consistent-backends", "Assume individual domains are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups")="yes";
+  ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname.c_str()))
@@ -190,7 +190,7 @@ static void dbBench(const std::string& fname)
   if(!fname.empty()) {
     ifstream ifs(fname.c_str());
     if(!ifs) {
-      cerr<<"Could not open '"<<fname<<"' for reading domain names to query"<<endl;
+      cerr << "Could not open '" << fname << "' for reading zone names to query" << endl;
     }
     string line;
     while(getline(ifs,line)) {
@@ -251,7 +251,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   DomainInfo di;
   try {
     if (!B.getDomainInfo(zone, di)) {
-      cout<<"[Error] Unable to get domain information for zone '"<<zone<<"'"<<endl;
+      cout << "[Error] Unable to get zone information for zone '" << zone << "'" << endl;
       return 1;
     }
   } catch(const PDNSException &e) {
@@ -860,7 +860,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 
     auto seenId = seenIds.find(di.id);
     if (seenId != seenIds.end()) {
-      cout<<"[Error] Domain ID "<<di.id<<" of '"<<di.zone<<"' in backend "<<di.backend->getPrefix()<<" has already been used by zone '"<<seenId->zone<<"' in backend "<<seenId->backend->getPrefix()<<"."<<endl;
+      cout << "[Error] Zone ID " << di.id << " of '" << di.zone << "' in backend " << di.backend->getPrefix() << " has already been used by zone '" << seenId->zone << "' in backend " << seenId->backend->getPrefix() << "." << endl;
       errors++;
     }
 
@@ -929,7 +929,7 @@ static int deleteZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
   if (! B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' not found!"<<endl;
+    cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
 
@@ -946,7 +946,8 @@ static int deleteZone(const DNSName &zone) {
 
   di.backend->abortTransaction();
 
-  cerr<<"Failed to delete domain '"<<zone<<"'"<<endl;;
+  cerr << "Failed to delete zone '" << zone << "'" << endl;
+  ;
   return EXIT_FAILURE;
 }
 
@@ -1044,7 +1045,7 @@ static int listZone(const DNSName &zone) {
   DomainInfo di;
 
   if (! B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' not found!"<<endl;
+    cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
   di.backend->list(zone, di.id);
@@ -1097,7 +1098,7 @@ static int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   DomainInfo di;
 
   if (! B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' not found!"<<endl;
+    cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
   if(!di.backend->startTransaction(zone, di.id)) {
@@ -1114,7 +1115,7 @@ static int editZone(const DNSName &zone) {
   DNSSECKeeper dk(&B);
 
   if (! B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' not found!"<<endl;
+    cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
   vector<DNSRecord> pre, post;
@@ -1336,14 +1337,14 @@ static int loadZone(const DNSName& zone, const string& fname) {
   DomainInfo di;
 
   if (B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' exists already, replacing contents"<<endl;
+    cerr << "Zone '" << zone << "' exists already, replacing contents" << endl;
   }
   else {
     cerr<<"Creating '"<<zone<<"'"<<endl;
     B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
 
     if(!B.getDomainInfo(zone, di)) {
-      cerr<<"Domain '"<<zone<<"' was not created - perhaps backend ("<<::arg()["launch"]<<") does not support storing new zones."<<endl;
+      cerr << "Zone '" << zone << "' was not created - perhaps backend (" << ::arg()["launch"] << ") does not support storing new zones." << endl;
       return EXIT_FAILURE;
     }
   }
@@ -1390,13 +1391,13 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   UeberBackend B;
   DomainInfo di;
   if (B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' exists already"<<endl;
+    cerr << "Zone '" << zone << "' exists already" << endl;
     return EXIT_FAILURE;
   }
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
   B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
   if(!B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
+    cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
   }
 
@@ -1431,7 +1432,7 @@ static int createSlaveZone(const vector<string>& cmds) {
   DomainInfo di;
   DNSName zone(cmds[1]);
   if (B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' exists already"<<endl;
+    cerr << "Zone '" << zone << "' exists already" << endl;
     return EXIT_FAILURE;
   }
   vector<ComboAddress> masters;
@@ -1441,7 +1442,7 @@ static int createSlaveZone(const vector<string>& cmds) {
   cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<comboAddressVecToString(masters)<<"'"<<endl;
   B.createDomain(zone, DomainInfo::Slave, masters, "");
   if(!B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
+    cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
@@ -1452,7 +1453,7 @@ static int changeSlaveZoneMaster(const vector<string>& cmds) {
   DomainInfo di;
   DNSName zone(cmds[1]);
   if (!B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' doesn't exist"<<endl;
+    cerr << "Zone '" << zone << "' doesn't exist" << endl;
     return EXIT_FAILURE;
   }
   vector<ComboAddress> masters;
@@ -1487,7 +1488,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
+    cerr << "Zone '" << zone << "' does not exist" << endl;
     return EXIT_FAILURE;
   }
   rr.auth = true;
@@ -1581,7 +1582,7 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   DomainInfo di;
   DNSName zone(zone_);
   if(!B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' does not exist"<<endl;
+    cerr << "Zone '" << zone << "' does not exist" << endl;
     return EXIT_FAILURE;
   }
 
@@ -2031,7 +2032,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   if(di.kind == DomainInfo::Slave)
   {
-    cerr<<"Warning! This is a slave domain! If this was a mistake, please run"<<endl;
+    cerr << "Warning! This is a slave zone! If this was a mistake, please run" << endl;
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
   }
 
@@ -2093,13 +2094,13 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   UeberBackend B("default");
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0];
-  cout<<"Creating slave domain "<<zone<<endl;
+  cout << "Creating slave zone " << zone << endl;
   db->createSlaveDomain("127.0.0.1", zone, "", "_testschema");
-  cout<<"Slave domain created"<<endl;
+  cout << "Slave zone created" << endl;
 
   DomainInfo di;
   if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
-    cout<<"Can't find domain we just created, aborting"<<endl;
+    cout << "Can't find zone we just created, aborting" << endl;
     return EXIT_FAILURE;
   }
   db=di.backend;
@@ -2204,7 +2205,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
     cout<<"[+] Big serials work correctly"<<endl;
   }
   cout<<endl;
-  cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
+  cout << "End of tests, please remove " << zone << " from zones+records" << endl;
 
   return EXIT_SUCCESS;
 }
@@ -2287,7 +2288,7 @@ try
     cout<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cout<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
     cout<<"b2b-migrate OLD NEW                Move all data from one backend to another"<<endl;
-    cout<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
+    cout << "bench-db [filename]                Bench database backend with queries, one zone per line" << endl;
     cout<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cout<<"check-all-zones [exit-on-error]    Check all zones for correctness. Set exit-on-error to exit immediately"<<endl;
     cout<<"                                   after finding an error in a zone."<<endl;
@@ -3349,7 +3350,7 @@ try
      UeberBackend B("default");
      DomainInfo di;
      if (!B.getDomainInfo(zname, di)) {
-       cerr << "Domain '" << zname << "' does not exist" << endl;
+       cerr << "Zone '" << zname << "' does not exist" << endl;
        return 1;
      }
      std::vector<std::string> meta;
@@ -3389,7 +3390,7 @@ try
      UeberBackend B("default");
      DomainInfo di;
      if (!B.getDomainInfo(zname, di)) {
-       cerr << "Domain '" << zname << "' does not exist" << endl;
+       cerr << "Zone '" << zname << "' does not exist" << endl;
        return 1;
      }
      std::vector<std::string> meta;
@@ -3635,7 +3636,7 @@ try
 
     tgt->getAllDomains(&domains, true);
     if (domains.size()>0)
-      throw PDNSException("Target backend has domain(s), please clean it first");
+      throw PDNSException("Target backend has zone(s), please clean it first");
 
     src->getAllDomains(&domains, true);
     // iterate zones
@@ -3674,7 +3675,8 @@ try
       std::map<std::string, std::vector<std::string> > meta;
       if (src->getAllDomainMetadata(di.zone, meta)) {
         for (const auto& i : meta) {
-          if (!tgt->setDomainMetadata(di.zone, i.first, i.second)) throw PDNSException("Failed to feed domain metadata");
+          if (!tgt->setDomainMetadata(di.zone, i.first, i.second))
+            throw PDNSException("Failed to feed zone metadata");
           nm++;
         }
       }
