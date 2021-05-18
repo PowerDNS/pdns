@@ -291,7 +291,7 @@ void UeberBackend::updateDomainCache() {
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     vector<DomainInfo> domains;
-    (*i)->getAllDomains(&domains, false);
+    (*i)->getAllDomains(&domains, true);
     for(auto& di: domains) {
       domain_indices.push_back({std::move(di.zone), (int)di.id});  // this cast should not be necessary
     }
