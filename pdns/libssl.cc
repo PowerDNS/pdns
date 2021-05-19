@@ -493,7 +493,7 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx
 
 OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
 {
-  d_ticketKeys.lock()->set_capacity(capacity);
+  d_ticketKeys.write_lock()->set_capacity(capacity);
 }
 
 OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
@@ -502,7 +502,7 @@ OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
 
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey> newKey)
 {
-  d_ticketKeys.lock()->push_front(newKey);
+  d_ticketKeys.write_lock()->push_front(newKey);
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()

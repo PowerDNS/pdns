@@ -364,12 +364,12 @@ public:
   {
   }
 
-  SharedLockGuardedTryHolder<T> try_lock()
+  SharedLockGuardedTryHolder<T> try_write_lock()
   {
     return SharedLockGuardedTryHolder<T>(d_value, d_mutex);
   }
 
-  SharedLockGuardedHolder<T> lock()
+  SharedLockGuardedHolder<T> write_lock()
   {
     return SharedLockGuardedHolder<T>(d_value, d_mutex);
   }

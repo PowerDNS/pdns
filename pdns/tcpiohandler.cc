@@ -1175,7 +1175,7 @@ public:
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
 
     {
-      *(d_ticketsKey.lock()) = newKey;
+      *(d_ticketsKey.write_lock()) = newKey;
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
@@ -1191,7 +1191,7 @@ public:
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
     {
-      *(d_ticketsKey.lock()) = newKey;
+      *(d_ticketsKey.write_lock()) = newKey;
     }
 
     if (d_ticketsKeyRotationDelay > 0) {

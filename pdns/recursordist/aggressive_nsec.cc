@@ -65,7 +65,7 @@ std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>> AggressiveNSECCache
   auto entry = std::make_shared<LockGuarded<ZoneEntry>>(zone);
 
   {
-    auto zones = d_zones.lock();
+    auto zones = d_zones.write_lock();
     /* it might have been inserted in the mean time */
     auto got = zones->lookup(zone);
     if (got && *got) {
@@ -92,7 +92,7 @@ void AggressiveNSECCache::updateEntriesCount(SuffixMatchTree<std::shared_ptr<Loc
 
 void AggressiveNSECCache::removeZoneInfo(const DNSName& zone, bool subzones)
 {
-  auto zones = d_zones.lock();
+  auto zones = d_zones.write_lock();
 
   if (subzones) {
     zones->remove(zone, true);
@@ -134,7 +134,7 @@ void AggressiveNSECCache::prune(time_t now)
     toLook = toErase * 5;
     // we are full, scan at max 5 * toErase entries and stop once we have nuked enough
 
-    auto zones = d_zones.lock();
+    auto zones = d_zones.write_lock();
     zones->visit([now, &erased, toErase, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
       if (!node.d_value || erased > toErase || lookedAt > toLook) {
         return;
@@ -163,7 +163,7 @@ void AggressiveNSECCache::prune(time_t now)
   }
   else {
     // we are not full, just look through 10% of the cache and nuke everything that is expired
-    auto zones = d_zones.lock();
+    auto zones = d_zones.write_lock();
     zones->visit([now, &erased, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
       if (!node.d_value) {
         return;
@@ -193,7 +193,7 @@ void AggressiveNSECCache::prune(time_t now)
   d_entriesCount -= erased;
 
   if (!emptyEntries.empty()) {
-    auto zones = d_zones.lock();
+    auto zones = d_zones.write_lock();
     for (const auto& entry : emptyEntries) {
       zones->remove(entry);
     }

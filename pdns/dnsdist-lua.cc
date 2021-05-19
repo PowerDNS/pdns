@@ -1046,7 +1046,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("clearQueryCounters", []() {
       unsigned int size{0};
       {
-        auto records = g_qcount.records.lock();
+        auto records = g_qcount.records.write_lock();
         size = records->size();
         records->clear();
       }

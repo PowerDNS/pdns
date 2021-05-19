@@ -258,13 +258,13 @@ public:
   {
     // think twice before adding templates here
     if (ca.sin4.sin_family == AF_INET) {
-      auto res = d_ip4s.lock()->insert({ca.sin4.sin_addr.s_addr, ttd});
+      auto res = d_ip4s.write_lock()->insert({ca.sin4.sin_addr.s_addr, ttd});
       if (!res.second && (time_t)res.first->second < ttd) {
         res.first->second = (uint32_t)ttd;
       }
     }
     else {
-      auto res = d_ip6s.lock()->insert({{ca}, ttd});
+      auto res = d_ip6s.write_lock()->insert({{ca}, ttd});
       if (!res.second && (time_t)res.first->second < ttd) {
         res.first->second = (uint32_t)ttd;
       }
@@ -274,24 +274,24 @@ public:
   void remove(const ComboAddress& ca)
   {
     if (ca.sin4.sin_family == AF_INET) {
-      d_ip4s.lock()->erase(ca.sin4.sin_addr.s_addr);
+      d_ip4s.write_lock()->erase(ca.sin4.sin_addr.s_addr);
     }
     else {
-      d_ip6s.lock()->erase({ca});
+      d_ip6s.write_lock()->erase({ca});
     }
   }
 
   void clear()
   {
-    d_ip4s.lock()->clear();
-    d_ip6s.lock()->clear();
+    d_ip4s.write_lock()->clear();
+    d_ip6s.write_lock()->clear();
   }
 
   void cleanup()
   {
     time_t now = time(nullptr);
     {
-      auto ip4s = d_ip4s.lock();
+      auto ip4s = d_ip4s.write_lock();
       for (auto iter = ip4s->begin(); iter != ip4s->end(); ) {
 	if (iter->second < now) {
 	  iter = ip4s->erase(iter);
@@ -303,7 +303,7 @@ public:
     }
 
     {
-      auto ip6s = d_ip6s.lock();
+      auto ip6s = d_ip6s.write_lock();
       for (auto iter = ip6s->begin(); iter != ip6s->end(); ) {
 	if (iter->second < now) {
 	  iter = ip6s->erase(iter);

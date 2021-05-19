@@ -117,7 +117,7 @@ void DownstreamState::hash()
 {
   vinfolog("Computing hashes for id=%s and weight=%d", id, weight);
   auto w = weight;
-  auto lockedHashes = hashes.lock();
+  auto lockedHashes = hashes.write_lock();
   lockedHashes->clear();
   lockedHashes->reserve(w);
   while (w > 0) {
@@ -216,7 +216,7 @@ const std::shared_ptr<ServerPolicy::NumberedServerVector> ServerPool::getServers
 
 void ServerPool::addServer(shared_ptr<DownstreamState>& server)
 {
-  auto servers = d_servers.lock();
+  auto servers = d_servers.write_lock();
   /* we can't update the content of the shared pointer directly even when holding the lock,
      as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
   unsigned int count = static_cast<unsigned int>((*servers)->size());
@@ -236,7 +236,7 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
 {
-  auto servers = d_servers.lock();
+  auto servers = d_servers.write_lock();
   /* we can't update the content of the shared pointer directly even when holding the lock,
      as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
   auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));

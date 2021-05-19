@@ -137,7 +137,7 @@ bool CDBKVStore::reload(const struct stat& st)
 {
   auto newCDB = std::unique_ptr<CDB>(new CDB(d_fname));
   {
-    *(d_cdb.lock()) = std::move(newCDB);
+    *(d_cdb.write_lock()) = std::move(newCDB);
   }
   d_mtime = st.st_mtime;
   return true;
