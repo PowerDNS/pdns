@@ -22,6 +22,7 @@
 #pragma once
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "utility.hh"
 #include "arguments.hh"
 #include "communicator.hh"

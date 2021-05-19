@@ -26,6 +26,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "utility.hh"
 
 
@@ -120,12 +121,18 @@ bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool get
 
 bool UeberBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
+  bool success = false;
+  int zoneId;
   for(DNSBackend* mydb :  backends) {
-    if(mydb->createDomain(domain, kind, masters, account)) {
-      return true;
+    if(mydb->createDomain(domain, kind, masters, account, &zoneId)) {
+      success = true;
+      break;
     }
   }
-  return false;
+  if (success) {
+    g_zoneCache.add(domain, zoneId);  // make new zone visible
+  }
+  return success;
 }
 
 bool UeberBackend::doesDNSSEC()
@@ -273,9 +280,27 @@ void UeberBackend::reload()
   }
 }
 
+void UeberBackend::updateZoneCache() {
+  if (!g_zoneCache.isEnabled()) {
+    return;
+  }
+
+  vector<tuple<DNSName, int>> zone_indices;
+  g_zoneCache.setReplacePending();
+
+  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
+  {
+    vector<DomainInfo> zones;
+    (*i)->getAllDomains(&zones, true);
+    for(auto& di: zones) {
+      zone_indices.push_back({std::move(di.zone), (int)di.id});  // this cast should not be necessary
+    }
+  }
+  g_zoneCache.replace(zone_indices);
+}
+
 void UeberBackend::rediscover(string *status)
 {
-  
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     string tmpstr;
@@ -283,6 +308,8 @@ void UeberBackend::rediscover(string *status)
     if(status) 
       *status+=tmpstr + (i!=backends.begin() ? "\n" : "");
   }
+
+  updateZoneCache();
 }
 
 
@@ -322,20 +349,44 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   // of them has a more specific zone but don't bother asking this specific
   // backend again for b.c.example.com., c.example.com. and example.com.
   // If a backend has no match it may respond with an empty qname.
-
   bool found = false;
   int cstat;
   DNSName shorter(target);
   vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
   do {
+    int zoneId{-1};
+    if(cachedOk && g_zoneCache.isEnabled()) {
+      if (g_zoneCache.getEntry(shorter, zoneId)) {
+        // Zone exists in zone cache, directly look up SOA.
+        // XXX: this code path and the cache lookup below should be merged; but that needs the code path below to also use ANY.
+        // Or it should just also use lookup().
+        DNSZoneRecord zr;
+        lookup(QType(QType::SOA), shorter, zoneId, nullptr);
+        if (!get(zr)) {
+          // zone has somehow vanished
+          DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
+          continue;
+        }
+        if (zr.dr.d_name != shorter) {
+          throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+zr.dr.d_name.toLogString()+"' is not equal to looked up zone '"+shorter.toLogString()+"'");
+        }
+        sd->qname = zr.dr.d_name;
+        fillSOAData(zr, *sd);
+        // leave database handle in a consistent state
+        while (get(zr))
+          ;
+        goto found;
+      }
+      // zone does not exist, try again with shorter name
+      continue;
+    }
 
     d_question.qtype = QType::SOA;
     d_question.qname = shorter;
-    d_question.zoneId = -1;
+    d_question.zoneId = zoneId;
 
     // Check cache
     if(cachedOk && (d_cache_ttl || d_negcache_ttl)) {
-
       cstat = cacheHas(d_question,d_answers);
 
       if(cstat == 1 && !d_answers.empty() && d_cache_ttl) {
@@ -400,7 +451,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         DLOG(g_log<<Logger::Error<<"add pos cache entry: "<<sd->qname<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
-        d_question.zoneId = -1;
+        d_question.zoneId = zoneId;
 
         DNSZoneRecord rr;
         rr.dr.d_name = sd->qname;

@@ -624,6 +624,12 @@ int main(int argc, char **argv)
       }
     }
 
+    g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
+    {
+      UeberBackend B;
+      B.updateZoneCache();
+    }
+
     UeberBackend::go();
     N=std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
     g_udpReceivers.push_back(N);

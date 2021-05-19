@@ -953,22 +953,29 @@ bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& 
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account, int* zoneId)
 {
   DomainInfo di;
 
-  auto txn = d_tdomains->getRWTransaction();
-  if (txn.get<0>(domain, di)) {
-    throw DBException("Domain '" + domain.toLogString() + "' exists already");
+  {
+    auto txn = d_tdomains->getRWTransaction();
+    if (txn.get<0>(domain, di)) {
+      throw DBException("Domain '" + domain.toLogString() + "' exists already");
+    }
+
+    di.zone = domain;
+    di.kind = kind;
+    di.masters = masters;
+    di.account = account;
+
+    txn.put(di);
+
+    if (zoneId != nullptr) {
+      *zoneId = txn.get<0>(domain, di);
+    }
+
+    txn.commit();
   }
-
-  di.zone = domain;
-  di.kind = kind;
-  di.masters = masters;
-  di.account = account;
-
-  txn.put(di);
-  txn.commit();
 
   return true;
 }

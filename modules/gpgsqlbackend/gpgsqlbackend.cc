@@ -115,7 +115,7 @@ public:
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
     declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values ($1,$2,$3)");
 
-    declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null)");
+    declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null) returning id");
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)");
     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (null,$1,false,$2,$3,$4,null,null,null)");

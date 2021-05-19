@@ -20,6 +20,7 @@
 #include "arguments.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include "dns_random.hh"
@@ -40,6 +41,7 @@
 StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
+AuthZoneCache g_zoneCache;
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
