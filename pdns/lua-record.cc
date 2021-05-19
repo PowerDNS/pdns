@@ -42,6 +42,15 @@ using wiplist_t = std::unordered_map<int, string>;
 using ipunitlist_t = vector<pair<int, iplist_t> >;
 using opts_t = std::unordered_map<string,string>;
 
+unsigned int pdns_stou_nonzero(const std::string& str, size_t * idx = 0, int base = 10)
+{
+  unsigned long result = pdns_stou(str, idx, base);
+  if (result == 0) {
+    throw std::out_of_range("number cannot be zero");
+  }
+  return result;
+}
+
 class IsUpOracle
 {
 private:
@@ -514,7 +523,7 @@ static vector<pair<int, ComboAddress> > convWIplist(const std::unordered_map<int
 
   ret.reserve(src.size());
   for(const auto& i : src) {
-    ret.emplace_back(atoi(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
+    ret.emplace_back(pdns_stou_nonzero(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
   }
 
   return ret;
@@ -839,7 +848,7 @@ static void setupLuaRecords()
 
       conv.reserve(ips.size());
       for(auto& i : ips)
-        conv.emplace_back(atoi(i.second[1].c_str()), ComboAddress(i.second[2]));
+        conv.emplace_back(pdns_stou_nonzero(i.second[1].c_str()), ComboAddress(i.second[2]));
 
       return pickwhashed(s_lua_record_ctx->bestwho, conv).toString();
     });
