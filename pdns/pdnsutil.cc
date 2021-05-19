@@ -2330,10 +2330,12 @@ try
     cout<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cout<<"                                   replacing contents"<<endl;
     cout<<"list-algorithms [with-backend]     List all DNSSEC algorithms supported, optionally also listing the crypto library used"<<endl;
-    cout<<"list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset or \"all\", display all keys for all zones"<<endl;
+    cout << "list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset, display all keys for all active zones" << endl;
+    cout << "                                   --verbose or -v will also include the keys for disabled or empty zones" << endl;
     cout<<"list-zone ZONE                     List zone contents"<<endl;
     cout << "list-all-zones [primary|secondary|native]" << endl;
-    cout<<"                                   List all zone names"<<endl;;
+    cout << "                                   List all active zone names. --verbose or -v will also include disabled or empty zones" << endl;
+    ;
     cout<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cout<<"publish-zone-key ZONE KEY-ID       Publish the zone key with key id KEY-ID in ZONE"<<endl;
     cout<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
