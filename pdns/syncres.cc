@@ -1080,14 +1080,14 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   try {
     // First look for both A and AAAA in the cache and be satisfied if we find anything
     res_t cset;
-    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+    if (s_doIPv4 && g_recCache->get(d_now.tv_sec, qname, QType::A, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<ARecordContent>(i)) {
           ret.push_back(rec->getCA(53));
         }
       }
     }
-    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+    if (s_doIPv6 && g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
       for (const auto &i : cset) {
         if (auto rec = getRR<AAAARecordContent>(i)) {
           ret.push_back(rec->getCA(53));
@@ -1125,7 +1125,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
           // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache, we might have
           // encountered some IPv6 glue
           cset.clear();
-          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+          if (g_recCache->get(d_now.tv_sec, qname, QType::AAAA, false, &cset, d_cacheRemote, false, d_routingTag) > 0) {
             for (const auto &i : cset) {
               if (auto rec = getRR<AAAARecordContent>(i)) {
                 ret.push_back(rec->getCA(53));
@@ -1208,7 +1208,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, false, &ns, d_cacheRemote, d_refresh, d_routingTag) > 0) {
+    if(g_recCache->get(d_now.tv_sec, subdomain, QType::NS, false, &ns, d_cacheRemote, false, d_routingTag) > 0) {
       bestns.reserve(ns.size());
 
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
@@ -1224,7 +1224,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType qtype, vector
           const DNSRecord& dr=*k;
 	  auto nrr = getRR<NSRecordContent>(dr);
           if(nrr && (!nrr->getNS().isPartOf(subdomain) || g_recCache->get(d_now.tv_sec, nrr->getNS(), nsqt,
-                                                                          false, doLog() ? &aset : 0, d_cacheRemote, d_refresh, d_routingTag) > 5)) {
+                                                                          false, doLog() ? &aset : 0, d_cacheRemote, false, d_routingTag) > 5)) {
             bestns.push_back(dr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
