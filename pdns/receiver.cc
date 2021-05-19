@@ -432,6 +432,8 @@ int main(int argc, char **argv)
     if (::arg().mustDo("slave-renotify")) ::arg().set("secondary-do-renotify")="yes";
     if (::arg().mustDo("superslave")) ::arg().set("autosecondary")="yes";
     if (::arg().mustDo("allow-unsigned-supermaster")) ::arg().set("allow-unsigned-autoprimary")="yes";
+    if (::arg().asNum("domain-metadata-cache-ttl"))
+      ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
     if (::arg().mustDo("primary")) ::arg().set("master")="yes";
@@ -439,6 +441,8 @@ int main(int argc, char **argv)
     if (::arg().mustDo("secondary-do-renotify")) ::arg().set("slave-renotify")="yes";
     if (::arg().mustDo("autosecondary")) ::arg().set("superslave")="yes";
     if (::arg().mustDo("allow-unsigned-autoprimary")) ::arg().set("allow-unsigned-supermaster")="yes";
+    if (::arg().asNum("zone-metadata-cache-ttl"))
+      ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
