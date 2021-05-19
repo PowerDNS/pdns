@@ -42,6 +42,7 @@
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "uuid-utils.hh"
+#include "tcpiohandler.hh"
 
 extern thread_local FDMultiplexer* t_fdm;
 
@@ -1249,10 +1250,14 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     yarl.initialize(&req);
     client->setNonBlocking();
 
+    const int timeout = (g_networkTimeoutMsec + 999) / 1000; // XXX tcpiohandler's unit is seconds
+    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+    auto handler = std::make_shared<TCPIOHandler>("", client->releaseHandle(), timeout, tlsCtx, time(nullptr));
+
     PacketBuffer data;
     try {
       while(!req.complete) {
-        auto ret = arecvtcp(data, 16384, client.get(), true);
+        auto ret = arecvtcp(data, 16384, handler, true);
         if (ret == LWResult::Result::Success) {
           string str(reinterpret_cast<const char*>(data.data()), data.size());
           req.complete = yarl.feed(str);
@@ -1282,7 +1287,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     logResponse(resp, remote, logprefix);
 
     // now send the reply
-    if (asendtcp(reply, client.get()) != LWResult::Result::Success || reply.empty()) {
+    if (asendtcp(reply, handler) != LWResult::Result::Success || reply.empty()) {
       g_log<<Logger::Error<<logprefix<<"Failed sending reply to HTTP client"<<endl;
     }
   }

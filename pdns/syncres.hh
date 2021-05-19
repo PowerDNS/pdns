@@ -919,12 +919,9 @@ private:
   LogMode d_lm;
 };
 
-class Socket;
 /* external functions, opaque to us */
-LWResult::Result asendtcp(const PacketBuffer& data, Socket* sock);
-LWResult::Result arecvtcp(PacketBuffer& data, size_t len, Socket* sock, bool incompleteOkay);
-LWResult::Result asendtcp(const PacketBuffer& data, TCPIOHandler&);
-LWResult::Result arecvtcp(PacketBuffer& data, size_t len, TCPIOHandler&, bool incompleteOkay);
+LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>&);
+LWResult::Result arecvtcp(PacketBuffer& data, size_t len, shared_ptr<TCPIOHandler>&, bool incompleteOkay);
 
 struct PacketID
 {
@@ -941,7 +938,7 @@ struct PacketID
 
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
-  TCPIOHandler *tcphandler{nullptr};
+  shared_ptr<TCPIOHandler> tcphandler{nullptr};
   size_t inNeeded{0}; // if this is set, we'll read until inNeeded bytes are read
   string::size_type outPos{0};    // how far we are along in the outMSG
   mutable uint32_t nearMisses{0}; // number of near misses - host correct, id wrong

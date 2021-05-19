@@ -349,8 +349,8 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       s.bind(localip);
 
       std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-      TCPIOHandler handler("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
-      IOState state = handler.tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
+      auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
+      /* auto state = */ handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
 
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
