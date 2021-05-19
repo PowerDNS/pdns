@@ -3,7 +3,6 @@ Reply to question for qname='ns1.addzone.com.', qtype=A
 0	ns1.test.com.	IN	A	3600	1.1.1.1
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns1.test.com.', qtype=A
-1
 Already loaded
 0	ns1.addzone.com.	IN	A	3600	1.1.1.5
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0

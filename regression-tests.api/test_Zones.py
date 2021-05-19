@@ -496,7 +496,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         Create a zone with "nsec3param" set and see if the metadata was added.
         """
         name = unique_zone_name()
-        nsec3param = '1 0 500 aabbccddeeff'
+        nsec3param = '1 0 100 aabbccddeeff'
         name, payload, data = self.create_zone(dnssec=True, nsec3param=nsec3param)
 
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
@@ -522,7 +522,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         Create a zone with "nsec3narrow" set and see if the metadata was added.
         """
         name = unique_zone_name()
-        nsec3param = '1 0 500 aabbccddeeff'
+        nsec3param = '1 0 100 aabbccddeeff'
         name, payload, data = self.create_zone(dnssec=True, nsec3param=nsec3param,
                                                nsec3narrow=True)
 

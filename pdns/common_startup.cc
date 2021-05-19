@@ -55,6 +55,7 @@ ArgvMap theArg;
 StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
+AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
@@ -92,11 +93,11 @@ void declareArguments()
   ::arg().setSwitch("dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
   ::arg().setSwitch("write-pid","Write a PID file")="yes";
   ::arg().set("allow-dnsupdate-from","A global setting to allow DNS updates from these IP ranges.")="127.0.0.0/8,::1";
-  ::arg().setSwitch("send-signed-notify","Send TSIG secured NOTIFY if TSIG key is configured for a domain")="yes";
-  ::arg().set("allow-unsigned-notify","Allow unsigned notifications for TSIG secured domains")="yes"; //FIXME: change to 'no' later
+  ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
+  ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; //FIXME: change to 'no' later
   ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY")="yes";
   ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY")="yes";
-  ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
+  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Slave zone, to be forwarded to the master.") = "yes";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="no";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0, ::";
@@ -138,7 +139,7 @@ void declareArguments()
   ::arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
   ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="127.0.0.0/8,::1";
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks")="0.0.0.0/0,::/0";
-  ::arg().set("also-notify", "When notifying a domain, also notify these nameservers")="";
+  ::arg().set("also-notify", "When notifying a zone, also notify these nameservers") = "";
   ::arg().set("allow-notify-from","Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.")="0.0.0.0/0,::/0";
   ::arg().set("slave-cycle-interval","Schedule slave freshness checks once every .. seconds")="60";
   ::arg().set("xfr-cycle-interval","Schedule primary/secondary SOA freshness checks once every .. seconds")="60";
@@ -180,12 +181,14 @@ void declareArguments()
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
+  ::arg().set("zone-cache-refresh-interval", "Seconds to cache list of known zones") = "0";
   ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
-  ::arg().set("domain-metadata-cache-ttl","Seconds to cache domain metadata from the database")="60";
+  ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
+  ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
   ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates")="no";
@@ -219,12 +222,12 @@ void declareArguments()
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
-  ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
+  ::arg().set("max-nsec3-iterations", "Limit the number of NSEC3 hash iterations") = "100";
   ::arg().set("default-publish-cdnskey","Default value for PUBLISH-CDNSKEY")="";
   ::arg().set("default-publish-cds","Default value for PUBLISH-CDS")="";
 
   ::arg().set("include-dir","Include *.conf files from this directory");
-  ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
+  ::arg().set("security-poll-suffix", "Zone name from which to query security update notifications") = "secpoll.powerdns.com.";
 
   ::arg().setSwitch("expand-alias", "Expand ALIAS records")="no";
   ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR")="no";
@@ -247,7 +250,7 @@ void declareArguments()
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
   ::arg().setSwitch("svc-autohints", "Transparently fill ipv6hint=auto ipv4hint=auto SVC params with AAAA/A records for the target name of the record (if within the same zone)")="no";
 
-  ::arg().setSwitch("consistent-backends", "Assume individual domains are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups")="no";
+  ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().setDefaults();
@@ -374,19 +377,20 @@ void declareStats()
   S.declare("nxdomain-packets","Number of times an NXDOMAIN packet was sent out");
   S.declare("noerror-packets","Number of times a NOERROR packet was sent out");
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("unauth-packets","Number of times a domain we are not auth for was queried");
+  S.declare("unauth-packets", "Number of times a zone we are not auth for was queried");
   S.declare("latency","Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling", StatType::gauge);
-  S.declare("xfr-queue", "Size of the queue of domains to be XFRd", [](const string&) { return Communicator.getSuckRequestsWaiting(); }, StatType::gauge);
+  S.declare(
+    "xfr-queue", "Size of the queue of zones to be XFRd", [](const string&) { return Communicator.getSuckRequestsWaiting(); }, StatType::gauge);
   S.declareDNSNameQTypeRing("queries","UDP Queries Received");
-  S.declareDNSNameQTypeRing("nxdomain-queries","Queries for non-existent records within existent domains");
+  S.declareDNSNameQTypeRing("nxdomain-queries", "Queries for non-existent records within existent zones");
   S.declareDNSNameQTypeRing("noerror-queries","Queries for existing records, but for type we don't have");
   S.declareDNSNameQTypeRing("servfail-queries","Queries that could not be answered due to backend errors");
-  S.declareDNSNameQTypeRing("unauth-queries","Queries for domains that we are not authoritative for");
+  S.declareDNSNameQTypeRing("unauth-queries", "Queries for zones that we are not authoritative for");
   S.declareRing("logmessages","Log Messages");
   S.declareComboRing("remotes","Remote server IP addresses");
-  S.declareComboRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
+  S.declareComboRing("remotes-unauth", "Remote hosts querying zones for which we are not auth");
   S.declareComboRing("remotes-corrupt","Remote hosts sending corrupt packets");
 }
 
@@ -470,7 +474,7 @@ try
         remote = question.getRemote().toString() + "<-" + question.getRealRemote().toString();
       else
         remote = question.getRemote().toString();
-      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.getName() << 
+      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.toString() << 
         "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
       if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
         g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
@@ -676,12 +680,36 @@ void mainthread()
     sd_notify(0, "READY=1");
 #endif
 
+  const uint32_t secpollInterval = 1800;
+  uint32_t secpollSince = 0;
+  uint32_t zoneCacheUpdateSince = 0;
   for(;;) {
-    sleep(1800);
-    try {
-      doSecPoll(false);
+    const uint32_t sleeptime = g_zoneCache.getRefreshInterval() == 0 ? secpollInterval : std::min(secpollInterval, g_zoneCache.getRefreshInterval());
+    sleep(sleeptime);  // if any signals arrive, we might run more often than expected.
+
+    zoneCacheUpdateSince += sleeptime;
+    if (zoneCacheUpdateSince >= g_zoneCache.getRefreshInterval()) {
+      try {
+        UeberBackend B;
+        B.updateZoneCache();
+        zoneCacheUpdateSince = 0;
+      }
+      catch(PDNSException &e) {
+        g_log<<Logger::Error<<"PDNSException while updating zone cache: "<<e.reason<<endl;
+      }
+      catch(std::exception &e) {
+        g_log<<Logger::Error<<"STL Exception while updating zone cache: "<<e.what()<<endl;
+      }
     }
-    catch(...){}
+
+    secpollSince += sleeptime;
+    if (secpollSince >= secpollInterval) {
+      secpollSince = 0;
+      try {
+        doSecPoll(false);
+      }
+      catch(...){}
+    }
   }
   
   g_log<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;

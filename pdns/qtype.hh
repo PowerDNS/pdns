@@ -31,7 +31,7 @@
    t="CNAME";
    cout<<t.getCode()<<endl; // prints '5'
    t=6;
-   cout<<t.getName()<<endl; // prints 'SOA'
+   cout<<t.toString()<<endl; // prints 'SOA'
 \endcode
 
 */
@@ -47,7 +47,7 @@ public:
     return code;
   }
 
-  const string getName() const;
+  const string toString() const;
   uint16_t getCode() const
   {
     return code;

@@ -21,7 +21,7 @@ static recordsAndSignatures genRecsAndSigs(const DNSName& name, const uint16_t q
 
   if (sigs) {
     rec.d_type = QType::RRSIG;
-    rec.d_content = std::make_shared<RRSIGRecordContent>(QType(qtype).getName() + " 5 3 600 2037010100000000 2037010100000000 24567 dummy data");
+    rec.d_content = std::make_shared<RRSIGRecordContent>(QType(qtype).toString() + " 5 3 600 2037010100000000 2037010100000000 24567 dummy data");
     ret.signatures.push_back(rec);
   }
 
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_get_entry)
 
   BOOST_CHECK(ret);
   BOOST_CHECK_EQUAL(ne.d_name, qname);
-  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(0).getName());
+  BOOST_CHECK_EQUAL(ne.d_qtype.toString(), QType(0).toString());
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_get_entry2038)
 
   BOOST_CHECK(ret);
   BOOST_CHECK_EQUAL(ne.d_name, qname);
-  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(0).getName());
+  BOOST_CHECK_EQUAL(ne.d_qtype.toString(), QType(0).toString());
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(test_get_NODATA_entry)
 
   BOOST_CHECK(ret);
   BOOST_CHECK_EQUAL(ne.d_name, qname);
-  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(1).getName());
+  BOOST_CHECK_EQUAL(ne.d_qtype.toString(), QType(1).toString());
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 
   NegCache::NegCacheEntry ne2;
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_entry)
 
   BOOST_CHECK(ret);
   BOOST_CHECK_EQUAL(ne.d_name, qname);
-  BOOST_CHECK_EQUAL(ne.d_qtype.getName(), QType(0).getName());
+  BOOST_CHECK_EQUAL(ne.d_qtype.toString(), QType(0).toString());
   BOOST_CHECK_EQUAL(ne.d_auth, auth);
 }
 

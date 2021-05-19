@@ -354,7 +354,7 @@ void Resolver::getSoaSerial(const ComboAddress& ipport, const DNSName &domain, u
     throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced no answers");
 
   if(res[0].qtype.getCode() != QType::SOA) 
-    throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced a "+res[0].qtype.getName()+" record");
+    throw ResolverException("Query to '" + ipport.toLogString() + "' for SOA of '" + domain.toLogString() + "' produced a "+res[0].qtype.toString()+" record");
 
   vector<string>parts;
   stringtok(parts, res[0].content);

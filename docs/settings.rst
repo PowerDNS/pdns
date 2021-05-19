@@ -101,7 +101,7 @@ signed by valid TSIG signature for the zone.
 
 -  IP addresses, separated by commas
 
-When notifying a domain, also notify these nameservers. Example:
+When notifying a zone, also notify these nameservers. Example:
 ``also-notify=192.0.2.1, 203.0.113.167``. The IP addresses listed in
 ``also-notify`` always receive a notification. Even if they do not match
 the list in :ref:`setting-only-notify`.
@@ -291,15 +291,17 @@ Name of this virtual configuration - will rename the binary image. See
 -----------------------
 
 -  Boolean
--  Default: no
+-  Default: yes
 
 .. versionadded:: 4.4.0
 
-When this is set, PowerDNS assumes that any single domain lives in only one backend.
+When this is set, PowerDNS assumes that any single zone lives in only one backend.
 This allows PowerDNS to send ANY lookups to its backends, instead of sometimes requesting the exact needed type.
 This reduces the load on backends by retrieving all the types for a given name at once, adding all of them to the cache.
 It improves performance significantly for latency-sensitive backends, like SQL ones, where a round-trip takes serious time.
-This behaviour will be enabled by default in a future release.
+
+.. note::
+  Pre 4.5.0 the default was no.
 
 .. _setting-control-console:
 
@@ -611,10 +613,10 @@ ADDITIONAL section when sending a referral.
 ``domain-metadata-cache-ttl``
 -----------------------------
 
--  Integer
--  Default: 60
+.. deprecated:: 4.5.0
+  Renamed to :ref:`setting-zone-metadata-cache-ttl`.
 
-Seconds to cache domain metadata from the database. A value of 0
+Seconds to cache zone metadata from the database. A value of 0
 disables caching.
 
 .. _setting-edns-subnet-processing:
@@ -1010,10 +1012,13 @@ means unlimited.
 ------------------------
 
 -  Integer
--  Default: 500
+-  Default: 100
 
 Limit the number of NSEC3 hash iterations for zone configurations.
 For more information see :ref:`dnssec-operational-nsec-modes-params`.
+
+.. note::
+  Pre 4.5.0 the default was 500.
 
 .. _setting-max-packet-cache-entries:
 
@@ -1164,7 +1169,7 @@ the NS records. By specifying networks/mask as whitelist, the targets
 can be limited. The default is to notify the world. To completely
 disable these NOTIFYs set ``only-notify`` to an empty value. Independent
 of this setting, the IP addresses or netmasks configured with
-:ref:`setting-also-notify` and ``ALSO-NOTIFY`` domain metadata
+:ref:`setting-also-notify` and ``ALSO-NOTIFY`` zone metadata
 always receive AXFR NOTIFYs.
 
 IP addresses and netmasks can be excluded by prefixing them with a ``!``.
@@ -1181,7 +1186,7 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   method to distribute the zone data to the slaves), then set
   :ref:`setting-only-notify` to an empty value and specify the notification targets
   explicitly using :ref:`setting-also-notify` and/or
-  :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
+  :ref:`metadata-also-notify` zone metadata to avoid this potential bottleneck.
 
 .. note::
   If your slaves support an Internet Protocol version, which your master does not,
@@ -1419,7 +1424,7 @@ See :ref:`metadata-slave-renotify` to set this per-zone.
 -  String
 -  Default: secpoll.powerdns.com.
 
-Domain name from which to query security update notifications. Setting
+Zone name from which to query security update notifications. Setting
 this to an empty string disables secpoll.
 
 .. _setting-send-signed-notify:
@@ -1431,7 +1436,7 @@ this to an empty string disables secpoll.
 -  Default: yes
 
 If yes, outgoing NOTIFYs will be signed if a TSIG key is configured for the zone.
-If there are multiple TSIG keys configured for a domain, PowerDNS will use the
+If there are multiple TSIG keys configured for a zone, PowerDNS will use the
 first one retrieved from the backend, which may not be the correct one for the
 respective slave. Hence, in setups with multiple slaves with different TSIG keys
 it may be required to send NOTIFYs unsigned.
@@ -1882,3 +1887,29 @@ checking for updates to zones.
 Specifies the maximum number of received megabytes allowed on an
 incoming AXFR/IXFR update, to prevent resource exhaustion. A value of 0
 means no restriction.
+
+.. _setting-zone-cache-refresh-interval:
+
+``zone-cache-refresh-interval``
+-------------------------------
+
+-  Integer
+-  Default: 0
+
+Seconds to cache a list of all known zones. A value of 0 will disable the cache.
+
+If your backends do not respond to unknown or dynamically generated zones, it is suggested to enable :ref:`setting-consistent-backends` and set this option to `60`.
+
+.. _setting-zone-metadata-cache-ttl:
+
+``zone-metadata-cache-ttl``
+-----------------------------
+
+.. versionchanged:: 4.5.0
+  This was called :ref:`setting-domain-metadata-cache-ttl` before 4.5.0.
+
+-  Integer
+-  Default: 60
+
+Seconds to cache zone metadata from the database. A value of 0
+disables caching.

@@ -12,6 +12,7 @@ module-dir=./modules
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 consistent-backends
+zone-cache-refresh-interval=5
 direct-dnskey
 __EOF__
 

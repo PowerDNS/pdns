@@ -356,7 +356,7 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
+  virtual bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account, int* zoneId = nullptr)
   {
     return false;
   }

@@ -270,7 +270,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
         continue;
 
       if(!rec.qname.isPartOf(domain)) {
-        g_log<<Logger::Warning<<logPrefix<<"primary tried to sneak in out-of-zone data '"<<rec.qname<<"'|"<<rec.qtype.getName()<<", ignoring"<<endl;
+        g_log<<Logger::Warning<<logPrefix<<"primary tried to sneak in out-of-zone data '"<<rec.qname<<"'|"<<rec.qtype.toString()<<", ignoring"<<endl;
         continue;
       }
 
@@ -281,7 +281,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 
       for(auto& rr :  out) {
         if(!rr.qname.isPartOf(domain)) {
-          g_log<<Logger::Error<<logPrefix<<"axfrfilter() filter tried to sneak in out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.getName()<<", ignoring"<<endl;
+          g_log<<Logger::Error<<logPrefix<<"axfrfilter() filter tried to sneak in out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.toString()<<", ignoring"<<endl;
           continue;
         }
         if(!processRecordForZS(domain, firstNSEC3, rr, zs))

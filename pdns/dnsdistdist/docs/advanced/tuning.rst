@@ -130,23 +130,34 @@ For other components, like the packet cache and the in-memory ring buffers, it i
 
 Sharding was disabled by default before 1.6.0 and could be enabled via the `numberOfShards` option to :func:`newPacketCache` and :func:`setRingBuffersSize`. It might still make sense to increment the number of shards when dealing with a lot of threads.
 
-Memory usage for TCP, DoH and DoT
----------------------------------
+Memory usage
+------------
 
-+--------------------------------+-----------------------------+
-| Protocol                       | Memory usage per connection |
-+================================+=============================+
-| TCP                            | 6 kB                        |
-+--------------------------------+-----------------------------+
-| DoT (GnuTLS)                   | 16 kB                       |
-+--------------------------------+-----------------------------+
-| DoT (OpenSSL)                  | 52 kB                       |
-+--------------------------------+-----------------------------+
-| DoT (OpenSSL w/ releaseBuffers | 19 kB                       |
-+--------------------------------+-----------------------------+
-| DoH (http)                     | 2 kB                        |
-+--------------------------------+-----------------------------+
-| DoH                            | 48 kB                       |
-+--------------------------------+-----------------------------+
-| DoH (w/ releaseBuffers)        | 15 kB                       |
-+--------------------------------+-----------------------------+
+The main sources of memory usage in DNSDist are:
+
+ * packet caches, when enabled
+ * the number of outstanding UDP queries per backend, configured with :func:`setMaxUDPOutstanding` (see above)
+ * the number of entries in the ring-buffers, configured with :func:`setRingBuffersSize`
+ * the number of short-lived dynamic block entries
+ * the number of user-defined rules and actions
+ * the number of TCP, DoT and DoH connections
+
+Memory usage per connection for connected protocols:
+
++---------------------------------+-----------------------------+
+| Protocol                        | Memory usage per connection |
++=================================+=============================+
+| TCP                             | 6 kB                        |
++---------------------------------+-----------------------------+
+| DoT (GnuTLS)                    | 16 kB                       |
++---------------------------------+-----------------------------+
+| DoT (OpenSSL)                   | 52 kB                       |
++---------------------------------+-----------------------------+
+| DoT (OpenSSL w/ releaseBuffers) | 19 kB                       |
++---------------------------------+-----------------------------+
+| DoH (http)                      | 2 kB                        |
++---------------------------------+-----------------------------+
+| DoH                             | 48 kB                       |
++---------------------------------+-----------------------------+
+| DoH (w/ releaseBuffers)         | 15 kB                       |
++---------------------------------+-----------------------------+

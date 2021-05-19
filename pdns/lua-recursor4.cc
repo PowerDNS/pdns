@@ -675,7 +675,8 @@ loop:;
         ret=getFakePTRRecords(dq.followupName, dq.records);
       }
       else if(dq.followupFunction=="udpQueryResponse") {
-        dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
+        PacketBuffer p = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
+        dq.udpAnswer = std::string(reinterpret_cast<const char*>(p.data()), p.size());
         auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
         if(!cbFunc) {
           g_log<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;

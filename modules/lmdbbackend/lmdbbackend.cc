@@ -706,7 +706,7 @@ bool LMDBBackend::list(const DNSName& target, int id, bool include_disabled)
 void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p)
 {
   if (d_dolog) {
-    g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.getName() << " in zone " << zoneId << endl;
+    g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl;
     d_dtime.set();
   }
 
@@ -736,7 +736,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
   }
 
   DNSName relqname = qdomain.makeRelative(hunt);
-  // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.getName()<<endl;
+  // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;
   d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
 
   compoundOrdername co;
@@ -953,22 +953,29 @@ bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& 
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account, int* zoneId)
 {
   DomainInfo di;
 
-  auto txn = d_tdomains->getRWTransaction();
-  if (txn.get<0>(domain, di)) {
-    throw DBException("Domain '" + domain.toLogString() + "' exists already");
+  {
+    auto txn = d_tdomains->getRWTransaction();
+    if (txn.get<0>(domain, di)) {
+      throw DBException("Domain '" + domain.toLogString() + "' exists already");
+    }
+
+    di.zone = domain;
+    di.kind = kind;
+    di.masters = masters;
+    di.account = account;
+
+    txn.put(di);
+
+    if (zoneId != nullptr) {
+      *zoneId = txn.get<0>(domain, di);
+    }
+
+    txn.commit();
   }
-
-  di.zone = domain;
-  di.kind = kind;
-  di.masters = masters;
-  di.account = account;
-
-  txn.put(di);
-  txn.commit();
 
   return true;
 }
@@ -1475,11 +1482,11 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
     serFromString(val.get<StringView>(), lrr);
     if (co.getQType(key.get<string_view>()).getCode() && (lrr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS)) {
       after = co.getQName(key.get<string_view>()) + zonename;
-      // cout <<"Found auth ("<<lrr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.get<string_view>()).getName()<<", ttl = "<<lrr.ttl<<endl;
+      // cout <<"Found auth ("<<lrr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.get<string_view>()).toString()<<", ttl = "<<lrr.ttl<<endl;
       // cout << makeHexDump(val.get<string>()) << endl;
       break;
     }
-    // cout <<"  oops, " << co.getQName(key.get<string_view>()) << " was not auth "<<lrr.auth<< " type=" << lrr.qtype.getName()<<" or NS, so need to skip ahead a bit more" << endl;
+    // cout <<"  oops, " << co.getQName(key.get<string_view>()) << " was not auth "<<lrr.auth<< " type=" << lrr.qtype.toString()<<" or NS, so need to skip ahead a bit more" << endl;
     int rc = cursor.next(key, val);
     if (!rc)
       ++skips;

@@ -48,6 +48,7 @@
 #include "validate-recursor.hh"
 #include "ednssubnet.hh"
 #include "query-local-address.hh"
+#include "tcpiohandler.hh"
 
 #include "rec-protozero.hh"
 #include "uuid-utils.hh"
@@ -100,7 +101,7 @@ static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_
   return false;
 }
 
-static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress&localip, const ComboAddress& ip, bool doTCP, boost::optional<const DNSName&> auth, const std::string& packet, const struct timeval& queryTime, const struct timeval& replyTime)
+static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress&localip, const ComboAddress& ip, bool doTCP, boost::optional<const DNSName&> auth, const PacketBuffer& packet, const struct timeval& queryTime, const struct timeval& replyTime)
 {
   if (fstreamLoggers == nullptr)
     return;
@@ -109,7 +110,7 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
   std::string str;
-  DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2, auth);
+  DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, doTCP, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
 
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
@@ -235,7 +236,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
-  std::string buf;
+  PacketBuffer buf;
   buf.resize(bufsize);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
@@ -340,28 +341,25 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   }
   else {
     try {
+      const int timeout = g_networkTimeoutMsec / 1000; // XXX tcpiohandler's unit is seconds
+
       Socket s(ip.sin4.sin_family, SOCK_STREAM);
-
       s.setNonBlocking();
-      if (SyncRes::s_tcp_fast_open_connect) {
-        try {
-          s.setFastOpenConnect();
-        }
-        catch (const NetworkError& e) {
-          // Ignore error, we did a pre-check in pdns_recursor.cc:checkTFOconnect()
-        }
-      }
-
       localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
       s.bind(localip);
 
-      s.connect(ip);
+      std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+      TCPIOHandler handler("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
+      IOState state = handler.tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
 
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
       const char *msgP=(const char*)&*vpacket.begin();
-      string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
-      ret = asendtcp(packet, &s);
+      PacketBuffer packet;
+      packet.reserve(2 + vpacket.size());
+      packet.insert(packet.end(), lenP, lenP+2);
+      packet.insert(packet.end(), msgP, msgP+vpacket.size());
+      ret = asendtcp(packet, handler);
       if (ret != LWResult::Result::Success) {
         return ret;
       }
@@ -373,21 +371,21 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
 #endif /* HAVE_FSTRM */
 
       packet.clear();
-      ret = arecvtcp(packet, 2, &s, false);
+      ret = arecvtcp(packet, 2, handler, false);
       if (ret != LWResult::Result::Success) {
         return ret;
       }
 
-      memcpy(&tlen, packet.c_str(), sizeof(tlen));
+      memcpy(&tlen, packet.data(), sizeof(tlen));
       len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
 
-      ret = arecvtcp(packet, len, &s, false);
+      ret = arecvtcp(packet, len, handler, false);
       if (ret != LWResult::Result::Success) {
         return ret;
       }
 
       buf.resize(len);
-      memcpy(const_cast<char*>(buf.data()), packet.c_str(), len);
+      memcpy(buf.data(), packet.data(), len);
 
       ret = LWResult::Result::Success;
     }
@@ -417,7 +415,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;
-    MOADNSParser mdp(false, buf);
+    MOADNSParser mdp(false, reinterpret_cast<const char*>(buf.data()), buf.size());
     lwr->d_aabit=mdp.d_header.aa;
     lwr->d_tcbit=mdp.d_header.tc;
     lwr->d_rcode=mdp.d_header.rcode;

@@ -247,7 +247,7 @@ bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, cons
 static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, const DNSName& closestEncloser, const cspmap_t& validrrsets)
 {
   const DNSName wildcard = g_wildcarddnsname + closestEncloser;
-  LOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+  LOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).toString()<<endl);
   for (const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
     if (v.first.second == QType::NSEC) {
@@ -293,7 +293,7 @@ DNSName getClosestEncloserFromNSEC(const DNSName& name, const DNSName& owner, co
 */
 static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const DNSName& closestEncloser, const cspmap_t & validrrsets)
 {
-  LOG("Trying to prove that there is no wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+  LOG("Trying to prove that there is no wildcard for "<<qname<<"/"<<QType(qtype).toString()<<endl);
   const DNSName wildcard = g_wildcarddnsname + closestEncloser;
   for (const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -342,7 +342,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const D
 static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const qtype, const cspmap_t& validrrsets, bool* wildcardExists, nsec3HashesCache& cache)
 {
   auto wildcard = g_wildcarddnsname + closestEncloser;
-  LOG("Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype).getName()<<endl);
+  LOG("Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype).toString()<<endl);
 
   for (const auto& v : validrrsets) {
     LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
@@ -429,11 +429,11 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   /* check if the type is denied */
   if (name == owner) {
     if (!isTypeDenied(nsec, QType(qtype))) {
-      LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
+      LOG("Does _not_ deny existence of type "<<QType(qtype).toString()<<endl);
       return dState::NODENIAL;
     }
 
-    LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
+    LOG("Denies existence of type "<<QType(qtype).toString()<<endl);
     return dState::NXQTYPE;
   }
 
@@ -455,7 +455,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
     LOG(name<<" is covered by ("<<owner<<" to "<<nsec->d_next<<") ");
 
     if (nsecProvesENT(name, owner, nsec->d_next)) {
-      LOG("Denies existence of type "<<name<<"/"<<QType(qtype).getName()<<" by proving that "<<name<<" is an ENT"<<endl);
+      LOG("Denies existence of type "<<name<<"/"<<QType(qtype).toString()<<" by proving that "<<name<<" is an ENT"<<endl);
       return dState::NXQTYPE;
     }
 
@@ -524,11 +524,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         /* check if the type is denied */
         if (qname == owner) {
           if (!isTypeDenied(nsec, QType(qtype))) {
-            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
+            LOG("Does _not_ deny existence of type "<<QType(qtype).toString()<<endl);
             return dState::NODENIAL;
           }
 
-          LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
+          LOG("Denies existence of type "<<QType(qtype).toString()<<endl);
 
           /*
            * RFC 4035 Section 2.3:
@@ -583,7 +583,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             if (wantsNoDataProof) {
               /* if the name is an ENT and we received a NODATA answer,
                  we are fine with a NSEC proving that the name does not exist. */
-              LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
+              LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).toString()<<" by proving that "<<qname<<" is an ENT"<<endl);
               return dState::NXQTYPE;
             }
             else {
@@ -617,7 +617,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           return dState::NODENIAL;
         }
 
-        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->isSet(qtype)<<", next: "<<nsec->d_next<<endl);
+        LOG("Did not deny existence of "<<QType(qtype).toString()<<", "<<v.first.first<<"?="<<qname<<", "<<nsec->isSet(qtype)<<", next: "<<nsec->d_next<<endl);
       }
     } else if(v.first.second==QType::NSEC3) {
       for (const auto& r : v.second.records) {
@@ -664,11 +664,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           }
 
           if (!isTypeDenied(nsec3, QType(qtype))) {
-            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
+            LOG("Does _not_ deny existence of type "<<QType(qtype).toString()<<" for name "<<qname<<" (not opt-out)."<<endl);
             return dState::NODENIAL;
           }
 
-          LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
+          LOG("Denies existence of type "<<QType(qtype).toString()<<" for name "<<qname<<" (not opt-out)."<<endl);
 
           /*
            * RFC 5155 section 8.9:
@@ -811,7 +811,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             LOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
             if (isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
-              LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
+              LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).toString());
               nextCloserFound = true;
 
               if (nsec3->isOptOut()) {
@@ -837,7 +837,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     /* RFC 7129 section-5.6 */
     if (needWildcardProof && !provesNSEC3NoWildCard(closestEncloser, qtype, validrrsets, &wildcardExists, cache)) {
       if (!isOptOut) {
-        LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+        LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).toString()<<endl);
         return dState::NODENIAL;
       }
     }

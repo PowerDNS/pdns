@@ -210,7 +210,7 @@ void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int zone
 
   string key = simpleCompress(queryDomain);
 
-  DLOG(g_log << Logger::Debug << backendname << "[lookup] query for qtype [" << qtype.getName() << "] qdomain [" << qdomain << "]" << endl);
+  DLOG(g_log << Logger::Debug << backendname << "[lookup] query for qtype [" << qtype.toString() << "] qdomain [" << qdomain << "]" << endl);
   DLOG(g_log << Logger::Debug << "[lookup] key [" << makeHexDump(key) << "]" << endl);
 
   d_isWildcardQuery = false;
@@ -332,7 +332,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
         DLOG(cerr << "CONTENT: " << rr.content << endl);
       }
       catch (...) {
-        g_log << Logger::Error << backendname << "Failed to parse record content for " << rr.qname << " with type " << rr.qtype.getName();
+        g_log << Logger::Error << backendname << "Failed to parse record content for " << rr.qname << " with type " << rr.qtype.toString();
         if (d_ignorebogus) {
           g_log << ". Ignoring!" << endl;
           continue;
@@ -342,7 +342,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
           throw;
         }
       }
-      //      DLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
+      //      DLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.toString()<<"]"<<endl;);
       return true;
     }
   } // end of while

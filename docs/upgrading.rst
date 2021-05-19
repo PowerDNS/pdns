@@ -35,10 +35,13 @@ Their old names still work in 4.5.x, but will be removed in the release after it
 * :ref:`setting-slave-renotify` is now :ref:`setting-secondary-do-renotify`
 * :ref:`setting-slave` is now :ref:`setting-secondary`
 * :ref:`setting-superslave` is now :ref:`setting-autosecondary`
+* :ref:`setting-domain-metadata-cache-ttl` is now :ref:`setting-zone-metadata-cache-ttl`
 
 Changed defaults
 ~~~~~~~~~~~~~~~~
 
+- The default value of the ``consistent-backends`` option has been changed from ``no`` to ``yes``.
+- The default value of the ``max-nsec3-iterations`` option has been changed from ``500`` to ``100``.
 - The default value of the ``timeout`` option for :ref:`ifportup` and :ref:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
 
 4.3.x to 4.4.0

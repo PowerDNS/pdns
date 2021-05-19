@@ -7,10 +7,12 @@
 #include "arguments.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 #include "statbag.hh"
 StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
+AuthZoneCache g_zoneCache;
 
 ArgvMap &arg()
 {

@@ -230,7 +230,7 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     d_metaUpdate=false;
   }
 
-  static int ttl = ::arg().asNum("domain-metadata-cache-ttl");
+  static int ttl = ::arg().asNum("zone-metadata-cache-ttl");
 
   if(!((++s_ops) % 100000)) {
     cleanup();
@@ -347,7 +347,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if(ns3p) {
     *ns3p = NSEC3PARAMRecordContent(value);
-    if (ns3p->d_iterations > maxNSEC3Iterations) {
+    if (ns3p->d_iterations > maxNSEC3Iterations && !isPresigned(zname, useCache)) {
       ns3p->d_iterations = maxNSEC3Iterations;
       g_log<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
     }

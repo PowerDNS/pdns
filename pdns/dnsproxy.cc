@@ -270,7 +270,7 @@ void DNSProxy::mainloop()
           }
           i->second.complete->setRcode(mdp.d_header.rcode);
         } else {
-          g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).getName()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;
+          g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).toString()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;
           i->second.complete->clearRecords();
           i->second.complete->setRcode(RCode::ServFail);
         }

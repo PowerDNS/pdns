@@ -34,12 +34,13 @@
 #include "validate.hh"
 #include "lua-base4.hh"
 #include "proxy-protocol.hh"
+#include "noinitvector.hh"
 
 #include <unordered_map>
 
 #include "lua-recursor4-ffi.hh"
 
-string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
+PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 unsigned int getRecursorThreadId();
 
 // pdns_ffi_param_t is a lightuserdata

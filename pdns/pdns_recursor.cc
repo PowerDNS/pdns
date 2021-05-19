@@ -398,14 +398,14 @@ static bool isHandlerThread()
 
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
-LWResult::Result asendtcp(const string& data, Socket* sock)
+LWResult::Result asendtcp(const PacketBuffer& data, Socket* sock)
 {
   PacketID pident;
-  pident.sock=sock;
-  pident.outMSG=data;
+  pident.tcpsock=sock->getHandle();
+  pident.outMSG = data;
 
   t_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
-  string packet;
+  PacketBuffer packet;
 
   int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
   if (ret == 0) { //timeout
@@ -423,18 +423,46 @@ LWResult::Result asendtcp(const string& data, Socket* sock)
   return LWResult::Result::Success;
 }
 
+static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var);
+
+LWResult::Result asendtcp(const PacketBuffer& data, TCPIOHandler& handler)
+{
+  PacketID pident;
+  pident.tcphandler = &handler;
+  pident.tcpsock = handler.getDescriptor();
+  pident.outMSG = data;
+
+  t_fdm->addWriteFD(handler.getDescriptor(), TCPIOHandlerWritable, pident);
+  PacketBuffer packet;
+
+  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
+  if (ret == 0) { //timeout
+    t_fdm->removeWriteFD(handler.getDescriptor());
+    return LWResult::Result::Timeout;
+  }
+  else if (ret == -1) { // error
+    t_fdm->removeWriteFD(handler.getDescriptor());
+    return LWResult::Result::PermanentError;
+  }
+  else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
+    return LWResult::Result::PermanentError;
+  }
+
+  return LWResult::Result::Success;
+}
+
 static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
 
-LWResult::Result arecvtcp(string& data, const size_t len, Socket* sock, const bool incompleteOkay)
+LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, Socket* sock, const bool incompleteOkay)
 {
   data.clear();
   PacketID pident;
-  pident.sock=sock;
+  pident.tcpsock=sock->getHandle();
   pident.inNeeded=len;
   pident.inIncompleteOkay=incompleteOkay;
   t_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
 
-  int ret = MT->waitEvent(pident,&data, g_networkTimeoutMsec);
+  int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
   if (ret == 0) {
     t_fdm->removeReadFD(sock->getHandle());
     return LWResult::Result::Timeout;
@@ -450,14 +478,44 @@ LWResult::Result arecvtcp(string& data, const size_t len, Socket* sock, const bo
   return LWResult::Result::Success;
 }
 
+static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var);
+
+LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, TCPIOHandler& handler, const bool incompleteOkay)
+{
+  data.clear();
+
+  PacketID pident;
+  pident.tcphandler = &handler;
+  pident.tcpsock = handler.getDescriptor();
+  pident.inNeeded = len;
+  pident.inIncompleteOkay = incompleteOkay;
+  t_fdm->addReadFD(handler.getDescriptor(), TCPIOHandlerReadable, pident);
+
+  int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
+  if (ret == 0) {
+    t_fdm->removeReadFD(handler.getDescriptor());
+    return LWResult::Result::Timeout;
+  }
+  else if (ret == -1) {
+    t_fdm->removeWriteFD(handler.getDescriptor());
+    return LWResult::Result::PermanentError;
+  }
+  else if (data.empty()) {// error, EOF or other
+    return LWResult::Result::PermanentError;
+  }
+
+  return LWResult::Result::Success;
+}
+
 static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
-  PacketID pident=*boost::any_cast<PacketID>(&var);
-  char resp[512];
+  PacketID pident = *boost::any_cast<PacketID>(&var);
+  PacketBuffer resp;
+  resp.resize(512);
   ComboAddress fromaddr;
-  socklen_t addrlen=sizeof(fromaddr);
+  socklen_t addrlen = sizeof(fromaddr);
 
-  ssize_t ret=recvfrom(fd, resp, sizeof(resp), 0, (sockaddr *)&fromaddr, &addrlen);
+  ssize_t ret = recvfrom(fd, resp.data(), resp.size(), 0, (sockaddr *)&fromaddr, &addrlen);
   if (fromaddr != pident.remote) {
     g_log<<Logger::Notice<<"Response received from the wrong remote host ("<<fromaddr.toStringWithPort()<<" instead of "<<pident.remote.toStringWithPort()<<"), discarding"<<endl;
 
@@ -465,16 +523,15 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
 
   t_fdm->removeReadFD(fd);
   if(ret >= 0) {
-    string data(resp, (size_t) ret);
-    MT->sendEvent(pident, &data);
+    MT->sendEvent(pident, &resp);
   }
   else {
-    string empty;
+    PacketBuffer empty;
     MT->sendEvent(pident, &empty);
     //    cerr<<"Had some kind of error: "<<ret<<", "<<stringerror()<<endl;
   }
 }
-string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
+PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
 {
   Socket s(dest.sin4.sin_family, SOCK_DGRAM);
   s.setNonBlocking();
@@ -485,14 +542,14 @@ string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   s.send(query);
 
   PacketID pident;
-  pident.sock=&s;
+  pident.fd=s.getHandle();
   pident.remote=dest;
   pident.type=0;
   t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
 
-  string data;
+  PacketBuffer data;
  
-  int ret=MT->waitEvent(pident,&data, g_networkTimeoutMsec);
+  int ret=MT->waitEvent(pident, &data, g_networkTimeoutMsec);
  
   if(!ret || ret==-1) { // timeout
     t_fdm->removeReadFD(s.getHandle());
@@ -698,7 +755,7 @@ LWResult::Result asendto(const char *data, size_t len, int flags,
   return LWResult::Result::Success;
 }
 
-LWResult::Result arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
+LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
                            uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now)
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
@@ -1083,7 +1140,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
   }
 
   if (sr.doLog() &&  appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
-    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).getName() << appliedPolicy.getLogString() << endl;
+    g_log << Logger::Warning << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype).toString() << appliedPolicy.getLogString() << endl;
   }
 
   if (appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
@@ -1335,7 +1392,7 @@ static void sendNODLookup(const DNSName& dname)
       return;
     }
     vector<DNSRecord> dummy;
-    directResolve(qname, QType::A, QClass::IN, dummy);
+    directResolve(qname, QType::A, QClass::IN, dummy, false);
   }
 }
 
@@ -1350,7 +1407,7 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
     if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
       if (g_udrLog) {  
         // This should also probably log to a dedicated file. 
-        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
+        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname<<" qtype="<<QType(qtype).toString()<< " rrtype=" << QType(record.d_type).toString() << " rrname=" << record.d_name << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
       }
       ret = true;
     }
@@ -1891,7 +1948,7 @@ static void startDoResolve(void *p)
 
           if(state == vState::Secure) {
             if(sr.doLog()) {
-              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" for "<<dc->getRemote()<<" validates correctly"<<endl;
             }
 
             // Is the query source interested in the value of the ad-bit?
@@ -1900,7 +1957,7 @@ static void startDoResolve(void *p)
           }
           else if(state == vState::Insecure) {
             if(sr.doLog()) {
-              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates as Insecure"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" for "<<dc->getRemote()<<" validates as Insecure"<<endl;
             }
 
             pw.getHeader()->ad=0;
@@ -1911,27 +1968,27 @@ static void startDoResolve(void *p)
             if(t_bogusqueryring)
               t_bogusqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
-               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" for "<<dc->getRemote()<<" validates as "<<vStateToString(state)<<endl;
+               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" for "<<dc->getRemote()<<" validates as "<<vStateToString(state)<<endl;
             }
 
             // Does the query or validation mode sending out a SERVFAIL on validation errors?
             if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad || DNSSECOK)) {
               if(sr.doLog()) {
-                g_log<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" because recursor or query demands it for Bogus results"<<endl;
+                g_log<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<" because recursor or query demands it for Bogus results"<<endl;
               }
 
               pw.getHeader()->rcode=RCode::ServFail;
               goto sendit;
             } else {
               if(sr.doLog()) {
-                g_log<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<x_marker<<" Bogus validation since neither config nor query demands this"<<endl;
+                g_log<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<x_marker<<" Bogus validation since neither config nor query demands this"<<endl;
               }
             }
           }
         }
         catch(const ImmediateServFailException &e) {
           if(g_logCommonErrors)
-            g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<"' because: "<<e.reason<<endl;
+            g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).toString()<<"' because: "<<e.reason<<endl;
           pw.getHeader()->rcode=RCode::ServFail;
           goto sendit;
         }
@@ -4030,12 +4087,12 @@ static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 
   ssize_t ret=recv(fd, buffer.get(), pident->inNeeded,0);
   if(ret > 0) {
-    pident->inMSG.append(&buffer[0], &buffer[ret]);
-    pident->inNeeded-=(size_t)ret;
+    pident->inMSG.insert(pident->inMSG.end(), &buffer[0],  &buffer[ret]);
+    pident->inNeeded -= (size_t)ret;
     if(!pident->inNeeded || pident->inIncompleteOkay) {
       //      cerr<<"Got entire load of "<<pident->inMSG.size()<<" bytes"<<endl;
       PacketID pid=*pident;
-      string msg=pident->inMSG;
+      PacketBuffer msg = pident->inMSG;
 
       t_fdm->removeReadFD(fd);
       MT->sendEvent(pid, &msg);
@@ -4047,7 +4104,46 @@ static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
   else {
     PacketID tmp=*pident;
     t_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
-    string empty;
+    PacketBuffer empty;
+    MT->sendEvent(tmp, &empty); // this conveys error status
+  }
+}
+
+static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var)
+{
+  PacketID* pident=boost::any_cast<PacketID>(&var);
+  assert(pident->tcphandler != nullptr);
+  assert(fd == pident->tcphandler->getDescriptor());
+  // XXX Likely it is possible to directly write into inMSG
+  // To be able to do that, inMSG has to be resized before. Afer the read we may have to resize again
+  // taking into account the actual bytes read. Wondering if this is worth the trouble...
+  PacketBuffer buffer;
+  buffer.resize(pident->inNeeded);
+
+  try {
+    size_t pos = 0;
+    IOState state = pident->tcphandler->tryRead(buffer, pos, pident->inNeeded);
+    switch (state) {
+    case IOState::Done:
+    case IOState::NeedRead:
+      pident->inMSG.insert(pident->inMSG.end(), buffer.data(), buffer.data() + pos);
+      pident->inNeeded -= pos;
+      if (pident->inNeeded == 0 || pident->inIncompleteOkay) {
+        PacketID pid = *pident;
+        PacketBuffer msg = pident->inMSG;
+        t_fdm->removeReadFD(fd);
+        MT->sendEvent(pid, &msg);
+      }
+      break;
+    case IOState::NeedWrite:
+      // What to do?
+      break;
+    }
+  }
+  catch (const std::runtime_error& e) {
+    PacketID tmp = *pident;
+    t_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
+    PacketBuffer empty;
     MT->sendEvent(tmp, &empty); // this conveys error status
   }
 }
@@ -4055,7 +4151,7 @@ static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pid = boost::any_cast<PacketID>(&var);
-  ssize_t ret = send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
+  ssize_t ret = send(fd, pid->outMSG.data() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
   if (ret > 0) {
     pid->outPos += (ssize_t)ret;
     if (pid->outPos == pid->outMSG.size()) {
@@ -4067,13 +4163,44 @@ static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
   else {  // error or EOF
     PacketID tmp(*pid);
     t_fdm->removeWriteFD(fd);
-    string sent;
+    PacketBuffer sent;
+    MT->sendEvent(tmp, &sent);         // we convey error status by sending empty string
+  }
+}
+
+static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var)
+{
+  PacketID* pid = boost::any_cast<PacketID>(&var);
+  assert(pid->tcphandler != nullptr);
+  assert(fd == pid->tcphandler->getDescriptor());
+
+  try {
+    IOState state = pid->tcphandler->tryWrite(pid->outMSG, pid->outPos, pid->outMSG.size());
+    switch (state) {
+    case IOState::Done: {
+      PacketID tmp = *pid;
+      t_fdm->removeWriteFD(fd);
+      MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
+      break;
+    }
+    case IOState::NeedWrite:
+      // We'll get back later
+    break;
+    case IOState::NeedRead:
+      // What to do?
+      break;
+    }
+  }
+  catch (const std::runtime_error& e) {
+    PacketID tmp = *pid;
+    t_fdm->removeWriteFD(fd);
+    PacketBuffer sent;
     MT->sendEvent(tmp, &sent);         // we convey error status by sending empty string
   }
 }
 
 // resend event to everybody chained onto it
-static void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& content)
+static void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const PacketBuffer& content)
 {
   // We close the chain for new entries, since they won't be processed anyway
   iter->key.closed = true;
@@ -4095,7 +4222,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pid=boost::any_cast<PacketID>(var);
   ssize_t len;
-  std::string packet;
+  PacketBuffer packet;
   packet.resize(g_outgoingEDNSBufsize);
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
@@ -4113,7 +4240,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     }
 
     t_udpclientsocks->returnSocket(fd);
-    string empty;
+    PacketBuffer empty;
 
     MT_t::waiters_t::iterator iter=MT->d_waiters.find(pid);
     if(iter != MT->d_waiters.end())
@@ -4144,7 +4271,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   else {
     try {
       if(len > 12)
-        pident.domain=DNSName(&packet.at(0), len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
+        pident.domain=DNSName(reinterpret_cast<const char *>(packet.data()), len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
@@ -5250,7 +5377,7 @@ try
     t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_bogusqueryring->set_capacity(ringsize);
   }
-  MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
+  MT=std::unique_ptr<MTasker<PacketID,PacketBuffer> >(new MTasker<PacketID,PacketBuffer>(::arg().asNum("stack-size")));
   threadInfo.mt = MT.get();
 
   /* start protobuf export threads if needed */

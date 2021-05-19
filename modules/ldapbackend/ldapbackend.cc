@@ -204,7 +204,7 @@ void LdapBackend::extract_entry_results(const DNSName& domain, const DNSResult& 
               continue;
 
             qtype2 = rdata.substr(0, pos);
-            if (qtype2 != QType(local_result.qtype).getName())
+            if (qtype2 != QType(local_result.qtype).toString())
               continue;
 
             local_result.ttl = pdns_stou(rdata.substr(pos + 1));
@@ -214,7 +214,7 @@ void LdapBackend::extract_entry_results(const DNSName& domain, const DNSResult& 
         // Not authoritative
         if (d_result.count("PdnsRecordNoAuth") && !d_result["PdnsRecordNoAuth"].empty()) {
           for (const auto& rdata : d_result["PdnsRecordNoAuth"]) {
-            if (rdata == QType(local_result.qtype).getName())
+            if (rdata == QType(local_result.qtype).toString())
               local_result.auth = false;
           }
         }
@@ -233,7 +233,7 @@ void LdapBackend::extract_entry_results(const DNSName& domain, const DNSResult& 
             }
 
             qtype2 = rdata.substr(0, pos);
-            if (qtype2 != QType(local_result.qtype).getName())
+            if (qtype2 != QType(local_result.qtype).toString())
               continue;
 
             local_result.ordername = rdata.substr(pos + 1);

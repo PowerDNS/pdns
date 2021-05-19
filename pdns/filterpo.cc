@@ -681,7 +681,7 @@ void DNSFilterEngine::Zone::dumpNamedPolicy(FILE* fp, const DNSName& name, const
 {
   auto records = pol.getRecords(name);
   for (const auto& dr : records) {
-    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).getName().c_str(), dr.d_content->getZoneRepresentation().c_str());
+    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).toString().c_str(), dr.d_content->getZoneRepresentation().c_str());
   }
 }
 
@@ -763,7 +763,7 @@ void DNSFilterEngine::Zone::dumpAddrPolicy(FILE* fp, const Netmask& nm, const DN
 
   auto records = pol.getRecords(full);
   for (const auto& dr : records) {
-    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).getName().c_str(), dr.d_content->getZoneRepresentation().c_str());
+    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).toString().c_str(), dr.d_content->getZoneRepresentation().c_str());
   }
 }
 

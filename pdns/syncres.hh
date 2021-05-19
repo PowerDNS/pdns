@@ -52,6 +52,7 @@
 #include "proxy-protocol.hh"
 #include "sholder.hh"
 #include "histogram.hh"
+#include "tcpiohandler.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -920,43 +921,47 @@ private:
 
 class Socket;
 /* external functions, opaque to us */
-LWResult::Result asendtcp(const string& data, Socket* sock);
-LWResult::Result arecvtcp(string& data, size_t len, Socket* sock, bool incompleteOkay);
+LWResult::Result asendtcp(const PacketBuffer& data, Socket* sock);
+LWResult::Result arecvtcp(PacketBuffer& data, size_t len, Socket* sock, bool incompleteOkay);
+LWResult::Result asendtcp(const PacketBuffer& data, TCPIOHandler&);
+LWResult::Result arecvtcp(PacketBuffer& data, size_t len, TCPIOHandler&, bool incompleteOkay);
 
 struct PacketID
 {
-  PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1), closed(false)
+  PacketID()
   {
     remote.reset();
   }
 
-  uint16_t id;  // wait for a specific id/remote pair
-  uint16_t type;             // and this is its type
   ComboAddress remote;  // this is the remote
   DNSName domain;             // this is the question
 
-  Socket* sock;  // or wait for an event on a TCP fd
-  string inMSG; // they'll go here
-  size_t inNeeded; // if this is set, we'll read until inNeeded bytes are read
-  bool inIncompleteOkay;
-
-  string outMSG; // the outgoing message that needs to be sent
-  string::size_type outPos;    // how far we are along in the outMSG
+  PacketBuffer inMSG; // they'll go here
+  PacketBuffer outMSG; // the outgoing message that needs to be sent
 
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
-  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
-  int fd;
-  mutable bool closed; // Processing already started, don't accept new chained ids
+  TCPIOHandler *tcphandler{nullptr};
+  size_t inNeeded{0}; // if this is set, we'll read until inNeeded bytes are read
+  string::size_type outPos{0};    // how far we are along in the outMSG
+  mutable uint32_t nearMisses{0}; // number of near misses - host correct, id wrong
+  int fd{-1};
+  int tcpsock{0};  // or wait for an event on a TCP fd
+  mutable bool closed{false}; // Processing already started, don't accept new chained ids
+  bool inIncompleteOkay{false};
+  uint16_t id{0};  // wait for a specific id/remote pair
+  uint16_t type{0};             // and this is its type
 
   bool operator<(const PacketID& b) const
   {
-    int ourSock= sock ? sock->getHandle() : 0;
-    int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(remote, ourSock, type) < tie(b.remote, bSock, b.type))
+    int ourSock= tcpsock;
+    int bSock = b.tcpsock;
+    if (tie(remote, ourSock, type) < tie(b.remote, bSock, b.type)) {
       return true;
-    if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
+    }
+    if (tie(remote, ourSock, type) > tie(b.remote, bSock, b.type)) {
       return false;
+    }
 
     return tie(fd, id, domain) < tie(b.fd, b.id, b.domain);
   }
@@ -966,19 +971,21 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
 {
   bool operator()(const PacketID& a, const PacketID& b) const
   {
-    int ourSock= a.sock ? a.sock->getHandle() : 0;
-    int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(a.remote, ourSock, a.type) < tie(b.remote, bSock, b.type))
+    int ourSock= a.tcpsock;
+    int bSock = b.tcpsock;
+    if (tie(a.remote, ourSock, a.type) < tie(b.remote, bSock, b.type)) {
       return true;
-    if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
+    }
+    if (tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type)) {
       return false;
+    }
 
     return a.domain < b.domain;
   }
 };
 extern std::unique_ptr<MemRecursorCache> g_recCache;
 extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
-typedef MTasker<PacketID,string> MT_t;
+typedef MTasker<PacketID,PacketBuffer> MT_t;
 MT_t* getMT();
 
 struct RecursorStats
@@ -1115,6 +1122,7 @@ void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret);
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, bool qm);
 int followCNAMERecords(std::vector<DNSRecord>& ret, const QType qtype, int oldret);
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret);
 int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);

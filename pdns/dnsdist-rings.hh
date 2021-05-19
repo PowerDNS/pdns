@@ -36,23 +36,23 @@
 struct Rings {
   struct Query
   {
-    struct timespec when;
     ComboAddress requestor;
     DNSName name;
+    struct timespec when;
+    struct dnsheader dh;
     uint16_t size;
     uint16_t qtype;
-    struct dnsheader dh;
   };
   struct Response
   {
-    struct timespec when;
     ComboAddress requestor;
+    ComboAddress ds; // who handled it
     DNSName name;
-    uint16_t qtype;
+    struct timespec when;
+    struct dnsheader dh;
     unsigned int usec;
     unsigned int size;
-    struct dnsheader dh;
-    ComboAddress ds; // who handled it
+    uint16_t qtype;
   };
 
   struct Shard
@@ -216,7 +216,7 @@ private:
     if (!shard->queryRing.full()) {
       d_nbQueryEntries++;
     }
-    shard->queryRing.push_back({when, requestor, name, size, qtype, dh});
+    shard->queryRing.push_back({requestor, name, when, dh, size, qtype});
   }
 
   void insertResponseLocked(std::unique_ptr<Shard>& shard, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend)
@@ -224,7 +224,7 @@ private:
     if (!shard->respRing.full()) {
       d_nbResponseEntries++;
     }
-    shard->respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
+    shard->respRing.push_back({requestor, backend, name, when, dh, usec, size, qtype});
   }
 
   std::atomic<size_t> d_nbQueryEntries;

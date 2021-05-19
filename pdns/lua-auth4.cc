@@ -71,7 +71,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerMember<DNSPacket, DNSName>("qdomainzone", [](const DNSPacket &p) -> DNSName { return p.qdomainzone; }, [](DNSPacket &p, const DNSName& name) { p.qdomainzone = name; });
 
   d_lw->registerMember<DNSPacket, std::string>("d_peer_principal", [](const DNSPacket &p) -> std::string { return p.d_peer_principal; }, [](DNSPacket &p, const std::string &princ) { p.d_peer_principal = princ; });
-  d_lw->registerMember<DNSPacket, const std::string>("qtype", [](const DNSPacket &p) ->  const std::string { return p.qtype.getName(); }, [](DNSPacket &p, const std::string &type) { p.qtype = type; });
+  d_lw->registerMember<DNSPacket, const std::string>("qtype", [](const DNSPacket &p) ->  const std::string { return p.qtype.toString(); }, [](DNSPacket &p, const std::string &type) { p.qtype = type; });
 /* End of DNSPacket */
 
 

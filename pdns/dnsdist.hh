@@ -557,9 +557,9 @@ struct ClientState;
 
 struct IDState
 {
-  IDState(): sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
+  IDState(): sentTime(true), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs): origRemote(rhs.origRemote), origDest(rhs.origDest), sentTime(rhs.sentTime), qname(std::move(rhs.qname)), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), subnet(rhs.subnet), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), origFD(rhs.origFD), delayMsec(rhs.delayMsec), tempFailureTTL(rhs.tempFailureTTL), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
+  IDState(IDState&& rhs): subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), origFD(rhs.origFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
   {
     if (rhs.isInUse()) {
       throw std::runtime_error("Trying to move an in-use IDState");
@@ -583,37 +583,39 @@ struct IDState
       throw std::runtime_error("Trying to move an in-use IDState");
     }
 
+    subnet = std::move(rhs.subnet);
     origRemote = rhs.origRemote;
     origDest = rhs.origDest;
-    sentTime = rhs.sentTime;
+    hopRemote = rhs.hopRemote;
+    hopLocal = rhs.hopLocal;
     qname = std::move(rhs.qname);
+    sentTime = rhs.sentTime;
     dnsCryptQuery = std::move(rhs.dnsCryptQuery);
-    subnet = rhs.subnet;
     packetCache = std::move(rhs.packetCache);
     qTag = std::move(rhs.qTag);
+    tempFailureTTL = std::move(rhs.tempFailureTTL);
     cs = rhs.cs;
     du = std::move(rhs.du);
     cacheKey = rhs.cacheKey;
     cacheKeyNoECS = rhs.cacheKeyNoECS;
+    origFD = rhs.origFD;
+    delayMsec = rhs.delayMsec;
+#ifdef __SANITIZE_THREAD__
+    age.store(rhs.age.load());
+#else
+    age = rhs.age;
+#endif
     qtype = rhs.qtype;
     qclass = rhs.qclass;
     origID = rhs.origID;
     origFlags = rhs.origFlags;
-    origFD = rhs.origFD;
-    delayMsec = rhs.delayMsec;
-    tempFailureTTL = rhs.tempFailureTTL;
+    uniqueId = std::move(rhs.uniqueId);
     ednsAdded = rhs.ednsAdded;
     ecsAdded = rhs.ecsAdded;
     skipCache = rhs.skipCache;
     destHarvested = rhs.destHarvested;
     dnssecOK = rhs.dnssecOK;
     useZeroScope = rhs.useZeroScope;
-#ifdef __SANITIZE_THREAD__
-    age.store(rhs.age.load());
-#else
-    age = rhs.age;
-#endif
-    uniqueId = std::move(rhs.uniqueId);
 
     return *this;
   }
@@ -637,14 +639,14 @@ struct IDState
     return usageIndicator.compare_exchange_strong(expectedUsageIndicator, unusedIndicator);
   }
 
-  /* mark as unused no matter what, return true if the state was in use before */
+  /* mark as used no matter what, return true if the state was in use before */
   bool markAsUsed()
   {
     auto currentGeneration = generation++;
     return markAsUsed(currentGeneration);
   }
 
-  /* mark as unused no matter what, return true if the state was in use before */
+  /* mark as used no matter what, return true if the state was in use before */
   bool markAsUsed(int64_t currentGeneration)
   {
     int64_t oldUsage = usageIndicator.exchange(currentGeneration);
@@ -684,35 +686,35 @@ struct IDState
      wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
      when the state is unused and the value of our counter otherwise.
   */
-  std::atomic<int64_t> usageIndicator{unusedIndicator};  // set to unusedIndicator to indicate this state is empty   // 8
-  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
+  boost::optional<Netmask> subnet{boost::none};               // 40
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
   ComboAddress hopRemote;
   ComboAddress hopLocal;
+  DNSName qname;                                              // 24
   StopWatch sentTime;                                         // 16
-  DNSName qname;                                              // 80
-  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
-  boost::optional<boost::uuids::uuid> uniqueId;
-  boost::optional<Netmask> subnet{boost::none};
-  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
-  std::shared_ptr<QTag> qTag{nullptr};
-  const ClientState* cs{nullptr};
-  DOHUnit* du{nullptr};
+  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};      // 16
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};   // 16
+  std::shared_ptr<QTag> qTag{nullptr};                        // 16
+  boost::optional<uint32_t> tempFailureTTL;                   // 8
+  const ClientState* cs{nullptr};                             // 8
+  DOHUnit* du{nullptr};                                       // 8
+  std::atomic<int64_t> usageIndicator{unusedIndicator};  // set to unusedIndicator to indicate this state is empty   // 8
+  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
   uint32_t cacheKey{0};                                       // 4
   uint32_t cacheKeyNoECS{0};                                  // 4
+  int origFD{-1};                                             // 4
+  int delayMsec{0};
 #ifdef __SANITIZE_THREAD__
   std::atomic<uint16_t> age{0};
 #else
-  uint16_t age{0};                                            // 4
+  uint16_t age{0};                                            // 2
 #endif
   uint16_t qtype{0};                                          // 2
   uint16_t qclass{0};                                         // 2
   uint16_t origID{0};                                         // 2
   uint16_t origFlags{0};                                      // 2
-  int origFD{-1};
-  int delayMsec{0};
-  boost::optional<uint32_t> tempFailureTTL;
+  boost::optional<boost::uuids::uuid> uniqueId{boost::none};  // 17 (placed here to reduce the space lost to padding)
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};

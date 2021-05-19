@@ -126,7 +126,7 @@ bool QType::isMetadataType() const
   return false;
 }
 
-const string QType::getName() const
+const string QType::toString() const
 {
   const auto& name = numbers.find(code);
   if (name != numbers.cend()) {

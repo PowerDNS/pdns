@@ -196,9 +196,11 @@ hash-zone-record *ZONE* *RNAME*
 increase-serial *ZONE*
     Increases the SOA-serial by 1. Uses SOA-EDIT.
 list-keys [*ZONE*]
-    List DNSSEC information for all keys or for *ZONE*.
+    List DNSSEC information for all keys or for *ZONE*. --verbose or -v will
+    also include the keys for disabled or empty zones.
 list-all-zones:
-    List all zone names.
+    List all active zone names. --verbose or -v will also include disabled
+    or empty zones.
 list-zone *ZONE*
     Show all records for *ZONE*.
 load-zone *ZONE* *FILE*
