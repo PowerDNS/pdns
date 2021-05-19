@@ -39,13 +39,15 @@ void MiniCurl::init()
   }
 }
 
-MiniCurl::MiniCurl(const string& useragent)
+MiniCurl::MiniCurl(const string& useragent, bool failonerror)
 {
   d_curl = curl_easy_init();
   if (d_curl == nullptr) {
     throw std::runtime_error("Error creating a MiniCurl session");
   }
   curl_easy_setopt(d_curl, CURLOPT_USERAGENT, useragent.c_str());
+
+  curlopt_failonerror = failonerror;
 }
 
 MiniCurl::~MiniCurl()
@@ -107,7 +109,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYPEER, false);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYHOST, false);
-  curl_easy_setopt(d_curl, CURLOPT_FAILONERROR, true);
+  curl_easy_setopt(d_curl, CURLOPT_FAILONERROR, curlopt_failonerror);
   curl_easy_setopt(d_curl, CURLOPT_URL, str.c_str());
   curl_easy_setopt(d_curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
@@ -121,14 +123,15 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   d_data.clear();
 }
 
-std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout)
+std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, int http_status)
 {
   setupURL(str, rem, src, timeout);
+
   auto res = curl_easy_perform(d_curl);
   long http_code = 0;
   curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-  if(res != CURLE_OK || http_code != 200)  {
+  if(res != CURLE_OK || http_code != http_status)  {
     throw std::runtime_error("Unable to retrieve URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
   }
   std::string ret=d_data;
