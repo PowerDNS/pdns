@@ -69,7 +69,8 @@ bool TaskQueue::runOnce(bool logErrors)
     sr.setRefreshAlmostExpired(task.d_refreshMode);
     try {
       g_log << Logger::Debug << "TaskQueue: resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).getName() << endl;
-      sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
+      int res = sr.beginResolve(task.d_qname, QType(task.d_qtype), QClass::IN, ret);
+      g_log << Logger::Debug << "TaskQueue: DONE resolving " << task.d_qname.toString() << '|' << QType(task.d_qtype).getName() << ": " << res << endl;
     }
     catch (const std::exception& e) {
       g_log << Logger::Error << "Exception while running the background task queue: " << e.what() << endl;
