@@ -197,8 +197,8 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   uint16_t size = 42;
 
   Rings rings(numberOfEntries, numberOfShards, lockAttempts, true);
-  Rings::Query query({now, requestor, qname, size, qtype, dh});
-  Rings::Response response({now, requestor, qname, qtype, latency, size, dh, server});
+  Rings::Query query({requestor, qname, now, dh, size, qtype});
+  Rings::Response response({requestor, server, qname, now, dh, latency, size, qtype});
 
   std::atomic<bool> done(false);
   std::vector<std::thread> writerThreads;
