@@ -41,6 +41,7 @@ Changed defaults
 ~~~~~~~~~~~~~~~~
 
 - The default value of the ``consistent-backends`` option has been changed from ``no`` to ``yes``.
+- The default value of the ``max-nsec3-iterations`` option has been changed from ``500`` to ``100``.
 - The default value of the ``timeout`` option for :ref:`ifportup` and :ref:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
 
 4.3.x to 4.4.0
