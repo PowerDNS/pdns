@@ -239,7 +239,7 @@ void carbonDumpThread()
 
           {
             std::string qname;
-            auto records = g_qcount.records.lock();
+            auto records = g_qcount.records.write_lock();
             for (const auto &record : *records) {
               qname = record.first;
               boost::replace_all(qname, ".", "_");

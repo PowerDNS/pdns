@@ -112,7 +112,7 @@ private:
 
     void setSize(size_t maxSize)
     {
-      d_map.lock()->reserve(maxSize);
+      d_map.write_lock()->reserve(maxSize);
     }
 
     SharedLockGuarded<std::unordered_map<uint32_t,CacheValue>> d_map;

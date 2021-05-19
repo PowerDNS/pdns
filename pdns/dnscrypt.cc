@@ -284,7 +284,7 @@ std::string DNSCryptContext::certificateDateToStr(uint32_t date)
 
 void DNSCryptContext::addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>& newCert, bool reload)
 {
-  auto certs = d_certs.lock();
+  auto certs = d_certs.write_lock();
 
   for (auto pair : *certs) {
     if (pair->cert.getSerial() == newCert->cert.getSerial()) {
@@ -327,7 +327,7 @@ void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std:
   auto newPair = DNSCryptContext::loadCertificatePair(certFile, keyFile);
   newPair->active = active;
   addNewCertificate(newPair, reload);
-  d_certKeyPaths.lock()->push_back({certFile, keyFile});
+  d_certKeyPaths.write_lock()->push_back({certFile, keyFile});
 }
 
 void DNSCryptContext::reloadCertificates()
@@ -342,7 +342,7 @@ void DNSCryptContext::reloadCertificates()
   }
     
   {
-    *(d_certs.lock()) = std::move(newCerts);
+    *(d_certs.write_lock()) = std::move(newCerts);
   }
 }
 
@@ -353,7 +353,7 @@ std::vector<std::shared_ptr<DNSCryptCertificatePair>> DNSCryptContext::getCertif
 
 void DNSCryptContext::markActive(uint32_t serial)
 {
-  for (auto pair : *d_certs.lock()) {
+  for (auto pair : *d_certs.write_lock()) {
     if (pair->active == false && pair->cert.getSerial() == serial) {
       pair->active = true;
       return;
@@ -364,7 +364,7 @@ void DNSCryptContext::markActive(uint32_t serial)
 
 void DNSCryptContext::markInactive(uint32_t serial)
 {
-  for (auto pair : *d_certs.lock()) {
+  for (auto pair : *d_certs.write_lock()) {
     if (pair->active == true && pair->cert.getSerial() == serial) {
       pair->active = false;
       return;
@@ -375,7 +375,7 @@ void DNSCryptContext::markInactive(uint32_t serial)
 
 void DNSCryptContext::removeInactiveCertificate(uint32_t serial)
 {
-  auto certs = d_certs.lock();
+  auto certs = d_certs.write_lock();
 
   for (auto it = certs->begin(); it != certs->end(); ) {
     if ((*it)->active == false && (*it)->cert.getSerial() == serial) {

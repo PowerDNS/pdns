@@ -854,7 +854,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
     }
 
     if (countQuery) {
-      auto records = g_qcount.records.lock();
+      auto records = g_qcount.records.write_lock();
       if (!records->count(qname)) {
         (*records)[qname] = 0;
       }

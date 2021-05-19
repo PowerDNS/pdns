@@ -174,7 +174,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   auto& shard = d_shards.at(shardIndex);
 
   if (d_deferrableInsertLock) {
-    auto w = shard.d_map.try_lock();
+    auto w = shard.d_map.try_write_lock();
 
     if (!w.owns_lock()) {
       d_deferredInserts++;
@@ -183,7 +183,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
     insertLocked(shard, *w, key, newValue);
   }
   else {
-    auto w = shard.d_map.lock();
+    auto w = shard.d_map.write_lock();
 
     insertLocked(shard, *w, key, newValue);
   }
@@ -296,7 +296,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    auto map = shard.d_map.lock();
+    auto map = shard.d_map.write_lock();
     if (map->size() <= maxPerShard) {
       continue;
     }
@@ -332,7 +332,7 @@ size_t DNSDistPacketCache::expunge(size_t upTo)
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    auto map = shard.d_map.lock();
+    auto map = shard.d_map.write_lock();
 
     if (map->size() <= maxPerShard) {
       continue;
@@ -364,7 +364,7 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    auto map = shard.d_map.lock();
+    auto map = shard.d_map.write_lock();
 
     for(auto it = map->begin(); it != map->end(); ) {
       const CacheValue& value = it->second;
