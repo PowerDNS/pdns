@@ -45,7 +45,7 @@ try
   }
 
   registerAllStats();
-  string msg;
+  PacketBuffer msg;
   for(const auto& carbonServer: carbonServers) {
     ComboAddress remote(carbonServer, 2003);
     Socket s(remote.sin4.sin_family, SOCK_STREAM);
@@ -62,7 +62,8 @@ try
       for(const auto& val : all) {
         str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second.d_value<<' '<<now<<"\r\n";
       }
-      msg = str.str();
+      const string& x = str.str();
+      msg.insert(msg.end(), x.cbegin(), x.cend());
     }
 
     auto ret = asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect

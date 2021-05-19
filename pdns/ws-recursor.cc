@@ -1242,19 +1242,20 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
   HttpRequest req(logprefix);
   HttpResponse resp;
   ComboAddress remote;
-  string reply;
+  PacketBuffer reply;
 
   try {
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
     client->setNonBlocking();
 
-    string data;
+    PacketBuffer data;
     try {
       while(!req.complete) {
         auto ret = arecvtcp(data, 16384, client.get(), true);
         if (ret == LWResult::Result::Success) {
-          req.complete = yarl.feed(data);
+          string str(reinterpret_cast<const char*>(data.data()), data.size());
+          req.complete = yarl.feed(str);
         } else {
           // read error OR EOF
           break;
@@ -1275,7 +1276,8 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     WebServer::handleRequest(req, resp);
     ostringstream ss;
     resp.write(ss);
-    reply = ss.str();
+    const string &s = ss.str();
+    reply.insert(reply.end(), s.cbegin(), s.cend());
 
     logResponse(resp, remote, logprefix);
 
