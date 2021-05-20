@@ -79,13 +79,12 @@ static map<string, const std::atomic<uint64_t>*> d_getatomics;
 static map<string, std::function<uint64_t()>>  d_get64bitmembers;
 static map<string, std::function<StatsMap()>> d_getmultimembers;
 
-static std::mutex d_dynmetricslock;
 struct dynmetrics {
   std::atomic<unsigned long> *d_ptr;
   std::string d_prometheusName;
 };
 
-static map<string, dynmetrics> d_dynmetrics;
+static LockGuarded<map<string, dynmetrics>> d_dynmetrics;
 
 static std::map<StatComponent, std::set<std::string>> s_disabledStats;
 
@@ -139,10 +138,11 @@ static std::string getPrometheusName(const std::string& arg)
 
 std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName)
 {
-  std::lock_guard<std::mutex> l(d_dynmetricslock);
-  auto f = d_dynmetrics.find(str);
-  if(f != d_dynmetrics.end())
+  auto dm = d_dynmetrics.lock();
+  auto f = dm->find(str);
+  if (f != dm->end()) {
     return f->second.d_ptr;
+  }
 
   std::string name(str);
   if (!prometheusName.empty()) {
@@ -152,7 +152,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   }
 
   auto ret = dynmetrics{new std::atomic<unsigned long>(), name};
-  d_dynmetrics[str]= ret;
+  (*dm)[str]= ret;
   return ret.d_ptr;
 }
 
@@ -167,10 +167,13 @@ static boost::optional<uint64_t> get(const string& name)
   if(d_get64bitmembers.count(name))
     return d_get64bitmembers.find(name)->second();
 
-  std::lock_guard<std::mutex> l(d_dynmetricslock);
-  auto f = rplookup(d_dynmetrics, name);
-  if (f)
-    return f->d_ptr->load();
+  {
+    auto dm = d_dynmetrics.lock();
+    auto f = rplookup(*dm, name);
+    if (f) {
+      return f->d_ptr->load();
+    }
+  }
 
   for(const auto& themultimember : d_getmultimembers) {
     const auto items = themultimember.second();
@@ -217,8 +220,7 @@ StatsMap getAllStatsMap(StatComponent component)
   }
 
   {
-    std::lock_guard<std::mutex> l(d_dynmetricslock);
-    for(const auto& a : d_dynmetrics) {
+    for(const auto& a : *(d_dynmetrics.lock())) {
       if (disabledlistMap.count(a.first) == 0) {
         ret.insert(make_pair(a.first, StatsMapEntry{a.second.d_prometheusName, std::to_string(*a.second.d_ptr)}));
       }
