@@ -21,7 +21,6 @@
  */
 #pragma once
 
-#include <mutex>
 #include <vector>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -29,6 +28,7 @@
 #include "dnsparser.hh"
 #include "dnsname.hh"
 #include "dns.hh"
+#include "lock.hh"
 #include "validate.hh"
 
 using namespace ::boost::multi_index;
@@ -71,17 +71,13 @@ public:
   void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<time_t> capTTD);
   bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false);
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
-  size_t count(const DNSName& qname) const;
-  size_t count(const DNSName& qname, const QType qtype) const;
+  size_t count(const DNSName& qname);
+  size_t count(const DNSName& qname, const QType qtype);
   void prune(size_t maxEntries);
   void clear();
-  size_t dumpToFile(FILE* fd, const struct timeval& now) const;
+  size_t dumpToFile(FILE* fd, const struct timeval& now);
   size_t wipe(const DNSName& name, bool subtree = false);
-  size_t size() const;
-
-  void preRemoval(const NegCacheEntry& entry)
-  {
-  }
+  size_t size();
 
 private:
   struct CompositeKey
@@ -111,42 +107,36 @@ private:
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
     negcache_t d_map;
-    mutable std::mutex mutex;
     std::atomic<uint64_t> d_entriesCount{0};
-    mutable uint64_t d_contended_count{0};
-    mutable uint64_t d_acquired_count{0};
+    uint64_t d_contended_count{0};
+    uint64_t d_acquired_count{0};
     void invalidate() {}
   };
 
-  vector<MapCombo> d_maps;
+  vector<LockGuarded<MapCombo>> d_maps;
 
-  MapCombo& getMap(const DNSName& qname)
+  LockGuarded<MapCombo>& getMap(const DNSName& qname)
   {
-    return d_maps[qname.hash() % d_maps.size()];
+    return d_maps.at(qname.hash() % d_maps.size());
   }
-  const MapCombo& getMap(const DNSName& qname) const
+  const LockGuarded<MapCombo>& getMap(const DNSName& qname) const
   {
-    return d_maps[qname.hash() % d_maps.size()];
+    return d_maps.at(qname.hash() % d_maps.size());
   }
 
 public:
-  struct lock
+  static LockGuardedTryHolder<MapCombo> lock(LockGuarded<MapCombo>& map)
   {
-    lock(const MapCombo& map) :
-      m(map.mutex)
-    {
-      if (!m.try_lock()) {
-        m.lock();
-        map.d_contended_count++;
-      }
-      map.d_acquired_count++;
+    auto locked = map.try_lock();
+    if (!locked.owns_lock()) {
+      locked.lock();
+      locked->d_contended_count++;
     }
-    ~lock()
-    {
-      m.unlock();
-    }
+    ++locked->d_acquired_count;
+    return locked;
+  }
 
-  private:
-    std::mutex& m;
-  };
+  void preRemoval(MapCombo& map, const NegCacheEntry& entry)
+  {
+  }
 };
