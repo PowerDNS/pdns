@@ -614,7 +614,7 @@ void mainthread()
     // Some sanity checking on default key settings
     bool hadKeyError = false;
     int kskAlgo{0}, zskAlgo{0};
-    for (const string& algotype : {"ksk", "zsk"}) {
+    for (const string algotype : {"ksk", "zsk"}) {
       int algo, size;
       if (::arg()["default-"+algotype+"-algorithm"].empty())
         continue;
