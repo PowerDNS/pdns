@@ -29,8 +29,7 @@
 
 static string backendname = "[TinyDNSBackend] ";
 uint32_t TinyDNSBackend::s_lastId;
-std::mutex TinyDNSBackend::s_domainInfoLock;
-TinyDNSBackend::TDI_suffix_t TinyDNSBackend::s_domainInfo;
+LockGuarded<TinyDNSBackend::TDI_suffix_t> TinyDNSBackend::s_domainInfo;
 
 vector<string> TinyDNSBackend::getLocations()
 {
@@ -91,14 +90,13 @@ TinyDNSBackend::TinyDNSBackend(const string& suffix)
 
 void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains)
 {
-  std::lock_guard<std::mutex> l(s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
-
-  if (!s_domainInfo.count(d_suffix)) {
+  auto domainInfo = s_domainInfo.lock(); //TODO: We could actually lock less if we do it per suffix.
+  if (!domainInfo->count(d_suffix)) {
     TDI_t tmp;
-    s_domainInfo.insert(make_pair(d_suffix, tmp));
+    domainInfo->insert(make_pair(d_suffix, tmp));
   }
 
-  TDI_t* domains = &s_domainInfo[d_suffix];
+  TDI_t* domains = &(*domainInfo)[d_suffix];
 
   vector<DomainInfo> allDomains;
   getAllDomains(&allDomains);
@@ -136,11 +134,11 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains)
 
 void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
 {
-  std::lock_guard<std::mutex> l(s_domainInfoLock);
-  if (!s_domainInfo.count(d_suffix)) {
+  auto domainInfo = s_domainInfo.lock();
+  if (!domainInfo->count(d_suffix)) {
     throw PDNSException("Can't get list of domains to set the serial.");
   }
-  TDI_t* domains = &s_domainInfo[d_suffix];
+  TDI_t* domains = &(*domainInfo)[d_suffix];
   TDIById_t& domain_index = domains->get<tag_domainid>();
   TDIById_t::iterator itById = domain_index.find(id);
   if (itById == domain_index.end()) {
@@ -150,7 +148,7 @@ void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
     DLOG(g_log << Logger::Debug << backendname << "Setting serial for " << itById->zone << " to " << serial << endl);
     domain_index.modify(itById, TDI_SerialModifier(serial));
   }
-  s_domainInfo[d_suffix] = *domains;
+  (*domainInfo)[d_suffix] = *domains;
 }
 
 void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
