@@ -281,18 +281,22 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
 
 void CommunicatorClass::drillHole(const DNSName &domain, const string &ip)
 {
-  std::lock_guard<std::mutex> l(d_holelock);
-  d_holes[make_pair(domain,ip)]=time(nullptr);
+  (*d_holes.lock())[make_pair(domain,ip)]=time(nullptr);
 }
 
 bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 {
-  std::lock_guard<std::mutex> l(d_holelock);
-  if(d_holes.find(make_pair(domain,ip))==d_holes.end()) // no hole
+  auto holes = d_holes.lock();
+  auto it = holes->find(make_pair(domain,ip));
+  if (it == holes->end()) {
+    // no hole
     return false;
+  }
 
-  if(d_holes[make_pair(domain,ip)]>time(nullptr)-900)    // recent hole
+  if (it->second > time(nullptr)-900) {
+    // recent hole
     return true;
+  }
 
   // do we want to purge this? XXX FIXME 
   return false;
