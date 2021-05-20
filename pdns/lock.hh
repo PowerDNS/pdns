@@ -200,6 +200,11 @@ public:
     return d_lock.owns_lock();
   }
 
+  void lock()
+  {
+    d_lock.lock();
+  }
+
 private:
   std::unique_lock<std::mutex> d_lock;
   T& d_value;
