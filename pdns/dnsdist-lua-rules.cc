@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dolog.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rules.hh"
 
@@ -73,14 +74,8 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
 
   string uuidStr;
 
-  if (params) {
-    if (params->count("uuid")) {
-      uuidStr = boost::get<std::string>((*params)["uuid"]);
-    }
-    if (params->count("name")) {
-      name = boost::get<std::string>((*params)["name"]);
-    }
-  }
+  getOptionalValue<std::string>(params, "uuid", uuidStr);
+  getOptionalValue<std::string>(params, "name", name);
 
   uuid = makeRuleID(uuidStr);
   creationOrder = s_creationOrder++;
@@ -96,14 +91,9 @@ static std::string rulesToString(const std::vector<T>& rules, boost::optional<ru
   size_t truncateRuleWidth = string::npos;
   std::string result;
 
-  if (vars) {
-    if (vars->count("showUUIDs")) {
-      showUUIDs = boost::get<bool>((*vars)["showUUIDs"]);
-    }
-    if (vars->count("truncateRuleWidth")) {
-      truncateRuleWidth = boost::get<int>((*vars)["truncateRuleWidth"]);
-    }
-  }
+  getOptionalValue<bool>(vars, "showUUIDs", showUUIDs);
+  getOptionalValue<int>(vars, "truncateRuleWidth", truncateRuleWidth);
+  checkAllParametersConsumed("rulesToString", vars);
 
   if (showUUIDs) {
     boost::format fmt("%-3d %-30s %-38s %9d %9d %-56s %s\n");

@@ -26,6 +26,7 @@
 #include "config.h"
 #include "dolog.hh"
 #include "dnsdist.hh"
+#include "dolog.hh"
 #include "dnsdist-lua.hh"
 
 void setupLuaBindingsPacketCache(LuaContext& luaCtx)
@@ -45,52 +46,18 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
       bool ecsParsing = false;
       bool cookieHashing = false;
 
-      if (vars) {
-
-        if (vars->count("deferrableInsertLock")) {
-          deferrableInsertLock = boost::get<bool>((*vars)["deferrableInsertLock"]);
-        }
-
-        if (vars->count("dontAge")) {
-          dontAge = boost::get<bool>((*vars)["dontAge"]);
-        }
-
-        if (vars->count("keepStaleData")) {
-          keepStaleData = boost::get<bool>((*vars)["keepStaleData"]);
-        }
-
-        if (vars->count("maxNegativeTTL")) {
-          maxNegativeTTL = boost::get<size_t>((*vars)["maxNegativeTTL"]);
-        }
-
-        if (vars->count("maxTTL")) {
-          maxTTL = boost::get<size_t>((*vars)["maxTTL"]);
-        }
-
-        if (vars->count("minTTL")) {
-          minTTL = boost::get<size_t>((*vars)["minTTL"]);
-        }
-
-        if (vars->count("numberOfShards")) {
-          numberOfShards = boost::get<size_t>((*vars)["numberOfShards"]);
-        }
-
-        if (vars->count("parseECS")) {
-          ecsParsing = boost::get<bool>((*vars)["parseECS"]);
-        }
-
-        if (vars->count("staleTTL")) {
-          staleTTL = boost::get<size_t>((*vars)["staleTTL"]);
-        }
-
-        if (vars->count("temporaryFailureTTL")) {
-          tempFailTTL = boost::get<size_t>((*vars)["temporaryFailureTTL"]);
-        }
-
-        if (vars->count("cookieHashing")) {
-          cookieHashing = boost::get<bool>((*vars)["cookieHashing"]);
-        }
-      }
+      getOptionalValue<bool>(vars, "deferrableInsertLock", deferrableInsertLock);
+      getOptionalValue<bool>(vars, "dontAge", dontAge);
+      getOptionalValue<bool>(vars, "keepStaleData", keepStaleData);
+      getOptionalValue<size_t>(vars, "maxNegativeTTL", maxNegativeTTL);
+      getOptionalValue<size_t>(vars, "maxTTL", maxTTL);
+      getOptionalValue<size_t>(vars, "minTTL", minTTL);
+      getOptionalValue<size_t>(vars, "numberOfShards", numberOfShards);
+      getOptionalValue<bool>(vars, "parseECS", ecsParsing);
+      getOptionalValue<size_t>(vars, "staleTTL", staleTTL);
+      getOptionalValue<size_t>(vars, "temporaryFailureTTL", tempFailTTL);
+      getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
+      checkAllParametersConsumed("newPacketCache", vars);
 
       if (maxEntries < numberOfShards) {
         warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, numberOfShards, maxEntries);
