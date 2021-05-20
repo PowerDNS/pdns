@@ -9,44 +9,38 @@
 #include "arguments.hh"
 #include "lock.hh"
 
+GlobalStateHolder<CarbonConfig> g_carbonConfig;
 
 void doCarbonDump(void*)
+{
 try
 {
-  string hostname;
-  string instance_name;
-  string namespace_name;
-  vector<string> carbonServers;
+  static thread_local auto configHolder = g_carbonConfig.getLocal();
 
-  {
-    std::lock_guard<std::mutex> l(g_carbon_config_lock);
-    stringtok(carbonServers, arg()["carbon-server"], ", ");
-    namespace_name=arg()["carbon-namespace"];
-    hostname=arg()["carbon-ourname"];
-    instance_name=arg()["carbon-instance"];
-  }
-
-  if(carbonServers.empty())
+  auto config = *configHolder;
+  if (config.servers.empty()) {
     return;
-
-  if(namespace_name.empty()) {
-    namespace_name="pdns";
   }
-  if (hostname.empty()) {
+
+  if (config.namespace_name.empty()) {
+    config.namespace_name = "pdns";
+  }
+
+  if (config.hostname.empty()) {
     try {
-      hostname = getCarbonHostName();
+      config.hostname = getCarbonHostName();
     }
     catch(const std::exception& e) {
       throw std::runtime_error(std::string("The 'carbon-ourname' setting has not been set and we are unable to determine the system's hostname: ") + e.what());
     }
   }
-  if(instance_name.empty()) {
-    instance_name="recursor";
+  if (config.instance_name.empty()) {
+    config.instance_name = "recursor";
   }
 
   registerAllStats();
   PacketBuffer msg;
-  for(const auto& carbonServer: carbonServers) {
+  for (const auto& carbonServer: config.servers) {
     ComboAddress remote(carbonServer, 2003);
     Socket s(remote.sin4.sin_family, SOCK_STREAM);
     s.setNonBlocking();
@@ -62,7 +56,7 @@ try
       time_t now=time(0);
 
       for(const auto& val : all) {
-        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second.d_value<<' '<<now<<"\r\n";
+        str<<config.namespace_name<<'.'<<config.hostname<<'.'<<config.instance_name<<'.'<<val.first<<' '<<val.second.d_value<<' '<<now<<"\r\n";
       }
       const string& x = str.str();
       msg.insert(msg.end(), x.cbegin(), x.cend());
@@ -78,15 +72,16 @@ try
     handler->close();
   }
  }
-catch(PDNSException& e)
+catch (const PDNSException& e)
 {
   g_log<<Logger::Error<<"Error in carbon thread: "<<e.reason<<endl;
 }
-catch(std::exception& e)
+catch(const std::exception& e)
 {
   g_log<<Logger::Error<<"Error in carbon thread: "<<e.what()<<endl;
 }
 catch(...)
 {
   g_log<<Logger::Error<<"Unknown error in carbon thread"<<endl;
+}
 }

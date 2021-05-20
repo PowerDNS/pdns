@@ -72,8 +72,6 @@ bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string
   return aa < bb;
 }
 
-std::mutex g_carbon_config_lock;
-
 static map<string, const uint32_t*> d_get32bitpointers;
 static map<string, const std::atomic<uint64_t>*> d_getatomics;
 static map<string, std::function<uint64_t()>>  d_get64bitmembers;
@@ -533,33 +531,42 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
 template<typename T>
 static string doSetCarbonServer(T begin, T end)
 {
-  std::lock_guard<std::mutex> l(g_carbon_config_lock);
-  if(begin==end) {
-    ::arg().set("carbon-server").clear();
+  auto config = g_carbonConfig.getCopy();
+  if (begin == end) {
+    config.servers.clear();
+    g_carbonConfig.setState(std::move(config));
     return "cleared carbon-server setting\n";
   }
+
   string ret;
-  ::arg().set("carbon-server")=*begin;
-  ret="set carbon-server to '"+::arg()["carbon-server"]+"'\n";
+  stringtok(config.servers, *begin, ", ");
+  ret = "set carbon-server to '" + *begin + "'\n";
+
   ++begin;
-  if(begin != end) {
-    ::arg().set("carbon-ourname")=*begin;
-    ret+="set carbon-ourname to '"+*begin+"'\n";
+  if (begin != end) {
+    config.hostname = *begin;
+    ret += "set carbon-ourname to '" + *begin + "'\n";
   } else {
+    g_carbonConfig.setState(std::move(config));
     return ret;
   }
+
   ++begin;
-  if(begin != end) {
-    ::arg().set("carbon-namespace")=*begin;
-    ret+="set carbon-namespace to '"+*begin+"'\n";
+  if (begin != end) {
+    config.namespace_name = *begin;
+    ret += "set carbon-namespace to '" + *begin + "'\n";
   } else {
+    g_carbonConfig.setState(std::move(config));
     return ret;
   }
+
   ++begin;
-  if(begin != end) {
-    ::arg().set("carbon-instance")=*begin;
-    ret+="set carbon-instance to '"+*begin+"'\n";
+  if (begin != end) {
+    config.instance_name = *begin;
+    ret += "set carbon-instance to '" + *begin + "'\n";
   }
+
+  g_carbonConfig.setState(std::move(config));
   return ret;
 }
 
