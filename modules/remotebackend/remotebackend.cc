@@ -664,7 +664,7 @@ bool RemoteBackend::superMasterBackend(const string& ip, const DNSName& domain, 
   return true;
 }
 
-bool RemoteBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool RemoteBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},

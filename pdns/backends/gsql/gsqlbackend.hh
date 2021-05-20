@@ -194,7 +194,7 @@ public:
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account, int* zoneId=nullptr) override;
-  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
+  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId = nullptr) override;
   bool deleteDomain(const DNSName &domain) override;
   bool superMasterAdd(const string &ip, const string &nameserver, const string &account) override; 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;

@@ -1341,7 +1341,7 @@ bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
   return true;
 }
 
-bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account)
+bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId)
 {
   string name;
   vector<ComboAddress> masters({ComboAddress(ip, 53)});
@@ -1367,7 +1367,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
         masters = tmp;
       }
     }
-    createDomain(domain, DomainInfo::Slave, masters, account, nullptr);
+    createDomain(domain, DomainInfo::Slave, masters, account, zoneId);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());

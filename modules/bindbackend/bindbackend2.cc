@@ -1378,7 +1378,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   return bbd;
 }
 
-bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId)
 {
   string filename = getArg("supermaster-destdir") + '/' + domain.toStringNoDot();
 
@@ -1410,6 +1410,13 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
   bbd.d_masters.push_back(ComboAddress(ip, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);
+
+  if (zoneId) {
+    if (!safeGetBBDomainInfo(domain, &bbd))
+      return false;
+    *zoneId = bbd.d_id;
+  }
+
   return true;
 }
 
