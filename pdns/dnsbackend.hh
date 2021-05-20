@@ -311,12 +311,17 @@ public:
   virtual void getUpdatedMasters(vector<DomainInfo>* domains)
   {
   }
-  
+
+  //! Called by PowerDNS to inform a backend that a domain need to be checked for freshness
+  virtual void setStale(uint32_t domain_id)
+  {
+  }
+
   //! Called by PowerDNS to inform a backend that a domain has been checked for freshness
   virtual void setFresh(uint32_t domain_id)
   {
-
   }
+
   //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to slaves
   virtual void setNotified(uint32_t id, uint32_t serial)
   {

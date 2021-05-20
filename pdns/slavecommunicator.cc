@@ -951,6 +951,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       } else if (newCount % 10 == 0) {
         g_log<<Logger::Notice<<"Unable to retrieve SOA for "<<di.zone<<", this was the "<<std::to_string(newCount)<<"th time. Skipping SOA checks until "<<nextCheck<<endl;
       }
+      // Make sure we recheck SOA for notifies
+      if (di.receivedNotify) {
+        di.backend->setStale(di.id);
+      }
       continue;
     }
 

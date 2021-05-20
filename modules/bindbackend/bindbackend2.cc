@@ -185,13 +185,23 @@ void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
   safePutBBDomainInfo(bbd);
 }
 
-void Bind2Backend::setFresh(uint32_t domain_id)
+void Bind2Backend::setLastCheck(uint32_t domain_id, time_t lastcheck)
 {
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(domain_id, &bbd)) {
-    bbd.d_lastcheck = time(nullptr);
+    bbd.d_lastcheck = lastcheck;
     safePutBBDomainInfo(bbd);
   }
+}
+
+void Bind2Backend::setStale(uint32_t domain_id)
+{
+  setLastCheck(domain_id, 0);
+}
+
+void Bind2Backend::setFresh(uint32_t domain_id)
+{
+  setLastCheck(domain_id, time(nullptr));
 }
 
 bool Bind2Backend::startTransaction(const DNSName& qname, int id)

@@ -932,6 +932,13 @@ bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
   });
 }
 
+void LMDBBackend::setStale(uint32_t domain_id)
+{
+  genChangeDomain(domain_id, [](DomainInfo& di) {
+    di.last_check = 0;
+  });
+}
+
 void LMDBBackend::setFresh(uint32_t domain_id)
 {
   genChangeDomain(domain_id, [](DomainInfo& di) {
