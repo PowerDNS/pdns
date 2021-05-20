@@ -50,8 +50,7 @@
 
 extern StatBag S;
 
-vector<UeberBackend *>UeberBackend::instances;
-std::mutex UeberBackend::instances_lock;
+LockGuarded<vector<UeberBackend *>> UeberBackend::d_instances;
 
 // initially we are blocked
 bool UeberBackend::d_go=false;
@@ -520,8 +519,7 @@ bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, c
 UeberBackend::UeberBackend(const string &pname)
 {
   {
-    std::lock_guard<std::mutex> l(instances_lock);
-    instances.push_back(this); // report to the static list of ourself
+    d_instances.lock()->push_back(this); // report to the static list of ourself
   }
 
   d_negcached=false;
@@ -542,9 +540,9 @@ static void del(DNSBackend* d)
 void UeberBackend::cleanup()
 {
   {
-    std::lock_guard<std::mutex> l(instances_lock);
-    remove(instances.begin(),instances.end(),this);
-    instances.resize(instances.size()-1);
+    auto instances = d_instances.lock();
+    remove(instances->begin(), instances->end(), this);
+    instances->resize(instances->size()-1);
   }
 
   for_each(backends.begin(),backends.end(),del);
