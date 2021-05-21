@@ -592,8 +592,8 @@ int main(int argc, char **argv)
     DynListener::registerFunc("RPING",&DLPingHandler, "ping instance");
     DynListener::registerFunc("QUIT",&DLRQuitHandler, "quit daemon");
     DynListener::registerFunc("UPTIME",&DLUptimeHandler, "get instance uptime");
-    DynListener::registerFunc("NOTIFY-HOST",&DLNotifyHostHandler, "notify host for specific domain", "<domain> <host>");
-    DynListener::registerFunc("NOTIFY",&DLNotifyHandler, "queue a notification", "<domain>");
+    DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");
+    DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
     DynListener::registerFunc("RELOAD",&DLReloadHandler, "reload all zones");
     DynListener::registerFunc("REDISCOVER",&DLRediscoverHandler, "discover any new zones");
     DynListener::registerFunc("VERSION",&DLVersionHandler, "get instance version");
@@ -603,9 +603,9 @@ int main(int argc, char **argv)
     DynListener::registerFunc("RESPSIZES", &DLRSizesHandler, "get histogram of response sizes");
     DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
     DynListener::registerFunc("SET",&DLSettingsHandler, "set config variables", "<var> <value>");
-    DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler, "retrieve slave domain", "<domain> [<ip>]");
+    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve slave zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
-    DynListener::registerFunc("LIST-ZONES",&DLListZones, "show list of zones", "[master|slave|native]");
+    DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native]");
     DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 

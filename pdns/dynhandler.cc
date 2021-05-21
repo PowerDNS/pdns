@@ -242,13 +242,13 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   extern CommunicatorClass Communicator;
   ostringstream os;
   if(parts.size()!=2 && parts.size()!=3)
-    return "syntax: retrieve domain [ip]";
+    return "syntax: retrieve zone [ip]";
 
   DNSName domain;
   try {
     domain = DNSName(parts[1]);
   } catch (...) {
-    return "Failed to parse domain as valid DNS name";
+    return "Failed to parse zone as valid DNS name";
   }
 
   ComboAddress master_ip;
@@ -257,7 +257,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
     try {
       master_ip = ComboAddress{parts[2], 53};
     } catch (...) {
-      return "Invalid master address";
+      return "Invalid primary address";
     }
     override_master = true;
   }
@@ -265,7 +265,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   DomainInfo di;
   UeberBackend B;
   if(!B.getDomainInfo(domain, di)) {
-    return " Domain '"+domain.toString()+"' unknown";
+    return " Zone '" + domain.toString() + "' unknown";
   }
 
   if (override_master) {
@@ -274,13 +274,13 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   }
 
   if(!override_master && (di.kind != DomainInfo::Slave || di.masters.empty()))
-    return "Domain '"+domain.toString()+"' is not a slave domain (or has no master defined)";
+    return "Zone '" + domain.toString() + "' is not a secondary zone (or has no primary defined)";
 
   shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
   const auto& master = di.masters.front();
   Communicator.addSuckRequest(domain, master, SuckRequest::PdnsControl, override_master);
-  g_log<<Logger::Warning<<"Retrieval request for domain '"<<domain<<"' from master '"<<master<<"' received from operator"<<endl;
-  return "Added retrieval request for '"+domain.toLogString()+"' from master "+master.toLogString();
+  g_log << Logger::Warning << "Retrieval request for zone '" << domain << "' from primary '" << master << "' received from operator" << endl;
+  return "Added retrieval request for '" + domain.toLogString() + "' from primary " + master.toLogString();
 }
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
@@ -288,15 +288,15 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   extern CommunicatorClass Communicator;
   ostringstream os;
   if(parts.size()!=3)
-    return "syntax: notify-host domain ip";
+    return "syntax: notify-host zone ip";
   if(!::arg().mustDo("primary") && !(::arg().mustDo("secondary") && ::arg().mustDo("secondary-do-renotify")))
-      return "PowerDNS not configured as primary (master), or secondary (slave) with re-notifications";
+    return "PowerDNS not configured as primary, or secondary with re-notifications";
 
   DNSName domain;
   try {
     domain = DNSName(parts[1]);
   } catch (...) {
-    return "Failed to parse domain as valid DNS name";
+    return "Failed to parse zone as valid DNS name";
   }
 
   try {
@@ -305,8 +305,8 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   {
     return "Unable to convert '"+parts[2]+"' to an IP address";
   }
-  
-  g_log<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<domain<<"' received from operator"<<endl;
+
+  g_log << Logger::Warning << "Notification request to host " << parts[2] << " for zone '" << domain << "' received from operator" << endl;
   Communicator.notify(domain, parts[2]);
   return "Added to queue";
 }
@@ -316,10 +316,10 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   extern CommunicatorClass Communicator;
   UeberBackend B;
   if(parts.size()!=2)
-    return "syntax: notify domain";
+    return "syntax: notify zone";
   if(!::arg().mustDo("primary") && !(::arg().mustDo("secondary") && ::arg().mustDo("secondary-do-renotify")))
-      return "PowerDNS not configured as primary (master), or secondary (slave) with re-notifications";
-  g_log<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
+    return "PowerDNS not configured as primary (primary), or secondary (secondary) with re-notifications";
+  g_log << Logger::Warning << "Notification request for zone '" << parts[1] << "' received from operator" << endl;
 
   if (parts[1] == "*") {
     vector<DomainInfo> domains;
@@ -328,7 +328,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     int total = 0;
     int notified = 0;
     for (const auto& di : domains) {
-      if (di.kind == DomainInfo::Master || di.kind == DomainInfo::Slave) { // MASTER and Slave if slave-renotify is enabled
+      if (di.kind == DomainInfo::Master || di.kind == DomainInfo::Slave) { // Primary and secondary if secondary-do-renotify is enabled
         total++;
         if(Communicator.notifyDomain(di.zone, &B))
           notified++;
@@ -343,7 +343,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     try {
       domain = DNSName(parts[1]);
     } catch (...) {
-      return "Failed to parse domain as valid DNS name";
+      return "Failed to parse zone as valid DNS name";
     }
     if(!Communicator.notifyDomain(DNSName(parts[1]), &B))
       return "Failed to add to the queue - see log";
@@ -384,9 +384,9 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream ret;
   int kindFilter = -1;
   if (parts.size() > 1) {
-    if (toUpper(parts[1]) == "MASTER" || toUpper(parts[1]) == "PRIMARY")
+    if (toUpper(parts[1]) == "PRIMARY" || toUpper(parts[1]) == "MASTER")
       kindFilter = 0;
-    else if (toUpper(parts[1]) == "SLAVE" || toUpper(parts[1]) == "SECONDARY")
+    else if (toUpper(parts[1]) == "SECONDARY" || toUpper(parts[1]) == "SLAVE")
       kindFilter = 1;
     else if (toUpper(parts[1]) == "NATIVE")
       kindFilter = 2;

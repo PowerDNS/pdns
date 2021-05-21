@@ -256,7 +256,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   } catch(const PDNSException &e) {
     if (di.kind == DomainInfo::Slave) {
-      cout<<"[Error] non-IP address for masters: "<<e.reason<<endl;
+      cout << "[Error] non-IP address for primaries: " << e.reason << endl;
       numerrors++;
     }
   }
@@ -1439,7 +1439,7 @@ static int createSlaveZone(const vector<string>& cmds) {
   for (unsigned i=2; i < cmds.size(); i++) {
     masters.emplace_back(cmds.at(i), 53);
   }
-  cerr<<"Creating slave zone '"<<zone<<"', with master(s) '"<<comboAddressVecToString(masters)<<"'"<<endl;
+  cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(masters) << "'" << endl;
   B.createDomain(zone, DomainInfo::Slave, masters, "");
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' was not created!" << endl;
@@ -1460,13 +1460,13 @@ static int changeSlaveZoneMaster(const vector<string>& cmds) {
   for (unsigned i=2; i < cmds.size(); i++) {
     masters.emplace_back(cmds.at(i), 53);
   }
-  cerr<<"Updating slave zone '"<<zone<<"', master(s) to '"<<comboAddressVecToString(masters)<<"'"<<endl;
+  cerr << "Updating secondary zone '" << zone << "', primaries to '" << comboAddressVecToString(masters) << "'" << endl;
   try {
     di.backend->setMasters(zone, masters);
     return EXIT_SUCCESS;
   }
   catch (PDNSException& e) {
-    cerr<<"Setting master for zone '"<<zone<<"' failed: "<<e.reason<<endl;
+    cerr << "Setting primary for zone '" << zone << "' failed: " << e.reason << endl;
     return EXIT_FAILURE;
   }
 }
@@ -1564,7 +1564,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
-// addSuperMaster add anew super master
+// addSuperMaster add anew super primary
 static int addSuperMaster(const std::string &IP, const std::string &nameserver, const std::string &account)
 {
   UeberBackend B("default");
@@ -1603,14 +1603,14 @@ static int listAllZones(const string &type="") {
 
   int kindFilter = -1;
   if (type.size()) {
-    if (toUpper(type) == "MASTER")
+    if (toUpper(type) == "PRIMARY" || toUpper(type) == "MASTER")
       kindFilter = 0;
-    else if (toUpper(type) == "SLAVE")
+    else if (toUpper(type) == "SECONDARY" || toUpper(type) == "SLAVE")
       kindFilter = 1;
     else if (toUpper(type) == "NATIVE")
       kindFilter = 2;
     else {
-      cerr<<"Syntax: pdnsutil list-all-zones [master|slave|native]"<<endl;
+      cerr << "Syntax: pdnsutil list-all-zones [primary|secondary|native]" << endl;
       return 1;
     }
   }
@@ -1810,7 +1810,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       }
     }
     else if(di.kind == DomainInfo::Slave) {
-      cout<<"Master"<<addS(di.masters)<<": ";
+      cout << "Primary" << addS(di.masters) << ": ";
       for(const auto& m : di.masters)
         cout<<m.toStringWithPort()<<" ";
       cout<<endl;
@@ -1822,7 +1822,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       else
         strncpy(buf, "Never", sizeof(buf)-1);
       buf[sizeof(buf)-1] = '\0';
-      cout<<"Last time we got update from master: "<<buf<<endl;
+      cout << "Last time we got update from primary: " << buf << endl;
       SOAData sd;
       if(B.getSOAUncached(zone, sd)) {
         cout<<"SOA serial in database: "<<sd.serial<<endl;
@@ -2032,7 +2032,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 
   if(di.kind == DomainInfo::Slave)
   {
-    cerr << "Warning! This is a slave zone! If this was a mistake, please run" << endl;
+    cerr << "Warning! This is a secondary zone! If this was a mistake, please run" << endl;
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
   }
 
@@ -2094,9 +2094,9 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   UeberBackend B("default");
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0];
-  cout << "Creating slave zone " << zone << endl;
+  cout << "Creating secondary zone " << zone << endl;
   db->createSlaveDomain("127.0.0.1", zone, "", "_testschema");
-  cout << "Slave zone created" << endl;
+  cout << "Secondary zone created" << endl;
 
   DomainInfo di;
   if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
@@ -2269,13 +2269,13 @@ try
   if (cmds.empty() || g_vm.count("help") || cmds.at(0) == "help") {
     cout<<"Usage: \npdnsutil [options] <command> [params ..]\n"<<endl;
     cout<<"Commands:"<<endl;
-    cout<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
+    cout << "activate-tsig-key ZONE NAME {primary|secondary}" << endl;
     cout<<"                                   Enable TSIG authenticated AXFR using the key NAME for ZONE"<<endl;
     cout<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
-    cout<<"add-supermaster IP NAMESERVER [account]"<<endl;
-    cout<<"                                   Add a new super-master "<<endl;
+    cout << "add-autoprimary IP NAMESERVER [account]" << endl;
+    cout << "                                   Add a new autoprimary " << endl;
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive] [published|unpublished]"<<endl;
     cout<<"             [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
@@ -2294,12 +2294,12 @@ try
     cout<<"                                   after finding an error in a zone."<<endl;
     cout<<"clear-zone ZONE                    Clear all records of a zone, but keep everything else"<<endl;
     cout<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
-    cout<<"create-slave-zone ZONE master-ip [master-ip..]"<<endl;
-    cout<<"                                   Create slave zone ZONE with master IP address master-ip"<<endl;
-    cout<<"change-slave-zone-master ZONE master-ip [master-ip..]"<<endl;
-    cout<<"                                   Change slave zone ZONE master IP address to master-ip"<<endl;
+    cout << "create-secondary-zone ZONE primary-ip [primary-ip..]" << endl;
+    cout << "                                   Create secondary zone ZONE with primary IP address primary-ip" << endl;
+    cout << "change-secondary-zone-primary ZONE primary-ip [primary-ip..]" << endl;
+    cout << "                                   Change secondary zone ZONE primary IP address to primary-ip" << endl;
     cout<<"create-zone ZONE [nsname]          Create empty zone ZONE"<<endl;
-    cout<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
+    cout << "deactivate-tsig-key ZONE NAME {primary|secondary}" << endl;
     cout<<"                                   Disable TSIG authenticated AXFR using the key NAME for ZONE"<<endl;
     cout<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"delete-rrset ZONE NAME TYPE        Delete named RRSET from zone"<<endl;
@@ -2330,10 +2330,12 @@ try
     cout<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cout<<"                                   replacing contents"<<endl;
     cout<<"list-algorithms [with-backend]     List all DNSSEC algorithms supported, optionally also listing the crypto library used"<<endl;
-    cout<<"list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset or \"all\", display all keys for all zones"<<endl;
+    cout << "list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset, display all keys for all active zones" << endl;
+    cout << "                                   --verbose or -v will also include the keys for disabled or empty zones" << endl;
     cout<<"list-zone ZONE                     List zone contents"<<endl;
-    cout<<"list-all-zones [master|slave|native]"<<endl;
-    cout<<"                                   List all zone names"<<endl;;
+    cout << "list-all-zones [primary|secondary|native]" << endl;
+    cout << "                                   List all active zone names. --verbose or -v will also include disabled or empty zones" << endl;
+    ;
     cout<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cout<<"publish-zone-key ZONE KEY-ID       Publish the zone key with key id KEY-ID in ZONE"<<endl;
     cout<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
@@ -2343,7 +2345,7 @@ try
     cout<<"       content [content..]"<<endl;
     cout<<"secure-all-zones [increase-serial] Secure all zones without keys"<<endl;
     cout<<"secure-zone ZONE [ZONE ..]         Add DNSSEC to zone ZONE"<<endl;
-    cout<<"set-kind ZONE KIND                 Change the kind of ZONE to KIND (master, slave, native)"<<endl;
+    cout << "set-kind ZONE KIND                 Change the kind of ZONE to KIND (primary, secondary, native)" << endl;
     cout<<"set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT"<<endl;
     cout<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
@@ -2506,7 +2508,7 @@ try
   }
   else if (cmds.at(0) == "list-all-zones") {
     if (cmds.size() > 2) {
-      cerr << "Syntax: pdnsutil list-all-zones [master|slave|native]"<<endl;
+      cerr << "Syntax: pdnsutil list-all-zones [primary|secondary|native]" << endl;
       return 0;
     }
     if (cmds.size() == 2)
@@ -2526,7 +2528,7 @@ try
   {
     signingServer();
   }
-  else if(cmds.at(0) == "signing-slave")
+  else if(cmds.at(0) == "signing-secondary")
   {
     launchSigningService(0);
   }
@@ -2770,16 +2772,16 @@ try
     }
     return createZone(DNSName(cmds.at(1)), cmds.size() > 2 ? DNSName(cmds.at(2)) : DNSName());
   }
-  else if (cmds.at(0) == "create-slave-zone") {
+  else if (cmds.at(0) == "create-secondary-zone" || cmds.at(0) == "create-slave-zone") {
     if(cmds.size() < 3 ) {
-      cerr<<"Syntax: pdnsutil create-slave-zone ZONE master-ip [master-ip..]"<<endl;
+      cerr << "Syntax: pdnsutil create-secondary-zone ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
     return createSlaveZone(cmds);
   }
-  else if (cmds.at(0) == "change-slave-zone-master") {
+  else if (cmds.at(0) == "change-secondary-zone-primary" || cmds.at(0) == "change-slave-zone-master") {
     if(cmds.size() < 3 ) {
-      cerr<<"Syntax: pdnsutil change-slave-zone-master ZONE master-ip [master-ip..]"<<endl;
+      cerr << "Syntax: pdnsutil change-secondary-zone-primary ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
     return changeSlaveZoneMaster(cmds);
@@ -2791,9 +2793,9 @@ try
     }
     return addOrReplaceRecord(true, cmds);
   }
-  else if (cmds.at(0) == "add-supermaster") {
+  else if (cmds.at(0) == "add-autoprimary" || cmds.at(0) == "add-supermaster") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnsutil add-supermaster IP NAMESERVER [account]"<<endl;
+      cerr << "Syntax: pdnsutil add-autoprimary IP NAMESERVER [account]" << endl;
       return 0;
     }
     exit(addSuperMaster(cmds.at(1), cmds.at(2), cmds.size() > 3 ? cmds.at(3) : ""));
@@ -3351,17 +3353,17 @@ try
   else if (cmds.at(0) == "activate-tsig-key") {
     string metaKey;
     if (cmds.size() < 4) {
-      cerr << "Syntax: " << cmds.at(0) << " ZONE NAME {primary|secondary|master|slave}" << endl;
+      cerr << "Syntax: " << cmds.at(0) << " ZONE NAME {primary|secondary}" << endl;
       return 0;
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "master" || cmds.at(3) == "primary")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "master")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "slave" || cmds.at(3) == "secondary")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "slave")
       metaKey = "AXFR-MASTER-TSIG";
     else {
-      cerr << "Invalid parameter '" << cmds.at(3) << "', expected master or slave" << endl;
+      cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary" << endl;
       return 1;
     }
     UeberBackend B("default");
@@ -3396,17 +3398,17 @@ try
   else if (cmds.at(0) == "deactivate-tsig-key") {
     string metaKey;
     if (cmds.size() < 4) {
-      cerr << "Syntax: " << cmds.at(0) << " ZONE NAME {master|slave}" << endl;
+      cerr << "Syntax: " << cmds.at(0) << " ZONE NAME {primary|secondary}" << endl;
       return 0;
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "master" || cmds.at(3) == "primary")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "master")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "slave" || cmds.at(3) == "secondary")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "slave")
       metaKey = "AXFR-MASTER-TSIG";
     else {
-      cerr << "Invalid parameter '" << cmds.at(3) << "', expected master or slave" << endl;
+      cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary" << endl;
       return 1;
     }
 
