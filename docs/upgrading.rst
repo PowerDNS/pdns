@@ -26,8 +26,11 @@ Then, disable the setting again, because it has a serious performance impact on 
 On secondaries, it is recommended to re-transfer, using ``pdns_control retrieve ZONE``, with :ref:`setting-upgrade-unknown-types` enabled, all zones that have records of those types, or ``TYPExx``, for numbers 45 and 62.
 Leave the setting on until all zones have been re-transferred.
 
-Wording changes
+Changed options
 ^^^^^^^^^^^^^^^
+
+Renamed options
+~~~~~~~~~~~~~~~
 
 Various settings have been renamed.
 Their old names still work in 4.5.x, but will be removed in the release after it.
@@ -46,6 +49,10 @@ Changed defaults
 - The default value of the :ref:`setting-consistent-backends` option has been changed from ``no`` to ``yes``.
 - The default value of the :ref:`setting-max-nsec3-iterations` option has been changed from ``500`` to ``100``.
 - The default value of the ``timeout`` parameter for :func:`ifportup` and :func:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
+
+Removed options
+~~~~~~~~~~~~~~~
+- :ref:`setting-local-ipv6` has been removed. IPv4 and IPv6 listen addresses should now be set with :ref:`setting-local-address`.
 
 4.3.x to 4.4.0
 --------------
@@ -186,10 +193,14 @@ New settings
   This sets the maximum number of steps that will be performed when loading a BIND zone with the ``$GENERATE`` directive.
   The default is 0, which is unlimited.
 
-Removed settings
-^^^^^^^^^^^^^^^^
+Deprecated settings
+^^^^^^^^^^^^^^^^^^^
 
-- :ref:`setting-local-ipv6` has been deprecated, and will be removed in 4.4.0. IPv4 and IPv6 listen addresses can now be set with :ref:`setting-local-address`. The default for the latter has been changed to ``0.0.0.0, ::``.
+- :ref:`setting-local-ipv6` has been deprecated and will be removed in 4.5.0. Both IPv4 and IPv6 listen addresses can now be set with :ref:`setting-local-address`. The default for the latter has been changed to ``0.0.0.0, ::``.
+
+Changed defaults
+^^^^^^^^^^^^^^^^
+- :ref:`setting-local-address` now defaults to ``0.0.0.0, ::``.
 
 Schema changes
 ^^^^^^^^^^^^^^

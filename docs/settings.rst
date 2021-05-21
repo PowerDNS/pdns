@@ -817,7 +817,7 @@ Fail to start if one or more of the
 ``local-ipv6``
 --------------
 .. deprecated:: 4.5.0
-  Remove, use :ref:`setting-local-address`
+   Use :ref:`setting-local-address` instead
 
 .. _setting-local-ipv6-nonexist-fail:
 
