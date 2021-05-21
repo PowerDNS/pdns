@@ -341,7 +341,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   }
   else {
     try {
-      const int timeout = g_networkTimeoutMsec / 1000; // XXX tcpiohandler's unit is seconds
+      const int timeout = (g_networkTimeoutMsec + 999) / 1000; // XXX tcpiohandler's unit is seconds
 
       Socket s(ip.sin4.sin_family, SOCK_STREAM);
       s.setNonBlocking();
@@ -349,9 +349,17 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       s.bind(localip);
 
       std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+      if (ip.getPort() == 853) {
+        TLSContextParameters tlsParams;
+        tlsParams.d_provider = "openssl";
+        tlsParams.d_validateCertificates = false;
+        //tlsParams.d_caStore = caaStore;
+        tlsCtx = getTLSContext(tlsParams);
+      }
       auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
       /* auto state = */ handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
 
+      //cerr << "state after TryConnect() " << int(state) << endl;
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
       const char *msgP=(const char*)&*vpacket.begin();
@@ -361,6 +369,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       packet.insert(packet.end(), msgP, msgP+vpacket.size());
       ret = asendtcp(packet, handler);
       if (ret != LWResult::Result::Success) {
+        handler->close();
         return ret;
       }
 
@@ -370,7 +379,6 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
   }
 #endif /* HAVE_FSTRM */
 
-      packet.clear();
       ret = arecvtcp(packet, 2, handler, false);
       if (ret != LWResult::Result::Success) {
         return ret;
@@ -379,6 +387,8 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       memcpy(&tlen, packet.data(), sizeof(tlen));
       len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
 
+      // XXX receive into buf directly?
+      packet.resize(len);
       ret = arecvtcp(packet, len, handler, false);
       if (ret != LWResult::Result::Success) {
         return ret;
@@ -387,6 +397,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       buf.resize(len);
       memcpy(buf.data(), packet.data(), len);
 
+      handler->close();
       ret = LWResult::Result::Success;
     }
     catch (const NetworkError& ne) {

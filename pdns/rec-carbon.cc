@@ -75,6 +75,7 @@ try
     else if (ret != LWResult::Result::Success) {
       g_log<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;
     }
+    handler->close();
   }
  }
 catch(PDNSException& e)

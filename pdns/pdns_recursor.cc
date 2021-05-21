@@ -396,10 +396,18 @@ static bool isHandlerThread()
   return s_threadInfos.at(t_id).isHandler;
 }
 
+#if 0
+#define TCPLOG(x) cerr << x
+#else
+#define TCPLOG(x)
+#endif
+
 static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var);
 
 LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& handler)
 {
+  TCPLOG("asendtcp called " << data.size() << endl);
+
   PacketID pident;
   pident.tcphandler = handler;
   pident.tcpsock = handler->getDescriptor();
@@ -409,18 +417,23 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   PacketBuffer packet;
 
   int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
-  if (ret == 0) { //timeout
+  TCPLOG("asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
+  if (ret == 0) {
     t_fdm->removeWriteFD(handler->getDescriptor());
+    TCPLOG("timeout" << endl);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) { // error
     t_fdm->removeWriteFD(handler->getDescriptor());
+    TCPLOG("PermanentError" << endl);
     return LWResult::Result::PermanentError;
   }
   else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
+    TCPLOG("PermanentError size mismatch" << endl);
     return LWResult::Result::PermanentError;
   }
 
+  TCPLOG("asendtcp success" << endl);
   return LWResult::Result::Success;
 }
 
@@ -428,8 +441,20 @@ static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var);
 
 LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIOHandler>& handler, const bool incompleteOkay)
 {
-  data.clear();
+  TCPLOG("arecvtcp called " << len << ' ' << data.size() << endl);
+  size_t pos = 0;
+  data.resize(len);
+  TCPLOG("calling tryRead() " << data.size() << ' ' << len << endl);
+  /* IOState state = */ handler->tryRead(data, pos, len);
+  TCPLOG("arcvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
 
+  if (pos == len || (incompleteOkay && pos > 0)) {
+    data.resize(pos);
+    TCPLOG("acecvtcp success A" << endl);
+    return LWResult::Result::Success;
+  }
+
+  data.clear();
   PacketID pident;
   pident.tcphandler = handler;
   pident.tcpsock = handler->getDescriptor();
@@ -438,18 +463,23 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   t_fdm->addReadFD(handler->getDescriptor(), TCPIOHandlerReadable, pident);
 
   int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
+  TCPLOG("arecvtcp" << ret << ' ' << data.size() << ' ');
   if (ret == 0) {
+    TCPLOG("timeout" << endl);
     t_fdm->removeReadFD(handler->getDescriptor());
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) {
+    TCPLOG("PermanentError" << endl);
     t_fdm->removeWriteFD(handler->getDescriptor());
     return LWResult::Result::PermanentError;
   }
   else if (data.empty()) {// error, EOF or other
+    TCPLOG("EOF" << endl);
     return LWResult::Result::PermanentError;
   }
 
+  TCPLOG("arecvtcp success" << endl);
   return LWResult::Result::Success;
 }
 
@@ -4027,35 +4057,40 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pident=boost::any_cast<PacketID>(&var);
-  assert(pident->tcphandler != nullptr);
+  assert(pident->tcphandler);
   assert(fd == pident->tcphandler->getDescriptor());
-  // XXX Likely it is possible to directly write into inMSG
-  // To be able to do that, inMSG has to be resized before. Afer the read we may have to resize again
-  // taking into account the actual bytes read. Wondering if this is worth the trouble...
-  PacketBuffer buffer;
-  buffer.resize(pident->inNeeded);
 
+  TCPLOG("TCPIOHandlerReadable" << endl);
   try {
-    size_t pos = 0;
-    IOState state = pident->tcphandler->tryRead(buffer, pos, pident->inNeeded);
+    size_t pos = pident->inMSG.size();
+    pident->inMSG.resize(pos + pident->inNeeded); // make room for what we'll read
+    IOState state = pident->tcphandler->tryRead(pident->inMSG, pos, pident->inNeeded);
+
     switch (state) {
     case IOState::Done:
     case IOState::NeedRead:
-      pident->inMSG.insert(pident->inMSG.end(), buffer.data(), buffer.data() + pos);
+      TCPLOG("TCPIOHandlerReadable state Done or Read " << int(state) << ' ' << buffer.size() << " bytes " <<  pident->inNeeded << '/' << pos << endl);
+      pident->inMSG.resize(pos); // old content (if there) + new bytes read
       pident->inNeeded -= pos;
+      TCPLOG("TCPIOHandlerReadable " << pident->inNeeded << ' ' << pident->inIncompleteOkay << endl);
       if (pident->inNeeded == 0 || pident->inIncompleteOkay) {
         // removeReadFD seems to clobber PacketID, so take a copy
         PacketID pid = *pident;
         t_fdm->removeReadFD(fd);
         MT->sendEvent(pid, &pid.inMSG);
+        break;
       }
+      TCPLOG("TCPIOHandlerReadable more? flip to write seems needed???..." << endl);
+      t_fdm->alterFDToWrite(fd, TCPIOHandlerWritable, *pident);
       break;
     case IOState::NeedWrite:
-      t_fdm->alterFDToWrite(fd, TCPIOHandlerWritable, var);
+      TCPLOG("NeedWrite... flip FD" << endl);
+      t_fdm->alterFDToWrite(fd, TCPIOHandlerWritable, *pident);
       break;
     }
   }
-  catch (const std::runtime_error& e) {
+  catch (const std::exception& e) {
+    TCPLOG("TCPIOHandlerReadble exception..." << e.what() << endl);
     PacketID tmp = *pident;
     t_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
     PacketBuffer empty;
@@ -4066,13 +4101,15 @@ static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var)
 static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pid = boost::any_cast<PacketID>(&var);
-  assert(pid->tcphandler != nullptr);
+  assert(pid->tcphandler);
   assert(fd == pid->tcphandler->getDescriptor());
 
+  TCPLOG("TCPIOHandlerWritable " << pid->outPos << '/' << pid->outMSG.size() << endl);
   try {
     IOState state = pid->tcphandler->tryWrite(pid->outMSG, pid->outPos, pid->outMSG.size());
     switch (state) {
     case IOState::Done: {
+      TCPLOG("TCPIOHandlerWritable Done" << endl);
       // removeWriteFD seems to clobber PacketID, so take a copy
       PacketID tmp = *pid;
       t_fdm->removeWriteFD(fd);
@@ -4080,14 +4117,18 @@ static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var)
       break;
     }
     case IOState::NeedWrite:
+      TCPLOG("TCPIOHandlerWritable NeedWrite" << endl);
       // We'll get back later
-    break;
+      break;
     case IOState::NeedRead:
-      t_fdm->alterFDToRead(fd, TCPIOHandlerReadable, var);
+      TCPLOG("NeedRead: flip FD" << endl);
+      pid->inNeeded = 1;
+      t_fdm->alterFDToRead(fd, TCPIOHandlerReadable, *pid);
       break;
     }
   }
-  catch (const std::runtime_error& e) {
+  catch (const std::exception& e) {
+    TCPLOG("TCPIOHandlerWritable exception..." << e.what() << endl);
     // removeWriteFD seems to clobber PacketID, so take a copy
     PacketID tmp = *pid;
     t_fdm->removeWriteFD(fd);
@@ -5779,4 +5820,3 @@ int main(int argc, char **argv)
   return ret;
 }
 
-bool g_verbose; // XXX FIX ME XXX, see tcpiohandler.cc

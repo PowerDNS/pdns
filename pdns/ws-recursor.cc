@@ -1290,6 +1290,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     if (asendtcp(reply, handler) != LWResult::Result::Success || reply.empty()) {
       g_log<<Logger::Error<<logprefix<<"Failed sending reply to HTTP client"<<endl;
     }
+    handler->close(); // needed to signal "done" to client
   }
   catch(PDNSException &e) {
     g_log<<Logger::Error<<logprefix<<"Exception: "<<e.reason<<endl;

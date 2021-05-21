@@ -22,7 +22,12 @@
 #pragma once
 #include <iostream>
 #include <sstream>
+#if !defined(RECURSOR)
 #include <syslog.h>
+#else
+#include "logger.hh"
+#endif // RECURSOR
+
 
 /* This file is intended not to be metronome specific, and is simple example of C++2011
    variadic templates in action.
@@ -43,6 +48,7 @@
    This will happily print a string to %d! Doesn't do further format processing.
 */
 
+#if !defined(RECURSOR)
 inline void dolog(std::ostream& os, const char*s)
 {
   os<<s;
@@ -59,12 +65,12 @@ void dolog(std::ostream& os, const char* s, T value, Args... args)
       else {
 	os << value;
 	s += 2;
-	dolog(os, s, args...); 
+	dolog(os, s, args...);
 	return;
       }
     }
     os << *s++;
-  }    
+  }
 }
 
 extern bool g_verbose;
@@ -107,4 +113,56 @@ void errlog(const char* s, Args... args)
 {
   genlog(LOG_ERR, s, args...);
 }
+
+
+#else // RECURSOR
+
+#define g_verbose 0
+
+inline void dolog(Logger::Urgency u, const char* s)
+{
+  g_log << u << s << std::endl;
+}
+
+template<typename T, typename... Args>
+void dolog(Logger::Urgency u, const char* s, T value, Args... args)
+{
+  g_log << u;
+  while (*s) {
+    if (*s == '%') {
+      if (*(s + 1) == '%') {
+	++s;
+      }
+      else {
+	g_log << value;
+	s += 2;
+	dolog(u, s, args...);
+	return;
+      }
+    }
+    g_log << *s++;
+  }
+}
+
+#define vinfolog if(g_verbose)infolog
+
+template<typename... Args>
+void infolog(const char* s, Args... args)
+{
+  dolog(Logger::Info, s, args...);
+}
+
+template<typename... Args>
+void warnlog(const char* s, Args... args)
+{
+  dolog(Logger::Warning, s, args...);
+}
+
+template<typename... Args>
+void errlog(const char* s, Args... args)
+{
+  dolog(Logger::Error, s, args...);
+}
+
+#endif
 
