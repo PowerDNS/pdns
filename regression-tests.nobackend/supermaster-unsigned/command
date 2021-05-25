@@ -50,6 +50,7 @@ module-dir=../regression-tests/modules
 launch=gsqlite3
 gsqlite3-dnssec=yes
 gsqlite3-database=slave.db
+zone-cache-refresh-interval=900
 EOF
 	rm -f master.db slave.db
 	sqlite3 master.db < ../modules/gsqlite3backend/schema.sqlite3.sql

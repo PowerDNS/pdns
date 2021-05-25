@@ -367,7 +367,7 @@ public:
   }
 
   //! called by PowerDNS to create a slave record for a superMaster
-  virtual bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account)
+  virtual bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId = nullptr)
   {
     return false;
   }

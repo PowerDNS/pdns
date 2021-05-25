@@ -240,7 +240,7 @@ public:
   // for supermaster support
   bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   static std::mutex s_supermaster_config_lock;
-  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
+  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId = nullptr) override;
 
 private:
   void setupDNSSEC();
