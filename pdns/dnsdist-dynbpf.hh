@@ -22,8 +22,6 @@
 #pragma once
 #include "config.h"
 
-#include <mutex>
-
 #include "bpf-filter.hh"
 #include "iputils.hh"
 
