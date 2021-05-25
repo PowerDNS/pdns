@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_generic) {
 }
 
 BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
-        RecordTextReader rtr("key666=foobar echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 alpn=h2,h3 mandatory=alpn ipv4hint=192.0.2.1,192.0.2.2"); // out of order, resulting set should be in-order
+        RecordTextReader rtr("key666=foobar ech=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 alpn=h2,h3 mandatory=alpn ipv4hint=192.0.2.1,192.0.2.2"); // out of order, resulting set should be in-order
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
         BOOST_CHECK_EQUAL(v.size(), 6U);
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
                         BOOST_CHECK(vit->getKey() == SvcParam::ipv4hint);
                 }
                 if (i == 3) {
-                        BOOST_CHECK(vit->getKey() == SvcParam::echconfig);
+                        BOOST_CHECK(vit->getKey() == SvcParam::ech);
                 }
                 if (i == 4) {
                         BOOST_CHECK(vit->getKey() == SvcParam::ipv6hint);
@@ -359,18 +359,18 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_multiple) {
         string target;
         RecordTextWriter rtw(target);
         rtw.xfrSvcParamKeyVals(v);
-        BOOST_CHECK_EQUAL(target, "mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 key666=\"foobar\"");
+        BOOST_CHECK_EQUAL(target, "mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 ech=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\" ipv6hint=2001:db8::1 key666=\"foobar\"");
 }
 
-BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
-        string source("echconfig=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\"");
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ech) {
+        string source("ech=\"dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU=\"");
         RecordTextReader rtr(source);
         set<SvcParam> v;
         rtr.xfrSvcParamKeyVals(v);
         BOOST_CHECK_EQUAL(v.size(), 1U);
         auto k = v.begin()->getKey();
-        BOOST_CHECK(k == SvcParam::echconfig);
-        auto val = v.begin()->getEchConfig();
+        BOOST_CHECK(k == SvcParam::ech);
+        auto val = v.begin()->getECH();
         BOOST_CHECK_EQUAL(val, "totally bogus echconfig value"); // decoded!
 
         // Check the writer

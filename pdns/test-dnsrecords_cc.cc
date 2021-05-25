@@ -217,8 +217,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. alpn=h3,h2", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x06\x02h3\x02h2"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. port=53", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x03\x00\x02\x00\x35"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. ipv4hint=192.0.2.53,192.0.2.2", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x04\x00\x08\xc0\x00\x02\x35\xc0\x00\x02\x02"))
-     (CASE_S(QType::SVCB, "1 foo.powerdns.org. echconfig=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
-     (CASE_L(QType::SVCB, "1 foo.powerdns.org. echconfig=aGVsbG8=", "1 foo.powerdns.org. echconfig=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. ech=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
+     (CASE_L(QType::SVCB, "1 foo.powerdns.org. ech=aGVsbG8=", "1 foo.powerdns.org. ech=\"aGVsbG8=\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x05\x00\x05hello"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. ipv6hint=2001:db8::1,2001:db8::53:1", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x06\x00\x20\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x53\x00\x01"))
 
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. key666=\"hello\"", "\0\x01\3foo\x08powerdns\x03org\x00\x02\x9a\x00\x005hello"))
@@ -236,6 +236,21 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SVCB, R"FOO(1 foo.powerdns.org. alpn=h\\\\3\\,cool,h2)FOO", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x0c\x08h\\3,cool\x02h2"))
      // Escaped _and_ spaced ALPN value
      (CASE_S(QType::SVCB, R"FOO(1 foo.powerdns.org. alpn="h3\\,co ol,h2")FOO", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x0c\x08h3,co ol\x02h2"))
+
+     // BEGIN SVCB draft -05 test vectors
+     // D.1
+     (CASE_S(QType::SVCB, "0 foo.example.com.", "\x00\x00\3foo\7example\3com\x00"))
+     // D.2
+     (CASE_S(QType::SVCB, "1 .", "\x00\x01\x00"))
+     (CASE_S(QType::SVCB, "16 foo.example.com. port=53", "\x00\x10\3foo\7example\3com\x00\x00\x03\x00\x02\x00\x35"))
+     (CASE_L(QType::SVCB, "1 foo.example.com. key667=hello", "1 foo.example.com. key667=\"hello\"" ,"\x00\x01\3foo\7example\3com\x00\x02\x9b\x00\x05hello"))
+     (CASE_S(QType::SVCB, R"XXX(1 foo.example.com. key667="hello\210qoo")XXX", "\x00\x01\3foo\7example\3com\x00\x02\x9b\x00\x09hello\xd2qoo"))
+     (CASE_S(QType::SVCB, "1 foo.example.com. ipv6hint=2001:db8::1,2001:db8::53:1", "\0\x01\3foo\7example\3com\x00\x00\x06\x00\x20\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x53\x00\x01"))
+     (CASE_L(QType::SVCB, "1 example.com. ipv6hint=\"::ffff:198.51.100.100\"", "1 example.com. ipv6hint=::ffff:198.51.100.100", "\x00\x01\7example\3com\x00\x00\x06\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0\xff\xff\xc6\x33\x64\x64")) // XXX not in draft -05, see https://github.com/MikeBishop/dns-alt-svc/pull/320
+     (CASE_L(QType::SVCB, "16 foo.example.org. alpn=h2,h3-19 mandatory=ipv4hint,alpn ipv4hint=192.0.2.1", "16 foo.example.org. mandatory=alpn,ipv4hint alpn=h2,h3-19 ipv4hint=192.0.2.1", "\x00\x10\3foo\7example\3org\x00\x00\x00\x00\x04\x00\x01\x00\x04\x00\x01\x00\x09\x02h2\x05h3-19\x00\x04\x00\x04\xc0\x00\x02\x01")) // XXX see https://github.com/MikeBishop/dns-alt-svc/pull/321
+     (CASE_L(QType::SVCB, R"XXX(16 foo.example.org. alpn="f\\\\oo\\,bar,h2")XXX", R"XXX(16 foo.example.org. alpn=f\\\\oo\\,bar,h2)XXX", "\x00\x10\3foo\7example\3org\x00\x00\x01\x00\x0c\x08\x66\\oo,bar\x02h2"))
+     (CASE_L(QType::SVCB, R"XXX(16 foo.example.org. alpn=f\\\092oo\092,bar,h2)XXX", R"XXX(16 foo.example.org. alpn=f\\\\oo\\,bar,h2)XXX", "\x00\x10\3foo\7example\3org\x00\x00\x01\x00\x0c\x08\x66\\oo,bar\x02h2"))
+     // END SVCB draft test vectors
 
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all"))
 
