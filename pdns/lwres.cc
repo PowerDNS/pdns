@@ -349,7 +349,7 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
       s.bind(localip);
 
       std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-      if (ip.getPort() == 853) {
+      if (SyncRes::s_dot_to_port_853 && ip.getPort() == 853) {
         TLSContextParameters tlsParams;
         tlsParams.d_provider = "openssl";
         tlsParams.d_validateCertificates = false;

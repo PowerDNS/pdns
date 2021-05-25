@@ -72,6 +72,7 @@ std::atomic<uint64_t> SyncRes::s_outgoing4timeouts;
 std::atomic<uint64_t> SyncRes::s_outgoing6timeouts;
 std::atomic<uint64_t> SyncRes::s_outqueries;
 std::atomic<uint64_t> SyncRes::s_tcpoutqueries;
+std::atomic<uint64_t> SyncRes::s_dotoutqueries;
 std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_qnameminfallbacksuccess;
@@ -98,6 +99,7 @@ SyncRes::HardenNXD SyncRes::s_hardenNXD;
 unsigned int SyncRes::s_refresh_ttlperc;
 int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
+bool SyncRes::s_dot_to_port_853;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -111,7 +113,7 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 }
 
 
-SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
+SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
 					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
 
@@ -3748,9 +3750,15 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   if(doTCP) {
-    LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
-    s_tcpoutqueries++;
-    d_tcpoutqueries++;
+    if (SyncRes::s_dot_to_port_853 && remoteIP.getPort() == 853) {
+      LOG(prefix<<qname<<": using DoT with "<< remoteIP.toStringWithPort() <<endl);
+      s_dotoutqueries++;
+      d_dotoutqueries++;
+    } else {
+      LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
+      s_tcpoutqueries++;
+      d_tcpoutqueries++;
+    }
   }
 
   int preOutQueryRet = RCode::NoError;
@@ -4241,7 +4249,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           bool truncated = false;
           bool spoofed = false;
           bool gotAnswer = false;
-          bool forceTCP = remoteIP->getPort() == 853;
+          bool forceTCP = SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853;
 
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,

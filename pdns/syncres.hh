@@ -743,6 +743,7 @@ public:
   static std::atomic<uint64_t> s_authzonequeries;
   static std::atomic<uint64_t> s_outqueries;
   static std::atomic<uint64_t> s_tcpoutqueries;
+  static std::atomic<uint64_t> s_dotoutqueries;
   static std::atomic<uint64_t> s_unreachables;
   static std::atomic<uint64_t> s_ecsqueries;
   static std::atomic<uint64_t> s_ecsresponses;
@@ -785,7 +786,8 @@ public:
   static unsigned int s_refresh_ttlperc;
   static int s_tcp_fast_open;
   static bool s_tcp_fast_open_connect;
-
+  static bool s_dot_to_port_853;
+  
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
@@ -794,6 +796,7 @@ public:
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
+  unsigned int d_dotoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
