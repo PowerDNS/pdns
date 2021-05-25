@@ -1035,6 +1035,8 @@ struct DownstreamState
     qps.addHit();
   }
 
+  void incCurrentConnectionsCount();
+
 private:
   std::string name;
   std::string nameWithAddr;

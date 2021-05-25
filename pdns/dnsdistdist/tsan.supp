@@ -4,6 +4,7 @@ race:doLatencyStats
 race:handleStats
 race:ClientState::updateTCPMetrics
 race:DownstreamState::updateTCPMetrics
+race:DownstreamState::incCurrentConnectionsCount
 # There is a race when we update the status of a backend,
 # but eventual consistency is fine there
 race:DownstreamState::setDown
