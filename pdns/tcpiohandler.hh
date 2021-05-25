@@ -16,10 +16,10 @@ public:
   virtual ~TLSConnection() { }
   virtual void doHandshake() = 0;
   virtual IOState tryConnect(bool fastOpen, const ComboAddress& remote) = 0;
-  virtual void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout) = 0;
+  virtual void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) = 0;
   virtual IOState tryHandshake() = 0;
-  virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
-  virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
+  virtual size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout={0,0}) = 0;
+  virtual size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) = 0;
   virtual IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) = 0;
   virtual bool hasBufferedData() const = 0;
@@ -62,8 +62,8 @@ public:
     d_rotatingTicketsKey.clear();
   }
   virtual ~TLSCtx() {}
-  virtual std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) = 0;
-  virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) = 0;
+  virtual std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) = 0;
+  virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) = 0;
   virtual void rotateTicketsKey(time_t now) = 0;
   virtual void loadTicketsKeys(const std::string& file)
   {
@@ -192,14 +192,14 @@ class TCPIOHandler
 public:
   enum class Type { Client, Server };
 
-  TCPIOHandler(const std::string& host, int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  TCPIOHandler(const std::string& host, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {
     if (ctx) {
       d_conn = ctx->getClientConnection(host, d_socket, timeout);
     }
   }
 
-  TCPIOHandler(int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  TCPIOHandler(int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {
     if (ctx) {
       d_conn = ctx->getConnection(d_socket, timeout, now);
@@ -249,10 +249,10 @@ public:
       d_fastOpen = true;
     }
     else {
-      SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ 0);
+      SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
     }
 #else
-    SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ 0);
+    SConnectWithTimeout(d_socket, remote, /* no timeout, we will handle it ourselves */ timeval{0,0});
 #endif /* MSG_FASTOPEN */
 
     if (d_conn) {
@@ -262,7 +262,7 @@ public:
     return IOState::Done;
   }
 
-  void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout)
+  void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout)
   {
     d_remote = remote;
 
@@ -300,7 +300,7 @@ public:
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0)
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout = {0,0})
   {
     if (d_conn) {
       return d_conn->read(buffer, bufferSize, readTimeout, totalTimeout);
@@ -400,7 +400,7 @@ public:
     return IOState::Done;
   }
 
-  size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout)
+  size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout)
   {
     if (d_conn) {
       return d_conn->write(buffer, bufferSize, writeTimeout);

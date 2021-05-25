@@ -1250,7 +1250,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
     yarl.initialize(&req);
     client->setNonBlocking();
 
-    const int timeout = (g_networkTimeoutMsec + 999) / 1000; // XXX tcpiohandler's unit is seconds
+    const struct timeval timeout{g_networkTimeoutMsec / 1000, g_networkTimeoutMsec % 1000 * 1000};
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     auto handler = std::make_shared<TCPIOHandler>("", client->releaseHandle(), timeout, tlsCtx, time(nullptr));
 

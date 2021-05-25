@@ -124,6 +124,11 @@ inline void dolog(Logger::Urgency u, const char* s)
   g_log << u << s << std::endl;
 }
 
+inline void dolog(const char* s)
+{
+  g_log << s << std::endl;
+}
+
 template<typename T, typename... Args>
 void dolog(Logger::Urgency u, const char* s, T value, Args... args)
 {
@@ -136,7 +141,7 @@ void dolog(Logger::Urgency u, const char* s, T value, Args... args)
       else {
 	g_log << value;
 	s += 2;
-	dolog(u, s, args...);
+	dolog(s, args...);
 	return;
       }
     }
