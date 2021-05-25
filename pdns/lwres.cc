@@ -355,11 +355,14 @@ LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int
         tlsParams.d_validateCertificates = false;
         //tlsParams.d_caStore = caaStore;
         tlsCtx = getTLSContext(tlsParams);
+        if (tlsCtx == nullptr) {
+          g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl;
+        }
       }
       auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, now->tv_sec);
-      /* auto state = */ handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
+      // Returned state ignored
+      handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
 
-      //cerr << "state after TryConnect() " << int(state) << endl;
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;
       const char *msgP=(const char*)&*vpacket.begin();
