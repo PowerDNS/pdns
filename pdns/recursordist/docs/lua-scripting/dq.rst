@@ -81,13 +81,13 @@ The DNSQuestion object contains at least the following fields:
     .. attribute:: DNSQuestion.appliedPolicy.policyName
 
       A string with the name of the policy.
-      Set by :ref:`policyName <rpz-policyName>` in the :func:`rpzFile` and :func:`rpzMaster` configuration items.
+      Set by :ref:`policyName <rpz-policyName>` in the :func:`rpzFile` and :func:`rpzPrimary` configuration items.
       It is advised to overwrite this when modifying the :attr:`DNSQuestion.appliedPolicy.policyKind`
 
     .. attribute:: DNSQuestion.appliedPolicy.policyType
 
-        The type of match for the policy.
- 
+      The type of match for the policy.
+
       -  ``pdns.policytypes.None``  the empty policy type
       -  ``pdns.policytypes.QName`` a match on qname
       -  ``pdns.policytypes.ClientIP`` a match on client IP
