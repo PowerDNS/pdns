@@ -181,7 +181,7 @@ void declareArguments()
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("zone-cache-refresh-interval", "Seconds to cache list of known zones") = "0";
+  ::arg().set("zone-cache-refresh-interval", "Seconds to cache list of known zones") = "300";
   ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";

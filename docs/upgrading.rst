@@ -54,6 +54,10 @@ Removed options
 ~~~~~~~~~~~~~~~
 - :ref:`setting-local-ipv6` has been removed. IPv4 and IPv6 listen addresses should now be set with :ref:`setting-local-address`.
 
+Starting with auth-4.5.0-alpha2:
+
+- The default value of the ``zone-cache-refresh-interval`` option has been changed from ``0`` to ``300``.
+
 4.3.x to 4.4.0
 --------------
 
