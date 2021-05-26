@@ -650,7 +650,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
                     "Number of servers that sent a valid EDNS PING response")},
   {"edns-ping-mismatches",
    MetricDefinition(PrometheusMetricType::counter,
-                    "Number of servers that sent an invalid EDN PING response")},
+                    "Number of servers that sent an invalid EDNS PING response")},
   {"failed-host-entries",
    MetricDefinition(PrometheusMetricType::counter,
                     "Number of servers that failed to resolve")},
