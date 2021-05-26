@@ -1329,7 +1329,7 @@ bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
         execute();
       if (!d_InfoOfDomainsZoneQuery_stmt->hasNextRow()) {
         d_InfoOfDomainsZoneQuery_stmt->reset();
-        return false;
+        throw PDNSException("Zone lookup failed for newly created zone '" + domain.toLogString() + "'");
       }
       SSqlStatement::row_t row;
       d_InfoOfDomainsZoneQuery_stmt->nextRow(row);
