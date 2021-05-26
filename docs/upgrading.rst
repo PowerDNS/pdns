@@ -44,6 +44,10 @@ Changed defaults
 - The default value of the ``max-nsec3-iterations`` option has been changed from ``500`` to ``100``.
 - The default value of the ``timeout`` option for :ref:`ifportup` and :ref:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
 
+Starting with auth-4.5.0-alpha2:
+
+- The default value of the ``zone-cache-refresh-interval`` option has been changed from ``0`` to ``300``.
+
 4.3.x to 4.4.0
 --------------
 
