@@ -156,6 +156,7 @@ void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
 void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
 {
   d_isAxfr = true;
+  d_isGetDomains = true;
   d_dnspacket = NULL;
 
   try {
@@ -191,6 +192,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool include_dis
 bool TinyDNSBackend::list(const DNSName& target, int domain_id, bool include_disabled)
 {
   d_isAxfr = true;
+  d_isGetDomains = false;
   string key = target.toDNSStringLC();
   try {
     d_cdbReader = std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
@@ -206,6 +208,7 @@ bool TinyDNSBackend::list(const DNSName& target, int domain_id, bool include_dis
 void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
 {
   d_isAxfr = false;
+  d_isGetDomains = false;
   string queryDomain = toLowerCanonic(qdomain.toString());
 
   string key = simpleCompress(queryDomain);
@@ -261,6 +264,10 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
 
     PacketReader pr(val, 0);
     rr.qtype = QType(pr.get16BitInt());
+
+    if (d_isGetDomains && rr.qtype != QType::SOA) {
+      continue;
+    }
 
     if (d_isAxfr || d_qtype.getCode() == QType::ANY || rr.qtype == d_qtype) {
       char locwild = pr.get8BitInt();
@@ -333,7 +340,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
       }
       catch (...) {
         g_log << Logger::Error << backendname << "Failed to parse record content for " << rr.qname << " with type " << rr.qtype.toString();
-        if (d_ignorebogus) {
+        if (d_ignorebogus || d_isGetDomains) {
           g_log << ". Ignoring!" << endl;
           continue;
         }
