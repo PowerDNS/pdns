@@ -1,0 +1,257 @@
+Changelogs for 4.5.x
+====================
+
+.. changelog::
+  :version: 4.5.0-alpha1
+  :released: 27th of May 2021
+
+  This is version 4.5.0-alpha1 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
+
+  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
+  In some setups, and some attack scenarios, this can make a serious performance difference.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10260
+
+    Lower max-nsec3-iterations to 100 (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10421
+
+    add an option to in/exclude disabled zones in the pdnsutil list-all-zone and list-keys output (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10399
+
+    Make sure we recheck failed SOA lookups for notifies (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8999, 9788
+
+    Swagger/OpenAPI improvements (Kevin Fleming)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9813
+
+    geoip: set netmask on all string formatting types
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9768
+
+    fix rounding inaccuracy in latency statistics (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9574
+
+    Ensure socket-dir matches runtimedir on old systemd
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9775
+
+    pdnsutil add-record: notice when backend does not support replaceRRSet
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9764, 9847, 9848, 9910
+
+    Various logging improvements (Kees Monshouwer, nzlosh)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9752, 9803, 10028, 10067, 10068, 10165
+
+    Various improvements to the Docker image (rytis, james-crowley)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9749, 9819, 9831, 9832, 9857, 9876, 9895, 9911, 9914, 9920, 9930, 9932, 9937, 9955, 9979, 10016, 10137, 10141, 10216, 10245, 10269, 10271, 10310, 10329, 10336, 10344
+
+    Build improvements (support for new compilers and boost versions, etc.), improved usage of some library constructs, and architecture specific fixes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9913
+
+    Switch to C++17
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9885, 9888, 9933, 10013, 10099, 10107, 10186
+
+    LMDB improvements (better transaction safety; support for the ``disabled`` field; better upgrade handling; stale reader cleanup; other bug fixes) (Robin Geuze, Kees Monshouwer)
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 10259
+
+    gpgsql backend: drop refcursor support (it never worked anyway)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9766, 9844, 9919, 10074
+
+    Fixed bugs in the implementations of the ``SVCB``, ``HTTPS``, ``IPSECKEY`` and ``APL`` types.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10078, 10172, 10121, 10256, 10234
+
+    New RRtypes supported: ``CSYNC``, ``NID``, ``L32``, ``L64``, and ``LP``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10196
+
+    Implement priority levels in the AXFR queue (Robin Geuze)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9658, 9669, 10430
+
+    pdns.conf, pdnsutil, pdns_control: add modern aliases for words like master and slave. Add a setting to ignore unknown settings, to make mixed-version testing easier. (Chris Hofstaedtler, Kees Monshouwer)
+
+    While changing names, Kees Monshouwer also renamed 'domain' to 'zone' in a ton of places.
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 10251
+
+    remove local-ipv6, query-local-address6, after their deprecation in 4.4
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10217
+
+    API HTTP cryptokeys: add cds array when configured to do so
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10236
+
+    When rectifying, do not update ordernames/auth when there is no need (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9995, 10060, 10149
+
+    sdig: DoT support; TCP Fast Opens support for TCP/DoT/DoH
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10155
+
+    ALIAS: Ensure A and AAAA are in the NSEC bitmap
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10161
+
+    memory usage reporting: use RES instead of "data" size
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 10010
+
+    Check ``sizeof(time_t)`` to be at least 8. This makes it easier for us to handle times beyond the years 2038 and 2106 safely. This removes support for platforms where ``time_t`` is still only 32 bits wide.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10081
+
+    pdnsutil load-zone: reject zones with broken rrs
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9826
+
+    pdnsutil edit-zone: do not exit on ZoneParser exception
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10087
+
+    pdnsutil: Warn on CNAME targets for NS, MX and SRV
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10264
+
+    Also disable PMTU for IPv6 (it was disabled for IPv4 already)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8813
+
+    Make check-zone also check whether there are duplicate key value pair metadatas for the zone (RobinGeuze)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10007
+
+    fix tcp answer counters (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10037
+
+    run deleteDomain() inside a transaction (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9958
+
+    Serve NSEC3PARAM when asked without DO
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8829
+
+    gsqlite3: handle escaping correctly for API search
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 9872
+
+    fix direct-dnskey in AXFR-out (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 9520
+
+    detect possible metadata cache pollution (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10364
+
+    auth: Don't choke on non-base64 values when importing zone keys
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9464, 10432
+
+    Add a cache of all zones, avoiding backend lookups for zones that do not exist, and for non-existing subzones. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10401
+
+    change the consistent-backends default to 'yes'
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10392
+
+    gpgsql: use SELECT .. RETURNING to get inserted row ID

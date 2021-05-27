@@ -293,6 +293,7 @@ createslavedomain
 Cremers
 criteo
 cron
+crowley
 crv
 cryptokey
 Cryptoki
@@ -1156,6 +1157,7 @@ nx
 nxd
 NXDATA
 nxdomain
+nzlosh
 oarc
 oauth
 Obermayer
@@ -1462,11 +1464,13 @@ rsync
 ru
 Rueckert
 rulesets
+runtimedir
 Ruthensteiner
 rv
 Rvd
 rw
 rwlock
+rytis
 Sakaguchi
 saltsa
 sandboxing

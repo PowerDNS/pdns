@@ -16,7 +16,10 @@ Record type changes
 
 The in-database format of ``CSYNC``, ``IPSECKEY``, ``NID``, ``L32``, ``L64``, and ``LP`` records has changed from 'generic' format to its specialized format.
 
-API users might notice that replacing records of these types leaves the old TYPExx records around, even if PowerDNS is not serving them.
+Generation of the in-database format of ``SVCB`` and ``HTTPS`` received some important bug fixes.
+(For these two types, you can skip the :ref:`setting-upgrade-unknown-types` setting mentioned below, but we still recommend the re-transfer.)
+
+API users might notice that replacing records of the newly supported types leaves the old TYPExx records around, even if PowerDNS is not serving them.
 To fix this, enable :ref:`setting-upgrade-unknown-types` and replace the records; this will then delete those TYPExx records.
 Then, disable the setting again, because it has a serious performance impact on API operations.
 
@@ -40,9 +43,9 @@ Their old names still work in 4.5.x, but will be removed in the release after it
 Changed defaults
 ~~~~~~~~~~~~~~~~
 
-- The default value of the ``consistent-backends`` option has been changed from ``no`` to ``yes``.
-- The default value of the ``max-nsec3-iterations`` option has been changed from ``500`` to ``100``.
-- The default value of the ``timeout`` option for :ref:`ifportup` and :ref:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
+- The default value of the :ref:`setting-consistent-backends` option has been changed from ``no`` to ``yes``.
+- The default value of the :ref:`setting-max-nsec3-iterations` option has been changed from ``500`` to ``100``.
+- The default value of the ``timeout`` parameter for :func:`ifportup` and :func:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
 
 4.3.x to 4.4.0
 --------------

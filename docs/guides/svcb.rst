@@ -9,7 +9,7 @@ Apart from that, there's the PowerDNS special for "autohints".
 Automatic hints
 ---------------
 PowerDNS can automatically fill in ``ipv4hint`` and ``ipv6hint`` parameters in SVCB records based on A and AAAA records already present in the zone.
-This can be enabled by setting :ref:`setting-svc-autohint` to 'yes'.
+This can be enabled by setting :ref:`setting-svc-autohints` to 'yes'.
 
 Consider the following zone content::
 
@@ -82,4 +82,4 @@ It will emit a warning when there are no hints to be found::
 
 When autohints exist but are disabled
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-When :ref:`setting-svc-autohint` is not enabled, the parameter is dropped when its value is ``auto``.
+When :ref:`setting-svc-autohints` is not enabled, the parameter is dropped when its value is ``auto``.

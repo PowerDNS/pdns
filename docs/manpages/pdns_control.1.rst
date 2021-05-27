@@ -81,7 +81,7 @@ Dump all statistics and their values in a comma separated list,
 equivalent to ``show *``.
 
 list-zones [primary,secondary,native]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Show a list of zones, optionally filter on the type of zones to
 show.
