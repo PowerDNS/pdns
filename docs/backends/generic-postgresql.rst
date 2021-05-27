@@ -136,20 +136,20 @@ Given the normal pgsql schema, change the following:
   CREATE SEQUENCE key_id MAXVALUE 2147483648;
   CREATE SEQUENCE tsig_id MAXVALUE 2147483648;
 
-2. Change all SERIAL / BIGSERIAL columns to use the SEQUENCEs. For instance:
+2. Change all SERIAL / BIGSERIAL columns to use the SEQUENCEs. For instance, change
 
 .. code-block:: SQL
 
-  -- Before
   CREATE TABLE domains (
     id SERIAL PRIMARY KEY,
-    --
-  }
+  )
 
-  -- After
+to
+
+.. code-block:: SQL
+
   CREATE TABLE domains (
     id INT DEFAULT nextval('domain_id') PRIMARY KEY,
-    --
   );
 
 
