@@ -1,5 +1,6 @@
 FROM dist-base as package-builder
 RUN touch /var/lib/rpm/* && \
+    yum upgrade -y && \
     yum install -y rpm-build rpmdevtools python3 "@Development Tools"
 
 RUN mkdir /dist /pdns
