@@ -3,10 +3,14 @@ Changelogs for 4.5.x
 
 .. changelog::
   :version: 4.5.0-alpha1
-  :released: 15th of May 2021
+  :released: 27th of May 2021
 
   This is version 4.5.0-alpha1 of the Authoritative Server.
   This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
+
+  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
+  In some setups, and some attack scenarios, this can make a serious performance difference.
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
 
@@ -238,7 +242,7 @@ Changelogs for 4.5.x
     :tags: New Features
     :pullreq: 9464, 10432
 
-    Add a cache of all domains, avoiding backend lookups for domains that do not exist, and for non-existing subdomains. (Chris Hofstaedtler)
+    Add a cache of all zones, avoiding backend lookups for zones that do not exist, and for non-existing subzones. (Chris Hofstaedtler)
 
   .. change::
     :tags: Improvements
