@@ -571,7 +571,7 @@ static void setupLuaRecords()
     });
 
 
-  lua.writeFunction("createReverse", [](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e){
       try {
         auto labels = s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<4)
@@ -590,7 +590,7 @@ static void setupLuaRecords()
             if(ComboAddress(c.first, 0) == req)
               return c.second;
         }
-        boost::format fmt(suffix);
+        boost::format fmt(format);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
         fmt % labels[3] % labels[2] % labels[1] % labels[0];
         
@@ -674,14 +674,14 @@ static void setupLuaRecords()
 
       return std::string("::");
     });
-  lua.writeFunction("createReverse6", [](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
 
       try {
         auto labels= s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<32)
           return std::string("unknown");
-        boost::format fmt(suffix);
+        boost::format fmt(format);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
 
 
