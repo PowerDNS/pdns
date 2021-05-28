@@ -386,6 +386,17 @@ If `pdns-distributes-queries`_ is set, spawn this number of distributor threads 
 handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
 ratio.
 
+.. _settings-dot-to-port-853:
+
+``dot-to-port-853``
+-------------------
+.. versionadded:: 4.6.0
+
+- Boolean
+- Default: ``yes`` if DoT support is compiled in, ``no`` otherwise.
+
+Enable DoT to forwarders that specify port 853.
+
 .. _setting-dns64-prefix:
 
 ``dns64-prefix``

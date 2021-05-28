@@ -926,6 +926,8 @@ private:
 LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>&);
 LWResult::Result arecvtcp(PacketBuffer& data, size_t len, shared_ptr<TCPIOHandler>&, bool incompleteOkay);
 
+enum TCPAction : uint8_t { DoingRead, DoingWrite };
+
 struct PacketID
 {
   PacketID()
@@ -951,6 +953,8 @@ struct PacketID
   bool inIncompleteOkay{false};
   uint16_t id{0};  // wait for a specific id/remote pair
   uint16_t type{0};             // and this is its type
+  TCPAction highState;
+  IOState lowState;
 
   bool operator<(const PacketID& b) const
   {

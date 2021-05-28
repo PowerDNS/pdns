@@ -8,7 +8,7 @@
 #include "misc.hh"
 #include "noinitvector.hh"
 
-enum class IOState { Done, NeedRead, NeedWrite };
+enum class IOState : uint8_t { Done, NeedRead, NeedWrite };
 
 class TLSConnection
 {
