@@ -118,8 +118,8 @@ any              IN           TXT "hello there"
 resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}} for _,v in ipairs(r) do table.insert(t, v:toString()) end return t"
 
 *.createforward  IN    LUA    A     "createForward()"
-*.createreverse  IN    LUA    PTR   "createReverse('%5%.example.com')"
-*.createreverse6 IN    LUA    PTR   "createReverse6('%33%.example.com')"
+*.createreverse  IN    LUA    PTR   "createReverse('%5%.example.com', {{['10.10.10.10'] = 'quad10.example.com.'}})"
+*.createreverse6 IN    LUA    PTR   "createReverse6('%33%.example.com', {{['2001:db8::1'] = 'example.example.com.'}})"
 
         """,
         'createforward6.example.org': """
@@ -643,13 +643,15 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "ip4041424": "0.0.0.0",
             }),
             ".createreverse.example.org." : (dns.rdatatype.PTR, {
-                "4.3.2.1": "1-2-3-4.example.com."
+                "4.3.2.1": "1-2-3-4.example.com.",
+                "10.10.10.10": "quad10.example.com."
             }),
             ".createforward6.example.org." : (dns.rdatatype.AAAA, {
                 "2001--db8" : "2001::db8"
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
-                "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com."
+                "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
+                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com."
             })
         }
 
