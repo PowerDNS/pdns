@@ -964,9 +964,13 @@ int PacketHandler::trySuperMasterSynchronous(const DNSPacket& p, const DNSName& 
     return RCode::Refused;
   }
   try {
-    int zoneId{-1};
-    db->createSlaveDomain(remote.toString(), p.qdomain, nameserver, account, &zoneId);
-    g_zoneCache.add(p.qdomain, zoneId);
+    db->createSlaveDomain(remote.toString(), p.qdomain, nameserver, account);
+    DomainInfo di;
+    if (!db->getDomainInfo(p.qdomain, di, false)) {
+      g_log << Logger::Error << "Failed to create " << p.qdomain << " for potential supermaster " << remote << endl;
+      return RCode::ServFail;
+    }
+    g_zoneCache.add(p.qdomain, di.id);
     if (tsigkeyname.empty() == false) {
       vector<string> meta;
       meta.push_back(tsigkeyname.toStringNoDot());

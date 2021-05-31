@@ -1295,7 +1295,7 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account, int* zoneId)
+bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
 {
   vector<string> masters_s;
   masters_s.reserve(masters.size());
@@ -1306,40 +1306,15 @@ bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
   try {
     reconnectIfNeeded();
 
+    // clang-format off
     d_InsertZoneQuery_stmt->
       bind("type", toUpper(DomainInfo::getKindString(kind)))->
       bind("domain", domain)->
       bind("masters", boost::join(masters_s, ", "))->
       bind("account", account)->
-      execute();
-
-    if (zoneId != nullptr) {
-      if (d_InsertZoneQuery_stmt->hasNextRow()) {
-        SSqlStatement::row_t row;
-        d_InsertZoneQuery_stmt->nextRow(row);
-        *zoneId = std::stoi(row[0]);
-        d_InsertZoneQuery_stmt->reset();
-        return true;
-      } else {
-        d_InsertZoneQuery_stmt->reset();
-      }
-
-      d_InfoOfDomainsZoneQuery_stmt->
-        bind("domain", domain)->
-        execute();
-      if (!d_InfoOfDomainsZoneQuery_stmt->hasNextRow()) {
-        d_InfoOfDomainsZoneQuery_stmt->reset();
-        return false;
-      }
-      SSqlStatement::row_t row;
-      d_InfoOfDomainsZoneQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("info-zone-query", row, 7);
-      *zoneId = std::stoi(row[0]);
-      d_InfoOfDomainsZoneQuery_stmt->reset();
-    } else {
-      d_InsertZoneQuery_stmt->reset();
-    }
-    return true;
+      execute()->
+      reset();
+    // clang-format on
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new domain '"+domain.toLogString()+"': "+ e.txtReason());
@@ -1347,7 +1322,7 @@ bool GSQLBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKi
   return true;
 }
 
-bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId)
+bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
 {
   string name;
   vector<ComboAddress> masters({ComboAddress(ip, 53)});
@@ -1373,7 +1348,7 @@ bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, con
         masters = tmp;
       }
     }
-    createDomain(domain, DomainInfo::Slave, masters, account, zoneId);
+    createDomain(domain, DomainInfo::Slave, masters, account);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());

@@ -184,7 +184,7 @@ public:
   void setNotified(uint32_t id, uint32_t serial) override;
   bool doesDNSSEC() override;
   bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
-  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account, int* zoneId = nullptr) override;
+  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool feedEnts(int domain_id, map<DNSName, bool>& nonterm) override;
