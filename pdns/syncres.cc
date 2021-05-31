@@ -3590,13 +3590,25 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       if (moreSpecificThan(rec.d_name,auth)) {
         newauth = rec.d_name;
         LOG(prefix<<qname<<": got NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
-        realreferral = true;
+
+        if (!negindic && qtype == QType::DS && qname == newauth) {
+          /* just got a referral from the parent zone when asking for a DS, looks like this server did not get the DNSSE memo.. */
+          LOG(prefix<<qname<<": got (implicit) negative indication of DS record for '"<<qname<<"'"<<endl);
+          negindic = true;
+          negIndicHasSignatures = false;
+          nsset.clear();
+        }
+        else {
+          realreferral = true;
+        }
       }
       else {
         LOG(prefix<<qname<<": got upwards/level NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth<<"'"<<endl);
       }
-      if (auto content = getRR<NSRecordContent>(rec)) {
-        nsset.insert(content->getNS());
+      if (!negindic) {
+        if (auto content = getRR<NSRecordContent>(rec)) {
+          nsset.insert(content->getNS());
+        }
       }
     }
     else if (rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::DS && qname.isPartOf(rec.d_name)) {
@@ -3631,7 +3643,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
               g_negCache->add(ne);
             }
 
-            if (qname == newauth && qtype == QType::DS) {
+            if (qtype == QType::DS && qname == newauth) {
               /* we are actually done! */
               negindic = true;
               negIndicHasSignatures = !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty();
