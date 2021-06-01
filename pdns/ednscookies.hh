@@ -23,6 +23,9 @@
 #include "namespaces.hh"
 #include "iputils.hh"
 
+#define EDNSCOOKIESECRETSIZE 32
+#define EDNSCOOKIEOPTSIZE 24
+
 struct EDNSCookiesOpt
 {
   EDNSCookiesOpt(){};

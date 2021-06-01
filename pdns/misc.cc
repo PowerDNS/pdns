@@ -582,6 +582,7 @@ string makeBytesFromHex(const string &in) {
     throw std::range_error("odd number of bytes in hex string");
   }
   string ret;
+  ret.reserve(in.size());
   unsigned int num;
   for (size_t i = 0; i < in.size(); i+=2) {
     string numStr = in.substr(i, 2);
