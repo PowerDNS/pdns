@@ -579,10 +579,8 @@ static void setupLuaRecords()
         
         vector<ComboAddress> candidates;
         
-        // exceptions are relative to zone
         // so, query comes in for 4.3.2.1.in-addr.arpa, zone is called 2.1.in-addr.arpa
-        // e["1.2.3.4"]="bert.powerdns.com" - should match, easy enough to do
-        // the issue is with classless delegation..
+        // e["1.2.3.4"]="bert.powerdns.com" then provides an exception
         if(e) {
           ComboAddress req(labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], 0);
           const auto& uom = *e;
@@ -727,6 +725,24 @@ static void setupLuaRecords()
         g_log<<Logger::Error<<"LUA Record exception: "<<ex.reason<<endl;
       }
       return std::string("unknown");
+    });
+
+  lua.writeFunction("filterForward", [](string address, NetmaskGroup& nmg, boost::optional<string> fallback) {
+      ComboAddress ca(address);
+
+      if (nmg.match(ComboAddress(address))) {
+        return address;
+      } else {
+        if (fallback) {
+          return *fallback;
+        }
+
+        if (ca.isIPv4()) {
+          return string("0.0.0.0");
+        } else {
+          return string("::");
+        }
+      }
     });
 
   /*

@@ -86,7 +86,7 @@ They can be matched against netmasks objects:
   nmg = newNMG()
   nmg:addMask("127.0.0.0/8")
   nmg:addMasks({"213.244.168.0/24", "130.161.0.0/16"})
-  nmg:addMasks(dofile("bad.ips")) -- contains return {"ip1","ip2"..}
+  nmg:addMasks(dofile("bad-ips.lua")) -- contains return {"ip1","ip2"..}
 
   if nmg:match(dq.remoteaddr) then
     print("Intercepting query from ", dq.remoteaddr)
@@ -94,9 +94,15 @@ They can be matched against netmasks objects:
 
 Prefixing a mask with ``!`` excludes that mask from matching.
 
-.. function:: newNMG() -> NetMaskGroup
+.. function:: newNMG([masks]) -> NetMaskGroup
 
-  Returns a new, empty :class:`NetMaskGroup`.
+  .. versionchanged:: 4.5.0
+    Added the optional ``masks`` parameter.
+
+  Returns a new :class:`NetMaskGroup`.
+  If no masks are passed, the object is empty.
+
+  :param {str} masks: The masks to add.
 
 .. class:: NetMaskGroup
 

@@ -185,11 +185,10 @@ Reverse DNS functions
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. warning::
-  The reverse DNS functions are under active development. **They may**
-  **not be safe for production use.** The syntax of these functions may change at any
-  time.
+  For :func:`createForward` and :func:`createForward6`, we recommend filtering with :func:`filterForward`, to prevent PowerDNS from generating A/AAAA responses to addresses outside of your network.
+  Not limiting responses like this may, in some situations, help attackers with impersonation and attacks like such as cookie stealing.
 
-.. function:: createReverse(format)
+.. function:: createReverse(format, [exceptions])
 
   Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa`` 
   
@@ -200,7 +199,8 @@ Reverse DNS functions
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%1%.%2%.%3%.%4%.static.example.com``.
-  
+  :param exceptions: An optional table of overrides. For example ``{['10.10.10.10'] = 'quad10.example.com.'}`` would, when generating a name for IP ``10.10.10.10``, return ``quad10.example.com`` instead of something like ``10.10.10.10.example.com``.
+
   **Formatting options:**
 
   - ``%1%`` to ``%4%`` are individual octets
@@ -251,7 +251,7 @@ Reverse DNS functions
     $ dig +short A 127.0.0.5.static.example.com @ns1.example.com
     127.0.0.5
   
-.. function:: createReverse6(format)
+.. function:: createReverse6(format[, exceptions])
 
   Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
   
@@ -265,7 +265,8 @@ Reverse DNS functions
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%33%.static6.example.com``.
-  
+  :param exceptions: An optional table of overrides. For example ``{['2001:db8::1'] = 'example.example.com.'}`` would, when generating a name for IP ``2001:db8::1``, return ``example.example.com`` instead of something like ``2001--db8.example.com``.
+
   Formatting options:
    
   - ``%1%`` to ``%32%`` are individual characters (nibbles)
@@ -316,6 +317,18 @@ Reverse DNS functions
   
     $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
     2001:a:b::1
+
+.. function:: filterForward(address, masks[, fallback])
+
+  Used for limiting the output of :func:`createForward` and :func:`createForward6` to a set of netmasks.
+
+  :param address: A string containing an address, usually taken directly from :func:`createForward: or :func:`createForward6`.
+  :param masks: A NetmaskGroup; any address not matching the NMG will be replaced by the fallback address.
+  :param fallback: A string containing the fallback address. Defaults to ``0.0.0.0`` or ``::``.
+
+  Example::
+
+    *.static4.example.com IN LUA A "filterForward(createForward(), newNMG():addMasks{'192.0.2.0/24', '10.0.0.0/8'})"
 
 Helper functions
 ~~~~~~~~~~~~~~~~

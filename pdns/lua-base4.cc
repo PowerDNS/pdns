@@ -171,7 +171,18 @@ void BaseLua4::prepareContext() {
   d_lw->registerToStringFunction(&Netmask::toString);
 
   // NetmaskGroup
-  d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
+  d_lw->writeFunction("newNMG", [](boost::optional<vector<pair<unsigned int, std::string>>> masks) {
+    auto nmg = NetmaskGroup();
+
+    if (masks) {
+      for(const auto& mask: *masks) {
+        nmg.addMask(mask.second);
+      }
+    }
+
+    return nmg;
+  });
+  // d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask) { nmg.addMask(mask); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const vector<pair<unsigned int, std::string>>&)>("addMasks", [](NetmaskGroup&nmg, const vector<pair<unsigned int, std::string>>& masks) { for(const auto& mask: masks) { nmg.addMask(mask.second); } });
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);

@@ -117,7 +117,7 @@ any              IN           TXT "hello there"
 
 resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}} for _,v in ipairs(r) do table.insert(t, v:toString()) end return t"
 
-*.createforward  IN    LUA    A     "createForward()"
+*.createforward  IN    LUA    A     "filterForward(createForward(), newNMG{{'1.0.0.0/8', '64.0.0.0/8'}})"
 *.createreverse  IN    LUA    PTR   "createReverse('%5%.example.com', {{['10.10.10.10'] = 'quad10.example.com.'}})"
 *.createreverse6 IN    LUA    PTR   "createReverse6('%33%.example.com', {{['2001:db8::1'] = 'example.example.com.'}})"
 
@@ -126,7 +126,7 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
 createforward6.example.org.                 3600 IN SOA  {soa}
 createforward6.example.org.                 3600 IN NS   ns1.example.org.
 createforward6.example.org.                 3600 IN NS   ns2.example.org.
-*                                                IN    LUA    AAAA  "createForward6()"
+*                                                IN    LUA    AAAA  "filterForward(createForward6(), newNMG{{'2000::/3'}}, 'fe80::1')"
         """
 # the separate createforward6 zone is because some of the code in lua-record.cc insists on working relatively to the zone apex
     }
@@ -641,17 +641,19 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "ip40414243": "64.65.66.67",
                 "ipp40414243": "0.0.0.0",
                 "ip4041424": "0.0.0.0",
+                "2.2.2.2": "0.0.0.0"   # filtered
             }),
             ".createreverse.example.org." : (dns.rdatatype.PTR, {
                 "4.3.2.1": "1-2-3-4.example.com.",
-                "10.10.10.10": "quad10.example.com."
+                "10.10.10.10": "quad10.example.com."   # exception
             }),
             ".createforward6.example.org." : (dns.rdatatype.AAAA, {
-                "2001--db8" : "2001::db8"
+                "2001--db8" : "2001::db8",
+                "4000-db8--1" : "fe80::1"   # filtered, with fallback address override
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
                 "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
-                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com."
+                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com."   # exception
             })
         }
 
