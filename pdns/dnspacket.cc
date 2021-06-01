@@ -291,7 +291,7 @@ void DNSPacket::wrapup()
 
   if (d_haveednscookie) {
     if (d_eco.isWellFormed()) {
-        optsize += 24;
+        optsize += EDNSCOOKIEOPTSIZE;
     }
   }
 
