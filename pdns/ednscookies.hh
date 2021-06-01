@@ -61,12 +61,7 @@ struct EDNSCookiesOpt
   }
 
 private:
-  // Whether or not we checked this cookie
-  bool checked{false};
-  // Whether or not the cookie is valid
-  bool valid{false};
-  // Whether or not he cookie will expire within 30 minutes
-  bool should_refresh{false};
+  bool shouldRefresh();
 
   // the client cookie
   string client;

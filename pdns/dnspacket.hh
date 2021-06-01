@@ -196,6 +196,7 @@ private:
   bool d_wantsnsid{false};
   bool d_haveednssubnet{false};
   bool d_haveednscookie{false};
+  bool d_ednscookievalid{false};
   bool d_haveednssection{false};
   bool d_isQuery;
 };

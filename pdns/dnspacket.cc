@@ -543,6 +543,7 @@ try
   d_haveednssubnet = false;
   d_haveednssection = false;
   d_haveednscookie = false;
+  d_ednscookievalid = false;
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
@@ -568,6 +569,7 @@ try
       else if (s_doEDNSCookieProcessing && option.first == EDNSOptionCode::COOKIE) {
         d_haveednscookie = true;
         d_eco.makeFromString(option.second);
+        d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, d_remote);
       }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
@@ -648,7 +650,7 @@ bool DNSPacket::hasValidEDNSCookie()
   if (!hasWellFormedEDNSCookie()) {
     return false;
   }
-  return d_eco.isValid(s_EDNSCookieKey, d_remote);
+  return d_ednscookievalid;
 }
 
 Netmask DNSPacket::getRealRemote() const
