@@ -102,9 +102,6 @@ BOOST_AUTO_TEST_CASE(test_createEDNSServerCookie)
   BOOST_CHECK(!eco2.isValid(secret, ComboAddress("192.0.2.1")));
   BOOST_CHECK(!eco2.isValid("blablablablabla1", remote));
   BOOST_CHECK(eco2.isValid(secret, remote));
-
-  // Check is we marked it as valid before
-  BOOST_CHECK(eco2.isValid("blablablablabla1", remote));
 }
 #endif
 

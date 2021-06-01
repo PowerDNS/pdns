@@ -86,6 +86,7 @@ www.example.org.             3600 IN A    192.0.2.5
 
     def testBrokenCookie(self):
         data = self.getCookieFromServer().data
+        # replace a byte in the client cookie
         data = data.replace(b'\x11', b'\x12')
         opts = [dns.edns.GenericOption(dns.edns.COOKIE, data)]
         query = dns.message.make_query('www.example.org', 'A', options=opts)

@@ -52,9 +52,7 @@ bool EDNSCookiesOpt::makeFromString(const char* option, unsigned int len)
 string EDNSCookiesOpt::makeOptString() const
 {
   string ret;
-  if (client.length() != 8)
-    return ret;
-  if (server.length() != 0 && (server.length() < 8 || server.length() > 32))
+  if (!isWellFormed())
     return ret;
   ret.assign(client);
   if (server.length() != 0)
@@ -64,9 +62,6 @@ string EDNSCookiesOpt::makeOptString() const
 
 void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned int len)
 {
-  checked = false;
-  valid = false;
-  should_refresh = false;
   client.clear();
   server.clear();
   if (len < 8)
@@ -80,12 +75,6 @@ void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned in
 bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source)
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
-  if (checked && valid) {
-    // Ignore the new check, we already validated it
-    // XXX this _might_ not be the best behaviour though...
-    return valid;
-  }
-  checked = true;
   if (server.length() != 16 || client.length() != 8) {
     return false;
   }
@@ -97,14 +86,12 @@ bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source)
   memcpy(&ts, &server[4], sizeof(ts));
   ts = ntohl(ts);
   uint32_t now = static_cast<uint32_t>(time(nullptr));
+  // RFC 9018 section 4.3:
+  //    The DNS server
+  //    SHOULD allow cookies within a 1-hour period in the past and a
+  //    5-minute period into the future
   if (rfc1982LessThan(now + 300, ts) && rfc1982LessThan(ts + 3600, now)) {
     return false;
-  }
-  if (rfc1982LessThan(ts + 1800, now)) {
-    // RFC 9018 section 4.3:
-    //    The DNS server SHOULD generate a new Server Cookie at least if the
-    //     received Server Cookie from the client is more than half an hour old
-    should_refresh = true;
   }
   if (secret.length() != crypto_shorthash_KEYBYTES) {
     // XXX should we throw std::range_error here?
@@ -119,22 +106,42 @@ bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source)
     reinterpret_cast<const unsigned char*>(&toHash[0]),
     toHash.length(),
     reinterpret_cast<const unsigned char*>(&secret[0]));
-  valid = (server.substr(8) == hashResult);
-  return valid;
+  return server.substr(8) == hashResult;
 #else
   return false;
 #endif
 }
 
+bool EDNSCookiesOpt::shouldRefresh()
+{
+  if (server.size() < 16) {
+    return true;
+  }
+  uint32_t ts;
+  memcpy(&ts, &server[4], sizeof(ts));
+  ts = ntohl(ts);
+  uint32_t now = static_cast<uint32_t>(time(nullptr));
+  // RFC 9018 section 4.3:
+  //    The DNS server
+  //    SHOULD allow cookies within a 1-hour period in the past and a
+  //    5-minute period into the future
+  // If this is not the case, we need to refresh
+  if (rfc1982LessThan(now + 300, ts) && rfc1982LessThan(ts + 3600, now)) {
+    return true;
+  }
+
+  // RFC 9018 section 4.3:
+  //    The DNS server SHOULD generate a new Server Cookie at least if the
+  //     received Server Cookie from the client is more than half an hour old
+  return rfc1982LessThan(ts + 1800, now);
+}
+
 bool EDNSCookiesOpt::makeServerCookie(const string& secret, const ComboAddress& source)
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
-  if (valid && !should_refresh) {
+  if (isValid(secret, source) && !shouldRefresh()) {
     return true;
   }
-  checked = false;
-  valid = false;
-  should_refresh = false;
 
   if (secret.length() != crypto_shorthash_KEYBYTES) {
     return false;
@@ -156,9 +163,6 @@ bool EDNSCookiesOpt::makeServerCookie(const string& secret, const ComboAddress& 
     reinterpret_cast<const unsigned char*>(&toHash[0]),
     toHash.length(),
     reinterpret_cast<const unsigned char*>(&secret[0]));
-  checked = true;
-  valid = true;
-  should_refresh = false;
   return true;
 #else
   return false;
