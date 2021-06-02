@@ -45,6 +45,7 @@
 #include "pkcs11signers.hh"
 #endif
 #include "misc.hh"
+#include "string_compare.hh"
 
 using namespace boost::assign;
 
