@@ -280,7 +280,7 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
-        time.sleep(1)
+        time.sleep(2)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(res.answer, expected)
@@ -336,7 +336,7 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
-        time.sleep(1)
+        time.sleep(2)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)

@@ -5,6 +5,7 @@ import dns
 class TestSVCBRecords(AuthTest):
     _config_template = """
 launch=bind
+svc-autohints
 """
 
     _zones = {

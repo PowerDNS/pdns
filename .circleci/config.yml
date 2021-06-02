@@ -80,6 +80,7 @@ commands:
           name: Install test dependencies
           command: |
             apt-get -y -qq install \
+              authbind \
               bc \
               bind9utils \
               build-essential libsqlite3-dev libzmq3-dev \
@@ -87,6 +88,7 @@ commands:
               default-jre-headless \
               dnsutils \
               gawk \
+              git \
               ldnsutils \
               libnet-dns-perl \
               pdns-recursor \
@@ -110,6 +112,11 @@ commands:
           name: Start PowerDNS Recursor in the background
           command: pdns_recursor
           background: true
+      - run:
+          name: Set up authbind
+          command: |
+            touch /etc/authbind/byport/53
+            chmod 755 /etc/authbind/byport/53
 
   auth-regress:
     description: Run one auth regression context
@@ -1183,6 +1190,30 @@ jobs:
             SDIG="/opt/pdns-auth/bin/sdig" \
             ./runtests authoritative lmdb
 
+  test-auth-py:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv
+      - run:
+          name: Run auth-py tests
+          workdir: ~/project/regression-tests.auth-py
+          command: |
+            PDNS="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
+            ./runtests
+
   build-recursor:
     docker:
       - image: debian:buster
@@ -2151,6 +2182,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-tinydns:
+          requires:
+            - build-auth
+      - test-auth-py:
           requires:
             - build-auth
       - check-formatting:
