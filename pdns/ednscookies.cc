@@ -19,9 +19,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 #include "ednscookies.hh"
 #include "misc.hh"
+#include "string_compare.hh"
 
 #ifdef HAVE_CRYPTO_SHORTHASH
 #include <sodium.h>
@@ -106,7 +109,7 @@ bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source)
     reinterpret_cast<const unsigned char*>(&toHash[0]),
     toHash.length(),
     reinterpret_cast<const unsigned char*>(&secret[0]));
-  return server.substr(8) == hashResult;
+  return constantTimeStringEquals(server.substr(8), hashResult);
 #else
   return false;
 #endif
