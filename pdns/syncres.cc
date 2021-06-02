@@ -3396,6 +3396,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   bool done = false;
   DNSName dnameTarget, dnameOwner;
   uint32_t dnameTTL = 0;
+  bool referralOnDS = false;
 
   for (auto& rec : lwr.d_records) {
     if (rec.d_type != QType::OPT && rec.d_class != QClass::IN) {
@@ -3591,21 +3592,20 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         newauth = rec.d_name;
         LOG(prefix<<qname<<": got NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
 
-        if (!negindic && qtype == QType::DS && qname == newauth) {
+        /* check if we have a referral from the parent zone to a child zone for a DS query, which is not right */
+        if (qtype == QType::DS && (newauth.isPartOf(qname) || qname == newauth)) {
           /* just got a referral from the parent zone when asking for a DS, looks like this server did not get the DNSSEC memo.. */
-          LOG(prefix<<qname<<": got (implicit) negative indication of DS record for '"<<qname<<"'"<<endl);
-          negindic = true;
-          negIndicHasSignatures = false;
-          nsset.clear();
+          referralOnDS = true;
         }
         else {
           realreferral = true;
+          if (auto content = getRR<NSRecordContent>(rec)) {
+            nsset.insert(content->getNS());
+          }
         }
       }
       else {
         LOG(prefix<<qname<<": got upwards/level NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth<<"'"<<endl);
-      }
-      if (!negindic) {
         if (auto content = getRR<NSRecordContent>(rec)) {
           nsset.insert(content->getNS());
         }
@@ -3712,6 +3712,23 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     cnamerec.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newtarget));
     ret.push_back(std::move(cnamerec));
   }
+
+  /* If we have seen a proper denial, let's forget that we also had a referral for a DS query.
+     Otherwise we need to deal with it. */
+  if (referralOnDS && !negindic) {
+    LOG(prefix<<qname<<": got a referral to the child zone for a DS query without a negative indication (missing SOA in authority), treating that as a NODATA"<<endl);
+    if (!vStateIsBogus(state)) {
+      auto recordState = getValidationStatus(qname, false, true, depth);
+      if (recordState == vState::Secure) {
+        /* we are in a secure zone, got a referral to the child zone on a DS query, no denial, that's wrong */
+        LOG(prefix<<qname<<": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
+        updateValidationState(state, vState::BogusMissingNegativeIndication);
+      }
+    }
+    negindic = true;
+    negIndicHasSignatures = false;
+  }
+
   return done;
 }
 
