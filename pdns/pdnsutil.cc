@@ -34,6 +34,7 @@
 #include <cerrno>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
+#include "lua-auth4.hh"
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
@@ -52,6 +53,10 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 string g_programname="pdns";
+
+int g_luaRecordExecLimit{-1};
+time_t g_luaHealthChecksInterval{5};
+time_t g_luaHealthChecksExpireDelay{3600};
 
 namespace {
   bool g_verbose;
@@ -4144,6 +4149,46 @@ try
     }
 
     return 0;
+  }
+  else if (cmds.at(0) == "run-lua-record-script") {
+    if (cmds.size() < 3) {
+      cerr<<"Usage: run-lua-record-script SETUP SCRIPT"<<endl;
+      cerr<<endl;
+      cerr<<R"FOO(Example: run-lua-record-script "query=newDN('www.example.com') zone=newDN('example.com') zoneid=1 qtype='A' who=newCA('192.0.2.100:500') dnssecOK=true tcp=false ednsPKTSize=1232" "pickrandom({'192.0.2.1', '192.0.2.2'})")FOO"<<endl;
+      return 1;
+    }
+    auto authlua = make_unique<AuthLua4>();
+    LuaContext& setup = *authlua->getLua();
+
+    setup.executeCode(cmds.at(1));
+
+    auto code = cmds.at(2);
+    auto query = setup.readVariable<DNSName>("query");
+    auto zone = setup.readVariable<DNSName>("zone");
+    auto zoneid = setup.readVariable<int>("zoneid");
+    QType qtype;
+    qtype = setup.readVariable<string>("qtype");
+    DNSPacket dnsp(true);
+    auto remote = setup.readVariable<ComboAddress>("who");
+    dnsp.setRemote(&remote);
+    dnsp.d_dnssecOk = setup.readVariable<bool>("dnssecOK");
+    dnsp.d_tcp = setup.readVariable<bool>("tcp");
+    dnsp.d_ednsRawPacketSizeLimit = setup.readVariable<int>("ednsPKTSize");
+    // FIXME add dnsp.dh
+    cerr<<"code=["<<code<<"]"<<endl;
+    cerr<<"query=["<<query<<"]"<<endl;
+    cerr<<"zone=["<<zone<<"]"<<endl;
+    cerr<<"qtype=["<<qtype<<"]"<<endl;
+    cerr<<"zoneid=["<<zoneid<<"]"<<endl;
+    cerr<<"who=["<<dnsp.getRemote().toStringWithPort()<<"]"<<endl;
+    cerr<<"dnssecOK=["<<dnsp.d_dnssecOk<<"]"<<endl;
+    cerr<<"tcp=["<<dnsp.d_tcp<<"]"<<endl;
+    cerr<<"ednsPKTSize=["<<dnsp.d_ednsRawPacketSizeLimit<<"]"<<endl;
+
+    auto res = luaSynth(code, query, zone, zoneid, dnsp, qtype);
+    for (const auto &drc : res) {
+      cout<<drc->getZoneRepresentation()<<endl;
+    }
   }
   else {
     cerr << "Unknown command '" << cmds.at(0) << "'" << endl;
