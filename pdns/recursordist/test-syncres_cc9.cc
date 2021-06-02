@@ -1216,4 +1216,93 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_scrubs_ns_nxd)
   BOOST_CHECK_LT(g_recCache->get(now, DNSName("spoofed.ns."), QType(QType::AAAA), false, &cached, who), 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_referral_on_ds_query)
+{
+  /*
+    The server at ds-ignorant.com sends a referral to the child zone
+    on a ds-ignorant.com DS query. ds-ignorant.com is unsigned,
+    signed.ds-ignorant.com is somehow signed, but no TA.
+  */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("signed.ds-ignorant.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("signed.ds-ignorant.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (domain.isPartOf(DNSName("signed.ds-ignorant.com.")) && ip == ComboAddress("192.0.2.1:53")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "signed.ds-ignorant.com.", QType::NS, "ns.signed.ds-ignorant.com.", DNSResourceRecord::AUTHORITY, 3600);
+      addRecordToLW(res, "ns.signed.ds-ignorant.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    else if (type == QType::DNSKEY || (type == QType::DS && domain != target)) {
+      DNSName auth(domain);
+      /* no DS for com, auth will be . */
+      auth.chopOff();
+      return genericDSAndDNSKEYHandler(res, domain, auth, type, keys, false);
+    }
+    else {
+      if (domain.isPartOf(DNSName("ds-ignorant.com.")) && isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "ds-ignorant.com.", QType::NS, "ns.ds-ignorant.com.", DNSResourceRecord::AUTHORITY, 3600);
+        /* no DS, insecure */
+        addNSECRecordToLW(DNSName("ds-ignorant.com."), DNSName("ds-ignorant1.com."), {QType::NS}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "ns.ds-ignorant.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      else if (domain == target) {
+        if (type == QType::A) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, target, QType::A, "192.0.2.200");
+          addRRSIG(keys, res->d_records, domain, 300);
+          return LWResult::Result::Success;
+        }
+        else if (type == QType::DS) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::SOA, "signed.ds-ignorant.com. admin\\.signed.ds-ignorant.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          addRRSIG(keys, res->d_records, domain, 300);
+          addNSECRecordToLW(domain, DNSName("z.signed.ds-ignorant.com."), {QType::A,QType::SOA,QType::NSEC}, 600, res->d_records);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return LWResult::Result::Success;
+        }
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret.at(0).d_type == QType::A);
+  BOOST_CHECK(ret.at(1).d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret.at(0).d_type == QType::A);
+  BOOST_CHECK(ret.at(1).d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
