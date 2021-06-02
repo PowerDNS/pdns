@@ -3596,7 +3596,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         LOG(prefix<<qname<<": got NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
 
         if (!negindic && qtype == QType::DS && qname == newauth) {
-          /* just got a referral from the parent zone when asking for a DS, looks like this server did not get the DNSSE memo.. */
+          /* just got a referral from the parent zone when asking for a DS, looks like this server did not get the DNSSEC memo.. */
           LOG(prefix<<qname<<": got (implicit) negative indication of DS record for '"<<qname<<"'"<<endl);
           negindic = true;
           negIndicHasSignatures = false;
