@@ -39,8 +39,8 @@ static bool constantTimeStringEquals(const std::string& a, const std::string& b)
 #ifdef HAVE_CRYPTO_MEMCMP
   return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
 #else
-  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
-  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
+  const volatile unsigned char* _a = (const volatile unsigned char*)a.c_str();
+  const volatile unsigned char* _b = (const volatile unsigned char*)b.c_str();
   unsigned char res = 0;
 
   for (size_t idx = 0; idx < size; idx++) {
@@ -50,4 +50,3 @@ static bool constantTimeStringEquals(const std::string& a, const std::string& b)
   return res == 0;
 #endif
 }
-
