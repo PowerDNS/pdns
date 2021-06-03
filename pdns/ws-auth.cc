@@ -44,6 +44,7 @@
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
 #include "auth-caches.hh"
+#include "auth-zonecache.hh"
 #include "threadname.hh"
 #include "tsigutils.hh"
 
@@ -1748,6 +1749,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     updateDomainSettingsFromDocument(B, di, zonename, document, false);
 
     di.backend->commitTransaction();
+
+    g_zoneCache.add(zonename, di.id); // make new zone visible
 
     fillZone(B, zonename, resp, shouldDoRRSets(req));
     resp->status = 201;

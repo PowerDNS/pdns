@@ -960,7 +960,7 @@ bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& 
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account, int* zoneId)
+bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
 {
   DomainInfo di;
 
@@ -976,11 +976,6 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
     di.account = account;
 
     txn.put(di);
-
-    if (zoneId != nullptr) {
-      *zoneId = txn.get<0>(domain, di);
-    }
-
     txn.commit();
   }
 

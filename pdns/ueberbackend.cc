@@ -121,18 +121,12 @@ bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool get
 
 bool UeberBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
-  bool success = false;
-  int zoneId;
   for(DNSBackend* mydb :  backends) {
-    if(mydb->createDomain(domain, kind, masters, account, &zoneId)) {
-      success = true;
-      break;
+    if (mydb->createDomain(domain, kind, masters, account)) {
+      return true;
     }
   }
-  if (success) {
-    g_zoneCache.add(domain, zoneId);  // make new zone visible
-  }
-  return success;
+  return false;
 }
 
 bool UeberBackend::doesDNSSEC()
