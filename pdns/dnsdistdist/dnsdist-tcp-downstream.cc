@@ -2,6 +2,8 @@
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 
+#include "dnsparser.hh"
+
 const uint16_t TCPConnectionToBackend::s_xfrID = 0;
 
 void TCPConnectionToBackend::assignToClientConnection(std::shared_ptr<IncomingTCPConnectionState>& clientConn, bool isXFR)
@@ -439,6 +441,28 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   release();
 }
 
+static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
+{
+  /* minimal size for a SOA record, as defined by rfc1035:
+     MNAME (root): 1
+     RNAME (root): 1
+     SERIAL: 4
+     REFRESH: 4
+     RETRY: 4
+     EXPIRE: 4
+     MINIMUM: 4
+     = 22 bytes
+  */
+  if (raw.size() < 22) {
+    throw std::runtime_error("Invalid content of size " + std::to_string(raw.size()) + " for a SOA record");
+  }
+  /* As rfc1025 states that "all domain names in the RDATA section of these RRs may be compressed",
+     and we don't want to parse these names, start at the end */
+  uint32_t serial = 0;
+  memcpy(&serial, &raw.at(raw.size() - 20), sizeof(serial));
+  return ntohl(serial);
+}
+
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   d_downstreamFailures = 0;
@@ -455,10 +479,46 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
   if (d_usedForXFR) {
     DEBUGLOG("XFR!");
+    bool done = false;
     TCPResponse response;
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
+    try {
+      MOADNSParser parser(true, reinterpret_cast<const char*>(response.d_buffer.data()), response.d_buffer.size());
+      if (parser.d_header.rcode != 0U) {
+        done = true;
+      }
+      else {
+        for (const auto& record : parser.d_answers) {
+          if (record.first.d_class != QClass::IN ||
+              record.first.d_type != QType::SOA) {
+            continue;
+          }
+
+          auto unknownContent = getRR<UnknownRecordContent>(record.first);
+          if (!unknownContent) {
+            continue;
+          }
+          auto raw = unknownContent->getRawContent();
+          auto serial = getSerialFromRawSOAContent(raw);
+          cerr << "Got serial: " << serial << endl;
+        }
+      }
+    }
+    catch (const MOADNSException& e) {
+      DEBUGLOG("Exception when parsing TCPResponse to DNS: " << e.what());
+      /* ponder what to do here, shall we close the connection? */
+    }
+
     clientConn->handleXFRResponse(clientConn, now, std::move(response));
+    if (done) {
+      conn->d_usedForXFR = false;
+      d_clientConn->d_isXFR = false;
+      d_state = State::idle;
+      d_clientConn.reset();
+      return IOState::Done;
+    }
+
     d_state = State::waitingForResponseFromBackend;
     d_currentPos = 0;
     d_responseBuffer.resize(sizeof(uint16_t));
