@@ -190,7 +190,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --disable-silent-rules \
   --with-modules='' \
   --with-lua=%{lua_implementation} \
-  --with-dynmodules='%{backends} random' \
+  --with-dynmodules='%{backends}' \
   --enable-tools \
   --with-libsodium \
 %if 0%{?amzn} != 2
@@ -265,7 +265,6 @@ systemctl daemon-reload ||:
 %{_bindir}/zone2json
 %{_bindir}/zone2sql
 %{_libdir}/%{name}/libbindbackend.so
-%{_libdir}/%{name}/librandombackend.so
 %{_mandir}/man1/pdns-zone2ldap.1.gz
 %{_mandir}/man1/pdns_control.1.gz
 %{_mandir}/man1/pdns_server.1.gz
