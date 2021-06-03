@@ -263,10 +263,6 @@ The third part registers the RandomFactory with PowerDNS. This is a
 simple C++ trick which makes sure that this function is called on
 execution of the binary or when loading the dynamic module.
 
-Please note that a RandomBackend is actually in most PowerDNS releases.
-By default it lives on random.example.com, but you can change that by
-setting :ref:`setting-random-hostname`.
-
 .. note::
   This simple backend neglects to handle case properly!
 
