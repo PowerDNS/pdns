@@ -37,41 +37,50 @@ using QTag = std::unordered_map<string, string>;
 
 struct StopWatch
 {
-  StopWatch(bool realTime=false): d_needRealTime(realTime)
+  StopWatch(bool realTime = false) :
+    d_needRealTime(realTime)
   {
   }
 
-  void start() {
+  void start()
+  {
     if (gettime(&d_start, d_needRealTime) < 0) {
       unixDie("Getting timestamp");
     }
   }
 
-  void set(const struct timespec& from) {
+  void set(const struct timespec& from)
+  {
     d_start = from;
   }
 
-  double udiff() const {
+  double udiff() const
+  {
     struct timespec now;
     if (gettime(&now, d_needRealTime) < 0) {
       unixDie("Getting timestamp");
     }
 
-    return 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
+    return 1000000.0 * (now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec) / 1000.0;
   }
 
-  double udiffAndSet() {
+  double udiffAndSet()
+  {
     struct timespec now;
     if (gettime(&now, d_needRealTime) < 0) {
       unixDie("Getting timestamp");
     }
 
-    auto ret= 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
+    auto ret = 1000000.0 * (now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec) / 1000.0;
     d_start = now;
     return ret;
   }
 
-  struct timespec d_start{0,0};
+  struct timespec d_start
+  {
+    0, 0
+  };
+
 private:
   bool d_needRealTime{false};
 };
@@ -87,9 +96,11 @@ private:
 
 struct IDState
 {
-  IDState(): sentTime(true), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
+  IDState() :
+    sentTime(true), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0; }
   IDState(const IDState& orig) = delete;
-  IDState(IDState&& rhs): subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), cacheKeyUDP(rhs.cacheKeyUDP), origFD(rhs.origFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), cacheFlags(rhs.cacheFlags), protocol(rhs.protocol), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
+  IDState(IDState&& rhs) :
+    subnet(rhs.subnet), origRemote(rhs.origRemote), origDest(rhs.origDest), hopRemote(rhs.hopRemote), hopLocal(rhs.hopLocal), qname(std::move(rhs.qname)), sentTime(rhs.sentTime), dnsCryptQuery(std::move(rhs.dnsCryptQuery)), packetCache(std::move(rhs.packetCache)), qTag(std::move(rhs.qTag)), tempFailureTTL(rhs.tempFailureTTL), cs(rhs.cs), du(std::move(rhs.du)), cacheKey(rhs.cacheKey), cacheKeyNoECS(rhs.cacheKeyNoECS), cacheKeyUDP(rhs.cacheKeyUDP), origFD(rhs.origFD), delayMsec(rhs.delayMsec), qtype(rhs.qtype), qclass(rhs.qclass), origID(rhs.origID), origFlags(rhs.origFlags), cacheFlags(rhs.cacheFlags), protocol(rhs.protocol), ednsAdded(rhs.ednsAdded), ecsAdded(rhs.ecsAdded), skipCache(rhs.skipCache), destHarvested(rhs.destHarvested), dnssecOK(rhs.dnssecOK), useZeroScope(rhs.useZeroScope)
   {
     if (rhs.isInUse()) {
       throw std::runtime_error("Trying to move an in-use IDState");
@@ -219,39 +230,39 @@ struct IDState
      wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
      when the state is unused and the value of our counter otherwise.
   */
-  boost::optional<Netmask> subnet{boost::none};               // 40
-  ComboAddress origRemote;                                    // 28
-  ComboAddress origDest;                                      // 28
+  boost::optional<Netmask> subnet{boost::none}; // 40
+  ComboAddress origRemote; // 28
+  ComboAddress origDest; // 28
   ComboAddress hopRemote;
   ComboAddress hopLocal;
-  DNSName qname;                                              // 24
-  StopWatch sentTime;                                         // 16
-  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};      // 16
-  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};   // 16
-  std::shared_ptr<QTag> qTag{nullptr};                        // 16
-  boost::optional<uint32_t> tempFailureTTL;                   // 8
-  const ClientState* cs{nullptr};                             // 8
-  DOHUnit* du{nullptr};                                       // 8
-  std::atomic<int64_t> usageIndicator{unusedIndicator};  // set to unusedIndicator to indicate this state is empty   // 8
+  DNSName qname; // 24
+  StopWatch sentTime; // 16
+  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 16
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
+  std::shared_ptr<QTag> qTag{nullptr}; // 16
+  boost::optional<uint32_t> tempFailureTTL; // 8
+  const ClientState* cs{nullptr}; // 8
+  DOHUnit* du{nullptr}; // 8
+  std::atomic<int64_t> usageIndicator{unusedIndicator}; // set to unusedIndicator to indicate this state is empty   // 8
   std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
-  uint32_t cacheKey{0};                                       // 4
-  uint32_t cacheKeyNoECS{0};                                  // 4
+  uint32_t cacheKey{0}; // 4
+  uint32_t cacheKeyNoECS{0}; // 4
   // DoH-only */
-  uint32_t cacheKeyUDP{0};                                    // 4
-  int origFD{-1};                                             // 4
+  uint32_t cacheKeyUDP{0}; // 4
+  int origFD{-1}; // 4
   int delayMsec{0};
 #ifdef __SANITIZE_THREAD__
   std::atomic<uint16_t> age{0};
 #else
-  uint16_t age{0};                                            // 2
+  uint16_t age{0}; // 2
 #endif
-  uint16_t qtype{0};                                          // 2
-  uint16_t qclass{0};                                         // 2
-  uint16_t origID{0};                                         // 2
-  uint16_t origFlags{0};                                      // 2
+  uint16_t qtype{0}; // 2
+  uint16_t qclass{0}; // 2
+  uint16_t origID{0}; // 2
+  uint16_t origFlags{0}; // 2
   uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
-  dnsdist::Protocol protocol;                                 // 1
-  boost::optional<boost::uuids::uuid> uniqueId{boost::none};  // 17 (placed here to reduce the space lost to padding)
+  dnsdist::Protocol protocol; // 1
+  boost::optional<boost::uuids::uuid> uniqueId{boost::none}; // 17 (placed here to reduce the space lost to padding)
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};

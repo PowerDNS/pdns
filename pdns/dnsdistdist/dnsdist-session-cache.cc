@@ -26,13 +26,11 @@ TLSSessionCache g_sessionCache;
 time_t const TLSSessionCache::s_cleanupDelay{60};
 time_t const TLSSessionCache::s_sessionValidity{600};
 
-
 void TLSSessionCache::cleanup(time_t now, const std::lock_guard<std::mutex>& lock)
 {
   time_t cutOff = now + s_sessionValidity;
 
-  for (auto it = d_sessions.begin(); it != d_sessions.end(); )
-  {
+  for (auto it = d_sessions.begin(); it != d_sessions.end();) {
     if (it->second.d_lastUsed > cutOff || it->second.d_sessions.size() == 0) {
       it = d_sessions.erase(it);
     }
