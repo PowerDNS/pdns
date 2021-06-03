@@ -111,7 +111,16 @@ Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4
 Removed features
 ^^^^^^^^^^^^^^^^
 
-SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API set-ptr feature, that both were deprecated in earlier releases, have now been removed.
+SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API set-ptr feature, that both were deprecated in earlier releases, have now been removed. Please update your configuration and remove following settings:
+
+* :ref:`setting-default-soa-mail`
+* :ref:`setting-default-soa-name`
+* :ref:`setting-soa-expire-default`
+* :ref:`setting-soa-minimum-ttl`
+* :ref:`setting-soa-refresh-default`
+* :ref:`setting-soa-retry-default`
+
+Replace them with :ref:`setting-default-soa-content`.
 Please run ``pdnsutil check-all-zones`` to check for incomplete SOAs.
 
 The :ref:`setting-do-ipv6-additional-processing` setting was removed. IPv6 additional processing now always happens when IPv4 additional processing happens.
