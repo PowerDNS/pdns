@@ -10,6 +10,7 @@ BIND zone file backend
 * Disabled data: No
 * Comments: No
 * API: Read-only
+* Zone caching: Yes (except in hybrid mode)
 * Module name: bind
 * Launch: ``bind``
 
