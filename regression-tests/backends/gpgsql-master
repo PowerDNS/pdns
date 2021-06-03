@@ -16,6 +16,8 @@ module-dir=./modules
 launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
+
+zone-cache-refresh-interval=120
 __EOF__
 
 		gsql_master gpgsql nodyndns

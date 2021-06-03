@@ -113,7 +113,7 @@ EOF
 			--no-shuffle --launch=remote \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
-			--dnsupdate=yes \
+			--dnsupdate=yes --zone-cache-refresh-interval=0 \
 			--remote-connection-string="$connstr" $remote_add_param --module-dir=./modules &
 		;;
 

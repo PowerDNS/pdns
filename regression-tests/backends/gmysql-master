@@ -25,6 +25,7 @@ gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
 
 any-to-tcp=no
+zone-cache-refresh-interval=0
 __EOF__
 
 		gsql_master gmysql dyndns

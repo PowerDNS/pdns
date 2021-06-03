@@ -7,6 +7,7 @@ Remote Backend
 * Superslave: Yes\*
 * Autoserial: Yes\*
 * DNSSEC: Yes\*
+* Zone caching: Yes\*
 * Multiple instances: Yes
 
 \* If provided by the responder (your script).

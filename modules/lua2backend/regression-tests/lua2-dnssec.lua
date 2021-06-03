@@ -123,6 +123,10 @@ function dns_get_domaininfo(dom)
   return false
 end
 
+function dns_get_all_domains()
+  return { [newDN("test.invalid")] = { id=1, serial=20180115 }, [newDN("test.unit")] = { id=2, serial=20180115 } }
+end
+
 function dns_get_domain_metadata(dom)
   return false
 end

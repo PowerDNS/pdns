@@ -10,6 +10,7 @@ Generic MySQL backend
 * DNSSEC: Yes (set ``gmysql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Zone caching: Yes
 * Module name: gmysql
 * Launch name: ``gmysql``
 

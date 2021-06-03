@@ -18,6 +18,8 @@ gmysql-dbname=$GMYSQL2DB
 gmysql-user=$GMYSQL2USER
 gmysql-host=$GMYSQL2HOST
 gmysql-password=$GMYSQL2PASSWD
+
+zone-cache-refresh-interval=0
 __EOF__
 
 	if [[ $context != *nodnssec* ]]
