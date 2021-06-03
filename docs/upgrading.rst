@@ -111,7 +111,7 @@ Please carefully read :ref:`setting-lmdb-schema-version` before upgrading to 4.4
 Removed features
 ^^^^^^^^^^^^^^^^
 
-SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API set-ptr feature, that both were deprecated in earlier releases, have now been removed. Please update your configuration and remove the following settings:
+SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API ``set-ptr`` feature, that both were deprecated in earlier releases, have now been removed. Please update your configuration and remove the following settings:
 
 * :ref:`setting-default-soa-mail`
 * :ref:`setting-default-soa-name`
