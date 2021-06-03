@@ -378,3 +378,17 @@ The following, rarely used or obsolete record types, are also supported:
 -  RKEY (`draft-reid-dnsext-rkey-00.txt <https://tools.ietf.org/html/draft-reid-dnsext-rkey-00>`__)
 -  SIG (:rfc:`2535`, obsolete)
 -  WKS (:rfc:`1035`)
+
+.. _types-unknown:
+
+Unknown DNS Resource Record (RR) Types
+--------------------------------------
+
+PowerDNS supports (:rfc:`3597`) syntax for serving unknown record types. For example
+
+::
+
+   e.example.   IN          TYPE1               \# 4 0A000001
+
+Beware that PowerDNS will attempt to parse known record types even if written in this syntax.
+This bug will be fixed in future release.
