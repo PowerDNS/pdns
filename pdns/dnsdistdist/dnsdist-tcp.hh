@@ -23,10 +23,12 @@
 
 struct ConnectionInfo
 {
-  ConnectionInfo(ClientState* cs_): cs(cs_), fd(-1)
+  ConnectionInfo(ClientState* cs_) :
+    cs(cs_), fd(-1)
   {
   }
-  ConnectionInfo(ConnectionInfo&& rhs): remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
+  ConnectionInfo(ConnectionInfo&& rhs) :
+    remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
   {
     rhs.cs = nullptr;
     rhs.fd = -1;
@@ -68,7 +70,8 @@ struct InternalQuery
   {
   }
 
-  InternalQuery(PacketBuffer&& buffer, IDState&& state): d_idstate(std::move(state)), d_buffer(std::move(buffer))
+  InternalQuery(PacketBuffer&& buffer, IDState&& state) :
+    d_idstate(std::move(state)), d_buffer(std::move(buffer))
   {
   }
 
@@ -118,7 +121,8 @@ struct TCPResponse : public TCPQuery
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
 
-  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn): TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
+  TCPResponse(PacketBuffer&& buffer, IDState&& state, std::shared_ptr<TCPConnectionToBackend> conn) :
+    TCPQuery(std::move(buffer), std::move(state)), d_connection(conn)
   {
     memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
   }
@@ -147,6 +151,7 @@ public:
   {
     return d_releaseConnection;
   }
+
 protected:
   bool d_releaseConnection{true};
 };
@@ -170,7 +175,8 @@ struct CrossProtocolQuery
   bool isXFR{false};
 };
 
-class TCPClientCollection {
+class TCPClientCollection
+{
 public:
   TCPClientCollection(size_t maxThreads);
 
@@ -252,11 +258,13 @@ private:
     {
     }
 
-    TCPWorkerThread(int newConnPipe, int crossProtocolPipe): d_newConnectionPipe(newConnPipe), d_crossProtocolQueryPipe(crossProtocolPipe)
+    TCPWorkerThread(int newConnPipe, int crossProtocolPipe) :
+      d_newConnectionPipe(newConnPipe), d_crossProtocolQueryPipe(crossProtocolPipe)
     {
     }
 
-    TCPWorkerThread(TCPWorkerThread&& rhs): d_newConnectionPipe(rhs.d_newConnectionPipe), d_crossProtocolQueryPipe(rhs.d_crossProtocolQueryPipe)
+    TCPWorkerThread(TCPWorkerThread&& rhs) :
+      d_newConnectionPipe(rhs.d_newConnectionPipe), d_crossProtocolQueryPipe(rhs.d_crossProtocolQueryPipe)
     {
       rhs.d_newConnectionPipe = -1;
       rhs.d_crossProtocolQueryPipe = -1;
