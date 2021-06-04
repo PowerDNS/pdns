@@ -152,9 +152,9 @@ static void writePid()
     g_log<<Logger::Error<<"Writing pid for "<<getpid()<<" to "<<fname<<" failed: "<<stringerror()<<endl;
 }
 
-int g_fd1[2], g_fd2[2];
-FILE *g_fp;
-std::mutex g_guardian_lock;
+static int g_fd1[2], g_fd2[2];
+static FILE *g_fp;
+static std::mutex g_guardian_lock;
 
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
