@@ -134,7 +134,7 @@ public:
 private:
   /* we can increase the number of references to that object,
      but never update the object itself */
- shared_ptr<const T> d_records;
+  shared_ptr<const T> d_records;
 };
 
 /** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
