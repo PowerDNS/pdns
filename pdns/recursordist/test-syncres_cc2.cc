@@ -1845,7 +1845,7 @@ BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
   BOOST_REQUIRE(ret[0].d_type == QType::NS);
   BOOST_CHECK_EQUAL(getRR<NSRecordContent>(ret[0])->getNS(), DNSName("pdns-public-ns1.powerdns.com."));
   ttl = ret[0].d_ttl - now;
-  BOOST_CHECK_EQUAL(ttl, 86400U);
+  BOOST_CHECK_EQUAL(ttl, std::min(SyncRes::s_maxcachettl, 172800U));
 
   // ATM we are not testing the almost expiry of root infra records, it would require quite some cache massage...
 }
