@@ -21,7 +21,6 @@
  */
 #pragma once
 #include <map>
-#include <mutex>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
