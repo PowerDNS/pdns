@@ -501,7 +501,24 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
           }
           auto raw = unknownContent->getRawContent();
           auto serial = getSerialFromRawSOAContent(raw);
-          cerr << "Got serial: " << serial << endl;
+
+          ++d_clientConn->d_xfrSerialCount;
+          if (d_clientConn->d_xfrMasterSerial == 0) {
+            // store the first SOA in our client's connection metadata
+            ++d_clientConn->d_xfrMasterSerialCount;
+            d_clientConn->d_xfrMasterSerial = serial;
+          } else if (d_clientConn->d_xfrMasterSerial == serial) {
+            ++d_clientConn->d_xfrMasterSerialCount;
+            // figure out if it's end when receiving master's SOA again
+            if (d_clientConn->d_xfrSerialCount == 2) {
+              // if there are only two SOA records marks a finished AXFR
+              done = true;
+            }
+            if (d_clientConn->d_xfrMasterSerialCount == 3) {
+              // receiving master's SOA 3 times marks a finished IXFR
+              done = true;
+            }
+          }
         }
       }
     }

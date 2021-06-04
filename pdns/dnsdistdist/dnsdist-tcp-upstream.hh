@@ -209,4 +209,7 @@ public:
   bool d_proxyProtocolPayloadHasTLV{false};
   bool d_lastIOBlocked{false};
   bool d_hadErrors{false};
+  uint32_t d_xfrMasterSerial{0};
+  uint32_t d_xfrSerialCount{0};
+  uint8_t d_xfrMasterSerialCount{0};
 };

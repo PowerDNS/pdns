@@ -435,6 +435,9 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_buffer.resize(sizeof(uint16_t));
   d_currentPos = 0;
   d_querySize = 0;
+  d_xfrMasterSerial = 0;
+  d_xfrSerialCount = 0;
+  d_xfrMasterSerialCount = 0;
   d_state = State::waitingForQuery;
 }
 
