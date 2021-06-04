@@ -4151,8 +4151,8 @@ try
     return 0;
   }
   else if (cmds.at(0) == "run-lua-record-script") {
-    if (cmds.size() < 3) {
-      cerr<<"Usage: run-lua-record-script SETUP SCRIPT"<<endl;
+    if (cmds.size() < 4) {
+      cerr<<"Usage: run-lua-record-script SCRIPT QNAME QTYPE [EXTRA]"<<endl;
       cerr<<endl;
       cerr<<R"FOO(Example: run-lua-record-script "query=newDN('www.example.com') zone=newDN('example.com') zoneid=1 qtype='A' who=newCA('192.0.2.100:500') dnssecOK=true tcp=false ednsPKTSize=1232" "pickrandom({'192.0.2.1', '192.0.2.2'})")FOO"<<endl;
       return 1;
@@ -4160,20 +4160,31 @@ try
     auto authlua = make_unique<AuthLua4>();
     LuaContext& setup = *authlua->getLua();
 
-    setup.executeCode(cmds.at(1));
+    map<string, boost::variant<int, string, bool>> extra;
 
-    auto code = cmds.at(2);
-    auto query = setup.readVariable<DNSName>("query");
-    auto zone = setup.readVariable<DNSName>("zone");
-    auto zoneid = setup.readVariable<int>("zoneid");
+    if (cmds.size() == 5) {
+      extra = setup.executeCode<map<string, boost::variant<int, string, bool>>>(cmds.at(4));
+    }
+
+    auto code = cmds.at(1);
+    auto query = DNSName(cmds.at(2));
+    auto zone = query;
+    auto zoneid = -1;
     QType qtype;
-    qtype = setup.readVariable<string>("qtype");
+    qtype = cmds.at(3);
+    auto remote = ComboAddress("192.0.2.1");
+
     DNSPacket dnsp(true);
-    auto remote = setup.readVariable<ComboAddress>("who");
+
+    if (extra.count("zone"))        zone = DNSName(boost::get<string>(extra["zone"]));
+    if (extra.count("zoneid"))      zoneid = boost::get<int>(extra["zoneid"]);
+    if (extra.count("who"))         remote = ComboAddress(boost::get<string>(extra["who"]));
+    if (extra.count("dnssecOK"))    dnsp.d_dnssecOk = boost::get<bool>(extra["dnssecOK"]);
+    if (extra.count("tcp"))         dnsp.d_tcp = boost::get<bool>(extra["tcp"]);
+    if (extra.count("ednsPKTSize")) dnsp.d_ednsRawPacketSizeLimit = boost::get<int>(extra["ednsPKTSize"]);
+    // if (extra.count("ecswho"))      dnsp.   FIXME: we don't have an interface for setting ECS
+
     dnsp.setRemote(&remote);
-    dnsp.d_dnssecOk = setup.readVariable<bool>("dnssecOK");
-    dnsp.d_tcp = setup.readVariable<bool>("tcp");
-    dnsp.d_ednsRawPacketSizeLimit = setup.readVariable<int>("ednsPKTSize");
     // FIXME add dnsp.dh
     cerr<<"code=["<<code<<"]"<<endl;
     cerr<<"query=["<<query<<"]"<<endl;
