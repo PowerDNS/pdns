@@ -16,7 +16,6 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
       if (d_handler->hasTLSSessionBeenResumed()) {
         ++d_ds->tlsResumptions;
       }
-      cerr<<"Closing TLS connection, resumption was "<<d_handler->hasTLSSessionBeenResumed()<<endl;
       auto session = d_handler->getTLSSession();
       if (session) {
         g_sessionCache.putSession(d_ds->getID(), now.tv_sec, std::move(session));
@@ -334,7 +333,6 @@ bool TCPConnectionToBackend::reconnect()
       if (d_handler->hasTLSSessionBeenResumed()) {
         ++d_ds->tlsResumptions;
       }
-      cerr<<"is TLS, getting a session"<<endl;
       tlsSession = d_handler->getTLSSession();
     }
     d_handler->close();
@@ -376,12 +374,6 @@ bool TCPConnectionToBackend::reconnect()
       auto handler = std::make_unique<TCPIOHandler>(d_ds->d_tlsSubjectName, socket->releaseHandle(), timeval{0,0}, d_ds->d_tlsCtx, d_connectionStartTime.tv_sec);
       if (!tlsSession && d_ds->d_tlsCtx) {
         tlsSession = g_sessionCache.getSession(d_ds->getID(), d_connectionStartTime.tv_sec);
-        if (tlsSession) {
-          cerr<<"reusing session from cache"<<endl;
-        }
-      }
-      else {
-        cerr<<"reusing session from previous connection"<<endl;
       }
       if (tlsSession) {
         handler->setTLSSession(tlsSession);
