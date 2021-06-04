@@ -42,6 +42,7 @@
 #include "mplexer.hh"
 #include "misc.hh"
 #include "iputils.hh"
+#include "lock.hh"
 #include "logger.hh"
 #include "ixfrdist-stats.hh"
 #include "ixfrdist-web.hh"
@@ -147,8 +148,7 @@ struct ixfrdistdomain_t {
 static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 
 // Map domains and their data
-static std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
-static std::mutex g_soas_mutex;
+static LockGuarded<std::map<DNSName, std::shared_ptr<ixfrinfo_t>>> g_soas;
 
 // Condition variable for TCP handling
 static std::condition_variable g_tcpHandlerCV;
@@ -218,7 +218,7 @@ static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const str
   // And delete all the old ones
   {
     // Lock to ensure no one reads this.
-    std::lock_guard<std::mutex> guard(g_soas_mutex);
+    auto lock = g_soas.lock();
     for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - keep; ++iter) {
       string fname = dir + "/" + std::to_string(*iter);
       g_log<<Logger::Debug<<"Removing "<<fname<<endl;
@@ -259,14 +259,13 @@ static void makeIXFRDiff(const records_t& from, const records_t& to, std::shared
 /* you can _never_ alter the content of the resulting shared pointer */
 static std::shared_ptr<ixfrinfo_t> getCurrentZoneInfo(const DNSName& domain)
 {
-  std::lock_guard<std::mutex> guard(g_soas_mutex);
-  return g_soas[domain];
+  return (*g_soas.lock())[domain];
 }
 
 static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinfo_t>& newInfo)
 {
-  std::lock_guard<std::mutex> guard(g_soas_mutex);
-  g_soas[domain] = newInfo;
+  auto soas = g_soas.lock();
+  (*soas)[domain] = newInfo;
   g_stats.setSOASerial(domain, newInfo->soa->d_st.serial);
   // FIXME: also report zone size?
 }
