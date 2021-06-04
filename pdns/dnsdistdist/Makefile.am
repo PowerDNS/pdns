@@ -374,6 +374,11 @@ dnsdist_SOURCES += kqueuemplexer.cc
 testrunner_SOURCES += kqueuemplexer.cc
 endif
 
+if HAVE_OPENBSD
+dnsdist_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
 if HAVE_LINUX
 dnsdist_SOURCES += epollmplexer.cc
 testrunner_SOURCES += epollmplexer.cc
