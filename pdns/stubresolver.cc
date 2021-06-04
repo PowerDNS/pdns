@@ -22,8 +22,7 @@
 
 // s_resolversForStub contains the ComboAddresses that are used by
 // stubDoResolve
-static vector<ComboAddress> s_resolversForStub;
-static ReadWriteLock s_resolversForStubLock;
+static SharedLockGuarded<vector<ComboAddress>> s_resolversForStub;
 static bool s_stubResolvConfigured = false;
 
 // /etc/resolv.conf last modification time
@@ -37,8 +36,7 @@ static string logPrefix = "[stub-resolver] ";
  */
 bool resolversDefined()
 {
-  ReadLock l(&s_resolversForStubLock);
-  if (s_resolversForStub.empty()) {
+  if (s_resolversForStub.read_lock()->empty()) {
     g_log<<Logger::Warning<<logPrefix<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
     return false;
   }
@@ -48,7 +46,7 @@ bool resolversDefined()
 /*
  * Parse /etc/resolv.conf and add those nameservers to s_resolversForStub
  */
-static void parseLocalResolvConf_locked(const time_t& now)
+static void parseLocalResolvConf_locked(vector<ComboAddress>& resolversForStub, const time_t& now)
 {
   struct stat st;
   s_localResolvConfLastCheck = now;
@@ -63,7 +61,7 @@ static void parseLocalResolvConf_locked(const time_t& now)
         return;
       }
 
-      s_resolversForStub = std::move(resolvers);
+      resolversForStub = std::move(resolvers);
     }
   }
 }
@@ -74,8 +72,7 @@ static void parseLocalResolvConf()
   if ((s_localResolvConfLastCheck + LOCAL_RESOLV_CONF_MAX_CHECK_INTERVAL) > now)
     return ;
 
-  WriteLock wl(&s_resolversForStubLock);
-  parseLocalResolvConf_locked(now);
+  parseLocalResolvConf_locked(*(s_resolversForStub.write_lock()), now);
 }
 
 
@@ -90,14 +87,14 @@ static void parseLocalResolvConf()
 void stubParseResolveConf()
 {
   if(::arg().mustDo("resolver")) {
-    WriteLock wl(&s_resolversForStubLock);
+    auto resolversForStub = s_resolversForStub.write_lock();
     vector<string> parts;
     stringtok(parts, ::arg()["resolver"], " ,\t");
     for (const auto& addr : parts)
-      s_resolversForStub.push_back(ComboAddress(addr, 53));
+      resolversForStub->push_back(ComboAddress(addr, 53));
   }
 
-  if (s_resolversForStub.empty()) {
+  if (s_resolversForStub.read_lock()->empty()) {
     parseLocalResolvConf();
   }
   // Emit a warning if there are no stubs.
@@ -119,7 +116,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   if (!resolversDefined())
     return RCode::ServFail;
 
-  ReadLock l(&s_resolversForStubLock);
+  auto resolversForStub = s_resolversForStub.read_lock();
   vector<uint8_t> packet;
 
   DNSPacketWriter pw(packet, qname, qtype);
@@ -128,12 +125,12 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
 
   string queryNameType = qname.toString() + "|" + QType(qtype).toString();
   string msg ="Doing stub resolving for '" + queryNameType + "', using resolvers: ";
-  for (const auto& server : s_resolversForStub) {
+  for (const auto& server : *resolversForStub) {
     msg += server.toString() + ", ";
   }
   g_log<<Logger::Debug<<logPrefix<<msg.substr(0, msg.length() - 2)<<endl;
 
-  for(const ComboAddress& dest :  s_resolversForStub) {
+  for(const ComboAddress& dest : *resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.connect(dest);
