@@ -22,7 +22,6 @@
 #pragma once
 #include <pthread.h>
 #include <map>
-#include <mutex>
 #include <functional>
 #include <string>
 #include <vector>
@@ -31,15 +30,15 @@
 #include "iputils.hh"
 #include "circular_buffer.hh"
 
-
 template<typename T, typename Comp=std::less<T> >
 class StatRing
 {
 public:
   StatRing(unsigned int size=10000);
-  // Some older C++ libs have trouble emplacing without a copy-constructor, so provide one
-  StatRing(const StatRing &);
-  StatRing & operator=(const StatRing &) = delete;
+  StatRing(const StatRing&) = delete;
+  StatRing& operator=(const StatRing&) = delete;
+  StatRing& operator=(StatRing&&) = delete;
+  StatRing(StatRing&&) = default;
   
   void account(const T &item);
 
@@ -48,7 +47,7 @@ public:
   void resize(unsigned int newsize);  
   void reset();
   void setHelp(const string &str);
-  string getHelp();
+  string getHelp() const;
 
   vector<pair<T, unsigned int> > get() const;
 private:
@@ -58,7 +57,6 @@ private:
   }
 
   boost::circular_buffer<T> d_items;
-  mutable std::mutex d_lock;
   string d_help;
 };
 
@@ -73,9 +71,9 @@ class StatBag
   map<string, std::unique_ptr<AtomicCounter>> d_stats;
   map<string, string> d_keyDescriptions;
   map<string, StatType> d_statTypes;
-  map<string,StatRing<string, CIStringCompare> >d_rings;
-  map<string,StatRing<SComboAddress> >d_comboRings;
-  map<string,StatRing<std::tuple<DNSName, QType> > >d_dnsnameqtyperings;
+  map<string, LockGuarded<StatRing<string, CIStringCompare> > > d_rings;
+  map<string, LockGuarded<StatRing<SComboAddress> > > d_comboRings;
+  map<string, LockGuarded<StatRing<std::tuple<DNSName, QType> > > > d_dnsnameqtyperings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
@@ -98,27 +96,33 @@ public:
   string getRingTitle(const string &name);
   void ringAccount(const char* name, const string &item)
   {
-    if(d_doRings)  {
-      if(!d_rings.count(name))
+    if (d_doRings)  {
+      auto it = d_rings.find(name);
+      if (it == d_rings.end()) {
 	throw runtime_error("Attempting to account to non-existent ring '"+std::string(name)+"'");
+      }
 
-      d_rings[name].account(item);
+      it->second.lock()->account(item);
     }
   }
   void ringAccount(const char* name, const ComboAddress &item)
   {
-    if(d_doRings) {
-      if(!d_comboRings.count(name))
+    if (d_doRings) {
+      auto it = d_comboRings.find(name);
+      if (it == d_comboRings.end()) {
 	throw runtime_error("Attempting to account to non-existent comboRing '"+std::string(name)+"'");
-      d_comboRings[name].account(item);
+      }
+      it->second.lock()->account(item);
     }
   }
   void ringAccount(const char* name, const DNSName &dnsname, const QType &qtype)
   {
-    if(d_doRings) {
-      if(!d_dnsnameqtyperings.count(name))
+    if (d_doRings) {
+      auto it = d_dnsnameqtyperings.find(name);
+      if (it == d_dnsnameqtyperings.end()) {
 	throw runtime_error("Attempting to account to non-existent dnsname+qtype ring '"+std::string(name)+"'");
-      d_dnsnameqtyperings[name].account(std::make_tuple(dnsname, qtype));
+      }
+      it->second.lock()->account(std::make_tuple(dnsname, qtype));
     }
   }
 
@@ -127,8 +131,8 @@ public:
     d_doRings=true;
   }
 
-  vector<string>listRings();
-  bool ringExists(const string &name);
+  vector<string>listRings() const;
+  bool ringExists(const string &name) const;
   void resetRing(const string &name);
   void resizeRing(const string &name, unsigned int newsize);
   uint64_t getRingSize(const string &name);
@@ -143,10 +147,8 @@ public:
   inline void inc(const string &key); //!< increase this key's value by one
   void set(const string &key, unsigned long value); //!< set this key's value
   unsigned long read(const string &key); //!< read the value behind this key
-  unsigned long readZero(const string &key); //!< read the value behind this key, and zero it afterwards
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
-  string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
   void blacklist(const string &str);
 
   bool d_allowRedeclare; // only set this true during tests, never in production code
@@ -161,5 +163,5 @@ inline void StatBag::deposit(const string &key, int value)
 
 inline void StatBag::inc(const string &key)
 {
-  deposit(key,1);
+  deposit(key, 1);
 }

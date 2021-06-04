@@ -44,10 +44,9 @@ StatBag::StatBag()
 
 void StatBag::exists(const string &key)
 {
-  if(!d_keyDescriptions.count(key))
-    {
-      throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
-    }
+  if (!d_keyDescriptions.count(key)) {
+    throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
+  }
 }
 
 string StatBag::directory(const string &prefix)
@@ -148,31 +147,16 @@ unsigned long StatBag::read(const string &key)
 {
   exists(key);
   funcstats_t::const_iterator iter = d_funcstats.find(key);
-  if(iter != d_funcstats.end())
+  if (iter != d_funcstats.end()) {
     return iter->second(iter->first);
+  }
   return *d_stats[key];
 }
-
-unsigned long StatBag::readZero(const string &key)
-{
-  exists(key);
-  unsigned long tmp=*d_stats[key];
-  d_stats[key]=nullptr;
-  return tmp;
-}
-
 
 string StatBag::getValueStr(const string &key)
 {
   ostringstream o;
   o<<read(key);
-  return o.str();
-}
-
-string StatBag::getValueStrZero(const string &key)
-{
-  ostringstream o;
-  o<<readZero(key);
   return o.str();
 }
 
@@ -193,51 +177,37 @@ StatRing<T,Comp>::StatRing(unsigned int size)
 }
 
 template<typename T, typename Comp>
-StatRing<T,Comp>::StatRing(const StatRing<T,Comp> &arg)
-{
-  std::lock_guard<std::mutex> thislock(d_lock);
-  std::lock_guard<std::mutex> arglock(arg.d_lock);
-  
-  d_items = arg.d_items;
-  d_help = arg.d_help;
-}
-
-template<typename T, typename Comp>
 void StatRing<T,Comp>::account(const T& t)
 {
-  std::lock_guard<std::mutex> l(d_lock);
   d_items.push_back(t);
 }
 
 template<typename T, typename Comp>
 uint64_t StatRing<T,Comp>::getSize() const
 {
-  std::lock_guard<std::mutex> l(d_lock);
   return d_items.capacity();
 }
 
 template<typename T, typename Comp>
 uint64_t StatRing<T,Comp>::getEntriesCount() const
 {
-  std::lock_guard<std::mutex> l(d_lock);
   return d_items.size();
 }
 
 template<typename T, typename Comp>
 void StatRing<T,Comp>::resize(unsigned int newsize)
 {
-  std::lock_guard<std::mutex> l(d_lock);
   d_items.set_capacity(newsize);
 }
 
 template<typename T, typename Comp>
 void StatRing<T,Comp>::setHelp(const string &str)
 {
-  d_help=str;
+  d_help = str;
 }
 
 template<typename T, typename Comp>
-string StatRing<T,Comp>::getHelp()
+string StatRing<T,Comp>::getHelp() const
 {
   return d_help;
 }
@@ -246,7 +216,6 @@ string StatRing<T,Comp>::getHelp()
 template<typename T, typename Comp>
 vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 {
-  std::lock_guard<std::mutex> l(d_lock);
   map<T,unsigned int, Comp> res;
   for(typename boost::circular_buffer<T>::const_iterator i=d_items.begin();i!=d_items.end();++i) {
     res[*i]++;
@@ -270,39 +239,39 @@ void StatBag::registerRingStats(const string& name)
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)
 {
   d_rings.emplace(name, size);
-  d_rings[name].setHelp(help);
+  d_rings[name].lock()->setHelp(help);
   registerRingStats(name);
 }
 
 void StatBag::declareComboRing(const string &name, const string &help, unsigned int size)
 {
   d_comboRings.emplace(name, size);
-  d_comboRings[name].setHelp(help);
+  d_comboRings[name].lock()->setHelp(help);
   registerRingStats(name);
 }
 
 void StatBag::declareDNSNameQTypeRing(const string &name, const string &help, unsigned int size)
 {
   d_dnsnameqtyperings.emplace(name, size);
-  d_dnsnameqtyperings[name].setHelp(help);
+  d_dnsnameqtyperings[name].lock()->setHelp(help);
   registerRingStats(name);
 }
 
 vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 {
-  if(d_rings.count(name)) {
-    return d_rings[name].get();
+  if (d_rings.count(name)) {
+    return d_rings[name].lock()->get();
   }
   vector<pair<string, unsigned int> > ret;
 
   if (d_comboRings.count(name)) {
     typedef pair<SComboAddress, unsigned int> stor_t;
-    vector<stor_t> raw =d_comboRings[name].get();
+    vector<stor_t> raw =d_comboRings[name].lock()->get();
     for(const stor_t& stor :  raw) {
       ret.push_back(make_pair(stor.first.ca.toString(), stor.second));
     }
-  } else if(d_dnsnameqtyperings.count(name)) {
-    auto raw = d_dnsnameqtyperings[name].get();
+  } else if (d_dnsnameqtyperings.count(name)) {
+    auto raw = d_dnsnameqtyperings[name].lock()->get();
     for (auto const &e : raw) {
       ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).toString(), e.second));
     }
@@ -313,65 +282,64 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 template<typename T, typename Comp>
 void StatRing<T,Comp>::reset()
 {
-  std::lock_guard<std::mutex> l(d_lock);
   d_items.clear();
 }
 
 void StatBag::resetRing(const string &name)
 {
   if(d_rings.count(name))
-    d_rings[name].reset();
+    d_rings[name].lock()->reset();
   if(d_comboRings.count(name))
-    d_comboRings[name].reset();
+    d_comboRings[name].lock()->reset();
   if(d_dnsnameqtyperings.count(name))
-    d_dnsnameqtyperings[name].reset();
+    d_dnsnameqtyperings[name].lock()->reset();
 }
 
 void StatBag::resizeRing(const string &name, unsigned int newsize)
 {
   if(d_rings.count(name))
-    d_rings[name].resize(newsize);
+    d_rings[name].lock()->resize(newsize);
   if(d_comboRings.count(name))
-    d_comboRings[name].resize(newsize);
+    d_comboRings[name].lock()->resize(newsize);
   if(d_dnsnameqtyperings.count(name))
-    return d_dnsnameqtyperings[name].resize(newsize);
+    return d_dnsnameqtyperings[name].lock()->resize(newsize);
 }
 
 
 uint64_t StatBag::getRingSize(const string &name)
 {
   if(d_rings.count(name))
-    return d_rings[name].getSize();
+    return d_rings[name].lock()->getSize();
   if(d_comboRings.count(name))
-    return d_comboRings[name].getSize();
+    return d_comboRings[name].lock()->getSize();
   if(d_dnsnameqtyperings.count(name))
-    return d_dnsnameqtyperings[name].getSize();
+    return d_dnsnameqtyperings[name].lock()->getSize();
   return 0;
 }
 
 uint64_t StatBag::getRingEntriesCount(const string &name)
 {
   if(d_rings.count(name))
-    return d_rings[name].getEntriesCount();
+    return d_rings[name].lock()->getEntriesCount();
   if(d_comboRings.count(name))
-    return d_comboRings[name].getEntriesCount();
+    return d_comboRings[name].lock()->getEntriesCount();
   if(d_dnsnameqtyperings.count(name))
-    return d_dnsnameqtyperings[name].getEntriesCount();
+    return d_dnsnameqtyperings[name].lock()->getEntriesCount();
   return 0;
 }
 
 string StatBag::getRingTitle(const string &name)
 {
   if(d_rings.count(name))
-    return d_rings[name].getHelp();
+    return d_rings[name].lock()->getHelp();
   if(d_comboRings.count(name))
-    return d_comboRings[name].getHelp();
+    return d_comboRings[name].lock()->getHelp();
   if(d_dnsnameqtyperings.count(name))
-    return d_dnsnameqtyperings[name].getHelp();
+    return d_dnsnameqtyperings[name].lock()->getHelp();
   return "";
 }
 
-vector<string>StatBag::listRings()
+vector<string>StatBag::listRings() const
 {
   vector<string> ret;
   for(auto & d_ring : d_rings)
@@ -384,7 +352,7 @@ vector<string>StatBag::listRings()
   return ret;
 }
 
-bool StatBag::ringExists(const string &name)
+bool StatBag::ringExists(const string &name) const
 {
   return d_rings.count(name) || d_comboRings.count(name) || d_dnsnameqtyperings.count(name);
 }
