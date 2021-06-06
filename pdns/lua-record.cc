@@ -571,7 +571,7 @@ static void setupLuaRecords()
     });
 
 
-  lua.writeFunction("createReverse", [](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e){
       try {
         auto labels = s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<4)
@@ -579,10 +579,8 @@ static void setupLuaRecords()
         
         vector<ComboAddress> candidates;
         
-        // exceptions are relative to zone
         // so, query comes in for 4.3.2.1.in-addr.arpa, zone is called 2.1.in-addr.arpa
-        // e["1.2.3.4"]="bert.powerdns.com" - should match, easy enough to do
-        // the issue is with classless delegation..
+        // e["1.2.3.4"]="bert.powerdns.com" then provides an exception
         if(e) {
           ComboAddress req(labels[3]+"."+labels[2]+"."+labels[1]+"."+labels[0], 0);
           const auto& uom = *e;
@@ -590,7 +588,7 @@ static void setupLuaRecords()
             if(ComboAddress(c.first, 0) == req)
               return c.second;
         }
-        boost::format fmt(suffix);
+        boost::format fmt(format);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
         fmt % labels[3] % labels[2] % labels[1] % labels[0];
         
@@ -674,14 +672,14 @@ static void setupLuaRecords()
 
       return std::string("::");
     });
-  lua.writeFunction("createReverse6", [](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
 
       try {
         auto labels= s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<32)
           return std::string("unknown");
-        boost::format fmt(suffix);
+        boost::format fmt(format);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
 
 
@@ -727,6 +725,24 @@ static void setupLuaRecords()
         g_log<<Logger::Error<<"LUA Record exception: "<<ex.reason<<endl;
       }
       return std::string("unknown");
+    });
+
+  lua.writeFunction("filterForward", [](string address, NetmaskGroup& nmg, boost::optional<string> fallback) {
+      ComboAddress ca(address);
+
+      if (nmg.match(ComboAddress(address))) {
+        return address;
+      } else {
+        if (fallback) {
+          return *fallback;
+        }
+
+        if (ca.isIPv4()) {
+          return string("0.0.0.0");
+        } else {
+          return string("::");
+        }
+      }
     });
 
   /*
