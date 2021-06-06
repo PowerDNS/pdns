@@ -7,7 +7,7 @@ TinyDNS Backend
 - Superslave: No
 - Autoserial: No
 - DNSSEC: No
-* Zone caching: Yes
+- Zone caching: Yes
 - Multiple Instances: Yes
 - Module name: tinydns
 - Launch: ``tinydns``

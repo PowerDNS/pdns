@@ -10,7 +10,8 @@ rm -f pdns*.pid
 PYTHONUNBUFFERED=1 $PDNS --daemon=no --local-port=$port --socket-dir=./          \
 	--no-shuffle --launch=bind,pipe --bind-config=negcache-tests-dotted-cname/named.conf   \
 	--pipe-command=negcache-tests-dotted-cname/pipe.py \
-	--cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+	--cache-ttl=60 --no-config --module-dir=../regression-tests/modules \
+	--zone-cache-refresh-interval=0 &
 
 sleep 3
 

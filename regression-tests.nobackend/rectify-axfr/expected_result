@@ -62,10 +62,7 @@ OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 dnssec-parent.com
-Error: there is no NSEC(3) for ent.auth-ent.dnssec-parent.com.
-Error: there is no NSEC(3) for ent.ent.auth-ent.dnssec-parent.com.
-There were errors in the zone
-RETVAL: 11
+RETVAL: 0
 
 --- validns dnssec-parent.com
 RETVAL: 0
@@ -87,11 +84,6 @@ RETVAL: 0
 
 --- jdnssec-verifyzone delegated.dnssec-parent.com
 zone verified.
-RETVAL: 0
-
---- named-checkzone delegated.dnssec-parent.com
-zone delegated.dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
-OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 secure-delegated.dnssec-parent.com
