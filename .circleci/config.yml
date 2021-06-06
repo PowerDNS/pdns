@@ -1214,6 +1214,30 @@ jobs:
             ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
             ./runtests
 
+  test-auth-nobackend:
+    resource_class: small
+
+    docker:
+      - image: debian:buster
+        auth:
+          username: powerdnsreadonly
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+          ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install python3-venv
+      - run:
+          name: Run auth-py tests
+          workdir: ~/project/regression-tests.nobackend
+          command: |
+            PDNS="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
+            ./runtests
+
   build-recursor:
     docker:
       - image: debian:buster
@@ -2185,6 +2209,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-py:
+          requires:
+            - build-auth
+      - test-auth-nobackend:
           requires:
             - build-auth
       - check-formatting:
