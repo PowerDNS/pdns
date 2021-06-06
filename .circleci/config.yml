@@ -1236,6 +1236,8 @@ jobs:
             PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
             SDIG="/opt/pdns-auth/bin/sdig" \
             ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
+            NOTIFY="/opt/pdns-auth/bin/pdns_notify" \
+            NSEC3DIG="/opt/pdns-auth/bin/nsec3dig" \
             ./runtests
 
   build-recursor:
