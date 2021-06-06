@@ -182,6 +182,7 @@ options {
         authcmd.append('--loglevel=9')
         authcmd.append('--enable-lua-records')
         authcmd.append('--lua-health-checks-interval=1')
+        authcmd.append('--zone-cache-refresh-interval=0')
         print(' '.join(authcmd))
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:

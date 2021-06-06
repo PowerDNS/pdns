@@ -187,7 +187,7 @@ void declareArguments()
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
-  ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
+  ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";

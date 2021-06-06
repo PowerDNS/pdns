@@ -14,7 +14,7 @@ $PDNS --daemon=no --local-address=127.0.0.1,::1 \
   --module-dir=../regression-tests/modules --pipe-command=$(pwd)/distributor/slow.pl \
   --pipe-abi-version=5 \
   --overload-queue-length=10 --log-dns-queries --loglevel=9 \
-  --pipe-timeout=1500 &
+  --pipe-timeout=1500 --zone-cache-refresh-interval=0 &
 
 sleep 2
 
