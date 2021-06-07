@@ -9,7 +9,7 @@ Changelogs for 4.4.x
     :tags: Bug Fixes
     :pullreq: 10390
 
-    Check if we have room before adding zero ECS scope ENDS value.
+    Check if we have room before adding zero ECS scope EDNS value.
 
   .. change::
     :tags: Bug Fixes
@@ -729,5 +729,4 @@ Changelogs for 4.4.x
     :pullreq: 8640
 
     Fix build with gcc-10 (Sander Hoentjen).
-
 
