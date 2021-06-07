@@ -1361,7 +1361,7 @@ without consulting authoritative servers.
 Maximum number of iterations allowed for an NSEC3 record.
 If an answer containing an NSEC3 record with more iterations is received, its DNSSEC validation status is treated as Insecure.
 
-.. versionchanged:: 4.6.0
+.. versionchanged:: 4.5.2
 
    Default is now 150, was 2500 before.
 
