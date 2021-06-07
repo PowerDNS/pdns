@@ -31,7 +31,7 @@ Changelogs for 4.5.X
     :pullreq: 10474
     :tickets: 10396
 
-    Take into account q_quiet when determing loglevel and change a few loglevels.
+    Take into account q_quiet when determining loglevel and change a few loglevels.
 
   .. change::
     :tags: Bug Fixes
