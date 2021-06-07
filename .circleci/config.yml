@@ -756,7 +756,7 @@ jobs:
       - auth-regress:
           context: gsqlite3-nsec3-narrow
       - run: apt-get -y -qq install python3-venv
-      - run: apt-get -y -qq install net-tools && netstat -plan
+      - run: apt-get -y -qq install net-tools iproute2 && netstat -plan && ip a
       - run:
           name: Run nobackend tests
           workdir: ~/project/regression-tests.nobackend
