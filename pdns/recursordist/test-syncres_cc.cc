@@ -178,6 +178,7 @@ void initSR(bool debug)
   SyncRes::s_qnameminimization = false;
   SyncRes::s_nonresolvingnsmaxfails = 0;
   SyncRes::s_nonresolvingnsthrottletime = 0;
+  SyncRes::s_refresh_ttlperc = 0;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
@@ -539,6 +540,9 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
   return LWResult::Result::Timeout;
 }
 
+pdns::TaskQueue g_test_tasks;
+
 void pushTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
+  g_test_tasks.push({qname, qtype, deadline, true});
 }
