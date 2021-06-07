@@ -5604,7 +5604,7 @@ int main(int argc, char **argv)
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets")="no";
-    ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";
+    ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="150";
 
     ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs")="";
 

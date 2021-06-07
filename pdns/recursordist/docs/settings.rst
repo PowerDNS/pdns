@@ -1356,10 +1356,14 @@ without consulting authoritative servers.
 .. versionadded:: 4.1.0
 
 -  Integer
--  Default: 2500
+-  Default: 150
 
 Maximum number of iterations allowed for an NSEC3 record.
 If an answer containing an NSEC3 record with more iterations is received, its DNSSEC validation status is treated as Insecure.
+
+.. versionchanged:: 4.5.2
+
+   Default is now 150, was 2500 before.
 
 .. _setting-packetcache-ttl:
 
