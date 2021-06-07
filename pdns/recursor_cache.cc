@@ -256,7 +256,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
   if (ttl > 0 && SyncRes::s_refresh_ttlperc > 0) {
     const uint32_t deadline = origTTL * SyncRes::s_refresh_ttlperc / 100;
     const bool almostExpired = static_cast<uint32_t>(ttl) <= deadline;
-    if (almostExpired) {
+    if (almostExpired && qname != g_rootdnsname) {
       if (refresh) {
         return -1;
       } else {

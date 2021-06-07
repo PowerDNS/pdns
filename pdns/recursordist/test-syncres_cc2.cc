@@ -2,6 +2,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "test-syncres_cc.hh"
+#include "rec-taskqueue.hh"
 
 BOOST_AUTO_TEST_SUITE(syncres_cc2)
 
@@ -1767,6 +1768,86 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toStringWithPort(), ComboAddress("192.0.2.2").toStringWithPort());
+}
+
+BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
+{
+
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+  SyncRes::s_refresh_ttlperc = 50;
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+
+  auto cb = [target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+
+      addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+    else if (ip == ComboAddress("192.0.2.1:53")) {
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.2");
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  };
+  sr->setAsyncCallback(cb);
+
+  /* we populate the cache with an 60s TTL entry that is 31s old*/
+  const time_t now = sr->getNow().tv_sec;
+
+  std::vector<DNSRecord> records;
+  std::vector<shared_ptr<RRSIGRecordContent>> sigs;
+  addRecordToList(records, target, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, now + 29);
+
+  g_recCache->replace(now - 30, target, QType(QType::A), records, sigs, vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::optional<Netmask>());
+
+  /* Same for the NS record */
+  std::vector<DNSRecord> ns;
+  addRecordToList(ns, target, QType::NS, "pdns-public-ns1.powerdns.com", DNSResourceRecord::ANSWER, now + 29);
+  g_recCache->replace(now - 30, target, QType::NS, ns, sigs, vector<std::shared_ptr<DNSRecord>>(), false, target, boost::optional<Netmask>());
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_REQUIRE(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toStringWithPort(), ComboAddress("192.0.2.2").toStringWithPort());
+  auto ttl = ret[0].d_ttl;
+  BOOST_CHECK_EQUAL(ttl, 29U);
+
+  // One task should be submitted
+  BOOST_CHECK_EQUAL(g_test_tasks.size(), 1U);
+
+  auto task = g_test_tasks.pop();
+
+  // Refresh the almost expired record, its NS records also gets updated
+  sr->setRefreshAlmostExpired(task.d_refreshMode);
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_REQUIRE(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toStringWithPort(), ComboAddress("192.0.2.2").toStringWithPort());
+  ttl = ret[0].d_ttl;
+  BOOST_CHECK_EQUAL(ttl, 60U);
+
+  // Also check if NS record was updated
+  ret.clear();
+  BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::NS), false, &ret, ComboAddress()), 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_REQUIRE(ret[0].d_type == QType::NS);
+  BOOST_CHECK_EQUAL(getRR<NSRecordContent>(ret[0])->getNS(), DNSName("pdns-public-ns1.powerdns.com."));
+  ttl = ret[0].d_ttl - now;
+  BOOST_CHECK_EQUAL(ttl, std::min(SyncRes::s_maxcachettl, 172800U));
+
+  // ATM we are not testing the almost expiry of root infra records, it would require quite some cache massage...
 }
 
 BOOST_AUTO_TEST_SUITE_END()
