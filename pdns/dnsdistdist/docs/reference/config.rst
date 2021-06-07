@@ -488,6 +488,9 @@ Servers
   .. versionchanged:: 1.6.0
     Added ``maxInFlight`` to server_table.
 
+  .. versionchanged:: 1.7.0
+    Added ``tcpOnly`` to server_table.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -533,7 +536,8 @@ Servers
       rise=NUM,              -- Require NUM consecutive successful checks before declaring the backend up, default: 1
       useProxyProtocol=BOOL, -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
       reconnectOnUp=BOOL,    -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
-      maxInFlight            -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
+      maxInFlight=NUM,       -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
+      tcpOnly=BOOL           -- Always forward queries to that backend over TCP, never over UDP. Defaut is false.
     })
 
   :param str server_string: A simple IP:PORT string.

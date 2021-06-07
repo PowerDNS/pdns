@@ -499,6 +499,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       }
 
+      if (vars.count("tcpOnly")) {
+        ret->d_tcpOnly = boost::get<bool>(vars.at("tcpOnly"));
+      }
+
       if (vars.count("tls")) {
         TLSContextParameters tlsParams;
         std::string ciphers;
