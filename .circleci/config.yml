@@ -1239,6 +1239,7 @@ jobs:
             ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
             NOTIFY="/opt/pdns-auth/bin/pdns_notify" \
             NSEC3DIG="/opt/pdns-auth/bin/nsec3dig" \
+            PDNSCONTROL="/opt/pdns-auth/bin/pdns_control" \
             ./runtests
 
   build-recursor:
