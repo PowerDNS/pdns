@@ -741,6 +741,7 @@ struct DownstreamState
   bool ipBindAddrNoPort{true};
   bool reconnectOnUp{false};
   bool d_tcpCheck{false};
+  bool d_tcpOnly{false};
 
   bool isUp() const
   {
@@ -816,12 +817,12 @@ struct DownstreamState
 
   bool doHealthcheckOverTCP() const
   {
-    return d_tcpCheck || d_tlsCtx != nullptr;
+    return d_tcpOnly || d_tcpCheck || d_tlsCtx != nullptr;
   }
 
   bool isTCPOnly() const
   {
-    return d_tlsCtx != nullptr;
+    return d_tcpOnly || d_tlsCtx != nullptr;
   }
 
 private:
