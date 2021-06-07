@@ -17,6 +17,8 @@ That design means that there is a maximum of 65535 in-flight UDP queries per bac
 
 Note that the source address and port used to contact a given backend is set at startup, for performance reasons, and then only changes on reconnect. There might be more than one socket, and thus several ports, if the ``sockets`` parameter was set to a higher value than 1 on the :func:`newServer` directive.
 
+Note that, since 1.7.0, UDP queries can be passed to the backend over TCP if the backend is TCP-only, or configured for DNS over TLS.
+
 TCP / DoT design
 ----------------
 

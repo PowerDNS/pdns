@@ -1,6 +1,13 @@
 Upgrade Guide
 =============
 
+1.6.x to 1.7.0
+--------------
+
+Truncated responses received over UDP for DoH clients will now be retried over TCP.
+
+:func:`setTCPUseSinglePipe` has been removed.
+
 1.5.x to 1.6.0
 --------------
 

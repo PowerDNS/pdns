@@ -52,4 +52,4 @@ Initially dnsdist tried to forward a query to the backend using the same protoco
 | DoH          | **UDP**  |
 +--------------+----------+
 
-That means that there is a potential issue with very large answers and DNS over HTTPS, requiring careful configuration of the path between dnsdist and the backend. More information about that is available in the :doc:`DNS over HTTPS section <guides/dns-over-https>`.
+Before 1.7.0, which introduced TCP fallback, that meant that there was a potential issue with very large answers and DNS over HTTPS, requiring careful configuration of the path between dnsdist and the backend. More information about that is available in the :doc:`DNS over HTTPS section <guides/dns-over-https>`.
