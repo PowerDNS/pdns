@@ -90,6 +90,7 @@ commands:
               gawk \
               git \
               ldnsutils \
+              libfaketime \
               libnet-dns-perl \
               pdns-recursor \
               socat \
