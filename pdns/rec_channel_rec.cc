@@ -1111,14 +1111,22 @@ static uint64_t doGetMallocated()
   return 0;
 }
 
-static StatsMap toStatsMap(const string& name, const vector<pdns::AtomicBucket>& data)
+static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& histogram)
 {
+  const auto& data = histogram.getCumulativeBuckets();
+  const string pbasename = getPrometheusName(name);
   StatsMap entries;
+
   for (const auto& bucket : data) {
-    std::string pname = getPrometheusName(name) + '{' + "le=\"" +
-      (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : std::to_string(bucket.d_boundary)) + "\"}";
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%.0e", bucket.d_boundary / 1e6);
+    std::string pname = pbasename + "seconds_bucket{" + "le=\"" +
+      (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
     entries.emplace(make_pair(bucket.d_name, StatsMapEntry{pname, std::to_string(bucket.d_count)}));
   }
+  entries.emplace(make_pair(name + "sum", StatsMapEntry{pbasename + "sum", std::to_string(histogram.getSum())}));
+  entries.emplace(make_pair(name + "count", StatsMapEntry{pbasename + "count", std::to_string(data.back().d_count)}));
+
   return entries;
 }
 
@@ -1366,13 +1374,13 @@ static void registerAllStats1()
   }
 
   addGetStat("cumulativeAnswers-usec-", []() {
-    return toStatsMap(g_stats.cumulativeAnswers.getName(), g_stats.cumulativeAnswers.getCumulativeBuckets());
+    return toStatsMap(g_stats.cumulativeAnswers.getName(), g_stats.cumulativeAnswers);
   });
   addGetStat("cumulativeAuth4Answers-usec-", []() {
-    return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers.getCumulativeBuckets());
+    return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers);
   });
   addGetStat("cumulativeAuth6Answers-usec-", []() {
-    return toStatsMap(g_stats.cumulativeAuth6Answers.getName(), g_stats.cumulativeAuth6Answers.getCumulativeBuckets());
+    return toStatsMap(g_stats.cumulativeAuth6Answers.getName(), g_stats.cumulativeAuth6Answers);
   });
 }
 

@@ -53,7 +53,7 @@ struct AtomicBucket
   mutable std::atomic<uint64_t> d_count{0};
 };
 
-template <class B>
+template <class B, class SumType>
 class BaseHistogram
 {
 public:
@@ -92,6 +92,11 @@ public:
   std::string getName() const
   {
     return d_name;
+  }
+
+  uint64_t getSum() const
+  {
+    return d_sum;
   }
 
   const std::vector<B>& getRawData() const
@@ -138,11 +143,13 @@ public:
     auto index = std::upper_bound(d_buckets.begin(), d_buckets.end(), d, lessOrEqual);
     // our index is always valid
     ++index->d_count;
+    d_sum += d;
   }
 
 private:
   std::vector<B> d_buckets;
   std::string d_name;
+  mutable SumType d_sum{0};
 
   std::vector<uint64_t> to125(uint64_t start, int num)
   {
@@ -169,10 +176,8 @@ private:
   }
 };
 
-template <class T>
-using Histogram = BaseHistogram<Bucket>;
+using Histogram = BaseHistogram<Bucket, uint64_t>;
 
-template <class T>
-using AtomicHistogram = BaseHistogram<AtomicBucket>;
+using AtomicHistogram = BaseHistogram<AtomicBucket, std::atomic<uint64_t>>;
 
 } // namespace pdns

@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_SUITE(histogram_hh)
 
 BOOST_AUTO_TEST_CASE(test_simple)
 {
-  auto h = pdns::AtomicHistogram<uint64_t>("myname-", {1, 3, 5, 10, 100});
+  auto h = pdns::AtomicHistogram("myname-", {1, 3, 5, 10, 100});
 
   h(0);
   h(1);

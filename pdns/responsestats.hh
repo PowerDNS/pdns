@@ -47,7 +47,7 @@ private:
 
   std::array<Counter, 65535> d_qtypecounters;
   std::array<Counter, 256> d_rcodecounters;
-  pdns::AtomicHistogram<uint64_t> d_sizecounters;
+  pdns::AtomicHistogram d_sizecounters;
 };
 
 extern ResponseStats g_rs;
