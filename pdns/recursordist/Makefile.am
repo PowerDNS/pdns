@@ -389,6 +389,11 @@ pdns_recursor_SOURCES += kqueuemplexer.cc
 testrunner_SOURCES += kqueuemplexer.cc
 endif
 
+if HAVE_OPENBSD
+pdns_recursor_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
 if HAVE_LINUX
 pdns_recursor_SOURCES += epollmplexer.cc
 testrunner_SOURCES += epollmplexer.cc
