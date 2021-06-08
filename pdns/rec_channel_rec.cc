@@ -1116,16 +1116,18 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
   const auto& data = histogram.getCumulativeBuckets();
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
+  char buf[32];
 
   for (const auto& bucket : data) {
-    char buf[32];
-    snprintf(buf, sizeof(buf), "%.0e", bucket.d_boundary / 1e6);
+    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
     std::string pname = pbasename + "seconds_bucket{" + "le=\"" +
       (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
     entries.emplace(make_pair(bucket.d_name, StatsMapEntry{pname, std::to_string(bucket.d_count)}));
   }
-  entries.emplace(make_pair(name + "sum", StatsMapEntry{pbasename + "sum", std::to_string(histogram.getSum())}));
-  entries.emplace(make_pair(name + "count", StatsMapEntry{pbasename + "count", std::to_string(data.back().d_count)}));
+
+  snprintf(buf, sizeof(buf), "%g", histogram.getSum() / 1e6);
+  entries.emplace(make_pair(name + "sum", StatsMapEntry{pbasename + "seconds_sum", buf}));
+  entries.emplace(make_pair(name + "count", StatsMapEntry{pbasename + "seconds_count", std::to_string(data.back().d_count)}));
 
   return entries;
 }
