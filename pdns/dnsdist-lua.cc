@@ -43,6 +43,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-session-cache.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-web.hh"
 
@@ -1237,6 +1238,30 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](size_t max) {
     setMaxCachedTCPConnectionsPerDownstream(max);
     });
+
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint16_t max) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketsPerBackend() cannot be called at runtime!\n";
+      return;
+    }
+    TLSSessionCache::setMaxTicketsPerBackend(max);
+  });
+
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheCleanupDelay", [](time_t delay) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setOutgoingTLSSessionsCacheCleanupDelay() cannot be called at runtime!\n";
+      return;
+    }
+    TLSSessionCache::setCleanupDelay(delay);
+  });
+
+  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketValidity", [](time_t validity) {
+    if (g_configurationDone) {
+      g_outputBuffer = "setOutgoingTLSSessionsCacheMaxTicketValidity() cannot be called at runtime!\n";
+      return;
+    }
+    TLSSessionCache::setSessionValidity(validity);
+  });
 
   luaCtx.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
 

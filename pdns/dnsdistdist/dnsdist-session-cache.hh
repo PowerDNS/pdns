@@ -38,9 +38,25 @@ public:
   void putSession(const boost::uuids::uuid& backendID, time_t now, std::unique_ptr<TLSSession>&& session);
   std::unique_ptr<TLSSession> getSession(const boost::uuids::uuid& backendID, time_t now);
 
+  static void setCleanupDelay(time_t delay)
+  {
+    s_cleanupDelay = delay;
+  }
+
+  static void setSessionValidity(time_t validity)
+  {
+    s_sessionValidity = validity;
+  }
+
+  static void setMaxTicketsPerBackend(uint16_t max)
+  {
+    s_maxSessionsPerBackend = max;
+  }
+
 private:
-  static time_t const s_cleanupDelay;
-  static time_t const s_sessionValidity;
+  static time_t s_cleanupDelay;
+  static time_t s_sessionValidity;
+  static uint16_t s_maxSessionsPerBackend;
 
   struct BackendEntry
   {
@@ -52,7 +68,6 @@ private:
   // do we need to shard this?
   std::mutex d_lock;
   time_t d_nextCleanup{0};
-  uint16_t d_maxSessionsPerBackend{20};
 };
 
 extern TLSSessionCache g_sessionCache;
