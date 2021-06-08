@@ -211,7 +211,7 @@ StatsMap getAllStatsMap(StatComponent component)
   }
 
   for(const auto& themultimember : d_getmultimembers) {
-    if (blacklistMap.count(themultimember.first) == 0) {
+    if (disabledlistMap.count(themultimember.first) == 0) {
       ret.merge(themultimember.second());
     }
   }
