@@ -23,8 +23,9 @@
 
 TLSSessionCache g_sessionCache;
 
-time_t const TLSSessionCache::s_cleanupDelay{60};
-time_t const TLSSessionCache::s_sessionValidity{600};
+time_t TLSSessionCache::s_cleanupDelay{60};
+time_t TLSSessionCache::s_sessionValidity{600};
+uint16_t TLSSessionCache::s_maxSessionsPerBackend{20};
 
 void TLSSessionCache::cleanup(time_t now, const std::lock_guard<std::mutex>& lock)
 {
@@ -50,7 +51,7 @@ void TLSSessionCache::putSession(const boost::uuids::uuid& backendID, time_t now
   }
 
   auto& entry = d_sessions[backendID];
-  if (entry.d_sessions.size() >= d_maxSessionsPerBackend) {
+  if (entry.d_sessions.size() >= s_maxSessionsPerBackend) {
     entry.d_sessions.pop_back();
   }
   entry.d_sessions.push_front(std::move(session));
