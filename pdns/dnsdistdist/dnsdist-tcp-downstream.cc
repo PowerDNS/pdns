@@ -483,49 +483,8 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     TCPResponse response;
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
-    try {
-      MOADNSParser parser(true, reinterpret_cast<const char*>(response.d_buffer.data()), response.d_buffer.size());
-      if (parser.d_header.rcode != 0U) {
-        done = true;
-      }
-      else {
-        for (const auto& record : parser.d_answers) {
-          if (record.first.d_class != QClass::IN ||
-              record.first.d_type != QType::SOA) {
-            continue;
-          }
 
-          auto unknownContent = getRR<UnknownRecordContent>(record.first);
-          if (!unknownContent) {
-            continue;
-          }
-          auto raw = unknownContent->getRawContent();
-          auto serial = getSerialFromRawSOAContent(raw);
-
-          ++d_clientConn->d_xfrSerialCount;
-          if (d_clientConn->d_xfrMasterSerial == 0) {
-            // store the first SOA in our client's connection metadata
-            ++d_clientConn->d_xfrMasterSerialCount;
-            d_clientConn->d_xfrMasterSerial = serial;
-          } else if (d_clientConn->d_xfrMasterSerial == serial) {
-            ++d_clientConn->d_xfrMasterSerialCount;
-            // figure out if it's end when receiving master's SOA again
-            if (d_clientConn->d_xfrSerialCount == 2) {
-              // if there are only two SOA records marks a finished AXFR
-              done = true;
-            }
-            if (d_clientConn->d_xfrMasterSerialCount == 3) {
-              // receiving master's SOA 3 times marks a finished IXFR
-              done = true;
-            }
-          }
-        }
-      }
-    }
-    catch (const MOADNSException& e) {
-      DEBUGLOG("Exception when parsing TCPResponse to DNS: " << e.what());
-      /* ponder what to do here, shall we close the connection? */
-    }
+    done = isXFRFinished(response, clientConn);
 
     clientConn->handleXFRResponse(clientConn, now, std::move(response));
     if (done) {
@@ -631,4 +590,53 @@ bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<Proxy
   }
 
   return *tlvs == *d_proxyProtocolValuesSent;
+}
+
+bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, const shared_ptr<IncomingTCPConnectionState>& clientConn)
+{
+  bool done = false;
+  try {
+    MOADNSParser parser(true, reinterpret_cast<const char*>(response.d_buffer.data()), response.d_buffer.size());
+    if (parser.d_header.rcode != 0U) {
+      done = true;
+    }
+    else {
+      for (const auto& record : parser.d_answers) {
+        if (record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+          continue;
+        }
+
+        auto unknownContent = getRR<UnknownRecordContent>(record.first);
+        if (!unknownContent) {
+          continue;
+        }
+        auto raw = unknownContent->getRawContent();
+        auto serial = getSerialFromRawSOAContent(raw);
+
+        ++clientConn->d_xfrSerialCount;
+        if (clientConn->d_xfrMasterSerial == 0) {
+          // store the first SOA in our client's connection metadata
+          ++clientConn->d_xfrMasterSerialCount;
+          clientConn->d_xfrMasterSerial = serial;
+        }
+        else if (clientConn->d_xfrMasterSerial == serial) {
+          ++clientConn->d_xfrMasterSerialCount;
+          // figure out if it's end when receiving master's SOA again
+          if (clientConn->d_xfrSerialCount == 2) {
+            // if there are only two SOA records marks a finished AXFR
+            done = true;
+          }
+          if (clientConn->d_xfrMasterSerialCount == 3) {
+            // receiving master's SOA 3 times marks a finished IXFR
+            done = true;
+          }
+        }
+      }
+    }
+  }
+  catch (const MOADNSException& e) {
+    DEBUGLOG("Exception when parsing TCPResponse to DNS: " << e.what());
+    /* ponder what to do here, shall we close the connection? */
+  }
+  return done;
 }
