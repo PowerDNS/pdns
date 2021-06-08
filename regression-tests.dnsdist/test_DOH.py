@@ -342,49 +342,6 @@ class TestDOH(DNSDistDOHTest):
         (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, caFile=self._caCert, query=query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, expectedResponse)
 
-    def testTruncation(self):
-        """
-        DOH: Truncation over UDP
-        """
-        # the query is first forwarded over UDP, leading to a TC=1 answer from the
-        # backend, then over TCP
-        name = 'truncated-udp.doh.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery.id = 0
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
-        response.answer.append(rrset)
-
-        # first response is a TC=1
-        tcResponse = dns.message.make_response(query)
-        tcResponse.flags |= dns.flags.TC
-        self._toResponderQueue.put(tcResponse, True, 2.0)
-
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response)
-        # first query, over UDP
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
-
-        # check the response
-        self.assertTrue(receivedResponse)
-        self.assertEqual(response, receivedResponse)
-
-        # second query, over TCP
-        receivedQuery = self._fromResponderQueue.get(True, 2.0)
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
-
-
     def testSpoof(self):
         """
         DOH: Spoofed
@@ -1032,6 +989,90 @@ class TestDOHWithCache(DNSDistDOHTest):
         # now we send the exact same query over DoH, we should get a cache hit
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+    def testTruncation(self):
+        """
+        DOH: Truncation over UDP (with cache)
+        """
+        # the query is first forwarded over UDP, leading to a TC=1 answer from the
+        # backend, then over TCP
+        name = 'truncated-udp.doh-with-cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # first response is a TC=1
+        tcResponse = dns.message.make_response(query)
+        tcResponse.flags |= dns.flags.TC
+        self._toResponderQueue.put(tcResponse, True, 2.0)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response)
+        # first query, received by dnsdist over UDP
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+
+        # check the response
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+        # check the second query, received by dnsdist over TCP
+        receivedQuery = self._fromResponderQueue.get(True, 2.0)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+
+        # now check the cache for a DoH query
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
+        self.assertEqual(response, receivedResponse)
+
+        # The TC=1 answer received over UDP will not be cached, because we currently do not cache answers with no records (no TTL)
+        # The TCP one should, however
+        (_, receivedResponse) = self.sendTCPQuery(expectedQuery, response=None, useQueue=False)
+        self.assertEqual(response, receivedResponse)
+
+    def testResponsesReceivedOverUDP(self):
+        """
+        DOH: Check that responses received over UDP are cached (with cache)
+        """
+        name = 'cached-udp.doh-with-cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+        # now check the cache for a DoH query
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
+        self.assertEqual(response, receivedResponse)
+
+        # Check that the answer is usable for UDP queries as well
+        (_, receivedResponse) = self.sendUDPQuery(expectedQuery, response=None, useQueue=False)
         self.assertEqual(response, receivedResponse)
 
 class TestDOHWithoutCacheControl(DNSDistDOHTest):
