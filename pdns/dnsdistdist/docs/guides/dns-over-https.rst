@@ -54,14 +54,18 @@ To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add on
 Internal design
 ---------------
 
-The internal design used for DoH handling uses two threads per :func:`addDOHLocal` directive. The first thread will handle the HTTP/2 communication with the client and pass the received DNS queries to a second thread which will apply the rules and pass the query to a backend, over **UDP** (except if the backend is TCP-only, or uses DNS over TLS). The response will be received by the regular UDP response handler for that backend and passed back to the first thread. That allows the first thread to be low-latency dealing with TLS and HTTP/2 only and never blocking.
+The internal design used for DoH handling uses two threads per :func:`addDOHLocal` directive. The first thread will handle the HTTP/2 communication with the client and pass the received DNS queries to a second thread which will apply the rules and pass the query to a backend, over **UDP** (except if the backend is TCP-only, or uses DNS over TLS, see the second schema below). The response will be received by the regular UDP response handler for that backend and passed back to the first thread. That allows the first thread to be low-latency dealing with TLS and HTTP/2 only and never blocking.
 
 .. figure:: ../imgs/DNSDistDoH.png
    :align: center
-   :alt: DNSDist DoH design
+   :alt: DNSDist DoH design before 1.7
 
 The fact that the queries are forwarded over UDP means that a large UDP payload size should be configured between dnsdist and the backend to avoid most truncation issues, and dnsdist will advise a 4096-byte UDP Payload Buffer size. UDP datagrams can still be larger than the MTU as long as fragmented datagrams are not dropped on the path between dnsdist and the backend.
-Since 1.7.0, truncated answers received over UDP for a DoH query will lead to a retry over TCP.
+Since 1.7.0, truncated answers received over UDP for a DoH query will lead to a retry over TCP, passing the query to a TCP worker, as illustrated below.
+
+.. figure:: ../imgs/DNSDistDoH17.png
+   :align: center
+   :alt: DNSDist DoH design since 1.7
 
 Investigating issues
 --------------------

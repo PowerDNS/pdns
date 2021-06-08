@@ -1451,6 +1451,36 @@ If you are looking for exact name matching, your might want to consider using a 
 
     :param DNSName name: The name to test against the set.
 
+Outgoing TLS tickets cache management
+-------------------------------------
+
+Since 1.7, dnsdist supports securing the connection toward backends using DNS over TLS. For these connections, it keeps a cache of TLS tickets to be able to resume a TLS session quickly. By default that cache contains up to 20 TLS tickets per-backend, is cleaned up every every 60s, and TLS tickets expire if they have not been used after 600 seconds.
+These values can be set at configuration time via:
+
+.. function:: setOutgoingTLSSessionsCacheMaxTicketsPerBackend(num)
+
+  .. versionadded: 1.7.0
+
+  Set the maximum number of TLS tickets to keep, per-backend, to be able to quickly resume outgoing TLS connections to a backend. Keeping more tickets might provide a better TLS session resumption rate if there is a sudden peak of outgoing connections, at the cost of using a bit more memory.
+
+  :param int num: The number of TLS tickets to keep, per-backend. The default is 20.
+
+.. function:: setOutgoingTLSSessionsCacheCleanupDelay(delay)
+
+  .. versionadded: 1.7.0
+
+  Set the number of seconds between two scans of the TLS sessions cache, removing expired tickets and freeing up memory. Decreasing that value will lead to more scans, freeing up memory more quickly but using a bit more CPU doing so.
+
+  :param int delay: The number of seconds between two scans of the cache. The default is 60.
+
+.. function:: setOutgoingTLSSessionsCacheMaxTicketValidity(validity)
+
+  .. versionadded: 1.7.0
+
+  Set the number of seconds that a given TLS ticket can be kept inactive in the TLS sessions cache. After that delay the ticket will be removed during the next cleanup of the cache. Increasing that value might increase the TLS resumption rate if new connections are not often created, but it might also lead to trying to reuse a ticket that the server will consider too old and refuse.
+
+  :param int validity: The number of seconds a ticket is considered valid. The default is 600, which matches the default lifetime of TLS tickets set by OpenSSL.
+
 Other functions
 ---------------
 

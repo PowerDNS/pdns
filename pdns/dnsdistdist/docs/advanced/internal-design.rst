@@ -17,7 +17,13 @@ That design means that there is a maximum of 65535 in-flight UDP queries per bac
 
 Note that the source address and port used to contact a given backend is set at startup, for performance reasons, and then only changes on reconnect. There might be more than one socket, and thus several ports, if the ``sockets`` parameter was set to a higher value than 1 on the :func:`newServer` directive.
 
-Note that, since 1.7.0, UDP queries can be passed to the backend over TCP if the backend is TCP-only, or configured for DNS over TLS.
+Note that, since 1.7, UDP queries can be passed to the backend over TCP if the backend is TCP-only, or configured for DNS over TLS. This is done by passing the incoming query to a TCP worker over a pipe, as was already done for incoming TCP queries.
+
+.. figure:: ../imgs/DNSDistUDPDoT.png
+   :align: center
+   :alt: DNSDist UDP design for TCP-only, DoT backends
+
+In that case the response will be sent back, directly by the TCP worker, over UDP, instead of being passed back to the UDP responder thread.
 
 TCP / DoT design
 ----------------
@@ -33,8 +39,14 @@ DoH design
 
 .. figure:: ../imgs/DNSDistDoH.png
    :align: center
-   :alt: DNSDist DoH design
+   :alt: DNSDist DoH design before 1.7
 
 For DoH, two threads are created for each :func:`addDOHLocal` directive, one handling the TLS and HTTP layers, then passing the queries to the second one over a pipe. The second thread does DNS processing, applying rules and forwarding the query to the backend if needed, over UDP.
 Note that even if the query does not need to be passed to a backend (cache-hit, self-generated answer), the response will be passed back to the first thread via a pipe, since only that thread deals with the client.
 If the response comes from a backend, it will be picked up by the regular UDP listener for that backend, the corresponding *IDState* object located, and the response sent to the first thread over a pipe.
+
+Since 1.7, if the UDP response coming from the backend has been truncated (TC bit is set), dnsdist will retry over TCP by passing the query to a TCP worker over a pipe, as was already done for incoming TCP queries. The response will then be passed back to the DoH worker thread over the same pipe that for UDP queries. That also happens if the backend is marked TCP-only, or configured for DNS over TLS, in which case the query is obviously not sent over UDP first but immediately sent to a TCP worker thread.
+
+.. figure:: ../imgs/DNSDistDoH17.png
+   :align: center
+   :alt: DNSDist DoH design since 1.7
