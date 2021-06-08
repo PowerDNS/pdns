@@ -27,131 +27,141 @@
 
 // Minimal logging API based on https://github.com/go-logr/logr
 
-namespace Logr {
-  struct Loggable {
-    virtual std::string to_string() const = 0;
-  };
+namespace Logr
+{
+struct Loggable
+{
+  virtual std::string to_string() const = 0;
+};
 
-  // In addition to level which specifies the amount of detail and is
-  // structered so that a derived logger always has a higher level
-  // than its parent we also have a priority/urgency field that maps
-  // to the same field of the old logger which in turns has a direct
-  // mapping to syslog priority. This is done to make it easier to
-  // move step by step to structured logging. We consider both level
-  // and priorty to select which messages are logged, amnd a backend
-  // can further use priority to pass to syslog.
+// In addition to level which specifies the amount of detail and is
+// structered so that a derived logger always has a higher level
+// than its parent we also have a priority/urgency field that maps
+// to the same field of the old logger which in turns has a direct
+// mapping to syslog priority. This is done to make it easier to
+// move step by step to structured logging. We consider both level
+// and priorty to select which messages are logged, amnd a backend
+// can further use priority to pass to syslog.
 
-  enum Priority: uint8_t {
-    Absent = 0, Alert = 1, Critical = 2, Error = 3, Warning = 4, Notice = 5, Info = 6, Debug = 7
-  };
+enum Priority : uint8_t
+{
+  Absent = 0,
+  Alert = 1,
+  Critical = 2,
+  Error = 3,
+  Warning = 4,
+  Notice = 5,
+  Info = 6,
+  Debug = 7
+};
 
-  class Logger {
-  public:
-    // Enabled tests whether this Logger is enabled.  For example, commandline
-    // flags might be used to set the logging verbosity and disable some info
-    // logs.
-    virtual bool enabled(Priority) const = 0;
+class Logger
+{
+public:
+  // Enabled tests whether this Logger is enabled.  For example, commandline
+  // flags might be used to set the logging verbosity and disable some info
+  // logs.
+  virtual bool enabled(Priority) const = 0;
 
-    // Info logs a non-error message with the given key/value pairs as context.
-    //
-    // The msg argument should be used to add some constant description to
-    // the log line.  The key/value pairs can then be used to add additional
-    // variable information.  The key/value pairs should alternate string
-    // keys and arbitrary values.
-    virtual void info(const std::string& msg) const = 0;
-    virtual void info(Logr::Priority, const std::string& msg) const = 0;
+  // Info logs a non-error message with the given key/value pairs as context.
+  //
+  // The msg argument should be used to add some constant description to
+  // the log line.  The key/value pairs can then be used to add additional
+  // variable information.  The key/value pairs should alternate string
+  // keys and arbitrary values.
+  virtual void info(const std::string& msg) const = 0;
+  virtual void info(Logr::Priority, const std::string& msg) const = 0;
 
-    template<typename... Args>
-    void info(const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      auto logger = this->withValues(key, value, args...);
-      logger->info(msg);
-    }
+  template <typename... Args>
+  void info(const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    auto logger = this->withValues(key, value, args...);
+    logger->info(msg);
+  }
 
-    template<typename... Args>
-    void info(Priority p, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      auto logger = this->withValues(key, value, args...);
-      logger->info(p, msg);
-    }
+  template <typename... Args>
+  void info(Priority p, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    auto logger = this->withValues(key, value, args...);
+    logger->info(p, msg);
+  }
 
-    // Error logs an error, with the given message and key/value pairs as context.
-    // It functions similarly to calling Info with the "error" named value, but may
-    // have unique behavior, and should be preferred for logging errors (see the
-    // package documentations for more information).
-    //
-    // The msg field should be used to add context to any underlying error,
-    // while the err field should be used to attach the actual error that
-    // triggered this log line, if present.
-    virtual void error(const std::string& err, const std::string& msg) const = 0;
-    virtual void error(int err, const std::string& msg) const = 0;
-    virtual void error(Logr::Priority, const std::string& err, const std::string& msg) const = 0;
-    virtual void error(Logr::Priority, int err, const std::string& msg) const = 0;
+  // Error logs an error, with the given message and key/value pairs as context.
+  // It functions similarly to calling Info with the "error" named value, but may
+  // have unique behavior, and should be preferred for logging errors (see the
+  // package documentations for more information).
+  //
+  // The msg field should be used to add context to any underlying error,
+  // while the err field should be used to attach the actual error that
+  // triggered this log line, if present.
+  virtual void error(const std::string& err, const std::string& msg) const = 0;
+  virtual void error(int err, const std::string& msg) const = 0;
+  virtual void error(Logr::Priority, const std::string& err, const std::string& msg) const = 0;
+  virtual void error(Logr::Priority, int err, const std::string& msg) const = 0;
 
-    template<typename... Args>
-    void error(const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      auto logger = this->withValues(key, value, args...);
-      logger->error(Logr::Absent, err, msg);
-    }
+  template <typename... Args>
+  void error(const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    auto logger = this->withValues(key, value, args...);
+    logger->error(Logr::Absent, err, msg);
+  }
 
-    template<typename... Args>
-    void error(int err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      auto logger = this->withValues(key, value, args...);
-      logger->error(Logr::Absent, err, msg);
-    }
+  template <typename... Args>
+  void error(int err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    auto logger = this->withValues(key, value, args...);
+    logger->error(Logr::Absent, err, msg);
+  }
 
-    template<typename... Args>
-    void error(Priority p, const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      auto logger = this->withValues(key, value, args...);
-      logger->error(p, err, msg);
-    }
+  template <typename... Args>
+  void error(Priority p, const std::string& err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    auto logger = this->withValues(key, value, args...);
+    logger->error(p, err, msg);
+  }
 
-    template<typename... Args>
-    void error(Priority p, int err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      auto logger = this->withValues(key, value, args...);
-      logger->error(p, err, msg);
-    }
+  template <typename... Args>
+  void error(Priority p, int err, const std::string& msg, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    auto logger = this->withValues(key, value, args...);
+    logger->error(p, err, msg);
+  }
 
-    // V returns an Logger value for a specific verbosity level, relative to
-    // this Logger.  In other words, V values are additive.  V higher verbosity
-    // level means a log message is less important.  It's illegal to pass a log
-    // level less than zero.
-    virtual std::shared_ptr<Logger> v(size_t level) const = 0;
+  // V returns an Logger value for a specific verbosity level, relative to
+  // this Logger.  In other words, V values are additive.  V higher verbosity
+  // level means a log message is less important.  It's illegal to pass a log
+  // level less than zero.
+  virtual std::shared_ptr<Logger> v(size_t level) const = 0;
 
-    template<typename... Args>
-    std::shared_ptr<Logger> withValues(const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      std::map<std::string, std::string> map = {};
-      this->mapArguments(map, key, value, args...);
-      return this->withValues(map);
-    }
+  template <typename... Args>
+  std::shared_ptr<Logger> withValues(const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    std::map<std::string, std::string> map = {};
+    this->mapArguments(map, key, value, args...);
+    return this->withValues(map);
+  }
 
-    // WithValues adds some key-value pairs of context to a logger.
-    // See Info for documentation on how key/value pairs work.
-    virtual std::shared_ptr<Logger> withValues(const std::map<std::string, std::string>& values) const = 0;
+  // WithValues adds some key-value pairs of context to a logger.
+  // See Info for documentation on how key/value pairs work.
+  virtual std::shared_ptr<Logger> withValues(const std::map<std::string, std::string>& values) const = 0;
 
+  // WithName adds a new element to the logger's name.
+  // Successive calls with WithName continue to append
+  // suffixes to the logger's name.  It's strongly recommended
+  // that name segments contain only letters, digits, and hyphens
+  // (see the package documentation for more information).
+  virtual std::shared_ptr<Logger> withName(const std::string& name) const = 0;
 
-    // WithName adds a new element to the logger's name.
-    // Successive calls with WithName continue to append
-    // suffixes to the logger's name.  It's strongly recommended
-    // that name segments contain only letters, digits, and hyphens
-    // (see the package documentation for more information).
-    virtual std::shared_ptr<Logger> withName(const std::string& name) const = 0;
-
-  private:
-
-    template<typename... Args>
-    void mapArguments(std::map<std::string, std::string>& map, const std::string& key, const Loggable& value, const Args&... args) const
-    {
-      map.emplace(key, value.to_string());
-      mapArguments(map, args...);
-    }
-    void mapArguments(std::map<std::string, std::string>& map) const {
-      return ;
-    }
-  };
+private:
+  template <typename... Args>
+  void mapArguments(std::map<std::string, std::string>& map, const std::string& key, const Loggable& value, const Args&... args) const
+  {
+    map.emplace(key, value.to_string());
+    mapArguments(map, args...);
+  }
+  void mapArguments(std::map<std::string, std::string>& map) const
+  {
+    return;
+  }
+};
 }
