@@ -231,7 +231,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None):
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
@@ -248,8 +248,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             sys.exit(1)
 
         sock.listen(100)
+        if tlsContext:
+          sock = tlsContext.wrap_socket(sock, server_side=True)
+
         while True:
-            (conn, _) = sock.accept()
+            try:
+              (conn, _) = sock.accept()
+            except ssl.SSLError:
+              continue
             conn.settimeout(5.0)
             data = conn.recv(2)
             if not data:
