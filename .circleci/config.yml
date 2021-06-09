@@ -1275,6 +1275,7 @@ jobs:
             --with-lua=luajit \
             --with-libcap \
             --with-net-snmp \
+            --enable-dns-over-tls \
             --enable-asan \
             --enable-ubsan
           working_directory: ~/project/pdns/recursordist
