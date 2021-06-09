@@ -1574,7 +1574,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1587,7 +1587,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1602,7 +1602,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1615,7 +1615,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1630,7 +1630,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
@@ -1643,7 +1643,7 @@ jobs:
     resource_class: small
 
     docker:
-      - image: debian:buster
+      - image: texlive/texlive
         auth:
           username: powerdnsreadonly
           password: $DOCKERHUB_PASSWORD
