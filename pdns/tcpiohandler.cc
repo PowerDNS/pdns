@@ -907,7 +907,12 @@ public:
     do {
       ret = gnutls_handshake(d_conn.get());
       if (gnutls_error_is_fatal(ret) || ret == GNUTLS_E_WARNING_ALERT_RECEIVED) {
-        throw std::runtime_error("Error accepting a new connection");
+        if (d_client) {
+          throw std::runtime_error("Error establishing a new connection: " + std::string(gnutls_strerror(ret)));
+        }
+        else {
+          throw std::runtime_error("Error accepting a new connection: " + std::string(gnutls_strerror(ret)));
+        }
       }
     }
     while (ret != GNUTLS_E_SUCCESS && ret == GNUTLS_E_INTERRUPTED);
@@ -930,11 +935,29 @@ public:
         return direction == 0 ? IOState::NeedRead : IOState::NeedWrite;
       }
       else if (gnutls_error_is_fatal(ret) || ret == GNUTLS_E_WARNING_ALERT_RECEIVED) {
-        throw std::runtime_error("Error accepting a new connection: " + std::string(gnutls_strerror(ret)));
+        if (d_client) {
+          std::string error;
+          if (ret == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
+            gnutls_datum_t out;
+            if (gnutls_certificate_verification_status_print(gnutls_session_get_verify_cert_status(d_conn.get()), gnutls_certificate_type_get(d_conn.get()), &out, 0) == 0) {
+              error = " (" + std::string(reinterpret_cast<const char*>(out.data)) + ")";
+              gnutls_free(out.data);
+            }
+          }
+          throw std::runtime_error("Error accepting a new connection: " + std::string(gnutls_strerror(ret)) + error);
+        }
+        else {
+          throw std::runtime_error("Error establishing a new connection: " + std::string(gnutls_strerror(ret)));
+        }
       }
     } while (ret == GNUTLS_E_INTERRUPTED);
 
-    throw std::runtime_error("Error accepting a new connection");
+    if (d_client) {
+      throw std::runtime_error("Error establishinging a new connection: " + std::string(gnutls_strerror(ret)));
+    }
+    else {
+      throw std::runtime_error("Error accepting a new connection: " + std::string(gnutls_strerror(ret)));
+    }
   }
 
   IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
