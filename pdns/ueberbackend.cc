@@ -619,7 +619,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     throw PDNSException("We are stale, please recycle");
   }
 
-  DLOG(g_log<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname<<endl);
+  DLOG(g_log<<"UeberBackend received question for "<<qtype.toString()<<" of "<<qname<<endl);
   if (!d_go) {
     g_log<<Logger::Error<<"UeberBackend is blocked, waiting for 'go'"<<endl;
     std::unique_lock<std::mutex> l(d_mut);
@@ -751,7 +751,7 @@ UeberBackend::handle::~handle()
 
 bool UeberBackend::handle::get(DNSZoneRecord &r)
 {
-  DLOG(g_log << "Ueber get() was called for a "<<qtype.getName()<<" record" << endl);
+  DLOG(g_log << "Ueber get() was called for a "<<qtype.toString()<<" record" << endl);
   bool isMore=false;
   while(d_hinterBackend && !(isMore=d_hinterBackend->get(r))) { // this backend out of answers
     if(i<parent->backends.size()) {
