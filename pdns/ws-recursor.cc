@@ -1025,6 +1025,10 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
     MetricDefinition(PrometheusMetricType::gauge,
                      "number of tasks currently in the taskqueue")},
 
+  { "dot-outqueries",
+    MetricDefinition(PrometheusMetricType::counter,
+                     "Number of outgoing DoT queries since starting")},
+
 };
 
 #define CHECK_PROMETHEUS_METRICS 0
