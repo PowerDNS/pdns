@@ -2,6 +2,45 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.0-beta1
+  :released: 9th of June 2021
+
+  This is version 4.5.0-beta1 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
+
+  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
+  In some setups, and some attack scenarios, this can make a serious performance difference.
+
+  In beta1, the zone cache is enabled by default.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10463
+
+    LUA records: add filterForward function, to limit the scope of createForward[6]
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10454
+
+    add/fix getAllDomains() and enable the zone cache by default (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10461
+
+    simplify createDomain() (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10342
+
+    SVCB: rename echconfig to ech and add test vectors from draft
+
+.. changelog::
   :version: 4.5.0-alpha1
   :released: 27th of May 2021
 
