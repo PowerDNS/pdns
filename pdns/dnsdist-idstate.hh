@@ -257,6 +257,7 @@ struct IDState
 #endif
   uint16_t qtype{0}; // 2
   uint16_t qclass{0}; // 2
+  // origID is in network-byte order
   uint16_t origID{0}; // 2
   uint16_t origFlags{0}; // 2
   dnsdist::Protocol protocol; // 1

@@ -1291,7 +1291,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   if (!du->tcp && du->truncated && du->response.size() > sizeof(dnsheader)) {
     /* restoring the original ID */
     dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(du->query.data() + du->proxyProtocolPayloadSize);
-    queryDH->id = htons(du->ids.origID);
+    queryDH->id = du->ids.origID;
 
     auto cpq = std::make_unique<DoHCrossProtocolQuery>(du);
 
