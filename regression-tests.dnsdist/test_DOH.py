@@ -999,9 +999,9 @@ class TestDOHWithCache(DNSDistDOHTest):
         # backend, then over TCP
         name = 'truncated-udp.doh-with-cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
-        query.id = 0
+        query.id = 42
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery.id = 0
+        expectedQuery.id = 42
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
                                     3600,

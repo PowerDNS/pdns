@@ -586,7 +586,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   IDState ids;
   setIDStateFromDNSQuestion(ids, dq, std::move(qname));
-  ids.origID = ntohs(dh->id);
+  ids.origID = dh->id;
 
   prependSizeToTCPQuery(state->d_buffer, 0);
 

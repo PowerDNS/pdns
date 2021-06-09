@@ -67,8 +67,8 @@ IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend
   conn->incQueries();
   conn->d_currentPos = 0;
 
-  DEBUGLOG("adding a pending response for ID "<<conn->d_currentQuery.d_idstate.origID<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
-  conn->d_pendingResponses[conn->d_currentQuery.d_idstate.origID] = std::move(conn->d_currentQuery);
+  DEBUGLOG("adding a pending response for ID "<<ntohs(conn->d_currentQuery.d_idstate.origID)<<" and QNAME "<<conn->d_currentQuery.d_idstate.qname);
+  conn->d_pendingResponses[ntohs(conn->d_currentQuery.d_idstate.origID)] = std::move(conn->d_currentQuery);
   conn->d_currentQuery.d_buffer.clear();
 
   ++conn->d_ds->outstanding;
