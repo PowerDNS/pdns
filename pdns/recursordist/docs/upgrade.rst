@@ -7,6 +7,9 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.5.x to 4.6.0 or master
 ------------------------
 
+4.5.1 to 4.5.2
+--------------
+
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-nsec3-max-iterations` default value has been changed from 2500 to 150.
