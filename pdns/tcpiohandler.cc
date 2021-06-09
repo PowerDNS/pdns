@@ -937,6 +937,7 @@ public:
       else if (gnutls_error_is_fatal(ret) || ret == GNUTLS_E_WARNING_ALERT_RECEIVED) {
         if (d_client) {
           std::string error;
+#if HAVE_GNUTLS_SESSION_GET_VERIFY_CERT_STATUS
           if (ret == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
             gnutls_datum_t out;
             if (gnutls_certificate_verification_status_print(gnutls_session_get_verify_cert_status(d_conn.get()), gnutls_certificate_type_get(d_conn.get()), &out, 0) == 0) {
@@ -944,6 +945,7 @@ public:
               gnutls_free(out.data);
             }
           }
+#endif /* HAVE_GNUTLS_SESSION_GET_VERIFY_CERT_STATUS */
           throw std::runtime_error("Error accepting a new connection: " + std::string(gnutls_strerror(ret)) + error);
         }
         else {
