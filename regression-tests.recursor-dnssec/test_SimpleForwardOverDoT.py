@@ -5,7 +5,7 @@ from recursortests import RecursorTest
 
 class testSimpleForwardOverDoT(RecursorTest):
     """
-    This forwarding to a DoT srever in avery basic way and is dependent on Quad9 working
+    This is forwarding to a DoT server in a very basic way and is dependent on Quad9 working
     """
 
     _confdir = 'SimpleForwardOverDoT'
@@ -47,5 +47,4 @@ forward-zones-recurse=.=9.9.9.9:853
         except subprocess.CalledProcessError as e:
             print(e.output)
             raise
-
 

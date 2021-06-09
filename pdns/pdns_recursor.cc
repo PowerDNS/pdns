@@ -265,6 +265,7 @@ GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 // Used in the Syncres to not throttle certain servers
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
+GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"
@@ -5047,6 +5048,16 @@ static int serviceMain(int argc, char*argv[])
     g_xdnssec.setState(std::move(xdnssecNames));
   }
 
+  {
+    SuffixMatchNode dotauthNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
+    for (const auto &p : parts) {
+      dotauthNames.add(DNSName(p));
+    }
+    g_DoTToAuthNames.setState(std::move(dotauthNames));
+  }
+
   s_balancingFactor = ::arg().asDouble("distribution-load-factor");
   if (s_balancingFactor != 0.0 && s_balancingFactor < 1.0) {
     s_balancingFactor = 0.0;
@@ -5804,6 +5815,7 @@ int main(int argc, char **argv)
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.")="7830";
 
     ::arg().set("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
+    ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

@@ -3734,7 +3734,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3750,7 +3750,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   if(doTCP) {
-    if (SyncRes::s_dot_to_port_853 && remoteIP.getPort() == 853) {
+    if (doDoT) {
       LOG(prefix<<qname<<": using DoT with "<< remoteIP.toStringWithPort() <<endl);
       s_dotoutqueries++;
       d_dotoutqueries++;
@@ -4103,6 +4103,11 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   return false;
 }
 
+bool SyncRes::doDoTtoAuth(const DNSName& ns) const
+{
+  return g_DoTToAuthNames.getLocal()->check(ns);
+}
+
 /** returns:
  *  -1 in case of no results
  *  rcode otherwise
@@ -4173,7 +4178,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
       typedef vector<ComboAddress> remoteIPs_t;
       remoteIPs_t remoteIPs;
-      remoteIPs_t::const_iterator remoteIP;
+      remoteIPs_t::iterator remoteIP;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
@@ -4217,8 +4222,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         else {
           bool hitPolicy{false};
           LOG(prefix<<qname<<": Resolved '"<<auth<<"' NS "<<tns->first<<" to: ");
-          for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
-            if(remoteIP != remoteIPs.cbegin()) {
+          for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+            if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
             }
             LOG(remoteIP->toString());
@@ -4239,7 +4244,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
         }
 
-        for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
+        for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.toString()<<"'"<<endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
@@ -4249,16 +4254,25 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           bool truncated = false;
           bool spoofed = false;
           bool gotAnswer = false;
-          bool forceTCP = SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853;
+          bool doDoT = false;
+
+          if (doDoTtoAuth(tns->first)) {
+            remoteIP->setPort(853);
+            doDoT = true;
+          }
+          if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
+            doDoT = true;
+          }
+          bool forceTCP = doDoT;
 
           if (!forceTCP) {
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, false, truncated, spoofed);
+                                          tns->first, *remoteIP, false, false, truncated, spoofed);
           }
           if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, truncated, spoofed);
+                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed);
           }
 
           if (!gotAnswer) {

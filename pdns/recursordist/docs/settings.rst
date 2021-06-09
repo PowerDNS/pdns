@@ -386,6 +386,19 @@ If `pdns-distributes-queries`_ is set, spawn this number of distributor threads 
 handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
 ratio.
 
+.. _settings-dot-to-auth-names:
+
+``dot-to-auth-names``
+-------------------
+.. versionadded:: 4.6.0
+
+- Comma separated list of domain-names or suffixes
+- Default: (empty).
+
+Force DoT to the listed authoritative nameservers. For this to work, DoT support has to be compiled in.
+Currently, the certificate is checked for validity, but the name in the certificate is not checked against
+the name of the host.
+
 .. _settings-dot-to-port-853:
 
 ``dot-to-port-853``
