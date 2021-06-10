@@ -56,7 +56,7 @@ class BrokenOutgoingTLSTests(object):
     def checkNoResponderHit(self):
         self.assertNotIn('UDP Responder', self._responsesCounter)
         self.assertNotIn('TCP Responder', self._responsesCounter)
-        self.assertEqual(self._responsesCounter['TLS Responder'], 0)
+        self.assertNotIn('TLS Responder', self._responsesCounter)
 
     def testUDP(self):
         """
