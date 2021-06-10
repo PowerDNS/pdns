@@ -44,15 +44,17 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 unsigned int getRecursorThreadId();
 
 // pdns_ffi_param_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<pdns_ffi_param*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+template <>
+struct LuaContext::Pusher<pdns_ffi_param*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, pdns_ffi_param* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+  static PushedObject push(lua_State* state, pdns_ffi_param* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 class RecursorLua4 : public BaseLua4
@@ -63,7 +65,8 @@ public:
 
   struct DNSQuestion
   {
-    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_): qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_)
+    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_) :
+      qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_)
     {
     }
     const DNSName& qname;
@@ -93,15 +96,15 @@ public:
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
-    vector<pair<int,DNSRecord> > getRecords() const;
+    vector<pair<int, DNSRecord>> getRecords() const;
     boost::optional<dnsheader> getDH() const;
-    vector<pair<uint16_t, string> > getEDNSOptions() const;
+    vector<pair<uint16_t, string>> getEDNSOptions() const;
     boost::optional<string> getEDNSOption(uint16_t code) const;
     boost::optional<Netmask> getEDNSSubnet() const;
     std::vector<std::pair<int, ProxyProtocolValue>> getProxyProtocolValues() const;
     vector<string> getEDNSFlags() const;
     bool getEDNSFlag(string flag) const;
-    void setRecords(const vector<pair<int,DNSRecord> >& records);
+    void setRecords(const vector<pair<int, DNSRecord>>& records);
 
     int rcode{0};
     // struct dnsheader, packet length would be great
@@ -121,7 +124,8 @@ public:
 
   struct PolicyEvent
   {
-    PolicyEvent(const ComboAddress& rem, const DNSName& name, const QType& type, bool tcp): qname(name), qtype(type), remote(rem), isTcp(tcp)
+    PolicyEvent(const ComboAddress& rem, const DNSName& name, const QType& type, bool tcp) :
+      qname(name), qtype(type), remote(rem), isTcp(tcp)
     {
     }
     const DNSName& qname;
@@ -141,7 +145,8 @@ public:
   struct FFIParams
   {
   public:
-    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_, std::map<std::string, MetaValue>& meta_): data(data_), qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
+    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_, std::map<std::string, MetaValue>& meta_) :
+      data(data_), qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
     {
     }
 
@@ -182,7 +187,7 @@ public:
   bool prerpz(DNSQuestion& dq, int& ret) const;
   bool preresolve(DNSQuestion& dq, int& ret) const;
   bool nxdomain(DNSQuestion& dq, int& ret) const;
-  bool nodata(DNSQuestion& dq, int& ret) const ;
+  bool nodata(DNSQuestion& dq, int& ret) const;
   bool postresolve(DNSQuestion& dq, int& ret) const;
 
   bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const;
@@ -192,14 +197,10 @@ public:
 
   bool needDQ() const
   {
-    return (d_prerpz ||
-            d_preresolve ||
-            d_nxdomain ||
-            d_nodata ||
-            d_postresolve);
+    return (d_prerpz || d_preresolve || d_nxdomain || d_nodata || d_postresolve);
   }
 
-  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int, string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string>,boost::optional<std::string>,boost::optional<string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool, const std::vector<std::pair<int, const ProxyProtocolValue*>>&)> gettag_t;
+  typedef std::function<std::tuple<unsigned int, boost::optional<std::unordered_map<int, string>>, boost::optional<LuaContext::LuaObject>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<string>>(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool, const std::vector<std::pair<int, const ProxyProtocolValue*>>&)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
   typedef std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)> gettag_ffi_t;
   gettag_ffi_t d_gettag_ffi;
@@ -208,13 +209,14 @@ protected:
   virtual void postPrepareContext() override;
   virtual void postLoad() override;
   virtual void getFeatures(Features& features) override;
+
 private:
   typedef std::function<void()> luamaintenance_t;
   luamaintenance_t d_maintenance;
   typedef std::function<bool(DNSQuestion*)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(const luacall_t& func, DNSQuestion& dq, int& ret) const;
-  typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
+  typedef std::function<bool(ComboAddress, ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
   typedef std::function<bool(PolicyEvent&)> policyEventFilter_t;
   policyEventFilter_t d_policyHitEventFilter;
