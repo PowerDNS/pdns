@@ -1040,7 +1040,9 @@ static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, co
     m.addPolicyTags(policyTags);
   }
   if (!meta.empty()) {
-    m.setMeta(meta);
+    for (const auto& mit : meta) {
+      m.setMeta(mit.first, mit.second.stringVal, mit.second.intVal);
+    }
   }
 
   std::string msg(m.finishAndMoveBuf());
@@ -1100,7 +1102,9 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
   pbMessage.setDeviceName(deviceName);
   pbMessage.setFromPort(source.getPort());
   pbMessage.setToPort(destination.getPort());
-  pbMessage.setMeta(meta);
+  for (const auto& m : meta) {
+    pbMessage.setMeta(m.first, m.second.stringVal, m.second.intVal);
+  }
 #ifdef NOD_ENABLED
   if (g_nodEnabled) {
     pbMessage.setNewlyObservedDomain(false);
