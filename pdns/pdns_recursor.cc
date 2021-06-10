@@ -362,6 +362,7 @@ struct DNSComboWriter {
   bool d_logResponse{false};
   bool d_tcp{false};
   bool d_responsePaddingDisabled{false};
+  std::map<std::string, RecursorLua4::MetaValue> d_meta;
 };
 
 MT_t* getMT()
@@ -1016,7 +1017,7 @@ catch(...)
   return "Exception making error message for exception";
 }
 
-static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName)
+static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
 {
   if (!t_protobufServers) {
     return;
@@ -1037,6 +1038,9 @@ static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, co
 
   if (!policyTags.empty()) {
     m.addPolicyTags(policyTags);
+  }
+  if (!meta.empty()) {
+    m.setMeta(meta);
   }
 
   std::string msg(m.finishAndMoveBuf());
@@ -1062,7 +1066,7 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
                                 bool tcp, const ComboAddress& source, const ComboAddress& destination,
                                 const EDNSSubnetOpts& ednssubnet,
                                 const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
-                                const string& deviceName) 
+                                const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
   // Normally we take the immutable string from the cache and append a few values, but if it's not there (can this happen?)
@@ -1096,6 +1100,7 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
   pbMessage.setDeviceName(deviceName);
   pbMessage.setFromPort(source.getPort());
   pbMessage.setToPort(destination.getPort());
+  pbMessage.setMeta(meta);
 #ifdef NOD_ENABLED
   if (g_nodEnabled) {
     pbMessage.setNewlyObservedDomain(false);
@@ -2720,7 +2725,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra, dc->d_responsePaddingDisabled);
+                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra, dc->d_responsePaddingDisabled, dc->d_meta);
                 dc->d_tag = t_pdl->gettag_ffi(params);
               }
               else if (t_pdl->d_gettag) {
@@ -2759,7 +2764,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         try {
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
-            protobufLogQuery(luaconfsLocal, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
+            protobufLogQuery(luaconfsLocal, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
           }
         }
         catch (const std::exception& e) {
@@ -2820,7 +2825,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (cacheHit) {
           if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
             struct timeval tv{0, 0};
-            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName);
+            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
           }
 
           if (!g_quiet) {
@@ -2952,6 +2957,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool needECS = false;
   bool needXPF = g_XPFAcl.match(fromaddr);
   std::unordered_set<std::string> policyTags;
+  std::map<std::string, RecursorLua4::MetaValue> meta;
   LuaContext::LuaObject data;
   string requestorId;
   string deviceId;
@@ -3017,7 +3023,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled);
+              RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
 
               ctag = t_pdl->gettag_ffi(params);
             }
@@ -3043,7 +3049,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     RecursorPacketCache::OptPBData pbData{boost::none};
     if (t_protobufServers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta);
       }
     }
 
@@ -3056,7 +3062,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
     if (cacheHit) {
       if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName);
+        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta);
       }
 
       if (!g_quiet) {

@@ -84,4 +84,6 @@ extern "C" {
   bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentSize, pdns_record_place_t place) __attribute__ ((visibility ("default")));
 
   void pdns_ffi_param_set_padding_disabled(pdns_ffi_param_t* ref, bool disabled)  __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_add_meta_single_string_kv(pdns_ffi_param_t *ref, const char* key, const char* val) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t *ref, const char* key, int64_t val) __attribute__ ((visibility ("default")));
 }

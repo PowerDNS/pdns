@@ -976,3 +976,13 @@ void pdns_ffi_param_set_padding_disabled(pdns_ffi_param_t* ref, bool disabled)
 {
   ref->params.disablePadding = disabled;
 }
+
+void pdns_ffi_param_add_meta_single_string_kv(pdns_ffi_param_t* ref, const char* key, const char* val)
+{
+  ref->params.meta[std::string(key)].stringVal.insert(std::string(val));
+}
+
+void pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t* ref, const char* key, int64_t val)
+{
+  ref->params.meta[std::string(key)].intVal.insert(val);
+}

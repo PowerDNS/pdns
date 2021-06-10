@@ -106,7 +106,7 @@ public:
     int rcode{0};
     // struct dnsheader, packet length would be great
     vector<DNSRecord> records;
-    
+
     string followupFunction;
     string followupPrefix;
 
@@ -114,7 +114,7 @@ public:
     ComboAddress udpQueryDest;
     string udpAnswer;
     string udpCallback;
-    
+
     LuaContext::LuaObject data;
     DNSName followupName;
   };
@@ -132,11 +132,16 @@ public:
     std::unordered_set<std::string>* policyTags{nullptr};
     std::unordered_map<std::string, bool>* discardedPolicies{nullptr};
   };
+  struct MetaValue
+  {
+    std::unordered_set<std::string> stringVal;
+    std::unordered_set<int64_t> intVal;
+  };
 
   struct FFIParams
   {
   public:
-    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_): data(data_), qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_)
+    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_, std::map<std::string, MetaValue>& meta_): data(data_), qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
     {
     }
 
@@ -166,6 +171,8 @@ public:
     unsigned int tag{0};
     uint16_t qtype;
     bool tcp;
+
+    std::map<std::string, MetaValue>& meta;
   };
 
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::unordered_set<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, std::string& routingTag, const std::vector<ProxyProtocolValue>& proxyProtocolValues) const;
@@ -212,4 +219,3 @@ private:
   typedef std::function<bool(PolicyEvent&)> policyEventFilter_t;
   policyEventFilter_t d_policyHitEventFilter;
 };
-
