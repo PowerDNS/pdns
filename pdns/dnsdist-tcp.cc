@@ -370,7 +370,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 
 static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
 {
-  if (state->d_isXFR) {
+  if (state->d_isXFR || currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
     return;
   }
 

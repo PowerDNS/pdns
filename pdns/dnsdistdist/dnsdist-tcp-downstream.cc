@@ -483,13 +483,16 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     TCPResponse response;
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
+    /* could be a IXFR but that does not matter,
+       we only need to know that this is a AXFR or IXFR response */
+    response.d_idstate.qtype = QType::AXFR;
 
     done = isXFRFinished(response, clientConn);
 
     clientConn->handleXFRResponse(clientConn, now, std::move(response));
     if (done) {
       conn->d_usedForXFR = false;
-      d_clientConn->d_isXFR = false;
+      clientConn->d_isXFR = false;
       d_state = State::idle;
       d_clientConn.reset();
       return IOState::Done;
