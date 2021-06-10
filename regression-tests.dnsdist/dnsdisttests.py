@@ -466,8 +466,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         # This function is called before every tests
 
         # Clear the responses counters
-        for key in self._responsesCounter:
-            self._responsesCounter[key] = 0
+        self._responsesCounter.clear()
 
         self._healthCheckCounter = 0
 
