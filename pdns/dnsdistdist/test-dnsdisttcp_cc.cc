@@ -237,7 +237,7 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() const override
+  std::unique_ptr<TLSSession> getSession() override
   {
     return nullptr;
   }

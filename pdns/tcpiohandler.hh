@@ -35,7 +35,7 @@ public:
   virtual std::string getServerNameIndication() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
   virtual bool hasSessionBeenResumed() const = 0;
-  virtual std::unique_ptr<TLSSession> getSession() const = 0;
+  virtual std::unique_ptr<TLSSession> getSession() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   virtual void close() = 0;
 
