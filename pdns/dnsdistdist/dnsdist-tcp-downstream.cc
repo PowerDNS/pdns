@@ -16,9 +16,14 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
       if (d_handler->hasTLSSessionBeenResumed()) {
         ++d_ds->tlsResumptions;
       }
-      auto session = d_handler->getTLSSession();
-      if (session) {
-        g_sessionCache.putSession(d_ds->getID(), now.tv_sec, std::move(session));
+      try {
+        auto session = d_handler->getTLSSession();
+        if (session) {
+          g_sessionCache.putSession(d_ds->getID(), now.tv_sec, std::move(session));
+        }
+      }
+      catch (const std::exception& e) {
+        vinfolog("Unable to get a TLS session: %s", e.what());
       }
     }
     auto diff = now - d_connectionStartTime;
@@ -161,6 +166,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
          Let's just drop the connection
       */
       vinfolog("Got an exception while handling (%s backend) TCP query from %s: %s", (conn->d_state == State::sendingQueryToBackend ? "writing to" : "reading from"), conn->d_currentQuery.d_idstate.origRemote.toStringWithPort(), e.what());
+
       if (conn->d_state == State::sendingQueryToBackend) {
         ++conn->d_ds->tcpDiedSendingQuery;
       }
@@ -333,7 +339,12 @@ bool TCPConnectionToBackend::reconnect()
       if (d_handler->hasTLSSessionBeenResumed()) {
         ++d_ds->tlsResumptions;
       }
-      tlsSession = d_handler->getTLSSession();
+      try {
+        tlsSession = d_handler->getTLSSession();
+      }
+      catch (const std::exception& e) {
+        vinfolog("Unable to get a TLS session to resume: %s", e.what());
+      }
     }
     d_handler->close();
     d_ioState.reset();

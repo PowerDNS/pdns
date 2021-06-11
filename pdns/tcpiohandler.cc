@@ -103,6 +103,14 @@ public:
   {
     d_socket = socket;
 
+    if (!s_initTLSConnIndex.test_and_set()) {
+      /* not initialized yet */
+      s_tlsConnIndex = SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+      if (s_tlsConnIndex == -1) {
+        throw std::runtime_error("Error getting an index for TLS connection data");
+      }
+    }
+
     if (!d_conn) {
       vinfolog("Error creating TLS object");
       if (g_verbose) {
@@ -130,6 +138,7 @@ public:
 #else
     /* no hostname validation for you, see https://wiki.openssl.org/index.php/Hostname_validation */
 #endif
+    SSL_set_ex_data(d_conn.get(), s_tlsConnIndex, this);
   }
 
   IOState convertIORequestToIOState(int res) const
@@ -403,9 +412,13 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() const override
+  std::unique_ptr<TLSSession> getSession() override
   {
-    return std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(SSL_get1_session(d_conn.get()), SSL_SESSION_free)));
+    if (d_tlsSession) {
+      return std::move(d_tlsSession);
+    }
+
+    throw std::runtime_error("Unable to get an OpenSSL session");
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -423,6 +436,11 @@ public:
     native.release();
   }
 
+  void setNewTicket(SSL_SESSION* session)
+  {
+    d_tlsSession = std::unique_ptr<TLSSession>(new OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>(session, SSL_SESSION_free)));
+  }
+
   static int s_tlsConnIndex;
 
 private:
@@ -430,6 +448,7 @@ private:
 
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
+  std::unique_ptr<TLSSession> d_tlsSession{nullptr};
   std::string d_hostname;
   struct timeval d_timeout;
 };
@@ -535,6 +554,11 @@ public:
       warnlog("TLS hostname validation requested but not supported for OpenSSL < 1.0.2");
 #endif
     }
+
+    /* we need to set SSL_SESS_CACHE_CLIENT for the "new ticket" callback (below) to be called,
+       but we don't want OpenSSL to cache the session itself so we set SSL_SESS_CACHE_NO_INTERNAL_STORE as well */
+    SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
+    SSL_CTX_sess_set_new_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::newTicketFromServerCb);
   }
 
   ~OpenSSLTLSIOCtx() override
@@ -575,6 +599,17 @@ public:
     }
     const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
     return libssl_ocsp_stapling_callback(ssl, *ocspMap);
+  }
+
+  static int newTicketFromServerCb(SSL* ssl, SSL_SESSION* session)
+  {
+    OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(ssl, OpenSSLTLSConnection::s_tlsConnIndex));
+    if (session == nullptr || conn == nullptr) {
+      return 0;
+    }
+
+    conn->setNewTicket(session);
+    return 1;
   }
 
   std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) override
@@ -746,7 +781,7 @@ class GnuTLSConnection: public TLSConnection
 {
 public:
   /* server side connection */
-  GnuTLSConnection(int socket, const struct timeval& timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey, bool enableTickets): d_conn(std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)>(nullptr, gnutls_deinit)), d_ticketsKey(ticketsKey)
+  GnuTLSConnection(int socket, const struct timeval& timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey, bool enableTickets): d_ticketsKey(ticketsKey), d_conn(std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)>(nullptr, gnutls_deinit))
   {
     unsigned int sslOptions = GNUTLS_SERVER | GNUTLS_NONBLOCK;
 #ifdef GNUTLS_NO_SIGNAL
@@ -830,6 +865,31 @@ public:
 #else
     /* no hostname validation for you */
 #endif
+
+    /* allow access to our data in the callbacks */
+    gnutls_session_set_ptr(d_conn.get(), this);
+    gnutls_handshake_set_hook_function(d_conn.get(), GNUTLS_HANDSHAKE_NEW_SESSION_TICKET, GNUTLS_HOOK_POST, newTicketFromServerCb);
+  }
+
+  static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int incoming, const gnutls_datum_t* msg)
+  {
+    if (htype != GNUTLS_HANDSHAKE_NEW_SESSION_TICKET || post != GNUTLS_HOOK_POST || session == nullptr) {
+      return 0;
+    }
+
+    GnuTLSConnection* conn = reinterpret_cast<GnuTLSConnection*>(gnutls_session_get_ptr(session));
+    if (conn == nullptr) {
+      return 0;
+    }
+
+    gnutls_datum_t sess{nullptr, 0};
+    auto ret = gnutls_session_get_data2(session, &sess);
+    /* GnuTLS returns a 'fake' ticket of 4 bytes set to zero when there is no ticket available */
+    if (ret != GNUTLS_E_SUCCESS || sess.size <= 4) {
+      throw std::runtime_error("Error getting GnuTLSSession: " + std::string(gnutls_strerror(ret)));
+    }
+    conn->d_tlsSession = std::unique_ptr<TLSSession>(new GnuTLSSession(sess));
+    return 0;
   }
 
   IOState tryConnect(bool fastOpen, const ComboAddress& remote) override
@@ -1157,28 +1217,13 @@ public:
     return false;
   }
 
-  std::unique_ptr<TLSSession> getSession() const override
+  std::unique_ptr<TLSSession> getSession() override
   {
-    if (getTLSVersion() == LibsslTLSVersion::TLS13) {
-#if GNUTLS_VERSION_NUMBER >= 0x030603
-      /* with TLS 1.3, gnutls_session_get_data2() will _wait_ for a ticket is there is none yet.. */
-      if ((gnutls_session_get_flags(d_conn.get()) & GNUTLS_SFLAGS_SESSION_TICKET) == 0) {
-        return nullptr;
-      }
-#else /* GNUTLS_VERSION_NUMBER >= 0x030603 */
-      /* the GNUTLS_SFLAGS_SESSION_TICKET flag does not exist before 3.6.3 (but TLS 1.3 should not either), so we can't be sure we are not
-         going to block, better give up. */
-      return nullptr;
-#endif /* GNUTLS_VERSION_NUMBER >= 0x030603 */
+    if (d_tlsSession) {
+      return std::move(d_tlsSession);
     }
 
-    gnutls_datum_t sess{nullptr, 0};
-    auto ret = gnutls_session_get_data2(d_conn.get(), &sess);
-    if (ret != GNUTLS_E_SUCCESS) {
-      throw std::runtime_error("Error getting GnuTLSSession: " + std::string(gnutls_strerror(ret)));
-    }
-
-    return std::unique_ptr<TLSSession>(new GnuTLSSession(sess));
+    throw std::runtime_error("No GnuTLSSession available yet");
   }
 
   void setSession(std::unique_ptr<TLSSession>& session) override
@@ -1193,6 +1238,7 @@ public:
     if (ret != GNUTLS_E_SUCCESS) {
       throw std::runtime_error("Error setting up GnuTLS session: " + std::string(gnutls_strerror(ret)));
     }
+
     session.release();
   }
 
@@ -1204,8 +1250,9 @@ public:
   }
 
 private:
-  std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)> d_conn;
   std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey;
+  std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)> d_conn;
+  std::unique_ptr<TLSSession> d_tlsSession{nullptr};
   std::string d_host;
   bool d_client{false};
   bool d_handshakeDone{false};
