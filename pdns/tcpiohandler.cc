@@ -871,7 +871,12 @@ public:
     gnutls_handshake_set_hook_function(d_conn.get(), GNUTLS_HANDSHAKE_NEW_SESSION_TICKET, GNUTLS_HOOK_POST, newTicketFromServerCb);
   }
 
+  /* The callback prototype changed in 3.4.0. */
+#if GNUTLS_VERSION_NUMBER >= 0x030400
   static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int incoming, const gnutls_datum_t* msg)
+#else
+  static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int incoming)
+#endif /* GNUTLS_VERSION_NUMBER >= 0x030400 */
   {
     if (htype != GNUTLS_HANDSHAKE_NEW_SESSION_TICKET || post != GNUTLS_HOOK_POST || session == nullptr) {
       return 0;
