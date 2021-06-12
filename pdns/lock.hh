@@ -236,6 +236,11 @@ public:
     return LockGuardedHolder<T>(d_value, d_mutex);
   }
 
+  LockGuardedHolder<const T> read_only_lock() const
+  {
+    return LockGuardedHolder<const T>(d_value, d_mutex);
+  }
+
 private:
   std::mutex d_mutex;
   T d_value;

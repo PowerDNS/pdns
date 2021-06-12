@@ -217,7 +217,7 @@ template<typename T, typename Comp>
 vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 {
   map<T,unsigned int, Comp> res;
-  for(typename boost::circular_buffer<T>::const_iterator i=d_items.begin();i!=d_items.end();++i) {
+  for (typename boost::circular_buffer<T>::const_iterator i = d_items.begin(); i != d_items.end(); ++i) {
     res[*i]++;
   }
   
