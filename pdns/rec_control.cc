@@ -143,7 +143,7 @@ int main(int argc, char** argv)
       }
       else if (commands.at(i) == "hash-password") {
         auto password = CredentialsHolder::readFromTerminal();
-        cout << hashPassword(password) << endl;
+        cout << hashPassword(password.getString()) << endl;
         return 0;
       }
       ++i;

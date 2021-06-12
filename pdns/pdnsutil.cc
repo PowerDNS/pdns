@@ -2485,7 +2485,7 @@ try
   }
   else if (cmds[0]=="hash-password") {
     auto password = CredentialsHolder::readFromTerminal();
-    cout<<hashPassword(password)<<endl;
+    cout<<hashPassword(password.getString())<<endl;
     return 0;
   }
 

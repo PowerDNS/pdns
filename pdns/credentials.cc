@@ -21,73 +21,290 @@
  */
 #include "config.h"
 
+#include <cmath>
 #include <stdexcept>
 
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
 
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+#include <openssl/evp.h>
+#include <openssl/kdf.h>
+#include <openssl/rand.h>
+#endif
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "base64.hh"
 #include "credentials.hh"
 #include "misc.hh"
 
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+static size_t const pwhash_max_size = 128U; /* maximum size of the output */
+static size_t const pwhash_output_size = 32U; /* size of the hashed output (before base64 encoding) */
+static unsigned int const pwhash_salt_size = 16U; /* size of the salt (before base64 encoding */
+static uint64_t const pwhash_max_work_factor =  32768U; /* max N for interactive login purposes */
+
+/* PHC string format, storing N as log2(N) as done by passlib.
+   for now we only support one algo but we might have to change that later */
+static std::string const pwhash_prefix = "$scrypt$";
+static size_t const pwhash_prefix_size = pwhash_prefix.size();
+#endif
+
+uint64_t const CredentialsHolder::s_defaultWorkFactor{1024U}; /* N */
+uint64_t const CredentialsHolder::s_defaultParallelFactor{1U}; /* p */
+uint64_t const CredentialsHolder::s_defaultBlockSize{8U}; /* r */
+
+SensitiveData::SensitiveData(std::string&& data): d_data(std::move(data))
+{
+#ifdef HAVE_LIBSODIUM
+  sodium_mlock(d_data.data(), d_data.size());
+#endif
+}
+
+SensitiveData::SensitiveData(size_t bytes)
+{
+  d_data.resize(bytes);
+#ifdef HAVE_LIBSODIUM
+  sodium_mlock(d_data.data(), d_data.size());
+#endif
+}
+
+SensitiveData::~SensitiveData()
+{
+  clear();
+}
+
+void SensitiveData::clear()
+{
+#ifdef HAVE_LIBSODIUM
+  sodium_munlock(d_data.data(), d_data.size());
+#endif
+  d_data.clear();
+}
+
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+static std::string hashPasswordInternal(const std::string& password, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
+{
+  auto pctx = std::unique_ptr<EVP_PKEY_CTX, void(*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, nullptr), EVP_PKEY_CTX_free);
+  if (!pctx) {
+    throw std::runtime_error("Error getting a scrypt context to hash the supplied password");
+  }
+
+  if (EVP_PKEY_derive_init(pctx.get()) <= 0) {
+    throw std::runtime_error("Error intializing the scrypt context to hash the supplied password");
+  }
+
+  if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), reinterpret_cast<const unsigned char*>(password.data()), password.size()) <= 0) {
+    throw std::runtime_error("Error adding the password to the scrypt context to hash the supplied password");
+ }
+
+  if (EVP_PKEY_CTX_set1_scrypt_salt(pctx.get(), salt.data(), salt.size()) <= 0) {
+    throw std::runtime_error("Error adding the salt to the scrypt context to hash the supplied password");
+  }
+
+  if (EVP_PKEY_CTX_set_scrypt_N(pctx.get(), workFactor) <= 0) {
+    throw std::runtime_error("Error setting the work factor to the scrypt context to hash the supplied password");
+  }
+
+  if (EVP_PKEY_CTX_set_scrypt_r(pctx.get(), blockSize) <= 0) {
+    throw std::runtime_error("Error setting the block size to the scrypt context to hash the supplied password");
+  }
+
+  if (EVP_PKEY_CTX_set_scrypt_p(pctx.get(), parallelFactor) <= 0) {
+    throw std::runtime_error("Error setting the parallel factor to the scrypt context to hash the supplied password");
+  }
+
+  std::string out;
+  out.resize(pwhash_output_size);
+  size_t outlen = out.size();
+
+  if (EVP_PKEY_derive(pctx.get(), reinterpret_cast<unsigned char*>(out.data()), &outlen) <= 0 || outlen != pwhash_output_size) {
+    throw std::runtime_error("Error deriving the output from the scrypt context to hash the supplied password");
+  }
+
+  return out;
+}
+#endif
+
+static std::string generateRandomSalt()
+{
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+  /* generate a random salt */
+  std::string salt;
+  salt.resize(pwhash_salt_size);
+
+  if (RAND_bytes(reinterpret_cast<unsigned char*>(salt.data()), salt.size()) != 1) {
+    throw std::runtime_error("Error while generating a salt to hash the supplied password");
+  }
+
+  return salt;
+#else
+  throw std::runtime_error("Generating a salted password requires scrypt support in OpenSSL, and it is not available");
+#endif
+}
+
 std::string hashPassword(const std::string& password)
 {
-#ifdef HAVE_CRYPTO_PWHASH_STR
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
   std::string result;
-  result.resize(crypto_pwhash_STRBYTES);
-  sodium_mlock(result.data(), result.size());
+  result.reserve(pwhash_max_size);
 
-  int res = crypto_pwhash_str(const_cast<char*>(result.c_str()),
-                              password.c_str(),
-                              password.size(),
-                              crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                              crypto_pwhash_MEMLIMIT_INTERACTIVE);
-  if (res != 0) {
-    throw std::runtime_error("Error while hashing the supplied password");
-  }
+  result.append(pwhash_prefix);
+  result.append("ln=");
+  result.append(std::to_string(static_cast<uint64_t>(std::log2(CredentialsHolder::s_defaultWorkFactor))));
+  result.append(",p=");
+  result.append(std::to_string(CredentialsHolder::s_defaultParallelFactor));
+  result.append(",r=");
+  result.append(std::to_string(CredentialsHolder::s_defaultBlockSize));
+  result.append("$");
+  auto salt = generateRandomSalt();
+  result.append(Base64Encode(salt));
+  result.append("$");
+
+  auto out = hashPasswordInternal(password, salt, CredentialsHolder::s_defaultWorkFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
+
+  result.append(Base64Encode(out));
 
   return result;
 #else
-  throw std::runtime_error("Hashing a password requires libsodium support, and it is not available");
+  throw std::runtime_error("Hashing a password requires scrypt support in OpenSSL, and it is not available");
+#endif
+}
+
+bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize, const std::string& binaryPassword)
+{
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+  auto expected = hashPasswordInternal(binaryPassword, salt, workFactor, parallelFactor, blockSize);
+  return constantTimeStringEquals(expected, binaryHash);
+#else
+  throw std::runtime_error("Hashing a password requires scrypt support in OpenSSL, and it is not available");
+#endif
+}
+
+/* parse a hashed password in PHC string format */
+static void parseHashed(const std::string& hash, std::string& salt, std::string& hashedPassword, uint64_t& workFactor, uint64_t& parallelFactor, uint64_t& blockSize)
+{
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+  auto parametersEnd = hash.find('$', pwhash_prefix.size());
+  if (parametersEnd == std::string::npos || parametersEnd == hash.size()) {
+    cerr<<hash<<endl;
+    throw std::runtime_error("Invalid hashed password format, no parameters");
+  }
+
+  auto parametersStr = hash.substr(pwhash_prefix.size(), parametersEnd);
+  std::vector<std::string> parameters;
+  parameters.reserve(3);
+  stringtok(parameters, parametersStr, ",");
+  if (parameters.size() != 3) {
+    throw std::runtime_error("Invalid hashed password format, expecting 3 parameters, got " + std::to_string(parameters.size()));
+  }
+
+  if (!boost::starts_with(parameters.at(0), "ln=")) {
+    throw std::runtime_error("Invalid hashed password format, ln= parameter not found");
+  }
+
+  if (!boost::starts_with(parameters.at(1), "p=")) {
+    throw std::runtime_error("Invalid hashed password format, p= parameter not found");
+  }
+
+  if (!boost::starts_with(parameters.at(2), "r=")) {
+    throw std::runtime_error("Invalid hashed password format, r= parameter not found");
+  }
+
+  auto saltPos = parametersEnd + 1;
+  auto saltEnd = hash.find('$', saltPos);
+  if (saltEnd == std::string::npos || saltEnd == hash.size()) {
+    throw std::runtime_error("Invalid hashed password format");
+  }
+
+  try {
+    workFactor = pdns_stou(parameters.at(0).substr(3));
+    workFactor = 1 << workFactor;
+    if (workFactor > pwhash_max_work_factor) {
+      throw std::runtime_error("Invalid work factor of " + std::to_string(workFactor) + " in hashed password string, maximum is " + std::to_string(pwhash_max_work_factor));
+    }
+
+    parallelFactor = pdns_stou(parameters.at(1).substr(2));
+    blockSize = pdns_stou(parameters.at(2).substr(2));
+
+    auto b64Salt = hash.substr(saltPos, saltEnd - saltPos);
+    salt.reserve(pwhash_salt_size);
+    B64Decode(b64Salt, salt);
+
+    if (salt.size() != pwhash_salt_size) {
+      throw std::runtime_error("Invalid salt in hashed password string");
+    }
+
+    hashedPassword.reserve(pwhash_output_size);
+    B64Decode(hash.substr(saltEnd + 1), hashedPassword);
+
+    if (hashedPassword.size() != pwhash_output_size) {
+      throw std::runtime_error("Invalid hash in hashed password string");
+    }
+  }
+  catch (const std::exception& e) {
+    throw std::runtime_error("Invalid hashed password format, unable to parse parameters");
+  }
 #endif
 }
 
 bool verifyPassword(const std::string& hash, const std::string& password)
 {
-#ifdef HAVE_CRYPTO_PWHASH_STR
-  if (hash.size() > crypto_pwhash_STRBYTES) {
-    throw std::runtime_error("Invalid password hash supplied for verification, size is " + std::to_string(hash.size()) + ", expected at most " + std::to_string(crypto_pwhash_STRBYTES));
+  if (!isPasswordHashed(hash)) {
+    return false;
   }
 
-  return crypto_pwhash_str_verify(hash.c_str(),
-                                  password.c_str(),
-                                  password.size())
-    == 0;
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+  std::string salt;
+  std::string hashedPassword;
+  uint64_t workFactor = 0;
+  uint64_t parallelFactor = 0;
+  uint64_t blockSize = 0;
+  parseHashed(hash, salt, hashedPassword, workFactor, parallelFactor, blockSize);
+
+  auto expected = hashPasswordInternal(password, salt, workFactor, parallelFactor, blockSize);
+
+  return constantTimeStringEquals(expected, hashedPassword);
 #else
-  throw std::runtime_error("Verifying a hashed password requires libsodium support, and it is not available");
+  throw std::runtime_error("Verifying a hashed password requires scrypt support in OpenSSL, and it is not available");
 #endif
 }
 
 bool isPasswordHashed(const std::string& password)
 {
-#ifdef HAVE_CRYPTO_PWHASH_STR
-  if (password.size() > crypto_pwhash_STRBYTES) {
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+  if (password.size() < pwhash_prefix_size || password.size() > pwhash_max_size) {
     return false;
   }
 
-  int res = crypto_pwhash_str_needs_rehash(password.c_str(),
-                                           crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                                           crypto_pwhash_MEMLIMIT_INTERACTIVE);
-
-  if (res == -1) {
+  if (!boost::starts_with(password, pwhash_prefix)) {
     return false;
   }
-  /* 1 means a rehashing is needed (different parameters), 0 is fine.
-     Either way this is a valid hash */
+
+  auto parametersEnd = password.find('$', pwhash_prefix.size());
+  if (parametersEnd == std::string::npos || parametersEnd == password.size()) {
+    return false;
+  }
+
+  auto saltEnd = password.find('$', parametersEnd + 1);
+  if (saltEnd == std::string::npos || saltEnd == password.size()) {
+    return false;
+  }
+
+  /* the salt is base64 encoded so it has to be larger than that */
+  if ((saltEnd - parametersEnd - 1) < pwhash_salt_size) {
+    return false;
+  }
+
+  /* the hash base64 encoded so it has to be larger than that */
+  if ((password.size() - saltEnd - 1) < pwhash_output_size)  {
+    return false;
+  }
+
   return true;
 #else
   return false;
@@ -96,43 +313,36 @@ bool isPasswordHashed(const std::string& password)
 
 /* if the password is in cleartext and hashing is available,
    the hashed form will be kept in memory */
-CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext)
+CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext): d_credentials(std::move(password))
 {
-  bool locked = false;
-
   if (isHashingAvailable()) {
-    if (!isPasswordHashed(password)) {
+    if (!isPasswordHashed(d_credentials.getString())) {
       if (hashPlaintext) {
-        d_credentials = hashPassword(password);
-        locked = true;
+        d_salt = generateRandomSalt();
+        d_workFactor = s_defaultWorkFactor;
+        d_parallelFactor = s_defaultParallelFactor;
+        d_blockSize = s_defaultBlockSize;
+        d_credentials = SensitiveData(hashPasswordInternal(d_credentials.getString(), d_salt, d_workFactor, d_parallelFactor, d_blockSize));
         d_isHashed = true;
       }
     }
     else {
       d_wasHashed = true;
       d_isHashed = true;
-      d_credentials = std::move(password);
+      std::string hashedPassword;
+      parseHashed(d_credentials.getString(), d_salt, hashedPassword, d_workFactor, d_parallelFactor, d_blockSize);
+      d_credentials = SensitiveData(std::move(hashedPassword));
     }
   }
 
   if (!d_isHashed) {
     d_fallbackHashPerturb = random();
-    d_fallbackHash = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
-    d_credentials = std::move(password);
-  }
-
-  if (!locked) {
-#ifdef HAVE_LIBSODIUM
-    sodium_mlock(d_credentials.data(), d_credentials.size());
-#endif
+    d_fallbackHash = burtle(reinterpret_cast<const unsigned char*>(d_credentials.getString().data()), d_credentials.getString().size(), d_fallbackHashPerturb);
   }
 }
 
 CredentialsHolder::~CredentialsHolder()
 {
-#ifdef HAVE_LIBSODIUM
-  sodium_munlock(d_credentials.data(), d_credentials.size());
-#endif
   d_fallbackHashPerturb = 0;
   d_fallbackHash = 0;
 }
@@ -140,7 +350,7 @@ CredentialsHolder::~CredentialsHolder()
 bool CredentialsHolder::matches(const std::string& password) const
 {
   if (d_isHashed) {
-    return verifyPassword(d_credentials, password);
+    return verifyPassword(d_credentials.getString(), d_salt, d_workFactor, d_parallelFactor, d_blockSize, password);
   }
   else {
     uint32_t fallback = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
@@ -148,13 +358,13 @@ bool CredentialsHolder::matches(const std::string& password) const
       return false;
     }
 
-    return constantTimeStringEquals(password, d_credentials);
+    return constantTimeStringEquals(password, d_credentials.getString());
   }
 }
 
 bool CredentialsHolder::isHashingAvailable()
 {
-#ifdef HAVE_CRYPTO_PWHASH_STR
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
   return true;
 #else
   return false;
@@ -164,7 +374,7 @@ bool CredentialsHolder::isHashingAvailable()
 #include <signal.h>
 #include <termios.h>
 
-std::string CredentialsHolder::readFromTerminal()
+SensitiveData CredentialsHolder::readFromTerminal()
 {
   struct termios term;
   struct termios oterm;
@@ -240,9 +450,5 @@ std::string CredentialsHolder::readFromTerminal()
     sigaction(sig.first, &sig.second, nullptr);
   }
 
-#ifdef HAVE_LIBSODIUM
-  sodium_mlock(buffer.data(), buffer.size());
-#endif
-
-  return buffer;
+  return SensitiveData(std::move(buffer));
 }
