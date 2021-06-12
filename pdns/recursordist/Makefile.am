@@ -446,6 +446,7 @@ endif
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	base64.cc base64.hh \
 	credentials.cc credentials.hh \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \

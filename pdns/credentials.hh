@@ -24,15 +24,39 @@
 #include <memory>
 #include <string>
 
+class SensitiveData
+{
+public:
+  SensitiveData(size_t bytes);
+  SensitiveData(std::string&& data);
+  ~SensitiveData();
+  void clear();
+  const std::string& getString() const
+  {
+    return d_data;
+  }
+  std::string& getString()
+  {
+    return d_data;
+  }
+
+private:
+  std::string d_data;
+};
+
 std::string hashPassword(const std::string& password);
 bool verifyPassword(const std::string& hash, const std::string& password);
+bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize, const std::string& binaryPassword);
 bool isPasswordHashed(const std::string& password);
 
 class CredentialsHolder
 {
 public:
-  /* if the password is in cleartext and hashing is available,
-     the hashed form will be kept in memory */
+  /* if hashPlaintext is true, the password is in cleartext and hashing is available,
+     the hashed form will be kept in memory.
+     Note that accepting hashed password from an untrusted source might open
+     us to a denial of service, since we currently don't cap the the parameters,
+     including the work factor */
   CredentialsHolder(std::string&& password, bool hashPlaintext);
   ~CredentialsHolder();
 
@@ -52,10 +76,21 @@ public:
   }
 
   static bool isHashingAvailable();
-  static std::string readFromTerminal();
+  static SensitiveData readFromTerminal();
+
+  static uint64_t const s_defaultWorkFactor;
+  static uint64_t const s_defaultParallelFactor;
+  static uint64_t const s_defaultBlockSize;
 
 private:
-  std::string d_credentials;
+  SensitiveData d_credentials;
+  /* if the password is hashed, we only extract
+     the salt and parameters once */
+  std::string d_salt;
+  uint64_t d_workFactor{0};
+  uint64_t d_parallelFactor{0};
+  uint64_t d_blockSize{0};
+  /* seed our hash so it's not predictable */
   uint32_t d_fallbackHashPerturb;
   uint32_t d_fallbackHash{0};
   /* whether it was constructed from a hashed and salted string */
