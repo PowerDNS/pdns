@@ -31,7 +31,6 @@ class AuthZoneCache : public boost::noncopyable
 {
 public:
   AuthZoneCache(size_t mapsCount = 1024);
-  ~AuthZoneCache();
 
   void replace(const vector<tuple<DNSName, int>>& zone);
   void add(const DNSName& zone, const int zoneId);
@@ -70,8 +69,7 @@ private:
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
 
-    ReadWriteLock d_mut;
-    cmap_t d_map;
+    SharedLockGuarded<cmap_t> d_map;
   };
 
   vector<MapCombo> d_maps;
@@ -90,9 +88,12 @@ private:
 
   time_t d_refreshinterval{0};
 
-  ReadWriteLock d_mut;
-  std::vector<tuple<DNSName, int>> d_pendingAdds;
-  bool d_replacePending{false};
+  struct PendingData
+  {
+    std::vector<tuple<DNSName, int>> d_pendingAdds;
+    bool d_replacePending{false};
+  };
+  LockGuarded<PendingData> d_pending;
 };
 
 extern AuthZoneCache g_zoneCache;

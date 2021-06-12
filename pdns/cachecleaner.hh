@@ -102,12 +102,12 @@ template <typename S, typename T> uint64_t pruneLockedCollectionsVector(std::vec
   time_t now = time(nullptr);
 
   for(auto& mc : maps) {
-    WriteLock wl(&mc.d_mut);
+    auto map = mc.d_map.write_lock();
 
-    uint64_t lookAt = (mc.d_map.size() + 9) / 10; // Look at 10% of this shard
+    uint64_t lookAt = (map->size() + 9) / 10; // Look at 10% of this shard
     uint64_t erased = 0;
 
-    auto& sidx = boost::multi_index::get<S>(mc.d_map);
+    auto& sidx = boost::multi_index::get<S>(*map);
     for(auto i = sidx.begin(); i != sidx.end() && lookAt > 0; lookAt--) {
       if(i->ttd < now) {
         i = sidx.erase(i);
@@ -203,9 +203,9 @@ template <typename T> uint64_t purgeLockedCollectionsVector(std::vector<T>& maps
   uint64_t delcount=0;
 
   for(auto& mc : maps) {
-    WriteLock wl(&mc.d_mut);
-    delcount += mc.d_map.size();
-    mc.d_map.clear();
+    auto map = mc.d_map.write_lock();
+    delcount += map->size();
+    map->clear();
   }
 
   return delcount;
@@ -218,8 +218,8 @@ template <typename N, typename T> uint64_t purgeLockedCollectionsVector(std::vec
   prefix.resize(prefix.size()-1);
   DNSName dprefix(prefix);
   for(auto& mc : maps) {
-    WriteLock wl(&mc.d_mut);
-    auto& idx = boost::multi_index::get<N>(mc.d_map);
+    auto map = mc.d_map.write_lock();
+    auto& idx = boost::multi_index::get<N>(*map);
     auto iter = idx.lower_bound(dprefix);
     auto start = iter;
 
@@ -238,8 +238,8 @@ template <typename N, typename T> uint64_t purgeLockedCollectionsVector(std::vec
 template <typename N, typename T> uint64_t purgeExactLockedCollection(T& mc, const DNSName& qname)
 {
   uint64_t delcount=0;
-  WriteLock wl(&mc.d_mut);
-  auto& idx = boost::multi_index::get<N>(mc.d_map);
+  auto map = mc.d_map.write_lock();
+  auto& idx = boost::multi_index::get<N>(*map);
   auto range = idx.equal_range(qname);
   if(range.first != range.second) {
     delcount += distance(range.first, range.second);
