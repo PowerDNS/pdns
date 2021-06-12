@@ -253,7 +253,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                       [client, configCheck](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
       setLuaSideEffect();
 
-      std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress());
+      std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, !(client || configCheck));
       newserver_t vars;
 
       ComboAddress serverAddr;
@@ -827,7 +827,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getServer", [client](boost::variant<unsigned int, std::string> i) {
       if (client) {
-        return std::make_shared<DownstreamState>(ComboAddress());
+        return std::make_shared<DownstreamState>(ComboAddress(), ComboAddress(), 0, std::string(), 1, false);
       }
       auto states = g_dstates.getCopy();
       if (auto str = boost::get<std::string>(&i)) {
@@ -1819,14 +1819,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
+  luaCtx.writeFunction("setRingBuffersSize", [client](size_t capacity, boost::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {
         errlog("setRingBuffersSize() cannot be used at runtime!");
         g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
         return;
       }
-      g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 10);
+      if (!client) {
+        g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 10);
+      }
+      else {
+        g_rings.setCapacity(0, 1);
+      }
     });
 
   luaCtx.writeFunction("setRingBuffersLockRetries", [](size_t retries) {
@@ -2579,7 +2584,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaBindingsDNSCrypt(luaCtx);
   setupLuaBindingsDNSQuestion(luaCtx);
   setupLuaBindingsKVS(luaCtx, client);
-  setupLuaBindingsPacketCache(luaCtx);
+  setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);
   setupLuaInspection(luaCtx);
   setupLuaRules(luaCtx);
