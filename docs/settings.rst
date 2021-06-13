@@ -1894,7 +1894,7 @@ means no restriction.
 -------------------------------
 
 -  Integer
--  Default: 0
+-  Default: 300
 
 Seconds to cache a list of all known zones. A value of 0 will disable the cache.
 
