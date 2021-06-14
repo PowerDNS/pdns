@@ -104,6 +104,14 @@ For all supported ``pdns_control`` commands and options, see :doc:`the
 manpage <../manpages/pdns_control.1>` and the output of
 ``pdns_control --help`` on your system.
 
+Backend manipulation
+~~~~~~~~~~~~~~
+
+``pdnsutil``
+~~~~~~~~~~~~~~~~
+
+To perform zone and record changes using inbuilt tools, the ``pdnsutil`` command can be used. All available options are described in the online :doc:`manual page <manpages/pdnsutil>` as well as in ``man pdnsutil``.
+
 The SysV init script
 --------------------
 
