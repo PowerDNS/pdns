@@ -801,7 +801,7 @@ struct StatRingDNSNameQTypeToStringTest
   string getName() const { return "StatRing test with DNSName and QType to string"; }
 
   void operator()() const {
-    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.getName());
+    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.toString());
   };
 
   DNSName d_name;
