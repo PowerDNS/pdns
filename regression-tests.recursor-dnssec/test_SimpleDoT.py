@@ -3,22 +3,25 @@ import os
 import subprocess
 from recursortests import RecursorTest
 
-class testSimpleForwardOverDoT(RecursorTest):
+class testSimpleDoT(RecursorTest):
     """
-    This is forwarding to a DoT server in a very basic way and is dependent on Quad9 working
+    This tests DoT to auth server in a very basic way and is dependent on powerdns.com nameservers having DoT enabled.
     """
 
-    _confdir = 'SimpleForwardOverDoT'
+    _confdir = 'SimpleDoT'
     _config_template = """
 dnssec=validate
-forward-zones-recurse=.=9.9.9.9:853
+dot-to-auth-names=powerdns.com
     """
+
+    _roothints = None
 
     @classmethod
     def setUpClass(cls):
 
         # we don't need all the auth stuff
         cls.setUpSockets()
+        cls.startResponders()
 
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
@@ -27,8 +30,8 @@ forward-zones-recurse=.=9.9.9.9:853
         cls.startRecursor(confdir, cls._recursorPort)
 
     def testA(self):
-        expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
-        query = dns.message.make_query('dns.google', 'A', want_dnssec=True)
+        expected = dns.rrset.from_text('www.powerdns.com.', 0, dns.rdataclass.IN, 'A', '188.166.104.92')
+        query = dns.message.make_query('www.powerdns.com', 'A', want_dnssec=True)
         query.flags |= dns.flags.AD
 
         res = self.sendUDPQuery(query)

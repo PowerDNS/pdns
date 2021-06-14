@@ -417,13 +417,20 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   pident->highState = TCPAction::DoingWrite;
 
 
-  TCPLOG("Initial tryWrite: " << pident->outPos << '/' << pident->outMSG.size() << ' ' << " -> ");
-  IOState state = handler->tryWrite(pident->outMSG, pident->outPos, pident->outMSG.size());
-  TCPLOG(pident->outPos << '/' << pident->outMSG.size() << endl);
+  IOState state;
+  try {
+    TCPLOG("Initial tryWrite: " << pident->outPos << '/' << pident->outMSG.size() << ' ' << " -> ");
+    state = handler->tryWrite(pident->outMSG, pident->outPos, pident->outMSG.size());
+    TCPLOG(pident->outPos << '/' << pident->outMSG.size() << endl);
 
-  if (state == IOState::Done) {
-    TCPLOG("asendtcp success A" << endl);
-    return LWResult::Result::Success;
+    if (state == IOState::Done) {
+      TCPLOG("asendtcp success A" << endl);
+      return LWResult::Result::Success;
+    }
+  }
+  catch (const std::exception& e) {
+    TCPLOG("tryWrite() exception..." << e.what() << endl);
+    return LWResult::Result::PermanentError;
   }
 
   // Will set pident->lowState
@@ -433,16 +440,17 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   int ret = MT->waitEvent(*pident, &packet, g_networkTimeoutMsec);
   TCPLOG("asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
   if (ret == 0) {
-    t_fdm->removeWriteFD(handler->getDescriptor());
     TCPLOG("timeout" << endl);
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) { // error
-    t_fdm->removeWriteFD(handler->getDescriptor());
     TCPLOG("PermanentError" << endl);
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
   else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
+    // fd housekeeping done by TCPIOHandlerIO
     TCPLOG("PermanentError size mismatch" << endl);
     return LWResult::Result::PermanentError;
   }
@@ -500,15 +508,16 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   TCPLOG("arecvtcp " << ret << ' ' << data.size() << ' ' );
   if (ret == 0) {
     TCPLOG("timeout" << endl);
-    t_fdm->removeReadFD(handler->getDescriptor());
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) {
     TCPLOG("PermanentError" << endl);
-    t_fdm->removeWriteFD(handler->getDescriptor());
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
   else if (data.empty()) {// error, EOF or other
+    // fd housekeeping done by TCPIOHandlerIO
     TCPLOG("EOF" << endl);
     return LWResult::Result::PermanentError;
   }
@@ -4164,7 +4173,7 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
     // In arecvtcp, the buffer was resized already so inWanted bytes will fit
     // try reading
     try {
-      newstate = pid->tcphandler->tryRead(pid->inMSG, pid->inPos, pid->inWanted - pid->inPos);
+      newstate = pid->tcphandler->tryRead(pid->inMSG, pid->inPos, pid->inWanted);
       switch (newstate) {
       case IOState::Done:
       case IOState::NeedRead:

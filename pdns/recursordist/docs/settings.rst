@@ -396,8 +396,7 @@ ratio.
 - Default: (empty).
 
 Force DoT to the listed authoritative nameservers. For this to work, DoT support has to be compiled in.
-Currently, the certificate is checked for validity, but the name in the certificate is not checked against
-the name of the host.
+Currently, the certificate is not checked for validity in any way.
 
 .. _settings-dot-to-port-853:
 

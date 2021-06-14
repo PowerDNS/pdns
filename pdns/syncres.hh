@@ -946,7 +946,7 @@ struct PacketID
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
-  string::size_type inPos{0};   // how for are we along in the inMSG
+  string::size_type inPos{0};   // how far are we along in the inMSG
   size_t inWanted{0}; // if this is set, we'll read until inWanted bytes are read
   string::size_type outPos{0};    // how far we are along in the outMSG
   mutable uint32_t nearMisses{0}; // number of near misses - host correct, id wrong
@@ -1161,3 +1161,4 @@ struct ThreadTimes
     return *this;
   }
 };
+
