@@ -485,9 +485,9 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   pident->tcphandler = handler;
   pident->tcpsock = handler->getDescriptor();
   // We might have a partial result
-  data.resize(pos);
   pident->inMSG = data;
-  pident->inNeeded = len;
+  pident->inPos = pos;
+  pident->inWanted = len;
   pident->inIncompleteOkay = incompleteOkay;
   pident->highState = TCPAction::DoingRead;
 
@@ -4157,23 +4157,21 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
 
   // In the code below, we want to update the state of the fd before calling sendEvent
   // a sendEvent might close the fd, and some poll multiplexers do not like to manipulate a closed fd
-  
+
   switch (pid->highState) {
   case TCPAction::DoingRead:
     TCPLOG("highState: Reading" << endl);
+    // In arecvtcp, the buffer was resized already so inWanted bytes will fit
     // try reading
     try {
-      size_t pos = pid->inMSG.size();
-      pid->inMSG.resize(pos + pid->inNeeded); // make room for what we'll read
-      newstate = pid->tcphandler->tryRead(pid->inMSG, pos, pid->inNeeded);
+      newstate = pid->tcphandler->tryRead(pid->inMSG, pid->inPos, pid->inWanted - pid->inPos);
       switch (newstate) {
       case IOState::Done:
       case IOState::NeedRead:
-        TCPLOG("tryRead: Done or NeedRead " << int(newstate) << ' ' << pos << '/' << pid->inNeeded << endl);
-        pid->inMSG.resize(pos); // old content (if there) + new bytes read
-        pid->inNeeded -= pos;
-        TCPLOG("TCPIOHandlerIO " << pid->inNeeded << ' ' << pid->inIncompleteOkay << endl);
-        if (pid->inNeeded == 0 || pid->inIncompleteOkay) {
+        TCPLOG("tryRead: Done or NeedRead " << int(newstate) << ' ' << pid->inPos << '/' << pid->inWanted << endl);
+        TCPLOG("TCPIOHandlerIO " << pid->inWanted << ' ' << pid->inIncompleteOkay << endl);
+        if (pid->inPos == pid->inWanted || (pid->inIncompleteOkay && pid->inPos > 0)) {
+          pid->inMSG.resize(pid->inPos); // old content (if there) + new bytes read, only relevant for the inIncompleteOkay case
           newstate = IOState::Done;
           TCPIOHandlerStateChange(pid->lowState, newstate, pid);
           MT->sendEvent(*pid, &pid->inMSG);
@@ -5929,4 +5927,5 @@ int main(int argc, char **argv)
 
   return ret;
 }
+
 
