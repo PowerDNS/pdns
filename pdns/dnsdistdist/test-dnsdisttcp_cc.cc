@@ -2519,7 +2519,9 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     TEST_INIT("=> AXFR");
 
     PacketBuffer axfrQuery;
+    PacketBuffer secondQuery;
     std::vector<PacketBuffer> axfrResponses(3);
+    PacketBuffer secondResponse;
 
     GenericDNSPacketWriter<PacketBuffer> pwAXFRQuery(axfrQuery, DNSName("powerdns.com."), QType::AXFR, QClass::IN, 0);
     pwAXFRQuery.getHeader()->rd = 0;
@@ -2528,12 +2530,26 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
     const uint8_t axfrQuerySizeBytes[] = { static_cast<uint8_t>(axfrQuerySize / 256), static_cast<uint8_t>(axfrQuerySize % 256) };
     axfrQuery.insert(axfrQuery.begin(), axfrQuerySizeBytes, axfrQuerySizeBytes + 2);
 
-    for (auto& response : axfrResponses) {
-      DNSName name("powerdns.com.");
+    const DNSName name("powerdns.com.");
+    {
+      /* first message */
+      auto& response = axfrResponses.at(0);
       GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
       pwR.getHeader()->qr = 1;
       pwR.getHeader()->id = 42;
-      // whatever
+
+      /* insert SOA */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(1 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      /* A record */
       pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
       pwR.xfr32BitInt(0x01020304);
       pwR.commit();
@@ -2542,17 +2558,85 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
       response.insert(response.begin(), sizeBytes, sizeBytes + 2);
     }
+    {
+      /* second message */
+      auto& response = axfrResponses.at(1);
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
+      pwR.getHeader()->qr = 1;
+      pwR.getHeader()->id = 42;
+
+      /* A record */
+      pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfr32BitInt(0x01020304);
+      pwR.commit();
+
+      uint16_t responseSize = static_cast<uint16_t>(response.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      response.insert(response.begin(), sizeBytes, sizeBytes + 2);
+    }
+    {
+      /* third message */
+      auto& response = axfrResponses.at(2);
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
+      pwR.getHeader()->qr = 1;
+      pwR.getHeader()->id = 42;
+
+      /* A record */
+      pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfr32BitInt(0x01020304);
+      pwR.commit();
+
+      /* final SOA */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(1 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      uint16_t responseSize = static_cast<uint16_t>(response.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      response.insert(response.begin(), sizeBytes, sizeBytes + 2);
+    }
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwSecondQuery(secondQuery, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
+      pwSecondQuery.getHeader()->rd = 1;
+      pwSecondQuery.getHeader()->id = 84;
+      uint16_t secondQuerySize = static_cast<uint16_t>(secondQuery.size());
+      const uint8_t secondQuerySizeBytes[] = { static_cast<uint8_t>(secondQuerySize / 256), static_cast<uint8_t>(secondQuerySize % 256) };
+      secondQuery.insert(secondQuery.begin(), secondQuerySizeBytes, secondQuerySizeBytes + 2);
+    }
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwSecondResponse(secondResponse, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
+      pwSecondResponse.getHeader()->qr = 1;
+      pwSecondResponse.getHeader()->rd = 1;
+      pwSecondResponse.getHeader()->ra = 1;
+      pwSecondResponse.getHeader()->id = 84;
+      pwSecondResponse.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwSecondResponse.xfr32BitInt(0x01020304);
+      pwSecondResponse.commit();
+      uint16_t responseSize = static_cast<uint16_t>(secondResponse.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      secondResponse.insert(secondResponse.begin(), sizeBytes, sizeBytes + 2);
+    }
 
     PacketBuffer expectedWriteBuffer;
     PacketBuffer expectedBackendWriteBuffer;
 
     s_readBuffer = axfrQuery;
+    s_readBuffer.insert(s_readBuffer.end(), secondQuery.begin(), secondQuery.end());
 
-    expectedBackendWriteBuffer = axfrQuery;
+    expectedBackendWriteBuffer = s_readBuffer;
 
     for (const auto& response : axfrResponses) {
       s_backendReadBuffer.insert(s_backendReadBuffer.end(), response.begin(), response.end());
     }
+    s_backendReadBuffer.insert(s_backendReadBuffer.end(), secondResponse.begin(), secondResponse.end());
 
     expectedWriteBuffer = s_backendReadBuffer;
 
@@ -2585,13 +2669,22 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(2).size() - 2 },
       /* sending response (3) to the client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(2).size() },
-      /* trying to read from the backend but blocking and descriptor is no longer ready */
-      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData,&timeout](int desc, const ExpectedStep& step) {
-        /* the backend descriptor is not ready anymore */
-        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(desc);
-        timeout = true;
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(2).size(), [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
+      /* trying to read from the client, getting a second query */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, secondQuery.size() - 2 },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, secondQuery.size() },
+      /* reading the response (4) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, secondResponse.size() - 2 },
+      /* sending response (4) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, secondResponse.size() },
+      /* trying to read from the client, getting EOF */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
       /* closing the client connection */
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
       /* closing the backend connection */
@@ -2612,15 +2705,265 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
       threadData.mplexer->run(&now);
     }
 
-    struct timeval later = now;
-    later.tv_sec += backend->tcpRecvTimeout + 1;
-    auto expiredConns = threadData.mplexer->getTimeouts(later, false);
-    BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
-    for (const auto& cbData : expiredConns) {
-      if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
-        auto cbState = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
-        cbState->handleTimeout(later, false);
-      }
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());
+    BOOST_CHECK(s_writeBuffer == expectedWriteBuffer);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), expectedBackendWriteBuffer.size());
+    BOOST_CHECK(s_backendWriteBuffer == expectedBackendWriteBuffer);
+
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
+
+  {
+    TEST_INIT("=> IXFR");
+
+    PacketBuffer firstQuery;
+    PacketBuffer ixfrQuery;
+    PacketBuffer secondQuery;
+    PacketBuffer firstResponse;
+    std::vector<PacketBuffer> ixfrResponses(1);
+    PacketBuffer secondResponse;
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwFirstQuery(firstQuery, DNSName("powerdns.com."), QType::SOA, QClass::IN, 0);
+      pwFirstQuery.getHeader()->rd = 1;
+      pwFirstQuery.getHeader()->id = 84;
+      uint16_t firstQuerySize = static_cast<uint16_t>(firstQuery.size());
+      const uint8_t firstQuerySizeBytes[] = { static_cast<uint8_t>(firstQuerySize / 256), static_cast<uint8_t>(firstQuerySize % 256) };
+      firstQuery.insert(firstQuery.begin(), firstQuerySizeBytes, firstQuerySizeBytes + 2);
+    }
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwFirstResponse(firstResponse, DNSName("powerdns.com."), QType::SOA, QClass::IN, 0);
+      pwFirstResponse.getHeader()->qr = 1;
+      pwFirstResponse.getHeader()->rd = 1;
+      pwFirstResponse.getHeader()->ra = 1;
+      pwFirstResponse.getHeader()->id = 84;
+      pwFirstResponse.startRecord(DNSName("powerdns.com."), QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwFirstResponse.xfrName(g_rootdnsname, true);
+      pwFirstResponse.xfrName(g_rootdnsname, true);
+      pwFirstResponse.xfr32BitInt(3 /* serial */);
+      pwFirstResponse.xfr32BitInt(0);
+      pwFirstResponse.xfr32BitInt(0);
+      pwFirstResponse.xfr32BitInt(0);
+      pwFirstResponse.xfr32BitInt(0);
+      pwFirstResponse.commit();
+
+      uint16_t responseSize = static_cast<uint16_t>(firstResponse.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      firstResponse.insert(firstResponse.begin(), sizeBytes, sizeBytes + 2);
+    }
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwIXFRQuery(ixfrQuery, DNSName("powerdns.com."), QType::IXFR, QClass::IN, 0);
+      pwIXFRQuery.getHeader()->rd = 0;
+      pwIXFRQuery.getHeader()->id = 42;
+      uint16_t ixfrQuerySize = static_cast<uint16_t>(ixfrQuery.size());
+      const uint8_t ixfrQuerySizeBytes[] = { static_cast<uint8_t>(ixfrQuerySize / 256), static_cast<uint8_t>(ixfrQuerySize % 256) };
+      ixfrQuery.insert(ixfrQuery.begin(), ixfrQuerySizeBytes, ixfrQuerySizeBytes + 2);
+    }
+
+    const DNSName name("powerdns.com.");
+    {
+      /* first message */
+      auto& response = ixfrResponses.at(0);
+      GenericDNSPacketWriter<PacketBuffer> pwR(response, name, QType::A, QClass::IN, 0);
+      pwR.getHeader()->qr = 1;
+      pwR.getHeader()->id = 42;
+
+      /* insert final SOA */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(3 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      /* insert first SOA */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(1 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      /* removals */
+      /* A record */
+      pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfr32BitInt(0x01020304);
+      pwR.commit();
+
+      /* additions */
+      /* insert second SOA */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(2 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+      /* A record */
+      pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfr32BitInt(0x01020305);
+      pwR.commit();
+      /* done with 1 -> 2 */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(2 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      /* no removal */
+
+      /* additions */
+      /* insert second SOA */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(3 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      /* actually no addition either */
+      /* done */
+      pwR.startRecord(name, QType::SOA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfrName(g_rootdnsname, true);
+      pwR.xfr32BitInt(3 /* serial */);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.xfr32BitInt(0);
+      pwR.commit();
+
+      uint16_t responseSize = static_cast<uint16_t>(response.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      response.insert(response.begin(), sizeBytes, sizeBytes + 2);
+    }
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwSecondQuery(secondQuery, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
+      pwSecondQuery.getHeader()->rd = 1;
+      pwSecondQuery.getHeader()->id = 84;
+      uint16_t secondQuerySize = static_cast<uint16_t>(secondQuery.size());
+      const uint8_t secondQuerySizeBytes[] = { static_cast<uint8_t>(secondQuerySize / 256), static_cast<uint8_t>(secondQuerySize % 256) };
+      secondQuery.insert(secondQuery.begin(), secondQuerySizeBytes, secondQuerySizeBytes + 2);
+    }
+
+    {
+      GenericDNSPacketWriter<PacketBuffer> pwSecondResponse(secondResponse, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
+      pwSecondResponse.getHeader()->qr = 1;
+      pwSecondResponse.getHeader()->rd = 1;
+      pwSecondResponse.getHeader()->ra = 1;
+      pwSecondResponse.getHeader()->id = 84;
+      pwSecondResponse.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      pwSecondResponse.xfr32BitInt(0x01020304);
+      pwSecondResponse.commit();
+      uint16_t responseSize = static_cast<uint16_t>(secondResponse.size());
+      const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+      secondResponse.insert(secondResponse.begin(), sizeBytes, sizeBytes + 2);
+    }
+
+    PacketBuffer expectedWriteBuffer;
+    PacketBuffer expectedBackendWriteBuffer;
+
+    s_readBuffer = firstQuery;
+    s_readBuffer.insert(s_readBuffer.end(), ixfrQuery.begin(), ixfrQuery.end());
+    s_readBuffer.insert(s_readBuffer.end(), secondQuery.begin(), secondQuery.end());
+
+    expectedBackendWriteBuffer = s_readBuffer;
+
+    s_backendReadBuffer = firstResponse;
+    for (const auto& response : ixfrResponses) {
+      s_backendReadBuffer.insert(s_backendReadBuffer.end(), response.begin(), response.end());
+    }
+    s_backendReadBuffer.insert(s_backendReadBuffer.end(), secondResponse.begin(), secondResponse.end());
+
+    expectedWriteBuffer = s_backendReadBuffer;
+
+    bool timeout = false;
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      /* reading a query from the client (1) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, firstQuery.size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      /* sending query (1) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, firstQuery.size() },
+      /* no response ready yet, but setting the backend descriptor readable */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData](int desc, const ExpectedStep& step) {
+        /* the backend descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+      } },
+      /* try to read a second query from the client, none yet */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      /* read the response (1) from the backend  */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, firstResponse.size() - 2 },
+      /* sending response (1) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, firstResponse.size(), [&threadData](int desc, const ExpectedStep& step) {
+        /* client descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+      } },
+      /* reading a query from the client (2) */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, ixfrQuery.size() - 2 },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, ixfrQuery.size() },
+      /* read the response (ixfr 1) from the backend  */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, ixfrResponses.at(0).size() - 2 },
+      /* sending response (ixfr 1) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, ixfrResponses.at(0).size(), [&threadData](int desc, const ExpectedStep& step) {
+        /* the client descriptor becomes ready */
+        dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
+      } },
+      /* trying to read from the client, getting a second query */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, secondQuery.size() - 2 },
+      /* sending query (2) to the backend */
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, secondQuery.size() },
+      /* reading the response (4) from the backend */
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, secondResponse.size() - 2 },
+      /* sending response (4) to the client */
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, secondResponse.size() },
+      /* trying to read from the client, getting EOF */
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      /* closing the client connection */
+      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      /* closing the backend connection */
+      { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
+    };
+
+    s_processQuery = [backend](DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS), threadData, now);
+    IncomingTCPConnectionState::handleIO(state, now);
+    while (!timeout && (threadData.mplexer->getWatchedFDCount(false) != 0 || threadData.mplexer->getWatchedFDCount(true) != 0)) {
+      threadData.mplexer->run(&now);
     }
 
     BOOST_CHECK_EQUAL(s_writeBuffer.size(), expectedWriteBuffer.size());

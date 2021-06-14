@@ -477,34 +477,6 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     return IOState::Done;
   }
 
-  if (d_usedForXFR) {
-    DEBUGLOG("XFR!");
-    bool done = false;
-    TCPResponse response;
-    response.d_buffer = std::move(d_responseBuffer);
-    response.d_connection = conn;
-    /* could be a IXFR but that does not matter,
-       we only need to know that this is a AXFR or IXFR response */
-    response.d_idstate.qtype = QType::AXFR;
-
-    done = isXFRFinished(response, clientConn);
-
-    clientConn->handleXFRResponse(clientConn, now, std::move(response));
-    if (done) {
-      conn->d_usedForXFR = false;
-      clientConn->d_isXFR = false;
-      d_state = State::idle;
-      d_clientConn.reset();
-      return IOState::Done;
-    }
-
-    d_state = State::waitingForResponseFromBackend;
-    d_currentPos = 0;
-    d_responseBuffer.resize(sizeof(uint16_t));
-    // get ready to read the next packet, if any
-    return IOState::NeedRead;
-  }
-
   uint16_t queryId = 0;
   try {
     queryId = getQueryIdFromResponse();
@@ -526,13 +498,51 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     --conn->d_ds->outstanding;
   }
 
+  if (d_usedForXFR) {
+    DEBUGLOG("XFR!");
+    bool done = false;
+    TCPResponse response;
+    response.d_buffer = std::move(d_responseBuffer);
+    response.d_connection = conn;
+    /* we don't move the whole IDS because we will need for the responses to come */
+    response.d_idstate.qtype = it->second.d_idstate.qtype;
+    response.d_idstate.qname = it->second.d_idstate.qname;
+    DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
+
+    done = isXFRFinished(response, clientConn);
+
+    if (done) {
+      d_pendingResponses.erase(it);
+      /* marking as idle for now, so we can accept new queries if our queues are empty */
+      if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
+        d_state = State::idle;
+      }
+      clientConn->d_isXFR = false;
+      conn->d_usedForXFR = false;
+    }
+
+    clientConn->handleXFRResponse(clientConn, now, std::move(response));
+    if (done) {
+      d_state = State::idle;
+      d_clientConn.reset();
+      return IOState::Done;
+    }
+
+    d_state = State::waitingForResponseFromBackend;
+    d_currentPos = 0;
+    d_responseBuffer.resize(sizeof(uint16_t));
+    // get ready to read the next packet, if any
+    return IOState::NeedRead;
+  }
+
   auto ids = std::move(it->second.d_idstate);
   d_pendingResponses.erase(it);
-  DEBUGLOG("passing response to client connection for "<<ids.qname);
   /* marking as idle for now, so we can accept new queries if our queues are empty */
   if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
     d_state = State::idle;
   }
+
+  DEBUGLOG("passing response to client connection for "<<ids.qname);
   clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
 
   if (!d_pendingQueries.empty()) {
