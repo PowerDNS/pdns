@@ -19,6 +19,7 @@ jobs:
       - run: "echo -ne 'Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 600\n' | sudo tee /etc/apt/preferences.d/pdns"
       - run: curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo apt-key add -
       - run: sudo apt-get update
+      - run: sudo systemctl mask pdns
       - run: sudo apt-get install -y pdns-server pdns-backend-sqlite3
       - run: "echo -ne 'launch=gsqlite3\ngsqlite3-database=/var/lib/powerdns/pdns.sqlite3\n' | sudo tee /etc/powerdns/pdns.conf"
       - run: sudo sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/share/doc/pdns-backend-sqlite3/schema.sqlite3.sql
