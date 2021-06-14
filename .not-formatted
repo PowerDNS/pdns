@@ -197,8 +197,6 @@
 ./pdns/libssl.cc
 ./pdns/libssl.hh
 ./pdns/lock.hh
-./pdns/logger.cc
-./pdns/logger.hh
 ./pdns/lua-auth4.cc
 ./pdns/lua-auth4.hh
 ./pdns/lua-base4.cc
