@@ -99,7 +99,7 @@ private:
       }
       int http_code = 200;
       if (cd.opts.count("httpcode")) {
-        http_code = std::atoi(cd.opts.at("httpcode").c_str());
+        http_code = pdns_stou(cd.opts.at("httpcode").c_str());
       }
 
       bool failonerror = false;
