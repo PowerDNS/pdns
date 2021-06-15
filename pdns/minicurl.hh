@@ -40,7 +40,6 @@ public:
   MiniCurl& operator=(const MiniCurl&) = delete;
   std::string getURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2, int http_status = 200);
   std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers, int timeout = 2, bool fastopen = false);
-  void unsetFailOnError();
 private:
   CURL *d_curl;
   bool curlopt_failonerror;
