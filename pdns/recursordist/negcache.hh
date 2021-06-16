@@ -77,7 +77,7 @@ public:
   void clear();
   size_t dumpToFile(FILE* fd, const struct timeval& now);
   size_t wipe(const DNSName& name, bool subtree = false);
-  size_t size();
+  size_t size() const;
 
 private:
   struct CompositeKey
@@ -106,37 +106,41 @@ private:
     MapCombo() {}
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
-    negcache_t d_map;
+    struct LockedContent
+    {
+      negcache_t d_map;
+      uint64_t d_contended_count{0};
+      uint64_t d_acquired_count{0};
+      void invalidate() {}
+    };
+    LockGuarded<LockedContent> d_content;
     std::atomic<uint64_t> d_entriesCount{0};
-    uint64_t d_contended_count{0};
-    uint64_t d_acquired_count{0};
-    void invalidate() {}
   };
 
-  vector<LockGuarded<MapCombo>> d_maps;
+  vector<MapCombo> d_maps;
 
-  LockGuarded<MapCombo>& getMap(const DNSName& qname)
+  MapCombo& getMap(const DNSName& qname)
   {
     return d_maps.at(qname.hash() % d_maps.size());
   }
-  const LockGuarded<MapCombo>& getMap(const DNSName& qname) const
+  const MapCombo& getMap(const DNSName& qname) const
   {
     return d_maps.at(qname.hash() % d_maps.size());
   }
 
 public:
-  static LockGuardedTryHolder<MapCombo> lock(LockGuarded<MapCombo>& map)
+  static LockGuardedTryHolder<MapCombo::LockedContent> lock(LockGuarded<MapCombo::LockedContent>& content)
   {
-    auto locked = map.try_lock();
+    auto locked = content.try_lock();
     if (!locked.owns_lock()) {
       locked.lock();
-      locked->d_contended_count++;
+      ++locked->d_contended_count;
     }
     ++locked->d_acquired_count;
     return locked;
   }
 
-  void preRemoval(MapCombo& map, const NegCacheEntry& entry)
+  void preRemoval(MapCombo::LockedContent& map, const NegCacheEntry& entry)
   {
   }
 };
