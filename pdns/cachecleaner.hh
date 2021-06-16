@@ -139,11 +139,12 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
   }
 
   uint64_t maps_size = maps.size();
-  if (maps_size == 0)
-      return 0;
+  if (maps_size == 0) {
+    return 0;
+  }
 
-  for (auto& lockGuardedMap : maps) {
-    auto mc = C::lock(lockGuardedMap);
+  for (auto& content : maps) {
+    auto mc = C::lock(content.d_content);
     mc->invalidate();
     auto& sidx = boost::multi_index::get<S>(mc->d_map);
     uint64_t erased = 0, lookedAt = 0;
@@ -152,7 +153,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
         container.preRemoval(*mc, *i);
         i = sidx.erase(i);
         erased++;
-        mc->d_entriesCount--;
+        --content.d_entriesCount;
       } else {
         ++i;
       }
@@ -176,15 +177,15 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
     while (true) {
     size_t pershard = toTrim / maps_size + 1;
-    for (auto& lockGuardedMap : maps) {
-      auto mc = C::lock(lockGuardedMap);
+    for (auto& content : maps) {
+      auto mc = C::lock(content.d_content);
       mc->invalidate();
       auto& sidx = boost::multi_index::get<S>(mc->d_map);
       size_t removed = 0;
       for (auto i = sidx.begin(); i != sidx.end() && removed < pershard; removed++) {
         container.preRemoval(*mc, *i);
         i = sidx.erase(i);
-        mc->d_entriesCount--;
+        --content.d_entriesCount;
         totErased++;
         toTrim--;
         if (toTrim == 0) {
