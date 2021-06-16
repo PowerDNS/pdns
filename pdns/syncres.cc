@@ -125,6 +125,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass, vector<DNSRecord>&ret, unsigned int depth)
 {
+  d_eventTrace.add(RecEventTrace::SyncRes);
   vState state = vState::Indeterminate;
   s_queries++;
   d_wasVariable=false;
@@ -170,6 +171,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     }
   }
 
+  d_eventTrace.add(RecEventTrace::SyncRes, res, false);
   return res;
 }
 
@@ -3932,7 +3934,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   int preOutQueryRet = RCode::NoError;
-  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, preOutQueryRet)) {
+  if(d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, preOutQueryRet, d_eventTrace)) {
     LOG(prefix<<qname<<": query handled by Lua"<<endl);
   }
   else {

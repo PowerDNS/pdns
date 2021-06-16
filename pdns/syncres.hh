@@ -53,6 +53,7 @@
 #include "sholder.hh"
 #include "histogram.hh"
 #include "tcpiohandler.hh"
+#include "rec-eventtrace.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -793,6 +794,7 @@ public:
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
   boost::optional<string> d_routingTag;
+  RecEventTrace d_eventTrace;
 
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;

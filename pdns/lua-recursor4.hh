@@ -35,6 +35,7 @@
 #include "lua-base4.hh"
 #include "proxy-protocol.hh"
 #include "noinitvector.hh"
+#include "rec-eventtrace.hh"
 
 #include <unordered_map>
 
@@ -185,13 +186,13 @@ public:
   unsigned int gettag_ffi(FFIParams&) const;
 
   void maintenance() const;
-  bool prerpz(DNSQuestion& dq, int& ret) const;
-  bool preresolve(DNSQuestion& dq, int& ret) const;
-  bool nxdomain(DNSQuestion& dq, int& ret) const;
-  bool nodata(DNSQuestion& dq, int& ret) const;
-  bool postresolve(DNSQuestion& dq, int& ret) const;
+  bool prerpz(DNSQuestion& dq, int& ret, RecEventTrace&) const;
+  bool preresolve(DNSQuestion& dq, int& ret, RecEventTrace&) const;
+  bool nxdomain(DNSQuestion& dq, int& ret, RecEventTrace&) const;
+  bool nodata(DNSQuestion& dq, int& ret, RecEventTrace&) const;
+  bool postresolve(DNSQuestion& dq, int& ret, RecEventTrace&) const;
 
-  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const;
+  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& et) const;
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&) const;
 
   bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;
