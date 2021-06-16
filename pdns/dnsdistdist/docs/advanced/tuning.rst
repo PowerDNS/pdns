@@ -111,6 +111,8 @@ When Lua inspection is needed, the best course of action is to restrict the quer
 +------------------------------+-------------+-----------------+
 | Lua FFI rule                 | fast        | global Lua lock |
 +------------------------------+-------------+-----------------+
+| Lua per-thread FFI rule      | fast        | none            |
++------------------------------+-------------+-----------------+
 | C++ LB policy                | fast        | none            |
 +------------------------------+-------------+-----------------+
 | Lua LB policy                | slow        | global Lua lock |

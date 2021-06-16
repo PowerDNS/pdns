@@ -489,6 +489,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "LogResponseAction", true, "[filename], [append], [buffered]", "Log a line for each response, to the specified file if any, to the console (require verbose) otherwise. The `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "LuaAction", true, "function", "Invoke a Lua function that accepts a DNSQuestion" },
   { "LuaFFIAction", true, "function", "Invoke a Lua FFI function that accepts a DNSQuestion" },
+  { "LuaFFIPerThreadAction", true, "function", "Invoke a Lua FFI function that accepts a DNSQuestion, with a per-thread Lua context" },
+  { "LuaFFIPerThreadResponseAction", true, "function", "Invoke a Lua FFI function that accepts a DNSResponse, with a per-thread Lua context" },
   { "LuaFFIResponseAction", true, "function", "Invoke a Lua FFI function that accepts a DNSResponse" },
   { "LuaFFIRule", true, "function", "Invoke a Lua FFI function that filters DNS questions" },
   { "LuaResponseAction", true, "function", "Invoke a Lua function that accepts a DNSResponse" },

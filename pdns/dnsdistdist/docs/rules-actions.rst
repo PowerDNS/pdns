@@ -498,6 +498,18 @@ These ``DNSRule``\ s be one of the following items:
   :param KeyValueStore kvs: The key value store to query
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
 
+.. function:: LuaFFIPerThreadRule(function)
+
+  .. versionadded:: 1.7.0
+
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+
+  The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
+
+  The function will be invoked in a per-thread Lua state, without access to the global Lua state.
+
+  :param string function: the name of a Lua function
+
 .. function:: LuaFFIRule(function)
 
   .. versionadded:: 1.5.0
@@ -995,6 +1007,30 @@ The following actions exist.
   Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
 
   The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaFFIPerThreadAction(function)
+
+  .. versionadded:: 1.7.0
+
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+
+  The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
+
+  The function will be invoked in a per-thread Lua state, without access to the global Lua state.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaFFIPerThreadResponseAction(function)
+
+  .. versionadded:: 1.7.0
+
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+
+  The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
+
+  The function will be invoked in a per-thread Lua state, without access to the global Lua state.
 
   :param string function: the name of a Lua function
 
