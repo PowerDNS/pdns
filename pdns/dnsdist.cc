@@ -2015,6 +2015,13 @@ static void usage()
   cout<<"-V,--version          Show dnsdist version information and exit\n";
 }
 
+#ifdef COVERAGE
+static void sighandler(int sig)
+{
+  exit(EXIT_SUCCESS);
+}
+#endif
+
 int main(int argc, char** argv)
 {
   try {
@@ -2025,6 +2032,10 @@ int main(int argc, char** argv)
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
+#ifdef COVERAGE
+    signal(SIGTERM, sighandler);
+#endif
+
     openlog("dnsdist", LOG_PID|LOG_NDELAY, LOG_DAEMON);
 
 #ifdef HAVE_LIBSODIUM
@@ -2208,7 +2219,11 @@ int main(int argc, char** argv)
       if (clientAddress != ComboAddress())
         g_serverControl = clientAddress;
       doClient(g_serverControl, g_cmdLine.command);
+#ifdef COVERAGE
+      exit(EXIT_SUCCESS);
+#else
       _exit(EXIT_SUCCESS);
+#endif
     }
 
     auto acl = g_ACL.getCopy();
@@ -2229,7 +2244,11 @@ int main(int argc, char** argv)
       setupLua(g_lua, false, true, g_cmdLine.config);
       // No exception was thrown
       infolog("Configuration '%s' OK!", g_cmdLine.config);
+#ifdef COVERAGE
+      exit(EXIT_SUCCESS);
+#else
       _exit(EXIT_SUCCESS);
+#endif
     }
 
     auto todo = setupLua(g_lua, false, false, g_cmdLine.config);
@@ -2480,8 +2499,11 @@ int main(int argc, char** argv)
       healththread.detach();
       doConsole();
     }
+#ifdef COVERAGE
+    exit(EXIT_SUCCESS);
+#else
     _exit(EXIT_SUCCESS);
-
+#endif
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     try {
@@ -2494,17 +2516,29 @@ int main(int argc, char** argv)
     {
       errlog("Fatal pdns error: %s", ae.reason);
     }
+#ifdef COVERAGE
+    exit(EXIT_FAILURE);
+#else
     _exit(EXIT_FAILURE);
+#endif
   }
   catch (const std::exception &e)
   {
     errlog("Fatal error: %s", e.what());
+#ifdef COVERAGE
+    exit(EXIT_FAILURE);
+#else
     _exit(EXIT_FAILURE);
+#endif
   }
   catch (const PDNSException &ae)
   {
     errlog("Fatal pdns error: %s", ae.reason);
+#ifdef COVERAGE
+    exit(EXIT_FAILURE);
+#else
     _exit(EXIT_FAILURE);
+#endif
   }
 }
 
