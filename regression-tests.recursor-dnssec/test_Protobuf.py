@@ -228,6 +228,20 @@ class TestRecursorProtobuf(RecursorTest):
         for tag in msg.response.tags:
             self.assertTrue(tag in tags)
 
+    def checkProtobufMetas(self, msg, metas):
+        print(metas)
+        print('---')
+        print(msg.meta)
+        self.assertEqual(len(msg.meta), len(metas))
+        for m in msg.meta:
+            self.assertTrue(m.HasField('key'))
+            self.assertTrue(m.HasField('value'))
+            self.assertTrue(m.key in metas)
+            for i in m.value.intVal :
+              self.assertTrue(i in metas[m.key]['intVal'])
+            for s in m.value.stringVal :
+              self.assertTrue(s in metas[m.key]['stringVal'])
+
     def checkProtobufOutgoingQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1', length=None):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType)
         self.checkOutgoingProtobufBase(msg, protocol, query, initiator, length=length)
@@ -279,6 +293,7 @@ class TestRecursorProtobuf(RecursorTest):
 @ 3600 IN SOA {soa}
 a 3600 IN A 192.0.2.42
 tagged 3600 IN A 192.0.2.84
+meta 3600 IN A 192.0.2.85
 query-selected 3600 IN A 192.0.2.84
 answer-selected 3600 IN A 192.0.2.84
 types 3600 IN A 192.0.2.84
@@ -990,4 +1005,62 @@ sub.test 3600 IN A 192.0.2.42
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
+
+class ProtobufMetaFFITest(TestRecursorProtobuf):
+    """
+    This test makes sure that we can correctly add extra meta fields (FFI version).
+    """
+    _confdir = 'ProtobufMetaFFITest'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    _lua_config_file = """
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+    _lua_dns_script_file = """
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+      typedef struct pdns_ffi_param pdns_ffi_param_t;
+
+      const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref);
+      void pdns_ffi_param_add_meta_single_string_kv(pdns_ffi_param_t *ref, const char* key, const char* val);
+      void pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t *ref, const char* key, int64_t val);
+    ]]
+
+    function gettag_ffi(obj)
+      qname = ffi.string(ffi.C.pdns_ffi_param_get_qname(obj))
+      if qname == 'meta.example' then
+        ffi.C.pdns_ffi_param_add_meta_single_string_kv(obj, "meta-str", "keyword")
+        ffi.C.pdns_ffi_param_add_meta_single_int64_kv(obj, "meta-int", 42)
+        ffi.C.pdns_ffi_param_add_meta_single_string_kv(obj, "meta-str", "content")
+        ffi.C.pdns_ffi_param_add_meta_single_int64_kv(obj, "meta-int", 21)
+      end
+      return 0
+    end
+    """
+    def testMeta(self):
+        name = 'meta.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.85')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        self.checkProtobufMetas(msg, {'meta-str': { "stringVal" : ["content", "keyword"]}, 'meta-int': {"intVal" : [21, 42]}})
+
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.85')
+        self.checkProtobufMetas(msg, {'meta-str': { "stringVal" : ["content", "keyword"]}, 'meta-int': {"intVal" : [21, 42]}})
+
         self.checkNoRemainingMessage()

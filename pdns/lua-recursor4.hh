@@ -63,6 +63,11 @@ public:
   RecursorLua4();
   ~RecursorLua4(); // this is so unique_ptr works with an incomplete type
 
+  struct MetaValue
+  {
+    std::unordered_set<std::string> stringVal;
+    std::unordered_set<int64_t> intVal;
+  };
   struct DNSQuestion
   {
     DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_) :
@@ -93,6 +98,7 @@ public:
     bool& logResponse;
     bool& addPaddingToResponse;
     unsigned int tag{0};
+    std::map<std::string, MetaValue> meta;
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
@@ -135,11 +141,6 @@ public:
     DNSFilterEngine::Policy* appliedPolicy{nullptr};
     std::unordered_set<std::string>* policyTags{nullptr};
     std::unordered_map<std::string, bool>* discardedPolicies{nullptr};
-  };
-  struct MetaValue
-  {
-    std::unordered_set<std::string> stringVal;
-    std::unordered_set<int64_t> intVal;
   };
 
   struct FFIParams

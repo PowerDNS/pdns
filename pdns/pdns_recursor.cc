@@ -1750,6 +1750,7 @@ static void startDoResolve(void *p)
     dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
     dq.extendedErrorCode = &dc->d_extendedErrorCode;
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
+    dq.meta = dc->d_meta;
 
     if(ednsExtRCode != 0) {
       goto sendit;
@@ -1894,6 +1895,7 @@ static void startDoResolve(void *p)
       dq.validationState = sr.getValidationState();
       appliedPolicy = sr.d_appliedPolicy;
       dc->d_policyTags = std::move(sr.d_policyTags);
+
       if (appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && appliedPolicy.d_zoneData && appliedPolicy.d_zoneData->d_extendedErrorCode) {
         dc->d_extendedErrorCode = *appliedPolicy.d_zoneData->d_extendedErrorCode;
         dc->d_extendedErrorExtra = appliedPolicy.d_zoneData->d_extendedErrorExtra;
@@ -2251,6 +2253,10 @@ static void startDoResolve(void *p)
       pbMessage.setDeviceName(dq.deviceName);
       pbMessage.setFromPort(dc->d_source.getPort());
       pbMessage.setToPort(dc->d_destination.getPort());
+
+      for (const auto& m : dq.meta) {
+        pbMessage.setMeta(m.first, m.second.stringVal, m.second.intVal);
+      }
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
         if (nod) {
@@ -2535,6 +2541,7 @@ static bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& d
     g_stats.ourtime(0);
 #endif
   }
+
   return cacheHit;
 }
 
@@ -3148,6 +3155,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_extendedErrorCode = extendedErrorCode;
   dc->d_extendedErrorExtra = std::move(extendedErrorExtra);
   dc->d_responsePaddingDisabled = responsePaddingDisabled;
+  dc->d_meta = std::move(meta);
 
   MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;
