@@ -1,1 +1,4 @@
-../../../../ext/yahttp/.gitignore
+yahttp/libyahttp.a
+*.o
+Makefile
+Makefile.in
