@@ -121,6 +121,8 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
 *.createreverse  IN    LUA    PTR   "createReverse('%5%.example.com', {{['10.10.10.10'] = 'quad10.example.com.'}})"
 *.createreverse6 IN    LUA    PTR   "createReverse6('%33%.example.com', {{['2001:db8::1'] = 'example.example.com.'}})"
 
+newcafromraw     IN    LUA    A    "newCAFromRaw('ABCD'):toString()"
+newcafromraw     IN    LUA    AAAA "newCAFromRaw('ABCD020340506070'):toString()"
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
@@ -606,6 +608,32 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(self.sortRRsets(res.answer), self.sortRRsets(response.answer))
+
+    def testCAFromRaw(self):
+        """
+        Test newCAFromRaw() function
+        """
+        name = 'newcafromraw.example.org.'
+
+        query = dns.message.make_query(name, 'A')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '65.66.67.68'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, response.answer)
+
+        query = dns.message.make_query(name, 'AAAA')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.AAAA, '4142:4344:3032:3033:3430:3530:3630:3730'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, response.answer)
 
     def testResolve(self):
         """
