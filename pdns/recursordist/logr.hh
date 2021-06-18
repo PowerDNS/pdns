@@ -35,12 +35,12 @@ struct Loggable
 };
 
 // In addition to level which specifies the amount of detail and is
-// structered so that a derived logger always has a higher level
+// structured so that a derived logger always has a higher level
 // than its parent we also have a priority/urgency field that maps
 // to the same field of the old logger which in turns has a direct
 // mapping to syslog priority. This is done to make it easier to
 // move step by step to structured logging. We consider both level
-// and priorty to select which messages are logged, amnd a backend
+// and priority to select which messages are logged, and a backend
 // can further use priority to pass to syslog.
 
 enum Priority : uint8_t

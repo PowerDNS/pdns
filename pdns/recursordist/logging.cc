@@ -63,7 +63,7 @@ void Logger::logMessage(const std::string& msg, Logr::Priority p, boost::optiona
   Utility::gettimeofday(&entry.d_timestamp);
   entry.name = _name;
   entry.message = msg;
-  entry.error = err;
+  entry.error = std::move(err);
   auto parent = _parent;
   entry.values.insert(_values.begin(), _values.end());
   while (parent) {
