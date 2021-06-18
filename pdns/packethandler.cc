@@ -528,26 +528,31 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
     // Process auto hints
     auto rrc = getRR<SVCBBaseRecordContent>(rec->dr);
     DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
-    if (rrc->autoHint(SvcParam::ipv4hint) && s_SVCAutohints) {
-      auto hints = getIPAddressFor(target, QType::A);
-      if (hints.size() == 0) {
-        rrc->removeParam(SvcParam::ipv4hint);
+
+    if (rrc->hasParam(SvcParam::ipv4hint) && rrc->autoHint(SvcParam::ipv4hint)) {
+      if (s_SVCAutohints) {
+        auto hints = getIPAddressFor(target, QType::A);
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv4hint);
+        } else {
+          rrc->setHints(SvcParam::ipv4hint, hints);
+        }
       } else {
-        rrc->setHints(SvcParam::ipv4hint, hints);
+        rrc->removeParam(SvcParam::ipv4hint);
       }
-    } else {
-      rrc->removeParam(SvcParam::ipv4hint);
     }
 
-    if (rrc->autoHint(SvcParam::ipv6hint) && s_SVCAutohints) {
-      auto hints = getIPAddressFor(target, QType::AAAA);
-      if (hints.size() == 0) {
-        rrc->removeParam(SvcParam::ipv6hint);
+    if (rrc->hasParam(SvcParam::ipv6hint) && rrc->autoHint(SvcParam::ipv6hint)) {
+      if (s_SVCAutohints) {
+        auto hints = getIPAddressFor(target, QType::AAAA);
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv6hint);
+        } else {
+          rrc->setHints(SvcParam::ipv6hint, hints);
+        }
       } else {
-        rrc->setHints(SvcParam::ipv6hint, hints);
+        rrc->removeParam(SvcParam::ipv6hint);
       }
-    } else {
-      rrc->removeParam(SvcParam::ipv6hint);
     }
   }
 
