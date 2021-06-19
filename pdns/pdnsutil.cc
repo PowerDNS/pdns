@@ -1394,12 +1394,6 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
     cerr << "Zone '" << zone << "' exists already" << endl;
     return EXIT_FAILURE;
   }
-  cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
-  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
-  if(!B.getDomainInfo(zone, di)) {
-    cerr << "Zone '" << zone << "' was not created!" << endl;
-    return EXIT_FAILURE;
-  }
 
   DNSResourceRecord rr;
   rr.qname = zone;
@@ -1410,8 +1404,29 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   string soa = ::arg()["default-soa-content"];
   boost::replace_all(soa, "@", zone.toStringNoDot());
   SOAData sd;
-  fillSOAData(soa, sd);
+  try {
+    fillSOAData(soa, sd);
+  }
+  catch(const std::exception& e) {
+    cerr<<"Error while parsing default-soa-content ("<<soa<<"): "<<e.what()<<endl;
+    cerr<<"Zone not created!"<<endl;
+    return EXIT_FAILURE;
+  }
+  catch(const PDNSException& pe) {
+    cerr<<"Error while parsing default-soa-content ("<<soa<<"): "<<pe.reason<<endl;
+    cerr<<"Zone not created!"<<endl;
+    return EXIT_FAILURE;
+  }
+
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
+
+  cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
+  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
+  if(!B.getDomainInfo(zone, di)) {
+    cerr << "Zone '" << zone << "' was not created!" << endl;
+    return EXIT_FAILURE;
+  }
+
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());
