@@ -493,7 +493,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   pident->tcphandler = handler;
   pident->tcpsock = handler->getDescriptor();
   // We might have a partial result
-  pident->inMSG = data;
+  pident->inMSG = std::move(data);
   pident->inPos = pos;
   pident->inWanted = len;
   pident->inIncompleteOkay = incompleteOkay;
@@ -5936,5 +5936,4 @@ int main(int argc, char **argv)
 
   return ret;
 }
-
 
