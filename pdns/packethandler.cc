@@ -627,6 +627,9 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
       nrc.set(QType::A);
       nrc.set(QType::AAAA);
     }
+    else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.qname) && !::arg().mustDo("direct-dnskey")) {
+      continue;
+    }
     else if(rr.dr.d_type == QType::NS || rr.auth) {
       nrc.set(rr.dr.d_type);
     }
@@ -690,6 +693,9 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
         // be requested.
         n3rc.set(QType::A);
         n3rc.set(QType::AAAA);
+      }
+      else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.qname) && !::arg().mustDo("direct-dnskey")) {
+        continue;
       }
       else if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) {
           // skip empty non-terminals
