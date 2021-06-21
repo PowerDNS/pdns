@@ -978,7 +978,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 
-  luaCtx.writeFunction("hashPassword", [](const std::string& password) {
+  luaCtx.writeFunction("hashPassword", [](const std::string& password, boost::optional<uint64_t> workFactor) {
+    if (workFactor) {
+      return hashPassword(password, *workFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
+    }
     return hashPassword(password);
   });
 
