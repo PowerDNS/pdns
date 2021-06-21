@@ -133,6 +133,7 @@ static thread_local uint64_t t_frameStreamServersGeneration;
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
+std::map<std::string, std::string> g_zones_to_cache;
 
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
@@ -3628,6 +3629,8 @@ static void houseKeeping(void *)
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   static time_t last_RC_prune = 0;
+  static time_t last_zone_to_cache = 0;
+  static time_t zones_to_cache_interval = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
 
   if (last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
@@ -3697,6 +3700,11 @@ static void houseKeeping(void *)
           {
             g_log<<Logger::Error<<"Exception while priming the root NS zones"<<endl;
           }
+        }
+        // Redo zones-to-cache if the min TTL of those zones time is 90% up.
+        if (!g_zones_to_cache.empty() && now.tv_sec - last_zone_to_cache > zones_to_cache_interval * 9 / 10) {
+          last_zone_to_cache = now.tv_sec;
+          zones_to_cache_interval = SyncRes::ZonesToCache(g_zones_to_cache);
         }
       }
 
@@ -4924,6 +4932,19 @@ static int serviceMain(int argc, char*argv[])
       exit(1);
     }
   }
+  {
+    std::vector<std::string> parts;
+    stringtok(parts, ::arg()["zones-to-cache"], " ,\t\n\r");
+    for (const auto& p : parts) {
+      if (p.find('=') == string::npos) {
+        throw PDNSException("Error parsing '" + p + "', missing =");
+      }
+      auto [zone, url] = splitField(p, '=');
+      boost::trim(zone);
+      boost::trim(url);
+      g_zones_to_cache[zone] = url;
+    }
+  }
 
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
@@ -5769,6 +5790,8 @@ int main(int argc, char **argv)
     ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of XPF or proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies")="";
     ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources")="padded-queries-only";
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.")="7830";
+
+    ::arg().set("zones-to-cache", "Zones to prefill the cache with, comma separated domain=url pairs")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

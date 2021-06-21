@@ -85,6 +85,7 @@ PDNS_CHECK_LIBCRYPTO_EDDSA
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_LIBDECAF
 PDNS_WITH_LIBCAP
+PDNS_CHECK_LIBCURL
 
 PDNS_WITH_NET_SNMP
 
@@ -223,6 +224,10 @@ AM_COND_IF([NOD_ENABLED],
 AM_COND_IF([FSTRM],
   [AC_MSG_NOTICE([dnstap: yes])],
   [AC_MSG_NOTICE([dnstap: no])]
+)
+AS_IF([test "x$HAVE_LIBCURL" != "x"],
+  [AC_MSG_NOTICE([libcurl: yes])],
+  [AC_MSG_NOTICE([libcurl: no])]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])

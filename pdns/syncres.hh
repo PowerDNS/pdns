@@ -730,6 +730,8 @@ public:
   {
     d_queryReceivedOverTCP = tcp;
   }
+  static time_t ZonesToCache(const std::map<std::string, std::string>& map);
+  time_t ZoneToCache(const string& name, const string& url, bool dnssec);
 
   static thread_local ThreadLocalStorage t_sstorage;
 
