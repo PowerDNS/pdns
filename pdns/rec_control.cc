@@ -108,6 +108,31 @@ int main(int argc, char** argv)
     sockname.append(".controlsocket");
 
     const vector<string>&commands=arg().getCommands();
+
+    if (commands.size() >= 1 && commands.at(0) == "hash-password") {
+      uint64_t workFactor = CredentialsHolder::s_defaultWorkFactor;
+      if (commands.size() > 1) {
+        try {
+          workFactor = pdns_stou(commands.at(1));
+        }
+        catch (const std::exception& e) {
+          cerr << "Unable to parse the supplied work factor: " << e.what() << endl;
+          return EXIT_FAILURE;
+        }
+      }
+
+      auto password = CredentialsHolder::readFromTerminal();
+
+      try {
+        cout << hashPassword(password.getString(), workFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize) << endl;
+        return EXIT_SUCCESS;
+      }
+      catch (const std::exception& e) {
+        cerr << "Error while hashing the supplied password: " << e.what() << endl;
+        return EXIT_FAILURE;
+      }
+    }
+
     string command;
     int fd = -1;
     unsigned int i = 0;
@@ -140,11 +165,6 @@ int main(int argc, char** argv)
         } else {
           throw PDNSException("Command needs a file argument");
         }
-      }
-      else if (commands.at(i) == "hash-password") {
-        auto password = CredentialsHolder::readFromTerminal();
-        cout << hashPassword(password.getString()) << endl;
-        return 0;
       }
       ++i;
     }
