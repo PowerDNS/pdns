@@ -1245,6 +1245,7 @@ static int editZone(const DNSName &zone) {
   }
   if (changed.size() > 0) {
     if (changed.find({zone, QType::SOA}) == changed.end()) {
+     reAsk3:;
       cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
       cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit:"<<endl;
       int c = read1char();
@@ -1279,7 +1280,7 @@ static int editZone(const DNSName &zone) {
           break;
         case 'n':
         default:
-          goto reAsk2;
+          goto reAsk3;
           break;
       }
     }
