@@ -2673,7 +2673,7 @@ try
 
   else if (cmds.at(0) == "add-zone-key") {
     if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnsutil add-zone-key ZONE zsk|ksk [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
+      cerr << "Syntax: pdnsutil add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
       cerr << "|ed25519";
 #endif
@@ -2681,6 +2681,8 @@ try
       cerr << "|ed448";
 #endif
       cerr << "]"<<endl;
+      cerr << endl;
+      cerr << "If zsk|ksk is omitted, add-zone-key makes a key with flags 256 (a 'ZSK')."<<endl;
       return 0;
     }
     DNSName zone(cmds.at(1));
