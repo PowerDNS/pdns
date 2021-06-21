@@ -4554,36 +4554,12 @@ time_t SyncRes::ZoneToCache(const string& name, const string& url, bool dnssec)
           }
         }
         switch (qtype) {
-        case QType::NSEC:
-        case QType::NSEC3: {
-          if (soa.records.size() == 0) {
-            g_log << Logger::Error << msg << "SOA record should precede any NSEC/NSEC3 records";
-            return refresh;
-          }
-          NegCache::NegCacheEntry ne;
-          ne.authoritySOA = soa;
-          ne.DNSSECRecords.records = v;
-          ne.DNSSECRecords.signatures = sigs;
-          ne.d_name = qname;
-          ne.d_auth = zone;
-          ne.d_ttd = now + last_ttl;
-          ne.d_qtype = qtype;
-          g_negCache->add(ne);
-
-#if 0 // Do not do this yet, I'm not sure it is correct and it will get fiLled on-demand anyway
-          if (g_aggressiveNSECCache && v.size() > 0) {
-            vState state = validateRecordsWithSigs(0, qname, qtype, qname, qtype, v, sigsrr);
-            if (state == vState::Secure) {
-              g_aggressiveNSECCache->insertNSEC(zone, qname, v.at(0), sigsrr, qtype == QType::NSEC3);
-            }
-          }
-#endif
-          break;
-        }
         default:
           if (!dnssec) {
             sigsrr.clear();
           }
+          // XXX The lines below are a quick hack that works (?) for the root zone as presented by
+          // https://www.internic.net/domain/root.zone
           bool auth = qname == zone;
           if (qtype == QType::DS) {
             DNSName parent(qname);
