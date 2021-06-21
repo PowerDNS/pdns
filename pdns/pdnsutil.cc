@@ -1588,6 +1588,7 @@ static int addSuperMaster(const std::string &IP, const std::string &nameserver, 
   if ( B.superMasterAdd(IP, nameserver, account) ){ 
     return EXIT_SUCCESS; 
   }
+  cerr<<"could not find a backend with autosecondary support"<<endl;
   return EXIT_FAILURE;
 }
 
