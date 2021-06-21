@@ -1,0 +1,2 @@
+Multiple SOAs for a single zone should be an error.
+Only tested with SQLite.
