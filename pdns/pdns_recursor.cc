@@ -3127,6 +3127,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
   for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++) {
     bool proxyProto = false;
+    proxyProtocolValues.clear();
     data.resize(maxIncomingQuerySize);
     fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
     fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
