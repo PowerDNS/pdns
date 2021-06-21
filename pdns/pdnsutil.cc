@@ -2332,7 +2332,7 @@ try
     cout<<"generate-zone-key {zsk|ksk} [ALGORITHM] [BITS]"<<endl;
     cout<<"                                   Generate a ZSK or KSK to stdout with specified ALGORITHM and BITS"<<endl;
     cout<<"get-meta ZONE [KIND ...]           Get zone metadata. If no KIND given, lists all known"<<endl;
-    cout<<"hash-password                      Ask for a plaintext password or api key and output a hashed and salted version"<<endl;
+    cout<<"hash-password [WORK FACTOR]        Ask for a plaintext password or api key and output a hashed and salted version"<<endl;
     cout<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
 #ifdef HAVE_P11KIT1
     cout<<"hsm assign ZONE ALGORITHM {ksk|zsk} MODULE SLOT PIN LABEL"<<endl<<
@@ -2483,10 +2483,28 @@ try
 
     return 0;
   }
-  else if (cmds[0]=="hash-password") {
+  else if (cmds.at(0) == "hash-password") {
+    uint64_t workFactor = CredentialsHolder::s_defaultWorkFactor;
+    if (cmds.size() > 1) {
+      try {
+        workFactor = pdns_stou(cmds.at(1));
+      }
+      catch (const std::exception& e) {
+        cerr<<"Unable to parse the supplied work factor: "<<e.what()<<endl;
+        return 1;
+      }
+    }
+
     auto password = CredentialsHolder::readFromTerminal();
-    cout<<hashPassword(password.getString())<<endl;
-    return 0;
+
+    try {
+      cout<<hashPassword(password.getString(), workFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize)<<endl;
+      return EXIT_SUCCESS;
+    }
+    catch (const std::exception& e) {
+      cerr<<"Error while hashing the supplied password: "<<e.what()<<endl;
+      return 1;
+    }
   }
 
   DNSSECKeeper dk;
