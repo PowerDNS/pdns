@@ -392,10 +392,6 @@ SensitiveData CredentialsHolder::readFromTerminal()
 {
   struct termios term;
   struct termios oterm;
-  memset(&term, 0, sizeof(term));
-  term.c_lflag |= ECHO;
-  memset(&oterm, 0, sizeof(oterm));
-  oterm.c_lflag |= ECHO;
   bool restoreTermSettings = false;
   int termAction = TCSAFLUSH;
 #ifdef TCSASOFT
@@ -413,7 +409,9 @@ SensitiveData CredentialsHolder::readFromTerminal()
   }
   else {
     input = FDWrapper(dup(STDIN_FILENO));
+    restoreTermSettings = false;
   }
+
   FDWrapper output(open("/dev/tty", O_WRONLY));
   if (int(output) == -1) {
     output = FDWrapper(dup(STDERR_FILENO));
@@ -447,12 +445,6 @@ SensitiveData CredentialsHolder::readFromTerminal()
     }
     else {
       break;
-    }
-  }
-
-  if (!(term.c_lflag & ECHO)) {
-    if (write(output, "\n", 1) != 1) {
-      /* the compiler _really_ wants the result of write() to be checked.. */
     }
   }
 
