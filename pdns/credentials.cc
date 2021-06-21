@@ -399,7 +399,7 @@ SensitiveData CredentialsHolder::readFromTerminal()
   bool restoreTermSettings = false;
   int termAction = TCSAFLUSH;
 #ifdef TCSASOFT
-  termAction |= TCSASOFT
+  termAction |= TCSASOFT;
 #endif
 
   FDWrapper input(open("/dev/tty", O_RDONLY));
