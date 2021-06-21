@@ -66,6 +66,7 @@
 extern GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
+extern GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 
 class RecursorLua4;
 
@@ -743,6 +744,7 @@ public:
   static std::atomic<uint64_t> s_authzonequeries;
   static std::atomic<uint64_t> s_outqueries;
   static std::atomic<uint64_t> s_tcpoutqueries;
+  static std::atomic<uint64_t> s_dotoutqueries;
   static std::atomic<uint64_t> s_unreachables;
   static std::atomic<uint64_t> s_ecsqueries;
   static std::atomic<uint64_t> s_ecsresponses;
@@ -785,7 +787,8 @@ public:
   static unsigned int s_refresh_ttlperc;
   static int s_tcp_fast_open;
   static bool s_tcp_fast_open_connect;
-
+  static bool s_dot_to_port_853;
+  
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
@@ -794,6 +797,7 @@ public:
   unsigned int d_authzonequeries;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
+  unsigned int d_dotoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
@@ -826,9 +830,10 @@ private:
   typedef std::map<DNSName,vState> zonesStates_t;
   enum StopAtDelegation { DontStop, Stop, Stopped };
 
+  bool doDoTtoAuth(const DNSName& ns) const;
   int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, QType qtype, vector<DNSRecord>&ret,
                   unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation);
-  bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed);
+  bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed);
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP);
 
   int doResolve(const DNSName &qname, QType qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state);
@@ -919,12 +924,11 @@ private:
   LogMode d_lm;
 };
 
-class Socket;
 /* external functions, opaque to us */
-LWResult::Result asendtcp(const PacketBuffer& data, Socket* sock);
-LWResult::Result arecvtcp(PacketBuffer& data, size_t len, Socket* sock, bool incompleteOkay);
-LWResult::Result asendtcp(const PacketBuffer& data, TCPIOHandler&);
-LWResult::Result arecvtcp(PacketBuffer& data, size_t len, TCPIOHandler&, bool incompleteOkay);
+LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>&);
+LWResult::Result arecvtcp(PacketBuffer& data, size_t len, shared_ptr<TCPIOHandler>&, bool incompleteOkay);
+
+enum TCPAction : uint8_t { DoingRead, DoingWrite };
 
 struct PacketID
 {
@@ -941,8 +945,9 @@ struct PacketID
 
   typedef set<uint16_t > chain_t;
   mutable chain_t chain;
-  TCPIOHandler *tcphandler{nullptr};
-  size_t inNeeded{0}; // if this is set, we'll read until inNeeded bytes are read
+  shared_ptr<TCPIOHandler> tcphandler{nullptr};
+  string::size_type inPos{0};   // how far are we along in the inMSG
+  size_t inWanted{0}; // if this is set, we'll read until inWanted bytes are read
   string::size_type outPos{0};    // how far we are along in the outMSG
   mutable uint32_t nearMisses{0}; // number of near misses - host correct, id wrong
   int fd{-1};
@@ -951,6 +956,8 @@ struct PacketID
   bool inIncompleteOkay{false};
   uint16_t id{0};  // wait for a specific id/remote pair
   uint16_t type{0};             // and this is its type
+  TCPAction highState;
+  IOState lowState;
 
   bool operator<(const PacketID& b) const
   {
@@ -1154,3 +1161,4 @@ struct ThreadTimes
     return *this;
   }
 };
+

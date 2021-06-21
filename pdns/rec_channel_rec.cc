@@ -1143,7 +1143,7 @@ static void registerAllStats1()
   addGetStat("ignored-packets", &g_stats.ignoredCount);
   addGetStat("empty-queries", &g_stats.emptyQueriesCount);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
-  
+
   addGetStat("negcache-entries", getNegCacheSize);
   addGetStat("throttle-entries", getThrottleSize);
 
@@ -1157,6 +1157,7 @@ static void registerAllStats1()
   addGetStat("outgoing6-timeouts", &SyncRes::s_outgoing6timeouts);
   addGetStat("auth-zone-queries", &SyncRes::s_authzonequeries);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
+  addGetStat("dot-outqueries", &SyncRes::s_dotoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
@@ -1288,7 +1289,7 @@ static void registerAllStats1()
   addGetStat("taskqueue-pushed",  []() { return getTaskPushes(); });
   addGetStat("taskqueue-expired",  []() { return getTaskExpired(); });
   addGetStat("taskqueue-size",  []() { return getTaskSize(); });
-  
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {

@@ -238,16 +238,16 @@ public:
   {
   }
 
-  void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout) override
+  void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) override
   {
   }
 
-  size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}) override
   {
     return 0;
   }
 
-  size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) override
+  size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
     return 0;
   }
@@ -276,12 +276,12 @@ public:
   {
   }
 
-  std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) override
+  std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) override
   {
     return std::make_unique<MockupTLSConnection>(socket);
   }
 
-  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) override
+  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
   {
     return std::make_unique<MockupTLSConnection>(socket, true);
   }

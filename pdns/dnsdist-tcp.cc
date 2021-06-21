@@ -1290,7 +1290,7 @@ void tcpAcceptorThread(ClientState* cs)
         auto tmp = ci.release();
         try {
           // throws on failure
-          writen2WithTimeout(pipe, &tmp, sizeof(tmp), 0);
+          writen2WithTimeout(pipe, &tmp, sizeof(tmp), timeval{0,0});
         }
         catch (...) {
           delete tmp;

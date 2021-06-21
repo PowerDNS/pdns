@@ -265,6 +265,7 @@ GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 // Used in the Syncres to not throttle certain servers
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
+GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"
@@ -396,114 +397,132 @@ static bool isHandlerThread()
   return s_threadInfos.at(t_id).isHandler;
 }
 
-static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
+#if 0
+#define TCPLOG(x) cerr << [](){ timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << ' ' << x
+#else
+#define TCPLOG(x)
+#endif
 
-LWResult::Result asendtcp(const PacketBuffer& data, Socket* sock)
+static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var);
+static void TCPIOHandlerStateChange(IOState, IOState, std::shared_ptr<PacketID>&);
+
+LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& handler)
 {
-  PacketID pident;
-  pident.tcpsock=sock->getHandle();
-  pident.outMSG = data;
+  TCPLOG("asendtcp called " << data.size() << endl);
 
-  t_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
+  auto pident = std::make_shared<PacketID>();
+  pident->tcphandler = handler;
+  pident->tcpsock = handler->getDescriptor();
+  pident->outMSG = data;
+  pident->highState = TCPAction::DoingWrite;
+
+
+  IOState state;
+  try {
+    TCPLOG("Initial tryWrite: " << pident->outPos << '/' << pident->outMSG.size() << ' ' << " -> ");
+    state = handler->tryWrite(pident->outMSG, pident->outPos, pident->outMSG.size());
+    TCPLOG(pident->outPos << '/' << pident->outMSG.size() << endl);
+
+    if (state == IOState::Done) {
+      TCPLOG("asendtcp success A" << endl);
+      return LWResult::Result::Success;
+    }
+  }
+  catch (const std::exception& e) {
+    TCPLOG("tryWrite() exception..." << e.what() << endl);
+    return LWResult::Result::PermanentError;
+  }
+
+  // Will set pident->lowState
+  TCPIOHandlerStateChange(IOState::Done, state, pident);
+
   PacketBuffer packet;
-
-  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
-  if (ret == 0) { //timeout
-    t_fdm->removeWriteFD(sock->getHandle());
+  int ret = MT->waitEvent(*pident, &packet, g_networkTimeoutMsec);
+  TCPLOG("asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
+  if (ret == 0) {
+    TCPLOG("timeout" << endl);
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) { // error
-    t_fdm->removeWriteFD(sock->getHandle());
+    TCPLOG("PermanentError" << endl);
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
   else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
+    // fd housekeeping done by TCPIOHandlerIO
+    TCPLOG("PermanentError size mismatch" << endl);
     return LWResult::Result::PermanentError;
   }
 
+  TCPLOG("asendtcp success" << endl);
   return LWResult::Result::Success;
 }
 
-static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var);
-
-LWResult::Result asendtcp(const PacketBuffer& data, TCPIOHandler& handler)
+LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIOHandler>& handler, const bool incompleteOkay)
 {
-  PacketID pident;
-  pident.tcphandler = &handler;
-  pident.tcpsock = handler.getDescriptor();
-  pident.outMSG = data;
+  TCPLOG("arecvtcp called " << len << ' ' << data.size() << endl);
+  data.resize(len);
 
-  t_fdm->addWriteFD(handler.getDescriptor(), TCPIOHandlerWritable, pident);
-  PacketBuffer packet;
-
-  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
-  if (ret == 0) { //timeout
-    t_fdm->removeWriteFD(handler.getDescriptor());
-    return LWResult::Result::Timeout;
+  // We might have data already available from the TLS layer, try to get that into the buffer
+  size_t pos = 0;
+  IOState state;
+  try {
+    TCPLOG("calling tryRead() " << len << endl);
+    state = handler->tryRead(data, pos, len);
+    TCPLOG("arcvtcp tryRead() returned " << int(state) << ' ' << pos << '/' << len << endl);
+    switch (state) {
+    case IOState::Done:
+    case IOState::NeedRead:
+      if (pos == len || (incompleteOkay && pos > 0)) {
+        data.resize(pos);
+        TCPLOG("acecvtcp success A" << endl);
+        return LWResult::Result::Success;
+      }
+      break;
+    case IOState::NeedWrite:
+      break;
+    }
   }
-  else if (ret == -1) { // error
-    t_fdm->removeWriteFD(handler.getDescriptor());
+  catch (const std::exception& e) {
+    TCPLOG("tryRead() exception..." << e.what() << endl);
     return LWResult::Result::PermanentError;
   }
-  else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
-    return LWResult::Result::PermanentError;
-  }
 
-  return LWResult::Result::Success;
-}
+  auto pident = std::make_shared<PacketID>();
+  pident->tcphandler = handler;
+  pident->tcpsock = handler->getDescriptor();
+  // We might have a partial result
+  pident->inMSG = std::move(data);
+  pident->inPos = pos;
+  pident->inWanted = len;
+  pident->inIncompleteOkay = incompleteOkay;
+  pident->highState = TCPAction::DoingRead;
 
-static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
-
-LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, Socket* sock, const bool incompleteOkay)
-{
   data.clear();
-  PacketID pident;
-  pident.tcpsock=sock->getHandle();
-  pident.inNeeded=len;
-  pident.inIncompleteOkay=incompleteOkay;
-  t_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
 
-  int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
+  // Will set pident->lowState
+  TCPIOHandlerStateChange(IOState::Done, state, pident);
+
+  int ret = MT->waitEvent(*pident, &data, g_networkTimeoutMsec);
+  TCPLOG("arecvtcp " << ret << ' ' << data.size() << ' ' );
   if (ret == 0) {
-    t_fdm->removeReadFD(sock->getHandle());
+    TCPLOG("timeout" << endl);
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
   else if (ret == -1) {
-    t_fdm->removeWriteFD(sock->getHandle());
+    TCPLOG("PermanentError" << endl);
+    TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
   else if (data.empty()) {// error, EOF or other
+    // fd housekeeping done by TCPIOHandlerIO
+    TCPLOG("EOF" << endl);
     return LWResult::Result::PermanentError;
   }
 
-  return LWResult::Result::Success;
-}
-
-static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var);
-
-LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, TCPIOHandler& handler, const bool incompleteOkay)
-{
-  data.clear();
-
-  PacketID pident;
-  pident.tcphandler = &handler;
-  pident.tcpsock = handler.getDescriptor();
-  pident.inNeeded = len;
-  pident.inIncompleteOkay = incompleteOkay;
-  t_fdm->addReadFD(handler.getDescriptor(), TCPIOHandlerReadable, pident);
-
-  int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
-  if (ret == 0) {
-    t_fdm->removeReadFD(handler.getDescriptor());
-    return LWResult::Result::Timeout;
-  }
-  else if (ret == -1) {
-    t_fdm->removeWriteFD(handler.getDescriptor());
-    return LWResult::Result::PermanentError;
-  }
-  else if (data.empty()) {// error, EOF or other
-    return LWResult::Result::PermanentError;
-  }
-
+  TCPLOG("arecvtcp success" << endl);
   return LWResult::Result::Success;
 }
 
@@ -531,12 +550,13 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
     //    cerr<<"Had some kind of error: "<<ret<<", "<<stringerror()<<endl;
   }
 }
+
 PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
 {
   Socket s(dest.sin4.sin_family, SOCK_DGRAM);
   s.setNonBlocking();
   ComboAddress local = pdns::getQueryLocalAddress(dest.sin4.sin_family, 0);
-  
+
   s.bind(local);
   s.connect(dest);
   s.send(query);
@@ -548,9 +568,8 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
 
   PacketBuffer data;
- 
   int ret=MT->waitEvent(pident, &data, g_networkTimeoutMsec);
- 
+
   if(!ret || ret==-1) { // timeout
     t_fdm->removeReadFD(s.getHandle());
   }
@@ -2281,7 +2300,7 @@ static void startDoResolve(void *p)
       g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       g_log<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_totUsec/1000.0<<" netw ms, "<< spentUsec/1000.0<<" tot ms, "<<
-	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<< res;
+	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<"/"<<sr.d_dotoutqueries<<" tcp/dot connections, rcode="<< res;
 
       if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
 	g_log<< ", dnssec="<<sr.getValidationState();
@@ -3590,7 +3609,7 @@ static void doStats(void)
       <<broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)<<endl;
     g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<ratePercentage(SyncRes::s_outqueries, SyncRes::s_queries)<<"%";
     g_log<<Logger::Notice<<", "<<ratePercentage(SyncRes::s_throttledqueries, SyncRes::s_outqueries+SyncRes::s_throttledqueries)<<"% throttled"<<endl;
-    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
+    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<"/"<<SyncRes::s_dotoutqueries << " outgoing tcp/dot connections, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
     uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
@@ -4079,125 +4098,144 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-static void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
+static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::shared_ptr<PacketID>& pid)
 {
-  PacketID* pident=boost::any_cast<PacketID>(&var);
-  //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident->inNeeded: "<<pident->inNeeded<<", "<<pident->sock->getHandle()<<endl;
+  TCPLOG("State transation " << int(oldstate) << "->" << int(newstate) << endl);
 
-  boost::shared_array<char> buffer(new char[pident->inNeeded]);
+  pid->lowState = newstate;
 
-  ssize_t ret=recv(fd, buffer.get(), pident->inNeeded,0);
-  if(ret > 0) {
-    pident->inMSG.insert(pident->inMSG.end(), &buffer[0],  &buffer[ret]);
-    pident->inNeeded -= (size_t)ret;
-    if(!pident->inNeeded || pident->inIncompleteOkay) {
-      //      cerr<<"Got entire load of "<<pident->inMSG.size()<<" bytes"<<endl;
-      PacketID pid=*pident;
-      PacketBuffer msg = pident->inMSG;
+  // handle state transitions
+  switch (oldstate) {
+  case IOState::NeedRead:
 
-      t_fdm->removeReadFD(fd);
-      MT->sendEvent(pid, &msg);
-    }
-    else {
-      //      cerr<<"Still have "<<pident->inNeeded<<" left to go"<<endl;
-    }
-  }
-  else {
-    PacketID tmp=*pident;
-    t_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
-    PacketBuffer empty;
-    MT->sendEvent(tmp, &empty); // this conveys error status
-  }
-}
-
-static void TCPIOHandlerReadable(int fd, FDMultiplexer::funcparam_t& var)
-{
-  PacketID* pident=boost::any_cast<PacketID>(&var);
-  assert(pident->tcphandler != nullptr);
-  assert(fd == pident->tcphandler->getDescriptor());
-  // XXX Likely it is possible to directly write into inMSG
-  // To be able to do that, inMSG has to be resized before. Afer the read we may have to resize again
-  // taking into account the actual bytes read. Wondering if this is worth the trouble...
-  PacketBuffer buffer;
-  buffer.resize(pident->inNeeded);
-
-  try {
-    size_t pos = 0;
-    IOState state = pident->tcphandler->tryRead(buffer, pos, pident->inNeeded);
-    switch (state) {
+    switch (newstate) {
+    case IOState::NeedWrite:
+      TCPLOG("NeedRead -> NeedWrite: flip FD" << endl);
+      t_fdm->alterFDToWrite(pid->tcpsock, TCPIOHandlerIO, pid);
+      break;
+    case IOState::NeedRead:
+      break;
     case IOState::Done:
-    case IOState::NeedRead:
-      pident->inMSG.insert(pident->inMSG.end(), buffer.data(), buffer.data() + pos);
-      pident->inNeeded -= pos;
-      if (pident->inNeeded == 0 || pident->inIncompleteOkay) {
-        PacketID pid = *pident;
-        PacketBuffer msg = pident->inMSG;
-        t_fdm->removeReadFD(fd);
-        MT->sendEvent(pid, &msg);
-      }
-      break;
-    case IOState::NeedWrite:
-      // What to do?
+      TCPLOG("Done -> removeReadFD" << endl);
+      t_fdm->removeReadFD(pid->tcpsock);
       break;
     }
-  }
-  catch (const std::runtime_error& e) {
-    PacketID tmp = *pident;
-    t_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
-    PacketBuffer empty;
-    MT->sendEvent(tmp, &empty); // this conveys error status
-  }
-}
-
-static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
-{
-  PacketID* pid = boost::any_cast<PacketID>(&var);
-  ssize_t ret = send(fd, pid->outMSG.data() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
-  if (ret > 0) {
-    pid->outPos += (ssize_t)ret;
-    if (pid->outPos == pid->outMSG.size()) {
-      PacketID tmp=*pid;
-      t_fdm->removeWriteFD(fd);
-      MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
-    }
-  }
-  else {  // error or EOF
-    PacketID tmp(*pid);
-    t_fdm->removeWriteFD(fd);
-    PacketBuffer sent;
-    MT->sendEvent(tmp, &sent);         // we convey error status by sending empty string
-  }
-}
-
-static void TCPIOHandlerWritable(int fd, FDMultiplexer::funcparam_t& var)
-{
-  PacketID* pid = boost::any_cast<PacketID>(&var);
-  assert(pid->tcphandler != nullptr);
-  assert(fd == pid->tcphandler->getDescriptor());
-
-  try {
-    IOState state = pid->tcphandler->tryWrite(pid->outMSG, pid->outPos, pid->outMSG.size());
-    switch (state) {
-    case IOState::Done: {
-      PacketID tmp = *pid;
-      t_fdm->removeWriteFD(fd);
-      MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
-      break;
-    }
-    case IOState::NeedWrite:
-      // We'll get back later
     break;
+
+  case IOState::NeedWrite:
+
+    switch (newstate) {
     case IOState::NeedRead:
-      // What to do?
+      TCPLOG("NeedWrite -> NeedRead: flip FD" << endl);
+      t_fdm->alterFDToRead(pid->tcpsock, TCPIOHandlerIO, pid);
+      break;
+    case IOState::NeedWrite:
+      break;
+    case IOState::Done:
+      TCPLOG("Done -> removeWriteFD" << endl);
+      t_fdm->removeWriteFD(pid->tcpsock);
       break;
     }
+    break;
+
+  case IOState::Done:
+    switch (newstate) {
+    case IOState::NeedRead:
+      TCPLOG("NeedRead: addReadFD" << endl);
+      t_fdm->addReadFD(pid->tcpsock, TCPIOHandlerIO, pid);
+      break;
+    case IOState::NeedWrite:
+      TCPLOG("NeedWrite: addWriteFD" << endl);
+      t_fdm->addWriteFD(pid->tcpsock, TCPIOHandlerIO, pid);
+      break;
+    case IOState::Done:
+      break;
+    }
+    break;
   }
-  catch (const std::runtime_error& e) {
-    PacketID tmp = *pid;
-    t_fdm->removeWriteFD(fd);
-    PacketBuffer sent;
-    MT->sendEvent(tmp, &sent);         // we convey error status by sending empty string
+
+}
+
+static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
+{
+  auto pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
+  assert(pid->tcphandler);
+  assert(fd == pid->tcphandler->getDescriptor());
+  IOState newstate = IOState::Done;
+
+  TCPLOG("TCPIOHandlerIO: lowState " << int(pid->lowState) << endl);
+
+  // In the code below, we want to update the state of the fd before calling sendEvent
+  // a sendEvent might close the fd, and some poll multiplexers do not like to manipulate a closed fd
+
+  switch (pid->highState) {
+  case TCPAction::DoingRead:
+    TCPLOG("highState: Reading" << endl);
+    // In arecvtcp, the buffer was resized already so inWanted bytes will fit
+    // try reading
+    try {
+      newstate = pid->tcphandler->tryRead(pid->inMSG, pid->inPos, pid->inWanted);
+      switch (newstate) {
+      case IOState::Done:
+      case IOState::NeedRead:
+        TCPLOG("tryRead: Done or NeedRead " << int(newstate) << ' ' << pid->inPos << '/' << pid->inWanted << endl);
+        TCPLOG("TCPIOHandlerIO " << pid->inWanted << ' ' << pid->inIncompleteOkay << endl);
+        if (pid->inPos == pid->inWanted || (pid->inIncompleteOkay && pid->inPos > 0)) {
+          pid->inMSG.resize(pid->inPos); // old content (if there) + new bytes read, only relevant for the inIncompleteOkay case
+          newstate = IOState::Done;
+          TCPIOHandlerStateChange(pid->lowState, newstate, pid);
+          MT->sendEvent(*pid, &pid->inMSG);
+          return;
+        }
+        break;
+      case IOState::NeedWrite:
+        break;
+      }
+    }
+    catch (const std::exception& e) {
+      newstate = IOState::Done;
+      TCPLOG("read exception..." << e.what() << endl);
+      PacketBuffer empty;
+      TCPIOHandlerStateChange(pid->lowState, newstate, pid);
+      MT->sendEvent(*pid, &empty); // this conveys error status
+      return;
+    }
+    break;
+
+  case TCPAction::DoingWrite:
+    TCPLOG("highState: Writing" << endl);
+    try {
+      TCPLOG("tryWrite: " << pid->outPos << '/' << pid->outMSG.size() << ' ' << pid << " -> ");
+      newstate = pid->tcphandler->tryWrite(pid->outMSG, pid->outPos, pid->outMSG.size());
+      TCPLOG(pid->outPos << '/' << pid->outMSG.size() << endl);
+      switch (newstate) {
+      case IOState::Done: {
+        TCPLOG("tryWrite: Done" << endl);
+        TCPIOHandlerStateChange(pid->lowState, newstate, pid);
+        MT->sendEvent(*pid, &pid->outMSG); // send back what we sent to convey everything is ok
+        return;
+      }
+      case IOState::NeedRead:
+        TCPLOG("tryWrite: NeedRead" << endl);
+        break;
+      case IOState::NeedWrite:
+        TCPLOG("tryWrite: NeedWrite" << endl);
+        break;
+      }
+    }
+    catch (const std::exception& e) {
+      newstate = IOState::Done;
+      TCPLOG("write exception..." << e.what() << endl);
+      PacketBuffer sent;
+      TCPIOHandlerStateChange(pid->lowState, newstate, pid);
+      MT->sendEvent(*pid, &sent); // we convey error status by sending empty string
+      return;
+    }
+    break;
   }
+
+  // Cases that did not end up doing a sendEvent
+  TCPIOHandlerStateChange(pid->lowState, newstate, pid);
 }
 
 // resend event to everybody chained onto it
@@ -4831,6 +4869,10 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
   SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
 
+#ifdef HAVE_DNS_OVER_TLS
+  SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
+#endif
+
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
     checkTFOconnect();
@@ -5012,6 +5054,16 @@ static int serviceMain(int argc, char*argv[])
       xdnssecNames.add(DNSName(p));
     }
     g_xdnssec.setState(std::move(xdnssecNames));
+  }
+
+  {
+    SuffixMatchNode dotauthNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
+    for (const auto &p : parts) {
+      dotauthNames.add(DNSName(p));
+    }
+    g_DoTToAuthNames.setState(std::move(dotauthNames));
   }
 
   s_balancingFactor = ::arg().asDouble("distribution-load-factor");
@@ -5770,6 +5822,9 @@ int main(int argc, char **argv)
     ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources")="padded-queries-only";
     ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.")="7830";
 
+    ::arg().set("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in")="yes";
+    ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes")="";
+
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
@@ -5882,3 +5937,4 @@ int main(int argc, char **argv)
 
   return ret;
 }
+

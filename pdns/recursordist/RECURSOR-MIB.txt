@@ -938,6 +938,14 @@ aggressiveNSECCacheNSEC3WcHits OBJECT-TYPE
         "Number of answers synthesized from the NSEC3 aggressive cache"
     ::= { stats 112 }
 
+dotOutqueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of outgoing DoT queries since starting"
+    ::= { stats 113 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1093,7 +1101,8 @@ recGroup OBJECT-GROUP
         aggressiveNSECCacheNSECHits,
         aggressiveNSECCacheNSEC3Hits,
         aggressiveNSECCacheNSECWcHits,
-        aggressiveNSECCacheNSEC3WcHits
+        aggressiveNSECCacheNSEC3WcHits,
+        dotOutqueries
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

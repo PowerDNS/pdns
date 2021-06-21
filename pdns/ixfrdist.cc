@@ -878,7 +878,7 @@ static void tcpWorker(int tid) {
       uint16_t toRead;
       readn2(cfd, &toRead, sizeof(toRead));
       toRead = std::min(ntohs(toRead), static_cast<uint16_t>(sizeof(buf)));
-      res = readn2WithTimeout(cfd, &buf, toRead, 2);
+      res = readn2WithTimeout(cfd, &buf, toRead, timeval{2,0});
       g_log<<Logger::Debug<<prefix<<"Had message of "<<std::to_string(toRead)<<" bytes from "<<saddr.toStringWithPort()<<endl;
     } catch (runtime_error &e) {
       g_log<<Logger::Warning<<prefix<<"Could not read message from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;

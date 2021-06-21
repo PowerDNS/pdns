@@ -123,7 +123,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     uint16_t len=htons(r->getString().length());
     string buffer((const char*)&len, 2);
     buffer.append(r->getString());
-    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), ::arg().asNum("tcp-idle-timeout"));
+    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), timeval{::arg().asNum("tcp-idle-timeout"),0});
 
     return true;
   }

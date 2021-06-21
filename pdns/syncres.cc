@@ -72,6 +72,7 @@ std::atomic<uint64_t> SyncRes::s_outgoing4timeouts;
 std::atomic<uint64_t> SyncRes::s_outgoing6timeouts;
 std::atomic<uint64_t> SyncRes::s_outqueries;
 std::atomic<uint64_t> SyncRes::s_tcpoutqueries;
+std::atomic<uint64_t> SyncRes::s_dotoutqueries;
 std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_qnameminfallbacksuccess;
@@ -98,6 +99,7 @@ SyncRes::HardenNXD SyncRes::s_hardenNXD;
 unsigned int SyncRes::s_refresh_ttlperc;
 int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
+bool SyncRes::s_dot_to_port_853;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -111,7 +113,7 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 }
 
 
-SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
+SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
 					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
 
@@ -3732,7 +3734,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3748,9 +3750,15 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   if(doTCP) {
-    LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
-    s_tcpoutqueries++;
-    d_tcpoutqueries++;
+    if (doDoT) {
+      LOG(prefix<<qname<<": using DoT with "<< remoteIP.toStringWithPort() <<endl);
+      s_dotoutqueries++;
+      d_dotoutqueries++;
+    } else {
+      LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
+      s_tcpoutqueries++;
+      d_tcpoutqueries++;
+    }
   }
 
   int preOutQueryRet = RCode::NoError;
@@ -4095,6 +4103,11 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   return false;
 }
 
+bool SyncRes::doDoTtoAuth(const DNSName& ns) const
+{
+  return g_DoTToAuthNames.getLocal()->check(ns);
+}
+
 /** returns:
  *  -1 in case of no results
  *  rcode otherwise
@@ -4165,7 +4178,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
       typedef vector<ComboAddress> remoteIPs_t;
       remoteIPs_t remoteIPs;
-      remoteIPs_t::const_iterator remoteIP;
+      remoteIPs_t::iterator remoteIP;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
@@ -4209,8 +4222,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         else {
           bool hitPolicy{false};
           LOG(prefix<<qname<<": Resolved '"<<auth<<"' NS "<<tns->first<<" to: ");
-          for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
-            if(remoteIP != remoteIPs.cbegin()) {
+          for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+            if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
             }
             LOG(remoteIP->toString());
@@ -4231,7 +4244,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
         }
 
-        for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
+        for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.toString()<<"'"<<endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
@@ -4241,20 +4254,25 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           bool truncated = false;
           bool spoofed = false;
           bool gotAnswer = false;
+          bool doDoT = false;
 
-// Option below is for debugging purposes ony
-#define USE_TCP_ONLY 0
+          if (doDoTtoAuth(tns->first)) {
+            remoteIP->setPort(853);
+            doDoT = true;
+          }
+          if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
+            doDoT = true;
+          }
+          bool forceTCP = doDoT;
 
-#if !USE_TCP_ONLY
-          gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                        tns->first, *remoteIP, false, truncated, spoofed);
-          if (spoofed || (gotAnswer && truncated)) {
-#else
-          {
-#endif
+          if (!forceTCP) {
+            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
+                                          tns->first, *remoteIP, false, false, truncated, spoofed);
+          }
+          if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, truncated, spoofed);
+                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed);
           }
 
           if (!gotAnswer) {
