@@ -290,13 +290,14 @@ Control Socket, Console and Webserver
 Webserver configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: hashPassword(password)
+.. function:: hashPassword(password [, workFactor])
 
   .. versionadded:: 1.7.0
 
   Hash the supplied password using a random salt, and returns a string that can be used with :func:`setWebserverConfig`.
 
   :param string - password: The password to hash
+  :param int - workFactor: The work factor to use for the hash function (currently scrypt), as a power of two. Default is 1024.
 
 .. function:: webserver(listen_address [, password[, apikey[, custom_headers[, acl]]]])
 

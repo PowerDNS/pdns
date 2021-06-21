@@ -147,7 +147,7 @@ static std::string generateRandomSalt()
 #endif
 }
 
-std::string hashPassword(const std::string& password)
+std::string hashPassword(const std::string& password, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
 {
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
   std::string result;
@@ -155,21 +155,30 @@ std::string hashPassword(const std::string& password)
 
   result.append(pwhash_prefix);
   result.append("ln=");
-  result.append(std::to_string(static_cast<uint64_t>(std::log2(CredentialsHolder::s_defaultWorkFactor))));
+  result.append(std::to_string(static_cast<uint64_t>(std::log2(workFactor))));
   result.append(",p=");
-  result.append(std::to_string(CredentialsHolder::s_defaultParallelFactor));
+  result.append(std::to_string(parallelFactor));
   result.append(",r=");
-  result.append(std::to_string(CredentialsHolder::s_defaultBlockSize));
+  result.append(std::to_string(blockSize));
   result.append("$");
   auto salt = generateRandomSalt();
   result.append(Base64Encode(salt));
   result.append("$");
 
-  auto out = hashPasswordInternal(password, salt, CredentialsHolder::s_defaultWorkFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
+  auto out = hashPasswordInternal(password, salt, workFactor, parallelFactor, blockSize);
 
   result.append(Base64Encode(out));
 
   return result;
+#else
+  throw std::runtime_error("Hashing a password requires scrypt support in OpenSSL, and it is not available");
+#endif
+}
+
+std::string hashPassword(const std::string& password)
+{
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
+  return hashPassword(password, CredentialsHolder::s_defaultWorkFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
 #else
   throw std::runtime_error("Hashing a password requires scrypt support in OpenSSL, and it is not available");
 #endif
@@ -191,7 +200,6 @@ static void parseHashed(const std::string& hash, std::string& salt, std::string&
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
   auto parametersEnd = hash.find('$', pwhash_prefix.size());
   if (parametersEnd == std::string::npos || parametersEnd == hash.size()) {
-    cerr<<hash<<endl;
     throw std::runtime_error("Invalid hashed password format, no parameters");
   }
 
@@ -287,6 +295,12 @@ bool isPasswordHashed(const std::string& password)
 
   auto parametersEnd = password.find('$', pwhash_prefix.size());
   if (parametersEnd == std::string::npos || parametersEnd == password.size()) {
+    return false;
+  }
+
+  size_t parametersSize = parametersEnd - pwhash_prefix.size();
+  /* ln=X,p=Y,r=Z */
+  if (parametersSize < 12) {
     return false;
   }
 

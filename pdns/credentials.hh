@@ -45,6 +45,7 @@ private:
 };
 
 std::string hashPassword(const std::string& password);
+std::string hashPassword(const std::string& password, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize);
 bool verifyPassword(const std::string& hash, const std::string& password);
 bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize, const std::string& binaryPassword);
 bool isPasswordHashed(const std::string& password);
