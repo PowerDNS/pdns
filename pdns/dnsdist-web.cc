@@ -507,7 +507,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "queries"                      << label << " " << state->queries.load()              << "\n";
     output << statesbase << "responses"                    << label << " " << state->responses.load()            << "\n";
     output << statesbase << "drops"                        << label << " " << state->reuseds.load()              << "\n";
-    output << statesbase << "latency"                      << label << " " << state->latencyUsec/1000.0          << "\n";
+    if (state->isUp())
+        output << statesbase << "latency"                  << label << " " << state->latencyUsec/1000.0          << "\n";
     output << statesbase << "senderrors"                   << label << " " << state->sendErrors.load()           << "\n";
     output << statesbase << "outstanding"                  << label << " " << state->outstanding.load()          << "\n";
     output << statesbase << "order"                        << label << " " << state->order                       << "\n";
@@ -517,7 +518,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "tcpgaveup"                    << label << " " << state->tcpGaveUp                   << "\n";
     output << statesbase << "tcpreadtimeouts"              << label << " " << state->tcpReadTimeouts             << "\n";
     output << statesbase << "tcpwritetimeouts"             << label << " " << state->tcpWriteTimeouts            << "\n";
-    output << statesbase << "tcpconnecttimeouts"           << label << " " << state->tcpConnectTimeouts         << "\n";
+    output << statesbase << "tcpconnecttimeouts"           << label << " " << state->tcpConnectTimeouts          << "\n";
     output << statesbase << "tcpcurrentconnections"        << label << " " << state->tcpCurrentConnections       << "\n";
     output << statesbase << "tcpmaxconcurrentconnections"  << label << " " << state->tcpMaxConcurrentConnections << "\n";
     output << statesbase << "tcpnewconnections"            << label << " " << state->tcpNewConnections           << "\n";
