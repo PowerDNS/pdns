@@ -896,6 +896,9 @@ private:
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
   asyncresolve_t d_asyncResolve{nullptr};
   struct timeval d_now;
+  /* if the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
+     and we might not have it if we picked up the proof from a delegation */
+  DNSName d_externalDSQuery;
   string d_prefix;
   vState d_queryValidationState{vState::Indeterminate};
 
