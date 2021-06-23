@@ -244,6 +244,23 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
+
+  /* Request the DS for powerdns.com, which does not exist. We should get
+     the denial proof AND the SOA */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  bool soaFound = false;
+  for (const auto& record : ret) {
+    if (record.d_type == QType::SOA) {
+      soaFound = true;
+      break;
+    }
+  }
+  BOOST_CHECK_EQUAL(soaFound, true);
+  BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname)
