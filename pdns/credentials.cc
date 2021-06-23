@@ -87,9 +87,9 @@ void SensitiveData::clear()
   d_data.clear();
 }
 
-#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
 static std::string hashPasswordInternal(const std::string& password, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
 {
+#ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
   auto pctx = std::unique_ptr<EVP_PKEY_CTX, void (*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, nullptr), EVP_PKEY_CTX_free);
   if (!pctx) {
     throw std::runtime_error("Error getting a scrypt context to hash the supplied password");
@@ -128,8 +128,10 @@ static std::string hashPasswordInternal(const std::string& password, const std::
   }
 
   return out;
-}
+#else
+  throw std::runtime_error("Hashing support is not available");
 #endif
+}
 
 static std::string generateRandomSalt()
 {
