@@ -42,7 +42,6 @@ EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
 	dnsmessage.proto \
-	effective_tld_names.dat \
 	mtasker.cc \
 	inflighter.cc \
 	bindparser.h \
@@ -1627,15 +1626,6 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	cp $< $@
 
 bindlexer.$(OBJEXT): bindparser.h
-
-curl_verbose = $(curl_verbose_$(V))
-curl_verbose_ = $(curl_verbose_$(AM_DEFAULT_VERBOSITY))
-curl_verbose_0 = @echo "  CURL    " $@;
-$(srcdir)/effective_tld_names.dat:
-	$(curl_verbose)if ! curl -s -S https://publicsuffix.org/list/public_suffix_list.dat > $@; then rm -f $@; exit 1; fi
-
-pubsuffix.cc: $(srcdir)/effective_tld_names.dat
-	$(AM_V_GEN)./mkpubsuffixcc
 
 pdns_recursor rec_control:
 	@echo "Please build the recursor from the recursordist/ dir"
