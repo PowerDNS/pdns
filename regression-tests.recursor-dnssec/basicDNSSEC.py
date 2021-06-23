@@ -25,6 +25,14 @@ class BasicDNSSEC(RecursorTest):
         self.assertNoRRSIGsInAnswer(res)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+        # now we request the DS for insecure.example., which does not exist,
+        # to check that we correctly get the SOA and not just the denial proof
+        # that the recursor received on the delegation from example. to insecure.example.
+        res = self.sendQuery('insecure.example.', 'DS')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageIsAuthenticated(res)
+        self.assertAuthorityHasSOA(res)
+
     def testBogusAnswer(self):
         res = self.sendQuery('ted.bogus.example.', 'A')
 

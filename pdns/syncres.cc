@@ -145,6 +145,13 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
   else if(qclass!=QClass::IN)
     return -1;
 
+  if (qtype == QType::DS) {
+    d_externalDSQuery = qname;
+  }
+  else {
+    d_externalDSQuery.clear();
+  }
+
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret, depth, beenthere, state);
   d_queryValidationState = state;
@@ -1635,6 +1642,11 @@ static void reapRecordsFromNegCacheEntryForValidation(tcache_t& tcache, const ve
   }
 }
 
+static bool negativeCacheEntryHasSOA(const NegCache::NegCacheEntry& ne)
+{
+  return !ne.authoritySOA.records.empty();
+}
+
 static void reapRecordsForValidation(std::map<QType, CacheEntry>& entries, const vector<DNSRecord>& records)
 {
   for (const auto& rec : records) {
@@ -1745,15 +1757,23 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
         g_negCache->get(qname, qtype, d_now, ne, true))
     {
-      res = RCode::NXDomain;
-      sttl = ne.d_ttd - d_now.tv_sec;
-      giveNegative = true;
-      cachedState = ne.d_validationState;
-      if (ne.d_qtype.getCode()) {
-        LOG(prefix<<qname<<": "<<qtype.toString()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
-        res = RCode::NoError;
-      } else {
-        LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+      /* Careful! If the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
+         and we might not have it if we picked up the proof from a delegation, in which case we need to keep on to do the actual DS
+         query. */
+      if (qtype == QType::DS && ne.d_qtype.getCode() && !d_externalDSQuery.empty() && qname == d_externalDSQuery && !negativeCacheEntryHasSOA(ne)) {
+        giveNegative = false;
+      }
+      else {
+        res = RCode::NXDomain;
+        sttl = ne.d_ttd - d_now.tv_sec;
+        giveNegative = true;
+        cachedState = ne.d_validationState;
+        if (ne.d_qtype.getCode()) {
+          LOG(prefix<<qname<<": "<<qtype.toString()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+          res = RCode::NoError;
+        } else {
+          LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        }
       }
     }
   } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot() && !wasForwardedOrAuthZone) {
@@ -3645,7 +3665,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
               g_negCache->add(ne);
             }
 
-            if (qtype == QType::DS && qname == newauth) {
+            /* Careful! If the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
+               and we might not have it if we picked up the proof from a delegation, in which case we need to keep on to do the actual DS
+               query. */
+            if (qtype == QType::DS && qname == newauth && (d_externalDSQuery.empty() || qname != d_externalDSQuery)) {
               /* we are actually done! */
               negindic = true;
               negIndicHasSignatures = !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty();
