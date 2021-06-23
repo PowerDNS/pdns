@@ -15,9 +15,9 @@ class DynBlocksTest(DNSDistTest):
     _webTimeout = 2.0
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
-    _webServerBasicAuthPasswordHashed = '$argon2id$v=19$m=65536,t=2,p=1$mTJBHtI/KyO8oVDy8wyizg$8NK4ap5ohC7ylY8Dua61iBqhQw0cbcmXUaOpotC2hC0'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'
-    _webServerAPIKeyHashed = '$argon2id$v=19$m=65536,t=2,p=1$gw/ygc0SC6RID13ifimJhQ$nOBy+Tu+JYiQ4hRBhLpTNyaff7rlFPogYUAGGfy5134'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
 
     def doTestDynBlockViaAPI(self, range, reason, minSeconds, maxSeconds, minBlocks, maxBlocks):
         headers = {'x-api-key': self._webServerAPIKey}

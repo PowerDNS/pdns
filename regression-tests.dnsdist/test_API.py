@@ -13,9 +13,9 @@ class APITestsBase(DNSDistTest):
     _webTimeout = 2.0
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
-    _webServerBasicAuthPasswordHashed = '$argon2id$v=19$m=65536,t=2,p=1$mTJBHtI/KyO8oVDy8wyizg$8NK4ap5ohC7ylY8Dua61iBqhQw0cbcmXUaOpotC2hC0'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'
-    _webServerAPIKeyHashed = '$argon2id$v=19$m=65536,t=2,p=1$gw/ygc0SC6RID13ifimJhQ$nOBy+Tu+JYiQ4hRBhLpTNyaff7rlFPogYUAGGfy5134'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
@@ -537,9 +537,9 @@ class TestStatsWithoutAuthentication(APITestsBase):
 class TestAPIAuth(APITestsBase):
     __test__ = True
     _webServerBasicAuthPasswordNew = 'password'
-    _webServerBasicAuthPasswordNewHashed = '$argon2id$v=19$m=65536,t=2,p=1$AYiZGEPogz3849qG//YsjA$ZG39i+yK8Pet8yNU8lJ9ktMbDyF2TuxC32TR74/Mx68'
+    _webServerBasicAuthPasswordNewHashed = '$scrypt$ln=10,p=1,r=8$yefz8SAuT3lj3moXqUYvmw==$T98/RYMp76ZYNjd7MpAkcVXZEDqpLtrc3tQ52QflVBA='
     _webServerAPIKeyNew = 'apipassword'
-    _webServerAPIKeyNewHashed = '$argon2id$v=19$m=65536,t=2,p=1$hNE0zlMnk+9QNKLbQGZjyA$9y0rlN+asmT3p3uyCPTcSeeMGHcwgrrNwbRlDmmLSAA'
+    _webServerAPIKeyNewHashed = '$scrypt$ln=9,p=1,r=8$y96I9nfkY0LWDQEdSUzWgA==$jiyn9QD36o9d0ADrlqiIBk4AKyQrkD1KYw3CexwtHp4='
     # paths accessible using the API key only
     _apiOnlyPath = '/api/v1/servers/localhost/config'
     # paths accessible using basic auth only (list not exhaustive)
