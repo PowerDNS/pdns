@@ -460,6 +460,11 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
   while (!done && ctr > 0) {
     DNSZoneRecord rr;
     done = true;
+
+    if(!ret.isPartOf(d_sd.qname)) {
+      continue;
+    }
+
     B.lookup(QType(qtype), ret, d_sd.domain_id);
     while (B.get(rr)) {
       rr.dr.d_place = DNSResourceRecord::ADDITIONAL;
