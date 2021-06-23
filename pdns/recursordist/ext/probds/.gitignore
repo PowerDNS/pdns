@@ -1,1 +1,2 @@
-../../../../ext/probds/.gitignore
+Makefile
+Makefile.in
