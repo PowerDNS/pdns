@@ -46,7 +46,7 @@
 static size_t const pwhash_max_size = 128U; /* maximum size of the output */
 static size_t const pwhash_output_size = 32U; /* size of the hashed output (before base64 encoding) */
 static unsigned int const pwhash_salt_size = 16U; /* size of the salt (before base64 encoding */
-static uint64_t const pwhash_max_work_factor =  32768U; /* max N for interactive login purposes */
+static uint64_t const pwhash_max_work_factor = 32768U; /* max N for interactive login purposes */
 
 /* PHC string format, storing N as log2(N) as done by passlib.
    for now we only support one algo but we might have to change that later */
@@ -58,7 +58,8 @@ uint64_t const CredentialsHolder::s_defaultWorkFactor{1024U}; /* N */
 uint64_t const CredentialsHolder::s_defaultParallelFactor{1U}; /* p */
 uint64_t const CredentialsHolder::s_defaultBlockSize{8U}; /* r */
 
-SensitiveData::SensitiveData(std::string&& data): d_data(std::move(data))
+SensitiveData::SensitiveData(std::string&& data) :
+  d_data(std::move(data))
 {
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(d_data.data(), d_data.size());
@@ -89,7 +90,7 @@ void SensitiveData::clear()
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
 static std::string hashPasswordInternal(const std::string& password, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
 {
-  auto pctx = std::unique_ptr<EVP_PKEY_CTX, void(*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, nullptr), EVP_PKEY_CTX_free);
+  auto pctx = std::unique_ptr<EVP_PKEY_CTX, void (*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, nullptr), EVP_PKEY_CTX_free);
   if (!pctx) {
     throw std::runtime_error("Error getting a scrypt context to hash the supplied password");
   }
@@ -100,7 +101,7 @@ static std::string hashPasswordInternal(const std::string& password, const std::
 
   if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), reinterpret_cast<const unsigned char*>(password.data()), password.size()) <= 0) {
     throw std::runtime_error("Error adding the password to the scrypt context to hash the supplied password");
- }
+  }
 
   if (EVP_PKEY_CTX_set1_scrypt_salt(pctx.get(), salt.data(), salt.size()) <= 0) {
     throw std::runtime_error("Error adding the salt to the scrypt context to hash the supplied password");
@@ -315,7 +316,7 @@ bool isPasswordHashed(const std::string& password)
   }
 
   /* the hash base64 encoded so it has to be larger than that */
-  if ((password.size() - saltEnd - 1) < pwhash_output_size)  {
+  if ((password.size() - saltEnd - 1) < pwhash_output_size) {
     return false;
   }
 
@@ -327,7 +328,8 @@ bool isPasswordHashed(const std::string& password)
 
 /* if the password is in cleartext and hashing is available,
    the hashed form will be kept in memory */
-CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext): d_credentials(std::move(password))
+CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext) :
+  d_credentials(std::move(password))
 {
   if (isHashingAvailable()) {
     if (!isPasswordHashed(d_credentials.getString())) {
@@ -421,7 +423,7 @@ SensitiveData CredentialsHolder::readFromTerminal()
   struct sigaction sa;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
-  sa.sa_handler = [](int s) { };
+  sa.sa_handler = [](int s) {};
   sigaction(SIGALRM, &sa, &signals[SIGALRM]);
   sigaction(SIGHUP, &sa, &signals[SIGHUP]);
   sigaction(SIGINT, &sa, &signals[SIGINT]);
