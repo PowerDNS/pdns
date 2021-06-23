@@ -453,7 +453,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
   return haveSomething;
 }
 
-DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, std::unique_ptr<DNSPacket>& r) {
+DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, std::unique_ptr<DNSPacket>& r, vector<DNSZoneRecord>& extraRecords) {
   DNSName ret = firstTarget;
   size_t ctr = 5; // Max 5 SVCB Aliasforms per query
   bool done = false;
@@ -467,7 +467,7 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
         case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
           auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
-          r->addRecord(std::move(rr));
+          extraRecords.push_back(std::move(rr));
           ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
           if (rrc->getPriority() == 0) {
             done = false;
@@ -490,6 +490,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
 {
   DNSName content;
   std::unordered_set<DNSName> lookup;
+  vector<DNSZoneRecord> extraRecords;
   const auto& rrs = r->getRRS();
 
   lookup.reserve(rrs.size());
@@ -512,7 +513,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
           if (content.isRoot()) {
             content = rr.dr.d_name;
           }
-          content = doAdditionalServiceProcessing(content, rr.dr.d_type, r);
+          content = doAdditionalServiceProcessing(content, rr.dr.d_type, r, extraRecords);
           break;
         }
         default:
@@ -523,6 +524,11 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
       }
     }
   }
+
+  for(auto& rr : extraRecords) {
+    r->addRecord(std::move(rr));
+  }
+  extraRecords.clear();
   // TODO should we have a setting to do this?
   for (auto &rec : r->getServiceRecords()) {
     // Process auto hints
