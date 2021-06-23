@@ -77,9 +77,8 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 {
   try {
     auto transaction = d_env.getROTransaction();
-    auto dbi = transaction->openDB(d_dbName, 0);
     MDBOutVal result;
-    int rc = transaction->get(dbi, MDBInVal(key), result);
+    int rc = transaction->get(d_dbi, MDBInVal(key), result);
     if (rc == 0) {
       value = result.get<std::string>();
       return true;
@@ -98,9 +97,8 @@ bool LMDBKVStore::keyExists(const std::string& key)
 {
   try {
     auto transaction = d_env.getROTransaction();
-    auto dbi = transaction->openDB(d_dbName, 0);
     MDBOutVal result;
-    int rc = transaction->get(dbi, MDBInVal(key), result);
+    int rc = transaction->get(d_dbi, MDBInVal(key), result);
     if (rc == 0) {
       return true;
     }
