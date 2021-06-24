@@ -1027,7 +1027,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         addSuckRequest(di.zone, remote, prio);
       }
       else {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is fresh, but RRSIGs differ on master" << remote.toStringWithPortExcept(53)<<", so DNSSEC is stale, serial is " << ourserial << endl;
+        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is fresh, but RRSIGs differ on master " << remote.toStringWithPortExcept(53)<<", so DNSSEC is stale, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
     }
