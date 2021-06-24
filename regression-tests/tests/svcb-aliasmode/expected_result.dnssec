@@ -7,3 +7,8 @@
 2	foo1.svcb.example.com.	IN	SVCB	120	1 . alpn=h2,h3
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='foo.svcb.example.com.', qtype=SVCB
+0	baz.svcb.example.com.	IN	RRSIG	120	SVCB 13 4 120 [expiry] [inception] [keytag] example.com. ...
+0	baz.svcb.example.com.	IN	SVCB	120	0 foo1.svcb.example.net.
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='baz.svcb.example.com.', qtype=SVCB
