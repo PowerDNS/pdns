@@ -508,7 +508,7 @@ These ``DNSRule``\ s be one of the following items:
 
   The function will be invoked in a per-thread Lua state, without access to the global Lua state.
 
-  :param string function: the name of a Lua function
+  :param string function: a Lua string returning a Lua function
 
 .. function:: LuaFFIRule(function)
 
@@ -1020,7 +1020,7 @@ The following actions exist.
 
   The function will be invoked in a per-thread Lua state, without access to the global Lua state.
 
-  :param string function: the name of a Lua function
+  :param string function: a Lua string returning a Lua function
 
 .. function:: LuaFFIPerThreadResponseAction(function)
 
@@ -1032,7 +1032,7 @@ The following actions exist.
 
   The function will be invoked in a per-thread Lua state, without access to the global Lua state.
 
-  :param string function: the name of a Lua function
+  :param string function: a Lua string returning a Lua function
 
 .. function:: LuaFFIResponseAction(function)
 
