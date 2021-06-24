@@ -491,6 +491,13 @@ BOOST_AUTO_TEST_CASE(test_unknown_records_in) {
   }
 }
 
+// test that we reject invalid SVCB escaping
+BOOST_AUTO_TEST_CASE(test_svcb_records_in) {
+
+  BOOST_CHECK_THROW(auto invalidSVCB1=DNSRecordContent::mastermake(QType::SVCB, QClass::IN, R"FOO(1 . alpn=foo\\)FOO"), std::runtime_error);
+
+}
+
 // special record test, because EUI are odd
 BOOST_AUTO_TEST_CASE(test_eui_records_in) {
 

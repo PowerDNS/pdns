@@ -1245,6 +1245,7 @@ static int editZone(const DNSName &zone) {
   }
   if (changed.size() > 0) {
     if (changed.find({zone, QType::SOA}) == changed.end()) {
+     reAsk3:;
       cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
       cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit:"<<endl;
       int c = read1char();
@@ -1279,7 +1280,7 @@ static int editZone(const DNSName &zone) {
           break;
         case 'n':
         default:
-          goto reAsk2;
+          goto reAsk3;
           break;
       }
     }
@@ -1394,12 +1395,6 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
     cerr << "Zone '" << zone << "' exists already" << endl;
     return EXIT_FAILURE;
   }
-  cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
-  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
-  if(!B.getDomainInfo(zone, di)) {
-    cerr << "Zone '" << zone << "' was not created!" << endl;
-    return EXIT_FAILURE;
-  }
 
   DNSResourceRecord rr;
   rr.qname = zone;
@@ -1410,8 +1405,29 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   string soa = ::arg()["default-soa-content"];
   boost::replace_all(soa, "@", zone.toStringNoDot());
   SOAData sd;
-  fillSOAData(soa, sd);
+  try {
+    fillSOAData(soa, sd);
+  }
+  catch(const std::exception& e) {
+    cerr<<"Error while parsing default-soa-content ("<<soa<<"): "<<e.what()<<endl;
+    cerr<<"Zone not created!"<<endl;
+    return EXIT_FAILURE;
+  }
+  catch(const PDNSException& pe) {
+    cerr<<"Error while parsing default-soa-content ("<<soa<<"): "<<pe.reason<<endl;
+    cerr<<"Zone not created!"<<endl;
+    return EXIT_FAILURE;
+  }
+
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
+
+  cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
+  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
+  if(!B.getDomainInfo(zone, di)) {
+    cerr << "Zone '" << zone << "' was not created!" << endl;
+    return EXIT_FAILURE;
+  }
+
   rr.domain_id = di.id;
   di.backend->startTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());
@@ -1572,6 +1588,7 @@ static int addSuperMaster(const std::string &IP, const std::string &nameserver, 
   if ( B.superMasterAdd(IP, nameserver, account) ){ 
     return EXIT_SUCCESS; 
   }
+  cerr<<"could not find a backend with autosecondary support"<<endl;
   return EXIT_FAILURE;
 }
 
@@ -2673,7 +2690,7 @@ try
 
   else if (cmds.at(0) == "add-zone-key") {
     if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnsutil add-zone-key ZONE zsk|ksk [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
+      cerr << "Syntax: pdnsutil add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
       cerr << "|ed25519";
 #endif
@@ -2681,6 +2698,8 @@ try
       cerr << "|ed448";
 #endif
       cerr << "]"<<endl;
+      cerr << endl;
+      cerr << "If zsk|ksk is omitted, add-zone-key makes a key with flags 256 (a 'ZSK')."<<endl;
       return 0;
     }
     DNSName zone(cmds.at(1));

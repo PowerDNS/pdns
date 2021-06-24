@@ -453,13 +453,18 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
   return haveSomething;
 }
 
-DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, std::unique_ptr<DNSPacket>& r) {
+DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget, const uint16_t &qtype, std::unique_ptr<DNSPacket>& r, vector<DNSZoneRecord>& extraRecords) {
   DNSName ret = firstTarget;
   size_t ctr = 5; // Max 5 SVCB Aliasforms per query
   bool done = false;
   while (!done && ctr > 0) {
     DNSZoneRecord rr;
     done = true;
+
+    if(!ret.isPartOf(d_sd.qname)) {
+      continue;
+    }
+
     B.lookup(QType(qtype), ret, d_sd.domain_id);
     while (B.get(rr)) {
       rr.dr.d_place = DNSResourceRecord::ADDITIONAL;
@@ -467,7 +472,7 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
         case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
           auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
-          r->addRecord(std::move(rr));
+          extraRecords.push_back(std::move(rr));
           ret = rrc->getTarget().isRoot() ? ret : rrc->getTarget();
           if (rrc->getPriority() == 0) {
             done = false;
@@ -490,6 +495,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
 {
   DNSName content;
   std::unordered_set<DNSName> lookup;
+  vector<DNSZoneRecord> extraRecords;
   const auto& rrs = r->getRRS();
 
   lookup.reserve(rrs.size());
@@ -512,7 +518,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
           if (content.isRoot()) {
             content = rr.dr.d_name;
           }
-          content = doAdditionalServiceProcessing(content, rr.dr.d_type, r);
+          if (rrc->getPriority() == 0) {
+            content = doAdditionalServiceProcessing(content, rr.dr.d_type, r, extraRecords);
+          }
           break;
         }
         default:
@@ -523,31 +531,41 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
       }
     }
   }
+
+  for(auto& rr : extraRecords) {
+    r->addRecord(std::move(rr));
+  }
+  extraRecords.clear();
   // TODO should we have a setting to do this?
   for (auto &rec : r->getServiceRecords()) {
     // Process auto hints
     auto rrc = getRR<SVCBBaseRecordContent>(rec->dr);
     DNSName target = rrc->getTarget().isRoot() ? rec->dr.d_name : rrc->getTarget();
-    if (rrc->autoHint(SvcParam::ipv4hint) && s_SVCAutohints) {
-      auto hints = getIPAddressFor(target, QType::A);
-      if (hints.size() == 0) {
-        rrc->removeParam(SvcParam::ipv4hint);
+
+    if (rrc->hasParam(SvcParam::ipv4hint) && rrc->autoHint(SvcParam::ipv4hint)) {
+      if (s_SVCAutohints) {
+        auto hints = getIPAddressFor(target, QType::A);
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv4hint);
+        } else {
+          rrc->setHints(SvcParam::ipv4hint, hints);
+        }
       } else {
-        rrc->setHints(SvcParam::ipv4hint, hints);
+        rrc->removeParam(SvcParam::ipv4hint);
       }
-    } else {
-      rrc->removeParam(SvcParam::ipv4hint);
     }
 
-    if (rrc->autoHint(SvcParam::ipv6hint) && s_SVCAutohints) {
-      auto hints = getIPAddressFor(target, QType::AAAA);
-      if (hints.size() == 0) {
-        rrc->removeParam(SvcParam::ipv6hint);
+    if (rrc->hasParam(SvcParam::ipv6hint) && rrc->autoHint(SvcParam::ipv6hint)) {
+      if (s_SVCAutohints) {
+        auto hints = getIPAddressFor(target, QType::AAAA);
+        if (hints.size() == 0) {
+          rrc->removeParam(SvcParam::ipv6hint);
+        } else {
+          rrc->setHints(SvcParam::ipv6hint, hints);
+        }
       } else {
-        rrc->setHints(SvcParam::ipv6hint, hints);
+        rrc->removeParam(SvcParam::ipv6hint);
       }
-    } else {
-      rrc->removeParam(SvcParam::ipv6hint);
     }
   }
 
@@ -627,6 +645,9 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
       nrc.set(QType::A);
       nrc.set(QType::AAAA);
     }
+    else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.qname) && !::arg().mustDo("direct-dnskey")) {
+      continue;
+    }
     else if(rr.dr.d_type == QType::NS || rr.auth) {
       nrc.set(rr.dr.d_type);
     }
@@ -690,6 +711,9 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
         // be requested.
         n3rc.set(QType::A);
         n3rc.set(QType::AAAA);
+      }
+      else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.qname) && !::arg().mustDo("direct-dnskey")) {
+        continue;
       }
       else if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) {
           // skip empty non-terminals

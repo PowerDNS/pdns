@@ -125,6 +125,29 @@ void BaseLua4::prepareContext() {
     } );
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
+  d_lw->writeFunction("newCAFromRaw", [](const std::string& raw, boost::optional<uint16_t> port) {
+                                        if (raw.size() == 4) {
+                                          struct sockaddr_in sin4;
+                                          memset(&sin4, 0, sizeof(sin4));
+                                          sin4.sin_family = AF_INET;
+                                          memcpy(&sin4.sin_addr.s_addr, raw.c_str(), raw.size());
+                                          if (port) {
+                                            sin4.sin_port = htons(*port);
+                                          }
+                                          return ComboAddress(&sin4);
+                                        }
+                                        else if (raw.size() == 16) {
+                                          struct sockaddr_in6 sin6;
+                                          memset(&sin6, 0, sizeof(sin6));
+                                          sin6.sin6_family = AF_INET6;
+                                          memcpy(&sin6.sin6_addr.s6_addr, raw.c_str(), raw.size());
+                                          if (port) {
+                                            sin6.sin6_port = htons(*port);
+                                          }
+                                          return ComboAddress(&sin6);
+                                        }
+                                        return ComboAddress();
+                                      });
   typedef std::unordered_set<ComboAddress,ComboAddress::addressOnlyHash,ComboAddress::addressOnlyEqual> cas_t;
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) { return ComboAddress::addressOnlyEqual()(lhs, rhs); });
 
