@@ -1672,6 +1672,44 @@ private:
   std::string d_tag;
 };
 
+class KeyValueStoreRangeLookupAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  KeyValueStoreRangeLookupAction(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag): d_kvs(kvs), d_key(lookupKey), d_tag(destinationTag)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    std::vector<std::string> keys = d_key->getKeys(*dq);
+    std::string result;
+    for (const auto& key : keys) {
+      if (d_kvs->getRangeValue(key, result) == true) {
+        break;
+      }
+    }
+
+    if (!dq->qTag) {
+      dq->qTag = std::make_shared<QTag>();
+    }
+
+    dq->qTag->insert({d_tag, std::move(result)});
+
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "do a range-based lookup in key-value store based on '" + d_key->toString() + "' and set the result in tag '" + d_tag + "'";
+  }
+
+private:
+  std::shared_ptr<KeyValueStore> d_kvs;
+  std::shared_ptr<KeyValueLookupKey> d_key;
+  std::string d_tag;
+};
+
 class NegativeAndSOAAction: public DNSAction
 {
 public:
@@ -2224,6 +2262,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
+    });
+
+  luaCtx.writeFunction("KeyValueStoreRangeLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
+      return std::shared_ptr<DNSAction>(new KeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag));
     });
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {

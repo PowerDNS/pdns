@@ -36,7 +36,7 @@ public:
 class KeyValueLookupKeySourceIP: public KeyValueLookupKey
 {
 public:
-  KeyValueLookupKeySourceIP(uint8_t v4Mask, uint8_t v6Mask): d_v4Mask(v4Mask), d_v6Mask(v6Mask)
+  KeyValueLookupKeySourceIP(uint8_t v4Mask, uint8_t v6Mask, bool includePort): d_v4Mask(v4Mask), d_v6Mask(v6Mask), d_includePort(includePort)
   {
   }
 
@@ -49,11 +49,12 @@ public:
 
   std::string toString() const override
   {
-    return "source IP (masked to " + std::to_string(d_v4Mask) + " (v4) / " + std::to_string(d_v6Mask) + " (v6) bits)";
+    return "source IP (masked to " + std::to_string(d_v4Mask) + " (v4) / " + std::to_string(d_v6Mask) + " (v6) bits)" + (d_includePort ? " including the port" : "");
   }
 private:
   uint8_t d_v4Mask;
   uint8_t d_v6Mask;
+  bool d_includePort;
 };
 
 class KeyValueLookupKeyQName: public KeyValueLookupKey
@@ -152,6 +153,15 @@ public:
 
   virtual bool keyExists(const std::string& key) = 0;
   virtual bool getValue(const std::string& key, std::string& value) = 0;
+  // do a range-based lookup (mostly useful for IP addresses), assuming that:
+  // there is a key for the last element of the range (2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff for 2001:db8::/32)
+  // which contains the first element of the range (2001:0db8:0000:0000:0000:0000:0000:0000) followed by any data in the value
+  // AND there is no overlapping ranges in the database !!
+  // This requires that the underlying store supports ordered keys, which is true for LMDB but not for CDB, for example.
+  virtual bool getRangeValue(const std::string& key, std::string& value)
+  {
+    throw std::runtime_error("range-based lookups are not implemented for this Key-Value Store");
+  }
   virtual bool reload()
   {
     return false;
@@ -171,6 +181,7 @@ public:
 
   bool keyExists(const std::string& key) override;
   bool getValue(const std::string& key, std::string& value) override;
+  bool getRangeValue(const std::string& key, std::string& value) override;
 
 private:
   MDBEnv d_env;
