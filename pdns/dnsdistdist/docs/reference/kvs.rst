@@ -86,10 +86,14 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
   .. versionchanged:: 1.5.0
     Optional parameters ``v4mask`` and ``v6mask`` added.
 
+  .. versionchanged:: 1.7.0
+    Optional parameter ``includePort`` added.
+
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return the source IP of the client in network byte-order.
 
   :param int v4mask: Mask applied to IPv4 addresses. Default is 32 (the whole address)
   :param int v6mask: Mask applied to IPv6 addresses. Default is 128 (the whole address)
+  :param int includePort: Whether to append the port (in network byte-order) after the address. Default is false
 
 .. function:: KeyValueLookupKeySuffix([minLabels [, wireFormat]]) -> KeyValueLookupKey
 
