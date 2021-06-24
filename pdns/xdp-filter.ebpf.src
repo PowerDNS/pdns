@@ -14,7 +14,8 @@ typedef __u64 uint64_t;
 #define memcpy __builtin_memcpy
 
 /*
- *  Helper pointer to parse the incoming packets
+ * Helper pointer to parse the incoming packets
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
 struct cursor {
   void *pos;
@@ -22,7 +23,8 @@ struct cursor {
 };
 
 /*
- *  Store the VLAN header
+ * Store the VLAN header
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
 struct vlanhdr {
   uint16_t tci;
@@ -30,7 +32,8 @@ struct vlanhdr {
 };
 
 /*
- *  Store the DNS header
+ * Store the DNS header
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
 struct dnshdr {
   uint16_t id;
@@ -79,12 +82,34 @@ struct dns_qname
   uint16_t qtype;
 };
 
-BPF_TABLE("hash", uint32_t, uint64_t, v4filter, 1024);
-BPF_TABLE("hash", struct in6_addr, uint64_t, v6filter, 1024);
-BPF_TABLE("hash", struct dns_qname, uint64_t, qnamefilter, 1024);
+/*
+ * The possible actions to perform on the packet
+ * PASS: XDP_PASS
+ * DROP: XDP_DROP
+ * TC: set TC bit and XDP_TX
+ */
+enum dns_action {
+  PASS,
+  DROP,
+  TC
+};
 
 /*
- *  Initializer of a cursor pointer
+ * Store the matching counter and the associated action for a blocked element
+ */
+struct map_value
+{
+  uint64_t counter;
+  enum dns_action action;
+};
+
+BPF_TABLE("hash", uint32_t, struct map_value, v4filter, 1024);
+BPF_TABLE("hash", struct in6_addr, struct map_value, v6filter, 1024);
+BPF_TABLE("hash", struct dns_qname, struct map_value, qnamefilter, 1024);
+
+/*
+ * Initializer of a cursor pointer
+ *  Copyright 2020, NLnet Labs, All rights reserved.
  */
 static inline void cursor_init(struct cursor *c, struct xdp_md *ctx)
 {
@@ -94,6 +119,7 @@ static inline void cursor_init(struct cursor *c, struct xdp_md *ctx)
 
 /* 
  * Header parser functions
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
 #define PARSE_FUNC_DECLARATION(STRUCT)  							\
 static inline struct STRUCT *parse_ ## STRUCT (struct cursor *c)  \
@@ -114,6 +140,7 @@ PARSE_FUNC_DECLARATION(dnshdr)
 
 /*
  * Parse ethernet frame and fill the struct
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
 static inline struct ethhdr *parse_eth(struct cursor *c, uint16_t *eth_proto)
 {
@@ -143,7 +170,8 @@ static inline struct ethhdr *parse_eth(struct cursor *c, uint16_t *eth_proto)
 }
 
 /*
- *  Recalculate the checksum
+ * Recalculate the checksum
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
 static inline void update_checksum(uint16_t *csum, uint16_t old_val, uint16_t new_val)
 {
@@ -161,8 +189,9 @@ static inline void update_checksum(uint16_t *csum, uint16_t old_val, uint16_t ne
 
 /*
  * Set the TC bit and swap UDP ports
+ * Copyright 2020, NLnet Labs, All rights reserved.
  */
-static inline int set_tc_bit(struct udphdr *udp, struct dnshdr *dns)
+static inline enum dns_action set_tc_bit(struct udphdr *udp, struct dnshdr *dns)
 {
   uint16_t old_val = dns->flags.as_value;
 
@@ -179,15 +208,16 @@ static inline int set_tc_bit(struct udphdr *udp, struct dnshdr *dns)
   update_checksum(&udp->check, old_val, dns->flags.as_value);
 
   // bounce
-  return 0;
+  return TC;
 }
 
 /*
  * Check DNS QName
- * Returns 1 if (modified) message needs to be replied
- *         0 if message needs to go through (i.e. pass)
+ * Returns PASS if message needs to go through (i.e. pass)
+ *         TC if (modified) message needs to be replied
+ *         DROP if message needs to be blocke
  */
-static inline int check_qname(struct cursor *c)
+static inline enum dns_action check_qname(struct cursor *c)
 {
   struct dns_qname qkey = {0};
   uint8_t qname_byte;
@@ -196,122 +226,140 @@ static inline int check_qname(struct cursor *c)
 
   for(int i = 0; i<255; i++) {
   	if (bpf_probe_read_kernel(&qname_byte, sizeof(qname_byte), c->pos)) {
-  		return 0;
+  		return PASS;
   	}
   	c->pos += 1;
-  	if (qname_byte == 0 || (length == i) * qname_byte > 63 ) {
-  		break;
+  	if (length == 0) {
+      if (qname_byte == 0 || qname_byte > 63 ) {
+  		  break;
+      }
+      length += qname_byte;
   	} else {
-  		if (qname_byte >= 'A' && qname_byte <= 'Z') {
-  			qkey.qname[i] = qname_byte + ('a' - 'A');
-  		} else {
-  			qkey.qname[i] = qname_byte;
-  		}
+      length--;
+    }
+  	if (qname_byte >= 'A' && qname_byte <= 'Z') {
+  		qkey.qname[i] = qname_byte + ('a' - 'A');
+  	} else {
+  		qkey.qname[i] = qname_byte;
   	}
   }
 
-  // If the last read qbyte is not 0 incorrect QName format), return XDP_PASS
+  // if the last read qbyte is not 0 incorrect QName format), return PASS
   if (qname_byte != 0) {
-  	return 0;
+  	return PASS;
   }
 
-  // Get QType
+  // get QType
   if(bpf_probe_read_kernel(&qtype, sizeof(qtype), c->pos)) {
-  	return 0;
+  	return PASS;
   }
 
-  uint64_t* counter ;
+  struct map_value* value;
 
-  // Check if Qname/Qtype is blocked
+  // check if Qname/Qtype is blocked
   qkey.qtype = bpf_htons(qtype);
-  counter = qnamefilter.lookup(&qkey);
-  if (counter) {
-       	__sync_fetch_and_add(counter, 1);
-  	return 1;
+  value = qnamefilter.lookup(&qkey);
+  if (value) {
+    __sync_fetch_and_add(&value->counter, 1);
+  	return value->action;
   }
 
-  // Check with Qtype 255 (*)
+  // check with Qtype 255 (*)
   qkey.qtype = 255;
 
-  counter = qnamefilter.lookup(&qkey);
-  if (counter) {
-        __sync_fetch_and_add(counter, 1);
-  	return 1;
+  value = qnamefilter.lookup(&qkey);
+  if (value) {
+    __sync_fetch_and_add(&value->counter, 1);
+  	return value->action;
   }
 
-  return 0; // XDP_PASS
+  return PASS;
 }
 
 /*
  * Parse IPv4 DNS mesage.
- * Returns 1 if message needs to go through (i.e. pass)
- *        -1 if something went wrong and the packet needs to be dropped
- *         0 if (modified) message needs to be replied
+ * Returns PASS if message needs to go through (i.e. pass)
+ *         TC if (modified) message needs to be replied
+ *         DROP if message needs to be blocked
  */
-static inline int udp_dns_reply_v4(struct cursor *c, uint32_t key)
+static inline enum dns_action udp_dns_reply_v4(struct cursor *c, uint32_t key)
 {
   struct udphdr  *udp;
   struct dnshdr  *dns;
 
   if (!(udp = parse_udphdr(c)) || udp->dest != bpf_htons(DNS_PORT)) {
-  	return 1;
+  	return PASS;
   }
 
   // check that we have a DNS packet
   if (!(dns = parse_dnshdr(c))) {
-  	return 1;
+  	return PASS;
   }	
 
-  // if the address is blocked, reply with bit TC
-  uint64_t* counter = v4filter.lookup(&key);
+  // if the address is blocked, perform the corresponding action
+  struct map_value* value = v4filter.lookup(&key);
 
-  if (counter) {
-        __sync_fetch_and_add(counter, 1);
-  	return set_tc_bit(udp, dns);
+  if (value) {
+    __sync_fetch_and_add(&value->counter, 1);
+    if (value->action == TC) {
+  	  return set_tc_bit(udp, dns);
+    } else {
+      return value->action;
+    }
   } else {
-  	if (check_qname(c)) {
+    enum dns_action action = check_qname(c);
+  	if (action == TC) {
   		return set_tc_bit(udp, dns);
-  	}
+  	} else {
+      return action;
+    }
   }
 
-  return 1;
+  return PASS;
 }
 
 /*
  * Parse IPv6 DNS mesage.
- * Returns 1 if message needs to go through (i.e. pass)
- *        -1 if something went wrong and the packet needs to be dropped
- *         0 if (modified) message needs to be replied
+ * Returns PASS if message needs to go through (i.e. pass)
+ *         TC if (modified) message needs to be replied
+ *         DROP if message needs to be blocked
  */
-static inline int udp_dns_reply_v6(struct cursor *c, struct in6_addr key)
+static inline enum dns_action udp_dns_reply_v6(struct cursor *c, struct in6_addr key)
 {
    struct udphdr  *udp;
    struct dnshdr  *dns;
 
   
   if (!(udp = parse_udphdr(c)) || udp->dest != bpf_htons(DNS_PORT)) {
-  	return 1;
+  	return PASS;
   }
 
   // check that we have a DNS packet
   ;
   if (!(dns = parse_dnshdr(c))) {
-  	return 1;
+  	return PASS;
   }
 
-  // if the address is blocked, reply with bit TC
-  uint64_t* counter = v6filter.lookup(&key);
+  // if the address is blocked, perform the corresponding action
+  struct map_value* value = v6filter.lookup(&key);
 
-  if (counter) {
-        __sync_fetch_and_add(counter, 1);
-  	return set_tc_bit(udp, dns);
+  if (value) {
+    __sync_fetch_and_add(&value->counter, 1);
+    if (value->action == TC) {
+  	  return set_tc_bit(udp, dns);
+    } else {
+      return value->action;
+    }
   } else {
-  	if (check_qname(c)) {
+    enum dns_action action = check_qname(c);
+  	if (action == TC) {
   		return set_tc_bit(udp, dns);
-  	}
+  	} else {
+      return action;
+    }
   }
 
-  return 1;
+  return PASS;
 }
 
 int xdp_dns_filter(struct xdp_md *ctx)
@@ -335,11 +383,12 @@ int xdp_dns_filter(struct xdp_md *ctx)
   		if (!(ipv4 = parse_iphdr(&c)) || bpf_htons(ipv4->protocol != IPPROTO_UDP)) {
   			return XDP_PASS;
   		}
-  		if ((r = udp_dns_reply_v4(&c, bpf_htonl(ipv4->saddr)))) {
-  			return r < 0 ? XDP_ABORTED : XDP_PASS;
+      // if TC bit must not be set, apply the action
+  		if ((r = udp_dns_reply_v4(&c, bpf_htonl(ipv4->saddr))) != TC) {
+  	    return r == DROP ? XDP_DROP : XDP_PASS;
   		}
   
-          // swap src/dest IP addresses
+      // swap src/dest IP addresses
   		uint32_t swap_ipv4 = ipv4->daddr;
   		ipv4->daddr = ipv4->saddr;
   		ipv4->saddr = swap_ipv4;
@@ -351,11 +400,12 @@ int xdp_dns_filter(struct xdp_md *ctx)
   		if (!(ipv6 = parse_ipv6hdr(&c)) || bpf_htons(ipv6->nexthdr != IPPROTO_UDP)) {
   			return XDP_PASS;
   		} 
-  		if ((r = udp_dns_reply_v6(&c, ipv6->saddr))) {
-  			return r < 0 ? XDP_ABORTED : XDP_PASS;
+      // if TC bit must not be set, apply the action
+  		if ((r = udp_dns_reply_v6(&c, ipv6->saddr)) != TC) {
+  			return r == DROP ? XDP_DROP : XDP_PASS;
   		}
   
-          // swap src/dest IP addresses
+      // swap src/dest IP addresses
   		struct in6_addr swap_ipv6 = ipv6->daddr;
   		ipv6->daddr = ipv6->saddr;
   		ipv6->saddr = swap_ipv6;
@@ -369,7 +419,7 @@ int xdp_dns_filter(struct xdp_md *ctx)
   	return XDP_PASS;
   }
 
-    // swap MAC addresses
+  // swap MAC addresses
   uint8_t swap_eth[ETH_ALEN];
   memcpy(swap_eth, eth->h_dest, ETH_ALEN);
   memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
