@@ -518,7 +518,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
           if (content.isRoot()) {
             content = rr.dr.d_name;
           }
-          content = doAdditionalServiceProcessing(content, rr.dr.d_type, r, extraRecords);
+          if (rrc->getPriority() == 0) {
+            content = doAdditionalServiceProcessing(content, rr.dr.d_type, r, extraRecords);
+          }
           break;
         }
         default:
