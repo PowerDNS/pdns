@@ -2,6 +2,75 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.0-rc1
+  :released: 25th of June 2021
+
+  This is the first release candidate for version 4.5.0 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
+
+  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
+  In some setups, and some attack scenarios, this can make a serious performance difference.
+
+  Since 4.5.0-beta1, the zone cache is enabled by default.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10522
+
+    SVCB additional processing: delay inserts to avoid invalidating iterator; do not chase chains outside of zone
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10514
+
+    2136: allow placing DNSKEY/CDS/CDNSKEY regardless of direct-dnskey setting
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10513
+
+    pdnsutil edit-zone: correctly reask inc-serial question
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10512
+
+    pdnsutil add-autoprimary: print error when exiting with 1
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10511
+
+    SVCB: on parse error, throw instead of truncate
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10510
+
+    SVCB: Fix auto hints removing non-auto hints
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10509
+
+    pdnsutil create-zone: better error if default-soa-content is broken
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10373
+
+    pdnsutil add-zone-key: clarify ZSK default
+
+  .. change::
+    :tags: New Features
+    :pullreq: 9474
+
+    newCAFromRaw(): create ComboAddress from raw 4/16 byte strings, plus test
+
+.. changelog::
   :version: 4.5.0-beta1
   :released: 9th of June 2021
 
