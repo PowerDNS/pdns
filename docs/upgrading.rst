@@ -53,7 +53,7 @@ Changed defaults
 Removed options
 ~~~~~~~~~~~~~~~
 - :ref:`setting-local-ipv6` has been removed. IPv4 and IPv6 listen addresses should now be set with :ref:`setting-local-address`.
-- :ref:`setting-query-local-address6` has been removed. IPv4 and IPv6 addresses used for sending queries should now be set with :ref:`query-local-address`.
+- :ref:`setting-query-local-address6` has been removed. IPv4 and IPv6 addresses used for sending queries should now be set with :ref:`setting-query-local-address`.
 
 Starting with auth-4.5.0-beta1:
 
