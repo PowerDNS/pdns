@@ -203,6 +203,9 @@ public:
   size_t d_proxyProtocolNeed{0};
   size_t d_queriesCount{0};
   size_t d_currentQueriesCount{0};
+  uint32_t d_xfrMasterSerial{0};
+  uint32_t d_xfrSerialCount{0};
+  uint8_t d_xfrMasterSerialCount{0};
   uint16_t d_querySize{0};
   State d_state{State::doingHandshake};
   bool d_isXFR{false};

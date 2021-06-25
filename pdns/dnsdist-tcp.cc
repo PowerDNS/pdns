@@ -370,7 +370,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 
 static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& state, const TCPResponse& currentResponse)
 {
-  if (state->d_isXFR) {
+  if (state->d_isXFR || currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
     return;
   }
 
@@ -435,6 +435,9 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_buffer.resize(sizeof(uint16_t));
   d_currentPos = 0;
   d_querySize = 0;
+  d_xfrMasterSerial = 0;
+  d_xfrSerialCount = 0;
+  d_xfrMasterSerialCount = 0;
   d_state = State::waitingForQuery;
 }
 

@@ -2,6 +2,8 @@
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 
+#include "dnsparser.hh"
+
 const uint16_t TCPConnectionToBackend::s_xfrID = 0;
 
 void TCPConnectionToBackend::assignToClientConnection(std::shared_ptr<IncomingTCPConnectionState>& clientConn, bool isXFR)
@@ -439,6 +441,28 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   release();
 }
 
+static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
+{
+  /* minimal size for a SOA record, as defined by rfc1035:
+     MNAME (root): 1
+     RNAME (root): 1
+     SERIAL: 4
+     REFRESH: 4
+     RETRY: 4
+     EXPIRE: 4
+     MINIMUM: 4
+     = 22 bytes
+  */
+  if (raw.size() < 22) {
+    throw std::runtime_error("Invalid content of size " + std::to_string(raw.size()) + " for a SOA record");
+  }
+  /* As rfc1025 states that "all domain names in the RDATA section of these RRs may be compressed",
+     and we don't want to parse these names, start at the end */
+  uint32_t serial = 0;
+  memcpy(&serial, &raw.at(raw.size() - 20), sizeof(serial));
+  return ntohl(serial);
+}
+
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   d_downstreamFailures = 0;
@@ -451,19 +475,6 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     release();
 
     return IOState::Done;
-  }
-
-  if (d_usedForXFR) {
-    DEBUGLOG("XFR!");
-    TCPResponse response;
-    response.d_buffer = std::move(d_responseBuffer);
-    response.d_connection = conn;
-    clientConn->handleXFRResponse(clientConn, now, std::move(response));
-    d_state = State::waitingForResponseFromBackend;
-    d_currentPos = 0;
-    d_responseBuffer.resize(sizeof(uint16_t));
-    // get ready to read the next packet, if any
-    return IOState::NeedRead;
   }
 
   uint16_t queryId = 0;
@@ -487,13 +498,51 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     --conn->d_ds->outstanding;
   }
 
+  if (d_usedForXFR) {
+    DEBUGLOG("XFR!");
+    bool done = false;
+    TCPResponse response;
+    response.d_buffer = std::move(d_responseBuffer);
+    response.d_connection = conn;
+    /* we don't move the whole IDS because we will need for the responses to come */
+    response.d_idstate.qtype = it->second.d_idstate.qtype;
+    response.d_idstate.qname = it->second.d_idstate.qname;
+    DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
+
+    done = isXFRFinished(response, clientConn);
+
+    if (done) {
+      d_pendingResponses.erase(it);
+      /* marking as idle for now, so we can accept new queries if our queues are empty */
+      if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
+        d_state = State::idle;
+      }
+      clientConn->d_isXFR = false;
+      conn->d_usedForXFR = false;
+    }
+
+    clientConn->handleXFRResponse(clientConn, now, std::move(response));
+    if (done) {
+      d_state = State::idle;
+      d_clientConn.reset();
+      return IOState::Done;
+    }
+
+    d_state = State::waitingForResponseFromBackend;
+    d_currentPos = 0;
+    d_responseBuffer.resize(sizeof(uint16_t));
+    // get ready to read the next packet, if any
+    return IOState::NeedRead;
+  }
+
   auto ids = std::move(it->second.d_idstate);
   d_pendingResponses.erase(it);
-  DEBUGLOG("passing response to client connection for "<<ids.qname);
   /* marking as idle for now, so we can accept new queries if our queues are empty */
   if (d_pendingQueries.empty() && d_pendingResponses.empty()) {
     d_state = State::idle;
   }
+
+  DEBUGLOG("passing response to client connection for "<<ids.qname);
   clientConn->handleResponse(clientConn, now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn));
 
   if (!d_pendingQueries.empty()) {
@@ -554,4 +603,53 @@ bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<Proxy
   }
 
   return *tlvs == *d_proxyProtocolValuesSent;
+}
+
+bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, const shared_ptr<IncomingTCPConnectionState>& clientConn)
+{
+  bool done = false;
+  try {
+    MOADNSParser parser(true, reinterpret_cast<const char*>(response.d_buffer.data()), response.d_buffer.size());
+    if (parser.d_header.rcode != 0U) {
+      done = true;
+    }
+    else {
+      for (const auto& record : parser.d_answers) {
+        if (record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+          continue;
+        }
+
+        auto unknownContent = getRR<UnknownRecordContent>(record.first);
+        if (!unknownContent) {
+          continue;
+        }
+        auto raw = unknownContent->getRawContent();
+        auto serial = getSerialFromRawSOAContent(raw);
+
+        ++clientConn->d_xfrSerialCount;
+        if (clientConn->d_xfrMasterSerial == 0) {
+          // store the first SOA in our client's connection metadata
+          ++clientConn->d_xfrMasterSerialCount;
+          clientConn->d_xfrMasterSerial = serial;
+        }
+        else if (clientConn->d_xfrMasterSerial == serial) {
+          ++clientConn->d_xfrMasterSerialCount;
+          // figure out if it's end when receiving master's SOA again
+          if (clientConn->d_xfrSerialCount == 2) {
+            // if there are only two SOA records marks a finished AXFR
+            done = true;
+          }
+          if (clientConn->d_xfrMasterSerialCount == 3) {
+            // receiving master's SOA 3 times marks a finished IXFR
+            done = true;
+          }
+        }
+      }
+    }
+  }
+  catch (const MOADNSException& e) {
+    DEBUGLOG("Exception when parsing TCPResponse to DNS: " << e.what());
+    /* ponder what to do here, shall we close the connection? */
+  }
+  return done;
 }
