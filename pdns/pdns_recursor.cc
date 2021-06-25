@@ -76,6 +76,7 @@
 #include "zoneparser-tng.hh"
 #include "rec_channel.hh"
 #include "logger.hh"
+#include "logging.hh"
 #include "iputils.hh"
 #include "mplexer.hh"
 #include "config.h"
@@ -5582,6 +5583,47 @@ catch(...) {
    return 0;
 }
 
+//static std::string s_timestampFormat = "%m-%dT%H:%M:%S";
+static std::string s_timestampFormat = "%s";
+
+const char* toTimestampStringMilli(const struct timeval& tv, char *buf, size_t sz)
+{
+  struct tm tm;
+  size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&tv.tv_sec, &tm));
+  if (len == 0) {
+    len = snprintf(buf, sz, "%lld", (long long) tv.tv_sec);
+  }
+
+  snprintf(buf + len, sz - len, ".%03ld", tv.tv_usec / 1000);
+  return buf;
+}
+
+static void loggerBackend(const Logging::Entry& entry) {
+  static thread_local std::stringstream buf;
+
+  buf.str("");
+  buf << "msg=" << std::quoted(entry.message);
+  if (entry.error) {
+    buf << " oserror=" << std::quoted(entry.error.get());
+  }
+
+  if (entry.name) {
+    buf << " subsystem=" << std::quoted(entry.name.get());
+  }
+  buf << " level=" << entry.level;
+  if (entry.d_priority) {
+    buf << " prio=" << static_cast<int>(entry.d_priority);
+  }
+  char timebuf[64];
+  buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
+  for (auto const& v: entry.values) {
+    buf << " ";
+    buf << v.first << "=" << std::quoted(v.second);
+  }
+  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  g_log << u << buf.str() << endl;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -5868,13 +5910,17 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    if(!::arg().file(configname.c_str()))
-      g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
+    g_slog = Logging::Logger::create(loggerBackend);
+    auto startupLog = g_slog->withName("startup");
+
+    if(!::arg().file(configname.c_str())) {
+      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
+    }
 
     ::arg().parse(argc,argv);
 
     if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() ) {
-      g_log<<Logger::Error<<"Using chroot and enabling the API is not possible"<<endl;
+      startupLog->info("Cannot use chroot and enable the API at the same time");
       exit(EXIT_FAILURE);
     }
 
@@ -5887,13 +5933,13 @@ int main(int argc, char **argv)
 
     if(::arg().asNum("threads")==1) {
       if (::arg().mustDo("pdns-distributes-queries")) {
-        g_log<<Logger::Warning<<"Only one thread, no need to distribute queries ourselves"<<endl;
+        startupLog->v(1)->info("Only one thread, no need to distribute queries ourselves");
         ::arg().set("pdns-distributes-queries")="no";
       }
     }
 
     if(::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") <= 0) {
-      g_log<<Logger::Warning<<"Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"<<endl;
+      startupLog->v(1)->info("Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1");
       ::arg().set("distributor-threads")="1";
     }
 

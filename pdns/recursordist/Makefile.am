@@ -132,6 +132,7 @@ pdns_recursor_SOURCES = \
 	libssl.cc libssl.hh \
 	lock.hh \
 	logger.hh logger.cc \
+	logging.hh logging.cc logr.hh \
 	lua-base4.cc lua-base4.hh \
 	lua-recursor4-ffi.hh \
 	lua-recursor4.cc lua-recursor4.hh \
@@ -257,6 +258,7 @@ testrunner_SOURCES = \
 	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
+	logging.hh logging.cc logr.hh \
 	misc.cc misc.hh \
 	mtasker_context.cc \
 	namespaces.hh \
