@@ -115,6 +115,17 @@ private:
     };
     LockGuarded<LockedContent> d_content;
     std::atomic<uint64_t> d_entriesCount{0};
+
+    LockGuardedTryHolder<MapCombo::LockedContent> lock()
+    {
+      auto locked = d_content.try_lock();
+      if (!locked.owns_lock()) {
+        locked.lock();
+        ++locked->d_contended_count;
+      }
+      ++locked->d_acquired_count;
+      return locked;
+    }
   };
 
   vector<MapCombo> d_maps;
@@ -129,16 +140,6 @@ private:
   }
 
 public:
-  static LockGuardedTryHolder<MapCombo::LockedContent> lock(LockGuarded<MapCombo::LockedContent>& content)
-  {
-    auto locked = content.try_lock();
-    if (!locked.owns_lock()) {
-      locked.lock();
-      ++locked->d_contended_count;
-    }
-    ++locked->d_acquired_count;
-    return locked;
-  }
 
   void preRemoval(MapCombo::LockedContent& map, const NegCacheEntry& entry)
   {

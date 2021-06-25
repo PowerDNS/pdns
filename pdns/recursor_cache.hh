@@ -226,6 +226,17 @@ private:
 
     LockGuarded<LockedContent> d_content;
     std::atomic<uint64_t> d_entriesCount{0};
+
+    LockGuardedTryHolder<LockedContent> lock()
+    {
+      auto locked = d_content.try_lock();
+      if (!locked.owns_lock()) {
+        locked.lock();
+        ++locked->d_contended_count;
+      }
+      ++locked->d_acquired_count;
+      return locked;
+    }
   };
 
   vector<MapCombo> d_maps;
@@ -243,17 +254,6 @@ private:
   time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone);
 
 public:
-  static LockGuardedTryHolder<MapCombo::LockedContent> lock(LockGuarded<MapCombo::LockedContent>& content)
-  {
-    auto locked = content.try_lock();
-    if (!locked.owns_lock()) {
-      locked.lock();
-      ++locked->d_contended_count;
-    }
-    ++locked->d_acquired_count;
-    return locked;
-  }
-
   void preRemoval(MapCombo::LockedContent& map, const CacheEntry& entry)
   {
     if (entry.d_netmask.empty()) {

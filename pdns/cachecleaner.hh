@@ -144,7 +144,7 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
   }
 
   for (auto& content : maps) {
-    auto mc = C::lock(content.d_content);
+    auto mc = content.d_content.lock();
     mc->invalidate();
     auto& sidx = boost::multi_index::get<S>(mc->d_map);
     uint64_t erased = 0, lookedAt = 0;
@@ -175,10 +175,10 @@ template <typename S, typename C, typename T> uint64_t pruneMutexCollectionsVect
 
   toTrim -= totErased;
 
-    while (true) {
+  while (true) {
     size_t pershard = toTrim / maps_size + 1;
     for (auto& content : maps) {
-      auto mc = C::lock(content.d_content);
+      auto mc = content.d_content.lock();
       mc->invalidate();
       auto& sidx = boost::multi_index::get<S>(mc->d_map);
       size_t removed = 0;
