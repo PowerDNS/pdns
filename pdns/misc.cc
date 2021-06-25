@@ -110,13 +110,13 @@ size_t readn2(int fd, void* buffer, size_t len)
   return len;
 }
 
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int totalTimeout)
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout)
 {
   size_t pos = 0;
-  time_t start = 0;
-  int remainingTime = totalTimeout;
-  if (totalTimeout) {
-    start = time(nullptr);
+  struct timeval start{0,0};
+  struct timeval remainingTime = totalTimeout;
+  if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+    gettimeofday(&start, nullptr);
   }
 
   do {
@@ -129,7 +129,8 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
     }
     else {
       if (errno == EAGAIN) {
-        int res = waitForData(fd, (totalTimeout == 0 || idleTimeout <= remainingTime) ? idleTimeout : remainingTime);
+        struct timeval w = ((totalTimeout.tv_sec == 0 && totalTimeout.tv_usec == 0) || idleTimeout <= remainingTime) ? idleTimeout : remainingTime;
+        int res = waitForData(fd, w.tv_sec, w.tv_usec);
         if (res > 0) {
           /* there is data available */
         }
@@ -144,14 +145,15 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
       }
     }
 
-    if (totalTimeout) {
-      time_t now = time(nullptr);
-      int elapsed = now - start;
-      if (elapsed >= remainingTime) {
+    if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+      struct timeval now;
+      gettimeofday(&now, nullptr);
+      struct timeval elapsed = now - start;
+      if (remainingTime < elapsed) {
         throw runtime_error("Timeout while reading data");
       }
       start = now;
-      remainingTime -= elapsed;
+      remainingTime = remainingTime - elapsed;
     }
   }
   while (pos < len);
@@ -159,7 +161,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, int idleTimeout, int 
   return len;
 }
 
-size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
+size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct timeval& timeout)
 {
   size_t pos = 0;
   do {
@@ -172,7 +174,7 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
       throw runtime_error("EOF while writing message");
     else {
       if (errno == EAGAIN) {
-        int res = waitForRWData(fd, false, timeout, 0);
+        int res = waitForRWData(fd, false, timeout.tv_sec, timeout.tv_usec);
         if (res > 0) {
           /* there is room available */
         }

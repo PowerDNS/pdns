@@ -10,6 +10,7 @@ Generic ODBC Backend
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes
+* Zone caching: Yes
 * Module name: godbc
 * Launch name: ``godbc``
 

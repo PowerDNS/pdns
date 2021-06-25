@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 35
+# serial 36
 ], [#
 ], [])])
 
@@ -1628,6 +1628,10 @@ if test x$boost_cv_inc_path != xno; then
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(11, 1) \
+    _BOOST_gcc_test(11, 1) \
+    _BOOST_mingw_test(10, 3) \
+    _BOOST_gcc_test(10, 3) \
     _BOOST_mingw_test(10, 2) \
     _BOOST_gcc_test(10, 2) \
     _BOOST_mingw_test(10, 1) \
@@ -1640,6 +1644,8 @@ if test x$boost_cv_inc_path != xno; then
     _BOOST_gcc_test(9, 1) \
     _BOOST_mingw_test(9, 0) \
     _BOOST_gcc_test(9, 0) \
+    _BOOST_mingw_test(8, 5) \
+    _BOOST_gcc_test(8, 5) \
     _BOOST_mingw_test(8, 4) \
     _BOOST_gcc_test(8, 4) \
     _BOOST_mingw_test(8, 3) \

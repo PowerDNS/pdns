@@ -382,6 +382,11 @@ public:
     return d_dr.d_type;
   }
 
+  const vector<uint8_t>& getRawContent() const
+  {
+    return d_record;
+  }
+
 private:
   DNSRecord d_dr;
   vector<uint8_t> d_record;

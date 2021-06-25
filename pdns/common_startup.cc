@@ -181,13 +181,13 @@ void declareArguments()
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("zone-cache-refresh-interval", "Seconds to cache list of known zones") = "0";
+  ::arg().set("zone-cache-refresh-interval", "Seconds to cache list of known zones") = "300";
   ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("default-soa-content","Default SOA content")="a.misconfigured.dns.server.invalid hostmaster.@ 0 10800 3600 604800 3600";
   ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
   ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("dnssec-key-cache-ttl","Seconds to cache DNSSEC keys from the database")="30";
-  ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "0";
+  ::arg().set("domain-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "";
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
@@ -614,7 +614,7 @@ void mainthread()
     // Some sanity checking on default key settings
     bool hadKeyError = false;
     int kskAlgo{0}, zskAlgo{0};
-    for (const string& algotype : {"ksk", "zsk"}) {
+    for (const string algotype : {"ksk", "zsk"}) {
       int algo, size;
       if (::arg()["default-"+algotype+"-algorithm"].empty())
         continue;

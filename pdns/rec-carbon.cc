@@ -49,16 +49,18 @@ try
   for(const auto& carbonServer: carbonServers) {
     ComboAddress remote(carbonServer, 2003);
     Socket s(remote.sin4.sin_family, SOCK_STREAM);
-
     s.setNonBlocking();
-    s.connect(remote);  // we do the connect so the first attempt happens while we gather stats
- 
+    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+    const struct timeval timeout{g_networkTimeoutMsec / 1000, g_networkTimeoutMsec % 1000 * 1000};
+    auto handler = std::make_shared<TCPIOHandler>("", s.releaseHandle(), timeout, tlsCtx, time(nullptr));
+     handler->tryConnect(SyncRes::s_tcp_fast_open_connect, remote);// we do the connect so the first attempt happens while we gather stats
+
     if(msg.empty()) {
       auto all = getAllStatsMap(StatComponent::Carbon);
-      
+
       ostringstream str;
       time_t now=time(0);
-      
+
       for(const auto& val : all) {
         str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second.d_value<<' '<<now<<"\r\n";
       }
@@ -66,13 +68,14 @@ try
       msg.insert(msg.end(), x.cbegin(), x.cend());
     }
 
-    auto ret = asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect
+    auto ret = asendtcp(msg, handler);     // this will actually do the right thing waiting on the connect
     if (ret == LWResult::Result::Timeout) {
       g_log<<Logger::Warning<<"Timeout connecting/writing carbon data to "<<remote.toStringWithPort()<<endl;
     }
     else if (ret != LWResult::Result::Success) {
       g_log<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;
     }
+    handler->close();
   }
  }
 catch(PDNSException& e)

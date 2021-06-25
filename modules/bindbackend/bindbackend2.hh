@@ -199,6 +199,7 @@ public:
   static DNSBackend* maker();
   static std::mutex s_startup_lock;
 
+  void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void setNotified(uint32_t id, uint32_t serial) override;
   bool startTransaction(const DNSName& qname, int id) override;
@@ -251,6 +252,7 @@ private:
   static bool safeRemoveBBDomainInfo(const DNSName& name);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p);
+  void setLastCheck(uint32_t domain_id, time_t lastcheck);
   class handle
   {
   public:

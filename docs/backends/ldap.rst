@@ -2,13 +2,14 @@ LDAP backend
 ============
 
 * Native: Yes
-* Master: No
+* Master: Yes
 * Slave: No
 * Superslave: No
 * Autoserial: No
 * DNSSEC: No
 * Disabled data: No
 * Comments: No
+* Zone caching: No
 * Module name: ldap
 * Launch name: ``ldap``
 

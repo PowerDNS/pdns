@@ -932,6 +932,13 @@ bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
   });
 }
 
+void LMDBBackend::setStale(uint32_t domain_id)
+{
+  genChangeDomain(domain_id, [](DomainInfo& di) {
+    di.last_check = 0;
+  });
+}
+
 void LMDBBackend::setFresh(uint32_t domain_id)
 {
   genChangeDomain(domain_id, [](DomainInfo& di) {
@@ -953,7 +960,7 @@ bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& 
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account, int* zoneId)
+bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
 {
   DomainInfo di;
 
@@ -969,11 +976,6 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
     di.account = account;
 
     txn.put(di);
-
-    if (zoneId != nullptr) {
-      *zoneId = txn.get<0>(domain, di);
-    }
-
     txn.commit();
   }
 

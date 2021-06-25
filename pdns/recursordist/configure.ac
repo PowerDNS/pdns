@@ -88,6 +88,20 @@ PDNS_WITH_LIBCAP
 
 PDNS_WITH_NET_SNMP
 
+AM_CONDITIONAL([HAVE_GNUTLS], [false])
+AM_CONDITIONAL([HAVE_LIBSSL], [false])
+
+PDNS_ENABLE_DNS_OVER_TLS
+
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  PDNS_WITH_LIBSSL
+  PDNS_WITH_GNUTLS
+
+  AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
+    AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
+  ])
+])
+
 # check for tools we might need
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CURL
@@ -223,6 +237,22 @@ AM_COND_IF([NOD_ENABLED],
 AM_COND_IF([FSTRM],
   [AC_MSG_NOTICE([dnstap: yes])],
   [AC_MSG_NOTICE([dnstap: no])]
+)
+AS_IF([test "x$enable_dns_over_tls" != "xno"],
+  [AC_MSG_NOTICE([DNS over TLS: yes])],
+  [AC_MSG_NOTICE([DNS over TLS: no])]
+)
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  AS_IF([test "x$GNUTLS_LIBS" != "x"],
+    [AC_MSG_NOTICE([GnuTLS: yes])],
+    [AC_MSG_NOTICE([GnuTLS: no])]
+  )]
+)
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  AS_IF([test "x$LIBSSL_LIBS" != "x"],
+    [AC_MSG_NOTICE([OpenSSL: yes])],
+    [AC_MSG_NOTICE([OpenSSL: no])]
+  )]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])

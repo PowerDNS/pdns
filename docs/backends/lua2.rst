@@ -9,6 +9,7 @@ Lua2 Backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Zone caching: Yes
 * Module name: lua2
 * Launch name: ``lua2``
 

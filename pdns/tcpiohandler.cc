@@ -51,7 +51,7 @@ class OpenSSLTLSConnection: public TLSConnection
 {
 public:
   /* server side connection */
-  OpenSSLTLSConnection(int socket, unsigned int timeout, std::shared_ptr<OpenSSLFrontendContext> feContext): d_feContext(feContext), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(d_feContext->d_tlsCtx.get()), SSL_free)), d_timeout(timeout)
+  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<OpenSSLFrontendContext> feContext): d_feContext(feContext), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(d_feContext->d_tlsCtx.get()), SSL_free)), d_timeout(timeout)
   {
     d_socket = socket;
 
@@ -79,7 +79,7 @@ public:
   }
 
   /* client-side connection */
-  OpenSSLTLSConnection(const std::string& hostname, int socket, unsigned int timeout, SSL_CTX* tlsCtx): d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(tlsCtx), SSL_free)), d_hostname(hostname), d_timeout(timeout)
+  OpenSSLTLSConnection(const std::string& hostname, int socket, const struct timeval& timeout, SSL_CTX* tlsCtx): d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(tlsCtx), SSL_free)), d_hostname(hostname), d_timeout(timeout)
   {
     d_socket = socket;
 
@@ -136,11 +136,11 @@ public:
     }
   }
 
-  void handleIORequest(int res, unsigned int timeout)
+  void handleIORequest(int res, const struct timeval& timeout)
   {
     auto state = convertIORequestToIOState(res);
     if (state == IOState::NeedRead) {
-      res = waitForData(d_socket, timeout);
+      res = waitForData(d_socket, timeout.tv_sec, timeout.tv_usec);
       if (res == 0) {
         throw std::runtime_error("Timeout while reading from TLS connection");
       }
@@ -149,7 +149,7 @@ public:
       }
     }
     else if (state == IOState::NeedWrite) {
-      res = waitForRWData(d_socket, false, timeout, 0);
+      res = waitForRWData(d_socket, false, timeout.tv_sec, timeout.tv_usec);
       if (res == 0) {
         throw std::runtime_error("Timeout while writing to TLS connection");
       }
@@ -176,16 +176,16 @@ public:
     throw std::runtime_error("Error establishing a TLS connection");
   }
 
-  void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout) override
+  void connect(bool fastOpen, const ComboAddress& remote, const struct timeval &timeout) override
   {
     /* sorry */
     (void) fastOpen;
     (void) remote;
 
-    time_t start = 0;
-    unsigned int remainingTime = timeout;
-    if (timeout) {
-      start = time(nullptr);
+    struct timeval start{0,0};
+    struct timeval remainingTime = timeout;
+    if (timeout.tv_sec != 0 || timeout.tv_usec != 0) {
+      gettimeofday(&start, nullptr);
     }
 
     int res = 0;
@@ -195,14 +195,15 @@ public:
         handleIORequest(res, remainingTime);
       }
 
-      if (timeout) {
-        time_t now = time(nullptr);
-        unsigned int elapsed = now - start;
-        if (now < start || elapsed >= remainingTime) {
+      if (timeout.tv_sec != 0 || timeout.tv_usec != 0) {
+        struct timeval now;
+        gettimeofday(&now, nullptr);
+        struct timeval elapsed = now - start;
+        if (now < start || remainingTime < elapsed) {
           throw runtime_error("Timeout while establishing TLS connection");
         }
         start = now;
-        remainingTime -= elapsed;
+        remainingTime = remainingTime - elapsed;
       }
     }
     while (res != 1);
@@ -267,13 +268,13 @@ public:
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout) override
   {
     size_t got = 0;
-    time_t start = 0;
-    unsigned int remainingTime = totalTimeout;
-    if (totalTimeout) {
-      start = time(nullptr);
+    struct timeval start = {0, 0};
+    struct timeval remainingTime = totalTimeout;
+    if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+      gettimeofday(&start, nullptr);
     }
 
     do {
@@ -285,14 +286,15 @@ public:
         got += static_cast<size_t>(res);
       }
 
-      if (totalTimeout) {
-        time_t now = time(nullptr);
-        unsigned int elapsed = now - start;
-        if (now < start || elapsed >= remainingTime) {
+      if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+        struct timeval now;
+        gettimeofday(&now, nullptr);
+        struct timeval elapsed = now - start;
+        if (now < start || remainingTime < elapsed) {
           throw runtime_error("Timeout while reading data");
         }
         start = now;
-        remainingTime -= elapsed;
+        remainingTime = remainingTime - elapsed;
       }
     }
     while (got < bufferSize);
@@ -300,7 +302,7 @@ public:
     return got;
   }
 
-  size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) override
+  size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
     size_t got = 0;
     do {
@@ -379,7 +381,7 @@ private:
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
   std::string d_hostname;
-  unsigned int d_timeout;
+  struct timeval d_timeout;
 };
 
 std::atomic_flag OpenSSLTLSConnection::s_initTLSConnIndex = ATOMIC_FLAG_INIT;
@@ -525,14 +527,14 @@ public:
     return libssl_ocsp_stapling_callback(ssl, *ocspMap);
   }
 
-  std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) override
+  std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) override
   {
     handleTicketsKeyRotation(now);
 
     return std::make_unique<OpenSSLTLSConnection>(socket, timeout, d_feContext);
   }
 
-  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) override
+  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
   {
     return std::make_unique<OpenSSLTLSConnection>(host, socket, timeout, d_tlsCtx.get());
   }
@@ -664,7 +666,7 @@ class GnuTLSConnection: public TLSConnection
 {
 public:
   /* server side connection */
-  GnuTLSConnection(int socket, unsigned int timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey, bool enableTickets): d_conn(std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)>(nullptr, gnutls_deinit)), d_ticketsKey(ticketsKey)
+  GnuTLSConnection(int socket, const struct timeval& timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey, bool enableTickets): d_conn(std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)>(nullptr, gnutls_deinit)), d_ticketsKey(ticketsKey)
   {
     unsigned int sslOptions = GNUTLS_SERVER | GNUTLS_NONBLOCK;
 #ifdef GNUTLS_NO_SIGNAL
@@ -699,12 +701,12 @@ public:
     gnutls_transport_set_int(d_conn.get(), d_socket);
 
     /* timeouts are in milliseconds */
-    gnutls_handshake_set_timeout(d_conn.get(), timeout * 1000);
-    gnutls_record_set_timeout(d_conn.get(), timeout * 1000);
+    gnutls_handshake_set_timeout(d_conn.get(), timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
+    gnutls_record_set_timeout(d_conn.get(), timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
   }
 
   /* client-side connection */
-  GnuTLSConnection(const std::string& host, int socket, unsigned int timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, bool validateCerts): d_conn(std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)>(nullptr, gnutls_deinit)), d_host(host)
+  GnuTLSConnection(const std::string& host, int socket, const struct timeval& timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, bool validateCerts): d_conn(std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)>(nullptr, gnutls_deinit)), d_host(host)
   {
     unsigned int sslOptions = GNUTLS_CLIENT | GNUTLS_NONBLOCK;
 #ifdef GNUTLS_NO_SIGNAL
@@ -734,8 +736,8 @@ public:
     gnutls_transport_set_int(d_conn.get(), d_socket);
 
     /* timeouts are in milliseconds */
-    gnutls_handshake_set_timeout(d_conn.get(), timeout * 1000);
-    gnutls_record_set_timeout(d_conn.get(), timeout * 1000);
+    gnutls_handshake_set_timeout(d_conn.get(),  timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
+    gnutls_record_set_timeout(d_conn.get(),  timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
 
 #if HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
     if (validateCerts && !d_host.empty()) {
@@ -777,12 +779,12 @@ public:
     throw std::runtime_error("Error establishing a new connection: " + std::string(gnutls_strerror(ret)));
   }
 
-  void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout) override
+  void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) override
   {
-    time_t start = 0;
-    unsigned int remainingTime = timeout;
-    if (timeout) {
-      start = time(nullptr);
+    struct timeval start = {0, 0};
+    struct timeval remainingTime = timeout;
+    if (timeout.tv_sec != 0 || timeout.tv_usec != 0) {
+      gettimeofday(&start, nullptr);
     }
 
     IOState state;
@@ -792,26 +794,27 @@ public:
         return;
       }
       else if (state == IOState::NeedRead) {
-        int result = waitForData(d_socket, remainingTime);
+        int result = waitForData(d_socket, remainingTime.tv_sec, remainingTime.tv_usec);
         if (result <= 0) {
           throw std::runtime_error("Error reading from TLS connection: " + std::to_string(result));
         }
       }
       else if (state == IOState::NeedWrite) {
-        int result = waitForRWData(d_socket, false, remainingTime, 0);
+        int result = waitForRWData(d_socket, false, remainingTime.tv_sec, remainingTime.tv_usec);
         if (result <= 0) {
           throw std::runtime_error("Error reading from TLS connection: " + std::to_string(result));
         }
       }
 
-      if (timeout) {
-        time_t now = time(nullptr);
-        unsigned int elapsed = now - start;
-        if (now < start || elapsed >= remainingTime) {
+      if (timeout.tv_sec != 0 || timeout.tv_usec != 0) {
+        struct timeval now;
+        gettimeofday(&now, nullptr);
+        struct timeval elapsed = now - start;
+        if (now < start || remainingTime < elapsed) {
           throw runtime_error("Timeout while establishing TLS connection");
         }
         start = now;
-        remainingTime -= elapsed;
+        remainingTime = remainingTime - elapsed;
       }
     }
     while (state != IOState::Done);
@@ -897,13 +900,13 @@ public:
     return IOState::Done;
   }
 
-  size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout) override
   {
     size_t got = 0;
-    time_t start = 0;
-    unsigned int remainingTime = totalTimeout;
-    if (totalTimeout) {
-      start = time(nullptr);
+    struct timeval start{0,0};
+    struct timeval  remainingTime = totalTimeout;
+    if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+      gettimeofday(&start, nullptr);
     }
 
     do {
@@ -919,7 +922,7 @@ public:
           throw std::runtime_error("Fatal error reading from TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
-          int result = waitForData(d_socket, readTimeout);
+          int result = waitForData(d_socket, readTimeout.tv_sec, readTimeout.tv_usec);
           if (result <= 0) {
             throw std::runtime_error("Error while waiting to read from TLS connection: " + std::to_string(result));
           }
@@ -929,14 +932,15 @@ public:
         }
       }
 
-      if (totalTimeout) {
-        time_t now = time(nullptr);
-        unsigned int elapsed = now - start;
-        if (now < start || elapsed >= remainingTime) {
+      if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
+        struct timeval now;
+        gettimeofday(&now, nullptr);
+        struct timeval elapsed = now - start;
+        if (now < start || remainingTime < elapsed) {
           throw runtime_error("Timeout while reading data");
         }
         start = now;
-        remainingTime -= elapsed;
+        remainingTime = remainingTime - elapsed;
       }
     }
     while (got < bufferSize);
@@ -944,7 +948,7 @@ public:
     return got;
   }
 
-  size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) override
+  size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
     size_t got = 0;
 
@@ -961,7 +965,7 @@ public:
           throw std::runtime_error("Fatal error writing to TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
-          int result = waitForRWData(d_socket, false, writeTimeout, 0);
+          int result = waitForRWData(d_socket, false, writeTimeout.tv_sec, writeTimeout.tv_usec);
           if (result <= 0) {
             throw std::runtime_error("Error waiting to write to TLS connection: " + std::to_string(result));
           }
@@ -1145,7 +1149,7 @@ public:
     }
   }
 
-  std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) override
+  std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) override
   {
     handleTicketsKeyRotation(now);
 
@@ -1158,7 +1162,7 @@ public:
     return std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
   }
 
-  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) override
+  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, const struct timeval& timeout) override
   {
     return std::make_unique<GnuTLSConnection>(host, socket, timeout, d_creds.get(), d_priorityCache, d_validateCerts);
   }

@@ -55,20 +55,20 @@ int SConnect(int sockfd, const ComboAddress& remote)
   return ret;
 }
 
-int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
+int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout)
 {
   int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
   if(ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
-      if (timeout <= 0) {
+      if (timeout <= timeval{0,0}) {
         return savederrno;
       }
 
       /* we wait until the connection has been established */
       bool error = false;
       bool disconnected = false;
-      int res = waitForRWData(sockfd, false, timeout, 0, &error, &disconnected);
+      int res = waitForRWData(sockfd, false, timeout.tv_sec, timeout.tv_usec, &error, &disconnected);
       if (res == 1) {
         if (error) {
           savederrno = 0;

@@ -293,6 +293,10 @@ size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &in, std:
   (void) dns_text_to_value_list_en_main;
   %% write exec;
 
+  if ( cs < dns_text_to_value_list_first_final ) {
+          throw runtime_error("Unable to parse DNS SVCB value list '"+in+"'");
+  }
+
   return counter;
 }
 

@@ -10,12 +10,15 @@ case $context in
 
 		luascript="lua2.lua"
 
+		interval=0
+
 		if [ "$lua2sec" = "dnssec" ]
 		then
 			lua2dosec="yes"
 			extracontexts="dnssec"
 			skipreasons="nonsec3 nonarrow nodyndns"
 			luascript="lua2-dnssec.lua"
+			interval=60
 		fi
 
 		# generate pdns.conf for pdnsutil
@@ -30,7 +33,7 @@ EOF
 		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=lua2 \
 			--cache-ttl=$cachettl --dname-processing --no-config \
-			--distributor-threads=1 \
+			--distributor-threads=1 --zone-cache-refresh-interval=$interval \
 			--allow-axfr-ips=0.0.0.0/0,::/0 \
 			--lua2-filename=$testsdir/$luascript --lua2-api=2 --module-dir=./modules &
 		;;

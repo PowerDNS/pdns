@@ -25,6 +25,10 @@ AC_DEFUN([PDNS_CHECK_OS],[
     THREADFLAGS="-pthread"
     have_freebsd="yes"
     ;;
+  openbsd*)
+    THREADFLAGS="-pthread"
+    have_openbsd="yes"
+    ;;
   *)
     LDFLAGS="-pthread $LDFLAGS"
     CXXFLAGS="-pthread $CXXFLAGS"
@@ -32,6 +36,7 @@ AC_DEFUN([PDNS_CHECK_OS],[
   esac
 
   AM_CONDITIONAL([HAVE_FREEBSD], [test "x$have_freebsd" = "xyes"])
+  AM_CONDITIONAL([HAVE_OPENBSD], [test "x$have_openbsd" = "xyes"])
   AM_CONDITIONAL([HAVE_LINUX], [test "x$have_linux" = "xyes"])
   AM_CONDITIONAL([HAVE_SOLARIS], [test "x$have_solaris" = "xyes"])
 

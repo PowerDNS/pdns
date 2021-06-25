@@ -1477,7 +1477,7 @@ $ORIGIN %NAME%
             'ttl': 3600,
             'records': [
                 {
-                    "content": '40 . mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 echconfig="dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU="',
+                    "content": '40 . mandatory=alpn alpn=h2,h3 ipv4hint=192.0.2.1,192.0.2.2 ech="dG90YWxseSBib2d1cyBlY2hjb25maWcgdmFsdWU="',
                     "disabled": False
                 },
             ]

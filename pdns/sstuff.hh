@@ -154,7 +154,7 @@ public:
   //! Connect the socket to a specified endpoint
   void connect(const ComboAddress &ep, int timeout=0)
   {
-    SConnectWithTimeout(d_socket, ep, timeout);
+    SConnectWithTimeout(d_socket, ep, timeval{timeout,0});
   }
 
 

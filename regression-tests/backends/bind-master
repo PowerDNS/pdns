@@ -44,6 +44,7 @@ gmysql-user=$GMYSQLUSER
 gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
 gmysql-dnssec
+zone-cache-refresh-interval=0
 __EOF__
         else
             echo "bind-dnssec-db=./dnssec.sqlite3" >> pdns-bind.conf

@@ -116,6 +116,7 @@ pdns_recursor_SOURCES = \
 	dnssecinfra.hh dnssecinfra.cc \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
+	dolog.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednspadding.cc ednspadding.hh \
@@ -184,7 +185,7 @@ pdns_recursor_SOURCES = \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
 	taskqueue.cc taskqueue.hh \
-	tcpiohandler.hh \
+	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
@@ -280,6 +281,7 @@ testrunner_SOURCES = \
 	stable-bloom.hh \
 	svc-records.cc svc-records.hh \
 	syncres.cc syncres.hh \
+	taskqueue.cc taskqueue.hh \
 	test-aggressive_nsec_cc.cc \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
@@ -388,6 +390,11 @@ pdns_recursor_SOURCES += kqueuemplexer.cc
 testrunner_SOURCES += kqueuemplexer.cc
 endif
 
+if HAVE_OPENBSD
+pdns_recursor_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
 if HAVE_LINUX
 pdns_recursor_SOURCES += epollmplexer.cc
 testrunner_SOURCES += epollmplexer.cc
@@ -408,6 +415,18 @@ pdns_recursor_SOURCES += \
 
 pdns_recursor_LDADD += \
 	$(FSTRM_LIBS)
+endif
+
+if HAVE_DNS_OVER_TLS
+if HAVE_LIBSSL
+AM_CPPFLAGS += $(LIBSSL_CFLAGS)
+pdns_recursor_LDADD += $(LIBSSL_LIBS)
+endif
+
+if HAVE_GNUTLS
+AM_CPPFLAGS += $(GNUTLS_CFLAGS)
+pdns_recursor_LDADD += $(GNUTLS_LIBS)
+endif
 endif
 
 rec_control_SOURCES = \

@@ -26,7 +26,7 @@ How can I limit Zone Transfers (AXFR) per Domain?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 With the ALLOW-AXFR-FROM metadata, See :ref:`the documentation <metadata-allow-axfr-from>`.
 
-I have a working Autoprimary/Autosecondary setup but when I remove Domains from the Primary they still remain on the Secondary. Am I doing something wrong?
+I have a working Autoprimary/Autosecondary setup but when I remove Zones from the Primary they still remain on the Secondary. Am I doing something wrong?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You're not doing anything wrong.
 This is the perfectly normal and expected behavior because the AXFR (DNS Zonetransfer) Protocol does not provide for zone deletion.
@@ -71,6 +71,15 @@ Linux Netfilter says your conntrack table is full?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Thats a common problem with Netfilter Conntracking and DNS Servers, just tune your kernel variable (``/etc/sysctl.conf``) ``net.ipv4.netfilter.ip_conntrack_max`` up accordingly.
 Try setting it for a million if you don't mind spending some MB of RAM on it for example.
+
+I get an error about writing to /etc
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This may look something like "unable to open temporary zonefile '/etc/powerdns/zones/example.com.<random number>'".
+PowerDNS systemd units enable ``ProtectSystem=full`` by default, which disallows writes to ``/etc`` and ``/usr``, among other places.
+Either move your zone files to a safer place (``/var/lib/powerdns`` is a popular choice) or change the systemd protection settings.
+
+For more background on this, please see the systemd documentation on `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ and `ReadWritePaths <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ReadWritePaths=>`_.
 
 Backends
 --------

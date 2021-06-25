@@ -1,1 +1,5 @@
-../../regression-tests/tests/.gitignore
+diff
+real_result
+*.out
+start
+step.*

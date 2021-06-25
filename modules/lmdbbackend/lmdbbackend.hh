@@ -59,7 +59,7 @@ public:
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account, int* zoneId) override;
+  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
 
   bool startTransaction(const DNSName& domain, int domain_id = -1) override;
   bool commitTransaction() override;
@@ -97,6 +97,7 @@ public:
   }
 
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
+  void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void setNotified(uint32_t id, uint32_t serial) override;
   bool setAccount(const DNSName& domain, const std::string& account) override;

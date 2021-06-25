@@ -2,6 +2,52 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.2
+  :released: 9th of June 2021
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10477
+    :tickets: 10440
+
+    Change nsec3-max-iterations default to 150.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10476
+    :tickets: 10460
+
+    Don't follow referral from the parent to the child for DS queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10475
+    :tickets: 10426
+
+    When refreshing, do not consider root almost expired.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10474
+    :tickets: 10396
+
+    Take into account q_quiet when determining loglevel and change a few loglevels.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10473
+    :tickets: 10350
+
+    Only add the NSEC and RRSIG records once in wildcard NODATA answers.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10422
+    :tickets: 10420
+
+    For the NOD lookup case, we don't want QName Minimization.
+
+.. changelog::
   :version: 4.5.1
   :released: 11th of May 2021
 

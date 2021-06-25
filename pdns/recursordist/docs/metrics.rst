@@ -405,6 +405,10 @@ dont-outqueries
 ^^^^^^^^^^^^^^^
 number of outgoing queries dropped because of   :ref:`setting-dont-query` setting (since 3.3)
 
+dot-outqueries
+^^^^^^^^^^^^^^
+counts the number of outgoing DoT queries since starting
+
 qname-min-fallback-success
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.3.0

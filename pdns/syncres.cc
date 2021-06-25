@@ -72,6 +72,7 @@ std::atomic<uint64_t> SyncRes::s_outgoing4timeouts;
 std::atomic<uint64_t> SyncRes::s_outgoing6timeouts;
 std::atomic<uint64_t> SyncRes::s_outqueries;
 std::atomic<uint64_t> SyncRes::s_tcpoutqueries;
+std::atomic<uint64_t> SyncRes::s_dotoutqueries;
 std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
 std::atomic<uint64_t> SyncRes::s_qnameminfallbacksuccess;
@@ -98,6 +99,7 @@ SyncRes::HardenNXD SyncRes::s_hardenNXD;
 unsigned int SyncRes::s_refresh_ttlperc;
 int SyncRes::s_tcp_fast_open;
 bool SyncRes::s_tcp_fast_open_connect;
+bool SyncRes::s_dot_to_port_853;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -111,7 +113,7 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 }
 
 
-SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
+SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
 					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
 
@@ -142,6 +144,13 @@ int SyncRes::beginResolve(const DNSName &qname, const QType qtype, QClass qclass
     qclass=QClass::IN;
   else if(qclass!=QClass::IN)
     return -1;
+
+  if (qtype == QType::DS) {
+    d_externalDSQuery = qname;
+  }
+  else {
+    d_externalDSQuery.clear();
+  }
 
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret, depth, beenthere, state);
@@ -1633,6 +1642,11 @@ static void reapRecordsFromNegCacheEntryForValidation(tcache_t& tcache, const ve
   }
 }
 
+static bool negativeCacheEntryHasSOA(const NegCache::NegCacheEntry& ne)
+{
+  return !ne.authoritySOA.records.empty();
+}
+
 static void reapRecordsForValidation(std::map<QType, CacheEntry>& entries, const vector<DNSRecord>& records)
 {
   for (const auto& rec : records) {
@@ -1743,15 +1757,23 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     if (qtype != QType::DS || ne.d_qtype.getCode() || ne.d_auth != qname ||
         g_negCache->get(qname, qtype, d_now, ne, true))
     {
-      res = RCode::NXDomain;
-      sttl = ne.d_ttd - d_now.tv_sec;
-      giveNegative = true;
-      cachedState = ne.d_validationState;
-      if (ne.d_qtype.getCode()) {
-        LOG(prefix<<qname<<": "<<qtype.toString()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
-        res = RCode::NoError;
-      } else {
-        LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+      /* Careful! If the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
+         and we might not have it if we picked up the proof from a delegation, in which case we need to keep on to do the actual DS
+         query. */
+      if (qtype == QType::DS && ne.d_qtype.getCode() && !d_externalDSQuery.empty() && qname == d_externalDSQuery && !negativeCacheEntryHasSOA(ne)) {
+        giveNegative = false;
+      }
+      else {
+        res = RCode::NXDomain;
+        sttl = ne.d_ttd - d_now.tv_sec;
+        giveNegative = true;
+        cachedState = ne.d_validationState;
+        if (ne.d_qtype.getCode()) {
+          LOG(prefix<<qname<<": "<<qtype.toString()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+          res = RCode::NoError;
+        } else {
+          LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        }
       }
     }
   } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot() && !wasForwardedOrAuthZone) {
@@ -2914,7 +2936,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && s_redirectionQTypes.count(rec->d_type) == 0 && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
-      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the ANSWER section received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
@@ -2929,20 +2951,20 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
     /* dealing with the records in authority */
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type != QType::NS && rec->d_type != QType::DS && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG && rec->d_type != QType::NSEC && rec->d_type != QType::NSEC3) {
-      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the AUTHORITY section received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::SOA) {
       if (!qname.isPartOf(rec->d_name)) {
-        LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+        LOG(prefix<<"Removing irrelevant SOA record '"<<rec->d_name<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the AUTHORITY section received from "<<auth<<endl);
         rec = lwr.d_records.erase(rec);
         continue;
       }
 
       if (!(lwr.d_aabit || wasForwardRecurse)) {
-        LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+        LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the AUTHORITY section received from "<<auth<<endl);
         rec = lwr.d_records.erase(rec);
         continue;
       }
@@ -2984,13 +3006,13 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
     /* dealing with the records in additional */
     if (rec->d_place == DNSResourceRecord::ADDITIONAL && rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
-      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the ADDITIONAL section received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
     if (rec->d_place == DNSResourceRecord::ADDITIONAL && allowedAdditionals.count(rec->d_name) == 0) {
-      LOG(prefix<<"Removing irrelevant additional record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      LOG(prefix<<"Removing irrelevant additional record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the ADDITIONAL section received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
@@ -3095,25 +3117,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       LOG(prefix<<qname<<": OPT answer '"<<rec.d_name<<"' from '"<<auth<<"' nameservers" <<endl);
       continue;
     }
+
     LOG(prefix<<qname<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth<<"' nameservers? ttl="<<rec.d_ttl<<", place="<<(int)rec.d_place<<" ");
-    if(rec.d_type == QType::ANY) {
-      LOG("NO! - we don't accept 'ANY'-typed data"<<endl);
-      continue;
-    }
 
-    if(rec.d_class != QClass::IN) {
-      LOG("NO! - we don't accept records for any other class than 'IN'"<<endl);
-      continue;
-    }
-
-    if (!(lwr.d_aabit || wasForwardRecurse) && rec.d_place == DNSResourceRecord::ANSWER) {
-      /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
-         are sending such responses */
-      if (!(rec.d_type == QType::CNAME && rec.d_name == qname)) {
-        LOG("NO! - we don't accept records in the answers section without the AA bit set"<<endl);
-        continue;
-      }
-    }
+    // We called sanitizeRecords before, so all ANY, non-IN and non-aa/non-forwardrecurse answer records are already removed
 
     if(rec.d_name.isPartOf(auth)) {
       if (rec.d_type == QType::RRSIG) {
@@ -3411,6 +3418,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   bool done = false;
   DNSName dnameTarget, dnameOwner;
   uint32_t dnameTTL = 0;
+  bool referralOnDS = false;
 
   for (auto& rec : lwr.d_records) {
     if (rec.d_type != QType::OPT && rec.d_class != QClass::IN) {
@@ -3605,13 +3613,24 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       if (moreSpecificThan(rec.d_name,auth)) {
         newauth = rec.d_name;
         LOG(prefix<<qname<<": got NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
-        realreferral = true;
+
+        /* check if we have a referral from the parent zone to a child zone for a DS query, which is not right */
+        if (qtype == QType::DS && (newauth.isPartOf(qname) || qname == newauth)) {
+          /* just got a referral from the parent zone when asking for a DS, looks like this server did not get the DNSSEC memo.. */
+          referralOnDS = true;
+        }
+        else {
+          realreferral = true;
+          if (auto content = getRR<NSRecordContent>(rec)) {
+            nsset.insert(content->getNS());
+          }
+        }
       }
       else {
         LOG(prefix<<qname<<": got upwards/level NS record '"<<rec.d_name<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth<<"'"<<endl);
-      }
-      if (auto content = getRR<NSRecordContent>(rec)) {
-        nsset.insert(content->getNS());
+        if (auto content = getRR<NSRecordContent>(rec)) {
+          nsset.insert(content->getNS());
+        }
       }
     }
     else if (rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::DS && qname.isPartOf(rec.d_name)) {
@@ -3646,7 +3665,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
               g_negCache->add(ne);
             }
 
-            if (qname == newauth && qtype == QType::DS) {
+            /* Careful! If the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
+               and we might not have it if we picked up the proof from a delegation, in which case we need to keep on to do the actual DS
+               query. */
+            if (qtype == QType::DS && qname == newauth && (d_externalDSQuery.empty() || qname != d_externalDSQuery)) {
               /* we are actually done! */
               negindic = true;
               negIndicHasSignatures = !ne.authoritySOA.signatures.empty() || !ne.DNSSECRecords.signatures.empty();
@@ -3715,10 +3737,27 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     cnamerec.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newtarget));
     ret.push_back(std::move(cnamerec));
   }
+
+  /* If we have seen a proper denial, let's forget that we also had a referral for a DS query.
+     Otherwise we need to deal with it. */
+  if (referralOnDS && !negindic) {
+    LOG(prefix<<qname<<": got a referral to the child zone for a DS query without a negative indication (missing SOA in authority), treating that as a NODATA"<<endl);
+    if (!vStateIsBogus(state)) {
+      auto recordState = getValidationStatus(qname, false, true, depth);
+      if (recordState == vState::Secure) {
+        /* we are in a secure zone, got a referral to the child zone on a DS query, no denial, that's wrong */
+        LOG(prefix<<qname<<": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus"<<endl);
+        updateValidationState(state, vState::BogusMissingNegativeIndication);
+      }
+    }
+    negindic = true;
+    negIndicHasSignatures = false;
+  }
+
   return done;
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool& truncated, bool& spoofed)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -3734,9 +3773,15 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   if(doTCP) {
-    LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
-    s_tcpoutqueries++;
-    d_tcpoutqueries++;
+    if (doDoT) {
+      LOG(prefix<<qname<<": using DoT with "<< remoteIP.toStringWithPort() <<endl);
+      s_dotoutqueries++;
+      d_dotoutqueries++;
+    } else {
+      LOG(prefix<<qname<<": using TCP with "<< remoteIP.toStringWithPort() <<endl);
+      s_tcpoutqueries++;
+      d_tcpoutqueries++;
+    }
   }
 
   int preOutQueryRet = RCode::NoError;
@@ -4081,6 +4126,11 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   return false;
 }
 
+bool SyncRes::doDoTtoAuth(const DNSName& ns) const
+{
+  return g_DoTToAuthNames.getLocal()->check(ns);
+}
+
 /** returns:
  *  -1 in case of no results
  *  rcode otherwise
@@ -4151,7 +4201,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
 
       typedef vector<ComboAddress> remoteIPs_t;
       remoteIPs_t remoteIPs;
-      remoteIPs_t::const_iterator remoteIP;
+      remoteIPs_t::iterator remoteIP;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       boost::optional<Netmask> ednsmask;
@@ -4195,8 +4245,8 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         else {
           bool hitPolicy{false};
           LOG(prefix<<qname<<": Resolved '"<<auth<<"' NS "<<tns->first<<" to: ");
-          for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
-            if(remoteIP != remoteIPs.cbegin()) {
+          for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+            if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
             }
             LOG(remoteIP->toString());
@@ -4217,7 +4267,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           }
         }
 
-        for(remoteIP = remoteIPs.cbegin(); remoteIP != remoteIPs.cend(); ++remoteIP) {
+        for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.toString()<<"'"<<endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
@@ -4227,20 +4277,25 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           bool truncated = false;
           bool spoofed = false;
           bool gotAnswer = false;
+          bool doDoT = false;
 
-// Option below is for debugging purposes ony
-#define USE_TCP_ONLY 0
+          if (doDoTtoAuth(tns->first)) {
+            remoteIP->setPort(853);
+            doDoT = true;
+          }
+          if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
+            doDoT = true;
+          }
+          bool forceTCP = doDoT;
 
-#if !USE_TCP_ONLY
-          gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                        tns->first, *remoteIP, false, truncated, spoofed);
-          if (spoofed || (gotAnswer && truncated)) {
-#else
-          {
-#endif
+          if (!forceTCP) {
+            gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
+                                          tns->first, *remoteIP, false, false, truncated, spoofed);
+          }
+          if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
-                                          tns->first, *remoteIP, true, truncated, spoofed);
+                                          tns->first, *remoteIP, true, doDoT, truncated, spoofed);
           }
 
           if (!gotAnswer) {
@@ -4441,7 +4496,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     g_log<<Logger::Notice<<"Refreshed . records"<<endl;
   }
   else
-    g_log<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+    g_log<<Logger::Warning<<"Failed to update . records, RCODE="<<res<<endl;
 
   return res;
 }

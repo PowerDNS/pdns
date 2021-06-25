@@ -413,7 +413,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       val.insert(SvcParam(key, port));
       break;
     }
-    case SvcParam::echconfig: {
+    case SvcParam::ech: {
       bool haveQuote = d_string.at(d_pos) == '"';
       if (haveQuote) {
         d_pos++;
@@ -422,7 +422,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val)
       xfrBlobNoSpaces(value);
       if (haveQuote) {
         if (d_string.at(d_pos) != '"') {
-          throw RecordTextException("echconfig value starts, but does not end with a '\"' symbol");
+          throw RecordTextException("ech value starts, but does not end with a '\"' symbol");
         }
         d_pos++;
       }
@@ -865,10 +865,10 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
       d_string = str + d_string;
       break;
     }
-    case SvcParam::echconfig: {
+    case SvcParam::ech: {
       auto str = d_string;
       d_string.clear();
-      xfrBlobNoSpaces(param.getEchConfig());
+      xfrBlobNoSpaces(param.getECH());
       d_string = str + '"' + d_string + '"';
       break;
     }

@@ -195,13 +195,13 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ipv4hint) {
   BOOST_CHECK(c == vector<uint8_t>({0,4,0,8,192,0,2,1,192,0,2,2}));
 }
 
-BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_echconfig) {
+BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ech) {
   DNSName name("powerdns.com.");
   vector<uint8_t> packet;
   DNSPacketWriter pwR(packet, name, QType::SVCB, QClass::IN, 0);
   pwR.getHeader()->qr = 1;
 
-  set<SvcParam> params({SvcParam(SvcParam::echconfig, "a very bogus echconfig value")});
+  set<SvcParam> params({SvcParam(SvcParam::ech, "a very bogus echconfig value")});
 
   pwR.startRecord(name, QType::SVCB);
   pwR.commit();

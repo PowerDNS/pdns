@@ -28,10 +28,10 @@
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 
-void setupLuaBindingsPacketCache(LuaContext& luaCtx)
+void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
-  luaCtx.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+  luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
 
       bool keepStaleData = false;
       size_t maxTTL = 86400;
@@ -96,6 +96,11 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx)
         warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, numberOfShards, maxEntries);
         g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(numberOfShards) + "), decreasing the number of shards to " + std::to_string(maxEntries);
         numberOfShards = maxEntries;
+      }
+
+      if (client) {
+        maxEntries = 1;
+        numberOfShards = 1;
       }
 
       auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);

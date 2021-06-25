@@ -29,7 +29,7 @@ const std::map<std::string, SvcParam::SvcParamKey> SvcParam::SvcParams = {
   {"no-default-alpn", SvcParam::SvcParamKey::no_default_alpn},
   {"port", SvcParam::SvcParamKey::port},
   {"ipv4hint", SvcParam::SvcParamKey::ipv4hint},
-  {"echconfig", SvcParam::SvcParamKey::echconfig},
+  {"ech", SvcParam::SvcParamKey::ech},
   {"ipv6hint", SvcParam::SvcParamKey::ipv6hint}
 };
 
@@ -67,13 +67,13 @@ SvcParam::SvcParam(const SvcParamKey &key) {
 
 SvcParam::SvcParam(const SvcParamKey &key, const std::string &value) {
   d_key = key;
-  if (d_key != SvcParamKey::echconfig && d_key < 7) {
+  if (d_key != SvcParamKey::ech && d_key < 7) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string value");
   }
-  if (d_key == SvcParamKey::echconfig) {
+  if (d_key == SvcParamKey::ech) {
     std::string d;
     // TODO check Base64 decode
-    d_echconfig = value;
+    d_ech = value;
     return;
   }
   d_value = value;
@@ -166,11 +166,11 @@ const std::set<SvcParam::SvcParamKey>& SvcParam::getMandatory() const {
   return d_mandatory;
 }
 
-const std::string& SvcParam::getEchConfig() const {
-  if (d_key != SvcParam::echconfig) {
-    throw std::invalid_argument("getEchConfig called for non-echconfig key '" + keyToString(d_key) + "'");
+const std::string& SvcParam::getECH() const {
+  if (d_key != SvcParam::ech) {
+    throw std::invalid_argument("getECH called for non-ech key '" + keyToString(d_key) + "'");
   }
-  return d_echconfig;
+  return d_ech;
 }
 
 const std::string& SvcParam::getValue() const {

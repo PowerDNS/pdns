@@ -117,27 +117,6 @@ void setupLuaVars(LuaContext& luaCtx)
     dd.push_back({n.first, n.second});
   luaCtx.writeVariable("DNSQType", dd);
 
-  luaCtx.executeCode(R"LUA(
-    local tables = {
-      DNSQType = DNSQType,
-      DNSRCode = DNSRCode
-    }
-    local function index (table, key)
-      for tname,t in pairs(tables)
-      do
-        local val = t[key]
-        if val then
-          warnlog(string.format("access to dnsdist.%s is deprecated, please use %s.%s", key, tname, key))
-          return val
-        end
-      end
-    end
-
-    dnsdist = {}
-    setmetatable(dnsdist, { __index = index })
-    )LUA"
-  );
-
 #ifdef HAVE_DNSCRYPT
     luaCtx.writeVariable("DNSCryptExchangeVersion", std::unordered_map<string,int>{
         { "VERSION1", DNSCryptExchangeVersion::VERSION1 },

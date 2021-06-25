@@ -11,6 +11,8 @@ module-dir=./modules
 launch=gpgsql
 gpgsql-dbname=$GPGSQL2DB
 gpgsql-user=$GPGSQL2USER
+
+zone-cache-refresh-interval=120
 __EOF__
 
 	if [[ $context != *nodnssec* ]]

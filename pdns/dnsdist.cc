@@ -1709,8 +1709,8 @@ static void healthChecksThread()
       }
 
       auto delta = dss->sw.udiffAndSet()/1000000.0;
-      dss->queryLoad = 1.0*(dss->queries.load() - dss->prev.queries.load())/delta;
-      dss->dropRate = 1.0*(dss->reuseds.load() - dss->prev.reuseds.load())/delta;
+      dss->queryLoad.store(1.0*(dss->queries.load() - dss->prev.queries.load())/delta);
+      dss->dropRate.store(1.0*(dss->reuseds.load() - dss->prev.reuseds.load())/delta);
       dss->prev.queries.store(dss->queries.load());
       dss->prev.reuseds.store(dss->reuseds.load());
       

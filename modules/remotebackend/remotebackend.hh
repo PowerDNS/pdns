@@ -202,6 +202,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo>* domains) override;
   void alsoNotifies(const DNSName& domain, set<string>* ips) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
 
   static DNSBackend* maker();

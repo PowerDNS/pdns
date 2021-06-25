@@ -10,7 +10,7 @@ rm -f pdns*.pid
 
 $PDNS --daemon=no --local-address=127.0.0.1,::1 \
   --local-port=$port --socket-dir=./ --no-shuffle --launch=random --no-config \
-  --module-dir=../regression-tests/modules &
+  --module-dir=../regression-tests/modules --zone-cache-refresh-interval=0 &
 
 sleep 2
 

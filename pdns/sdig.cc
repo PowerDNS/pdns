@@ -197,7 +197,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
 int main(int argc, char** argv)
 try {
   /* default timeout of 10s */
-  int timeout = 10;
+  struct timeval timeout{10,0};
   bool dnssec = false;
   bool recurse = false;
   bool tcp = false;
@@ -374,7 +374,7 @@ try {
     mch.insert(std::make_pair("Accept", "application/dns-message"));
     string question(packet.begin(), packet.end());
     // FIXME: how do we use proxyheader here?
-    reply = mc.postURL(argv[1], question, mch, timeout, fastOpen);
+    reply = mc.postURL(argv[1], question, mch, timeout.tv_sec, fastOpen);
     printReply(reply, showflags, hidesoadetails, dumpluaraw);
 #else
     throw PDNSException("please link sdig against libcurl for DoH support");
@@ -409,6 +409,7 @@ try {
     }
     uint16_t counter = 0;
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
+    sock.setNonBlocking();
     setTCPNoDelay(sock.getHandle()); // disable NAGLE, which does not play nicely with delayed ACKs
     TCPIOHandler handler(subjectName, sock.releaseHandle(), timeout, tlsCtx, time(nullptr));
     handler.connect(fastOpen, dest, timeout);
@@ -457,7 +458,7 @@ try {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;
     sock.sendTo(question, dest);
-    int result = waitForData(sock.getHandle(), timeout);
+    int result = waitForData(sock.getHandle(), timeout.tv_sec, timeout.tv_usec);
     if (result < 0)
       throw std::runtime_error("Error waiting for data: " + stringerror());
     if (!result)

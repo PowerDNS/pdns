@@ -121,18 +121,12 @@ bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool get
 
 bool UeberBackend::createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account)
 {
-  bool success = false;
-  int zoneId;
   for(DNSBackend* mydb :  backends) {
-    if(mydb->createDomain(domain, kind, masters, account, &zoneId)) {
-      success = true;
-      break;
+    if (mydb->createDomain(domain, kind, masters, account)) {
+      return true;
     }
   }
-  if (success) {
-    g_zoneCache.add(domain, zoneId);  // make new zone visible
-  }
-  return success;
+  return false;
 }
 
 bool UeberBackend::doesDNSSEC()
@@ -625,7 +619,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     throw PDNSException("We are stale, please recycle");
   }
 
-  DLOG(g_log<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname<<endl);
+  DLOG(g_log<<"UeberBackend received question for "<<qtype.toString()<<" of "<<qname<<endl);
   if (!d_go) {
     g_log<<Logger::Error<<"UeberBackend is blocked, waiting for 'go'"<<endl;
     std::unique_lock<std::mutex> l(d_mut);
@@ -757,7 +751,7 @@ UeberBackend::handle::~handle()
 
 bool UeberBackend::handle::get(DNSZoneRecord &r)
 {
-  DLOG(g_log << "Ueber get() was called for a "<<qtype.getName()<<" record" << endl);
+  DLOG(g_log << "Ueber get() was called for a "<<qtype.toString()<<" record" << endl);
   bool isMore=false;
   while(d_hinterBackend && !(isMore=d_hinterBackend->get(r))) { // this backend out of answers
     if(i<parent->backends.size()) {

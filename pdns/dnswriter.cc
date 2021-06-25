@@ -437,9 +437,9 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
         xfrCAWithoutPort(param.getKey(), a);
       }
       break;
-    case SvcParam::echconfig:
-      xfr16BitInt(param.getEchConfig().size()); // size
-      xfrBlobNoSpaces(param.getEchConfig());
+    case SvcParam::ech:
+      xfr16BitInt(param.getECH().size()); // size
+      xfrBlobNoSpaces(param.getECH());
       break;
     default:
       xfr16BitInt(param.getValue().size());

@@ -42,6 +42,9 @@ These constants represent the different `RCODEs <https://www.iana.org/assignment
 .. versionchanged:: 1.4.0
   The prefix is changed from ``dnsdist`` to ``DNSRCode``.
 
+.. versionchanged:: 1.7.0
+  The lookup fallback from ``dnsdist`` to ``DNSRCode`` was removed.
+
 - ``DNSRCode.NOERROR``
 - ``DNSRCode.FORMERR``
 - ``DNSRCode.SERVFAIL``
@@ -129,6 +132,9 @@ DNSQType
 
 .. versionchanged:: 1.4.0
   The prefix is changed from ``dnsdist.`` to ``DNSQType``.
+
+.. versionchanged:: 1.7.0
+  The lookup fallback from ``dnsdist`` to ``DNSQType`` was removed.
 
 All named `QTypes <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4>`__ are available as constants, prefixed with ``DNSQType.``, e.g.:
 

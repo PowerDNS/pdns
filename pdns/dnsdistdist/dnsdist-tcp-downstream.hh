@@ -191,6 +191,7 @@ private:
   static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static IOState queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn);
   static IOState sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
+  static bool isXFRFinished(const TCPResponse& response, const shared_ptr<IncomingTCPConnectionState>& clientConn);
 
   IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
   uint16_t getQueryIdFromResponse();

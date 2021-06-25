@@ -311,14 +311,14 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       case COLUMN_BACKENDOUTSTANDING:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->outstanding);
+                                            server->outstanding.load());
         break;
       case COLUMN_BACKENDQPSLIMIT:
         DNSDistSNMPAgent::setCounter64Value(request,
                                             server->qps.getRate());
         break;
       case COLUMN_BACKENDREUSED:
-        DNSDistSNMPAgent::setCounter64Value(request, server->reuseds);
+        DNSDistSNMPAgent::setCounter64Value(request, server->reuseds.load());
         break;
       case COLUMN_BACKENDSTATE:
       {
@@ -353,10 +353,10 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       }
       case COLUMN_BACKENDQPS:
-        DNSDistSNMPAgent::setCounter64Value(request, server->queryLoad);
+        DNSDistSNMPAgent::setCounter64Value(request, server->queryLoad.load());
         break;
       case COLUMN_BACKENDQUERIES:
-        DNSDistSNMPAgent::setCounter64Value(request, server->queries);
+        DNSDistSNMPAgent::setCounter64Value(request, server->queries.load());
         break;
       case COLUMN_BACKENDORDER:
         DNSDistSNMPAgent::setCounter64Value(request, server->order);

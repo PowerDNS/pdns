@@ -2,6 +2,43 @@ Changelogs for 4.4.x
 ====================
 
 .. changelog::
+  :version: 4.4.4
+  :released: 9th of June 2021
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10390
+
+    Check if we have room before adding zero ECS scope ENDS value.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10383
+    :tickets: 10303
+
+    Use the correct ECS address when proxy-protocol is enabled.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10385
+
+    Apply dns64 on RPZ hits generated after a gettag_ffi hit.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10314
+    :tickets: 10286
+
+    RPZ dumper: stop generating double zz labels on networks that start with zeroes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10313
+    :tickets: 10291
+
+    Exception loading the RPZ seed file is not fatal.
+
+.. changelog::
   :version: 4.4.3
   :released: 31st of March 2021
 
@@ -69,7 +106,7 @@ Changelogs for 4.4.x
     Make sure we take the right minimum for the packet cache TTL data in the SERVFAIL case.
 
   .. change::
-    :tags: Enhancement
+    :tags: Improvements
     :pullreq: 10062
 
     Pull in libfstrm for el8 build.

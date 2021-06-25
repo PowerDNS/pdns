@@ -37,7 +37,7 @@ class SvcParam {
       no_default_alpn = 2,
       port = 3,
       ipv4hint = 4,
-      echconfig = 5,
+      ech = 5,
       ipv6hint = 6
     };
 
@@ -47,7 +47,7 @@ class SvcParam {
   //! To create a value-less SvcParam (like no-default-alpn)
   SvcParam(const SvcParamKey &key);
 
-  //! To create a "generic" SvcParam (for keyNNNNN and echconfig)
+  //! To create a "generic" SvcParam (for keyNNNNN and ech)
   SvcParam(const SvcParamKey &key, const std::string &value);
 
   //! To create a multi-value SvcParam (like mandatory)
@@ -81,7 +81,7 @@ class SvcParam {
   const std::vector<ComboAddress>& getIPHints() const;
   const std::vector<std::string>& getALPN() const;
   const std::set<SvcParamKey>& getMandatory() const;
-  const std::string& getEchConfig() const;
+  const std::string& getECH() const;
   const std::string& getValue() const;
 
   bool getAutoHint() const { return d_autohint; };
@@ -94,7 +94,7 @@ class SvcParam {
     std::vector<std::string> d_alpn; // For ALPN
     std::set<SvcParamKey> d_mandatory; // For mandatory
     std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
-    std::string d_echconfig; // For echconfig
+    std::string d_ech; // For Encrypted Client Hello
     uint16_t d_port{0}; // For port
 
     // Set to true if we encountered an "auto" field in hints

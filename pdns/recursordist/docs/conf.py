@@ -21,6 +21,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import guzzle_sphinx_theme
+import datetime
 
 # -- General configuration ------------------------------------------------
 
@@ -51,7 +52,7 @@ master_doc = 'indexTOC'
 
 # General information about the project.
 project = 'PowerDNS Recursor'
-copyright = '2001-2019, PowerDNS.COM BV'
+copyright = '2001-' + str(datetime.date.today().year) + ', PowerDNS.COM BV'
 author = 'PowerDNS.COM BV'
 
 # The version info for the project you're documenting, acts as replacement for

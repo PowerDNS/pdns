@@ -293,6 +293,7 @@ createslavedomain
 Cremers
 criteo
 cron
+crowley
 crv
 cryptokey
 Cryptoki
@@ -469,6 +470,7 @@ ebpf
 ebpfblocklist
 ECCN
 ecdsa
+ech
 econds
 ECONNRESET
 ecs
@@ -1157,6 +1159,7 @@ nx
 nxd
 NXDATA
 nxdomain
+nzlosh
 oarc
 oauth
 Obermayer
@@ -1363,6 +1366,7 @@ randomises
 randomloader
 rapidjson
 raspbian
+rawaddress
 rb
 RBL
 rcode
@@ -1463,11 +1467,13 @@ rsync
 ru
 Rueckert
 rulesets
+runtimedir
 Ruthensteiner
 rv
 Rvd
 rw
 rwlock
+rytis
 Sakaguchi
 saltsa
 sandboxing

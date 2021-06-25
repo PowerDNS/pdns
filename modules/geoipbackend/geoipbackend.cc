@@ -850,6 +850,23 @@ bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool get
   return false;
 }
 
+void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool include_disabled)
+{
+  ReadLock rl(&s_state_lock);
+
+  DomainInfo di;
+  for (const auto& dom : s_domains) {
+    SOAData sd;
+    this->getSOA(dom.domain, sd);
+    di.id = dom.id;
+    di.zone = dom.domain;
+    di.serial = sd.serial;
+    di.kind = DomainInfo::Native;
+    di.backend = this;
+    domains->emplace_back(di);
+  }
+}
+
 bool GeoIPBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   if (!d_dnssec)

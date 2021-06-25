@@ -10,6 +10,7 @@ LMDB backend
 * Disabled data: No
 * Comments: No
 * Multiple instances: No
+* Zone caching: Yes
 * Module name: lmdb
 * Launch name: ``lmdb``
 

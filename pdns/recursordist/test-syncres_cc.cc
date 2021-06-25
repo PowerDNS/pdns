@@ -13,6 +13,7 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_xdnssec;
 GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
+GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 std::unique_ptr<MemRecursorCache> g_recCache{nullptr};
 std::unique_ptr<NegCache> g_negCache{nullptr};
 unsigned int g_numThreads = 1;
@@ -177,6 +178,7 @@ void initSR(bool debug)
   SyncRes::s_qnameminimization = false;
   SyncRes::s_nonresolvingnsmaxfails = 0;
   SyncRes::s_nonresolvingnsthrottletime = 0;
+  SyncRes::s_refresh_ttlperc = 0;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
@@ -538,6 +540,9 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
   return LWResult::Result::Timeout;
 }
 
+pdns::TaskQueue g_test_tasks;
+
 void pushTask(const DNSName& qname, uint16_t qtype, time_t deadline)
 {
+  g_test_tasks.push({qname, qtype, deadline, true});
 }

@@ -8,6 +8,7 @@ GeoIP backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Zone caching: Yes
 * Module name: geoip
 * Launch name: ``geoip``
 

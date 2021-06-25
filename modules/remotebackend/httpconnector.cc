@@ -260,6 +260,10 @@ void HTTPConnector::restful_requestbuilder(const std::string& method, const Json
     req.preparePost();
     verb = "PATCH";
   }
+  else if (method == "setStale") {
+    req.preparePost();
+    verb = "PATCH";
+  }
   else if (method == "setFresh") {
     req.preparePost();
     verb = "PATCH";
