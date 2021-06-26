@@ -68,7 +68,7 @@ void updateHealthCheckResult(const std::shared_ptr<DownstreamState>& dss, bool n
       }
     }
 
-    dss->upStatus = newState;
+    dss->setUpStatus(newState);
     dss->currentCheckFailures = 0;
     dss->consecutiveSuccessfulChecks = 0;
     if (g_snmpAgent && g_snmpTrapsEnabled) {
@@ -172,7 +172,7 @@ static void initialHealthCheckCallback(int fd, FDMultiplexer::funcparam_t& param
   data->d_mplexer->removeReadFD(fd);
   bool up = handleResponse(data);
   warnlog("Marking downstream %s as '%s'", data->d_ds->getNameWithAddr(), up ? "up" : "down");
-  data->d_ds->upStatus = up;
+  data->d_ds->setUpStatus(up);
 }
 
 bool queueHealthCheck(std::shared_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& ds, bool initialCheck)
@@ -284,7 +284,7 @@ void handleQueuedHealthChecks(std::shared_ptr<FDMultiplexer>& mplexer, bool init
       }
       if (initial) {
         warnlog("Marking downstream %s as 'down'", data->d_ds->getNameWithAddr());
-        data->d_ds->upStatus = false;
+        data->d_ds->setUpStatus(false);
       }
       else {
         updateHealthCheckResult(data->d_ds, false);

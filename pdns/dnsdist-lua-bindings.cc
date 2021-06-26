@@ -111,7 +111,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   luaCtx.registerFunction("setUp", &DownstreamState::setUp);
   luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& s, boost::optional<bool> newStatus) {
       if (newStatus) {
-        s.upStatus = *newStatus;
+        s.setUpStatus(*newStatus);
       }
       s.setAuto();
     });
