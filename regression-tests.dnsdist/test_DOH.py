@@ -933,6 +933,64 @@ class TestDOHWithCache(DNSDistDOHTest):
         self.assertEqual(receivedResponse, response)
         self.checkHasHeader('cache-control', 'max-age=' + str(receivedResponse.answer[0].ttl))
 
+    def testDOHGetFromUDPCache(self):
+        """
+        DOH with cache: Check that we can retrieve an answer received for a UDP query
+        """
+        name = 'doh-query-insert-udp.doh-with-cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.84')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # now we send the exact same query over DoH, we should get a cache hit
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+    def testDOHInsertIntoUDPCache(self):
+        """
+        DOH with cache: Check that we can retrieve an answer received for a DoH query from UDP
+        """
+        name = 'udp-query-get-doh.doh-with-cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.84')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # now we send the exact same query over DoH, we should get a cache hit
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
 class TestDOHWithoutCacheControl(DNSDistDOHTest):
 
     _serverKey = 'server.key'
