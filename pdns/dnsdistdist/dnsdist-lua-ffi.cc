@@ -438,6 +438,49 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char
   }
 }
 
+void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
+{
+  std::vector<std::string> data;
+  data.reserve(valuesCount);
+
+  for (size_t idx = 0; idx < valuesCount; idx++) {
+    data.emplace_back(values[idx].value, values[idx].size);
+  }
+
+  std::string result;
+  SpoofAction sa(data);
+  sa(dq->dq, &result);
+}
+
+void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
+{
+  std::vector<ComboAddress> data;
+  data.reserve(valuesCount);
+
+  for (size_t idx = 0; idx < valuesCount; idx++) {
+    if (values[idx].size == 4) {
+      sockaddr_in sin;
+      sin.sin_family = AF_INET;
+      sin.sin_port = 0;
+      memcpy(&sin.sin_addr.s_addr, values[idx].value, sizeof(sin.sin_addr.s_addr));
+      data.emplace_back(&sin);
+    }
+    else if (values[idx].size == 16) {
+      sockaddr_in6 sin6;
+      sin6.sin6_family = AF_INET6;
+      sin6.sin6_port = 0;
+      sin6.sin6_scope_id = 0;
+      sin6.sin6_flowinfo = 0;
+      memcpy(&sin6.sin6_addr.s6_addr, values[idx].value, sizeof(sin6.sin6_addr.s6_addr));
+      data.emplace_back(&sin6);
+    }
+  }
+
+  std::string result;
+  SpoofAction sa(data);
+  sa(dq->dq, &result);
+}
+
 size_t dnsdist_ffi_servers_list_get_count(const dnsdist_ffi_servers_list_t* list)
 {
   return list->ffiServers.size();
