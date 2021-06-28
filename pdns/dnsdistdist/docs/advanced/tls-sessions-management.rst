@@ -32,7 +32,7 @@ Since server-side sessions cannot be shared between several instances, and prett
 
 By default, dnsdist will generate a new, random STEK at startup and rotate it every 12 hours. It will keep 5 keys in memory, with only the last one marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. The rotation time and the number of keys to keep in memory can be configured via the ``numberOfTicketsKeys`` and ``ticketsKeysRotationDelay`` parameters of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
 
-It is also possible to manually request a STEK rotation using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``rotateTicketsKey`` method (:meth:`DOHFrontend.rotateTicketsKey`, :meth:`TLSContext.rotateTicketsKey`).
+It is also possible to manually request a STEK rotation using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``rotateTicketsKey`` method (:meth:`DOHFrontend:rotateTicketsKey`, :meth:`TLSContext:rotateTicketsKey`).
 
 The default settings should be fine for most deployments, but generating a random key for every dnsdist instance will not allow resuming the session from a different instance in a cluster. In that case it is possible to generate the STEK outside of dnsdist, write it to a file, distribute it to all instances using something like rsync over SSH, and load that file from dnsdist. Please remember that the STEK contains very sensitive data, and should be well-protected from access by unauthorized users. It means that special care should be taken to setting the right permissions on that file.
 
@@ -49,7 +49,7 @@ The file can then be loaded at startup by using the ``ticketKeyFile`` parameter 
 If the file contains several keys, so for example 240 random bytes, dnsdist will load several STEKs, using the last one for encrypting new tickets and all of them to decrypt existing tickets.
 
 In order to rotate the keys at runtime, it is possible to instruct dnsdist to reload the content of the certificates, keys, and STEKs from the same file used at configuration time, for all DoH and DoH binds, by issuing the :func:`reloadAllCertificates` command.
-It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend.loadTicketsKeys`, :meth:`TLSContext.loadTicketsKeys`).
+It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend.loadTicketsKeys`, :meth:`TLSContext:loadTicketsKeys`).
 
 Content of the STEK file
 ------------------------

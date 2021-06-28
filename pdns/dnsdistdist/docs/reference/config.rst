@@ -1522,7 +1522,7 @@ DOHFrontend
 
   .. versionadded:: 1.4.0
 
-  Return a DOHResponseMapEntry that can be used with :meth:`DOHFrontend.setResponsesMap`. Every query whose path is listed in the ``urls`` parameter to :func:`addDOHLocal` and matches the regular expression supplied in ``regex`` will be immediately answered with a HTTP response.
+  Return a DOHResponseMapEntry that can be used with :meth:`DOHFrontend:setResponsesMap`. Every query whose path is listed in the ``urls`` parameter to :func:`addDOHLocal` and matches the regular expression supplied in ``regex`` will be immediately answered with a HTTP response.
   The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
 
   :param str regex: A regular expression to match the path against.
