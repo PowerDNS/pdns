@@ -703,7 +703,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return dq->tcp == d_tcp;
+    return dq->overTCP() == d_tcp;
   }
   string toString() const override
   {

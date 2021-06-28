@@ -63,8 +63,10 @@ using QTag = std::unordered_map<string, string>;
 
 struct DNSQuestion
 {
-  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, PacketBuffer& data_, bool isTcp, const struct timespec* queryTime_):
-    data(data_), qname(name), local(lc), remote(rem), queryTime(queryTime_), tempFailureTTL(boost::none), qtype(type), qclass(class_), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) {
+  enum class Protocol : uint8_t { DoUDP, DoTCP, DNSCryptUDP, DNSCryptTCP, DoT, DoH };
+
+  DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, PacketBuffer& data_, Protocol proto, const struct timespec* queryTime_):
+    data(data_), qname(name), local(lc), remote(rem), queryTime(queryTime_), tempFailureTTL(boost::none), qtype(type), qclass(class_), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), protocol(proto), ecsOverride(g_ECSOverride) {
     const uint16_t* flags = getFlagsFromDNSHeader(getHeader());
     origFlags = *flags;
   }
@@ -106,14 +108,25 @@ struct DNSQuestion
 
   size_t getMaximumSize() const
   {
-    if (tcp) {
+    if (overTCP()) {
       return std::numeric_limits<uint16_t>::max();
     }
     return 4096;
   }
 
+  Protocol getProtocol() const
+  {
+    return protocol;
+  }
+
+  bool overTCP() const
+  {
+    const std::set<Protocol> tcpProto = { Protocol::DoTCP, Protocol::DNSCryptTCP, Protocol::DoT, Protocol::DoH };
+    return tcpProto.count(protocol);
+  }
+
 protected:
-    PacketBuffer& data;
+  PacketBuffer& data;
 
 public:
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -144,8 +157,8 @@ public:
   const uint16_t qclass;
   uint16_t ecsPrefixLength;
   uint16_t origFlags;
+  Protocol protocol;
   uint8_t ednsRCode{0};
-  const bool tcp;
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
@@ -159,8 +172,8 @@ public:
 
 struct DNSResponse : DNSQuestion
 {
-  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, PacketBuffer& data_, bool isTcp, const struct timespec* queryTime_):
-    DNSQuestion(name, type, class_, lc, rem, data_, isTcp, queryTime_) { }
+  DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, const ComboAddress* lc, const ComboAddress* rem, PacketBuffer& data_, DNSQuestion::Protocol proto, const struct timespec* queryTime_):
+    DNSQuestion(name, type, class_, lc, rem, data_, proto, queryTime_) { }
   DNSResponse(const DNSResponse&) = delete;
   DNSResponse& operator=(const DNSResponse&) = delete;
   DNSResponse(DNSResponse&&) = default;
@@ -1278,7 +1291,7 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& qnameWireLength);
-bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted);
+bool processResponse(PacketBuffer& response, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRuleActions, DNSResponse& dr, bool muted, bool receivedOverUDP);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh);
@@ -1303,7 +1316,7 @@ static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses la
 enum class ProcessQueryResult { Drop, SendAnswer, PassToBackend };
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, bool isTCP);
+DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, DNSQuestion::Protocol proto);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
 
 int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);

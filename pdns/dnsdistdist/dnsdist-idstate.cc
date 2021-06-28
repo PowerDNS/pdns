@@ -1,9 +1,9 @@
 
 #include "dnsdist.hh"
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, bool isTCP)
+DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, DNSQuestion::Protocol proto)
 {
-  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, isTCP, &ids.sentTime.d_start);
+  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, proto, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
   dr.ecsAdded = ids.ecsAdded;
   dr.ednsAdded = ids.ednsAdded;
