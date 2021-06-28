@@ -13,7 +13,7 @@ msdn\.microsoft\.com/(?:[^/]+/|)library/\S*\.aspx?
 # uuid:
 \b[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\b
 # hex digits including css/html color classes:
-(?:[\\0][xX]|\\u|[uU]\+|#x?|\%23)[0-9a-fA-FgGrR_]{2,}(?:[uU]?[lL]{0,2}|u\d+)\b
+(?:[\\0][xX]|\\u?|[uU]\+|#x?|\%23)[0-9a-fA-FgGrR_]{2,}(?:[uU]?[lL]{0,2}|u\d+)\b
 
 # hex things
 \b[0-9a-f]{8,}\b

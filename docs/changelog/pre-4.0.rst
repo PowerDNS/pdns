@@ -2576,7 +2576,7 @@ Improvements
    2383 <http://wiki.powerdns.com/projects/trac/changeset/2383>`__.
 -  As suggested in `ticket
    416 <https://github.com/PowerDNS/pdns/issues/416>`__, we now log the
-   SOA serial number after committing an AXFRed zone to the backend.
+   SOA serial number after committing an AXFR'd zone to the backend.
    Code in `commit
    2385 <http://wiki.powerdns.com/projects/trac/changeset/2385>`__.
 -  Pick up location of sqlite3 libraries using pkg-config. Implemented

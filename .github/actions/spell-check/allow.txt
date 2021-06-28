@@ -49,7 +49,6 @@ afpx
 afternm
 aglu
 aio
-aj
 Akkermann
 Alexey
 algname
@@ -108,7 +107,6 @@ answertime
 ANYId
 ANYNo
 anytruncatetcp
-ao
 aoh
 aorudp
 AOver
@@ -129,7 +127,6 @@ apowerdnscom
 appliedpolicy
 appliedpolicytype
 appname
-autohints
 APTR
 APublic
 AQEX
@@ -193,6 +190,7 @@ Autobuilder
 autocalculating
 autocommit
 autogen
+autohints
 autom
 autorev
 autorr
@@ -203,8 +201,13 @@ avstr
 AWith
 awithecs
 AWORD
+AXFR
+axfr
+AXFR'd
 AXFRGET
 axfrqlen
+AXFRs
+axfrs
 AZone
 BACKENDADDRESS
 backendfactory
@@ -252,7 +255,6 @@ berval
 bestmatch
 bestns
 bestpos
-bh
 bhartvigsen
 BHQk
 bibcna
@@ -306,7 +308,6 @@ Bostock
 BPHYx
 bpowerdns
 bpowerdnscom
-bq
 BREHMDq
 brokeloop
 brokendnssec
@@ -328,7 +329,6 @@ burtle
 burtlemix
 bval
 bvect
-Bw
 byport
 bytag
 bytearray
@@ -591,7 +591,6 @@ currentrrsetpos
 curtime
 customheader
 CWORD
-cx
 cxx
 dadec
 daemonize
@@ -889,7 +888,6 @@ DVGN
 dvi
 dvp
 dvpoll
-dw
 Dwaoc
 DWITH
 dylib
@@ -992,7 +990,6 @@ eip
 Eips
 EISCONN
 ejkmcpqxot
-EK
 elabel
 elems
 elif
@@ -1127,7 +1124,6 @@ ffipolicyfunc
 fflush
 fgc
 fgets
-fh
 fieldname
 filebasename
 fileno
@@ -1182,7 +1178,6 @@ Fpb
 fpc
 fprintf
 fptype
-fq
 fqdn
 FQDNs
 FQk
@@ -1226,7 +1221,6 @@ fwdomain
 fwopt
 fwparams
 fwrite
-fx
 gai
 gaierror
 garblewarble
@@ -1312,13 +1306,11 @@ gettaganswers
 getupdatedmasters
 getvalue
 getvars
-gf
 ghostscript
 gir
 gitlab
 givr
 gjeqe
-GK
 GLIBCXX
 globalconf
 globals
@@ -1372,7 +1364,6 @@ gtar
 gtm
 gtzero
 guido
-gx
 GZha
 haas
 habbie
@@ -1391,7 +1382,6 @@ haveednssubnet
 HAVENSEC
 havetsig
 HBB
-Hc
 HCID
 HCNUM
 hcode
@@ -1424,7 +1414,6 @@ histo
 histog
 hjb
 HJpbmcg
-hk
 hlapi
 HLEN
 hmacsha
@@ -1459,8 +1448,6 @@ HTTPHEADER
 httpversion
 HUnit
 hwinfo
-Hx
-hx
 hxx
 HZXIZh
 iarchive
@@ -1497,7 +1484,6 @@ ignorebogus
 IHOST
 iinfo
 Iinputs
-IJ
 ilexicographical
 ILIKE
 imap
@@ -1613,7 +1599,6 @@ ixfrutils
 ixx
 jan
 JAVADOC
-Jb
 jcong
 jdnssec
 jdthood
@@ -1621,15 +1606,12 @@ jebps
 JEQ
 jgqgg
 JGT
-ji
 jkcevqvmu
 jlist
-Jn
 JNE
 joeyh
 joj
 journalmode
-jp
 jpf
 jpg
 jquery
@@ -1641,7 +1623,6 @@ jsr
 JTf
 jul
 Jungermann
-jx
 kamago
 kbcafe
 kce
@@ -1690,8 +1671,6 @@ KStream
 kvresp
 kwargs
 KWw
-kx
-KX
 KXu
 labellen
 labelparts
@@ -1821,7 +1800,6 @@ listerner
 listname
 listset
 listx
-lk
 lkjhgf
 LLL
 lltemp
@@ -1914,7 +1892,6 @@ luaspoofwithstats
 luatarget
 LUAVER
 luu
-lw
 lwn
 lwr
 lwres
@@ -2053,7 +2030,6 @@ moz
 MPkb
 Mps
 MPSC
-mq
 mqalatency
 MRUBY
 msecmatch
@@ -2194,13 +2170,11 @@ nextpart
 nextupd
 nfc
 nfds
-nh
 nif
 nifs
 nint
 njgi
 nju
-nk
 nlaunch
 nlen
 nline
@@ -2321,7 +2295,6 @@ noyy
 nparams
 npos
 nproc
-nq
 nqueue
 nrc
 nread
@@ -2398,7 +2371,6 @@ nxt
 NXTHDR
 nxwithnorr
 nztest
-oa
 oarchive
 obf
 OBJECTFILES
@@ -2480,7 +2452,6 @@ optret
 optsize
 optstring
 optvect
-oq
 oqtaen
 oraclelinux
 orderindex
@@ -2638,8 +2609,8 @@ pkglib
 pkglibdir
 PKGNAME
 pkgv
-pki
 PKI
+pki
 pkill
 pkthdr
 pktinfo
@@ -2790,7 +2761,6 @@ pureftpd
 pushlightuserdata
 pvars
 pvect
-pw
 pwd
 pwent
 pycurl
@@ -2798,21 +2768,17 @@ pysnmp
 PYTHONUNBUFFERED
 qaint
 qalatency
-qc
 qcachehits
 qcachemisses
 QClasses
 QCmissing
 qcount
 qcounter
-qd
 qdomainwild
 qdomainzone
 qesc
 qfonh
-qg
 qhash
-qi
 qids
 qkey
 qla
@@ -2835,7 +2801,6 @@ qpsgraph
 qpslimit
 qpsstart
 qpsy
-qq
 qry
 qsock
 qstats
@@ -2862,8 +2827,6 @@ QUOTEDWORD
 quux
 qvalue
 qvl
-qw
-qx
 raddr
 RAII
 randomid
@@ -3035,15 +2998,12 @@ rhs
 rhscount
 rhsoopts
 rhspos
-ri
 rightcolumn
 rightiter
 ringmeta
 ringname
 ringsize
 riter
-Rj
-rl
 rlen
 rlim
 rlimit
@@ -3146,8 +3106,6 @@ RVARS
 rwl
 rwtxn
 rwxr
-rx
-rz
 rzrp
 SAccept
 saccount
@@ -3551,7 +3509,6 @@ sysperc
 systemdsystemunit
 systemdsystemunitdir
 systm
-sz
 tablecopy
 tac
 tagfile
@@ -3660,7 +3617,6 @@ testsuite
 testuser
 texlive
 textx
-tf
 TFILE
 tfunc
 THandler
@@ -3701,9 +3657,8 @@ tje
 tkdb
 tkey
 tkeys
-tl
-tld
 TLD
+tld
 tlen
 TLKA
 tlsdhkeytoosmall
@@ -3775,8 +3730,8 @@ toupper
 toxml
 toysdig
 tozero
-tpl
 TPL
+tpl
 tpos
 tptr
 transactiondomain
@@ -3825,7 +3780,6 @@ TTLRPZ
 ttsig
 twopt
 txn
-ty
 typedef
 typedns
 typeenum
@@ -3836,10 +3790,8 @@ typename
 typestr
 TYPETOK
 TYX
-tz
 TZOFF
 uapi
-ub
 UBIGINT
 ubsan
 UBXc
@@ -3999,7 +3951,6 @@ virtualenv
 vit
 vlen
 Vll
-vm
 vpacket
 vpos
 VPQ
@@ -4013,7 +3964,6 @@ vstate
 vstring
 vstringtok
 vtable
-vx
 VYBP
 Vzd
 WAITALL
@@ -4034,6 +3984,7 @@ WCOREDUMP
 wcplusencloser
 wctx
 wday
+We'd
 weanswers
 webetter
 webhndlr
@@ -4091,16 +4042,12 @@ wshash
 WSIZE
 WTERMSIG
 wtest
-ww
-Ww
 wwwds
 wwwezdnsit
 wwwpowerdnscom
 WWWPREFIX
-wx
 Wxm
 Wyc
-wz
 xaa
 xaaa
 XADD
@@ -4111,7 +4058,6 @@ xcrypt
 xdigits
 xdnssec
 XEz
-xf
 xffverylongstring
 XFRd
 XFRM
@@ -4120,11 +4066,8 @@ xhr
 xit
 xlabel
 xluajit
-xm
 XMy
-xn
 xno
-Xo
 Xof
 xor
 xpfcode
@@ -4140,15 +4083,10 @@ xtics
 xtrue
 xunit
 XXXXg
-xy
 xyes
-Xz
 ybndrfg
-yc
 yday
 YFLAGS
-yh
-YK
 ylabel
 yop
 YOUNAMEIT
@@ -4161,7 +4099,6 @@ ytics
 YWJYRXp
 YWls
 YWxse
-yx
 yxdomain
 YXRR
 yxrrset
@@ -4178,7 +4115,6 @@ yytext
 yywrap
 yyy
 YYYYMMDDH
-yz
 zackw
 zbefore
 ZCLASS
@@ -4190,7 +4126,6 @@ zinid
 ziter
 ZJA
 Zjmco
-Zm
 zmakerfunc
 zmakermap
 zmq
@@ -4214,19 +4149,13 @@ zonemaster
 zoneparsertng
 zonestring
 ZONETOK
-zp
 zpt
-ZQ
-zr
 zrr
 zrrs
 zskds
 zskeys
 Zsu
 ztype
-zu
 zugschlus
-Zv
-zx
 ZXJETl
 zzz

@@ -60,6 +60,7 @@ SUMS$
 \.yml$
 \.zip$
 ^codedocs/doxygen\.conf$
+^docs/lua-records/reference/index\.rst$
 ^modules/remotebackend/example\.rb$
 ^modules/remotebackend/test-remotebackend-keys\.hh$
 ^modules/tinydnsbackend/data$
