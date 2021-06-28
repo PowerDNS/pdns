@@ -1918,7 +1918,7 @@ class TestCachingFailureTTL(DNSDistTest):
 
 class TestCachingNegativeTTL(DNSDistTest):
 
-    _negCacheTTL = 1
+    _negCacheTTL = 2
     _config_params = ['_negCacheTTL', '_testServerPort']
     _config_template = """
     pc = newPacketCache(1000, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=%d})
