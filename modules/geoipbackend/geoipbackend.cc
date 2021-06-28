@@ -427,7 +427,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain& dom, const DNSName& search, 
   return false;
 };
 
-void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* pkt_p)
 {
   ReadLock rl(&s_state_lock);
   const GeoIPDomain* dom;
@@ -462,12 +462,20 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
   (void)this->lookup_static(*dom, qdomain, qtype, qdomain, addr, gl);
 
   const auto& target = (*dom).services.find(qdomain);
-  if (target == (*dom).services.end())
+  if (target == (*dom).services.end()) {
+    for (const auto& result : d_result) {
+      rrs.push_back(result);
+    }
     return; // no hit
+  }
 
   const NetmaskTree<vector<string>>::node_type* node = target->second.masks.lookup(addr);
-  if (node == NULL)
+  if (node == NULL) {
+    for (const auto& result : d_result) {
+      rrs.push_back(result);
+    }
     return; // no hit, again.
+  }
 
   DNSName sformat;
   gl.netmask = node->first.getBits();
@@ -495,8 +503,12 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
     sformat = DNSName(format2str(*it, addr, gl, *dom));
 
     // see if the record can be found
-    if (this->lookup_static((*dom), sformat, qtype, qdomain, addr, gl))
+    if (this->lookup_static((*dom), sformat, qtype, qdomain, addr, gl)) {
+      for (const auto& result: d_result) {
+        rrs.push_back(result);
+      }
       return;
+    }
   }
 
   if (!d_result.empty()) {
@@ -507,9 +519,15 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
     return;
   }
 
+  for (const auto& result: d_result) {
+    rrs.push_back(result);
+  }
+
   // we need this line since we otherwise claim to have NS records etc
   if (!(qtype == QType::ANY || qtype == QType::CNAME))
     return;
+
+
 
   DNSResourceRecord rr;
   rr.domain_id = dom->id;
@@ -519,7 +537,7 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
   rr.auth = 1;
   rr.ttl = dom->ttl;
   rr.scopeMask = gl.netmask;
-  d_result.push_back(rr);
+  rrs.push_back(rr);
 }
 
 bool GeoIPBackend::get(DNSResourceRecord& r)

@@ -154,7 +154,7 @@ void PipeBackend::cleanup()
   d_abiVersion = 0;
 }
 
-void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void PipeBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
 {
   try {
     launch();
@@ -195,6 +195,11 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, D
   }
   d_qtype = qtype;
   d_qname = qname;
+
+  DNSResourceRecord rr;
+  while(this->get(rr)) {
+    rrs.push_back(rr);
+  }
 }
 
 bool PipeBackend::list(const DNSName& target, int inZoneId, bool include_disabled)

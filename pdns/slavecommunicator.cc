@@ -149,11 +149,11 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
       for(const auto& g : grouped) {
         vector<DNSRecord> rrset;
         {
-          DNSZoneRecord zrr;
-          di.backend->lookup(QType(g.first.second), g.first.first+domain, di.id);
-          while(di.backend->get(zrr)) {
-            zrr.dr.d_name.makeUsRelative(domain);
-            rrset.push_back(zrr.dr);
+          vector<DNSZoneRecord> dzrs;
+          di.backend->lookup(QType(g.first.second), g.first.first+domain, dzrs, di.id);
+          for (auto& dzr : dzrs) {
+            dzr.dr.d_name.makeUsRelative(domain);
+            rrset.push_back(dzr.dr);
           }
         }
         // O(N^2)!

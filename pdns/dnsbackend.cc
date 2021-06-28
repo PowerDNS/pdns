@@ -242,35 +242,47 @@ vector<DNSBackend *> BackendMakerClass::all(bool metadataOnly)
 */
 bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
 {
-  this->lookup(QType(QType::SOA),domain,-1);
+  vector<DNSZoneRecord> rrs;
+  this->lookup(QType(QType::SOA),domain,rrs, -1);
   S.inc("backend-queries");
 
-  DNSResourceRecord rr;
   int hits=0;
 
   sd.db = nullptr;
 
-  try {
-    while (this->get(rr)) {
-      if (rr.qtype != QType::SOA) {
-        throw PDNSException("Got non-SOA record when asking for SOA, zone: '" + domain.toLogString() + "'");
-      }
-      hits++;
-      sd.qname = domain;
-      sd.ttl = rr.ttl;
-      sd.db = this;
-      sd.domain_id = rr.domain_id;
-      fillSOAData(rr.content, sd);
-    }
-  }
-  catch (...) {
-    while (this->get(rr)) {
-      ;
-    }
-    throw;
+  for (const auto rr: rrs) {
+    if (rr.dr.d_type != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
+    hits++;
+    fillSOAData(rr, sd);
+    sd.domain_id=rr.domain_id;
+    sd.ttl=rr.dr.d_ttl;
+    sd.db = this;
+    sd.qname = domain;
   }
 
+  if(!hits)
+    return false;
+
   return hits;
+}
+
+void DNSBackend::lookup(const QType &qtype, const DNSName &qdomain, vector<DNSZoneRecord> &rrs, int zoneId, DNSPacket *pkt_p)
+{
+  vector<DNSResourceRecord> trrs;
+
+  this->lookup(qtype, qdomain, trrs, zoneId, pkt_p);
+
+  for (auto& trr: trrs) {
+    DNSZoneRecord dzr;
+    dzr.auth = trr.auth;
+    dzr.domain_id = trr.domain_id;
+    dzr.scopeMask = trr.scopeMask;
+    if(trr.qtype.getCode() == QType::TXT && !trr.content.empty() && trr.content[0]!='"')
+      trr.content = "\""+ trr.content + "\"";
+
+    dzr.dr = DNSRecord(trr);
+    rrs.push_back(dzr);
+  }
 }
 
 bool DNSBackend::get(DNSZoneRecord& dzr)

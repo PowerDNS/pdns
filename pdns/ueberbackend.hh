@@ -69,33 +69,6 @@ public:
 
   void cleanup();
 
-  //! the very magic handle for UeberBackend questions
-  class handle
-  {
-  public:
-    bool get(DNSZoneRecord &dr);
-    handle();
-    ~handle();
-
-    //! The UeberBackend class where this handle belongs to
-    UeberBackend *parent;
-    //! The current real backend, which is answering questions
-    DNSBackend *d_hinterBackend;
-
-    //! DNSPacket who asked this question
-    DNSPacket* pkt_p;
-    DNSName qname;
-
-    //! Index of the current backend within the backends vector
-    unsigned int i;
-    QType qtype;
-    int zoneId;
-
-  private:
-
-    static AtomicCounter instances;
-  };
-
   void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *pkt_p=nullptr);
 
   /** Determines if we are authoritative for a zone, and at what level */
@@ -138,7 +111,6 @@ public:
 
   bool inTransaction();
 private:
-  handle d_handle;
   vector<DNSZoneRecord> d_answers;
   vector<DNSZoneRecord>::const_iterator d_cachehandleiter;
 

@@ -652,29 +652,37 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
 
   d_qtype=qtype.getCode();
 
-  d_handle.i=0;
-  d_handle.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
-  d_handle.qname=qname;
-  d_handle.zoneId=zoneId;
-  d_handle.pkt_p=pkt_p;
-
   if(!backends.size()) {
     g_log<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
     d_stale=true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
   else {
-    d_question.qtype=d_handle.qtype;
+    d_question.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;;
     d_question.qname=qname;
-    d_question.zoneId=d_handle.zoneId;
+    d_question.zoneId=zoneId;
 
     int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
       d_negcached=d_cached=false;
-      d_answers.clear(); 
-      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
+      d_answers.clear();
+      for (const auto& backend: backends) {
+        backend->lookup(d_question.qtype, d_question.qname, d_answers, d_question.zoneId, pkt_p);
+      }
       ++(*s_backendQueries);
+
+      // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
+      if(d_answers.empty()) {
+        // cout<<"adding negcache"<<endl;
+        addNegCache(d_question);
+        d_negcached = true;
+      }
+      else {
+        // cout<<"adding query cache"<<endl;
+        addCache(d_question, std::move(d_answers));
+        d_cached = true;
+      }
     } 
     else if(cstat==0) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
@@ -689,8 +697,6 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       d_cachehandleiter = d_answers.begin();
     }
   }
-
-  d_handle.parent=this;
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
@@ -718,23 +724,6 @@ bool UeberBackend::get(DNSZoneRecord &rr)
     return false;
   }
 
-  while(d_handle.get(rr)) {
-    rr.dr.d_place=DNSResourceRecord::ANSWER;
-    d_answers.push_back(rr);
-    if((d_qtype == QType::ANY || rr.dr.d_type == d_qtype)) {
-      return true;
-    }
-  }
-
-  // cout<<"end of ueberbackend get, seeing if we should cache"<<endl;
-  if(d_answers.empty()) {
-    // cout<<"adding negcache"<<endl;
-    addNegCache(d_question);
-  }
-  else {
-    // cout<<"adding query cache"<<endl;
-    addCache(d_question, std::move(d_answers));
-  }
   d_answers.clear();
   return false;
 }
@@ -755,49 +744,3 @@ bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<
   return rc;
 }
 
-AtomicCounter UeberBackend::handle::instances(0);
-
-UeberBackend::handle::handle()
-{
-  //  g_log<<Logger::Warning<<"Handle instances: "<<instances<<endl;
-  ++instances;
-  parent=nullptr;
-  d_hinterBackend=nullptr;
-  pkt_p=nullptr;
-  i=0;
-  zoneId = -1;
-}
-
-UeberBackend::handle::~handle()
-{
-  --instances;
-}
-
-bool UeberBackend::handle::get(DNSZoneRecord &r)
-{
-  DLOG(g_log << "Ueber get() was called for a "<<qtype<<" record" << endl);
-  bool isMore=false;
-  while(d_hinterBackend && !(isMore=d_hinterBackend->get(r))) { // this backend out of answers
-    if(i<parent->backends.size()) {
-      DLOG(g_log<<"Backend #"<<i<<" of "<<parent->backends.size()
-           <<" out of answers, taking next"<<endl);
-      
-      d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,zoneId,pkt_p);
-      ++(*s_backendQueries);
-    }
-    else 
-      break;
-
-    DLOG(g_log<<"Now asking backend #"<<i<<endl);
-  }
-
-  if(!isMore && i==parent->backends.size()) {
-    DLOG(g_log<<"UeberBackend reached end of backends"<<endl);
-    return false;
-  }
-
-  DLOG(g_log<<"Found an answering backend - will not try another one"<<endl);
-  i=parent->backends.size(); // don't go on to the next backend
-  return true;
-}
