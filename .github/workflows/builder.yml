@@ -20,10 +20,19 @@ jobs:
           - ubuntu-bionic
           - oraclelinux-8
           - centos-8-stream
+          - debian-bullseye
     steps:
       - uses: actions/checkout@v2.3.4
         with:
-          fetch-depth: 5
+          fetch-depth: 0  # for correct version numbers
           submodules: recursive
       # this builds packages and runs our unit test (make check)
       - run: builder/build.sh -v -m ${{ matrix.product }} ${{ matrix.os }}
+      - name: Get version number
+        run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
+        id: getversion
+      - name: Upload packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
+          path: built_pkgs/
