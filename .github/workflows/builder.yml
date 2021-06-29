@@ -27,3 +27,8 @@ jobs:
           submodules: recursive
       # this builds packages and runs our unit test (make check)
       - run: builder/build.sh -v -m ${{ matrix.product }} ${{ matrix.os }}
+      - name: Upload packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.product }}-${{ matrix.os }}
+          path: built_pkgs/
