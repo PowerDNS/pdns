@@ -1048,7 +1048,7 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
                      "histogram of authoritative answer times over IPV6")},
 };
 
-#define CHECK_PROMETHEUS_METRICS 1
+#define CHECK_PROMETHEUS_METRICS 0
 
 #if CHECK_PROMETHEUS_METRICS
 static void validatePrometheusMetrics()

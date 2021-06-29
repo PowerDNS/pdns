@@ -95,7 +95,7 @@ struct StatsMapEntry {
   std::string d_value;
 };
 
-class SimpleNaturalCompare
+class PrefixDashNumberCompare
 {
 private:
   static std::pair<std::string, std::string> prefixAndTrailingNum(const std::string& a);
@@ -103,7 +103,7 @@ public:
   bool operator()(const std::string& a, const std::string& b) const;
 };
 
-typedef std::map<std::string, StatsMapEntry, SimpleNaturalCompare> StatsMap;
+typedef std::map<std::string, StatsMapEntry, PrefixDashNumberCompare> StatsMap;
 
 StatsMap getAllStatsMap(StatComponent component);
 

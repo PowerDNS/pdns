@@ -40,7 +40,7 @@
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
 
-std::pair<std::string, std::string> SimpleNaturalCompare::prefixAndTrailingNum(const std::string& a)
+std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
 {
   auto i = a.length();
   if (i == 0) {
@@ -59,7 +59,7 @@ std::pair<std::string, std::string> SimpleNaturalCompare::prefixAndTrailingNum(c
   return make_pair(a.substr(0, i + 1), a.substr(i + 1, a.size() - i - 1));
 }
 
-bool SimpleNaturalCompare::operator()(const std::string& a, const std::string& b) const
+bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string& b) const
 {
   auto [aprefix, anum] = prefixAndTrailingNum(a);
   auto [bprefix, bnum] = prefixAndTrailingNum(b);
