@@ -590,7 +590,7 @@ void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
 
   unsigned int store_ttl = d_cache_ttl;
   for(const auto& rr : rrs) {
-   if (rr.dr.d_ttl < d_cache_ttl)
+   if (rr.dr.d_ttl < store_ttl)
      store_ttl = rr.dr.d_ttl;
    if (rr.scopeMask)
      return;
