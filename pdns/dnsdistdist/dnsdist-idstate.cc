@@ -1,9 +1,9 @@
 
 #include "dnsdist.hh"
 
-DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data, DNSQuestion::Protocol proto)
+DNSResponse makeDNSResponseFromIDState(IDState& ids, PacketBuffer& data)
 {
-  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, proto, &ids.sentTime.d_start);
+  DNSResponse dr(&ids.qname, ids.qtype, ids.qclass, &ids.origDest, &ids.origRemote, data, ids.protocol, &ids.sentTime.d_start);
   dr.origFlags = ids.origFlags;
   dr.ecsAdded = ids.ecsAdded;
   dr.ednsAdded = ids.ednsAdded;
@@ -37,6 +37,7 @@ void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname)
   ids.qname = std::move(qname);
   ids.qtype = dq.qtype;
   ids.qclass = dq.qclass;
+  ids.protocol = dq.protocol;
   ids.delayMsec = dq.delayMsec;
   ids.tempFailureTTL = dq.tempFailureTTL;
   ids.origFlags = dq.origFlags;

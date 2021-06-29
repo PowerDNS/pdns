@@ -585,7 +585,7 @@ void IncomingTCPConnectionState::handleResponse(std::shared_ptr<IncomingTCPConne
       return;
     }
 
-    DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer, state->d_handler.isTLS() ? DNSQuestion::Protocol::DoT : DNSQuestion::Protocol::DoTCP);
+    DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
 
     memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
 

@@ -636,7 +636,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         dh->id = ids->origID;
 
-        DNSResponse dr = makeDNSResponseFromIDState(*ids, response, DNSQuestion::Protocol::DoUDP);
+        DNSResponse dr = makeDNSResponseFromIDState(*ids, response);
         if (dh->tc && g_truncateTC) {
           truncateTC(response, dr.getMaximumSize(), qnameWireLength);
         }
