@@ -148,7 +148,7 @@ public:
 
 private:
   std::vector<B> d_buckets;
-  std::string d_name;
+  const std::string d_name;
   mutable SumType d_sum{0};
 
   std::vector<uint64_t> to125(uint64_t start, int num)

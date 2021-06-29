@@ -267,19 +267,19 @@ cpu-steal
 Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ.
 
 cumul-answers-le-x
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times in buckets less or equal than x microseconds.
 These metrics include packet cache hits.
 These metrics are useful for Prometheus.
 
 
 cumul-auth4-answers-x
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times of authoritative servers over IPv4 in buckets less than x microseconds.
 These metrics are useful for Prometheus.
 
 cumul-auth6-answers-x
-^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times of authoritative servers over IPv6 in buckets less than x microseconds.
 These metrics are useful for Prometheus.
 
