@@ -34,7 +34,7 @@ Regular users should not be impacted by this change, but packagers should be awa
 
 DOH endpoints specified in the fourth parameter of :func:`addDOHLocal` are now specified as exact paths instead of path prefixes. The default endpoint also switched from ``/`` to ``/dns-query``.
 For example, ``addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', { "/dns-query" })`` will now only accept queries for ``/dns-query`` and no longer for ``/dns-query/foo/bar``.
-This change also impacts the HTTP response rules set via :meth:`DOHFrontend.setResponsesMap`, since queries whose paths are not allowed will be discarded before the rules are evaluated.
+This change also impacts the HTTP response rules set via :meth:`DOHFrontend:setResponsesMap`, since queries whose paths are not allowed will be discarded before the rules are evaluated.
 If you want to accept DoH queries on ``/dns-query`` and redirect ``/rfc`` to the DoH RFC, you need to list ``/rfc`` in the list of paths:
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', { '/dns-query', '/rfc'})

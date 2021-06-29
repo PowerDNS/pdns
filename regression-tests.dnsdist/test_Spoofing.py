@@ -760,6 +760,98 @@ class TestSpoofingLuaSpoofMulti(DNSDistTest):
             # sorry, we can't set the TTL from the Lua API right now
             #self.assertEqual(receivedResponse.answer[0].ttl, 3600)
 
+class TestSpoofingLuaFFISpoofMulti(DNSDistTest):
+
+    _config_template = """
+    local ffi = require("ffi")
+
+    function spoofrawmultirule(dq)
+        local qtype = ffi.C.dnsdist_ffi_dnsquestion_get_qtype(dq)
+
+        if qtype == DNSQType.A then
+            local records = ffi.new("dnsdist_ffi_raw_value_t [2]")
+
+            local str = "\\192\\000\\002\\001"
+            records[0].size = #str
+            records[0].value = ffi.new("char[?]", #str)
+            ffi.copy(records[0].value, str, #str)
+
+            local str = "\\192\\000\\002\\255"
+            records[1].value = ffi.new("char[?]", #str)
+            ffi.copy(records[1].value, str, #str)
+            records[1].size = #str
+
+            ffi.C.dnsdist_ffi_dnsquestion_spoof_raw(dq, records, 2)
+            return DNSAction.HeaderModify
+        elseif qtype == DNSQType.TXT then
+            local records = ffi.new("dnsdist_ffi_raw_value_t [2]")
+
+            local str = "\\033this text has a comma at the end,"
+            records[0].size = #str
+            records[0].value = ffi.new("char[?]", #str)
+            ffi.copy(records[0].value, str, #str)
+
+            local str = "\\003aaa\\004bbbb"
+            records[1].size = #str
+            records[1].value = ffi.new("char[?]", #str)
+            ffi.copy(records[1].value, str, #str)
+
+            ffi.C.dnsdist_ffi_dnsquestion_spoof_raw(dq, records, 2)
+            return DNSAction.HeaderModify
+        end
+
+        return DNSAction.None, ""
+    end
+
+    addAction("lua-raw-multi.ffi-spoofing.tests.powerdns.com.", LuaFFIAction(spoofrawmultirule))
+    newServer{address="127.0.0.1:%s"}
+    """
+    _verboseMode = True
+
+    def testLuaSpoofMultiRawAction(self):
+        """
+        Spoofing via Lua FFI: Spoof responses from raw bytes via Lua FFI
+        """
+        name = 'lua-raw-multi.ffi-spoofing.tests.powerdns.com.'
+
+        # A
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags &= ~dns.flags.AA
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1', '192.0.2.255')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
+
+        # TXT
+        query = dns.message.make_query(name, 'TXT', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags &= ~dns.flags.AA
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    '"this text has a comma at the end,"', '"aaa" "bbbb"')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
+
 class TestSpoofingLuaWithStatistics(DNSDistTest):
 
     _config_template = """
