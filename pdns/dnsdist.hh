@@ -988,7 +988,17 @@ struct DownstreamState
     return upStatus;
   }
   void setUp() { availability = Availability::Up; }
-  void setDown() { availability = Availability::Down; }
+  void setUpStatus(bool newStatus)
+  {
+    upStatus = newStatus;
+    if (!upStatus)
+      latencyUsec = 0.0;
+  }
+  void setDown()
+  {
+    availability = Availability::Down;
+    latencyUsec = 0.0;
+  }
   void setAuto() { availability = Availability::Auto; }
   const string& getName() const {
     return name;

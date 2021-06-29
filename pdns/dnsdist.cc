@@ -2413,7 +2413,7 @@ int main(int argc, char** argv)
     for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
       if (dss->availability == DownstreamState::Availability::Auto) {
         if (!queueHealthCheck(mplexer, dss, true)) {
-          dss->upStatus = false;
+          dss->setUpStatus(false);
           warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
         }
       }
