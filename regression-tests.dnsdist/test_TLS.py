@@ -371,7 +371,6 @@ class TestTLSFrontendLimits(DNSDistTest):
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", maxConcurrentTCPConnections=%d })
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerTLSFrontend']
-    _verboseMode = True
 
     def testTCPConnsPerTLSFrontend(self):
         """
@@ -415,3 +414,41 @@ class TestTLSFrontendLimits(DNSDistTest):
 
         self.assertEqual(count, self._maxTCPConnsPerTLSFrontend)
         self.assertEqual(failed, 1)
+
+class TestProtocols(DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = 8453
+
+    _config_template = """
+    function checkDOT(dq)
+      if dq:getProtocol() ~= "DNS over TLS" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    addAction("protocols.tls.tests.powerdns.com.", LuaAction(checkDOT))
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+    """
+    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+    def testProtocolDOT(self):
+        """
+        DoT: Test DNSQuestion.Protocol
+        """
+        name = 'protocols.tls.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)

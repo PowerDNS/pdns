@@ -1216,7 +1216,6 @@ class TestDOHFrontendLimits(DNSDistDOHTest):
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { maxConcurrentTCPConnections=%d })
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerDOHFrontend']
-    _verboseMode = True
 
     def testTCPConnsPerDOHFrontend(self):
         """
@@ -1260,3 +1259,44 @@ class TestDOHFrontendLimits(DNSDistDOHTest):
 
         self.assertEqual(count, self._maxTCPConnsPerDOHFrontend)
         self.assertEqual(failed, 1)
+
+class TestProtocols(DNSDistDOHTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _customResponseHeader1 = 'access-control-allow-origin: *'
+    _customResponseHeader2 = 'user-agent: derp'
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    function checkDOH(dq)
+      if dq:getProtocol() ~= "DNS over HTTPS" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    addAction("protocols.doh.tests.powerdns.com.", LuaAction(checkDOH))
+    newServer{address="127.0.0.1:%s"}
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" })
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
+
+    def testProtocolDOH(self):
+        """
+        DoH: Test DNSQuestion.Protocol
+        """
+        name = 'protocols.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEqual(response, receivedResponse)
