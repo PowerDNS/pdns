@@ -1056,7 +1056,7 @@ public:
     static thread_local std::string data;
     data.clear();
 
-    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
+    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, dq->du != nullptr ? true : dq->tcp, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1189,7 +1189,7 @@ public:
     gettime(&now, true);
     data.clear();
 
-    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
+    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, dr->du != nullptr ? true : dr->tcp, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
