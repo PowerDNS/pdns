@@ -281,6 +281,7 @@ void DNSBackend::lookup(const QType &qtype, const DNSName &qdomain, vector<DNSZo
       trr.content = "\""+ trr.content + "\"";
 
     dzr.dr = DNSRecord(trr);
+    dzr.dr.d_place=DNSResourceRecord::ANSWER;
     rrs.push_back(dzr);
   }
 }

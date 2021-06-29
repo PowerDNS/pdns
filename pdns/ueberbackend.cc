@@ -586,7 +586,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSZoneRecord> &rrs)
   }
 
   rrs.clear();
-  //  g_log<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
+  // g_log<<Logger::Warning<<"looking up: '"<<q.qname<<"'|N|"<<DNSRecordContent::NumberToType(q.qtype.getCode())<<"|"<<itoa(q.zoneId)<<endl;
 
   bool ret=QC.getEntry(q.qname, q.qtype, rrs, q.zoneId);   // think about lowercasing here
   if(!ret) {
@@ -658,7 +658,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
     throw PDNSException("We are stale, please recycle");
   }
   else {
-    d_question.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;;
+    d_question.qtype=s_doANYLookupsOnly ? QType::ANY : qtype;
     d_question.qname=qname;
     d_question.zoneId=zoneId;
 
@@ -680,8 +680,23 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       }
       else {
         // cout<<"adding query cache"<<endl;
-        addCache(d_question, std::move(d_answers));
+        bool hasZeroTTL = false;
+        for (const auto& rr: d_answers) {
+          if (rr.dr.d_ttl <= 0) {
+            hasZeroTTL = true;
+            break;
+          }
+        }
+        if (d_cache_ttl > 0 && !hasZeroTTL) {
+          addCache(d_question, std::move(d_answers));
+          int newcstat = cacheHas(d_question, d_answers);
+          if (newcstat <= 0) {
+            g_log<<Logger::Error<<"We just inserted something into the cache and now its not there, cstat is "<<newcstat<<endl;
+            throw PDNSException("We just inserted something into the cache and now its not there");
+          }
+        }
         d_cached = true;
+        d_cachehandleiter = d_answers.begin();
       }
     } 
     else if(cstat==0) {
@@ -724,7 +739,6 @@ bool UeberBackend::get(DNSZoneRecord &rr)
     return false;
   }
 
-  d_answers.clear();
   return false;
 }
 

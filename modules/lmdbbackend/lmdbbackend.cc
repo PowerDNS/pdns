@@ -812,6 +812,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
           zr.dr.d_ttl = lrr.ttl;
           zr.dr.d_content = deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content);
           zr.auth = lrr.auth;
+          zr.dr.d_place=DNSResourceRecord::ANSWER;
           rrs.push_back(zr);
         }
       }
