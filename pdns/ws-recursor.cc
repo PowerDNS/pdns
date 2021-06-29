@@ -446,7 +446,6 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
     for (const auto& tup : varmap) {
         std::string metricName = tup.first;
         std::string prometheusMetricName = tup.second.d_prometheusName;
-
         MetricDefinition metricDetails;
 
         if (s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
@@ -456,7 +455,13 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
           if (prometheusTypeName.empty()) {
             continue;
           }
-
+          if (metricDetails.prometheusType == PrometheusMetricType::histogram) {
+            // name is XXX_count, strip the _count part
+            prometheusMetricName = prometheusMetricName.substr(0, prometheusMetricName.length() - 6);
+            output << "# HELP " << prometheusMetricName << " " << metricDetails.description << "\n";
+            output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
+            continue;
+          }
           // for these we have the help and types encoded in the sources:
           output << "# HELP " << prometheusMetricName << " " << metricDetails.description << "\n";
           output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
@@ -1029,9 +1034,21 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics =
     MetricDefinition(PrometheusMetricType::counter,
                      "Number of outgoing DoT queries since starting")},
 
+  // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
+  { "cumul-answers-count",
+    MetricDefinition(PrometheusMetricType::histogram,
+                     "histogram of our answer times")},
+  // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
+  { "cumul-auth4answers-count",
+    MetricDefinition(PrometheusMetricType::histogram,
+                     "histogram of authoritative answer times over IPv4")},
+  // For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
+  { "cumul-auth6answers-count",
+    MetricDefinition(PrometheusMetricType::histogram,
+                     "histogram of authoritative answer times over IPV6")},
 };
 
-#define CHECK_PROMETHEUS_METRICS 0
+#define CHECK_PROMETHEUS_METRICS 1
 
 #if CHECK_PROMETHEUS_METRICS
 static void validatePrometheusMetrics()

@@ -1375,13 +1375,13 @@ static void registerAllStats1()
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
   }
 
-  addGetStat("cumulativeAnswers-usec-", []() {
+  addGetStat("cumul-answers", []() {
     return toStatsMap(g_stats.cumulativeAnswers.getName(), g_stats.cumulativeAnswers);
   });
-  addGetStat("cumulativeAuth4Answers-usec-", []() {
+  addGetStat("cumul-auth4answers", []() {
     return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers);
   });
-  addGetStat("cumulativeAuth6Answers-usec-", []() {
+  addGetStat("cumul-auth6answers", []() {
     return toStatsMap(g_stats.cumulativeAuth6Answers.getName(), g_stats.cumulativeAuth6Answers);
   });
 }
