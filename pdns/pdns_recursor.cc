@@ -1039,10 +1039,8 @@ static void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, co
   if (!policyTags.empty()) {
     m.addPolicyTags(policyTags);
   }
-  if (!meta.empty()) {
-    for (const auto& mit : meta) {
-      m.setMeta(mit.first, mit.second.stringVal, mit.second.intVal);
-    }
+  for (const auto& mit : meta) {
+    m.setMeta(mit.first, mit.second.stringVal, mit.second.intVal);
   }
 
   std::string msg(m.finishAndMoveBuf());
