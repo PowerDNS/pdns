@@ -1750,7 +1750,7 @@ static void startDoResolve(void *p)
     dq.proxyProtocolValues = &dc->d_proxyProtocolValues;
     dq.extendedErrorCode = &dc->d_extendedErrorCode;
     dq.extendedErrorExtra = &dc->d_extendedErrorExtra;
-    dq.meta = dc->d_meta;
+    dq.meta = std::move(dc->d_meta);
 
     if(ednsExtRCode != 0) {
       goto sendit;
