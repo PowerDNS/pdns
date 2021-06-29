@@ -588,15 +588,12 @@ void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
   if(!d_cache_ttl)
     return;
 
-  unsigned int store_ttl = d_cache_ttl;
   for(const auto& rr : rrs) {
-   if (rr.dr.d_ttl < store_ttl)
-     store_ttl = rr.dr.d_ttl;
    if (rr.scopeMask)
      return;
   }
 
-  QC.insert(q.qname, q.qtype, std::move(rrs), store_ttl, q.zoneId);
+  QC.insert(q.qname, q.qtype, std::move(rrs), d_cache_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
