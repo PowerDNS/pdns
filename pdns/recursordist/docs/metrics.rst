@@ -270,18 +270,18 @@ cumul-answers-le-x
 ^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times in buckets less or equal than x microseconds.
 These metrics include packet cache hits.
-These metrics are useful for Prometheus.
+These metrics are useful for Prometheus and not listed other outputs by default.
 
 
 cumul-auth4-answers-x
 ^^^^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times of authoritative servers over IPv4 in buckets less than x microseconds.
-These metrics are useful for Prometheus.
+These metrics are useful for Prometheus and not listed other outputs by default.
 
 cumul-auth6-answers-x
 ^^^^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times of authoritative servers over IPv6 in buckets less than x microseconds.
-These metrics are useful for Prometheus.
+These metrics are useful for Prometheus and not listed other outputs by default.
 
 
 dnssec-authentic-data-queries
