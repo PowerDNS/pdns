@@ -355,6 +355,7 @@ static void testWithoutThenWithAuthCache(std::function<void(UeberBackend& ub)> f
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
     QC.cleanup();
+    QC.setMaxEntries(0);
     /* keep zone cache disabled */
     ::arg().set("zone-cache-refresh-interval")="0";
     g_zoneCache.clear();
@@ -368,6 +369,7 @@ static void testWithoutThenWithAuthCache(std::function<void(UeberBackend& ub)> f
     ::arg().set("query-cache-ttl")="20";
     ::arg().set("negquery-cache-ttl")="60";
     QC.cleanup();
+    QC.setMaxEntries(100000);
     /* keep zone cache disabled */
     ::arg().set("zone-cache-refresh-interval")="0";
     g_zoneCache.clear();
@@ -392,6 +394,7 @@ static void testWithoutThenWithZoneCache(std::function<void(UeberBackend& ub)> f
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
     QC.cleanup();
+    QC.setMaxEntries(0);
 
     UeberBackend ub;
     func(ub);
@@ -405,6 +408,7 @@ static void testWithoutThenWithZoneCache(std::function<void(UeberBackend& ub)> f
     ::arg().set("query-cache-ttl")="0";
     ::arg().set("negquery-cache-ttl")="0";
     QC.cleanup();
+    QC.setMaxEntries(0);
 
     UeberBackend ub;
     ub.updateZoneCache();
