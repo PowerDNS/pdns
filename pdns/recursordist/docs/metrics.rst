@@ -266,7 +266,7 @@ cpu-steal
 
 Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ.
 
-cumul-answers-le-x
+cumul-answers-x
 ^^^^^^^^^^^^^^^^^^
 Cumulative counts of answer times in buckets less or equal than x microseconds.
 These metrics include packet cache hits.
