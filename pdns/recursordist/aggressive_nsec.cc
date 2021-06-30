@@ -205,14 +205,18 @@ static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<
      is not clearly defined there */
   const auto& storage = owner.getStorage();
   const auto& nextStorage = nsec->d_next.getStorage();
+
+  // is the next name at least two octets long?
   if (nextStorage.size() <= 2 || storage.size() != (nextStorage.size() - 2)) {
     return false;
   }
 
+  // does the next name start with a one-octet long label containing a zero, i.e. `\000`?
   if (nextStorage.at(0) != 1 || static_cast<uint8_t>(nextStorage.at(1)) != static_cast<uint8_t>(0)) {
     return false;
   }
 
+  // is the rest of the next name identical to the owner name, i.e. is the next name the owner name prefixed by '\000.'?
   if (nextStorage.compare(2, nextStorage.size() - 2, storage) != 0) {
     return false;
   }
@@ -220,6 +224,12 @@ static bool isMinimallyCoveringNSEC(const DNSName& owner, const std::shared_ptr<
   return true;
 }
 
+// This function name is somewhat misleading. It only returns true if the nextHash is ownerHash+2, as is common
+// in minimally covering NXDOMAINs (i.e. the NSEC3 covers hash[deniedname]-1 .. hash[deniedname]+2.
+// Minimally covering NSEC3s for NODATA tend to be ownerHash+1, because they need to prove the name, so they
+// can tell us what types are in the bitmap for that name. For those names, this function returns false.
+// This is on purpose because NODATA denials actually do contain useful information we can reuse later -
+// specifically, the type bitmap for a name that does exist.
 static bool isMinimallyCoveringNSEC3(const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec)
 {
   std::string ownerHash(owner.getStorage().c_str(), owner.getStorage().size());
