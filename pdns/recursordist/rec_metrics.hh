@@ -33,7 +33,8 @@
 enum class PrometheusMetricType : int
 {
   counter = 1,
-  gauge = 2
+  gauge = 2,
+  histogram = 3
 };
 
 // Keeps additional information about metrics
@@ -78,6 +79,9 @@ public:
       break;
     case PrometheusMetricType::gauge:
       return "gauge";
+      break;
+    case PrometheusMetricType::histogram:
+      return "histogram";
       break;
     default:
       return "";

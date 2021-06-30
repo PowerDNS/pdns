@@ -40,11 +40,45 @@
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
 
+std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
+{
+  auto i = a.length();
+  if (i == 0) {
+    return make_pair(a, "");
+  }
+  --i;
+  if (!std::isdigit(a[i])) {
+    return make_pair(a, "");
+  }
+  while (i > 0) {
+    if (!std::isdigit(a[i])) {
+      break;
+    }
+    --i;
+  }
+  return make_pair(a.substr(0, i + 1), a.substr(i + 1, a.size() - i - 1));
+}
+
+bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string& b) const
+{
+  auto [aprefix, anum] = prefixAndTrailingNum(a);
+  auto [bprefix, bnum] = prefixAndTrailingNum(b);
+
+  if (aprefix != bprefix || anum.length() == 0 || bnum.length() == 0) {
+    return a < b;
+  }
+  auto aa = std::stoull(anum);
+  auto bb = std::stoull(bnum);
+  return aa < bb;
+}
+
 std::mutex g_carbon_config_lock;
 
 static map<string, const uint32_t*> d_get32bitpointers;
 static map<string, const std::atomic<uint64_t>*> d_getatomics;
-static map<string, std::function< uint64_t() > >  d_get64bitmembers;
+static map<string, std::function<uint64_t()>>  d_get64bitmembers;
+static map<string, std::function<StatsMap()>> d_getmultimembers;
+
 static std::mutex d_dynmetricslock;
 struct dynmetrics {
   std::atomic<unsigned long> *d_ptr;
@@ -77,17 +111,22 @@ void disableStats(StatComponent component, const string& stats)
 
 static void addGetStat(const string& name, const uint32_t* place)
 {
-  d_get32bitpointers[name]=place;
+  d_get32bitpointers[name] = place;
 }
 
 static void addGetStat(const string& name, const std::atomic<uint64_t>* place)
 {
-  d_getatomics[name]=place;
+  d_getatomics[name] = place;
 }
 
-static void addGetStat(const string& name, std::function<uint64_t ()> f )
+static void addGetStat(const string& name, std::function<uint64_t()> f)
 {
-  d_get64bitmembers[name]=f;
+  d_get64bitmembers[name] = f;
+}
+
+static void addGetStat(const string& name, std::function<StatsMap()> f)
+{
+  d_getmultimembers[name] = f;
 }
 
 static std::string getPrometheusName(const std::string& arg)
@@ -132,7 +171,15 @@ static boost::optional<uint64_t> get(const string& name)
   auto f = rplookup(d_dynmetrics, name);
   if (f)
     return f->d_ptr->load();
-  
+
+  for(const auto& themultimember : d_getmultimembers) {
+    const auto items = themultimember.second();
+    const auto item = items.find(name);
+    if (item != items.end()) {
+      return std::stoull(item->second.d_value);
+    }
+  }
+
   return ret;
 }
 
@@ -160,6 +207,12 @@ StatsMap getAllStatsMap(StatComponent component)
   for(const auto& the64bitmembers :  d_get64bitmembers) {
     if (disabledlistMap.count(the64bitmembers.first) == 0) {
       ret.insert(make_pair(the64bitmembers.first, StatsMapEntry{getPrometheusName(the64bitmembers.first), std::to_string(the64bitmembers.second())}));
+    }
+  }
+
+  for(const auto& themultimember : d_getmultimembers) {
+    if (disabledlistMap.count(themultimember.first) == 0) {
+      ret.merge(themultimember.second());
     }
   }
 
@@ -1058,6 +1111,27 @@ static uint64_t doGetMallocated()
   return 0;
 }
 
+static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& histogram)
+{
+  const auto& data = histogram.getCumulativeBuckets();
+  const string pbasename = getPrometheusName(name);
+  StatsMap entries;
+  char buf[32];
+
+  for (const auto& bucket : data) {
+    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
+    std::string pname = pbasename + "seconds_bucket{" + "le=\"" +
+      (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
+    entries.emplace(make_pair(bucket.d_name, StatsMapEntry{pname, std::to_string(bucket.d_count)}));
+  }
+
+  snprintf(buf, sizeof(buf), "%g", histogram.getSum() / 1e6);
+  entries.emplace(make_pair(name + "sum", StatsMapEntry{pbasename + "seconds_sum", buf}));
+  entries.emplace(make_pair(name + "count", StatsMapEntry{pbasename + "seconds_count", std::to_string(data.back().d_count)}));
+
+  return entries;
+}
+
 extern ResponseStats g_rs;
 
 static void registerAllStats1()
@@ -1300,6 +1374,16 @@ static void registerAllStats1()
     const std::string name = "ecs-v6-response-bits-" + std::to_string(idx + 1);
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
   }
+
+  addGetStat("cumul-answers", []() {
+    return toStatsMap(g_stats.cumulativeAnswers.getName(), g_stats.cumulativeAnswers);
+  });
+  addGetStat("cumul-auth4answers", []() {
+    return toStatsMap(g_stats.cumulativeAuth4Answers.getName(), g_stats.cumulativeAuth4Answers);
+  });
+  addGetStat("cumul-auth6answers", []() {
+    return toStatsMap(g_stats.cumulativeAuth6Answers.getName(), g_stats.cumulativeAuth6Answers);
+  });
 }
 
 void registerAllStats()

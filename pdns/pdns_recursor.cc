@@ -2317,6 +2317,7 @@ static void startDoResolve(void *p)
     }
 
     g_stats.answers(spentUsec);
+    g_stats.cumulativeAnswers(spentUsec);
 
     double newLat = spentUsec;
     newLat = min(newLat, g_networkTimeoutMsec * 1000.0); // outliers of several minutes exist..
@@ -2678,6 +2679,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       /* we can't move this if we want to be able to access the values in
          all queries sent over this connection */
       dc->d_proxyProtocolValues = conn->proxyProtocolValues;
+
+      struct timeval start;
+      Utility::gettimeofday(&start, nullptr);
+ 
       DNSName qname;
       uint16_t qtype=0;
       uint16_t qclass=0;
@@ -2824,6 +2829,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           bool hadError = sendResponseOverTCP(dc, response);
           finishTCPReply(dc, hadError, false);
+          struct timeval now;
+          Utility::gettimeofday(&now, nullptr);
+          uint64_t spentUsec = uSec(now - start);
+          g_stats.cumulativeAnswers(spentUsec);
         } else {
           // No cache hit, setup for startDoResolve() in an mthread
           ++conn->d_requestsInFlight;
@@ -2912,7 +2921,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     }
 
     struct timeval ttd;
-    Utility::gettimeofday(&ttd, 0);
+    Utility::gettimeofday(&ttd, nullptr);
     ttd.tv_sec += g_tcpTimeout;
 
     t_fdm->addReadFD(tc->getFD(), handleRunningTCPQuestion, tc, &ttd);
@@ -2921,7 +2930,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, struct timeval tv, int fd, std::vector<ProxyProtocolValue>& proxyProtocolValues)
 {
-  gettimeofday(&g_now, 0);
+  gettimeofday(&g_now, nullptr);
   if (tv.tv_sec) {
     struct timeval diff = g_now - tv;
     double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
@@ -3068,6 +3077,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
               << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
               << strerror(sendErr) << endl;
       }
+      struct timeval now;
+      Utility::gettimeofday(&now, nullptr);
+      uint64_t spentUsec = uSec(now - tv);
+      g_stats.cumulativeAnswers(spentUsec);
       return 0;
     }
   }
@@ -5525,7 +5538,7 @@ try
         last_stat = g_now.tv_sec;
       }
 
-      Utility::gettimeofday(&g_now, 0);
+      Utility::gettimeofday(&g_now, nullptr);
 
       if((g_now.tv_sec - last_carbon) >= carbonInterval) {
         MT->makeThread(doCarbonDump, 0);
@@ -5785,26 +5798,28 @@ int main(int argc, char **argv)
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
-    
+
     ::arg().setSwitch("reuseport","Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address")="no";
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)")="";
     ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon")="";
 
-    std::string defaultDisabledStats = "cache-bytes, packetcache-bytes, special-memory-usage";
+    std::string defaultAPIDisabledStats = "cache-bytes, packetcache-bytes, special-memory-usage";
     for (size_t idx = 0; idx < 32; idx++) {
-      defaultDisabledStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
+      defaultAPIDisabledStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
     }
     for (size_t idx = 0; idx < 128; idx++) {
-      defaultDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
+      defaultAPIDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
     }
-    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultDisabledStats;
+    std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-answers, cumul-auth4answers, cumul-auth6answers";
+
+    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)")=defaultAPIDisabledStats;
     ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)")=defaultDisabledStats;
     ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)")=defaultDisabledStats;
     ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)")=defaultDisabledStats;
 
-    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultDisabledStats;
+    ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultAPIDisabledStats;
     ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon")=defaultDisabledStats;
     ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all")=defaultDisabledStats;
     ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP")=defaultDisabledStats;

@@ -1003,10 +1003,13 @@ struct RecursorStats
   std::atomic<uint64_t> servFails;
   std::atomic<uint64_t> nxDomains;
   std::atomic<uint64_t> noErrors;
-  pdns::AtomicHistogram<uint64_t> answers;
-  pdns::AtomicHistogram<uint64_t> auth4Answers;
-  pdns::AtomicHistogram<uint64_t> auth6Answers;
-  pdns::AtomicHistogram<uint64_t> ourtime;
+  pdns::AtomicHistogram answers;
+  pdns::AtomicHistogram auth4Answers;
+  pdns::AtomicHistogram auth6Answers;
+  pdns::AtomicHistogram ourtime;
+  pdns::AtomicHistogram cumulativeAnswers;
+  pdns::AtomicHistogram cumulativeAuth4Answers;
+  pdns::AtomicHistogram cumulativeAuth6Answers;
   std::atomic<double> avgLatencyUsec;
   std::atomic<double> avgLatencyOursUsec;
   std::atomic<uint64_t> qcounter;     // not increased for unauth packets
@@ -1052,9 +1055,12 @@ struct RecursorStats
 
   RecursorStats() :
     answers("answers", { 1000, 10000, 100000, 1000000 }),
-    auth4Answers("answers", { 1000, 10000, 100000, 1000000 }),
-    auth6Answers("answers", { 1000, 10000, 100000, 1000000 }),
-    ourtime("ourtime", { 1000, 2000, 4000, 8000, 16000, 32000 })
+    auth4Answers("auth4answers", { 1000, 10000, 100000, 1000000 }),
+    auth6Answers("auth6answers", { 1000, 10000, 100000, 1000000 }),
+    ourtime("ourtime", { 1000, 2000, 4000, 8000, 16000, 32000 }),
+    cumulativeAnswers("cumul-answers-", 10, 19),
+    cumulativeAuth4Answers("cumul-auth4answers-", 1000, 13),
+    cumulativeAuth6Answers("cumul-auth6answers-", 1000, 13)
   {
   }
 };
