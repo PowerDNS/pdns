@@ -137,4 +137,5 @@ private:
   int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
   void addNegCache(const Question &q);
   void addCache(const Question &q, vector<DNSZoneRecord>&& rrs);
+  bool isQueryCacheActive();
 };

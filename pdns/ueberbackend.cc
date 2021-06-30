@@ -622,6 +622,13 @@ void UeberBackend::addCache(const Question &q, vector<DNSZoneRecord> &&rrs)
   QC.insert(q.qname, q.qtype, std::move(rrs), d_cache_ttl, q.zoneId);
 }
 
+bool UeberBackend::isQueryCacheActive()
+{
+  extern AuthQueryCache QC;
+
+  return d_cache_ttl > 0 && QC.getMaxEntries() > 0;
+}
+
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 {
   for (auto & backend : backends)
@@ -669,6 +676,10 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       d_answers.clear();
       for (const auto& backend: backends) {
         backend->lookup(d_question.qtype, d_question.qname, d_answers, d_question.zoneId, pkt_p);
+        if (!d_answers.empty()) {
+          // We only want answers from one backend
+          break;
+        }
       }
       ++(*s_backendQueries);
 
@@ -680,14 +691,14 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, D
       }
       else {
         // cout<<"adding query cache"<<endl;
-        bool hasZeroTTL = false;
+        bool wontBeCached = false;
         for (const auto& rr: d_answers) {
-          if (rr.dr.d_ttl <= 0) {
-            hasZeroTTL = true;
+          if (rr.dr.d_ttl <= 0 || rr.scopeMask) {
+            wontBeCached = true;
             break;
           }
         }
-        if (d_cache_ttl > 0 && !hasZeroTTL) {
+        if (isQueryCacheActive() && !wontBeCached) {
           addCache(d_question, std::move(d_answers));
           int newcstat = cacheHas(d_question, d_answers);
           if (newcstat <= 0) {

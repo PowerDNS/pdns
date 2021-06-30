@@ -161,18 +161,18 @@ public:
 
       while (iter != end) {
         DNSResourceRecord drr;
-        drr.qname = d_iter->d_name;
+        drr.qname = iter->d_name;
         drr.domain_id = d_currentZone;
-        drr.content = d_iter->d_content;
-        drr.qtype = d_iter->d_type;
-        drr.ttl = d_iter->d_ttl;
+        drr.content = iter->d_content;
+        drr.qtype = iter->d_type;
+        drr.ttl = iter->d_ttl;
 
         // drr.auth = d_iter->auth; might bring pain at some point, let's not cross that bridge until then
         drr.auth = true;
         drr.scopeMask = d_currentScopeMask;
 
         rrs.push_back(drr);
-        ++d_iter;
+        ++iter;
       }
     }
   }
