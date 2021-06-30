@@ -140,7 +140,6 @@ private:
   }
 
 public:
-
   void preRemoval(MapCombo::LockedContent& map, const NegCacheEntry& entry)
   {
   }
