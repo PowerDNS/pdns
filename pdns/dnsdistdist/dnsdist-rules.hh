@@ -1193,15 +1193,24 @@ public:
       auto& state = t_perThreadStates[d_functionID];
       if (!state.d_initialized) {
         setupLuaFFIPerThreadContext(state.d_luaContext);
-        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+        /* mark the state as initialized first so if there is a syntax error
+           we only try to execute the code once */
         state.d_initialized = true;
+        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+      }
+
+      if (!state.d_func) {
+        /* the function was not properly initialized */
+        return false;
       }
 
       dnsdist_ffi_dnsquestion_t dqffi(const_cast<DNSQuestion*>(dq));
       return state.d_func(&dqffi);
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e) {
       warnlog("LuaFFIPerthreadRule failed inside Lua: %s", e.what());
-    } catch (...) {
+    }
+    catch (...) {
       warnlog("LuaFFIPerThreadRule failed inside Lua: [unknown exception]");
     }
     return false;

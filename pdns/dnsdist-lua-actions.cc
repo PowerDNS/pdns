@@ -504,8 +504,15 @@ public:
       auto& state = t_perThreadStates[d_functionID];
       if (!state.d_initialized) {
         setupLuaFFIPerThreadContext(state.d_luaContext);
-        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+        /* mark the state as initialized first so if there is a syntax error
+           we only try to execute the code once */
         state.d_initialized = true;
+        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+      }
+
+      if (!state.d_func) {
+        /* the function was not properly initialized */
+        return DNSAction::Action::None;
       }
 
       dnsdist_ffi_dnsquestion_t dqffi(dq);
@@ -520,9 +527,11 @@ public:
         }
       }
       return static_cast<DNSAction::Action>(ret);
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e) {
       warnlog("LuaFFIPerThreadAction failed inside Lua, returning ServFail: %s", e.what());
-    } catch (...) {
+    }
+    catch (...) {
       warnlog("LuaFFIPerthreadAction failed inside Lua, returning ServFail: [unknown exception]");
     }
     return DNSAction::Action::ServFail;
@@ -616,8 +625,15 @@ public:
       auto& state = t_perThreadStates[d_functionID];
       if (!state.d_initialized) {
         setupLuaFFIPerThreadContext(state.d_luaContext);
-        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+        /* mark the state as initialized first so if there is a syntax error
+           we only try to execute the code once */
         state.d_initialized = true;
+        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+      }
+
+      if (!state.d_func) {
+        /* the function was not properly initialized */
+        return DNSResponseAction::Action::None;
       }
 
       dnsdist_ffi_dnsquestion_t dqffi(dq);
@@ -632,9 +648,11 @@ public:
         }
       }
       return static_cast<DNSResponseAction::Action>(ret);
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e) {
       warnlog("LuaFFIPerThreadResponseAction failed inside Lua, returning ServFail: %s", e.what());
-    } catch (...) {
+    }
+    catch (...) {
       warnlog("LuaFFIPerthreadResponseAction failed inside Lua, returning ServFail: [unknown exception]");
     }
     return DNSResponseAction::Action::ServFail;
