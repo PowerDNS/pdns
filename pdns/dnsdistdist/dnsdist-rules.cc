@@ -22,5 +22,5 @@
 
 #include "dnsdist-rules.hh"
 
-uint64_t LuaFFIPerThreadRule::s_functionsCounter = 0;
+std::atomic<uint64_t> LuaFFIPerThreadRule::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadRule::PerThreadState> LuaFFIPerThreadRule::t_perThreadStates;

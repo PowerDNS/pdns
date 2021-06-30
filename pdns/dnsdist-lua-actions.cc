@@ -549,13 +549,13 @@ private:
     func_t d_func;
     bool d_initialized{false};
   };
-  static uint64_t s_functionsCounter;
+  static std::atomic<uint64_t> s_functionsCounter;
   static thread_local std::map<uint64_t, PerThreadState> t_perThreadStates;
   std::string d_functionCode;
   uint64_t d_functionID;
 };
 
-uint64_t LuaFFIPerThreadAction::s_functionsCounter = 0;
+std::atomic<uint64_t> LuaFFIPerThreadAction::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadAction::PerThreadState> LuaFFIPerThreadAction::t_perThreadStates;
 
 class LuaFFIResponseAction: public DNSResponseAction
@@ -671,13 +671,13 @@ private:
     bool d_initialized{false};
   };
 
-  static uint64_t s_functionsCounter;
+  static std::atomic<uint64_t> s_functionsCounter;
   static thread_local std::map<uint64_t, PerThreadState> t_perThreadStates;
   std::string d_functionCode;
   uint64_t d_functionID;
 };
 
-uint64_t LuaFFIPerThreadResponseAction::s_functionsCounter = 0;
+std::atomic<uint64_t> LuaFFIPerThreadResponseAction::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadResponseAction::PerThreadState> LuaFFIPerThreadResponseAction::t_perThreadStates;
 
 thread_local std::default_random_engine SpoofAction::t_randomEngine;
