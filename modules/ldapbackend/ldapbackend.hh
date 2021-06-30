@@ -171,7 +171,7 @@ public:
 
   // Native backend
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneid, DNSPacket* p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;

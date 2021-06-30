@@ -191,7 +191,7 @@ int RemoteBackend::build()
  * The functions here are just remote json stubs that send and receive the method call
  * data is mainly left alone, some defaults are assumed.
  */
-void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
 {
   if (d_index != -1)
     throw PDNSException("Attempt to lookup while one running");
@@ -210,15 +210,32 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
     {"method", "lookup"},
     {"parameters", Json::object{{"qtype", qtype.toString()}, {"qname", qdomain.toString()}, {"remote", remoteIP}, {"local", localIP}, {"real-remote", realRemote}, {"zone-id", zoneId}}}};
 
-  if (this->send(query) == false || this->recv(d_result) == false) {
+  Json result;
+
+  if (this->send(query) == false || this->recv(result) == false) {
     return;
   }
 
   // OK. we have result parameters in result. do not process empty result.
-  if (d_result["result"].is_array() == false || d_result["result"].array_items().size() < 1)
+  if (result["result"].is_array() == false || result["result"].array_items().size() < 1)
     return;
 
-  d_index = 0;
+  for (int i = 0; i < static_cast<int>(result["result"].array_items().size()); i++) {
+    DNSResourceRecord rr;
+    rr.qtype = stringFromJson(result["result"][i], "qtype");
+    rr.qname = DNSName(stringFromJson(result["result"][i], "qname"));
+    rr.qclass = QClass::IN;
+    rr.content = stringFromJson(result["result"][i], "content");
+    rr.ttl = result["result"][i]["ttl"].int_value();
+    rr.domain_id = intFromJson(result["result"][i], "domain_id", -1);
+    if (d_dnssec)
+      rr.auth = intFromJson(result["result"][i], "auth", 1);
+    else
+      rr.auth = 1;
+    rr.scopeMask = result["result"][i]["scopeMask"].int_value();
+
+    rrs.push_back(rr);
+  }
 }
 
 bool RemoteBackend::list(const DNSName& target, int domain_id, bool include_disabled)

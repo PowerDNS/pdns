@@ -164,7 +164,7 @@ public:
   RemoteBackend(const std::string& suffix = "");
   ~RemoteBackend();
 
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId = -1, DNSPacket* pkt_p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
 

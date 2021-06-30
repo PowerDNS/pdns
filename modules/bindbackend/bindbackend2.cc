@@ -1144,9 +1144,8 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   }
 }
 
-void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
 {
-  d_handle.reset();
 
   static bool mustlog = ::arg().mustDo("query-logging");
 
@@ -1172,7 +1171,6 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   if (!found) {
     if (mustlog)
       g_log << Logger::Warning << "Found no authoritative zone for '" << qname << "' and/or id " << zoneId << endl;
-    d_handle.d_list = false;
     return;
   }
 
@@ -1184,39 +1182,48 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   d_handle.qtype = qtype;
   d_handle.domain = std::move(domain);
 
+  if (!bbd.d_loaded) {
+    throw DBException("Zone for '" + domain.toLogString() + "' in '" + bbd.d_filename + "' temporarily not available (file missing, or master dead)"); // fsck
+  }
+
   if (!bbd.current()) {
-    g_log << Logger::Warning << "Zone '" << d_handle.domain << "' (" << bbd.d_filename << ") needs reloading" << endl;
+    g_log << Logger::Warning << "Zone '" << domain << "' (" << bbd.d_filename << ") needs reloading" << endl;
     queueReloadAndStore(bbd.d_id);
-    if (!safeGetBBDomainInfo(d_handle.domain, &bbd))
+    if (!safeGetBBDomainInfo(domain, &bbd))
       throw DBException("Zone '" + bbd.d_name.toLogString() + "' (" + bbd.d_filename + ") gone after reload"); // if we don't throw here, we crash for some reason
   }
 
-  if (!bbd.d_loaded) {
-    d_handle.reset();
-    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_filename + "' not loaded (file missing, corrupt or master dead)"); // fsck
-  }
+  auto records = bbd.d_records.get();
 
-  d_handle.d_records = bbd.d_records.get();
-
-  if (d_handle.d_records->empty())
+  if (records->empty())
     DLOG(g_log << "Query with no results" << endl);
 
-  d_handle.mustlog = mustlog;
 
-  auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*d_handle.d_records);
-  auto range = hashedidx.equal_range(d_handle.qname);
+  auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*records);
+  auto range = hashedidx.equal_range(qname.makeRelative(domain));
 
   if (range.first == range.second) {
-    d_handle.d_list = false;
-    d_handle.d_iter = d_handle.d_end_iter = range.first;
+    // Nothing here
     return;
   }
-  else {
-    d_handle.d_iter = range.first;
-    d_handle.d_end_iter = range.second;
-  }
 
-  d_handle.d_list = false;
+  auto iter = range.first;
+  auto end_iter = range.second;
+
+  while (iter != end_iter) {
+    if (qtype.getCode() == QType::ANY || (iter)->qtype == qtype.getCode()) {
+      DNSResourceRecord r;
+      r.qname = qname;
+      r.domain_id = bbd.d_id;
+      r.content = (iter)->content;
+      r.qtype = (iter)->qtype;
+      r.ttl = (iter)->ttl;
+      r.auth = (iter)->auth;
+
+      rrs.push_back(r);
+    }
+    iter++;
+  }
 }
 
 Bind2Backend::handle::handle()

@@ -131,7 +131,7 @@ public:
     return d_dnssec;
   }
 
-  void parseLookup(const lookup_result_t& result)
+  void parseLookup(const lookup_result_t& result, vector<DNSResourceRecord>& destination)
   {
     for (const auto& row : result) {
       DNSResourceRecord rec;
@@ -170,9 +170,9 @@ public:
           g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl;
       }
       logResult(rec.qname << " IN " << rec.qtype.toString() << " " << rec.ttl << " " << rec.getZoneRepresentation());
-      d_result.push_back(rec);
+      destination.push_back(rec);
     }
-    if (d_result.empty() && d_debug_log)
+    if (destination.empty() && d_debug_log)
       g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
   }
 
@@ -183,25 +183,27 @@ public:
       return false;
     }
 
-    if (d_result.size() != 0)
+    if (d_result.size() != 0 && d_iter != d_end_iter)
       throw PDNSException("list attempted while another was running");
 
     logCall("list", "target=" << target << ",domain_id=" << domain_id);
     list_result_t result = f_list(target, domain_id);
 
+    d_result.clear();
+
     if (result.which() == 0)
       return false;
 
-    parseLookup(boost::get<lookup_result_t>(result));
+    parseLookup(boost::get<lookup_result_t>(result), d_result);
+
+    d_iter = d_result.begin();
+    d_end_iter = d_result.end();
 
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int domain_id, DNSPacket* p = nullptr) override
   {
-    if (d_result.size() != 0)
-      throw PDNSException("lookup attempted while another was running");
-
     lookup_context_t ctx;
     if (p != NULL) {
       ctx.emplace_back(lookup_context_t::value_type{"source_address", p->getInnerRemote().toString()});
@@ -210,15 +212,18 @@ public:
 
     logCall("lookup", "qtype=" << qtype.toString() << ",qname=" << qname << ",domain_id=" << domain_id);
     lookup_result_t result = f_lookup(qtype, qname, domain_id, ctx);
-    parseLookup(result);
+    parseLookup(result, rrs);
   }
 
   bool get(DNSResourceRecord& rr) override
   {
-    if (d_result.size() == 0)
+    if (d_iter == d_end_iter)
       return false;
-    rr = std::move(d_result.front());
-    d_result.pop_front();
+    rr = std::move(*d_iter);
+    d_iter++;
+
+    if (d_iter == d_end_iter)
+      d_result.clear();
     return true;
   }
 
@@ -425,7 +430,9 @@ public:
   }
 
 private:
-  std::list<DNSResourceRecord> d_result;
+  std::vector<DNSResourceRecord> d_result;
+  std::vector<DNSResourceRecord>::const_iterator d_iter, d_end_iter;
+
   bool d_debug_log;
   bool d_dnssec;
 

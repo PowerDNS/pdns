@@ -211,7 +211,7 @@ bool TinyDNSBackend::list(const DNSName& target, int domain_id, bool include_dis
   return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
 {
   d_isAxfr = false;
   d_isGetDomains = false;
@@ -240,6 +240,11 @@ void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int zone
 
   d_cdbReader->searchKey(key);
   d_dnspacket = pkt_p;
+
+  DNSResourceRecord rr;
+  while(this->get(rr)) {
+    rrs.push_back(rr);
+  }
 }
 
 bool TinyDNSBackend::get(DNSResourceRecord& rr)

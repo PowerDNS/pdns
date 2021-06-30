@@ -102,7 +102,7 @@ bool LdapBackend::list_strict(const DNSName& target, int domain_id)
   return list_simple(target, domain_id);
 }
 
-void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, DNSPacket* dnspkt)
+void LdapBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int zoneid, DNSPacket* dnspkt)
 {
   try {
     d_in_list = false;
@@ -114,6 +114,11 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, D
       g_log.log("Query: '" + qname.toStringRootDot() + "|" + qtype.toString() + "'", Logger::Error);
     }
     (this->*d_lookup_fcnt)(qtype, qname, dnspkt, zoneid);
+
+    DNSResourceRecord rr;
+    while(this->get(rr)) {
+      rrs.push_back(rr);
+    }
   }
   catch (LDAPTimeout& lt) {
     g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
@@ -122,7 +127,7 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, D
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if (reconnect())
-      this->lookup(qtype, qname, zoneid, dnspkt);
+      this->lookup(qtype, qname, rrs, zoneid, dnspkt);
     else
       throw PDNSException("Failed to reconnect to LDAP server");
   }
