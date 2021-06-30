@@ -49,7 +49,7 @@ public:
     return false; // we don't support AXFR
   }
 
-  void lookup(const QType& type, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* p) override
+  void lookup(const QType& type, const DNSName& qdomain, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* p) override
   {
     if (qdomain == d_ourdomain && (type.getCode() == QType::SOA || type.getCode() == QType::ANY)) {
       DNSResourceRecord rr;

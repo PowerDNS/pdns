@@ -712,7 +712,7 @@ bool LMDBBackend::list(const DNSName& target, int id, bool include_disabled)
   return true;
 }
 
-void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZoneRecord> &rrs, int zoneId, DNSPacket* p)
+void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZoneRecord>& rrs, int zoneId, DNSPacket* p)
 {
   if (d_dolog) {
     g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl;
@@ -800,7 +800,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
     }
 
     serFromString(currentVal.get<string>(), currentrrset);
-    for (const auto& lrr: currentrrset) {
+    for (const auto& lrr : currentrrset) {
       try {
         DNSZoneRecord zr;
 
@@ -812,7 +812,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
           zr.dr.d_ttl = lrr.ttl;
           zr.dr.d_content = deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content);
           zr.auth = lrr.auth;
-          zr.dr.d_place=DNSResourceRecord::ANSWER;
+          zr.dr.d_place = DNSResourceRecord::ANSWER;
           rrs.push_back(zr);
         }
       }
@@ -827,13 +827,13 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
   }
 }
 
-void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* p)
+void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* p)
 {
   vector<DNSZoneRecord> dzrs;
 
   this->lookup(type, qdomain, dzrs, zoneId, p);
 
-  for (const auto& zr: dzrs) {
+  for (const auto& zr : dzrs) {
     DNSResourceRecord rr;
     rr.qname = zr.dr.d_name;
     rr.ttl = zr.dr.d_ttl;

@@ -154,7 +154,7 @@ void PipeBackend::cleanup()
   d_abiVersion = 0;
 }
 
-void PipeBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
+void PipeBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* pkt_p)
 {
   try {
     launch();
@@ -197,7 +197,7 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSRes
   d_qname = qname;
 
   DNSResourceRecord rr;
-  while(this->get(rr)) {
+  while (this->get(rr)) {
     rrs.push_back(rr);
   }
 }

@@ -202,7 +202,7 @@ public:
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int domain_id, DNSPacket* p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord>& rrs, int domain_id, DNSPacket* p = nullptr) override
   {
     lookup_context_t ctx;
     if (p != NULL) {

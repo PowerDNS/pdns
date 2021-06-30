@@ -191,7 +191,7 @@ int RemoteBackend::build()
  * The functions here are just remote json stubs that send and receive the method call
  * data is mainly left alone, some defaults are assumed.
  */
-void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
+void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* pkt_p)
 {
   if (d_index != -1)
     throw PDNSException("Attempt to lookup while one running");

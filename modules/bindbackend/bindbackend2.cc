@@ -1144,7 +1144,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   }
 }
 
-void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int zoneId, DNSPacket* pkt_p)
+void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* pkt_p)
 {
 
   static bool mustlog = ::arg().mustDo("query-logging");
@@ -1197,7 +1197,6 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, vector<DNSRe
 
   if (records->empty())
     DLOG(g_log << "Query with no results" << endl);
-
 
   auto& hashedidx = boost::multi_index::get<UnorderedNameTag>(*records);
   auto range = hashedidx.equal_range(qname.makeRelative(domain));

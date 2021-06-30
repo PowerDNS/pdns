@@ -102,7 +102,7 @@ bool LdapBackend::list_strict(const DNSName& target, int domain_id)
   return list_simple(target, domain_id);
 }
 
-void LdapBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord> &rrs, int zoneid, DNSPacket* dnspkt)
+void LdapBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSResourceRecord>& rrs, int zoneid, DNSPacket* dnspkt)
 {
   try {
     d_in_list = false;
@@ -116,7 +116,7 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, vector<DNSRes
     (this->*d_lookup_fcnt)(qtype, qname, dnspkt, zoneid);
 
     DNSResourceRecord rr;
-    while(this->get(rr)) {
+    while (this->get(rr)) {
       rrs.push_back(rr);
     }
   }

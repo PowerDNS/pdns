@@ -504,7 +504,7 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNS
 
     // see if the record can be found
     if (this->lookup_static((*dom), sformat, qtype, qdomain, addr, gl)) {
-      for (const auto& result: d_result) {
+      for (const auto& result : d_result) {
         rrs.push_back(result);
       }
       return;
@@ -519,15 +519,13 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, vector<DNS
     return;
   }
 
-  for (const auto& result: d_result) {
+  for (const auto& result : d_result) {
     rrs.push_back(result);
   }
 
   // we need this line since we otherwise claim to have NS records etc
   if (!(qtype == QType::ANY || qtype == QType::CNAME))
     return;
-
-
 
   DNSResourceRecord rr;
   rr.domain_id = dom->id;
