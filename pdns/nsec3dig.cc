@@ -36,6 +36,7 @@ StatBag S;
 
 typedef std::pair<string,string> nsec3;
 typedef set<nsec3> nsec3set;
+typedef map<string, int> nsec3types;
 
 static string nsec3Hash(const DNSName &qname, const string &salt, unsigned int iters)
 {
@@ -45,7 +46,7 @@ static string nsec3Hash(const DNSName &qname, const string &salt, unsigned int i
   return toBase32Hex(hashQNameWithSalt(ns3prc, qname));
 }
 
-static void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const string &salt, unsigned int iters, set<DNSName> &proven, set<DNSName> &denied)
+static void proveOrDeny(const nsec3set &nsec3s, const nsec3types &nsec3t, const DNSName &qname, const string &salt, unsigned int iters, set<DNSName> &proven, set<DNSName> &denied)
 {
   string hashed = nsec3Hash(qname, salt, iters);
 
@@ -58,7 +59,7 @@ static void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const stri
     if(hashed == base)
     {
       proven.insert(qname);
-      cout<<qname.toString()<<" ("<<hashed<<") proven by base of "<<base<<".."<<next<<endl;
+      cout<<qname.toString()<<" ("<<hashed<<") proven by base ("<<nsec3t.at(base)<<" types) of "<<base<<".."<<next<<endl;
     }
     if(hashed == next)
     {
@@ -108,7 +109,6 @@ try
     exit(EXIT_FAILURE);
   }
 
-  // FIXME: turn recurse and dnssec into proper flags or something
   if(argc > 5 && strcmp(argv[5], "recurse")==0)
   {
     recurse=true;
@@ -163,6 +163,7 @@ try
   set<DNSName> namesseen;
   set<DNSName> namestocheck;
   nsec3set nsec3s;
+  nsec3types nsec3t;
   string nsec3salt;
   int nsec3iters = 0;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {     
@@ -179,6 +180,7 @@ try
       nsec3s.insert(make_pair(toLower(i->first.d_name.getRawLabel(0)), toBase32Hex(r->d_nexthash)));
       nsec3salt = r->d_salt;
       nsec3iters = r->d_iterations;
+      nsec3t.insert(make_pair(toLower(i->first.d_name.getRawLabel(0)), r->numberOfTypesSet()));
     }
     else
     {
@@ -220,8 +222,8 @@ try
   }
   for(const auto &name: namestocheck)
   {
-    proveOrDeny(nsec3s, name, nsec3salt, nsec3iters, proven, denied);
-    proveOrDeny(nsec3s, g_wildcarddnsname+name, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, nsec3t, name, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, nsec3t, g_wildcarddnsname+name, nsec3salt, nsec3iters, proven, denied);
   }
 
   if(names.count(qname))
