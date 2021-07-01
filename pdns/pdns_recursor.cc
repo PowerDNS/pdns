@@ -4883,9 +4883,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
   SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
 
-#ifdef HAVE_DNS_OVER_TLS
   SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
-#endif
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
