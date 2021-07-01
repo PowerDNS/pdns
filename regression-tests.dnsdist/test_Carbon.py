@@ -78,12 +78,13 @@ class TestCarbon(DNSDistTest):
         # wait for the carbon data to be sent
         time.sleep(self._carbonInterval + 1)
 
+        # check if the servers have received our data
+        # we will block for a short while if the data is not already there,
+        # and an exception will be raised after the timeout
         # first server
-        self.assertFalse(self._carbonQueue1.empty())
-        data1 = self._carbonQueue1.get(False)
+        data1 = self._carbonQueue1.get(block=True, timeout=2.0)
         # second server
-        self.assertFalse(self._carbonQueue2.empty())
-        data2 = self._carbonQueue2.get(False)
+        data2 = self._carbonQueue2.get(block=True, timeout=2.0)
         after = time.time()
 
         self.assertTrue(data1)
@@ -120,12 +121,13 @@ class TestCarbon(DNSDistTest):
         # wait for the carbon data to be sent
         time.sleep(self._carbonInterval + 1)
 
+        # check if the servers have received our data
+        # we will block for a short while if the data is not already there,
+        # and an exception will be raised after the timeout
         # first server
-        self.assertFalse(self._carbonQueue1.empty())
-        data1 = self._carbonQueue1.get(False)
+        data1 = self._carbonQueue1.get(block=True, timeout=2.0)
         # second server
-        self.assertFalse(self._carbonQueue2.empty())
-        data2 = self._carbonQueue2.get(False)
+        data2 = self._carbonQueue2.get(block=True, timeout=2.0)
         after = time.time()
 
         # check the first carbon server got both servers and
