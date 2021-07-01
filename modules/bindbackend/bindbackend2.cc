@@ -54,6 +54,7 @@
 #include "pdns/dynlistener.hh"
 #include "pdns/lock.hh"
 #include "pdns/auth-zonecache.hh"
+#include "pdns/auth-caches.hh"
 
 /* 
    All instances of this backend share one s_state, which is indexed by zone name and zone id.
@@ -576,6 +577,8 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
         ret << *i << ": [missing]\n";
       else
         ret << *i << ": " << (bbd.d_wasRejectedLastReload ? "[rejected]" : "") << "\t" << bbd.d_status << "\n";
+      purgeAuthCaches(zone.toString() + "$");
+      DNSSECKeeper::clearMetaCache(zone);
     }
     else
       ret << *i << " no such domain\n";
