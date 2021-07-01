@@ -5599,7 +5599,7 @@ catch(...) {
 //static std::string s_timestampFormat = "%m-%dT%H:%M:%S";
 static std::string s_timestampFormat = "%s";
 
-const char* toTimestampStringMilli(const struct timeval& tv, char *buf, size_t sz)
+static const char* toTimestampStringMilli(const struct timeval& tv, char *buf, size_t sz)
 {
   struct tm tm;
   size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&tv.tv_sec, &tm));
