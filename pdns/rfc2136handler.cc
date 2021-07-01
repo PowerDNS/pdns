@@ -33,9 +33,9 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
     return RCode::FormErr;
 
   bool foundRecord=false;
-  DNSResourceRecord rec;
-  di->backend->lookup(QType(QType::ANY), rr->d_name, di->id);
-  while(di->backend->get(rec)) {
+  vector<DNSResourceRecord> recs;
+  di->backend->lookup(QType(QType::ANY), rr->d_name, recs, di->id);
+  for(const auto& rec: recs) {
     if (!rec.qtype.getCode())
       continue;
     if ((rr->d_type != QType::ANY && rec.qtype == rr->d_type) || rr->d_type == QType::ANY)
@@ -138,9 +138,8 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 
     bool foundRecord = false;
-    di->backend->lookup(rrType, rr->d_name, di->id);
-    while (di->backend->get(rec)) {
-      rrset.push_back(rec);
+    di->backend->lookup(rrType, rr->d_name, rrset, di->id);
+    if (!rrset.empty()) {
       foundRecord = true;
     }
 
@@ -265,13 +264,14 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             break;
 
           bool foundShorter = false;
-          di->backend->lookup(QType(QType::ANY), shorter, di->id);
-          while (di->backend->get(rec)) {
-            if (rec.qname == rr->d_name && rec.qtype == QType::DS)
+          vector<DNSResourceRecord> anyRRs;
+          di->backend->lookup(QType(QType::ANY), shorter, anyRRs, di->id);
+          for (const auto &anyRR : anyRRs) {
+            if (anyRR.qname == rr->d_name && anyRR.qtype == QType::DS)
               fixDS = true;
             if (shorter != rr->d_name)
               foundShorter = true;
-            if (rec.qtype == QType::NS) // are we inserting below a delegate?
+            if (anyRR.qtype == QType::NS) // are we inserting below a delegate?
               auth=false;
           }
 
@@ -386,20 +386,20 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       return 1;
     } // end of NSEC3PARAM delete block
 
-
-    di->backend->lookup(rrType, rr->d_name, di->id);
-    while(di->backend->get(rec)) {
+    vector<DNSResourceRecord> oldRRs;
+    di->backend->lookup(rrType, rr->d_name, oldRRs, di->id);
+    for (const auto& oldRR : oldRRs) {
       if (rr->d_class == QClass::ANY) { // 3.4.2.3
-        if (rec.qname == di->zone && (rec.qtype == QType::NS || rec.qtype == QType::SOA)) // Never delete all SOA and NS's
-          rrset.push_back(rec);
+        if (oldRR.qname == di->zone && (oldRR.qtype == QType::NS || oldRR.qtype == QType::SOA)) // Never delete all SOA and NS's
+          rrset.push_back(oldRR);
         else
-          recordsToDelete.push_back(rec);
+          recordsToDelete.push_back(oldRR);
       }
       if (rr->d_class == QClass::NONE) { // 3.4.2.4
-        if (rrType == rec.qtype && rec.getZoneRepresentation() == rr->d_content->getZoneRepresentation())
-          recordsToDelete.push_back(rec);
+        if (rrType == oldRR.qtype && oldRR.getZoneRepresentation() == rr->d_content->getZoneRepresentation())
+          recordsToDelete.push_back(oldRR);
         else
-          rrset.push_back(rec);
+          rrset.push_back(oldRR);
       }
     }
   
@@ -790,14 +790,15 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       rrVector_t *vec = &preReqRRset.second;
 
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::ANY), rrSet.first, di.id);
+      vector<DNSResourceRecord> backendRRsets;
+      di.backend->lookup(QType(QType::ANY), rrSet.first, backendRRsets, di.id);
       uint16_t foundRR=0, matchRR=0;
-      while (di.backend->get(rec)) {
-        if (rec.qtype == rrSet.second) {
+      for (const auto& backendRRset: backendRRsets)  {
+        if (backendRRset.qtype == rrSet.second) {
           foundRR++;
           for(auto & rrItem : *vec) {
-            rrItem.ttl = rec.ttl; // The compare one line below also compares TTL, so we make them equal because TTL is not user within prerequisite checks.
-            if (rrItem == rec)
+            rrItem.ttl = backendRRset.ttl; // The compare one line below also compares TTL, so we make them equal because TTL is not user within prerequisite checks.
+            if (rrItem == backendRRset)
               matchRR++;
           }
         }
@@ -889,13 +890,11 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       }
     }
     for (const auto &rr : cnamesToAdd) {
-      DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::ANY), rr->d_name, di.id);
-      while (di.backend->get(rec)) {
+      vector<DNSResourceRecord> recs;
+      di.backend->lookup(QType(QType::ANY), rr->d_name, recs, di.id);
+      for (const auto& rec: recs)  {
         if (rec.qtype != QType::CNAME && rec.qtype != QType::ENT && rec.qtype != QType::RRSIG) {
           // leave database handle in a consistent state
-          while (di.backend->get(rec))
-            ;
           g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Data other than CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
@@ -904,13 +903,11 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
     }
     for (const auto &rr : nonCnamesToAdd) {
-      DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::CNAME), rr->d_name, di.id);
-      while (di.backend->get(rec)) {
+      vector<DNSResourceRecord> recs;
+      di.backend->lookup(QType(QType::CNAME), rr->d_name, recs, di.id);
+      for (const auto& rec: recs)  {
         if (rec.qtype == QType::CNAME && rr->d_type != QType::RRSIG) {
           // leave database handle in a consistent state
-          while (di.backend->get(rec))
-            ;
           g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
@@ -921,10 +918,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     if (nsRRtoDelete.size()) {
       vector<DNSResourceRecord> nsRRInZone;
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::NS), di.zone, di.id);
-      while (di.backend->get(rec)) {
-        nsRRInZone.push_back(rec);
-      }
+      di.backend->lookup(QType(QType::NS), di.zone, nsRRInZone, di.id);
       if (nsRRInZone.size() > nsRRtoDelete.size()) { // only delete if the NS's we delete are less then what we have in the zone (3.4.2.4)
         for (auto& inZone: nsRRInZone) {
           for (auto& rr: nsRRtoDelete) {

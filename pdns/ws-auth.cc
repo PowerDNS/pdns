@@ -2047,9 +2047,10 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
           bool ent_present = false;
           bool dname_seen = false, ns_seen = false;
 
-          di.backend->lookup(QType(QType::ANY), qname, di.id);
-          DNSResourceRecord rr;
-          while (di.backend->get(rr)) {
+          vector<DNSResourceRecord> rrs;
+          di.backend->lookup(QType(QType::ANY), qname, rrs, di.id);
+
+          for (const auto& rr: rrs) {
             if (rr.qtype.getCode() == QType::ENT) {
               ent_present = true;
               /* that's fine, we will override it */
@@ -2062,10 +2063,6 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
             if (qtype.getCode() != rr.qtype.getCode()
               && (exclusiveEntryTypes.count(qtype.getCode()) != 0
                 || exclusiveEntryTypes.count(rr.qtype.getCode()) != 0)) {
-
-              // leave database handle in a consistent state
-              while (di.backend->get(rr))
-                ;
 
               throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Conflicts with pre-existing RRset");
             }

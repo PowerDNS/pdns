@@ -425,11 +425,11 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR)
       if(pdns_iequals(i, "AUTO-NS")) {
         // cerr<<"AUTO-NS magic please!"<<endl;
 
-        DNSResourceRecord rr;
+        vector<DNSResourceRecord> rrs;
         set<DNSName> nsset;
 
-        sd.db->lookup(QType(QType::NS), q->qdomain, sd.domain_id);
-        while (sd.db->get(rr)) {
+        sd.db->lookup(QType(QType::NS), q->qdomain, rrs, sd.domain_id);
+        for (const auto&rr: rrs) {
           nsset.insert(DNSName(rr.content));
         }
         for(const auto & j: nsset) {
@@ -737,10 +737,10 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       }
       DNSName svcTarget = rrc->getTarget().isRoot() ? loopRR.dr.d_name : rrc->getTarget();
       if (rrc->autoHint(SvcParam::ipv4hint)) {
-        sd.db->lookup(QType::A, svcTarget, sd.domain_id);
+        vector<DNSZoneRecord> rrs;
+        sd.db->lookup(QType::A, svcTarget, rrs, sd.domain_id);
         vector<ComboAddress> hints;
-        DNSZoneRecord rr;
-        while (sd.db->get(rr)) {
+        for (const auto& rr: rrs) {
           auto arrc = getRR<ARecordContent>(rr.dr);
           hints.push_back(arrc->getCA());
         }
@@ -752,10 +752,11 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       }
 
       if (rrc->autoHint(SvcParam::ipv6hint)) {
-        sd.db->lookup(QType::AAAA, svcTarget, sd.domain_id);
+        vector<DNSZoneRecord> rrs;
+        sd.db->lookup(QType::AAAA, svcTarget, rrs, sd.domain_id);
         vector<ComboAddress> hints;
-        DNSZoneRecord rr;
-        while (sd.db->get(rr)) {
+
+        for (const auto& rr: rrs) {
           auto arrc = getRR<AAAARecordContent>(rr.dr);
           hints.push_back(arrc->getCA());
         }

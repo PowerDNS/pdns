@@ -58,6 +58,11 @@ public:
       shard.reserve(maxEntries / d_maps.size());
     }
   }
+
+  uint64_t getMaxEntries()
+  {
+    return d_maxEntries;
+  }
 private:
 
   struct CacheEntry

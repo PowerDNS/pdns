@@ -1491,6 +1491,7 @@ static int changeSlaveZoneMaster(const vector<string>& cmds) {
 static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   DNSResourceRecord rr;
   vector<DNSResourceRecord> newrrs;
+  vector<DNSResourceRecord> oldrrs;
   DNSName zone(cmds.at(1));
   DNSName name;
   if (cmds.at(2) == "@")
@@ -1510,15 +1511,11 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
-  DNSResourceRecord oldrr;
 
   di.backend->startTransaction(zone, -1);
 
   if(addOrReplace) { // the 'add' case
-    di.backend->lookup(rr.qtype, rr.qname, di.id);
-
-    while(di.backend->get(oldrr))
-      newrrs.push_back(oldrr);
+    di.backend->lookup(rr.qtype, rr.qname, newrrs, di.id);
   }
 
   unsigned int contentStart = 4;
@@ -1532,11 +1529,11 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
 
-  di.backend->lookup(QType(QType::ANY), rr.qname, di.id);
+  di.backend->lookup(QType(QType::ANY), rr.qname, oldrrs, di.id);
   bool found=false;
   if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
 
-    while(di.backend->get(oldrr)) {
+    for (const auto& oldrr: oldrrs) {
       if(addOrReplace || oldrr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
         found=true;
     }
@@ -1546,7 +1543,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
   else {
-    while(di.backend->get(oldrr)) {
+    for (const auto& oldrr: oldrrs) {
       if(oldrr.qtype.getCode() == QType::CNAME)
         found=true;
     }
@@ -1571,10 +1568,11 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     return EXIT_FAILURE;
   }
   // need to be explicit to bypass the ueberbackend cache!
-  di.backend->lookup(rr.qtype, name, di.id);
+  newrrs.clear();
+  di.backend->lookup(rr.qtype, name, newrrs, di.id);
   cout<<"New rrset:"<<endl;
-  while(di.backend->get(rr)) {
-    cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<endl;
+  for (const auto& newrr: newrrs) {
+    cout<<newrr.qname.toString()<<" "<<newrr.ttl<<" IN "<<newrr.qtype.toString()<<" "<<newrr.content<<endl;
   }
   di.backend->commitTransaction();
   return EXIT_SUCCESS;
@@ -1900,10 +1898,10 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
 
     // get us some keys
     vector<DNSKEYRecordContent> keys;
-    DNSZoneRecord zr;
+    vector<DNSZoneRecord> keyRecords;
 
-    di.backend->lookup(QType(QType::DNSKEY), zone, di.id );
-    while(di.backend->get(zr)) {
+    di.backend->lookup(QType(QType::DNSKEY), zone, keyRecords, di.id);
+    for (const auto& zr: keyRecords) {
       keys.push_back(*getRR<DNSKEYRecordContent>(zr.dr));
     }
 
@@ -2121,7 +2119,8 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
     return EXIT_FAILURE;
   }
   db=di.backend;
-  DNSResourceRecord rr, rrget;
+  vector<DNSResourceRecord> rrs;
+  DNSResourceRecord rr;
   cout<<"Starting transaction to feed records"<<endl;
   db->startTransaction(zone, di.id);
 
@@ -2141,21 +2140,22 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"Committing"<<endl;
   db->commitTransaction();
   cout<<"Querying TXT"<<endl;
-  db->lookup(QType(QType::TXT), zone, di.id);
-  if(db->get(rrget))
+  db->lookup(QType(QType::TXT), zone, rrs, di.id);
+  if (rrs.empty()) {
+    cout<<"Expected one record, got none, aborting"<<endl;
+    return EXIT_FAILURE;
+  }
+
+  if (rrs.size() > 1) {
+    cout<<"Expected one record, got multiple, aborting"<<endl;
+    return EXIT_FAILURE;
+  }
+
+  int size=rrs[0].content.size();
+  if(size != 302)
   {
-    DNSResourceRecord rrthrowaway;
-    if(db->get(rrthrowaway)) // should not touch rr but don't assume anything
-    {
-      cout<<"Expected one record, got multiple, aborting"<<endl;
-      return EXIT_FAILURE;
-    }
-    int size=rrget.content.size();
-    if(size != 302)
-    {
-      cout<<"Expected 302 bytes, got "<<size<<", aborting"<<endl;
-      return EXIT_FAILURE;
-    }
+    cout<<"Expected 302 bytes, got "<<size<<", aborting"<<endl;
+    return EXIT_FAILURE;
   }
   cout<<"[+] content field is over 255 bytes"<<endl;
 

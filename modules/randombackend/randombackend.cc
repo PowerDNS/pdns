@@ -49,29 +49,31 @@ public:
     return false; // we don't support AXFR
   }
 
-  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p) override
+  void lookup(const QType& type, const DNSName& qdomain, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* p) override
   {
-    if (qdomain == d_ourdomain) {
-      if (type.getCode() == QType::SOA || type.getCode() == QType::ANY) {
-        d_answer = "ns1." + d_ourdomain.toString() + " hostmaster." + d_ourdomain.toString() + " 1234567890 86400 7200 604800 300";
-      }
-      else {
-        d_answer.clear();
-        ;
-      }
+    if (qdomain == d_ourdomain && (type.getCode() == QType::SOA || type.getCode() == QType::ANY)) {
+      DNSResourceRecord rr;
+      d_answer = "ns1." + d_ourdomain.toString() + " hostmaster." + d_ourdomain.toString() + " 1234567890 86400 7200 604800 300";
+      rr.qname = d_ourdomain;
+      rr.qtype = QType::SOA;
+      rr.qclass = QClass::IN; // Internet class randomness.
+      rr.ttl = 5; // 5 seconds
+      rr.auth = true; // it may be random.. but it is auth!
+      rr.content = d_answer;
+      rrs.push_back(rr);
     }
-    else if (qdomain == d_ourname) {
-      if (type.getCode() == QType::A || type.getCode() == QType::ANY) {
-        ostringstream os;
-        os << dns_random(256) << "." << dns_random(256) << "." << dns_random(256) << "." << dns_random(256);
-        d_answer = os.str(); // our random ip address
-      }
-      else {
-        d_answer = "";
-      }
-    }
-    else {
-      d_answer = "";
+    else if (qdomain == d_ourname && (type.getCode() == QType::A || type.getCode() == QType::ANY)) {
+      DNSResourceRecord rr;
+      ostringstream os;
+      os << dns_random(256) << "." << dns_random(256) << "." << dns_random(256) << "." << dns_random(256);
+      d_answer = os.str(); // our random ip address
+      rr.qname = d_ourname;
+      rr.qtype = QType::A;
+      rr.qclass = QClass::IN; // Internet class randomness.
+      rr.ttl = 5; // 5 seconds
+      rr.auth = true; // it may be random.. but it is auth!
+      rr.content = d_answer;
+      rrs.push_back(rr);
     }
   }
 

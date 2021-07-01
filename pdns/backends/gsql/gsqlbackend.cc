@@ -1116,7 +1116,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, int domain_id, DNSPacket *pkt_p)
+void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, vector<DNSResourceRecord> &rrs, int domain_id, DNSPacket *pkt_p)
 {
   try {
     reconnectIfNeeded();
@@ -1161,6 +1161,11 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, int domain_id,
 
   d_list=false;
   d_qname=qname;
+
+  DNSResourceRecord rr;
+  while(this->get(rr)) {
+    rrs.push_back(rr);
+  }
 }
 
 bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabled)

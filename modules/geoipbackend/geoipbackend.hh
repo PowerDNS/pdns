@@ -49,7 +49,7 @@ public:
   GeoIPBackend(const std::string& suffix = "");
   ~GeoIPBackend();
 
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, vector<DNSResourceRecord>& rrs, int zoneId, DNSPacket* pkt_p = nullptr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override { return false; } // not supported
   bool get(DNSResourceRecord& r) override;
   void reload() override;
