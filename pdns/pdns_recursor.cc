@@ -5074,6 +5074,11 @@ static int serviceMain(int argc, char*argv[])
     SuffixMatchNode dotauthNames;
     vector<string> parts;
     stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
+#ifndef HAVE_DNS_OVER_TLS
+    if (parts.size()) {
+      g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored."<<endl;
+    }
+#endif
     for (const auto &p : parts) {
       dotauthNames.add(DNSName(p));
     }
