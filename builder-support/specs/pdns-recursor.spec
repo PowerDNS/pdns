@@ -50,6 +50,7 @@ package if you need a dns cache for your network.
     --disable-silent-rules \
     --disable-static \
     --enable-unit-tests \
+    --enable-dns-over-tls \
     --enable-dnstap \
     --with-libcap \
     --with-lua=%{lua_implementation} \
