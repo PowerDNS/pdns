@@ -725,20 +725,15 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
   DomainInfo di;
   if (zoneId < 0) {
     auto rotxn = d_tdomains->getROTransaction();
-
     do {
       zoneId = rotxn.get<0>(hunt, di);
     } while (!zoneId && type != QType::SOA && hunt.chopOff());
     if (zoneId <= 0) {
-      //      cout << "Did not find zone for "<< qdomain<<endl;
-      d_getcursor.reset();
       return;
     }
   }
   else {
     if (!d_tdomains->getROTransaction().get(zoneId, di)) {
-      // cout<<"Could not find a zone with id "<<zoneId<<endl;
-      d_getcursor.reset();
       return;
     }
     hunt = di.zone;
@@ -749,19 +744,20 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
     return;
   }
   // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;
-  d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
+  auto rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
 
   compoundOrdername co;
-  auto cursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+  auto cursor = std::make_shared<MDBROCursor>(rotxn->txn->getCursor(rotxn->db->dbi));
   MDBOutVal key, val;
+  string matchkey;
   if (type.getCode() == QType::ANY) {
-    d_matchkey = co(zoneId, relqname);
+    matchkey = co(zoneId, relqname);
   }
   else {
-    d_matchkey = co(zoneId, relqname, type.getCode());
+    matchkey = co(zoneId, relqname, type.getCode());
   }
 
-  if (cursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
+  if (cursor->lower_bound(matchkey, key, val) || key.get<StringView>().rfind(matchkey, 0) != 0) {
     cursor.reset();
     if (d_dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " usec to execute (found nothing)" << endl;
@@ -773,11 +769,9 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
     g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " usec to execute" << endl;
   }
 
-  d_lookupdomain = hunt;
-
   for (;;) {
     if (!cursor) {
-      d_rotxn.reset();
+      rotxn.reset();
       return;
     }
     vector<LMDBResourceRecord> currentrrset;
@@ -793,7 +787,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
 
     if (qtype == QType::NSEC3) {
       // Hit a magic NSEC3 skipping
-      if (cursor->next(currentKey, currentVal) || currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
+      if (cursor->next(currentKey, currentVal) || currentKey.get<StringView>().rfind(matchkey, 0) != 0) {
         cursor.reset();
       }
       continue;
@@ -806,7 +800,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
 
         zr.disabled = lrr.disabled;
         if (!zr.disabled || d_includedisabled) {
-          zr.dr.d_name = compoundOrdername::getQName(stringKey) + d_lookupdomain;
+          zr.dr.d_name = compoundOrdername::getQName(stringKey) + hunt;
           zr.domain_id = compoundOrdername::getDomainID(stringKey);
           zr.dr.d_type = compoundOrdername::getQType(stringKey).getCode();
           zr.dr.d_ttl = lrr.ttl;
@@ -821,7 +815,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, vector<DNSZo
       }
     }
 
-    if (cursor->next(currentKey, currentVal) || currentKey.get<StringView>().rfind(d_matchkey, 0) != 0) {
+    if (cursor->next(currentKey, currentVal) || currentKey.get<StringView>().rfind(matchkey, 0) != 0) {
       cursor.reset();
     }
   }
