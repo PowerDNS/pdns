@@ -1322,7 +1322,7 @@ public:
 
     auto& ids = response.d_idstate;
 
-    thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
+    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
     DNSResponse dr = makeDNSResponseFromIDState(ids, response.d_buffer);
     if (response.d_buffer.size() > d_payloadSize) {
       vinfolog("Got a response of size %d over TCP, while the initial UDP payload size was %d, truncating", response.d_buffer.size(), d_payloadSize);
