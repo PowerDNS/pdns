@@ -167,6 +167,8 @@ public:
   mutable bool d_checknow; //!< if this domain has been flagged for a check
   bool d_loaded; //!< if a domain is loaded
   bool d_wasRejectedLastReload{false}; //!< if the domain was rejected during Bind2Backend::queueReloadAndStore
+  bool d_nsec3zone{false};
+  NSEC3PARAMRecordContent d_nsec3param;
 
 private:
   time_t getCtime();
@@ -253,6 +255,7 @@ private:
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p);
   void setLastCheck(uint32_t domain_id, time_t lastcheck);
+  bool getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
   public:
