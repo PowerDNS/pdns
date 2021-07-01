@@ -54,6 +54,7 @@
 #include "pdns/dynlistener.hh"
 #include "pdns/lock.hh"
 #include "pdns/auth-zonecache.hh"
+#include "pdns/auth-caches.hh"
 
 /* 
    All instances of this backend share one s_state, which is indexed by zone name and zone id.
@@ -498,7 +499,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
     nsec3zone = dk.getNSEC3PARAM(bbd->d_name, &ns3pr);
   }
   else
-    nsec3zone = getNSEC3PARAM(bbd->d_name, &ns3pr);
+    nsec3zone = getNSEC3PARAMuncached(bbd->d_name, &ns3pr);
 
   auto records = std::make_shared<recordstorage_t>();
   ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory, d_upgradeContent);
@@ -518,6 +519,8 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   bbd->d_checknow = false;
   bbd->d_status = "parsed into memory at " + nowTime();
   bbd->d_records = LookButDontTouch<recordstorage_t>(records);
+  bbd->d_nsec3zone = nsec3zone;
+  bbd->d_nsec3param = ns3pr;
 }
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
@@ -574,6 +577,8 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
         ret << *i << ": [missing]\n";
       else
         ret << *i << ": " << (bbd.d_wasRejectedLastReload ? "[rejected]" : "") << "\t" << bbd.d_status << "\n";
+      purgeAuthCaches(zone.toString() + "$");
+      DNSSECKeeper::clearMetaCache(zone);
     }
     else
       ret << *i << " no such domain\n";
@@ -1102,18 +1107,8 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   if (!safeGetBBDomainInfo(id, &bbd))
     return false;
 
-  NSEC3PARAMRecordContent ns3pr;
-
-  bool nsec3zone;
-  if (d_hybrid) {
-    DNSSECKeeper dk;
-    nsec3zone = dk.getNSEC3PARAM(bbd.d_name, &ns3pr);
-  }
-  else
-    nsec3zone = getNSEC3PARAM(bbd.d_name, &ns3pr);
-
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
-  if (!nsec3zone) {
+  if (!bbd.d_nsec3zone) {
     return findBeforeAndAfterUnhashed(records, qname, unhashed, before, after);
   }
   else {

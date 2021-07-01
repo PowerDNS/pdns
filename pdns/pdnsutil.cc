@@ -2994,9 +2994,9 @@ try
       cerr<<"NSEC3 (opt-out) set, ";
 
     if(dk.isSecuredZone(zone))
-      cerr<<"please rectify your zone if your backend needs it"<<endl;
+      cerr<<"Done, please rectify your zone if your backend needs it (or reload it if you are using the bindbackend)"<<endl;
     else
-      cerr<<"please secure and rectify your zone."<<endl;
+      cerr<<"Done, please secure and rectify your zone (or reload it if you are using the bindbackend)"<<endl;
 
     return 0;
   }
@@ -3099,6 +3099,8 @@ try
       cerr << "Cannot unset NSEC3 param for " << cmds.at(1) << endl;
       return 1;
     }
+    cerr<<"Done, please rectify your zone if your backend needs it (or reload it if you are using the bindbackend)"<<endl;
+
     return 0;
   }
   else if (cmds.at(0) == "export-zone-key") {
