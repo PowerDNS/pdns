@@ -1002,7 +1002,7 @@ class TestCachingNoStale(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
-                                    1,
+                                    ttl,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
                                     '127.0.0.1')
