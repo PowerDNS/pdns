@@ -817,6 +817,7 @@ private:
 
     if (!fp) {
       /* don't fall on our sword when reopening */
+      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
       return;
     }
 
