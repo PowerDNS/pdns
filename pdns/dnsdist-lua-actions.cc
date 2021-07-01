@@ -737,8 +737,7 @@ public:
       return;
     }
 
-    reopenLogFile();
-    if (!d_fp) {
+    if (!reopenLogFile())  {
       throw std::runtime_error("Unable to open file '" + str + "' for logging: " + stringerror());
     }
   }
@@ -800,32 +799,32 @@ public:
 
   void reload() override
   {
-    reopenLogFile();
+    if (!reopenLogFile()) {
+      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
+    }
   }
 
 private:
-  void reopenLogFile()
+  bool reopenLogFile()
   {
-    std::shared_ptr<FILE> fp = nullptr;
-
-    if (d_append) {
-      fp = std::shared_ptr<FILE>(fopen(d_fname.c_str(), "a+"), fclose);
-    }
-    else {
-      fp = std::shared_ptr<FILE>(fopen(d_fname.c_str(), "w"), fclose);
-    }
-
-    if (!fp) {
+    // we are using a naked pointer here because we don't want fclose to be called
+    // with a nullptr, which would happen if we constructor a shared_ptr with fclose
+    // as a custom deleter and nullptr as a FILE*
+    auto nfp = fopen(d_fname.c_str(), d_append ? "a+" : "w");
+    if (!nfp) {
       /* don't fall on our sword when reopening */
-      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
-      return;
+      return false;
     }
+
+    auto fp = std::shared_ptr<FILE>(nfp, fclose);
+    nfp = nullptr;
 
     if (!d_buffered) {
       setbuf(fp.get(), 0);
     }
 
     std::atomic_store_explicit(&d_fp, fp, std::memory_order_release);
+    return true;
   }
 
   std::string d_fname;
@@ -850,8 +849,7 @@ public:
       return;
     }
 
-    reopenLogFile();
-    if (!d_fp) {
+    if (!reopenLogFile()) {
       throw std::runtime_error("Unable to open file '" + str + "' for logging: " + stringerror());
     }
   }
@@ -890,31 +888,32 @@ public:
 
   void reload() override
   {
-    reopenLogFile();
+    if (!reopenLogFile()) {
+      warnlog("Unable to open file '%s' for logging: %s", d_fname, stringerror());
+    }
   }
 
 private:
-  void reopenLogFile()
+  bool reopenLogFile()
   {
-    std::shared_ptr<FILE> fp = nullptr;
-
-    if (d_append) {
-      fp = std::shared_ptr<FILE>(fopen(d_fname.c_str(), "a+"), fclose);
-    }
-    else {
-      fp = std::shared_ptr<FILE>(fopen(d_fname.c_str(), "w"), fclose);
-    }
-
-    if (!fp) {
+    // we are using a naked pointer here because we don't want fclose to be called
+    // with a nullptr, which would happen if we constructor a shared_ptr with fclose
+    // as a custom deleter and nullptr as a FILE*
+    auto nfp = fopen(d_fname.c_str(), d_append ? "a+" : "w");
+    if (!nfp) {
       /* don't fall on our sword when reopening */
-      return;
+      return false;
     }
+
+    auto fp = std::shared_ptr<FILE>(nfp, fclose);
+    nfp = nullptr;
 
     if (!d_buffered) {
       setbuf(fp.get(), 0);
     }
 
     std::atomic_store_explicit(&d_fp, fp, std::memory_order_release);
+    return true;
   }
 
   std::string d_fname;
