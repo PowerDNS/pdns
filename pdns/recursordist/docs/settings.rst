@@ -389,7 +389,7 @@ ratio.
 .. _settings-dot-to-auth-names:
 
 ``dot-to-auth-names``
--------------------
+---------------------
 .. versionadded:: 4.6.0
 
 - Comma separated list of domain-names or suffixes
@@ -1809,7 +1809,7 @@ These statistics can still be retrieved individually by specifically asking for 
 .. versionadded:: 4.5.0
 
 -  String
--  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*, cumul-answers-*, cumul-auth4answers-*, cumul-auth6answers-*"
+-  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-\*, ecs-v6-response-bits-\*, cumul-answers-\*, cumul-auth4answers-\*, cumul-auth6answers-\*"
 
 A list of comma-separated statistic names, that are prevented from being exported via carbon for performance reasons.
 
@@ -1828,7 +1828,7 @@ A list of comma-separated statistic names, that are prevented from being exporte
 .. versionadded:: 4.5.0
 
 -  String
--  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*, cumul-answers-*, cumul-auth4answers-*, cumul-auth6answers-*"
+-  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-\*, ecs-v6-response-bits-\*, cumul-answers-\*, cumul-auth4answers-\*, cumul-auth6answers-\*"
 
 A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via `rec_control get-all`, for performance reasons.
 These statistics can still be retrieved individually.
