@@ -126,8 +126,7 @@ struct DNSQuestion
 
   bool overTCP() const
   {
-    const std::set<Protocol> tcpProto = { Protocol::DoTCP, Protocol::DNSCryptTCP, Protocol::DoT, Protocol::DoH };
-    return tcpProto.count(protocol);
+    return !(protocol == Protocol::DoUDP || protocol == Protocol::DNSCryptUDP);
   }
 
 protected:
@@ -162,7 +161,7 @@ public:
   const uint16_t qclass;
   uint16_t ecsPrefixLength;
   uint16_t origFlags;
-  Protocol protocol;
+  const Protocol protocol;
   uint8_t ednsRCode{0};
   bool skipCache{false};
   bool ecsOverride;
