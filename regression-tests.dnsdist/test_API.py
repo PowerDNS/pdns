@@ -23,7 +23,7 @@ class TestAPIBasics(DNSDistTest):
     _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%s", pool={'', 'mypool'}}
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
@@ -133,6 +133,42 @@ class TestAPIBasics(DNSDistTest):
 
             for key in ['id', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
                 self.assertTrue(pool[key] >= 0)
+
+    def testServersLocalhostPool(self):
+        """
+        API: /api/v1/servers/localhost/pool?name=mypool
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/pool?name=mypool'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+
+        self.assertIn('stats', content)
+        self.assertIn('servers', content)
+
+        for key in ['name', 'cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
+            self.assertIn(key, content['stats'])
+
+        for key in ['cacheSize', 'cacheEntries', 'cacheHits', 'cacheMisses', 'cacheDeferredInserts', 'cacheDeferredLookups', 'cacheLookupCollisions', 'cacheInsertCollisions', 'cacheTTLTooShorts']:
+            self.assertTrue(content['stats'][key] >= 0)
+
+        for server in content['servers']:
+            for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
+                        'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
+                        'dropRate', 'responses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
+                        'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
+                        'tcpNewConnections', 'tcpReusedConnections', 'tcpAvgQueriesPerConnection',
+                        'tcpAvgConnectionDuration']:
+                self.assertIn(key, server)
+
+            for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
+                        'qps', 'queries', 'order']:
+                self.assertTrue(server[key] >= 0)
+
+            self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
 
     def testServersIDontExist(self):
         """
