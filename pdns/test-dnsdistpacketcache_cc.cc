@@ -124,6 +124,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   }
 }
 
+
 BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
   const size_t maxEntries = 150000;
   const size_t numberOfShards = 10;
@@ -219,6 +220,70 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
     BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
   }
   catch (const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, 86400, 1);
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  ComboAddress remote;
+  bool dnssecOK = false;
+  try {
+    DNSName a = DNSName("tcp");
+    BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, a, QType::AAAA, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, a, QType::AAAA, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    ComboAddress v6("2001:db8::1");
+    pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6.sin6.sin6_addr.s6_addr), 16));
+    pwR.xfr32BitInt(0x01020304);
+    pwR.commit();
+
+    {
+      /* UDP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoUDP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+      BOOST_CHECK(!subnet);
+    }
+
+    {
+      /* same but over TCP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, query, DNSQuestion::Protocol::DoTCP, &queryTime);
+      bool found = PC.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, a, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+      found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+      BOOST_CHECK(!subnet);
+    }
+  }
+  catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
     throw;
   }
