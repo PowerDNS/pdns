@@ -1455,7 +1455,7 @@ Other functions
 
   .. versionadded:: 1.6.0
 
-  Set to true (defaults to false) to drop empty queries (qdcount=0) right away with a NotImp rcode. dnsdist used to drop these queries by default because most rules and existing Lua code expects a query to have a qname, qtype and qclass. However :rfc:`7873` uses these queries to request a server cookie, and :rfc:`8906` as a conformance test, so answering these queries with NotImp is much better than not answering at all.
+  Set to true (defaults to false) to drop empty queries (qdcount=0) right away, instead of answering with a NotImp rcode. dnsdist used to drop these queries by default because most rules and existing Lua code expects a query to have a qname, qtype and qclass. However :rfc:`7873` uses these queries to request a server cookie, and :rfc:`8906` as a conformance test, so answering these queries with NotImp is much better than not answering at all.
 
   :param bool drop: Whether to drop these queries (defaults to false)
 
