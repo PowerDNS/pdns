@@ -4883,9 +4883,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
   SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
 
-#ifdef HAVE_DNS_OVER_TLS
   SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
-#endif
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true);
@@ -5074,6 +5072,11 @@ static int serviceMain(int argc, char*argv[])
     SuffixMatchNode dotauthNames;
     vector<string> parts;
     stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
+#ifndef HAVE_DNS_OVER_TLS
+    if (parts.size()) {
+      g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored."<<endl;
+    }
+#endif
     for (const auto &p : parts) {
       dotauthNames.add(DNSName(p));
     }
@@ -5599,7 +5602,7 @@ catch(...) {
 //static std::string s_timestampFormat = "%m-%dT%H:%M:%S";
 static std::string s_timestampFormat = "%s";
 
-const char* toTimestampStringMilli(const struct timeval& tv, char *buf, size_t sz)
+static const char* toTimestampStringMilli(const struct timeval& tv, char *buf, size_t sz)
 {
   struct tm tm;
   size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&tv.tv_sec, &tm));
