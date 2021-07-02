@@ -132,12 +132,12 @@ Functions
 
 .. function:: pdns_ffi_param_add_meta_single_string_kv(pdns_ffi_param_t* ref, const char* key, const char* val) -> void
 
-    .. versionadded:: 4.5.3
+    .. versionadded:: 4.6.0
 
    This function allows you to add an arbitrary string value for a given key in the ``meta`` field of the produced :doc:`protobuf <../lua-config/protobuf>` log message
 
 .. function:: pdns_ffi_param_add_meta_single_int64_kv(pdns_ffi_param_t *ref, const char* key, int64_t val) -> void
 
-    .. versionadded:: 4.5.3
+    .. versionadded:: 4.6.0
 
    This function allows you to add an arbitrary int value for a given key in the ``meta`` field of the produced :doc:`protobuf <../lua-config/protobuf>` log message
