@@ -2,6 +2,16 @@ Changelogs for 4.5.X
 ====================
 
 .. changelog::
+  :version: 4.5.4
+  :released: 2nd of July 2021, 4.5.3 was never released publicly.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10519
+
+    Make sure that we pass the SOA along the NSEC(3) proof for DS queries.
+
+.. changelog::
   :version: 4.5.2
   :released: 9th of June 2021
 
