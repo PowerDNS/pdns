@@ -880,7 +880,7 @@ private:
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth);
   dState getDenialValidationState(const NegCache::NegCacheEntry& ne, const dState expectedState, bool referralToUnsigned);
-  void updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState);
+  void updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState, bool isDS, unsigned int depth);
   void computeNegCacheValidationStatus(const NegCache::NegCacheEntry& ne, const DNSName& qname, QType qtype, const int res, vState& state, unsigned int depth);
   vState getTA(const DNSName& zone, dsmap_t& ds);
   vState getValidationStatus(const DNSName& subdomain, bool hasSignatures, bool typeIsDS, unsigned int depth);
