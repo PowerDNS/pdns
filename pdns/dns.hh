@@ -80,7 +80,8 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0) {};
+  DNSResourceRecord() :
+    ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0){};
   static DNSResourceRecord fromWire(const DNSRecord& d);
 
   enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning within, say, a DNSPacket
@@ -93,10 +94,6 @@ public:
   DNSName ordername;
   DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
-
-  // Aligned on 8-byte boundaries on systems where time_t is 8 bytes and int
-  // is 4 bytes, aka modern linux on x86_64
-  time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
 
   uint32_t ttl; //!< Time To Live of this record
   uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG

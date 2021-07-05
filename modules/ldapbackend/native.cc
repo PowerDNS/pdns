@@ -310,7 +310,6 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   rr.qtype = result.qtype;
   rr.qname = result.qname;
   rr.ttl = result.ttl;
-  rr.last_modified = 0;
   rr.content = result.value;
   rr.auth = result.auth;
 

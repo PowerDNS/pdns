@@ -1906,8 +1906,6 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
     r.content=std::move(row[0]);
   }
 
-  r.last_modified=0;
-
   if(d_dnssecQueries)
     r.auth = !row[7].empty() && row[7][0]=='1';
   else

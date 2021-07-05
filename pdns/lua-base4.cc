@@ -96,7 +96,6 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<DNSName(DNSResourceRecord::*)()>("qname", [](DNSResourceRecord& rec) { return rec.qname; });
   d_lw->registerFunction<DNSName(DNSResourceRecord::*)()>("wildcardName", [](DNSResourceRecord& rec) { return rec.wildcardname; });
   d_lw->registerFunction<string(DNSResourceRecord::*)()>("content", [](DNSResourceRecord& rec) { return rec.content; });
-  d_lw->registerFunction<time_t(DNSResourceRecord::*)()>("lastModified", [](DNSResourceRecord& rec) { return rec.last_modified; });
   d_lw->registerFunction<uint32_t(DNSResourceRecord::*)()>("ttl", [](DNSResourceRecord& rec) { return rec.ttl; });
   d_lw->registerFunction<uint32_t(DNSResourceRecord::*)()>("signttl", [](DNSResourceRecord& rec) { return rec.signttl; });
   d_lw->registerFunction<int(DNSResourceRecord::*)()>("domainId", [](DNSResourceRecord& rec) { return rec.domain_id; });

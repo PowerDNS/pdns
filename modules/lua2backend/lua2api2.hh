@@ -158,8 +158,6 @@ public:
           rec.domain_id = boost::get<int>(item.second);
         else if (item.first == "auth")
           rec.auth = boost::get<bool>(item.second);
-        else if (item.first == "last_modified")
-          rec.last_modified = static_cast<time_t>(boost::get<int>(item.second));
         else if (item.first == "ttl")
           rec.ttl = boost::get<int>(item.second);
         else if (item.first == "content")
