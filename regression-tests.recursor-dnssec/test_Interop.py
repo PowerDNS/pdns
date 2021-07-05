@@ -121,6 +121,23 @@ forward-zones+=undelegated.insecure.example=%s.12
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], [])
 
+
+    def testNonApexDNSKEY(self):
+        """
+        a DNSKEY not at the apex of a zone should not be treated as a DNSKEY in validation
+        """
+        query = dns.message.make_query('non-apex-dnskey.secure.example.', 'DNSKEY')
+        query.flags |= dns.flags.AD
+
+        res = self.sendUDPQuery(query)
+        print(res)
+        expectedDNSKEY = dns.rrset.from_text('non-apex-dnskey.secure.example.', 0, dns.rdataclass.IN, 'DNSKEY', '257 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==')
+
+        self.assertRRsetInAnswer(res, expectedDNSKEY)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], [])
+
+
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
