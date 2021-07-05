@@ -3392,7 +3392,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       LOG(d_prefix<<": got initial zone status "<<initialState<<" for record "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
 
       if (initialState == vState::Secure) {
-        if (i->first.type == QType::DNSKEY && i->first.place == DNSResourceRecord::ANSWER) {
+        if (i->first.type == QType::DNSKEY && i->first.place == DNSResourceRecord::ANSWER && i->first.name == getSigner(i->second.signatures)) {
           LOG(d_prefix<<"Validating DNSKEY for "<<i->first.name<<endl);
           recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
         }
