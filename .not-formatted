@@ -202,9 +202,6 @@
 ./pdns/lua-base4.cc
 ./pdns/lua-base4.hh
 ./pdns/lua-record.cc
-./pdns/lua-recursor4-ffi.hh
-./pdns/lua-recursor4.cc
-./pdns/lua-recursor4.hh
 ./pdns/lwres.cc
 ./pdns/lwres.hh
 ./pdns/malloctrace.cc

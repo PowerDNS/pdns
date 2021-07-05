@@ -32,9 +32,12 @@ namespace pdns {
   namespace ProtoZero {
     class Message {
     public:
+
+      enum class MetaValueField : protozero::pbf_tag_type { stringVal = 1, intVal = 2 };
+      enum class MetaField : protozero::pbf_tag_type { key = 1, value = 2 };
       enum class MessageType : int32_t { DNSQueryType = 1, DNSResponseType = 2, DNSOutgoingQueryType = 3, DNSIncomingResponseType = 4 };
-      enum class Field : protozero::pbf_tag_type { type = 1, messageId = 2, serverIdentity = 3, socketFamily = 4, socketProtocol = 5, from = 6, to = 7, inBytes = 8, timeSec = 9, timeUsec = 10, id = 11, question = 12, response = 13, originalRequestorSubnet = 14, requestorId = 15, initialRequestId = 16, deviceId = 17, newlyObservedDomain = 18, deviceName = 19, fromPort = 20, toPort = 21 };
-      enum class QuestionField : protozero::pbf_tag_type { qName = 1, qType = 2, qClass = 3};
+      enum class Field : protozero::pbf_tag_type { type = 1, messageId = 2, serverIdentity = 3, socketFamily = 4, socketProtocol = 5, from = 6, to = 7, inBytes = 8, timeSec = 9, timeUsec = 10, id = 11, question = 12, response = 13, originalRequestorSubnet = 14, requestorId = 15, initialRequestId = 16, deviceId = 17, newlyObservedDomain = 18, deviceName = 19, fromPort = 20, toPort = 21, meta = 22 };
+      enum class QuestionField : protozero::pbf_tag_type { qName = 1, qType = 2, qClass = 3 };
       enum class ResponseField : protozero::pbf_tag_type { rcode = 1, rrs = 2, appliedPolicy = 3, tags = 4, queryTimeSec = 5, queryTimeUsec = 6, appliedPolicyType = 7, appliedPolicyTrigger = 8, appliedPolicyHit = 9, appliedPolicyKind = 10, validationState = 11 };
       enum class RRField : protozero::pbf_tag_type { name = 1, type = 2, class_ = 3, ttl = 4, rdata = 5, udr = 6 };
 
@@ -115,6 +118,19 @@ namespace pdns {
         encodeDNSName(pbf_question, d_buffer, static_cast<protozero::pbf_tag_type>(QuestionField::qName), qname);
         pbf_question.add_uint32(static_cast<protozero::pbf_tag_type>(QuestionField::qType), qtype);
         pbf_question.add_uint32(static_cast<protozero::pbf_tag_type>(QuestionField::qClass), qclass);
+      }
+
+      void setMeta(const std::string& key, const std::unordered_set<std::string>& stringVal, const std::unordered_set<int64_t>& intVal)
+      {
+        protozero::pbf_writer pbf_meta{d_message, static_cast<protozero::pbf_tag_type>(Field::meta)};
+        pbf_meta.add_string(static_cast<protozero::pbf_tag_type>(MetaField::key), key);
+        protozero::pbf_writer pbf_meta_value{pbf_meta, static_cast<protozero::pbf_tag_type>(MetaField::value)};
+        for (const auto& s: stringVal) {
+          pbf_meta_value.add_string(static_cast<protozero::pbf_tag_type>(MetaValueField::stringVal), s);
+        }
+        for (const auto& i: intVal) {
+          pbf_meta_value.add_uint64(static_cast<protozero::pbf_tag_type>(MetaValueField::intVal), i);
+        }
       }
 
       void setEDNSSubnet(const Netmask& nm, uint8_t mask)

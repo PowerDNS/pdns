@@ -115,8 +115,8 @@ Interception Functions
       The ability to craft answers was added.
 
     This function is the FFI counterpart of the :func:`gettag` function, and offers the same functionality.
-    It accepts a single, scalable parameter which can be accessed using FFI accessors.
-    Like the non-FFI version, it has the ability to set a tag for the packetcache, policy tags, a routing tag, the :attr:`DNSQuestion.requestorId` and :attr:`DNSQuestion.deviceId`values and to fill the :attr:`DNSQuestion.data` table. It also offers ways to mark the answer as variable so it's not inserted into the packetcache, to set a cap on the TTL of the returned records, and to generate a response by adding records and setting the RCode. It can also instruct the recursor to do a proper resolution in order to follow any `CNAME` records added in this step.
+    It accepts a single, scalable parameter which can be accessed using :doc:`FFI accessors <ffi>`.
+    Like the non-FFI version, it has the ability to set a tag for the packetcache, policy tags, a routing tag, the :attr:`DNSQuestion.requestorId` and :attr:`DNSQuestion.deviceId` values and to fill the :attr:`DNSQuestion.data` table. It also offers ways to mark the answer as variable so it's not inserted into the packetcache, to set a cap on the TTL of the returned records, and to generate a response by adding records and setting the RCode. It can also instruct the recursor to do a proper resolution in order to follow any `CNAME` records added in this step.
 
 .. function:: prerpz(dq) -> bool
 
