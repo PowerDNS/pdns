@@ -2236,6 +2236,45 @@ static void startDoResolve(void *p)
       }
     }
 #endif /* NOD_ENABLED */
+
+    if (variableAnswer || sr.wasVariable()) {
+      g_stats.variableResponses++;
+    }
+    if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
+      minTTL = min(minTTL, pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
+                   SyncRes::s_packetcachettl);
+      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
+                                          dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
+                                          string((const char*)&*packet.begin(), packet.size()),
+                                          g_now.tv_sec,
+                                          minTTL,
+                                          dq.validationState,
+                                          std::move(pbDataForCache), dc->d_tcp);
+    }
+    if (!dc->d_tcp) {
+      struct msghdr msgh;
+      struct iovec iov;
+      cmsgbuf_aligned cbuf;
+      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
+      msgh.msg_control=NULL;
+
+      if(g_fromtosockets.count(dc->d_socket)) {
+        addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
+      }
+      int sendErr = sendOnNBSocket(dc->d_socket, &msgh);
+      if (sendErr && g_logCommonErrors) {
+        g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
+              << strerror(sendErr) << endl;
+      }
+
+    }
+    else {
+      bool hadError = sendResponseOverTCP(dc, packet);
+      finishTCPReply(dc, hadError, true);
+    }
+
+    sr.d_eventTrace.add(RecEventTrace::AnswerSent);
+
     if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && dc->d_policyTags.empty())) {
       // Start constructing embedded DNSResponse object
       pbMessage.setResponseCode(pw.getHeader()->rcode);
@@ -2305,47 +2344,6 @@ static void startDoResolve(void *p)
       }
     }
 
-    if (variableAnswer || sr.wasVariable()) {
-      g_stats.variableResponses++;
-    }
-    if (!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable()) {
-      const auto& hdr = pw.getHeader();
-      if ((hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) ||
-          (hdr->ancount == 0 && hdr->nscount == 0)) {
-        minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
-      }
-      minTTL = min(minTTL, SyncRes::s_packetcachettl);
-      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
-                                          dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
-                                          string((const char*)&*packet.begin(), packet.size()),
-                                          g_now.tv_sec,
-                                          minTTL,
-                                          dq.validationState,
-                                          std::move(pbDataForCache), dc->d_tcp);
-    }
-    if (!dc->d_tcp) {
-      struct msghdr msgh;
-      struct iovec iov;
-      cmsgbuf_aligned cbuf;
-      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
-      msgh.msg_control=NULL;
-
-      if(g_fromtosockets.count(dc->d_socket)) {
-        addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
-      }
-      int sendErr = sendOnNBSocket(dc->d_socket, &msgh);
-      if (sendErr && g_logCommonErrors) {
-        g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
-              << strerror(sendErr) << endl;
-      }
-
-    }
-    else {
-      bool hadError = sendResponseOverTCP(dc, packet);
-      finishTCPReply(dc, hadError, true);
-    }
-    // Protobuf sending should be here...
-    sr.d_eventTrace.add(RecEventTrace::AnswerSent);
     if (sr.d_eventTrace.enabled()) {
       g_log << Logger::Info << sr.d_eventTrace.toString() << endl;
     }
@@ -2886,10 +2884,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
 
         if (cacheHit) {
-          if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-            struct timeval tv{0, 0};
-            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
-          }
 
           if (!g_quiet) {
             g_log<<Logger::Notice<<t_id<< " TCP question answered from packet cache tag="<<dc->d_tag<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
@@ -2903,7 +2897,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_stats.cumulativeAnswers(spentUsec);
           dc->d_eventTrace.add(RecEventTrace::AnswerSent);
 
-          // Protobuf sending shoudl be here...
+          if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+            struct timeval tv{0, 0};
+            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
+          }
 
           if (dc->d_eventTrace.enabled()) {
             g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
@@ -3137,10 +3134,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source);
     eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
     if (cacheHit) {
-      if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
-      }
-
       if (!g_quiet) {
         g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
       }
@@ -3156,8 +3149,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       int sendErr = sendOnNBSocket(fd, &msgh);
       eventTrace.add(RecEventTrace::AnswerSent);
 
-      // Protobuf sending should be here...
- 
+      if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
+        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
+      }
+
       if (eventTrace.enabled()) {
         g_log << Logger::Info << eventTrace.toString() << endl;
       }
