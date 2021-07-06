@@ -45,6 +45,11 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
   return false;
 }
 
+bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
+{
+  return false;
+}
+
 bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   return false;
