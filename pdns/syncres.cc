@@ -1830,7 +1830,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
       if (recordState == vState::Secure) {
         LOG(prefix<<sqname<<": got vState::Indeterminate state from the cache, validating.."<<endl);
-        if (sqt == QType::DNSKEY) {
+        if (sqt == QType::DNSKEY && sqname == getSigner(signatures)) {
           cachedState = validateDNSKeys(sqname, cset, signatures, depth);
         }
         else {
@@ -1841,7 +1841,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
             for (const auto& type : types) {
               vState cachedRecordState;
-              if (type.first == QType::DNSKEY) {
+              if (type.first == QType::DNSKEY && sqname == getSigner(type.second.signatures)) {
                 cachedRecordState = validateDNSKeys(sqname, type.second.records, type.second.signatures, depth);
               }
               else {
