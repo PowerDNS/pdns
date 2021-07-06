@@ -340,9 +340,9 @@ vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSNa
   return ret;
 }
 
-vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target)
+void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZoneRecord> &ret)
 {
-  vector<DNSZoneRecord> ret;
+  ret.clear();
   DNSZoneRecord rr;
   DNSName prefix;
   DNSName subdomain(target);
@@ -356,18 +356,18 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &ta
       rr.dr.d_name = prefix + rr.dr.d_name;
       rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
       rr.auth = false; // don't sign CNAME
-      target= getRR<CNAMERecordContent>(rr.dr)->getTarget();
+      target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr); 
     }
     if(!ret.empty())
-      return ret;
+      return;
     if(subdomain.countLabels())
       prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
     if(subdomain == d_sd.qname) // stop at SOA
       break;
 
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
-  return ret;
+  return;
 }
 
 
@@ -1210,13 +1210,26 @@ bool PacketHandler::tryDNAME(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSNam
   if(!d_doDNAME)
     return false;
   DLOG(g_log<<Logger::Warning<<"Let's try DNAME.."<<endl);
-  vector<DNSZoneRecord> rrset = getBestDNAMESynth(p, target);
-  if(!rrset.empty()) {
-    for(auto& rr: rrset) {
-      rr.dr.d_place = DNSResourceRecord::ANSWER;
-      r->addRecord(std::move(rr));
+  vector<DNSZoneRecord> rrset;
+  try {
+    getBestDNAMESynth(p, target, rrset);
+    if(!rrset.empty()) {
+      for(size_t i = 0; i < rrset.size(); i++) {
+        rrset.at(i).dr.d_place = DNSResourceRecord::ANSWER;
+        r->addRecord(std::move(rrset.at(i)));
+      }
+      return true;
     }
-    return true;
+  } catch (const std::range_error &e) {
+    // Add the DNAME regardless, but throw to let the caller know we could not
+    // synthesize a CNAME
+    if(!rrset.empty()) {
+      for(size_t i = 0; i < rrset.size(); i++) {
+        rrset.at(i).dr.d_place = DNSResourceRecord::ANSWER;
+        r->addRecord(std::move(rrset.at(i)));
+      }
+    }
+    throw e;
   }
   return false;
 }
@@ -1647,16 +1660,20 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
         goto sendit;
       }
-      else if(tryDNAME(p, r, target)) {
-	retargetcount++;
-	goto retargeted;
+      try {
+        if (tryDNAME(p, r, target)) {
+          retargetcount++;
+          goto retargeted;
+        }
+      } catch (const std::range_error &e) {
+        // We couldn't make a CNAME.....
+        r->setRcode(RCode::YXDomain);
+        goto sendit;
       }
-      else
-      {        
-        if (!(((p.qtype.getCode() == QType::CNAME) || (p.qtype.getCode() == QType::ANY)) && retargetcount > 0))
-          makeNXDomain(p, r, target, wildcard);
-      }
-      
+
+      if (!(((p.qtype.getCode() == QType::CNAME) || (p.qtype.getCode() == QType::ANY)) && retargetcount > 0))
+        makeNXDomain(p, r, target, wildcard);
+
       goto sendit;
     }
                                        
