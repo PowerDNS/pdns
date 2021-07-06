@@ -126,6 +126,34 @@ message PBDNSMessage {
     required MetaValue value = 2;
   }
   repeated Meta meta = 22;                      // Arbitrary meta-data - to be used in future rather than adding new fields all the time
+
+  enum EventType {
+    RecRecv = 1;
+    DistPipe = 2;
+    PCacheCheck = 3;
+    SyncRes = 4;
+    AnswerSent = 5;
+    LuaGetTag = 100;
+    LuaGetTagFFI = 101;
+    LuaIPFilter = 102;
+    LuaPreRPZ = 103;
+    LuaPreResolve = 104;
+    LuaPreOutQuery = 105;
+    LuaPostResolve = 106;
+    LuaNoData = 107;
+    LuaNXDomain = 108;
+  }
+  
+  message Event {
+    required uint64 ts = 1;
+    required EventType event = 2;
+    required bool start = 3;
+    optional bool boolVal = 4;
+    optional int64 intVal = 5;
+    optional string stringVal = 6;
+    optional bytes bytesVal = 7;
+  }
+  repeated Event trace = 23;
 }
 
 message PBDNSMessageList {

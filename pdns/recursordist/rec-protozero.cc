@@ -22,6 +22,7 @@
 
 #include "dnsrecords.hh"
 #include "rec-protozero.hh"
+#include <variant>
 
 void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr)
 {
@@ -109,3 +110,31 @@ void pdns::ProtoZero::RecMessage::clearUDR(std::string& str)
   }
 }
 #endif
+
+void pdns::ProtoZero::RecMessage::addEvents(const RecEventTrace& trace)
+{
+  for (const auto& t : trace.getEvents()) {
+    protozero::pbf_writer pbf_trace{d_message, static_cast<protozero::pbf_tag_type>(Field::trace)};
+    pbf_trace.add_uint64(static_cast<protozero::pbf_tag_type>(Event::ts), t.d_ts);
+    pbf_trace.add_uint32(static_cast<protozero::pbf_tag_type>(Event::event), t.d_event);
+    pbf_trace.add_bool(static_cast<protozero::pbf_tag_type>(Event::start), t.d_start);
+
+    const auto& v = t.d_value;
+    if (std::holds_alternative<std::nullopt_t>(v)) {
+    }
+    else if (std::holds_alternative<bool>(v)) {
+      pbf_trace.add_bool(static_cast<protozero::pbf_tag_type>(Event::boolVal), std::get<bool>(v));
+    }
+    else if (std::holds_alternative<int64_t>(v)) {
+      pbf_trace.add_int64(static_cast<protozero::pbf_tag_type>(Event::intVal), std::get<int64_t>(v));
+    }
+    else if (std::holds_alternative<std::string>(v)) {
+      pbf_trace.add_string(static_cast<protozero::pbf_tag_type>(Event::stringVal), std::get<std::string>(v));
+    }
+    else if (std::holds_alternative<PacketBuffer>(v)) {
+      const PacketBuffer& p = std::get<PacketBuffer>(v);
+      pbf_trace.add_bytes(static_cast<protozero::pbf_tag_type>(Event::bytesVal), reinterpret_cast<const char*>(p.data()), p.size());
+    }
+  }
+}
+
