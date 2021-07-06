@@ -2,6 +2,40 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.0-rc2
+  :released: 6th of July 2021
+
+  This is the second, and hopefully last, release candidate for version 4.5.0 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
+
+  There are two notable new features:
+
+  * The 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+    With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
+    In some setups, and some attack scenarios, this can make a serious performance difference.
+    Many thanks to Chris Hofstaedtler for implementing this.
+  * Priority ordering in the AXFR queue in PowerDNS running as a secondary.
+    Some users with a lot of domains (>100k) sometimes found real changes waiting behind signature refreshes on Thursdays.
+    With the new ordering, those real changes can 'skip the line' and get deployed on your secondaries faster.
+    Many thanks to Robin Geuze for implementing this.
+
+  Since 4.5.0-beta1, the zone cache is enabled by default.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10552
+
+    bindbackend: purge caches on zone reload; store nsec3 settings at zone load
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10551
+
+    Use correct TTL when caching responses from backends (Robin Geuze)
+
+.. changelog::
   :version: 4.5.0-rc1
   :released: 25th of June 2021
 
