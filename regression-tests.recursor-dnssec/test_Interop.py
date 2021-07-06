@@ -121,7 +121,6 @@ forward-zones+=undelegated.insecure.example=%s.12
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], [])
 
-
     def testNonApexDNSKEY(self):
         """
         a DNSKEY not at the apex of a zone should not be treated as a DNSKEY in validation
@@ -151,6 +150,76 @@ forward-zones+=undelegated.insecure.example=%s.12
             cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
+
+class testInteropProcess(RecursorTest):
+    _confdir = 'InteropProcess'
+
+    _config_template = """dnssec=process
+packetcache-ttl=0 # explicitly disable packetcache
+forward-zones=undelegated.secure.example=%s.12
+forward-zones+=undelegated.insecure.example=%s.12
+    """ % (os.environ['PREFIX'], os.environ['PREFIX'])
+
+    def testNonApexDNSKEY2(self):
+        """
+        a DNSKEY not at the apex of a zone should not be treated as a DNSKEY in validation,
+        even when it was cached with Indeterminate validation state before
+        """
+
+        # send the query with +CD so the record ends up cached with Indeterminate validation state
+        query = dns.message.make_query('non-apex-dnskey2.secure.example.', 'DNSKEY')
+        query.flags |= dns.flags.CD
+
+        res = self.sendUDPQuery(query)
+        print(res)
+        expectedDNSKEY = dns.rrset.from_text('non-apex-dnskey2.secure.example.', 0, dns.rdataclass.IN, 'DNSKEY', '256 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==')
+
+        self.assertRRsetInAnswer(res, expectedDNSKEY)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'CD'], [])
+
+        # now ask again with +AD so it has to be validated from cache
+        query = dns.message.make_query('non-apex-dnskey2.secure.example.', 'DNSKEY')
+        query.flags |= dns.flags.AD
+
+        res = self.sendUDPQuery(query)
+        print(res)
+        expectedDNSKEY = dns.rrset.from_text('non-apex-dnskey2.secure.example.', 0, dns.rdataclass.IN, 'DNSKEY', '256 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==')
+
+        self.assertRRsetInAnswer(res, expectedDNSKEY)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], [])
+
+    def testNonApexDNSKEYANYQuery(self):
+        """
+        a DNSKEY not at the apex of a zone should not be treated as a DNSKEY in validation,
+        even when it was cached with Indeterminate validation state before.
+        This code tests the ANY path which is separate from the qtype=DNSKEY path tested in testNonApexDNSKEY2
+        """
+
+        # send the query with +CD so the record ends up cached with Indeterminate validation state
+        query = dns.message.make_query('non-apex-dnskey3.secure.example.', 'DNSKEY')
+        query.flags |= dns.flags.CD
+
+        res = self.sendUDPQuery(query)
+        print(res)
+        expectedDNSKEY = dns.rrset.from_text('non-apex-dnskey3.secure.example.', 0, dns.rdataclass.IN, 'DNSKEY', '256 3 13 DT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==')
+
+        self.assertRRsetInAnswer(res, expectedDNSKEY)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'CD'], [])
+
+        # now ask again with +AD so it has to be validated from cache
+        query = dns.message.make_query('non-apex-dnskey3.secure.example.', 'ANY')
+        query.flags |= dns.flags.AD
+
+        res = self.sendUDPQuery(query)
+        print(res)
+        expectedDNSKEY = dns.rrset.from_text('non-apex-dnskey3.secure.example.', 0, dns.rdataclass.IN, 'DNSKEY', '256 3 13 DT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==')
+
+        self.assertRRsetInAnswer(res, expectedDNSKEY)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], [])
 
 class UDPResponder(DatagramProtocol):
     def datagramReceived(self, datagram, address):
