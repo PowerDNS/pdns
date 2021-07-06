@@ -98,7 +98,33 @@ class PDNSPBConnHandler(object):
         elif polType == dnsmessage_pb2.PBDNSMessage.NSIP:
             return 'NS IP'
 
+    @staticmethod
+    def getEventAsString(event):
+        descr =  dnsmessage_pb2.PBDNSMessage.DESCRIPTOR
+        return descr.EnumValueName('EventType', event);
+
     def printResponse(self, message):
+        if message.trace:
+            print("- Event Trace:")
+            for event in message.trace:
+                ev = self.getEventAsString(event.event) + '(' + str(event.ts)
+                valstr = ''
+                if event.HasField('boolVal'):
+                      valstr = str(event.boolVal)
+                elif event.HasField('intVal'):
+                      valstr = str(event.intVal)
+                elif event.HasField('stringVal'):
+                      valstr = event.stringVal
+                elif event.HasField('bytesVal'):
+                      valstr = binascii.hexlify(event.bytesVal)
+                if len(valstr) > 0:
+                    valstr = ',' + valstr
+                if not event.start:
+                    startstr = ',done'
+                else:
+                    startstr = ''
+                print("\t- %s%s%s)" % (ev, valstr, startstr))
+
         if message.HasField('response'):
             response = message.response
 

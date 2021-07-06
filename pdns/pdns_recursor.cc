@@ -1068,7 +1068,8 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
                                 bool tcp, const ComboAddress& source, const ComboAddress& destination,
                                 const EDNSSubnetOpts& ednssubnet,
                                 const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
-                                const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
+                                const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
+                                const RecEventTrace& eventTrace)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
   // Normally we take the immutable string from the cache and append a few values, but if it's not there (can this happen?)
@@ -1110,6 +1111,9 @@ static void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<Lua
     pbMessage.setNewlyObservedDomain(false);
   }
 #endif
+  if (eventTrace.enabled()) {
+    pbMessage.addEvents(eventTrace);
+  }
   protobufLogResponse(pbMessage);
 }
 
@@ -2269,6 +2273,9 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
+      if (sr.d_eventTrace.enabled()) {
+        pbMessage.addEvents(sr.d_eventTrace);
+      }
       if (dc->d_logResponse) {
         protobufLogResponse(pbMessage);
       }
@@ -2852,7 +2859,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if (cacheHit) {
           if (t_protobufServers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
             struct timeval tv{0, 0};
-            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
+            protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
           }
 
           if (!g_quiet) {
@@ -2866,6 +2873,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           uint64_t spentUsec = uSec(now - start);
           g_stats.cumulativeAnswers(spentUsec);
           dc->d_eventTrace.add(RecEventTrace::AnswerSent);
+
+          // Protobuf sending shoudl be here...
+
           if (dc->d_eventTrace.enabled()) {
             g_log << Logger::Info << dc->d_eventTrace.toString() << endl;
           }
@@ -3098,7 +3108,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
     if (cacheHit) {
       if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta);
+        protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
       }
 
       if (!g_quiet) {
@@ -3115,6 +3125,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
       int sendErr = sendOnNBSocket(fd, &msgh);
       eventTrace.add(RecEventTrace::AnswerSent);
+
+      // Protobuf sending should be here...
+ 
       if (eventTrace.enabled()) {
         g_log << Logger::Info << eventTrace.toString() << endl;
       }

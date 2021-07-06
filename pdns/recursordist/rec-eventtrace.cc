@@ -26,8 +26,7 @@
     M, #M            \
   }
 
-const std::map<RecEventTrace::EventType, std::string> RecEventTrace::s_eventNames = {
-  NameEntry(Processing),
+const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s_eventNames = {
   NameEntry(RecRecv),
   NameEntry(DistPipe),
   NameEntry(PCacheCheck),
@@ -41,4 +40,6 @@ const std::map<RecEventTrace::EventType, std::string> RecEventTrace::s_eventName
   NameEntry(LuaPreOutQuery),
   NameEntry(LuaPostResolve),
   NameEntry(LuaNoData),
-  NameEntry(LuaNXDomain)};
+  NameEntry(LuaNXDomain)
+};
+

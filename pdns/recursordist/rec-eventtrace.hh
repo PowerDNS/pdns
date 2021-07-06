@@ -22,8 +22,13 @@
 #pragma once
 
 #include "namespaces.hh"
+#include "misc.hh"
+#include "noinitvector.hh"
+
+#include <protozero/pbf_writer.hpp>
 #include <optional>
 #include <time.h>
+#include <unordered_map>
 #include <variant>
 
 class RecEventTrace
@@ -32,24 +37,23 @@ public:
   enum EventType : uint8_t
   {
     // Don't forget to add a new entry to the table in the .cc file!
-    Processing = 1,
-    RecRecv = 2,
-    DistPipe = 3,
-    PCacheCheck = 4,
-    SyncRes = 5,
-    AnswerSent = 6,
-    LuaGetTag = 50,
-    LuaGetTagFFI = 51,
-    LuaIPFilter = 52,
-    LuaPreRPZ = 53,
-    LuaPreResolve = 54,
-    LuaPreOutQuery = 55,
-    LuaPostResolve = 56,
-    LuaNoData = 57,
-    LuaNXDomain = 58
+    RecRecv = 1,
+    DistPipe = 2,
+    PCacheCheck = 3 ,
+    SyncRes = 4,
+    AnswerSent = 5,
+    LuaGetTag = 100,
+    LuaGetTagFFI = 101,
+    LuaIPFilter = 102,
+    LuaPreRPZ = 103,
+    LuaPreResolve = 104,
+    LuaPreOutQuery = 105,
+    LuaPostResolve = 106,
+    LuaNoData = 107,
+    LuaNXDomain = 108,
   };
 
-  static const std::map<EventType, std::string> s_eventNames;
+  static const std::unordered_map<EventType, std::string> s_eventNames;
 
   RecEventTrace()
   {
@@ -63,6 +67,7 @@ public:
   {
     old.d_status = Invalid;
   }
+
   RecEventTrace(RecEventTrace&& old) :
     d_events(std::move(old.d_events)),
     d_base(old.d_base),
@@ -70,6 +75,7 @@ public:
   {
     old.d_status = Invalid;
   }
+  
   RecEventTrace& operator=(const RecEventTrace& old) = delete;
   RecEventTrace& operator=(RecEventTrace&& old)
   {
@@ -80,7 +86,8 @@ public:
     return *this;
   }
 
-  typedef std::variant<std::nullopt_t, bool, int32_t, uint32_t, std::string> Value_t;
+  // We distinguisg beteen string and byres. Does not amtter in C++, but in Go, .Java etc it does
+  typedef std::variant<std::nullopt_t, bool, int64_t, std::string, PacketBuffer> Value_t;
 
   static std::string toString(const EventType v)
   {
@@ -95,21 +102,22 @@ public:
     else if (std::holds_alternative<bool>(v)) {
       return std::to_string(std::get<bool>(v));
     }
-    else if (std::holds_alternative<int32_t>(v)) {
-      return std::to_string(std::get<int32_t>(v));
-    }
-    else if (std::holds_alternative<uint32_t>(v)) {
-      return std::to_string(std::get<uint32_t>(v));
+    else if (std::holds_alternative<int64_t>(v)) {
+      return std::to_string(std::get<int64_t>(v));
     }
     else if (std::holds_alternative<std::string>(v)) {
       return std::get<std::string>(v);
+    }
+    else if (std::holds_alternative<PacketBuffer>(v)) {
+      const PacketBuffer& p = std::get<PacketBuffer>(v);
+      return makeHexDump(std::string(reinterpret_cast<const char*>(p.data()), p.size()));
     }
     return "?";
   }
 
   struct Entry
   {
-    Entry(Value_t& v, EventType e, bool start, uint32_t ts) :
+    Entry(Value_t& v, EventType e, bool start, uint64_t ts) :
       d_value(v), d_ts(ts), d_event(e), d_start(start)
     {
     }
@@ -197,6 +205,11 @@ public:
     return ret;
   }
 
+  const std::vector<Entry>& getEvents() const
+  {
+    return d_events;
+  }
+  
 private:
   std::vector<Entry> d_events;
   uint64_t d_base;
