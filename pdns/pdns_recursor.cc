@@ -2780,6 +2780,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             try {
               if (t_pdl->d_gettag_ffi) {
                 RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra, dc->d_responsePaddingDisabled, dc->d_meta);
+                dc->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
                 dc->d_tag = t_pdl->gettag_ffi(params);
                 dc->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, dc->d_tag, false);
               }
@@ -3094,6 +3095,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
             if (t_pdl->d_gettag_ffi) {
               RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
 
+              eventTrace.add(RecEventTrace::LuaGetTagFFI);
               ctag = t_pdl->gettag_ffi(params);
               eventTrace.add(RecEventTrace::LuaGetTagFFI, ctag, false);
             }
