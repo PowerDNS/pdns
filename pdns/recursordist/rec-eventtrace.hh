@@ -39,7 +39,7 @@ public:
     // Don't forget to add a new entry to the table in the .cc file!
     RecRecv = 1,
     DistPipe = 2,
-    PCacheCheck = 3 ,
+    PCacheCheck = 3,
     SyncRes = 4,
     AnswerSent = 5,
     LuaGetTag = 100,
@@ -75,7 +75,7 @@ public:
   {
     old.d_status = Invalid;
   }
-  
+
   RecEventTrace& operator=(const RecEventTrace& old) = delete;
   RecEventTrace& operator=(RecEventTrace&& old)
   {
@@ -165,6 +165,17 @@ public:
     add(e, Value_t(std::nullopt), true);
   }
 
+  // We store uint32 in an int64_t
+  void add(EventType e, uint32_t v, bool start)
+  {
+    add(e, static_cast<int64_t>(v), start);
+  }
+  // We store int32 in an int64_t
+  void add(EventType e, int32_t v, bool start)
+  {
+    add(e, static_cast<int64_t>(v), start);
+  }
+
   template <class T>
   void add(EventType e, T v, bool start)
   {
@@ -209,7 +220,7 @@ public:
   {
     return d_events;
   }
-  
+
 private:
   std::vector<Entry> d_events;
   uint64_t d_base;

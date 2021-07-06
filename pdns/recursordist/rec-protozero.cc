@@ -137,4 +137,3 @@ void pdns::ProtoZero::RecMessage::addEvents(const RecEventTrace& trace)
     }
   }
 }
-
