@@ -40,6 +40,4 @@ const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s
   NameEntry(LuaPreOutQuery),
   NameEntry(LuaPostResolve),
   NameEntry(LuaNoData),
-  NameEntry(LuaNXDomain)
-};
-
+  NameEntry(LuaNXDomain)};
