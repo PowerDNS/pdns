@@ -6,3 +6,6 @@ Makefile.docker
 **/venv
 **/*.1
 !.git
+*.o
+*.la
+*.a
