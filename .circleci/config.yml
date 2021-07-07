@@ -90,6 +90,7 @@ commands:
               gawk \
               git \
               ldnsutils \
+              libfaketime \
               libnet-dns-perl \
               pdns-recursor \
               socat \
@@ -731,7 +732,7 @@ jobs:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
 
-  test-auth-regress-gsqlite3:
+  test-auth-regress-gsqlite3-and-nobackend:
     resource_class: small
 
     docker:
@@ -754,6 +755,21 @@ jobs:
           context: gsqlite3-nsec3-optout-both
       - auth-regress:
           context: gsqlite3-nsec3-narrow
+      - run: apt-get -y -qq install python3-venv
+      - run: apt-get -y -qq install net-tools iproute2 && netstat -plan && ip a
+      - run:
+          name: Run nobackend tests
+          workdir: ~/project/regression-tests.nobackend
+          command: |
+            PDNS="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            SAXFR="/opt/pdns-auth/bin/saxfr" \
+            ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
+            NOTIFY="/opt/pdns-auth/bin/pdns_notify" \
+            NSEC3DIG="/opt/pdns-auth/bin/nsec3dig" \
+            PDNSCONTROL="/opt/pdns-auth/bin/pdns_control" \
+            ./runtests
 
   test-auth-regress-bind:
     resource_class: small
@@ -2170,7 +2186,7 @@ workflows:
       - test-auth-regress-lua2:
           requires:
             - build-auth
-      - test-auth-regress-gsqlite3:
+      - test-auth-regress-gsqlite3-and-nobackend:
           requires:
             - build-auth
       - test-auth-regress-gpgsql:
