@@ -23,14 +23,14 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   ComboAddress lc("127.0.0.1:53");
   ComboAddress rem("192.0.2.1:42");
   PacketBuffer packet(sizeof(dnsheader));
-  bool isTcp = false;
+  auto proto = DNSQuestion::Protocol::DoUDP;
   struct timespec queryRealTime;
   gettime(&queryRealTime, true);
   struct timespec expiredTime;
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, packet, proto, &queryRealTime);
 
   for (size_t idx = 0; idx < maxQPS; idx++) {
     /* let's use different source ports, it shouldn't matter */

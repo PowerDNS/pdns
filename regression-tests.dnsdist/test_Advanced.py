@@ -2148,3 +2148,50 @@ class TestAdvancedDropEmptyQueries(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, None)
+
+class TestProtocols(DNSDistTest):
+    _config_template = """
+    function checkUDP(dq)
+      if dq:getProtocol() ~= "Do53 UDP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    function checkTCP(dq)
+      if dq:getProtocol() ~= "Do53 TCP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    addAction("udp.protocols.advanced.tests.powerdns.com.", LuaAction(checkUDP))
+    addAction("tcp.protocols.advanced.tests.powerdns.com.", LuaAction(checkTCP))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testProtocolUDP(self):
+        """
+        Advanced: Test DNSQuestion.Protocol over UDP
+        """
+        name = 'udp.protocols.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+
+    def testProtocolTCP(self):
+        """
+        Advanced: Test DNSQuestion.Protocol over TCP
+        """
+        name = 'tcp.protocols.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)

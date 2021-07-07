@@ -448,7 +448,7 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
   std::string remote = dq.remote->toString();
   std::string qname = dq.qname->toStringNoDot();
   const uint32_t socketFamily = dq.remote->isIPv4() ? 1 : 2;
-  const uint32_t socketProtocol = dq.tcp ? 2 : 1;
+  const uint32_t socketProtocol = dq.overTCP() ? 2 : 1;
   const uint32_t queryType = dq.getHeader()->qr ? 2 : 1;
   const uint32_t querySize = (uint32_t) dq.getData().size();
   const uint32_t queryID = (uint32_t) ntohs(dq.getHeader()->id);

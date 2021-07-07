@@ -62,7 +62,7 @@ static void validateECS(const PacketBuffer& packet, const ComboAddress& expected
   uint16_t qtype;
   uint16_t qclass;
   DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-  DNSQuestion dq(&qname, qtype, qclass, nullptr, &rem, const_cast<PacketBuffer&>(packet), false, nullptr);
+  DNSQuestion dq(&qname, qtype, qclass, nullptr, &rem, const_cast<PacketBuffer&>(packet), DNSQuestion::Protocol::DoUDP, nullptr);
   BOOST_CHECK(parseEDNSOptions(dq));
   BOOST_REQUIRE(dq.ednsOptions != nullptr);
   BOOST_CHECK_EQUAL(dq.ednsOptions->size(), 1U);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_addXPF)
     BOOST_CHECK_EQUAL(qname, name);
     BOOST_CHECK(qtype == QType::A);
 
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     BOOST_CHECK(addXPF(dq, xpfOptionCode));
     BOOST_CHECK(packet.size() > query.size());
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_addXPF)
     BOOST_CHECK_EQUAL(qname, name);
     BOOST_CHECK(qtype == QType::A);
 
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     BOOST_REQUIRE(!addXPF(dq, xpfOptionCode));
     BOOST_CHECK_EQUAL(packet.size(), 4096U);
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(test_addXPF)
     BOOST_CHECK_EQUAL(qname, name);
     BOOST_CHECK(qtype == QType::A);
 
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     /* add trailing data */
     const size_t trailingDataSize = 10;
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
   BOOST_CHECK(qtype == QType::A);
   BOOST_CHECK(qclass == QClass::IN);
 
-  DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+  DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
   /* Parse the options before handling ECS, simulating a Lua rule asking for EDNS Options */
   BOOST_CHECK(!parseEDNSOptions(dq));
 
@@ -360,7 +360,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
   BOOST_CHECK(qclass == QClass::IN);
-  DNSQuestion dq2(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+  DNSQuestion dq2(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
 
   BOOST_CHECK(handleEDNSClientSubnet(dq2, ednsAdded, ecsAdded));
   BOOST_CHECK_GT(packet.size(), query.size());
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECSAlreadyParsed) {
   BOOST_CHECK(qtype == QType::A);
   BOOST_CHECK(qclass == QClass::IN);
 
-  DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+  DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
   /* Parse the options before handling ECS, simulating a Lua rule asking for EDNS Options */
   BOOST_CHECK(parseEDNSOptions(dq));
 
@@ -461,7 +461,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECSAlreadyParsed) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
   BOOST_CHECK(qclass == QClass::IN);
-  DNSQuestion dq2(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+  DNSQuestion dq2(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
 
   BOOST_CHECK(handleEDNSClientSubnet(dq2, ednsAdded, ecsAdded));
   BOOST_CHECK_GT(packet.size(), query.size());
@@ -537,7 +537,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSizeAlreadyParsed) {
   BOOST_CHECK(qtype == QType::A);
   BOOST_CHECK(qclass == QClass::IN);
 
-  DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+  DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
   dq.ecsOverride = true;
 
   /* Parse the options before handling ECS, simulating a Lua rule asking for EDNS Options */
@@ -1430,7 +1430,7 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenLastOption) {
 
 static DNSQuestion getDNSQuestion(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& lc, const ComboAddress& rem, const struct timespec& realTime, PacketBuffer& query)
 {
-  return DNSQuestion(&qname, qtype, qclass, &lc, &rem, query, false, &realTime);
+  return DNSQuestion(&qname, qtype, qclass, &lc, &rem, query, DNSQuestion::Protocol::DoUDP, &realTime);
 }
 
 static DNSQuestion turnIntoResponse(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& lc, const ComboAddress& rem, const struct timespec& queryRealTime, PacketBuffer&  query, bool resizeBuffer=true)
@@ -1933,7 +1933,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     unsigned int consumed = 0;
     uint16_t qtype;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
     BOOST_CHECK(packet.size() > query.size());
@@ -1957,7 +1957,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     unsigned int consumed = 0;
     uint16_t qtype;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     BOOST_CHECK(setNegativeAndAdditionalSOA(dq, true, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
     BOOST_CHECK(packet.size() > queryWithEDNS.size());
@@ -1985,7 +1985,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     unsigned int consumed = 0;
     uint16_t qtype;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
     BOOST_CHECK(packet.size() > query.size());
@@ -2009,7 +2009,7 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA) {
     unsigned int consumed = 0;
     uint16_t qtype;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
-    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, false, &queryTime);
+    DNSQuestion dq(&qname, qtype, QClass::IN, &remote, &remote, packet, DNSQuestion::Protocol::DoUDP, &queryTime);
 
     BOOST_CHECK(setNegativeAndAdditionalSOA(dq, false, DNSName("zone."), 42, DNSName("mname."), DNSName("rname."), 1, 2, 3, 4 , 5));
     BOOST_CHECK(packet.size() > queryWithEDNS.size());
@@ -2050,7 +2050,7 @@ BOOST_AUTO_TEST_CASE(getEDNSOptionsWithoutEDNS) {
     uint16_t qtype;
     uint16_t qclass;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+    DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
 
     BOOST_CHECK(!parseEDNSOptions(dq));
   }
@@ -2071,7 +2071,7 @@ BOOST_AUTO_TEST_CASE(getEDNSOptionsWithoutEDNS) {
     uint16_t qtype;
     uint16_t qclass;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+    DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
 
     BOOST_CHECK(!parseEDNSOptions(dq));
   }
@@ -2092,7 +2092,7 @@ BOOST_AUTO_TEST_CASE(getEDNSOptionsWithoutEDNS) {
     uint16_t qtype;
     uint16_t qclass;
     DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, false, nullptr);
+    DNSQuestion dq(&qname, qtype, qclass, nullptr, &remote, packet, DNSQuestion::Protocol::DoUDP, nullptr);
 
     BOOST_CHECK(!parseEDNSOptions(dq));
   }

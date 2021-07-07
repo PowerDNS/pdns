@@ -181,7 +181,7 @@ TeeAction::~TeeAction()
 
 DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
-  if (dq->tcp) {
+  if (dq->overTCP()) {
     d_tcpdrops++;
   }
   else {
@@ -1043,6 +1043,28 @@ private:
   bool d_hasV6;
 };
 
+static DnstapMessage::ProtocolType ProtocolToDNSTap(DNSQuestion::Protocol protocol)
+{
+  DnstapMessage::ProtocolType result;
+  switch (protocol) {
+  default:
+  case DNSQuestion::Protocol::DoUDP:
+  case DNSQuestion::Protocol::DNSCryptUDP:
+    result = DnstapMessage::ProtocolType::DoUDP;
+    break;
+  case DNSQuestion::Protocol::DoTCP:
+  case DNSQuestion::Protocol::DNSCryptTCP:
+    result = DnstapMessage::ProtocolType::DoTCP;
+    break;
+  case DNSQuestion::Protocol::DoT:
+    result = DnstapMessage::ProtocolType::DoT;
+    break;
+  case DNSQuestion::Protocol::DoH:
+    result = DnstapMessage::ProtocolType::DoH;
+    break;
+  }
+  return result;
+}
 
 class DnstapLogAction : public DNSAction, public boost::noncopyable
 {
@@ -1056,7 +1078,8 @@ public:
     static thread_local std::string data;
     data.clear();
 
-    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
+    DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dq->getProtocol());
+    DnstapMessage message(data, !dq->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, dq->remote, dq->local, protocol, reinterpret_cast<const char*>(dq->getData().data()), dq->getData().size(), dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1189,7 +1212,8 @@ public:
     gettime(&now, true);
     data.clear();
 
-    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
+    DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dr->getProtocol());
+    DnstapMessage message(data, DnstapMessage::MessageType::client_response, d_identity, dr->remote, dr->local, protocol, reinterpret_cast<const char*>(dr->getData().data()), dr->getData().size(), dr->queryTime, &now);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
