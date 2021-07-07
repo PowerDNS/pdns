@@ -906,4 +906,111 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nxd_ds)
   BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_loop)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  /* Generate key material for "powerdns.com." */
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  dcke->create(dcke->getBits());
+  DNSSECPrivateKey key;
+  key.d_flags = 257;
+  key.setKey(std::move(dcke));
+  DSRecordContent drc = makeDSFromDNSKey(DNSName("powerdns.com."), key.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+
+  testkeysset_t wrongKeys;
+  auto wrongDcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  wrongDcke->create(wrongDcke->getBits());
+  DNSSECPrivateKey wrongKey;
+  wrongKey.d_flags = 256;
+  wrongKey.setKey(std::move(wrongDcke));
+  DSRecordContent uselessdrc = makeDSFromDNSKey(DNSName("powerdns.com."), wrongKey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+
+  wrongKeys[DNSName("powerdns.com.")] = std::pair<DNSSECPrivateKey, DSRecordContent>(wrongKey, uselessdrc);
+  keys[DNSName("powerdns.com.")] = std::pair<DNSSECPrivateKey, DSRecordContent>(key, drc);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([targetAddr, &queriesCount, keys, wrongKeys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    if (type == QType::DS) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+    else if (type == QType::DNSKEY) {
+      if (domain == DNSName("powerdns.com.")) {
+        /* wrong DNSKEY */
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, wrongKeys);
+      }
+      else {
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      }
+    }
+    else {
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName("com."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        if (domain.isPartOf(DNSName("powerdns.com."))) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addDS(DNSName("powerdns.com."), 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return LWResult::Result::Success;
+        }
+      }
+      else if (ip == ComboAddress("192.0.2.2:53")) {
+        if (domain == DNSName("www.powerdns.com.")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
+          return LWResult::Result::Success;
+        }
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  /* first we do a query in the parent zone (powerdns.com), insecure,
+     to get the NS in cache so we don't learn the zone cut before
+     validating */
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(DNSName("www.powerdns.com."), QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidDNSKEY);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret.at(0).d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(DNSName("www.powerdns.com."), QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidDNSKEY);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
