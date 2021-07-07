@@ -2863,7 +2863,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
         return state;
       }
       /* try again to get the missed cuts, harder this time */
-      LOG(d_prefix<<"checking whether we missed a zone cut for "<<signer<<" before returning a Bogus state for "<<name<<"|"<<type.toString()<<endl);
+      LOG(d_prefix<<"checking whether we missed a zone cut for "<<signer<<" before returning a Bogus state for "<<name<<"|"<<type.getName()<<endl);
       auto zState = getValidationStatus(signer, false, dsFailed, depth);
       if (zState == vState::Secure) {
         /* too bad */
