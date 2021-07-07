@@ -635,6 +635,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         dh->id = ids->origID;
 
         DNSResponse dr = makeDNSResponseFromIDState(*ids, response, false);
+        dr.du = du;
         if (dh->tc && g_truncateTC) {
           truncateTC(response, dr.getMaximumSize(), qnameWireLength);
         }
@@ -646,6 +647,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         if (ids->cs && !ids->cs->muted) {
           if (du) {
+            dr.du = nullptr;
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
             du->response = std::move(response);
