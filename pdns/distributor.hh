@@ -101,8 +101,8 @@ public:
     }
 
     Question Q;
-    callback_t callback;
-    int id;
+    callback_t callback{nullptr};
+    int id{0};
   };
 
   bool isOverloaded() override
@@ -181,6 +181,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
 // start of a new thread
 template<class Answer, class Question, class Backend>void MultiThreadDistributor<Answer,Question,Backend>::distribute(int ournum)
 {
+  // this is the longest name we can use, not a typo
   setThreadName("pdns/distributo");
 
   try {

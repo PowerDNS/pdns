@@ -46,7 +46,7 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
     return;
   
   // failure to raise is not fatal
-  setsockopt(fd, SOL_SOCKET, optname, (const void*)&size, sizeof(size));
+  (void)setsockopt(fd, SOL_SOCKET, optname, (const void*)&size, sizeof(size));
 }
 
 
