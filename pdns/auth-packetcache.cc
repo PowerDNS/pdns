@@ -43,24 +43,10 @@ AuthPacketCache::AuthPacketCache(size_t mapsCount): d_maps(mapsCount), d_lastcle
   d_statnumentries=S.getPointer("packetcache-size");
 }
 
-AuthPacketCache::~AuthPacketCache()
-{
-  try {
-    vector<WriteLock> locks;
-    for(auto& mc : d_maps) {
-      locks.push_back(WriteLock(mc.d_mut));
-    }
-    locks.clear();
-  }
-  catch(...) {
-  }
-}
-
 void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
 {
 #if BOOST_VERSION >= 105600
-  WriteLock wl(&d_mut);
-  d_map.get<HashTag>().reserve(numberOfEntries);
+  d_map.write_lock()->get<HashTag>().reserve(numberOfEntries);
 #endif /* BOOST_VERSION >= 105600 */
 }
 
@@ -80,13 +66,13 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
   time_t now = time(nullptr);
   auto& mc = getMap(p.qdomain);
   {
-    TryReadLock rl(&mc.d_mut);
-    if(!rl.gotIt()) {
+    auto map = mc.d_map.try_read_lock();
+    if (!map.owns_lock()) {
       S.inc("deferred-packetcache-lookup");
       return false;
     }
 
-    haveSomething = getEntryLocked(mc.d_map, p.getString(), hash, p.qdomain, p.qtype.getCode(), p.d_tcp, now, value);
+    haveSomething = getEntryLocked(*map, p.getString(), hash, p.qdomain, p.qtype.getCode(), p.d_tcp, now, value);
   }
 
   if (!haveSomething) {
@@ -146,13 +132,13 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   
   auto& mc = getMap(entry.qname);
   {
-    TryWriteLock l(&mc.d_mut);
-    if (!l.gotIt()) {
+    auto map = mc.d_map.try_write_lock();
+    if (!map.owns_lock()) {
       S.inc("deferred-packetcache-inserts");
       return;
     }
 
-    auto& idx = mc.d_map.get<HashTag>();
+    auto& idx = map->get<HashTag>();
     auto range = idx.equal_range(hash);
     auto iter = range.first;
 
@@ -161,7 +147,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
         continue;
       }
 
-      moveCacheItemToBack<SequencedTag>(mc.d_map, iter);
+      moveCacheItemToBack<SequencedTag>(*map, iter);
       iter->value = entry.value;
       iter->ttd = now + ourttl;
       iter->created = now;
@@ -169,11 +155,11 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
     }
 
     /* no existing entry found to refresh */
-    mc.d_map.insert(std::move(entry));
+    map->insert(std::move(entry));
 
     if (*d_statnumentries >= d_maxEntries) {
       /* remove the least recently inserted or replaced entry */
-      auto& sidx = mc.d_map.get<SequencedTag>();
+      auto& sidx = map->get<SequencedTag>();
       sidx.pop_front();
     }
     else {
@@ -182,7 +168,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   }
 }
 
-bool AuthPacketCache::getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& value)
+bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& value)
 {
   auto& idx = map.get<HashTag>();
   auto range = idx.equal_range(hash);

@@ -107,7 +107,16 @@ typedef std::map<std::string, StatsMapEntry, PrefixDashNumberCompare> StatsMap;
 
 StatsMap getAllStatsMap(StatComponent component);
 
-extern std::mutex g_carbon_config_lock;
+struct CarbonConfig
+{
+  std::string hostname;
+  std::string instance_name;
+  std::string namespace_name;
+  std::vector<std::string> servers;
+};
+
+extern GlobalStateHolder<CarbonConfig> g_carbonConfig;
+
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetBogusQueryRing();

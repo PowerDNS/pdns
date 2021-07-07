@@ -44,24 +44,10 @@ AuthQueryCache::AuthQueryCache(size_t mapsCount): d_maps(mapsCount), d_lastclean
   d_statnumentries=S.getPointer("query-cache-size");
 }
 
-AuthQueryCache::~AuthQueryCache()
-{
-  try {
-    vector<WriteLock> locks;
-    for(auto& mc : d_maps) {
-      locks.push_back(WriteLock(mc.d_mut));
-    }
-    locks.clear();
-  }
-  catch(...) {
-  }
-}
-
 void AuthQueryCache::MapCombo::reserve(size_t numberOfEntries)
 {
 #if BOOST_VERSION >= 105600
-  WriteLock wl(&d_mut);
-  d_map.get<HashTag>().reserve(numberOfEntries);
+  d_map.write_lock()->get<HashTag>().reserve(numberOfEntries);
 #endif /* BOOST_VERSION >= 105600 */
 }
 
@@ -74,13 +60,13 @@ bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<D
   uint16_t qt = qtype.getCode();
   auto& mc = getMap(qname);
   {
-    TryReadLock rl(&mc.d_mut);
-    if(!rl.gotIt()) {
+    auto map = mc.d_map.try_read_lock();
+    if (!map.owns_lock()) {
       S.inc("deferred-cache-lookup");
       return false;
     }
 
-    return getEntryLocked(mc.d_map, qname, qt, value, zoneID, now);
+    return getEntryLocked(*map, qname, qt, value, zoneID, now);
   }
 }
 
@@ -103,24 +89,24 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNS
   auto& mc = getMap(val.qname);
 
   {
-    TryWriteLock l(&mc.d_mut);
-    if(!l.gotIt()) {
+    auto map = mc.d_map.try_write_lock();
+    if (!map.owns_lock()) {
       S.inc("deferred-cache-inserts"); 
       return;
     }
 
     bool inserted;
     cmap_t::iterator place;
-    tie(place, inserted) = mc.d_map.insert(val);
+    tie(place, inserted) = map->insert(val);
 
     if (!inserted) {
-      mc.d_map.replace(place, std::move(val));
-      moveCacheItemToBack<SequencedTag>(mc.d_map, place);
+      map->replace(place, std::move(val));
+      moveCacheItemToBack<SequencedTag>(*map, place);
     }
     else {
       if (*d_statnumentries >= d_maxEntries) {
         /* remove the least recently inserted or replaced entry */
-        auto& sidx = mc.d_map.get<SequencedTag>();
+        auto& sidx = map->get<SequencedTag>();
         sidx.pop_front();
       }
       else {
@@ -130,7 +116,7 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNS
   }
 }
 
-bool AuthQueryCache::getEntryLocked(cmap_t& map, const DNSName &qname, uint16_t qtype, vector<DNSZoneRecord>& value, int zoneID, time_t now)
+bool AuthQueryCache::getEntryLocked(const cmap_t& map, const DNSName &qname, uint16_t qtype, vector<DNSZoneRecord>& value, int zoneID, time_t now)
 {
   auto& idx = boost::multi_index::get<HashTag>(map);
   auto iter = idx.find(tie(qname, qtype, zoneID));
@@ -155,9 +141,9 @@ map<char,uint64_t> AuthQueryCache::getCounts()
   uint64_t queryCacheEntries=0, negQueryCacheEntries=0;
 
   for(auto& mc : d_maps) {
-    ReadLock l(&mc.d_mut);
+    auto map = mc.d_map.read_lock();
     
-    for(const auto & iter : mc.d_map) {
+    for(const auto & iter : *map) {
       if(iter.drs.empty())
         negQueryCacheEntries++;
       else

@@ -25,6 +25,7 @@
 #include <thread>
 #include <boost/filesystem.hpp>
 #include "dnsname.hh"
+#include "lock.hh"
 #include "stable-bloom.hh"
 
 namespace nod {
@@ -42,31 +43,28 @@ namespace nod {
   // Synchronization (at the instance level) is needed when snapshotting
   class PersistentSBF {
   public:
-    PersistentSBF() : d_sbf{c_fp_rate, c_num_cells, c_num_dec} {}
-    PersistentSBF(uint32_t num_cells) : d_sbf{c_fp_rate, num_cells, c_num_dec} {}
+    PersistentSBF() : d_sbf(bf::stableBF(c_fp_rate, c_num_cells, c_num_dec)) {}
+    PersistentSBF(uint32_t num_cells) : d_sbf(bf::stableBF(c_fp_rate, num_cells, c_num_dec)) {}
     bool init(bool ignore_pid=false);
     void setPrefix(const std::string& prefix) { d_prefix = prefix; } // Added to filenames in cachedir
     void setCacheDir(const std::string& cachedir);
     bool snapshotCurrent(std::thread::id tid); // Write the current file out to disk
     void add(const std::string& data) { 
       // The only time this should block is when snapshotting
-      std::lock_guard<std::mutex> lock(d_sbf_mutex);
-      d_sbf.add(data); 
+      d_sbf.lock()->add(data);
     }
-    bool test(const std::string& data) { return d_sbf.test(data); }
+    bool test(const std::string& data) { return d_sbf.lock()->test(data); }
     bool testAndAdd(const std::string& data) { 
       // The only time this should block is when snapshotting
-      std::lock_guard<std::mutex> lock(d_sbf_mutex);
-      return d_sbf.testAndAdd(data); 
+      return d_sbf.lock()->testAndAdd(data);
     }
   private:
     void remove_tmp_files(const boost::filesystem::path&, std::lock_guard<std::mutex>&);
 
     bool d_init{false};
-    bf::stableBF d_sbf; // Stable Bloom Filter
+    LockGuarded<bf::stableBF> d_sbf; // Stable Bloom Filter
     std::string d_cachedir;
     std::string d_prefix = sbf_prefix;
-    std::mutex d_sbf_mutex; // Per-instance mutex for snapshots
     static std::mutex d_cachedir_mutex; // One mutex for all instances of this class
   };
 

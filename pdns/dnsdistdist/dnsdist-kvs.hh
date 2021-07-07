@@ -198,9 +198,8 @@ private:
   void refreshDBIfNeeded(time_t now);
   bool reload(const struct stat& st);
 
-  std::unique_ptr<CDB> d_cdb{nullptr};
+  SharedLockGuarded<std::unique_ptr<CDB>> d_cdb{nullptr};
   std::string d_fname;
-  ReadWriteLock d_lock;
   time_t d_mtime{0};
   time_t d_nextCheck{0};
   time_t d_refreshDelay{0};

@@ -47,16 +47,17 @@ void CommunicatorClass::retrievalLoopThread()
     d_suck_sem.wait();
     SuckRequest sr;
     {
-      std::lock_guard<std::mutex> l(d_lock);
-      if(d_suckdomains.empty()) 
+      auto data = d_data.lock();
+      if (data->d_suckdomains.empty()) {
         continue;
+      }
 
-      auto firstItem = d_suckdomains.begin();
+      auto firstItem = data->d_suckdomains.begin();
         
       sr=*firstItem;
-      d_suckdomains.erase(firstItem);
-      if (d_suckdomains.empty()) {
-        d_sorthelper = 0;
+      data->d_suckdomains.erase(firstItem);
+      if (data->d_suckdomains.empty()) {
+        data->d_sorthelper = 0;
       }
     }
     suck(sr.domain, sr.master, sr.force);
@@ -141,9 +142,10 @@ void CommunicatorClass::mainloop()
           bool extraSlaveRefresh = false;
           Utility::sleep(1);
           {
-            std::lock_guard<std::mutex> l(d_lock);
-            if (d_tocheck.size())
+            auto data = d_data.lock();
+            if (data->d_tocheck.size()) {
               extraSlaveRefresh = true;
+            }
           }
           if (extraSlaveRefresh)
             slaveRefresh(&P);

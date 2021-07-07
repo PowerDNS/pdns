@@ -25,7 +25,6 @@
 #include "dnsbackend.hh"
 #include "packethandler.hh"
 #include <vector>
-#include <mutex>
 #include <poll.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -37,6 +36,7 @@
 #include <sys/uio.h>
 #include <sys/select.h>
 
+#include "lock.hh"
 #include "namespaces.hh"
 
 class TCPNameserver
@@ -53,14 +53,12 @@ private:
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote, unsigned int totalTime);
   static int doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock);
   static int doIXFR(std::unique_ptr<DNSPacket>& q, int outsock);
-  static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR);
+  static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler);
   static void doConnection(int fd);
   static void decrementClientCount(const ComboAddress& remote);
   void thread(void);
-  static std::mutex s_plock;
-  static std::mutex s_clientsCountMutex;
-  static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> s_clientsCount;
-  static std::unique_ptr<PacketHandler> s_P;
+  static LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> s_clientsCount;
+  static LockGuarded<std::unique_ptr<PacketHandler>> s_P;
   static std::unique_ptr<Semaphore> d_connectionroom_sem;
   static unsigned int d_maxTCPConnections;
   static NetmaskGroup d_ng;

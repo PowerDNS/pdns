@@ -292,9 +292,8 @@ private:
 
   void addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>& newCert, bool reload=false);
 
-  ReadWriteLock d_lock;
-  std::vector<std::shared_ptr<DNSCryptCertificatePair>> d_certs;
-  std::vector<CertKeyPaths> d_certKeyPaths;
+  SharedLockGuarded<std::vector<std::shared_ptr<DNSCryptCertificatePair>>> d_certs;
+  SharedLockGuarded<std::vector<CertKeyPaths>> d_certKeyPaths;
   DNSName providerName;
 };
 

@@ -48,7 +48,6 @@ class AuthPacketCache : public PacketCache
 {
 public:
   AuthPacketCache(size_t mapsCount=1024);
-  ~AuthPacketCache();
 
   void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
@@ -116,8 +115,7 @@ private:
 
     void reserve(size_t numberOfEntries);
 
-    ReadWriteLock d_mut;
-    cmap_t d_map;
+    SharedLockGuarded<cmap_t> d_map;
   };
 
   vector<MapCombo> d_maps;
@@ -127,7 +125,7 @@ private:
   }
 
   static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
-  bool getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& entry);
+  bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& entry);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};

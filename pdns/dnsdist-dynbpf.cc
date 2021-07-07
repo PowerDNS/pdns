@@ -24,22 +24,22 @@
 bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 {
   bool inserted = false;
-  std::lock_guard<std::mutex> lock(d_mutex);
+  auto data = d_data.lock();
 
-  if (d_excludedSubnets.match(addr)) {
+  if (data->d_excludedSubnets.match(addr)) {
     /* do not add a block for excluded subnets */
     return inserted;
   }
 
-  const container_t::iterator it = d_entries.find(addr);
-  if (it != d_entries.end()) {
+  const container_t::iterator it = data->d_entries.find(addr);
+  if (it != data->d_entries.end()) {
     if (it->d_until < until) {
-      d_entries.replace(it, BlockEntry(addr, until));
+      data->d_entries.replace(it, BlockEntry(addr, until));
     }
   }
   else {
-    d_bpf->block(addr);
-    d_entries.insert(BlockEntry(addr, until));
+    data->d_bpf->block(addr);
+    data->d_entries.insert(BlockEntry(addr, until));
     inserted = true;
   }
   return inserted;
@@ -47,16 +47,16 @@ bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 
 void DynBPFFilter::purgeExpired(const struct timespec& now)
 {
-  std::lock_guard<std::mutex> lock(d_mutex);
+  auto data = d_data.lock();
 
   typedef nth_index<container_t,1>::type ordered_until;
-  ordered_until& ou = get<1>(d_entries);
+  ordered_until& ou = get<1>(data->d_entries);
 
-  for (ordered_until::iterator it=ou.begin(); it != ou.end(); ) {
+  for (ordered_until::iterator it = ou.begin(); it != ou.end(); ) {
     if (it->d_until < now) {
       ComboAddress addr = it->d_addr;
       it = ou.erase(it);
-      d_bpf->unblock(addr);
+      data->d_bpf->unblock(addr);
     }
     else {
       break;
@@ -67,18 +67,19 @@ void DynBPFFilter::purgeExpired(const struct timespec& now)
 std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > DynBPFFilter::getAddrStats()
 {
   std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > result;
-  if (!d_bpf) {
+  auto data = d_data.lock();
+
+  if (!data->d_bpf) {
     return result;
   }
 
-  const auto& stats = d_bpf->getAddrStats();
+  const auto& stats = data->d_bpf->getAddrStats();
   result.reserve(stats.size());
   for (const auto& stat : stats) {
-    const container_t::iterator it = d_entries.find(stat.first);
-    if (it != d_entries.end()) {
+    const container_t::iterator it = data->d_entries.find(stat.first);
+    if (it != data->d_entries.end()) {
       result.push_back(std::make_tuple(stat.first, stat.second, it->d_until));
     }
   }
   return result;
 }
-

@@ -5099,6 +5099,15 @@ static int serviceMain(int argc, char*argv[])
     g_DoTToAuthNames.setState(std::move(dotauthNames));
   }
 
+  {
+    CarbonConfig config;
+    stringtok(config.servers, arg()["carbon-server"], ", ");
+    config.hostname = arg()["carbon-server"];
+    config.instance_name = arg()["carbon-instance"];
+    config.namespace_name = arg()["carbon-namespace"];
+    g_carbonConfig.setState(std::move(config));
+  }
+
   s_balancingFactor = ::arg().asDouble("distribution-load-factor");
   if (s_balancingFactor != 0.0 && s_balancingFactor < 1.0) {
     s_balancingFactor = 0.0;

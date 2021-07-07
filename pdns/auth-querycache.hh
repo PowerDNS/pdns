@@ -37,7 +37,6 @@ class AuthQueryCache : public boost::noncopyable
 {
 public:
   AuthQueryCache(size_t mapsCount=1024);
-  ~AuthQueryCache();
 
   void insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& content, uint32_t ttl, int zoneID);
 
@@ -99,8 +98,7 @@ private:
 
     void reserve(size_t numberOfEntries);
 
-    ReadWriteLock d_mut;
-    cmap_t d_map;
+    SharedLockGuarded<cmap_t> d_map;
   };
 
   vector<MapCombo> d_maps;
@@ -109,7 +107,7 @@ private:
     return d_maps[qname.hash() % d_maps.size()];
   }
 
-  bool getEntryLocked(cmap_t& map, const DNSName &content, uint16_t qtype, vector<DNSZoneRecord>& entry, int zoneID, time_t now);
+  bool getEntryLocked(const cmap_t& map, const DNSName &content, uint16_t qtype, vector<DNSZoneRecord>& entry, int zoneID, time_t now);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};

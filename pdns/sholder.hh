@@ -22,7 +22,9 @@
 #pragma once
 #include <memory>
 #include <atomic>
-#include <mutex>
+
+#include "lock.hh"
+
 /** This is sort of a light-weight RCU idea. 
     Suitable for when you frequently consult some "readonly" state, which infrequently
     gets changed. One way of dealing with this is fully locking access to the state, but 
@@ -96,8 +98,7 @@ public:
   {
     std::shared_ptr<T> newState = std::make_shared<T>(state);
     {
-      std::lock_guard<std::mutex> l(d_lock);
-      d_state = std::move(newState);
+      *(d_state.lock()) = std::move(newState);
       d_generation++;
     }
   }
@@ -106,28 +107,25 @@ public:
   {
     std::shared_ptr<T> newState = std::make_shared<T>(std::move(state));
     {
-      std::lock_guard<std::mutex> l(d_lock);
-      d_state = std::move(newState);
+      *(d_state.lock()) = std::move(newState);
       d_generation++;
     }
   }
 
   T getCopy() const  //!< Safely & slowly get a copy of the global state
   {
-    std::lock_guard<std::mutex> l(d_lock);
-    return *d_state;
+    return *(*(d_state.lock()));
   }
   
   //! Safely & slowly modify the global state
   template<typename F>
   void modify(F act) {
-    std::lock_guard<std::mutex> l(d_lock);
-    auto state=*d_state; // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
-    act(state);
-    d_state = std::make_shared<T>(std::move(state));
+    auto state = d_state.lock();
+    auto newState = *(*state); // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
+    act(newState);
+    *state = std::make_shared<T>(std::move(newState));
     ++d_generation;
   }
-
 
   typedef T value_type;
 private:
@@ -137,12 +135,11 @@ private:
   }
   void getState(std::shared_ptr<T>* state, unsigned int* generation) const
   {
-    std::lock_guard<std::mutex> l(d_lock);
-    *state=d_state;
+    *state = *d_state.lock();
     *generation = d_generation;
   }
   friend class LocalStateHolder<T>;
-  mutable std::mutex d_lock;
-  std::shared_ptr<T> d_state;
+
+  mutable LockGuarded<std::shared_ptr<T>> d_state;
   std::atomic<unsigned int> d_generation{1};
 };

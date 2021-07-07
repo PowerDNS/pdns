@@ -22,8 +22,6 @@
 #pragma once
 #include "config.h"
 
-#include <mutex>
-
 #include "bpf-filter.hh"
 #include "iputils.hh"
 
@@ -33,21 +31,20 @@
 class DynBPFFilter
 {
 public:
-  DynBPFFilter(std::shared_ptr<BPFFilter>& bpf): d_bpf(bpf)
+  DynBPFFilter(std::shared_ptr<BPFFilter>& bpf)
   {
+    d_data.lock()->d_bpf = bpf;
   }
   ~DynBPFFilter()
   {
   }
   void excludeRange(const Netmask& range)
   {
-    std::unique_lock<std::mutex> lock(d_mutex);
-    d_excludedSubnets.addMask(range);
+    d_data.lock()->d_excludedSubnets.addMask(range);
   }
   void includeRange(const Netmask& range)
   {
-    std::unique_lock<std::mutex> lock(d_mutex);
-    d_excludedSubnets.addMask(range, false);
+    d_data.lock()->d_excludedSubnets.addMask(range, false);
   }
   /* returns true if the addr wasn't already blocked, false otherwise */
   bool block(const ComboAddress& addr, const struct timespec& until);
@@ -68,9 +65,11 @@ private:
                                   ordered_non_unique< member<BlockEntry,struct timespec,&BlockEntry::d_until> >
                                   >
                                 > container_t;
-  container_t d_entries;
-  std::mutex d_mutex;
-  std::shared_ptr<BPFFilter> d_bpf;
-  NetmaskGroup d_excludedSubnets;
+  struct Data {
+    container_t d_entries;
+    std::shared_ptr<BPFFilter> d_bpf{nullptr};
+    NetmaskGroup d_excludedSubnets;
+  };
+  LockGuarded<Data> d_data;
 };
 

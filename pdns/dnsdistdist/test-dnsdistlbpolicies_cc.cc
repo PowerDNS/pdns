@@ -11,9 +11,8 @@
 
 uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 
-std::mutex g_luamutex;
 #include "ext/luawrapper/include/LuaContext.hpp"
-LuaContext g_lua;
+LockGuarded<LuaContext> g_lua{LuaContext()};
 
 bool g_snmpEnabled{false};
 bool g_snmpTrapsEnabled{false};
@@ -148,7 +147,7 @@ static void resetLuaContext()
   /* we need to reset this before cleaning the Lua state because the server policy might holds
      a reference to a Lua function (Lua policies) */
   g_policy.setState(ServerPolicy("leastOutstanding", leastOutstanding, false));
-  g_lua = LuaContext();
+  *(g_lua.lock()) = LuaContext();
 }
 
 BOOST_AUTO_TEST_SUITE(dnsdistlbpolicies)
@@ -571,10 +570,10 @@ BOOST_AUTO_TEST_CASE(test_lua) {
     setServerPolicyLua("luaroundrobin", luaroundrobin)
   )foo";
   resetLuaContext();
-  g_lua.writeFunction("setServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy) {
+  g_lua.lock()->writeFunction("setServerPolicyLua", [](string name, ServerPolicy::policyfunc_t policy) {
       g_policy.setState(ServerPolicy{name, policy, true});
     });
-  g_lua.executeCode(policySetupStr);
+  g_lua.lock()->executeCode(policySetupStr);
 
   {
     ServerPolicy pol = g_policy.getCopy();
@@ -630,11 +629,11 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
     setServerPolicyLuaFFI("FFI round-robin", ffilb)
   )foo";
   resetLuaContext();
-  g_lua.executeCode(getLuaFFIWrappers());
-  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+  g_lua.lock()->executeCode(getLuaFFIWrappers());
+  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
       g_policy.setState(ServerPolicy(name, policy));
     });
-  g_lua.executeCode(policySetupStr);
+  g_lua.lock()->executeCode(policySetupStr);
 
   {
     ServerPolicy pol = g_policy.getCopy();
@@ -687,11 +686,11 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
     setServerPolicyLuaFFI("FFI hashed", ffilb)
   )foo";
   resetLuaContext();
-  g_lua.executeCode(getLuaFFIWrappers());
-  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+  g_lua.lock()->executeCode(getLuaFFIWrappers());
+  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
       g_policy.setState(ServerPolicy(name, policy));
     });
-  g_lua.executeCode(policySetupStr);
+  g_lua.lock()->executeCode(policySetupStr);
 
   {
     ServerPolicy pol = g_policy.getCopy();
@@ -742,11 +741,11 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed) {
     setServerPolicyLuaFFI("FFI whashed", ffilb)
   )foo";
   resetLuaContext();
-  g_lua.executeCode(getLuaFFIWrappers());
-  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+  g_lua.lock()->executeCode(getLuaFFIWrappers());
+  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
       g_policy.setState(ServerPolicy(name, policy));
     });
-  g_lua.executeCode(policySetupStr);
+  g_lua.lock()->executeCode(policySetupStr);
 
   {
     ServerPolicy pol = g_policy.getCopy();
@@ -800,11 +799,11 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed) {
     setServerPolicyLuaFFI("FFI chashed", ffilb)
   )foo";
   resetLuaContext();
-  g_lua.executeCode(getLuaFFIWrappers());
-  g_lua.writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+  g_lua.lock()->executeCode(getLuaFFIWrappers());
+  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
       g_policy.setState(ServerPolicy(name, policy));
     });
-  g_lua.executeCode(policySetupStr);
+  g_lua.lock()->executeCode(policySetupStr);
 
   {
     ServerPolicy pol = g_policy.getCopy();

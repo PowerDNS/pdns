@@ -22,9 +22,8 @@
 #pragma once
 #include "config.h"
 
-#include <mutex>
-
 #include "iputils.hh"
+#include "lock.hh"
 
 class BPFFilter
 {
@@ -52,18 +51,21 @@ private:
     }
     int fd{-1};
   };
-  std::mutex d_mutex;
+  struct Maps
+  {
+    FDWrapper d_v4map;
+    FDWrapper d_v6map;
+    FDWrapper d_qnamemap;
+    FDWrapper d_filtermap;
+    uint32_t d_v4Count{0};
+    uint32_t d_v6Count{0};
+    uint32_t d_qNamesCount{0};
+  };
+  LockGuarded<Maps> d_maps;
+  FDWrapper d_mainfilter;
+  FDWrapper d_qnamefilter;
   uint32_t d_maxV4;
   uint32_t d_maxV6;
   uint32_t d_maxQNames;
-  uint32_t d_v4Count{0};
-  uint32_t d_v6Count{0};
-  uint32_t d_qNamesCount{0};
-  FDWrapper d_v4map;
-  FDWrapper d_v6map;
-  FDWrapper d_qnamemap;
-  FDWrapper d_filtermap;
-  FDWrapper d_mainfilter;
-  FDWrapper d_qnamefilter;
 #endif /* HAVE_EBPF */
 };

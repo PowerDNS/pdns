@@ -26,11 +26,11 @@
 
 #include <atomic>
 #include <queue>
-#include <mutex>
 #include <thread>
 
 #include "iputils.hh"
 #include "circular_buffer.hh"
+#include "lock.hh"
 #include "sstuff.hh"
 
 /* Writes can be submitted and they are atomically accepted. Either the whole write
@@ -101,16 +101,20 @@ private:
   bool reconnect();
   void maintenanceThread();
 
-  CircularWriteBuffer d_writer;
+  struct RuntimeData
+  {
+    CircularWriteBuffer d_writer;
+    std::unique_ptr<Socket> d_socket{nullptr};
+  };
+
   ComboAddress d_remote;
   std::atomic<uint64_t> d_drops{0};
   std::atomic<uint64_t> d_queued{0};
-  std::unique_ptr<Socket> d_socket{nullptr};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
   bool d_asyncConnect{false};
 
-  std::mutex d_mutex;
+  LockGuarded<RuntimeData> d_runtime;
   std::thread d_thread;
 };

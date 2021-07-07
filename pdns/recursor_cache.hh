@@ -22,7 +22,6 @@
 #pragma once
 #include <string>
 #include <set>
-#include <mutex>
 #include "dns.hh"
 #include "qtype.hh"
 #include "misc.hh"
@@ -38,6 +37,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/version.hpp>
 #include "iputils.hh"
+#include "lock.hh"
 #include "validate.hh"
 #undef max
 
@@ -49,7 +49,7 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 public:
   MemRecursorCache(size_t mapsCount = 1024);
 
-  size_t size();
+  size_t size() const;
   size_t bytes();
   pair<uint64_t,uint64_t> stats();
   size_t ecsIndexSize();
@@ -201,68 +201,66 @@ private:
   > ecsIndex_t;
 
   typedef std::pair<NameAndRTagOnlyHashedTagIterator_t, NameAndRTagOnlyHashedTagIterator_t> Entries;
-  
+
   struct MapCombo
   {
     MapCombo() {}
     MapCombo(const MapCombo &) = delete;
     MapCombo & operator=(const MapCombo &) = delete;
-    cache_t d_map;
-    ecsIndex_t d_ecsIndex;
-    DNSName d_cachedqname;
-    OptTag d_cachedrtag;
-    Entries d_cachecache;
-    std::mutex mutex;
-    bool d_cachecachevalid{false};
-    std::atomic<uint64_t> d_entriesCount{0};
-    uint64_t d_contended_count{0};
-    uint64_t d_acquired_count{0};
-
-    void invalidate()
+    struct LockedContent
     {
-      d_cachecachevalid = false;
+      cache_t d_map;
+      ecsIndex_t d_ecsIndex;
+      DNSName d_cachedqname;
+      OptTag d_cachedrtag;
+      Entries d_cachecache;
+      uint64_t d_contended_count{0};
+      uint64_t d_acquired_count{0};
+      bool d_cachecachevalid{false};
+
+      void invalidate()
+      {
+        d_cachecachevalid = false;
+      }
+    };
+
+    LockGuarded<LockedContent> d_content;
+    std::atomic<uint64_t> d_entriesCount{0};
+
+    LockGuardedTryHolder<LockedContent> lock()
+    {
+      auto locked = d_content.try_lock();
+      if (!locked.owns_lock()) {
+        locked.lock();
+        ++locked->d_contended_count;
+      }
+      ++locked->d_acquired_count;
+      return locked;
     }
   };
 
   vector<MapCombo> d_maps;
   MapCombo& getMap(const DNSName &qname)
   {
-    return d_maps[qname.hash() % d_maps.size()];
+    return d_maps.at(qname.hash() % d_maps.size());
   }
 
   static time_t fakeTTD(OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, bool refresh);
 
   bool entryMatches(OrderedTagIterator_t& entry, QType qt, bool requireAuth, const ComboAddress& who);
-  Entries getEntries(MapCombo& map, const DNSName &qname, const QType qt, const OptTag& rtag);
-  cache_t::const_iterator getEntryUsingECSIndex(MapCombo& map, time_t now, const DNSName &qname, QType qtype, bool requireAuth, const ComboAddress& who);
+  Entries getEntries(MapCombo::LockedContent& content, const DNSName &qname, const QType qt, const OptTag& rtag);
+  cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName &qname, QType qtype, bool requireAuth, const ComboAddress& who);
 
-  time_t handleHit(MapCombo& map, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone);
+  time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone);
 
 public:
-  struct lock {
-    lock(MapCombo& map) : m(map.mutex)
-    {
-      if (!m.try_lock()) {
-        m.lock();
-        map.d_contended_count++;
-      }
-      map.d_acquired_count++;
-    }
-    ~lock() {
-      m.unlock();
-    }
-  private:
-    std::mutex &m;
-  };
-
-  void preRemoval(const CacheEntry& entry)
+  void preRemoval(MapCombo::LockedContent& map, const CacheEntry& entry)
   {
     if (entry.d_netmask.empty()) {
       return;
     }
 
     auto key = tie(entry.d_qname, entry.d_qtype);
-    auto& map = getMap(entry.d_qname);
     auto ecsIndexEntry = map.d_ecsIndex.find(key);
     if (ecsIndexEntry != map.d_ecsIndex.end()) {
       ecsIndexEntry->removeNetmask(entry.d_netmask);

@@ -88,7 +88,7 @@ bool PersistentSBF::init(bool ignore_pid) {
             infile.open(filename, std::ios::in | std::ios::binary);
             g_log << Logger::Warning << "Found SBF file " << filename << endl;
             // read the file into the sbf
-            d_sbf.restore(infile);
+            d_sbf.lock()->restore(infile);
             infile.close();
             // now dump it out again with new thread id & process id
             snapshotCurrent(std::this_thread::get_id());
@@ -142,8 +142,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         std::stringstream iss;
         {
           // only lock while dumping to a stringstream
-          std::lock_guard<std::mutex> lock(d_sbf_mutex);
-          d_sbf.dump(iss);
+          d_sbf.lock()->dump(iss);
         }
         // Now write it out to the file
         std::string ftmp = f.string() + ".XXXXXXXX";

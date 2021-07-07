@@ -157,7 +157,6 @@ public:
     d_nsock4 = -1;
     d_nsock6 = -1;
     d_preventSelfNotification = false;
-    d_sorthelper = 0;
   }
   time_t doNotifications(PacketHandler *P);
   void go();
@@ -180,42 +179,48 @@ private:
   void makeNotifySockets();
   void queueNotifyDomain(const DomainInfo& di, UeberBackend* B);
   int d_nsock4, d_nsock6;
-  map<pair<DNSName,string>,time_t>d_holes;
-  std::mutex d_holelock;
+  LockGuarded<map<pair<DNSName,string>,time_t>> d_holes;
+
   void suck(const DNSName &domain, const ComboAddress& remote, bool force=false);
   void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, std::unique_ptr<AuthLua4>& pdl,
                 ZoneStatus& zs, vector<DNSRecord>* axfr);
 
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
-  std::mutex d_lock;
-  
-  uint64_t d_sorthelper;
-  UniQueue d_suckdomains;
-  set<DNSName> d_inprogress;
-  
+
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
-  time_t d_tickinterval;
-  set<DomainInfo> d_tocheck;
-  struct cmp {
-    bool operator()(const DNSPacket& a, const DNSPacket& b) const {
-      return a.qdomain < b.qdomain;
-    };
-  };
-
-  std::set<DNSPacket, cmp> d_potentialsupermasters;
 
   set<string> d_alsoNotify;
-  NotificationQueue d_nq;
   NetmaskGroup d_onlyNotify;
+  NotificationQueue d_nq;
+
+  time_t d_tickinterval;
   bool d_masterschanged, d_slaveschanged;
   bool d_preventSelfNotification;
 
-  // Used to keep some state on domains that failed their freshness checks.
-  // uint64_t == counter of the number of failures (increased by 1 every consecutive slave-cycle-interval that the domain fails)
-  // time_t == wait at least until this time before attempting a new check
-  map<DNSName, pair<uint64_t, time_t> > d_failedSlaveRefresh;
+  struct Data
+  {
+    uint64_t d_sorthelper{0};
+    UniQueue d_suckdomains;
+    set<DNSName> d_inprogress;
+
+    set<DomainInfo> d_tocheck;
+    struct cmp {
+      bool operator()(const DNSPacket& a, const DNSPacket& b) const {
+        return a.qdomain < b.qdomain;
+      };
+    };
+
+    std::set<DNSPacket, cmp> d_potentialsupermasters;
+
+    // Used to keep some state on domains that failed their freshness checks.
+    // uint64_t == counter of the number of failures (increased by 1 every consecutive slave-cycle-interval that the domain fails)
+    // time_t == wait at least until this time before attempting a new check
+    map<DNSName, pair<uint64_t, time_t> > d_failedSlaveRefresh;
+  };
+
+  LockGuarded<Data> d_data;
 
   struct RemoveSentinel
   {
@@ -225,8 +230,7 @@ private:
     ~RemoveSentinel()
     {
       try {
-        std::lock_guard<std::mutex> l(d_cc->d_lock);
-        d_cc->d_inprogress.erase(d_dn);
+        d_cc->d_data.lock()->d_inprogress.erase(d_dn);
       }
       catch(...) {
       }

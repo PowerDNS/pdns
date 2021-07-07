@@ -7,8 +7,6 @@
 #include <boost/format.hpp>
 #include <p11-kit/p11-kit.h>
 
-#include <mutex>
-
 #include "pdns/dnssecinfra.hh"
 #include "pdns/logger.hh"
 #include "pdns/pdnsexception.hh"
@@ -218,7 +216,6 @@ class Pkcs11Slot {
     CK_SESSION_HANDLE d_session;
     CK_SLOT_ID d_slot;
     CK_RV d_err;
-    std::mutex d_m;
 
     void logError(const std::string& operation) const {
       if (d_err) {
@@ -235,7 +232,6 @@ class Pkcs11Slot {
     d_err(0)
   {
       CK_TOKEN_INFO tokenInfo;
-      std::lock_guard<std::mutex> l(d_m);
 
       if ((d_err = d_functions->C_OpenSession(this->d_slot, CKF_SERIAL_SESSION|CKF_RW_SESSION, 0, 0, &(this->d_session)))) {
         logError("C_OpenSession");
@@ -272,15 +268,13 @@ class Pkcs11Slot {
 
     CK_FUNCTION_LIST* f() { return d_functions; }
 
-    std::mutex& m() { return d_m; }
-
-    static std::shared_ptr<Pkcs11Slot> GetSlot(const std::string& module, const string& tokenId);
+    static std::shared_ptr<LockGuarded<Pkcs11Slot>> GetSlot(const std::string& module, const string& tokenId);
     static CK_RV HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions);
 };
 
 class Pkcs11Token {
   private:
-    std::shared_ptr<Pkcs11Slot> d_slot;
+    std::shared_ptr<LockGuarded<Pkcs11Slot>> d_slot;
 
     CK_OBJECT_HANDLE d_public_key;
     CK_OBJECT_HANDLE d_private_key;
@@ -333,12 +327,12 @@ class Pkcs11Token {
     }
 
   public:
-    Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label); 
+    Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label); 
     ~Pkcs11Token();
 
     bool Login(const std::string& pin) {
       if (pin.empty()) return false; // no empty pin.
-      if (d_slot->Login(pin) == true) {
+      if (d_slot->lock()->Login(pin) == true) {
         LoadAttributes();
       }
 
@@ -346,20 +340,20 @@ class Pkcs11Token {
     }
 
     bool LoggedIn() {
-      if (d_loaded == false && d_slot->LoggedIn() == true) {
+      if (d_loaded == false && d_slot->lock()->LoggedIn() == true) {
         LoadAttributes();
       }
-      return d_slot->LoggedIn();
+      return d_slot->lock()->LoggedIn();
     }
 
     void LoadAttributes() {
-      std::lock_guard<std::mutex> l(d_slot->m());
+      auto slot = d_slot->lock();
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
 //      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
-      FindObjects2(attr, key, 1);
+      FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
         g_log<<Logger::Warning<<"Cannot load PCKS#11 private key "<<d_label<<std::endl;;
         return;
@@ -369,7 +363,7 @@ class Pkcs11Token {
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
 //      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
-      FindObjects2(attr, key, 1);
+      FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
         g_log<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_pub_label<<std::endl;
         return;
@@ -379,7 +373,7 @@ class Pkcs11Token {
       attr.clear();
       attr.push_back(P11KitAttribute(CKA_KEY_TYPE, 0UL));
 
-      if (GetAttributeValue2(d_public_key, attr)==0) {
+      if (GetAttributeValue2(*slot, d_public_key, attr)==0) {
         d_key_type = attr[0].ulong();
         if (d_key_type == CKK_RSA) {
           attr.clear();
@@ -387,7 +381,7 @@ class Pkcs11Token {
           attr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, ""));
           attr.push_back(P11KitAttribute(CKA_MODULUS_BITS, 0UL));
 
-          if (!GetAttributeValue2(d_public_key, attr)) {
+          if (!GetAttributeValue2(*slot, d_public_key, attr)) {
             d_modulus = attr[0].str();
             d_exponent = attr[1].str();
             d_bits = attr[2].ulong();
@@ -398,7 +392,7 @@ class Pkcs11Token {
           attr.clear();
           attr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ""));
           attr.push_back(P11KitAttribute(CKA_EC_POINT, ""));
-          if (!GetAttributeValue2(d_public_key, attr)) {
+          if (!GetAttributeValue2(*slot, d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
             d_bits = ecparam2bits(d_ecdsa_params);
             if (attr[1].str().length() != (d_bits*2/8 + 3)) throw PDNSException("EC Point data invalid");
@@ -418,7 +412,7 @@ class Pkcs11Token {
 
     int GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey) {
       {
-      std::lock_guard<std::mutex> l(d_slot->m());
+      auto slot = d_slot->lock();
 
       size_t k;
       std::unique_ptr<CK_ATTRIBUTE[]> pubAttr(new CK_ATTRIBUTE[pubAttributes.size()]);
@@ -436,7 +430,7 @@ class Pkcs11Token {
         k++;
       }
 
-      d_err = this->d_slot->f()->C_GenerateKeyPair(d_slot->Session(), mechanism, pubAttr.get(), pubAttributes.size(), privAttr.get(), privAttributes.size(), pubKey, privKey);
+      d_err = slot->f()->C_GenerateKeyPair(slot->Session(), mechanism, pubAttr.get(), pubAttributes.size(), privAttr.get(), privAttributes.size(), pubKey, privKey);
       logError("C_GenerateKeyPair");
       }
 
@@ -446,14 +440,13 @@ class Pkcs11Token {
     }
 
     int Sign(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) {
-      std::lock_guard<std::mutex> l(d_slot->m());
-
       CK_BYTE buffer[1024];
       CK_ULONG buflen = sizeof buffer; // should be enough for most signatures.
+      auto slot = d_slot->lock();
 
       // perform signature
-      if ((d_err = this->d_slot->f()->C_SignInit(d_slot->Session(), mechanism, d_private_key))) { logError("C_SignInit"); return d_err; }
-      d_err = this->d_slot->f()->C_Sign(d_slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
+      if ((d_err = slot->f()->C_SignInit(slot->Session(), mechanism, d_private_key))) { logError("C_SignInit"); return d_err; }
+      d_err = slot->f()->C_Sign(slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
 
       if (!d_err) {
         result.assign((char*)buffer, buflen);
@@ -465,21 +458,21 @@ class Pkcs11Token {
     }
 
     int Verify(const std::string& data, const std::string& signature, CK_MECHANISM_PTR mechanism) {
-      std::lock_guard<std::mutex> l(d_slot->m());
+      auto slot = d_slot->lock();
 
-      if ((d_err = this->d_slot->f()->C_VerifyInit(d_slot->Session(), mechanism, d_public_key))) { logError("C_VerifyInit"); return d_err; }
-      d_err = this->d_slot->f()->C_Verify(d_slot->Session(), (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
+      if ((d_err = slot->f()->C_VerifyInit(slot->Session(), mechanism, d_public_key))) { logError("C_VerifyInit"); return d_err; }
+      d_err = slot->f()->C_Verify(slot->Session(), (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
       logError("C_Verify");
       return d_err;
     }
 
     int Digest(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) {
-      std::lock_guard<std::mutex> l(d_slot->m());
-
       CK_BYTE buffer[1024];
       CK_ULONG buflen = sizeof buffer; // should be enough for most digests
-      if ((d_err = this->d_slot->f()->C_DigestInit(d_slot->Session(), mechanism))) { logError("C_DigestInit"); return d_err; }
-      d_err = this->d_slot->f()->C_Digest(d_slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
+
+      auto slot = d_slot->lock();
+      if ((d_err = slot->f()->C_DigestInit(slot->Session(), mechanism))) { logError("C_DigestInit"); return d_err; }
+      d_err = slot->f()->C_Digest(slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
       if (!d_err) {
         result.assign((char*)buffer, buflen);
       }
@@ -488,41 +481,42 @@ class Pkcs11Token {
       return d_err;
     }
 
-    int DigestInit(CK_MECHANISM_PTR mechanism) {
-      d_err = d_slot->f()->C_DigestInit(d_slot->Session(), mechanism);
+    int DigestInit(Pkcs11Slot& slot, CK_MECHANISM_PTR mechanism) {
+      d_err = slot.f()->C_DigestInit(slot.Session(), mechanism);
       logError("C_DigestInit");
       return d_err;
     }
 
-    int DigestUpdate(const std::string& data) {
-      d_err = d_slot->f()->C_DigestUpdate(d_slot->Session(), (unsigned char*)data.c_str(), data.size());
+    int DigestUpdate(Pkcs11Slot& slot, const std::string& data) {
+      d_err = slot.f()->C_DigestUpdate(slot.Session(), (unsigned char*)data.c_str(), data.size());
       logError("C_DigestUpdate");
       return d_err;
     }
 
     int DigestKey(std::string& result) {
-      std::lock_guard<std::mutex> l(d_slot->m());
+      auto slot = d_slot->lock();
       CK_MECHANISM mech;
       mech.mechanism = CKM_SHA_1;
 
-      DigestInit(&mech);
+      DigestInit(*slot, &mech);
 
       if (d_key_type == CKK_RSA) {
-        DigestUpdate(d_modulus);
-        DigestUpdate(d_exponent);
+        DigestUpdate(*slot, d_modulus);
+        DigestUpdate(*slot, d_exponent);
       } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
-        DigestUpdate(d_ec_point);
+        DigestUpdate(*slot, d_ec_point);
       }
 
-      DigestFinal(result);
+      DigestFinal(*slot, result);
 
       return d_err;
     }
 
-    int DigestFinal(std::string& result) {
+    int DigestFinal(Pkcs11Slot& slot, std::string& result) {
       CK_BYTE buffer[1024] = {0};
       CK_ULONG buflen = sizeof buffer; // should be enough for most digests
-      d_err = d_slot->f()->C_DigestFinal(d_slot->Session(), buffer, &buflen);
+
+      d_err = slot.f()->C_DigestFinal(slot.Session(), buffer, &buflen);
       if (!d_err) {
         result.assign((char*)buffer, buflen);
       }
@@ -531,12 +525,7 @@ class Pkcs11Token {
       return d_err;
     }
 
-    int FindObjects(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, int maxobjects) {
-      std::lock_guard<std::mutex> l(d_slot->m());
-      return FindObjects2(attributes, objects, maxobjects);
-    }
-
-    int FindObjects2(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, int maxobjects) {
+    int FindObjects2(Pkcs11Slot& slot, const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, int maxobjects) {
       CK_RV rv;
       size_t k;
       unsigned long count;
@@ -551,7 +540,7 @@ class Pkcs11Token {
       }
 
       // perform search
-      d_err = this->d_slot->f()->C_FindObjectsInit(d_slot->Session(), attr.get(), k);
+      d_err = slot.f()->C_FindObjectsInit(slot.Session(), attr.get(), k);
 
       if (d_err) {
         logError("C_FindObjectsInit");
@@ -559,7 +548,7 @@ class Pkcs11Token {
       }
 
       count = maxobjects;
-      rv = d_err = this->d_slot->f()->C_FindObjects(d_slot->Session(), handles.get(), maxobjects, &count);
+      rv = d_err = slot.f()->C_FindObjects(slot.Session(), handles.get(), maxobjects, &count);
       objects.clear();
 
       if (!rv) {
@@ -570,19 +559,13 @@ class Pkcs11Token {
 
       logError("C_FindObjects");
 
-      d_err = this->d_slot->f()->C_FindObjectsFinal(d_slot->Session());
+      d_err = slot.f()->C_FindObjectsFinal(slot.Session());
       logError("C_FindObjectsFinal");
 
       return rv;
     }
 
-    int GetAttributeValue(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes) 
-    {
-      std::lock_guard<std::mutex> l(d_slot->m());
-      return GetAttributeValue2(object, attributes);
-    }
-
-    int GetAttributeValue2(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes)
+    int GetAttributeValue2(Pkcs11Slot& slot, const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes)
     {
       size_t k;
       std::unique_ptr<CK_ATTRIBUTE[]> attr(new CK_ATTRIBUTE[attributes.size()]);
@@ -594,7 +577,7 @@ class Pkcs11Token {
       }
 
       // round 1 - get attribute sizes
-      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr.get(), attributes.size());
+      d_err = slot.f()->C_GetAttributeValue(slot.Session(), object, attr.get(), attributes.size());
       logError("C_GetAttributeValue");
       if (d_err) {
         return d_err;
@@ -608,7 +591,7 @@ class Pkcs11Token {
       }
 
       // round 2 - get actual values
-      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr.get(), attributes.size());
+      d_err = slot.f()->C_GetAttributeValue(slot.Session(), object, attr.get(), attributes.size());
       logError("C_GetAttributeValue");
 
       // copy values to map and release allocated memory
@@ -648,7 +631,7 @@ class Pkcs11Token {
     static std::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const string& tokenId, const std::string& label, const std::string& pub_label);
 };
 
-static std::map<std::string, std::shared_ptr<Pkcs11Slot> > pkcs11_slots;
+static std::map<std::string, std::shared_ptr<LockGuarded<Pkcs11Slot> > > pkcs11_slots;
 static std::map<std::string, std::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 
 CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions)
@@ -712,12 +695,12 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   return CKR_SLOT_ID_INVALID;
 }
 
-std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const string& tokenId) {
+std::shared_ptr<LockGuarded<Pkcs11Slot>> Pkcs11Slot::GetSlot(const std::string& module, const string& tokenId) {
   // see if we can find module
   std::string sidx = module;
   sidx.append("|");
   sidx.append(tokenId);
-  std::map<std::string, std::shared_ptr<Pkcs11Slot> >::iterator slotIter;
+  std::map<std::string, std::shared_ptr<LockGuarded<Pkcs11Slot> > >::iterator slotIter;
   CK_RV err;
   CK_FUNCTION_LIST* functions;
 
@@ -731,8 +714,8 @@ std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const
 #else
   functions = p11_kit_registered_name_to_module(module.c_str());
 #endif
-  if (functions == NULL) throw PDNSException("Cannot find PKCS#11 module " + module);
-  functions->C_Initialize(NULL); // initialize the module in case it hasn't been done yet.
+  if (functions == nullptr) throw PDNSException("Cannot find PKCS#11 module " + module);
+  functions->C_Initialize(nullptr); // initialize the module in case it hasn't been done yet.
 
   // try to locate a slot
    _CK_SLOT_INFO info;
@@ -743,7 +726,7 @@ std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const
   }
 
   // store slot
-  pkcs11_slots[sidx] = std::make_shared<Pkcs11Slot>(functions, slotId);
+  pkcs11_slots[sidx] = std::make_shared<LockGuarded<Pkcs11Slot>>(Pkcs11Slot(functions, slotId));
 
   return pkcs11_slots[sidx];
 }
@@ -758,12 +741,12 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   std::map<std::string, std::shared_ptr<Pkcs11Token> >::iterator tokenIter;
   if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
 
-  std::shared_ptr<Pkcs11Slot> slot = Pkcs11Slot::GetSlot(module, tokenId);
+  std::shared_ptr<LockGuarded<Pkcs11Slot>> slot = Pkcs11Slot::GetSlot(module, tokenId);
   pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slot, label, pub_label);
   return pkcs11_tokens[tidx];
 }
 
-Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label) :
+Pkcs11Token::Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, const std::string& label, const std::string& pub_label) :
   d_slot(slot),
   d_bits(0),
   d_label(label),
@@ -772,7 +755,7 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::str
   d_err(0)
 {
   // open a session
-  if (this->d_slot->LoggedIn()) LoadAttributes();
+  if (this->d_slot->lock()->LoggedIn()) LoadAttributes();
 }
 
 Pkcs11Token::~Pkcs11Token() {
@@ -780,10 +763,9 @@ Pkcs11Token::~Pkcs11Token() {
 
 bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin)
 {
-  std::shared_ptr<Pkcs11Slot> slot;
-  slot = Pkcs11Slot::GetSlot(module, tokenId);
-  if (slot->LoggedIn()) return true; // no point failing
-  return slot->Login(pin);
+  std::shared_ptr<LockGuarded<Pkcs11Slot>> slot = Pkcs11Slot::GetSlot(module, tokenId);
+  if (slot->lock()->LoggedIn()) return true; // no point failing
+  return slot->lock()->Login(pin);
 }
 
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
@@ -809,7 +791,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
     throw PDNSException("pkcs11: unsupported algorithm "+std::to_string(d_algorithm)+ " for key pair generation");
   }
 
-  mech.pParameter = NULL;
+  mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
 
   if (mech.mechanism == CKM_RSA_PKCS_KEY_PAIR_GEN) {
@@ -877,7 +859,7 @@ std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
 
   CK_MECHANISM mech;
   mech.mechanism = dnssec2smech[d_algorithm];
-  mech.pParameter = NULL;
+  mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
 
   if (mech.mechanism == CKM_ECDSA) {
@@ -892,7 +874,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   std::string result;
   CK_MECHANISM mech;
   mech.mechanism = dnssec2hmech[d_algorithm];
-  mech.pParameter = NULL;
+  mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
   std::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label, d_pub_label);
@@ -933,7 +915,7 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
 
   CK_MECHANISM mech;
   mech.mechanism = dnssec2smech[d_algorithm];
-  mech.pParameter = NULL;
+  mech.pParameter = nullptr;
   mech.ulParameterLen = 0;
   if (mech.mechanism == CKM_ECDSA) {
     return (d_slot->Verify(this->hash(msg), signature, &mech)==0);

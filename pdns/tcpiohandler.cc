@@ -1155,8 +1155,7 @@ public:
 
     std::shared_ptr<GnuTLSTicketsKey> ticketsKey;
     {
-      ReadLock rl(&d_lock);
-      ticketsKey = d_ticketsKey;
+      ticketsKey = *(d_ticketsKey.read_lock());
     }
 
     return std::make_unique<GnuTLSConnection>(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets);
@@ -1176,8 +1175,7 @@ public:
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
 
     {
-      WriteLock wl(&d_lock);
-      d_ticketsKey = newKey;
+      *(d_ticketsKey.write_lock()) = newKey;
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
@@ -1193,8 +1191,7 @@ public:
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
     {
-      WriteLock wl(&d_lock);
-      d_ticketsKey = newKey;
+      *(d_ticketsKey.write_lock()) = newKey;
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
@@ -1204,15 +1201,13 @@ public:
 
   size_t getTicketsKeysCount() override
   {
-    ReadLock rl(&d_lock);
-    return d_ticketsKey != nullptr ? 1 : 0;
+    return *(d_ticketsKey.read_lock()) != nullptr ? 1 : 0;
   }
 
 private:
   std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)> d_creds;
   gnutls_priority_t d_priorityCache{nullptr};
-  std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey{nullptr};
-  ReadWriteLock d_lock;
+  SharedLockGuarded<std::shared_ptr<GnuTLSTicketsKey>> d_ticketsKey{nullptr};
   bool d_enableTickets{true};
   bool d_validateCerts{true};
 };

@@ -21,26 +21,26 @@
  */
 #pragma once
 
-#include <mutex>
+#include "lock.hh"
 
 class ConcurrentConnectionManager
 {
 public:
-  ConcurrentConnectionManager(size_t max): d_maxConcurrentConnections(max)
+  ConcurrentConnectionManager(size_t max)
   {
+    setMaxConcurrentConnections(max);
   }
 
   void setMaxConcurrentConnections(size_t max)
   {
-    std::lock_guard<decltype(d_concurrentConnectionsLock)> lock(d_concurrentConnectionsLock);
-    d_maxConcurrentConnections = max;
+    d_data.lock()->d_maxConcurrentConnections = max;
   }
 
   bool registerConnection()
   {
-    std::lock_guard<decltype(d_concurrentConnectionsLock)> lock(d_concurrentConnectionsLock);
-    if (d_maxConcurrentConnections == 0 || d_currentConnectionsCount < d_maxConcurrentConnections) {
-      ++d_currentConnectionsCount;
+    auto data = d_data.lock();
+    if (data->d_maxConcurrentConnections == 0 || data->d_currentConnectionsCount < data->d_maxConcurrentConnections) {
+      ++data->d_currentConnectionsCount;
       return true;
     }
     return false;
@@ -48,12 +48,14 @@ public:
 
   void releaseConnection()
   {
-    std::lock_guard<decltype(d_concurrentConnectionsLock)> lock(d_concurrentConnectionsLock);
-    --d_currentConnectionsCount;
+    --(d_data.lock()->d_currentConnectionsCount);
   }
 
 private:
-  std::mutex d_concurrentConnectionsLock;
-  size_t d_maxConcurrentConnections{0};
-  size_t d_currentConnectionsCount{0};
+  struct Data {
+    size_t d_maxConcurrentConnections{0};
+    size_t d_currentConnectionsCount{0};
+  };
+
+  LockGuarded<Data> d_data;
 };

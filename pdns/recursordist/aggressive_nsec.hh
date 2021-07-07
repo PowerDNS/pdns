@@ -21,8 +21,6 @@
  */
 #pragma once
 
-#include <mutex>
-
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -113,34 +111,32 @@ private:
       CacheEntry,
       indexed_by<
         ordered_unique<tag<OrderedTag>,
-                       member<CacheEntry, DNSName, &CacheEntry::d_owner>,
+                       member<CacheEntry, const DNSName, &CacheEntry::d_owner>,
                        CanonDNSNameCompare>,
         sequenced<tag<SequencedTag>>,
         hashed_non_unique<tag<HashedTag>,
-                          member<CacheEntry, DNSName, &CacheEntry::d_owner>>>>
+                          member<CacheEntry, const DNSName, &CacheEntry::d_owner>>>>
       cache_t;
 
     cache_t d_entries;
     const DNSName d_zone;
     std::string d_salt;
-    std::mutex d_lock;
     uint16_t d_iterations{0};
     bool d_nsec3{false};
   };
 
-  std::shared_ptr<ZoneEntry> getZone(const DNSName& zone);
-  std::shared_ptr<ZoneEntry> getBestZone(const DNSName& zone);
-  bool getNSECBefore(time_t now, std::shared_ptr<ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
-  bool getNSEC3(time_t now, std::shared_ptr<ZoneEntry>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
-  bool getNSEC3Denial(time_t now, std::shared_ptr<ZoneEntry>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC);
+  std::shared_ptr<LockGuarded<ZoneEntry>> getZone(const DNSName& zone);
+  std::shared_ptr<LockGuarded<ZoneEntry>> getBestZone(const DNSName& zone);
+  bool getNSECBefore(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
+  bool getNSEC3(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
+  bool getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC);
   bool synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName);
   bool synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName);
 
   /* slowly updates d_entriesCount */
-  void updateEntriesCount();
+  void updateEntriesCount(SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& zones);
 
-  SuffixMatchTree<std::shared_ptr<ZoneEntry>> d_zones;
-  ReadWriteLock d_lock;
+  SharedLockGuarded<SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>> d_zones;
   std::atomic<uint64_t> d_nsecHits{0};
   std::atomic<uint64_t> d_nsec3Hits{0};
   std::atomic<uint64_t> d_nsecWildcardHits{0};

@@ -40,7 +40,7 @@
 
 extern StatBag S;
 
-DNSProxy::DNSProxy(const string &remote)
+DNSProxy::DNSProxy(const string &remote): d_xor(dns_random_uint16())
 {
   d_resanswers=S.getPointer("recursing-answers");
   d_resquestions=S.getPointer("recursing-questions");
@@ -79,7 +79,6 @@ DNSProxy::DNSProxy(const string &remote)
     throw PDNSException("Unable to UDP connect to remote nameserver "+d_remote.toStringWithPort()+": "+stringerror());
   }
 
-  d_xor=dns_random_uint16();
   g_log<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<d_remote.toStringWithPort()<<endl;
 } 
 
@@ -131,8 +130,8 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
   uint16_t id;
   uint16_t qtype = r->qtype.getCode();
   {
-    std::lock_guard<std::mutex> l(d_lock);
-    id=getID_locked();
+    auto conntrack = d_conntrack.lock();
+    id = getID_locked(*conntrack);
 
     ConntrackEntry ce;
     ce.id       = r->d.id;
@@ -145,7 +144,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     ce.complete = std::move(r);
     ce.aname=aname;
     ce.anameScopeMask = scopeMask;
-    d_conntrack[id]=std::move(ce);
+    (*conntrack)[id]=std::move(ce);
   }
 
   vector<uint8_t> packet;
@@ -163,12 +162,12 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
 
 
 /** This finds us an unused or stale ID. Does not actually clean the contents */
-int DNSProxy::getID_locked()
+int DNSProxy::getID_locked(map_t& conntrack)
 {
   map_t::iterator i;
   for(int n=0;;++n) {
-    i=d_conntrack.find(n);
-    if(i==d_conntrack.end()) {
+    i=conntrack.find(n);
+    if(i==conntrack.end()) {
       return n;
     }
     else if(i->second.created<time(nullptr)-60) {
@@ -218,15 +217,15 @@ void DNSProxy::mainloop()
       dnsheader d;
       memcpy(&d,buffer,sizeof(d));
       {
-        std::lock_guard<std::mutex> l(d_lock);
+        auto conntrack = d_conntrack.lock();
 #if BYTE_ORDER == BIG_ENDIAN
         // this is needed because spoof ID down below does not respect the native byteorder
         d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
 #endif
-        map_t::iterator i=d_conntrack.find(d.id^d_xor);
-        if(i==d_conntrack.end()) {
+        map_t::iterator i=conntrack->find(d.id^d_xor);
+        if(i==conntrack->end()) {
           g_log<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
-            ". Conntrack table size="<<d_conntrack.size()<<endl;
+            ". Conntrack table size="<<conntrack->size()<<endl;
           continue;
         }
         else if(i->second.created==0) {

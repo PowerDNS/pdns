@@ -321,10 +321,10 @@ void doConsole()
       bool withReturn=true;
     retry:;
       try {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto lua = g_lua.lock();
         g_outputBuffer.clear();
         resetLuaSideEffect();
-        auto ret=g_lua.executeCode<
+        auto ret = lua->executeCode<
           boost::optional<
             boost::variant<
               string, 
@@ -775,11 +775,11 @@ static void controlClientThread(ConsoleConnection&& conn)
         bool withReturn=true;
       retry:;
         try {
-          std::lock_guard<std::mutex> lock(g_luamutex);
+          auto lua = g_lua.lock();
         
           g_outputBuffer.clear();
           resetLuaSideEffect();
-          auto ret=g_lua.executeCode<
+          auto ret = lua->executeCode<
             boost::optional<
               boost::variant<
                 string, 
