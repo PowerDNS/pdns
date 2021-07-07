@@ -240,6 +240,9 @@ public:
   {
     return {{}};
   }
+  virtual void reload()
+  {
+  }
 };
 
 class DNSResponseAction
@@ -251,6 +254,9 @@ public:
   {
   }
   virtual string toString() const = 0;
+  virtual void reload()
+  {
+  }
 };
 
 struct DynBlock
