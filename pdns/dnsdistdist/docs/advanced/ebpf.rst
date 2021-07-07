@@ -67,4 +67,4 @@ Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will aut
 
 That feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
 When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
-Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``.
+Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``, which can be done by adding ``LimitMEMLOCK=infinity`` in the systemd unit file.

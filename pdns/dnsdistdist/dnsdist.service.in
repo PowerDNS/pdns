@@ -18,8 +18,10 @@ TimeoutStopSec=5
 StartLimitInterval=0
 
 # Tuning
-LimitNOFILE=16384
 TasksMax=8192
+LimitNOFILE=16384
+# Note: increasing the amount of lockable memory is required to use eBPF support
+# LimitMEMLOCK=infinity
 
 # Sandboxing
 # Note: adding CAP_SYS_ADMIN (or CAP_BPF for Linux >= 5.8) is required to use eBPF support,
