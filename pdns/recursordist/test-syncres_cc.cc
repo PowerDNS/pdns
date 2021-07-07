@@ -487,7 +487,9 @@ LWResult::Result genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain,
           addNSECRecordToLW(domain, DNSName("+") + domain, types, 600, res->d_records);
         }
         else {
-          addNSEC3UnhashedRecordToLW(domain, auth, (DNSName("z") + domain).toString(), types, 600, res->d_records, 10, optOut);
+          DNSName next(DNSName("z") + domain);
+          next.makeUsRelative(auth);
+          addNSEC3UnhashedRecordToLW(domain, auth, next.toString(), types, 600, res->d_records, 10, optOut);
         }
 
         addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
