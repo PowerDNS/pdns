@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+function local_prepare()
+{
+        cat > pdns-lmdb-master.conf<<EOF
+module-dir=../regression-tests/modules
+launch=lmdb
+lmdb-filename=master.db
+master=yes
+EOF
+        cat > pdns-lmdb-slave.conf<<EOF
+module-dir=../regression-tests/modules
+launch=lmdb
+lmdb-filename=slave.db
+autosecondary
+slave=yes
+EOF
+        rm -f master.db* slave.db*
+}
+
+MODULE=lmdb
+
+source supermaster-signed-command
