@@ -40,6 +40,7 @@
 #include "gettime.hh"
 #include "htmlfiles.h"
 #include "threadname.hh"
+#include "sodcrypto.hh"
 #include "sstuff.hh"
 
 struct WebserverConfig
@@ -51,8 +52,8 @@ struct WebserverConfig
 
   std::mutex lock;
   NetmaskGroup acl;
-  std::string password;
-  std::string apiKey;
+  std::unique_ptr<CredentialsHolder> password;
+  std::unique_ptr<CredentialsHolder> apiKey;
   boost::optional<std::map<std::string, std::string> > customHeaders;
   bool statsRequireAuthentication{true};
 };
@@ -197,21 +198,21 @@ static void apiSaveACL(const NetmaskGroup& nmg)
   apiWriteConfigFile("acl", content);
 }
 
-static bool checkAPIKey(const YaHTTP::Request& req, const string& expectedApiKey)
+static bool checkAPIKey(const YaHTTP::Request& req)
 {
-  if (expectedApiKey.empty()) {
+  if (!g_webserverConfig.apiKey) {
     return false;
   }
 
   const auto header = req.headers.find("x-api-key");
   if (header != req.headers.end()) {
-    return (header->second == expectedApiKey);
+    return g_webserverConfig.apiKey->matches(header->second);
   }
 
   return false;
 }
 
-static bool checkWebPassword(const YaHTTP::Request& req, const string &expected_password)
+static bool checkWebPassword(const YaHTTP::Request& req)
 {
   static const char basicStr[] = "basic ";
 
@@ -227,7 +228,10 @@ static bool checkWebPassword(const YaHTTP::Request& req, const string &expected_
     stringtok(cparts, plain, ":");
 
     if (cparts.size() == 2) {
-      return cparts[1] == expected_password;
+      if (g_webserverConfig.password) {
+        return g_webserverConfig.password->matches(cparts.at(1));
+      }
+      return true;
     }
   }
 
@@ -256,21 +260,21 @@ static bool handleAuthorization(const YaHTTP::Request& req)
   if (isAStatsRequest(req)) {
     if (g_webserverConfig.statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, g_webserverConfig.apiKey) || checkWebPassword(req, g_webserverConfig.password);
+      return checkAPIKey(req) || checkWebPassword(req);
     }
     return true;
   }
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (checkAPIKey(req, g_webserverConfig.apiKey)) {
+    if (checkAPIKey(req)) {
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, g_webserverConfig.password);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req);
   }
 
-  return checkWebPassword(req, g_webserverConfig.password);
+  return checkWebPassword(req);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -1455,22 +1459,18 @@ static void connectionThread(WebClientConnection&& conn)
   }
 }
 
-void setWebserverAPIKey(const boost::optional<std::string> apiKey)
+void setWebserverAPIKey(std::unique_ptr<CredentialsHolder>&& apiKey)
 {
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
 
-  if (apiKey) {
-    g_webserverConfig.apiKey = *apiKey;
-  } else {
-    g_webserverConfig.apiKey.clear();
-  }
+  g_webserverConfig.apiKey = std::move(apiKey);
 }
 
-void setWebserverPassword(const std::string& password)
+void setWebserverPassword(std::unique_ptr<CredentialsHolder>&& password)
 {
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
 
-  g_webserverConfig.password = password;
+  g_webserverConfig.password = std::move(password);
 }
 
 void setWebserverACL(const std::string& acl)
@@ -1510,7 +1510,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
 
   {
     std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
-    if (g_webserverConfig.password.empty()) {
+    if (!g_webserverConfig.password) {
       warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
     }
   }

@@ -633,5 +633,36 @@ size_t parseSVCBValueList(const std::string &in, vector<std::string> &val);
 
 std::string makeLuaString(const std::string& in);
 
+bool constantTimeStringEquals(const std::string& a, const std::string& b);
+
 // Used in NID and L64 records
 struct NodeOrLocatorID { uint8_t content[8]; };
+
+struct FDWrapper : public boost::noncopyable
+{
+  FDWrapper(int descr) : fd(descr) {}
+  ~FDWrapper()
+  {
+    if (fd != -1) {
+      close(fd);
+    }
+    fd = -1;
+  }
+  FDWrapper(FDWrapper&& rhs) : fd(rhs.fd)
+  {
+    rhs.fd = -1;
+  }
+  FDWrapper& operator=(FDWrapper&& rhs)
+  {
+    fd = rhs.fd;
+    rhs.fd = -1;
+    return *this;
+  }
+
+  operator int() const
+  {
+    return fd;
+  }
+private:
+  int fd;
+};

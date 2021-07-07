@@ -129,6 +129,7 @@ dnsdist_SOURCES = \
 	capabilities.cc capabilities.hh \
 	circular_buffer.hh \
 	connection-management.hh \
+	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-backend.cc \
@@ -222,6 +223,7 @@ testrunner_SOURCES = \
 	cachecleaner.hh \
 	circular_buffer.hh \
 	connection-management.hh \
+	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-backend.cc \
@@ -270,6 +272,7 @@ testrunner_SOURCES = \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
 	test-connectionmanagement_hh.cc \
+	test-credentials_cc.cc \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
@@ -338,6 +341,7 @@ endif
 
 if HAVE_LIBCRYPTO
 dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
+testrunner_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 

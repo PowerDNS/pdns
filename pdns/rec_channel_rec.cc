@@ -273,28 +273,6 @@ string static doGetParameter(T begin, T end)
   return ret;
 }
 
-struct FDWrapper : public boost::noncopyable
-{
-  FDWrapper(int descr) : fd(descr) {}
-  ~FDWrapper()
-  {
-    if (fd != -1) {
-      close(fd);
-    }
-    fd = -1;
-  }
-  FDWrapper(FDWrapper&& rhs) : fd(rhs.fd)
-  {
-    rhs.fd = -1;
-  }
-  operator int() const
-  {
-    return fd;
-  }
-private:
-  int fd;
-};
-
 /* Read an (open) fd from the control channel */
 static FDWrapper
 getfd(int s)
@@ -1863,6 +1841,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
 "get-qtypelist                    get QType statistics\n"
 "                                 notice: queries from cache aren't being counted yet\n"
+"hash-password [work-factor]      ask for a password then return the hashed version\n"
 "help                             get this list\n"
 "ping                             check that all threads are alive\n"
 "quit                             stop the recursor daemon\n"

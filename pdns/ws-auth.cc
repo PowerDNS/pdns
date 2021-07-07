@@ -65,10 +65,10 @@ AuthWebServer::AuthWebServer() :
   d_min5(0),
   d_min1(0)
 {
-  if(arg().mustDo("webserver") || arg().mustDo("api")) {
+  if (arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = unique_ptr<WebServer>(new WebServer(arg()["webserver-address"], arg().asNum("webserver-port")));
-    d_ws->setApiKey(arg()["api-key"]);
-    d_ws->setPassword(arg()["webserver-password"]);
+    d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
+    d_ws->setPassword(arg()["webserver-password"], arg().mustDo("webserver-hash-plaintext-credentials"));
     d_ws->setLogLevel(arg()["webserver-loglevel"]);
 
     NetmaskGroup acl;

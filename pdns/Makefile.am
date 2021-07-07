@@ -17,6 +17,7 @@ AM_CXXFLAGS = \
 
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
+	$(LIBCRYPTO_LIBS) \
 	$(THREADFLAGS)
 
 AM_LFLAGS = -i
@@ -200,6 +201,7 @@ pdns_server_SOURCES = \
 	comment.hh \
 	common_startup.cc common_startup.hh \
 	communicator.cc communicator.hh \
+	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	digests.hh \
 	distributor.hh \
@@ -332,6 +334,7 @@ pdnsutil_SOURCES = \
 	bindparser.yy \
 	cachecleaner.hh \
 	circular_buffer.hh \
+	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	dns.cc \
 	dns_random.cc \
@@ -675,6 +678,7 @@ ixfrdist_SOURCES = \
 	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	credentials.cc credentials.hh \
 	dns.cc \
 	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
@@ -709,7 +713,6 @@ ixfrdist_SOURCES = \
 	webserver.hh webserver.cc \
 	zoneparser-tng.cc
 
-
 ixfrdist_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(JSON11_LIBS) \
@@ -721,6 +724,10 @@ ixfrdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
+
+if LIBSODIUM
+ixfrdist_LDADD += $(LIBSODIUM_LIBS)
+endif
 
 if PKCS11
 ixfrdist_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -910,6 +917,7 @@ endif
 speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	credentials.cc credentials.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -1312,6 +1320,7 @@ testrunner_SOURCES = \
 	base64.cc \
 	bindlexer.l \
 	bindparser.yy \
+	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	dns.cc \
 	dns_random.cc \
@@ -1358,6 +1367,7 @@ testrunner_SOURCES = \
 	test-bindparser_cc.cc \
 	test-common.hh \
 	test-communicator_hh.cc \
+	test-credentials_cc.cc \
 	test-digests_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
@@ -1419,6 +1429,7 @@ endif
 if LIBSODIUM
 testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
+speedtest_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if LIBDECAF

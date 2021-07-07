@@ -1449,6 +1449,7 @@ scopebits
 scopemask
 scriptable
 scriptlets
+scrypt
 sdb
 sdfoijdfio
 sdig
