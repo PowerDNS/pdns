@@ -24,8 +24,17 @@
 #include <vector>
 #include <string>
 
-namespace dnsdist {
-  enum class Protocol : uint8_t { DoUDP, DoTCP, DNSCryptUDP, DNSCryptTCP, DoT, DoH };
+namespace dnsdist
+{
+enum class Protocol : uint8_t
+{
+  DoUDP,
+  DoTCP,
+  DNSCryptUDP,
+  DNSCryptTCP,
+  DoT,
+  DoH
+};
 
-  const std::string& ProtocolToString(Protocol proto);
+const std::string& ProtocolToString(Protocol proto);
 }

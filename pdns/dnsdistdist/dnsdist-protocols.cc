@@ -21,11 +21,11 @@
  */
 #include "dnsdist-protocols.hh"
 
-namespace dnsdist {
-  const std::string& ProtocolToString(Protocol proto)
-  {
-    static const std::vector<std::string> values = { "Do53 UDP", "Do53 TCP", "DNSCrypt UDP", "DNSCrypt TCP", "DNS over TLS", "DNS over HTTPS" };
-    return values.at(static_cast<int>(proto));
-  }
+namespace dnsdist
+{
+const std::string& ProtocolToString(Protocol proto)
+{
+  static const std::vector<std::string> values = {"Do53 UDP", "Do53 TCP", "DNSCrypt UDP", "DNSCrypt TCP", "DNS over TLS", "DNS over HTTPS"};
+  return values.at(static_cast<int>(proto));
 }
-
+}
