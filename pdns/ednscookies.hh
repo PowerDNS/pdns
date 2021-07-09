@@ -23,11 +23,11 @@
 #include "namespaces.hh"
 #include "iputils.hh"
 
-#define EDNSCOOKIESECRETSIZE 32
-#define EDNSCOOKIEOPTSIZE 24
-
 struct EDNSCookiesOpt
 {
+  static const size_t EDNSCookieSecretSize = 32;
+  static const size_t EDNSCookieOptSize = 24;
+
   EDNSCookiesOpt(){};
   EDNSCookiesOpt(const std::string& option);
   EDNSCookiesOpt(const char* option, unsigned int len);
