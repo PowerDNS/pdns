@@ -151,10 +151,11 @@ bool EDNSCookiesOpt::makeServerCookie(const string& secret, const ComboAddress& 
   }
 
   server.clear();
+  server.reserve(16);
   server = "\x01"; // Version
   server.resize(4, '\0'); // 3 reserved bytes
   uint32_t now = htonl(static_cast<uint32_t>(time(nullptr)));
-  server += string(reinterpret_cast<const char*>(&now), 4);
+  server += string(reinterpret_cast<const char*>(&now), sizeof(now));
   server.resize(8);
 
   string toHash = client;
