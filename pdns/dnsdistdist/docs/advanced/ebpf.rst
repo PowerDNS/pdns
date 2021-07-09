@@ -1,7 +1,7 @@
 eBPF Socket Filtering
 =====================
 
-:program:`dnsdist` can use `eBPF <http://www.brendangregg.com/ebpf.html>`_ socket filtering on recent Linux kernels (4.1+) built with eBPF support (``CONFIG_BPF``, ``CONFIG_BPF_SYSCALL``, ideally ``CONFIG_BPF_JIT``).
+:program:`dnsdist` can use `eBPF <http://www.brendangregg.com/ebpf.html>`_ socket filtering on recent Linux kernels (4.1+) built with eBPF support (``CONFIG_BPF``, ``CONFIG_BPF_SYSCALL``, ideally ``CONFIG_BPF_JIT``). It requires dnsdist to have the ``CAP_SYS_ADMIN`` capabilities at startup, or the more restrictive ``CAP_BPF`` one since Linux 5.8.
 
 This feature allows dnsdist to ask the kernel to discard incoming packets in kernel-space instead of them being copied to userspace just to be dropped, thus being a lot of faster. The current implementation supports dropping UDP and TCP queries based on the source IP and UDP datagrams on exact DNS names. We have not been able to implement suffix matching yet, due to a limit on the maximum number of EBPF instructions.
 
@@ -67,4 +67,4 @@ Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will aut
 
 That feature might require an increase of the memory limit associated to a socket, via the sysctl setting ``net.core.optmem_max``.
 When attaching an eBPF program to a socket, the size of the program is checked against this limit, and the default value might not be enough.
-Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``.
+Large map sizes might also require an increase of ``RLIMIT_MEMLOCK``, which can be done by adding ``LimitMEMLOCK=infinity`` in the systemd unit file.
