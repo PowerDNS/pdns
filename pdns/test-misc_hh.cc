@@ -391,4 +391,11 @@ BOOST_AUTO_TEST_CASE(test_parseSVCBValueList)
   BOOST_CHECK_EQUAL(out[0], "foobar123 blabla bla,baz quux456");
 }
 
+BOOST_AUTO_TEST_CASE(test_makeBytesFromHex) {
+  string out = makeBytesFromHex("1234567890abcdef");
+  BOOST_CHECK_EQUAL(out, "\x12\x34\x56\x78\x90\xab\xcd\xef");
+
+  BOOST_CHECK_THROW(makeBytesFromHex("123"), std::range_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

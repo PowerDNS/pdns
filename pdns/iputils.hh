@@ -309,6 +309,14 @@ union ComboAddress {
     return toStringWithPortExcept(53);
   }
 
+  string toByteString() const
+  {
+    if (isIPv4()) {
+      return string(reinterpret_cast<const char*>(&sin4.sin_addr.s_addr), sizeof(sin4.sin_addr.s_addr));
+    }
+    return string(reinterpret_cast<const char*>(&sin6.sin6_addr.s6_addr), sizeof(sin6.sin6_addr.s6_addr));
+  }
+
   void truncate(unsigned int bits) noexcept;
 
   uint16_t getPort() const

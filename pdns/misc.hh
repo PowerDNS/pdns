@@ -304,6 +304,8 @@ inline void unixDie(const string &why)
 }
 
 string makeHexDump(const string& str);
+//! Convert the hexstring in to a byte string
+string makeBytesFromHex(const string &in);
 
 void normalizeTV(struct timeval& tv);
 const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);

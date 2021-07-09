@@ -102,6 +102,7 @@ EXTRA_DIST=COPYING \
 	   kqueuemplexer.cc \
 	   portsmplexer.cc \
 	   cdb.cc cdb.hh \
+	   string_compare.hh \
 	   ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh \
 	   ext/protozero/include/* \
 	   builder-support/gen-version
@@ -338,6 +339,7 @@ endif
 
 if HAVE_LIBCRYPTO
 dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
+testrunner_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
