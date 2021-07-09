@@ -506,7 +506,9 @@ These ``DNSRule``\ s be one of the following items:
 
   The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
 
-  The function will be invoked in a per-thread Lua state, without access to the global Lua state.
+  The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context,
+  as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...)
+  are not available.
 
   :param string function: a Lua string returning a Lua function
 
@@ -1018,7 +1020,9 @@ The following actions exist.
 
   The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
 
-  The function will be invoked in a per-thread Lua state, without access to the global Lua state.
+  The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context,
+  as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...)
+  are not available.
 
   :param string function: a Lua string returning a Lua function
 
@@ -1030,7 +1034,9 @@ The following actions exist.
 
   The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
 
-  The function will be invoked in a per-thread Lua state, without access to the global Lua state.
+  The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context,
+  as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...)
+  are not available.
 
   :param string function: a Lua string returning a Lua function
 
