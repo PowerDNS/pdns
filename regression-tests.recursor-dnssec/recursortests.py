@@ -181,6 +181,10 @@ cname-to-formerr.secure.example. 3600 IN CNAME host1.insecure-formerr.example.
 dname-secure.secure.example. 3600 IN DNAME dname-secure.example.
 dname-insecure.secure.example. 3600 IN DNAME insecure.example.
 dname-bogus.secure.example. 3600 IN DNAME bogus.example.
+
+non-apex-dnskey.secure.example. 3600 IN DNSKEY 257 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
+non-apex-dnskey2.secure.example. 3600 IN DNSKEY 256 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
+non-apex-dnskey3.secure.example. 3600 IN DNSKEY 256 3 13 DT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
         """,
         'dname-secure.example': """
 dname-secure.example. 3600 IN SOA {soa}
