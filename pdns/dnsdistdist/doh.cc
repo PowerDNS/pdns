@@ -201,6 +201,7 @@ struct DOHServerConfig
 
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
+    // perhaps we should make h2o_config.http2.max_concurrent_requests_per_connection configurable (default is 100)
   }
   DOHServerConfig(const DOHServerConfig&) = delete;
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
