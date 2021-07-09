@@ -861,7 +861,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     prefix.append(depth, ' ');
   }
 
-  LOG(prefix<<qname<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, "<<(d_requireAuthData ? "" : "NO ")<<"auth data in query for "<<qtype.toString()<<endl);
+  LOG(prefix<<qname<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, "<<(d_requireAuthData ? "" : "NO ")<<"auth data in query for "<<qtype<<endl);
 
   if (s_maxdepth && depth > s_maxdepth) {
     string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
@@ -874,7 +874,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
   if(!(d_updatingRootNS && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
-      LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.toString()<<"', peeking at auth/forward zones"<<endl);
+      LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype<<"', peeking at auth/forward zones"<<endl);
       DNSName authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
       if(iter != t_sstorage.domainmap->end()) {
@@ -1018,7 +1018,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType qtyp
     return 0;
   }
 
-  LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.toString()<<"', trying to find an appropriate NS record"<<endl);
+  LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype<<"', trying to find an appropriate NS record"<<endl);
 
   DNSName subdomain(qname);
   if (qtype == QType::DS) subdomain.chopOff();
@@ -1771,7 +1771,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         giveNegative = true;
         cachedState = ne.d_validationState;
         if (ne.d_qtype.getCode()) {
-          LOG(prefix<<qname<<": "<<qtype.toString()<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+          LOG(prefix<<qname<<": "<<qtype<<" is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
           res = RCode::NoError;
         } else {
           LOG(prefix<<qname<<": Entire name '"<<qname<<"' is negatively cached via '"<<ne.d_auth<<"' for another "<<sttl<<" seconds"<<endl);
@@ -2187,7 +2187,7 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
   }
 
   if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None) {
-    LOG(prefix << qname << "|" << qtype.toString() << d_appliedPolicy.getLogString() << endl);
+    LOG(prefix << qname << "|" << qtype << d_appliedPolicy.getLogString() << endl);
   }
 
   switch (d_appliedPolicy.d_kind) {
@@ -2368,7 +2368,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     return true;
   }
   else if(t_sstorage.throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()))) {
-    LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype.toString()<<endl);
+    LOG(prefix<<qname<<": query throttled "<<remoteIP.toString()<<", "<<qname<<"; "<<qtype<<endl);
     s_throttledqueries++; d_throttledqueries++;
     return true;
   }
@@ -3682,7 +3682,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
     else if (!done && rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA &&
             lwr.d_rcode == RCode::NoError && qname.isPartOf(rec.d_name)) {
-      LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype.toString()<<"'"<<endl);
+      LOG(prefix<<qname<<": got negative caching indication for '"<< qname<<"|"<<qtype<<"'"<<endl);
 
       if (!newtarget.empty()) {
         LOG(prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl);
@@ -4270,7 +4270,7 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
         }
 
         for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.toString()<<"'"<<endl);
+          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype<<"'"<<endl);
 
           if (throttledOrBlocked(prefix, *remoteIP, qname, qtype, pierceDontQuery)) {
             continue;
