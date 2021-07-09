@@ -165,7 +165,7 @@ void declareArguments()
   ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="yes";
   ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no";
 
-  ::arg().set("edns-cookie-secret", "When set, set a server cookie in a response to a query with a Client cookie (in hex)")="";
+  ::arg().set("edns-cookie-secret", "When set, set a server cookie when responding to a query with a Client cookie (in hex)")="";
 
   ::arg().setSwitch("webserver","Start a webserver for monitoring (api=yes also enables the HTTP listener)")="no";
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no";
@@ -594,7 +594,7 @@ void mainthread()
        exit(1);
      }
 #else
-     g_log<<Logger::Error<<"Support for EDNS Cookies is not available because of missing cryptographic functions"<<endl;
+     g_log<<Logger::Error<<"Support for EDNS Cookies is not available because of missing cryptographic functions (libsodium support should be enabled, with the crypto_shorthash() function available)"<<endl;
      exit(1);
 #endif
    }

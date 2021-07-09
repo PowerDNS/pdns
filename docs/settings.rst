@@ -633,7 +633,7 @@ disables caching.
 -  Default: (empty)
 
 When set, PowerDNS will respond with :rfc:`9018` EDNS Cookies to queries that have the EDNS0 Cookie option.
-PowerDNS will also respond with BADCOOKIE to clients that have no or a bad server cookie (section 5.2.3 and 5.2.4 of :rfc:`7873`).
+PowerDNS will also respond with BADCOOKIE to clients that have sent only a client cookie, or a bad server cookie (section 5.2.3 and 5.2.4 of :rfc:`7873`).
 
 This setting MUST be 32 hexadecimal characters, as the siphash algorithm's key used to create the cookie requires a 128-bit key.
 

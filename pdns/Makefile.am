@@ -351,7 +351,7 @@ pdnsutil_SOURCES = \
 	dnssecsigner.cc \
 	dnswriter.cc dnswriter.hh \
 	dynlistener.cc \
-	ednscookies.cc \
+	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	ipcipher.cc ipcipher.hh \
