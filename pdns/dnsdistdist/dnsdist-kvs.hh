@@ -154,8 +154,8 @@ public:
   virtual bool keyExists(const std::string& key) = 0;
   virtual bool getValue(const std::string& key, std::string& value) = 0;
   // do a range-based lookup (mostly useful for IP addresses), assuming that:
-  // there is a key for the last element of the range (2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff for 2001:db8::/32)
-  // which contains the first element of the range (2001:0db8:0000:0000:0000:0000:0000:0000) followed by any data in the value
+  // there is a key for the last element of the range (2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff, in network byte order, for 2001:db8::/32)
+  // which contains the first element of the range (2001:0db8:0000:0000:0000:0000:0000:0000, in network bytes order) followed by any data in the value
   // AND there is no overlapping ranges in the database !!
   // This requires that the underlying store supports ordered keys, which is true for LMDB but not for CDB, for example.
   virtual bool getRangeValue(const std::string& key, std::string& value)
