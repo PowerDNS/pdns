@@ -1230,8 +1230,8 @@ private:
 
   static std::atomic<uint64_t> s_functionsCounter;
   static thread_local std::map<uint64_t, PerThreadState> t_perThreadStates;
-  std::string d_functionCode;
-  uint64_t d_functionID;
+  const std::string d_functionCode;
+  const uint64_t d_functionID;
 };
 
 class ProxyProtocolValueRule : public DNSRule
