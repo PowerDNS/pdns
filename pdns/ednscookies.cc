@@ -142,6 +142,8 @@ bool EDNSCookiesOpt::shouldRefresh()
 bool EDNSCookiesOpt::makeServerCookie(const string& secret, const ComboAddress& source)
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
+  static_assert(EDNSCookieSecretSize == crypto_shorthash_KEYBYTES * 2, "The EDNSCookieSecretSize is not twice crypto_shorthash_KEYBYTES");
+
   if (isValid(secret, source) && !shouldRefresh()) {
     return true;
   }

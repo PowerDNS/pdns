@@ -585,8 +585,8 @@ void mainthread()
 #ifdef HAVE_CRYPTO_SHORTHASH // we can do siphash-based cookies
      DNSPacket::s_doEDNSCookieProcessing = true;
      try {
-       if (::arg()["edns-cookie-secret"].size() != EDNSCOOKIESECRETSIZE) {
-         throw std::range_error("wrong size (" + std::to_string(::arg()["edns-cookie-secret"].size()) + "), must be " + std::to_string(EDNSCOOKIESECRETSIZE));
+       if (::arg()["edns-cookie-secret"].size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
+         throw std::range_error("wrong size (" + std::to_string(::arg()["edns-cookie-secret"].size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize));
        }
        DNSPacket::s_EDNSCookieKey = makeBytesFromHex(::arg()["edns-cookie-secret"]);
      } catch(const std::range_error &e) {
