@@ -132,6 +132,9 @@ bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
     // to be stored with the last value of the range as key
     // and the first value of the range as data, sometimes
     // followed by any other content we don't care about
+    // range-based lookups are mostly useful for network ranges,
+    // for which we expect addresses to be stored in network byte
+    // order
 
     // retrieve the first key greater or equal to our key
     int rc = cursor.lower_bound(MDBInVal(key), actualKey, result);
