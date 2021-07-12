@@ -1121,6 +1121,36 @@ private:
   std::shared_ptr<KeyValueLookupKey> d_key;
 };
 
+class KeyValueStoreRangeLookupRule: public DNSRule
+{
+public:
+  KeyValueStoreRangeLookupRule(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey): d_kvs(kvs), d_key(lookupKey)
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    std::vector<std::string> keys = d_key->getKeys(*dq);
+    for (const auto& key : keys) {
+      std::string value;
+      if (d_kvs->getRangeValue(key, value) == true) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  string toString() const override
+  {
+    return "range-based lookup key-value store based on '" + d_key->toString() + "'";
+  }
+
+private:
+  std::shared_ptr<KeyValueStore> d_kvs;
+  std::shared_ptr<KeyValueLookupKey> d_key;
+};
+
 class LuaRule : public DNSRule
 {
 public:
