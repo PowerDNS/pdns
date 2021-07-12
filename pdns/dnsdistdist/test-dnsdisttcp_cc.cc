@@ -174,7 +174,7 @@ public:
     return step.nextState;
   }
 
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead) override
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) override
   {
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, !d_client ? ExpectedStep::ExpectedRequest::readFromClient : ExpectedStep::ExpectedRequest::readFromBackend);
@@ -255,7 +255,7 @@ public:
   {
   }
 
-  size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}) override
+  size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false) override
   {
     return 0;
   }

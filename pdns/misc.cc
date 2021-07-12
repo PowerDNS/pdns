@@ -110,7 +110,7 @@ size_t readn2(int fd, void* buffer, size_t len)
   return len;
 }
 
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout)
+size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout, bool allowIncomplete)
 {
   size_t pos = 0;
   struct timeval start{0,0};
@@ -123,6 +123,9 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval&
     ssize_t got = read(fd, (char *)buffer + pos, len - pos);
     if (got > 0) {
       pos += (size_t) got;
+      if (allowIncomplete) {
+        break;
+      }
     }
     else if (got == 0) {
       throw runtime_error("EOF while reading message");
