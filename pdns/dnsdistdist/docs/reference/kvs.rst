@@ -129,12 +129,16 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
   :param string filename: The path to an existing CDB database
   :param int refreshDelays: The delay in seconds between two checks of the database modification time. 0 means disabled
 
-.. function:: newLMDBKVStore(filename, dbName) -> KeyValueStore
+.. function:: newLMDBKVStore(filename, dbName [, noLock]) -> KeyValueStore
 
   .. versionadded:: 1.4.0
 
+  .. versionchanged:: 1.7.0
+    Added the optional parameter ``noLock``.
+
   Return a new KeyValueStore object associated to the corresponding LMDB database. The database must have been created
-  with the ``MDB_NOSUBDIR`` flag.
+  with the ``MDB_NOSUBDIR`` flag. Since 1.7.0, the database is opened with the ``MDB_READONLY`` flag, and optionally with ``MDB_NOLOCK`` if ``noLock`` is set to true.
 
   :param string filename: The path to an existing LMDB database created with ``MDB_NOSUBDIR``
   :param string dbName: The name of the database to use
+  :param bool noLock: Whether to open the database with the ``MDB_NOLOCK`` flag. Default is false

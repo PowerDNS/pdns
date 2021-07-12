@@ -518,7 +518,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newFrameStreamTcpLogger", true, "addr [, options]", "create a FrameStream logger object writing to a TCP address (addr should be ip:port), to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
   { "newFrameStreamUnixLogger", true, "socket [, options]", "create a FrameStream logger object writing to a local unix socket, to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
 #ifdef HAVE_LMDB
-  { "newLMDBKVStore", true, "fname, dbName", "Return a new KeyValueStore object associated to the corresponding LMDB database" },
+  { "newLMDBKVStore", true, "fname, dbName [, noLock]", "Return a new KeyValueStore object associated to the corresponding LMDB database" },
 #endif
   { "newNMG", true, "", "Returns a NetmaskGroup" },
   { "newPacketCache", true, "maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, options={}]", "return a new Packet Cache" },

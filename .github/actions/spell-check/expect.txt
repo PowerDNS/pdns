@@ -1086,6 +1086,7 @@ nodata
 NODELAY
 noedns
 noerrors
+NOLOCK
 nometasync
 Nominet
 nonexist
