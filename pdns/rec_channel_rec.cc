@@ -1132,6 +1132,19 @@ static StatsMap toStatsMap(const string& name, const pdns::AtomicHistogram& hist
   return entries;
 }
 
+static StatsMap toCPUStatsMap(const string& name)
+{
+  const string pbasename = getPrometheusName(name);
+  StatsMap entries;
+
+  for (unsigned int n = 0; n < g_numThreads; ++n) {
+    uint64_t tm = doGetThreadCPUMsec(n);
+    std::string pname = pbasename + "{thread=" + std::to_string(n) + '}';
+    entries.emplace(make_pair(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)}));
+  }
+  return entries;
+}
+
 extern ResponseStats g_rs;
 
 static void registerAllStats1()
@@ -1277,9 +1290,7 @@ static void registerAllStats1()
   addGetStat("cpu-steal", []{ return getCPUSteal(string()); });
 #endif
 
-  for (unsigned int n = 0; n < g_numThreads; ++n) {
-    addGetStat("cpu-msec-thread-" + std::to_string(n), [n]{ return doGetThreadCPUMsec(n);});
-  }
+  addGetStat("cpu-msec", []() { return toCPUStatsMap("cpu-msec"); });
 
 #ifdef MALLOC_TRACE
   addGetStat("memory-allocs", []{ return g_mtracer->getAllocs(string()); });
