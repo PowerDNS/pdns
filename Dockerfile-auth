@@ -50,7 +50,7 @@ RUN mkdir /build && \
       --with-lua=${LUAVER} \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
-      --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe random remote tinydns' \
+      --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
       --enable-tools \
       --enable-ixfrdist \
       --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
