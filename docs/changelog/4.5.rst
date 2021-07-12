@@ -2,6 +2,37 @@ Changelogs for 4.5.x
 ====================
 
 .. changelog::
+  :version: 4.5.0
+  :released: 13th of July 2021
+
+  This is release 4.5.0 of the Authoritative Server.
+  This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
+
+  There are two notable new features:
+
+  * The "zone cache", which allows PowerDNS to keep a list of zones in memory, updated periodically.
+    With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
+    In some setups, and some attack scenarios, this can make a serious performance difference.
+    Users of backends with dynamically generated zones may want to disable this or at least read the upgrade notes extremely carefully.
+    Many thanks to Chris Hofstaedtler for implementing this.
+    This work by Chris was supported by RcodeZero DNS.
+  * Priority ordering in the AXFR queue in PowerDNS running as a secondary.
+    Some users with a lot of domains (>100k) sometimes found real changes waiting behind signature refreshes on Thursdays.
+    With the new ordering, those real changes can "skip the line" and get deployed on your secondaries faster.
+    Many thanks to Robin Geuze of TransIP for implementing this.
+
+  Since 4.5.0-beta1, the zone cache is enabled by default.
+
+  Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 10579
+
+    fix building without sqlite (this got broken between RC1 and RC2).
+    Thanks to our trusty FreeBSD port maintainer Ralf van der Enden for noticing and reporting this.
+
+.. changelog::
   :version: 4.5.0-rc2
   :released: 6th of July 2021
 
@@ -10,13 +41,13 @@ Changelogs for 4.5.x
 
   There are two notable new features:
 
-  * The 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  * The "zone cache", which allows PowerDNS to keep a list of zones in memory, updated periodically.
     With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
     In some setups, and some attack scenarios, this can make a serious performance difference.
     Many thanks to Chris Hofstaedtler for implementing this.
   * Priority ordering in the AXFR queue in PowerDNS running as a secondary.
     Some users with a lot of domains (>100k) sometimes found real changes waiting behind signature refreshes on Thursdays.
-    With the new ordering, those real changes can 'skip the line' and get deployed on your secondaries faster.
+    With the new ordering, those real changes can "skip the line" and get deployed on your secondaries faster.
     Many thanks to Robin Geuze for implementing this.
 
   Since 4.5.0-beta1, the zone cache is enabled by default.
@@ -42,7 +73,7 @@ Changelogs for 4.5.x
   This is the first release candidate for version 4.5.0 of the Authoritative Server.
   This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
 
-  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  The one notable feature is the "zone cache", which allows PowerDNS to keep a list of zones in memory, updated periodically.
   With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
   In some setups, and some attack scenarios, this can make a serious performance difference.
 
@@ -111,7 +142,7 @@ Changelogs for 4.5.x
   This is version 4.5.0-beta1 of the Authoritative Server.
   This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
 
-  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  The one notable feature is the "zone cache", which allows PowerDNS to keep a list of zones in memory, updated periodically.
   With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
   In some setups, and some attack scenarios, this can make a serious performance difference.
 
@@ -150,7 +181,7 @@ Changelogs for 4.5.x
   This is version 4.5.0-alpha1 of the Authoritative Server.
   This release contains a ton of improvements and bug fixes compared to 4.4, but very few user visible changes.
 
-  The one notable feature is the 'zone cache', which allows PowerDNS to keep a list of zones in memory, updated periodically.
+  The one notable feature is the "zone cache", which allows PowerDNS to keep a list of zones in memory, updated periodically.
   With this cache, PowerDNS can avoid hitting the database with queries for unknown domains.
   In some setups, and some attack scenarios, this can make a serious performance difference.
 
