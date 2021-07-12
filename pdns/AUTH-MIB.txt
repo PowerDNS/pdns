@@ -1,0 +1,77 @@
+-- -*- snmpv2 -*-
+-- ----------------------------------------------------------------------
+-- MIB file for PowerDNS Authoritative
+-- ----------------------------------------------------------------------
+
+PDNSAUTH-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, enterprises,
+    Counter64, NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+    CounterBasedGauge64
+        FROM HCNUM-TC
+    OBJECT-GROUP, MODULE-COMPLIANCE, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF;
+
+auth MODULE-IDENTITY
+    LAST-UPDATED "202106120000Z"
+    ORGANIZATION "PowerDNS BV"
+    CONTACT-INFO "support@powerdns.com"
+    DESCRIPTION
+       "This MIB module describes information gathered through PowerDNS Authoritative."
+
+    REVISION "202106120000Z"
+    DESCRIPTION "Initial revision. Only a placeholder to allow allocating traps.5000-5999 and trapObjects.5000-5999 for local usage."
+
+    ::= { powerdns 1 }
+
+powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
+
+stats OBJECT IDENTIFIER ::= { auth 1 }
+
+---
+--- Traps / Notifications
+---
+
+trap OBJECT IDENTIFIER ::= { auth 10 }
+traps OBJECT IDENTIFIER ::= { trap 0 } --- reverse-mappable
+trapObjects OBJECT IDENTIFIER ::= { auth 11 }
+
+--- { trapObjects 5000 } up to and including { trapObjects 5999 } are reserved for local, product-specific extensions to the Authoritative MIB
+
+--- { traps 5000 } up to and including { traps 5999 } are reserved for local, product-specific extensions to the Authoritative MIB
+
+---
+--- Conformance
+---
+
+authConformance OBJECT IDENTIFIER ::= { auth 100 }
+
+authCompliances MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION "PowerDNS authoritative compliance statement"
+    MODULE
+    MANDATORY-GROUPS {
+        authGroup,
+        authTrapsGroup
+    }
+    ::= { authConformance 1 }
+
+authGroup OBJECT-GROUP
+    OBJECTS {
+
+    }
+    STATUS current
+    DESCRIPTION "Objects conformance group for PowerDNS Authoritative"
+    ::= { authConformance 2 }
+
+authTrapsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        customTrap
+    }
+    STATUS current
+    DESCRIPTION "Traps conformance group for PowerDNS Authoritative"
+    ::= { authConformance 3 }
+
+END
