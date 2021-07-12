@@ -962,6 +962,8 @@ trapReason OBJECT-TYPE
         "Reason for this trap"
     ::= { trapObjects 1 }
 
+--- { trapObjects 5000 } up to and including { trapObjects 5999 } are reserved for local, product-specific extensions to the Recursor MIB
+
 customTrap NOTIFICATION-TYPE
     OBJECTS {
         trapReason
@@ -969,6 +971,8 @@ customTrap NOTIFICATION-TYPE
     STATUS current
     DESCRIPTION "Trap sent by sendCustomTrap"
     ::= { traps 1 }
+
+--- { traps 5000 } up to and including { traps 5999 } are reserved for local, product-specific extensions to the Recursor MIB
 
 ---
 --- Conformance
