@@ -1767,7 +1767,7 @@ static void startDoResolve(void *p)
     }
 
     if(!g_quiet || tracedQuery) {
-      g_log<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
+      g_log<<Logger::Warning<<"thread #"<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
            <<QType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote();
       if(!dc->d_ednssubnet.source.empty()) {
         g_log<<" (ecs "<<dc->d_ednssubnet.source.toString()<<")";
@@ -2311,7 +2311,7 @@ static void startDoResolve(void *p)
     // Now it always uses an integral number of microseconds, except for averages, which use doubles
     uint64_t spentUsec = uSec(sr.getNow() - dc->d_now);
     if (!g_quiet) {
-      g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
+      g_log<<Logger::Error<<"thread #"<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       g_log<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_totUsec/1000.0<<" netw ms, "<< spentUsec/1000.0<<" tot ms, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<"/"<<sr.d_dotoutqueries<<" tcp/dot connections, rcode="<< res;
@@ -2786,7 +2786,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (t_pdl) {
         if (t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh)) {
           if (!g_quiet) {
-            g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
+            g_log<<Logger::Notice<<"thread #"<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
           }
           g_stats.policyDrops++;
           terminateTCPConnection(fd);
@@ -2838,7 +2838,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
 
           if (!g_quiet) {
-            g_log<<Logger::Notice<<t_id<< " TCP question answered from packet cache tag="<<dc->d_tag<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
+            g_log<<Logger::Notice<<"thread #"<<t_id<< " TCP question answered from packet cache tag="<<dc->d_tag<<" from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<endl;
           }
 
           bool hadError = sendResponseOverTCP(dc, response);
@@ -3075,7 +3075,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
 
       if (!g_quiet) {
-        g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
+        g_log<<Logger::Notice<<"thread #"<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<endl;
       }
       struct msghdr msgh;
       struct iovec iov;
@@ -3109,7 +3109,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   if (t_pdl) {
     if (t_pdl->ipfilter(source, destination, *dh)) {
       if (!g_quiet) {
-	g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
+	g_log<<Logger::Notice<<"thread #"<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" based on policy"<<endl;
       }
       g_stats.policyDrops++;
       return 0;
@@ -3118,7 +3118,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
-      g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<", over capacity"<<endl;
+      g_log<<Logger::Notice<<"thread #"<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<", over capacity"<<endl;
 
     g_stats.overCapacityDrops++;
     return 0;
@@ -3978,7 +3978,7 @@ static unsigned int selectWorker(unsigned int hash)
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   if (!isDistributorThread()) {
-    g_log<<Logger::Error<<"distributeAsyncFunction() has been called by a worker ("<<t_id<<")"<<endl;
+    g_log<<Logger::Error<<"distributeAsyncFunction() has been called by a worker (thread #"<<t_id<<")"<<endl;
     _exit(1);
   }
 
@@ -4059,7 +4059,7 @@ static vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 {
   if (!isHandlerThread()) {
-    g_log<<Logger::Error<<"broadcastAccFunction has been called by a worker ("<<t_id<<")"<<endl;
+    g_log<<Logger::Error<<"broadcastAccFunction has been called by a worker (thread #"<<t_id<<")"<<endl;
     _exit(1);
   }
 
@@ -4415,25 +4415,25 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
   try {
     if(fname.empty()) {
       t_pdl.reset();
-      g_log<<Logger::Info<<t_id<<" Unloaded current lua script"<<endl;
+      g_log<<Logger::Info<<"thread #"<<t_id<<" unloaded current lua script"<<endl;
       return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
     else {
       t_pdl = std::make_shared<RecursorLua4>();
       int err = t_pdl->loadFile(fname);
       if (err != 0) {
-        string msg = std::to_string(t_id) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
+        string msg = std::string("thread #") + std::to_string(t_id) + " Retaining current script, could not read '" + fname + "': " + stringerror(err);
         g_log<<Logger::Error<<msg<<endl;
         return new RecursorControlChannel::Answer{1, msg + "\n"};
       }
     }
   }
   catch(std::exception& e) {
-    g_log<<Logger::Error<<t_id<<" Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
+    g_log<<Logger::Error<<"thread #"<<t_id<<" retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
     return new RecursorControlChannel::Answer{1, string("retaining current script, error from '"+fname+"': "+e.what()+"\n")};
   }
 
-  g_log<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
+  g_log<<Logger::Warning<<"thread #"<<t_id<<" (re)loaded lua script from '"<<fname<<"'"<<endl;
   return new RecursorControlChannel::Answer{0, string("(re)loaded '"+fname+"'\n")};
 }
 
@@ -5429,11 +5429,11 @@ try
       if(!::arg()["lua-dns-script"].empty()) {
         t_pdl = std::make_shared<RecursorLua4>();
         t_pdl->loadFile(::arg()["lua-dns-script"]);
-        g_log<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+        g_log<<Logger::Warning<<"thread #"<<t_id<<" loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
       }
     }
     catch(std::exception &e) {
-      g_log<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
+      g_log<<Logger::Error<<"thread #"<<t_id<<" failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
       _exit(99);
     }
   }
