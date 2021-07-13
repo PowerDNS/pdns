@@ -548,7 +548,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
-    if (type == QType::DS && signer == name) {
+    if (type == QType::DS && !name.isRoot() && signer == name) {
       LOG(" but this NSEC3 comes from the child zone and cannot be used to deny a DS");
       return false;
     }
@@ -591,7 +591,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
         break;
       }
 
-      if (type == QType::DS && signer == name) {
+      if (type == QType::DS && !name.isRoot() && signer == name) {
         LOG(" but this NSEC3 comes from the child zone and cannot be used to deny a DS");
         return false;
       }
@@ -635,7 +635,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
   }
 
   const DNSName nextCloserSigner = getSigner(nextCloserEntry.d_signatures);
-  if (type == QType::DS && nextCloserSigner == name) {
+  if (type == QType::DS && !name.isRoot() && nextCloserSigner == name) {
     LOG(" but this NSEC3 comes from the child zone and cannot be used to deny a DS");
     return false;
   }
@@ -675,7 +675,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
       return false;
     }
 
-    if (type == QType::DS && wcSigner == name) {
+    if (type == QType::DS && !name.isRoot() && wcSigner == name) {
       LOG(" but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
       return false;
     }
@@ -701,7 +701,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<AggressiveN
     }
 
     const DNSName wcSigner = getSigner(wcEntry.d_signatures);
-    if (type == QType::DS && wcSigner == name) {
+    if (type == QType::DS && !name.isRoot() && wcSigner == name) {
       LOG(" but this wildcard NSEC3 comes from the child zone and cannot be used to deny a DS");
       return false;
     }
