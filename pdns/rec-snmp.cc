@@ -131,6 +131,7 @@ static const oid aggressiveNSECCacheNSEC3HitsOID[] = { RECURSOR_STATS_OID, 110 }
 static const oid aggressiveNSECCacheNSECWCHitsOID[] = { RECURSOR_STATS_OID, 111 };
 static const oid aggressiveNSECCacheNSEC3WCHitsOID[] = { RECURSOR_STATS_OID, 112 };
 static const oid dotOutqueriesOID [] = { RECURSOR_STATS_OID, 113 };
+static const oid dns64PrefixAnswers [] = { RECURSOR_STATS_OID, 114 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -353,5 +354,6 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("aggressive-nsec-cache-nsec-wc-hits", aggressiveNSECCacheNSECWCHitsOID, OID_LENGTH(aggressiveNSECCacheNSECWCHitsOID));
   registerCounter64Stat("aggressive-nsec-cache-nsec-wc3-hits", aggressiveNSECCacheNSEC3WCHitsOID, OID_LENGTH(aggressiveNSECCacheNSEC3WCHitsOID));
   registerCounter64Stat("dot-outqueries", dotOutqueriesOID, OID_LENGTH(dotOutqueriesOID));
+  registerCounter64Stat("dns64-prefix-answers", dns64PrefixAnswers, OID_LENGTH(dns64PrefixAnswers));
 #endif /* HAVE_NET_SNMP */
 }
