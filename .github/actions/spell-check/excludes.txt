@@ -1,10 +1,15 @@
+# See https://github.com/check-spelling/check-spelling/wiki/Configuration-Examples:-excludes
 # want to include regression-tests.*/description
+(?:^|/)(?i)COPYRIGHT
+(?:^|/)(?i)LICEN[CS]E
 (?:^|/)ext/
 (?:^|/)go\.mod$
 (?:^|/)go\.sum$
 (?:^|/)m4/
+(?:^|/)package(?:-lock|)\.json$
 (?:^|/)package-lock\.json$
 (?:^|/)requirements\.txt$
+(?:^|/)vendor/
 /expected_result
 /test-base64_cc\.cc$
 /test-dnsrecords_cc\.cc$
@@ -12,6 +17,7 @@ ignore$
 SUMS$
 \.ai$
 \.asc$
+\.avi$
 \.bmp$
 \.cer$
 \.class$
@@ -37,8 +43,10 @@ SUMS$
 \.map$
 \.min\..
 \.mmdb$
+\.mod$
 \.mp3$
 \.mp4$
+\.mp[34]$
 \.nsec3(?:-optout|)$
 \.otf$
 \.pdf$
@@ -53,6 +61,7 @@ SUMS$
 \.tar$
 \.tgz$
 \.ttf$
+\.wav$
 \.woff
 \.xcf$
 \.xls
