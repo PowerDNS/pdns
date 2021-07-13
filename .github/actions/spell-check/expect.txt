@@ -1,5 +1,3 @@
-<<<<<<< HEAD
->>>>>>> c1c09a002 (Upgrade check-spelling to v0.0.18)
 aaaarecord
 aae
 aaldering
@@ -126,7 +124,6 @@ basedn
 basepath
 Bastiaan
 bayour
-bbbb
 bbc
 bbd
 bdd
@@ -1285,6 +1282,7 @@ progid
 protobuf
 protozero
 providername
+proxyprotocol
 proxyprotocolvalues
 pseudonymize
 pseudorecord
